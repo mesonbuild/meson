@@ -1538,6 +1538,7 @@ class Environment:
         return comp
 
     def detect_compiler_for(self, lang: str, for_machine: MachineChoice):
+        self.coredata.add_lang_args(lang, for_machine, self)
         comp = self.compiler_from_language(lang, for_machine)
         if comp is not None:
             assert comp.for_machine == for_machine

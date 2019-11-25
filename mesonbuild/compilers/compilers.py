@@ -795,106 +795,11 @@ class Compiler:
         """
         return []
 
-    def use_preproc_flags(self) -> bool:
-        """
-        Whether the compiler (or processes it spawns) cares about CPPFLAGS
-        """
-        return self.get_language() in {'c', 'cpp', 'objc', 'objcpp'}
-
-    def use_ldflags(self) -> bool:
-        """
-        Whether the compiler (or processes it spawns) cares about LDFLAGS
-        """
-        return self.get_language() in languages_using_ldflags
-
     def get_linker_args_from_envvars(self) -> typing.List[str]:
         return self.linker.get_args_from_envvars()
 
-    def get_args_from_envvars(self) -> typing.Tuple[typing.List[str], typing.List[str]]:
-        """
-        Returns a tuple of (compile_flags, link_flags) for the specified language
-        from the inherited environment
-        """
-        def log_var(var, val: typing.Optional[str]):
-            if val:
-                mlog.log('Appending {} from environment: {!r}'.format(var, val))
-            else:
-                mlog.debug('No {} in the environment, not changing global flags.'.format(var))
-
-        lang = self.get_language()
-        compiler_is_linker = self.linker is not None and self.linker.invoked_by_compiler()
-
-        if lang not in cflags_mapping:
-            return [], []
-
-        compile_flags = []  # type: typing.List[str]
-        link_flags = []     # type: typing.List[str]
-
-        env_compile_flags = os.environ.get(cflags_mapping[lang])
-        log_var(cflags_mapping[lang], env_compile_flags)
-        if env_compile_flags is not None:
-            compile_flags += split_args(env_compile_flags)
-
-        # Link flags (same for all languages)
-        if self.use_ldflags():
-            env_link_flags = self.get_linker_args_from_envvars()
-        else:
-            env_link_flags = []
-        log_var('LDFLAGS', env_link_flags)
-        link_flags += env_link_flags
-        if compiler_is_linker:
-            # When the compiler is used as a wrapper around the linker (such as
-            # with GCC and Clang), the compile flags can be needed while linking
-            # too. This is also what Autotools does. However, we don't want to do
-            # this when the linker is stand-alone such as with MSVC C/C++, etc.
-            link_flags = compile_flags + link_flags
-
-        # Pre-processor flags for certain languages
-        if self.use_preproc_flags():
-            env_preproc_flags = os.environ.get('CPPFLAGS')
-            log_var('CPPFLAGS', env_preproc_flags)
-            if env_preproc_flags is not None:
-                compile_flags += split_args(env_preproc_flags)
-
-        return compile_flags, link_flags
-
-    def get_options(self):
-        opts = {} # build afresh every time
-        description = 'Extra arguments passed to the {}'.format(self.get_display_language())
-        opts.update({
-            self.language + '_args': coredata.UserArrayOption(
-                description + ' compiler',
-                [], split_args=True, user_input=True, allow_dups=True),
-            self.language + '_link_args': coredata.UserArrayOption(
-                description + ' linker',
-                [], split_args=True, user_input=True, allow_dups=True),
-        })
-
-        return opts
-
-    def get_and_default_options(self, properties: Properties):
-        """
-        Take default values from env variables and/or config files.
-        """
-        opts = self.get_options()
-
-        if properties.fallback:
-            # Get from env vars.
-            compile_args, link_args = self.get_args_from_envvars()
-        else:
-            compile_args = []
-            link_args = []
-
-        for k, o in opts.items():
-            if k in properties:
-                # Get from configuration files.
-                o.set_value(properties[k])
-            elif k == self.language + '_args':
-                o.set_value(compile_args)
-            elif k == self.language + '_link_args':
-                o.set_value(link_args)
-
-        return opts
+    def get_options(self) -> typing.Dict[str, coredata.UserOption]:
+        return {}
 
     def get_option_compile_args(self, options):
         return []
@@ -1220,3 +1125,83 @@ def get_largefile_args(compiler):
         # transitionary features and must be enabled by programs that use
         # those features explicitly.
     return []
+
+
+def get_args_from_envvars(lang: str, use_linker_args: bool) -> typing.Tuple[typing.List[str], typing.List[str]]:
+    """
+    Returns a tuple of (compile_flags, link_flags) for the specified language
+    from the inherited environment
+    """
+    def log_var(var, val: typing.Optional[str]):
+        if val:
+            mlog.log('Appending {} from environment: {!r}'.format(var, val))
+        else:
+            mlog.debug('No {} in the environment, not changing global flags.'.format(var))
+
+    if lang not in cflags_mapping:
+        return [], []
+
+    compile_flags = []  # type: typing.List[str]
+    link_flags = []     # type: typing.List[str]
+
+    env_compile_flags = os.environ.get(cflags_mapping[lang])
+    log_var(cflags_mapping[lang], env_compile_flags)
+    if env_compile_flags is not None:
+        compile_flags += split_args(env_compile_flags)
+
+    # Link flags (same for all languages)
+    if lang in languages_using_ldflags:
+        # This is duplicated between the linkers, but I'm not sure how else
+        # to handle this
+        env_link_flags = split_args(os.environ.get('LDFLAGS', ''))
+    else:
+        env_link_flags = []
+    log_var('LDFLAGS', env_link_flags)
+    link_flags += env_link_flags
+    if use_linker_args:
+        # When the compiler is used as a wrapper around the linker (such as
+        # with GCC and Clang), the compile flags can be needed while linking
+        # too. This is also what Autotools does. However, we don't want to do
+        # this when the linker is stand-alone such as with MSVC C/C++, etc.
+        link_flags = compile_flags + link_flags
+
+    # Pre-processor flags for certain languages
+    if lang in {'c', 'cpp', 'objc', 'objcpp'}:
+        env_preproc_flags = os.environ.get('CPPFLAGS')
+        log_var('CPPFLAGS', env_preproc_flags)
+        if env_preproc_flags is not None:
+            compile_flags += split_args(env_preproc_flags)
+
+    return compile_flags, link_flags
+
+
+def get_global_options(lang: str, properties: Properties) -> typing.Dict[str, coredata.UserOption]:
+    """Retreive options that apply to all compilers for a given language."""
+    description = 'Extra arguments passed to the {}'.format(lang)
+    opts = {
+        lang + '_args': coredata.UserArrayOption(
+            description + ' compiler',
+            [], split_args=True, user_input=True, allow_dups=True),
+        lang + '_link_args': coredata.UserArrayOption(
+            description + ' linker',
+            [], split_args=True, user_input=True, allow_dups=True),
+    }
+
+    if properties.fallback:
+        # Get from env vars.
+        # XXX: True here is a hack
+        compile_args, link_args = get_args_from_envvars(lang, True)
+    else:
+        compile_args = []
+        link_args = []
+
+    for k, o in opts.items():
+        if k in properties:
+            # Get from configuration files.
+            o.set_value(properties[k])
+        elif k == lang + '_args':
+            o.set_value(compile_args)
+        elif k == lang + '_link_args':
+            o.set_value(link_args)
+
+    return opts
