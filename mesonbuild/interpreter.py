@@ -3072,10 +3072,24 @@ external dependencies (including libraries) must go to "dependencies".''')
     def notfound_dependency(self):
         return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
 
-    def get_subproject_dep(self, display_name, dirname, varname, kwargs):
+    def get_subproject_dep(self, name, display_name, dirname, varname, kwargs):
+        required = kwargs.get('required', True)
+        wanted = mesonlib.stringlistify(kwargs.get('version', []))
+        subproj_path = os.path.join(self.subproject_dir, dirname)
         dep = self.notfound_dependency()
         try:
             subproject = self.subprojects[dirname]
+            if varname is None:
+                # Assuming the subproject overriden the dependency we want
+                _, cached_dep = self._find_cached_dep(name, kwargs)
+                if cached_dep:
+                    if required and not cached_dep.found():
+                        m = 'Dependency {!r} is not satisfied'
+                        raise DependencyException(m.format(display_name))
+                    return DependencyHolder(cached_dep, self.subproject)
+                else:
+                    m = 'Subproject {} did not override dependency {}'
+                    raise DependencyException(m.format(subproj_path, display_name))
             if subproject.found():
                 dep = self.subprojects[dirname].get_variable_method([varname], {})
         except InvalidArguments:
@@ -3084,10 +3098,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, dirname))
-
-        required = kwargs.get('required', True)
-        wanted = mesonlib.stringlistify(kwargs.get('version', []))
-        subproj_path = os.path.join(self.subproject_dir, dirname)
 
         if not dep.found():
             if required:
@@ -3191,7 +3201,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if has_fallback:
             dirname, varname = self.get_subproject_infos(kwargs)
             if dirname in self.subprojects:
-                return self.get_subproject_dep(name, dirname, varname, kwargs)
+                return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
         forcefallback = wrap_mode == WrapMode.forcefallback and has_fallback
@@ -3211,7 +3221,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return DependencyHolder(dep, self.subproject)
 
         if has_fallback:
-            return self.dependency_fallback(display_name, kwargs)
+            return self.dependency_fallback(name, display_name, kwargs)
 
         return self.notfound_dependency()
 
@@ -3239,13 +3249,15 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.warning(*message, location=self.current_node)
 
     def get_subproject_infos(self, kwargs):
-        fbinfo = kwargs['fallback']
-        check_stringlist(fbinfo)
-        if len(fbinfo) != 2:
-            raise InterpreterException('Fallback info must have exactly two items.')
+        fbinfo = mesonlib.stringlistify(kwargs['fallback'])
+        if len(fbinfo) == 1:
+            FeatureNew('Fallback without variable name', '0.53.0').use(self.subproject)
+            return fbinfo[0], None
+        elif len(fbinfo) != 2:
+            raise InterpreterException('Fallback info must have one or two items.')
         return fbinfo
 
-    def dependency_fallback(self, display_name, kwargs):
+    def dependency_fallback(self, name, display_name, kwargs):
         if self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback'
@@ -3263,7 +3275,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             'required': kwargs.get('required', True),
         }
         self.do_subproject(dirname, 'meson', sp_kwargs)
-        return self.get_subproject_dep(display_name, dirname, varname, kwargs)
+        return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @permittedKwargs(permitted_kwargs['executable'])

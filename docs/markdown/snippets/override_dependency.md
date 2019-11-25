@@ -51,3 +51,9 @@ bar_dep = dependency('bar')
 
 This used to mix system 1.0 version and subproject 2.0 dependencies, but thanks
 to the override `bar_dep` is now set to the subproject's version instead.
+
+## Simplified `dependency()` fallback
+
+In the case a subproject `foo` calls `meson.override_dependency('foo-2.0', foo_dep)`,
+the parent project can omit the dependency variable name in fallback keyword
+argument: `dependency('foo-2.0', fallback : 'foo')`.

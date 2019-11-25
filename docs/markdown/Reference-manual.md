@@ -439,6 +439,10 @@ arguments:
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
   case the value of the `required:` kwarg will be obeyed.
+  *Since 0.53.0* `'subproj_dep'` argument can be omitted in the case the
+  subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
+  In that case, the `fallback` keyword argument can be a single string instead
+  of a list of 2 strings.
 - `language` *(added 0.42.0)* defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method` defines the way the dependency is detected, the default is
