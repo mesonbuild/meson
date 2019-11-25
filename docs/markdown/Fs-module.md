@@ -68,6 +68,8 @@ fs.samefile(x, z)  # true
 
 ## Filename modification
 
+The files need not actually exist yet for this method, as it's just string manipulation.
+
 ### replace_suffix
 
 The `replace_suffix` method is a *string manipulation* convenient for filename modifications.
@@ -101,4 +103,10 @@ original = '/opt/foo.dll.a'
 new = fs.replace_suffix(original, '')  # /opt/foo.dll
 ```
 
-The files need not actually exist yet for this method, as it's just string manipulation.
+### parent
+
+Returns the parent directory (i.e. dirname).
+
+### name
+
+Returns the last component of the path (i.e. basename).

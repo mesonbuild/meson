@@ -69,4 +69,7 @@ if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.samefile('a_symlink', 'meson.build'), 'symlink samefile fail')
 endif
 
+assert(fs.parent('foo/bar') == 'foo', 'failed to get dirname')
+assert(fs.name('foo/bar') == 'bar', 'failed to get basename')
+
 subdir('subdir')
