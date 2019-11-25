@@ -141,14 +141,15 @@ class FortranCompiler(CLikeCompiler, Compiler):
         return filename
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
-        code = '''stop; end program'''
+        code = 'stop; end program'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
-    def has_multi_arguments(self, args, env):
+    def has_multi_arguments(self, args: T.Sequence[str], env):
         for arg in args[:]:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
             # check the equivalent enable flag too "-Wforgotten-towel"
+            # GCC does error for "-fno-foobar"
             if arg.startswith('-Wno-'):
                 args.append('-W' + arg[5:])
             if arg.startswith('-Wl,'):
@@ -196,16 +197,16 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
             args.append('-std=' + std.value)
         return args
 
-    def get_dependency_gen_args(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget, outfile) -> T.List[str]:
         # Disabled until this is fixed:
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62162
         # return ['-cpp', '-MD', '-MQ', outtarget]
         return []
 
-    def get_module_outdir_args(self, path):
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-J' + path]
 
-    def language_stdlib_only_link_flags(self):
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lgfortran', '-lm']
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
@@ -232,7 +233,7 @@ class G95FortranCompiler(FortranCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-pedantic']}
 
-    def get_module_outdir_args(self, path):
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-fmod=' + path]
 
     def get_no_warn_args(self):
@@ -250,7 +251,7 @@ class SunFortranCompiler(FortranCompiler):
         FortranCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
         self.id = 'sun'
 
-    def get_dependency_gen_args(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget, outfile) -> T.List[str]:
         return ['-fpp']
 
     def get_always_args(self):
@@ -262,10 +263,10 @@ class SunFortranCompiler(FortranCompiler):
     def get_module_incdir_args(self):
         return ('-M', )
 
-    def get_module_outdir_args(self, path):
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-moddir=' + path]
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> T.List[str]:
         return ['-xopenmp']
 
 
@@ -303,7 +304,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
             args.append('-stand=' + stds[std.value])
         return args
 
-    def get_preprocess_only_args(self):
+    def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp', '-EP']
 
     def get_always_args(self):
@@ -312,7 +313,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         val.remove('-pipe')
         return val
 
-    def language_stdlib_only_link_flags(self):
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lifcore', '-limf']
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
@@ -370,7 +371,7 @@ class PathScaleFortranCompiler(FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 
 
@@ -422,7 +423,7 @@ class Open64FortranCompiler(FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 
 
@@ -437,8 +438,8 @@ class NAGFortranCompiler(FortranCompiler):
     def get_warn_args(self, level):
         return []
 
-    def get_module_outdir_args(self, path):
+    def get_module_outdir_args(self, path) -> T.List[str]:
         return ['-mdir', path]
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> T.List[str]:
         return ['-openmp']
