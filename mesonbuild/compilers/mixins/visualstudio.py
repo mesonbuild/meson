@@ -111,6 +111,8 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         '3': ['/W4'],
     }  # type: typing.Dict[str, typing.List[str]]
 
+    INVOKES_LINKER = False
+
     def __init__(self, target: str):
         self.base_options = ['b_pch', 'b_ndebug', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.target = target

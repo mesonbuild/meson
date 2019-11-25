@@ -735,6 +735,8 @@ class Environment:
     def _guess_win_linker(self, compiler: typing.List[str], comp_class: Compiler,
                           for_machine: MachineChoice, *,
                           use_linker_prefix: bool = True) -> 'DynamicLinker':
+        self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
+
         # Explicitly pass logo here so that we can get the version of link.exe
         if not use_linker_prefix or comp_class.LINKER_PREFIX is None:
             check_args = ['/logo', '--version']
@@ -742,6 +744,8 @@ class Environment:
             check_args = [comp_class.LINKER_PREFIX + '/logo', comp_class.LINKER_PREFIX + '--version']
         elif isinstance(comp_class.LINKER_PREFIX, list):
             check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
+
+        check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         override = []  # type: typing.List[str]
         value = self.binaries[for_machine].lookup_entry('ld')
@@ -797,7 +801,9 @@ class Environment:
         :for_machine: which machine this linker targets
         :extra_args: Any additional arguments required (such as a source file)
         """
+        self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
         extra_args = typing.cast(typing.List[str], extra_args or [])
+        extra_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
             check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args
@@ -1287,7 +1293,9 @@ class Environment:
                 parts = (err if 'javac' in err else out).split()
                 if len(parts) > 1:
                     version = parts[1]
-            return JavaCompiler(exelist, version, for_machine, info)
+            comp_class = JavaCompiler
+            self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
+            return comp_class(exelist, version, for_machine, info)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_cs_compiler(self, for_machine):
@@ -1308,6 +1316,7 @@ class Environment:
                 cls = MonoCompiler
             elif "Visual C#" in out:
                 cls = VisualStudioCsCompiler
+            self.coredata.add_lang_args(cls.language, cls, for_machine, self)
             return cls(comp, version, for_machine, info)
 
         self._handle_exceptions(popen_exceptions, compilers)
@@ -1326,7 +1335,9 @@ class Environment:
             raise EnvironmentException('Could not execute Vala compiler "%s"' % ' '.join(exelist))
         version = search_version(out)
         if 'Vala' in out:
-            return ValaCompiler(exelist, version, for_machine, info, is_cross)
+            comp_class = ValaCompiler
+            self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
+            return comp_class(exelist, version, for_machine, info, is_cross)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_rust_compiler(self, for_machine):
@@ -1538,7 +1549,6 @@ class Environment:
         return comp
 
     def detect_compiler_for(self, lang: str, for_machine: MachineChoice):
-        self.coredata.add_lang_args(lang, for_machine, self)
         comp = self.compiler_from_language(lang, for_machine)
         if comp is not None:
             assert comp.for_machine == for_machine

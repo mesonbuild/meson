@@ -681,6 +681,7 @@ class Compiler:
     internal_libs = ()
 
     LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
+    INVOKES_LINKER = True
 
     def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
                  linker: typing.Optional['DynamicLinker'] = None, **kwargs):
@@ -1175,7 +1176,8 @@ def get_args_from_envvars(lang: str, use_linker_args: bool) -> typing.Tuple[typi
     return compile_flags, link_flags
 
 
-def get_global_options(lang: str, properties: Properties) -> typing.Dict[str, coredata.UserOption]:
+def get_global_options(lang: str, comp: typing.Type[Compiler],
+                       properties: Properties) -> typing.Dict[str, coredata.UserOption]:
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     opts = {
@@ -1190,7 +1192,7 @@ def get_global_options(lang: str, properties: Properties) -> typing.Dict[str, co
     if properties.fallback:
         # Get from env vars.
         # XXX: True here is a hack
-        compile_args, link_args = get_args_from_envvars(lang, True)
+        compile_args, link_args = get_args_from_envvars(lang, comp.INVOKES_LINKER)
     else:
         compile_args = []
         link_args = []
