@@ -1,4 +1,4 @@
-# Copyright 2012-2018 The Meson development team
+# Copyright 2012-2019 The Meson development team
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -1621,14 +1621,14 @@ class CompilerHolder(InterpreterObject):
         return ExternalLibraryHolder(lib, self.subproject)
 
     @permittedKwargs({})
-    def has_argument_method(self, args, kwargs):
+    def has_argument_method(self, args: T.Sequence[str], kwargs) -> bool:
         args = mesonlib.stringlistify(args)
         if len(args) != 1:
             raise InterpreterException('has_argument takes exactly one argument.')
         return self.has_multi_arguments_method(args, kwargs)
 
     @permittedKwargs({})
-    def has_multi_arguments_method(self, args, kwargs):
+    def has_multi_arguments_method(self, args: T.Sequence[str], kwargs: dict):
         args = mesonlib.stringlistify(args)
         result, cached = self.compiler.has_multi_arguments(args, self.environment)
         if result:
@@ -1653,11 +1653,11 @@ class CompilerHolder(InterpreterObject):
         return supported_args
 
     @permittedKwargs({})
-    def first_supported_argument_method(self, args, kwargs):
-        for i in mesonlib.stringlistify(args):
-            if self.has_argument_method(i, kwargs):
-                mlog.log('First supported argument:', mlog.bold(i))
-                return [i]
+    def first_supported_argument_method(self, args: T.Sequence[str], kwargs: dict) -> T.List[str]:
+        for arg in mesonlib.stringlistify(args):
+            if self.has_argument_method(arg, kwargs):
+                mlog.log('First supported argument:', mlog.bold(arg))
+                return [arg]
         mlog.log('First supported argument:', mlog.red('None'))
         return []
 
@@ -3601,7 +3601,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
-            FeatureNew('T.Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
+            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
