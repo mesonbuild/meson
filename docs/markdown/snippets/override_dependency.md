@@ -57,3 +57,9 @@ If the subproject does `dependency('foo')` but the main project wants to provide
 its own implementation of `foo`, it can for example call
 `meson.override_dependency('foo', declare_dependency(...))` before configuring the
 subproject.
+
+## Simplified `dependency()` fallback
+
+In the case a subproject `foo` calls `meson.override_dependency('foo-2.0', foo_dep)`,
+the parent project can omit the dependency variable name in fallback keyword
+argument: `dependency('foo-2.0', fallback : 'foo')`.

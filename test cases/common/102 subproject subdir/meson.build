@@ -17,3 +17,7 @@ assert(not d.found(), 'version should not match')
 dependency('sub2', required : false)
 d = dependency('sub2', fallback: ['sub', 'libSub'])
 assert(d.found(), 'Should fallback even if a previous call returned not-found')
+
+# Verify we can get a fallback dependency without specifying the variable name,
+# because the subproject overridden 'sub-novar'.
+dependency('sub-novar', fallback : 'sub_novar')

@@ -3981,10 +3981,16 @@ recommended as it is not supported on some platforms''')
                     'descriptive_name': 'sub',
                     'name': 'sub',
                     'version': '1.0'
-                }
+                },
+                {
+                    'descriptive_name': 'sub-novar',
+                    'name': 'sub_novar',
+                    'version': '1.0',
+                },
             ]
         }
-        self.assertDictEqual(res, expected)
+        res['subprojects'] = sorted(res['subprojects'], key=lambda i: i['name'])
+        self.assertDictEqual(expected, res)
 
     def test_introspection_target_subproject(self):
         testdir = os.path.join(self.common_test_dir, '45 subproject')
