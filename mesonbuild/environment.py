@@ -781,6 +781,11 @@ class Environment:
                 for_machine, [], machine=target, exelist=compiler,
                 prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
                 version=search_version(out))
+        elif 'GNU coreutils' in o:
+            raise EnvironmentException(
+                "Found GNU link.exe instead of MSVC link.exe. This link.exe "
+                "is not a linker. You may need to reorder entries to your "
+                "%PATH% variable to resolve this.")
         raise EnvironmentException('Unable to determine dynamic linker')
 
     def _guess_nix_linker(self, compiler: typing.List[str], comp_class: typing.Type[Compiler],
