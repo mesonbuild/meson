@@ -1418,8 +1418,7 @@ class Environment:
 
             if 'LLVM D compiler' in out:
                 # LDC seems to require a file
-                m = self.machines[for_machine]
-                if m.is_windows() or m.is_cygwin():
+                if info.is_windows() or info.is_cygwin():
                     # Getting LDC on windows to give useful linker output when
                     # not doing real work is painfully hard. It ships with a
                     # version of lld-link, so unless we think the user wants
@@ -1443,8 +1442,7 @@ class Environment:
                     full_version=full_version, linker=linker)
             elif 'The D Language Foundation' in out or 'Digital Mars' in out:
                 # DMD seems to require a file
-                m = self.machines[for_machine]
-                if m.is_windows() or m.is_cygwin():
+                if info.is_windows() or info.is_cygwin():
                     if is_msvc:
                         linker_cmd = ['link']
                     elif arch == 'x86':
