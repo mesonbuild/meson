@@ -34,5 +34,5 @@ malformed = [
 
 foreach m : malformed
   assert(m[0].endswith(m[1]), 'bad escape sequence had unexpected end')
-  assert(m[0].startswith('\\'), 'bad escape sequence had unexpected start')
+  assert(m[0].startswith('''\'''), 'bad escape sequence had unexpected start')
 endforeach
