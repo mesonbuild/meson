@@ -3,6 +3,10 @@
 
 #if QT_VERSION > 0x050000
 // include some random private headers
+// As you're not supposed to use it, your system may miss
+// qobject_p.h. To locate it try one of these commands:
+//  - dnf provides */private/qobject_p.h
+//  - apt-file search qobject_p.h
     #include <private/qobject_p.h>
 #endif
 
