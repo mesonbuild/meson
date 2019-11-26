@@ -45,6 +45,9 @@ except ImportError:
 
 req_timeout = 600.0
 ssl_warning_printed = False
+whitelist_domain = 'https://wrapdb.mesonbuild.com/'
+whitelist_domain_nossl = 'http://wrapdb.mesonbuild.com/'
+masquerade_str = 'wrapdb.mesonbuild.com'
 
 
 def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]:
@@ -59,24 +62,26 @@ def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]
 
 def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
     global ssl_warning_printed
+
     if has_ssl:
+        if not urlstring.startswith(whitelist_domain):
+            raise WrapException('{} is not a whitelisted URL'.format(urlstring))
         try:
             return urllib.request.urlopen(urlstring, timeout=req_timeout)
-        except urllib.error.URLError:
-            if not ssl_warning_printed:
-                print('SSL connection failed. Falling back to unencrypted connections.', file=sys.stderr)
-                ssl_warning_printed = True
+        except urllib.error.URLError as excp:
+            raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
+
+    # following code is only for those without Python SSL
+    nossl_urlstring = urlstring.replace('https://', 'http://')
+    if not nossl_urlstring.startswith(whitelist_domain_nossl):
+        raise WrapException('{} is not a whitelisted URL'.format(nossl_urlstring))
     if not ssl_warning_printed:
-        print('Warning: SSL not available, traffic not authenticated.', file=sys.stderr)
+        mlog.warning('SSL module not available in {}: WrapDB traffic not authenticated.'.format(sys.executable))
         ssl_warning_printed = True
-    # Trying to open SSL connection to wrapdb fails because the
-    # certificate is not known.
-    if urlstring.startswith('https'):
-        urlstring = 'http' + urlstring[5:]
     try:
-        return urllib.request.urlopen(urlstring, timeout=req_timeout)
-    except urllib.error.URLError:
-        raise WrapException('failed to get {} is the internet available?'.format(urlstring))
+        return urllib.request.urlopen(nossl_urlstring, timeout=req_timeout)
+    except urllib.error.URLError as excp:
+        raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
 
 class WrapException(MesonException):
@@ -309,6 +314,8 @@ class Resolver:
         hostname = urllib.parse.urlparse(url).hostname
         if hostname == 'wrapdb.mesonbuild.com' or hostname.endswith('.wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
+        elif masquerade_str in url:
+            raise WrapException('{} may be a WrapDB-impersonating URL'.format(url))
         else:
             try:
                 resp = urllib.request.urlopen(url, timeout=req_timeout)
