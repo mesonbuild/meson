@@ -1339,10 +1339,11 @@ class Environment:
         info = self.machines[for_machine]
 
         # Detect the target architecture, required for proper architecture handling on Windows.
-        c_compiler = {}
-        is_msvc = mesonlib.is_windows() and 'VCINSTALLDIR' in os.environ
-        if is_msvc:
-            c_compiler = {'c': self.detect_c_compiler(for_machine)} # MSVC compiler is required for correct platform detection.
+        # MSVC compiler is required for correct platform detection.
+        c_compiler = {'c': self.detect_c_compiler(for_machine)}
+        is_msvc = isinstance(c_compiler['c'], VisualStudioCCompiler)
+        if not is_msvc:
+            c_compiler = {}
 
         arch = detect_cpu_family(c_compiler)
         if is_msvc and arch == 'x86':
