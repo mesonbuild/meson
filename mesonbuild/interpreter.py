@@ -22,6 +22,7 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep
+from .mesonlib import node_to_location_string
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -1932,17 +1933,19 @@ class MesonMain(InterpreterObject):
         name = args[0]
         dep = args[1]
         if not isinstance(name, str) or not name:
-            raise InterpreterException('First argument must be not empty string')
+            raise InterpreterException('First argument must be a string and cannot be empty')
         if hasattr(dep, 'held_object'):
             dep = dep.held_object
         if not isinstance(dep, dependencies.Dependency):
             raise InterpreterException('Second argument must be a dependency object')
         identifier = dependencies.get_dep_identifier(name, kwargs)
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
-        if identifier in self.build.dependency_overrides[for_machine]:
-            raise InterpreterException('Tried to override dependency "%s" which has already been overridden.'
-                                       % name)
-        self.build.dependency_overrides[for_machine][identifier] = dep
+        override = self.build.dependency_overrides[for_machine].get(identifier)
+        if override:
+            m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
+            raise InterpreterException(m.format(name, node_to_location_string(override.node)))
+        self.build.dependency_overrides[for_machine][identifier] = \
+            build.DependencyOverride(dep, self.interpreter.current_node)
 
     @noPosargs
     @permittedKwargs({})
@@ -3034,14 +3037,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         identifier = dependencies.get_dep_identifier(name, kwargs)
         wanted_vers = mesonlib.stringlistify(kwargs.get('version', []))
 
-        cached_dep = self.build.dependency_overrides[for_machine].get(identifier)
-        if cached_dep:
+        override = self.build.dependency_overrides[for_machine].get(identifier)
+        if override:
+            info = [mlog.blue('(overridden)' if override.explicit else '(cached)')]
+            cached_dep = override.dep
             # We don't implicitly override not-found dependencies, but user could
             # have explicitly called meson.override_dependency() with a not-found
             # dep.
             if not cached_dep.found():
                 mlog.log('Dependency', mlog.bold(name),
-                         'found:', mlog.red('NO'), mlog.blue('(cached)'))
+                         'found:', mlog.red('NO'), *info)
                 return identifier, cached_dep
             found_vers = cached_dep.get_version()
             if not self.check_version(wanted_vers, found_vers):
@@ -3049,9 +3054,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                          'found:', mlog.red('NO'),
                          'found', mlog.normal_cyan(found_vers), 'but need:',
                          mlog.bold(', '.join(["'{}'".format(e) for e in wanted_vers])),
-                         mlog.blue('(cached)'))
+                         *info)
                 return identifier, NotFoundDependency(self.environment)
         else:
+            info = [mlog.blue('(cached)')]
             cached_dep = self.coredata.deps[for_machine].get(identifier)
             if cached_dep:
                 found_vers = cached_dep.get_version()
@@ -3059,7 +3065,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                     return identifier, None
 
         if cached_dep:
-            info = [mlog.blue('(cached)')]
             if found_vers:
                 info = [mlog.normal_cyan(found_vers), *info]
             mlog.log('Dependency', mlog.bold(name),
@@ -3174,7 +3179,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             for_machine = self.machine_from_native_kwarg(kwargs)
             identifier = dependencies.get_dep_identifier(name, kwargs)
             if identifier not in self.build.dependency_overrides[for_machine]:
-                self.build.dependency_overrides[for_machine][identifier] = d.held_object
+                self.build.dependency_overrides[for_machine][identifier] = \
+                    build.DependencyOverride(d.held_object, node, explicit=False)
         return d
 
     def dependency_impl(self, name, display_name, kwargs):

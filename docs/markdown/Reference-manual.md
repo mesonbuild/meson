@@ -1725,7 +1725,10 @@ the following methods.
   0.53.0)*](Release-notes-for-0.50.0.md#can-override-dependency)
   specifies that whenever `dependency(name, ...)` is used, Meson should not
   look it up on the system but instead return `dep_object`, which may either be
-  the result of `dependency()` or `declare_dependency()`.
+  the result of `dependency()` or `declare_dependency()`. It takes optional
+  `native` keyword arguments. Doing this in a subproject allows the parent
+  project to retrieve the dependency without having to know the dependency
+  variable name: `dependency(name, fallback : subproject_name)`.
 
 - `project_version()` returns the version string specified in
   `project` function call.

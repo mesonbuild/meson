@@ -1327,6 +1327,11 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
 def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
 
+def node_to_location_string(node) -> str:
+    from .environment import build_filename
+    location_file = os.path.join(node.subdir, build_filename)
+    return get_error_location_string(location_file, node.lineno)
+
 def substring_is_in_list(substr: str, strlist: typing.List[str]) -> bool:
     for s in strlist:
         if substr in s:
