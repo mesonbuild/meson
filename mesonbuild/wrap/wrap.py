@@ -46,6 +46,7 @@ except ImportError:
 req_timeout = 600.0
 ssl_warning_printed = False
 
+
 def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]:
     try:
         pc = subprocess.run(['git', '-C', workingdir] + cmd, universal_newlines=True,
@@ -60,7 +61,7 @@ def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
     global ssl_warning_printed
     if has_ssl:
         try:
-            return urllib.request.urlopen(urlstring, timeout=req_timeout)  # , context=ssl.create_default_context())
+            return urllib.request.urlopen(urlstring, timeout=req_timeout)
         except urllib.error.URLError:
             if not ssl_warning_printed:
                 print('SSL connection failed. Falling back to unencrypted connections.', file=sys.stderr)
