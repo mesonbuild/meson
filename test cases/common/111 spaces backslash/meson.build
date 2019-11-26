@@ -16,13 +16,13 @@ endif
 # Path can contain \. Here we're sending `"foo\bar"`.
 test('backslash quoting',
      executable('comparer', 'comparer.c',
-                c_args : default_c_args + ['-DDEF_WITH_BACKSLASH="foo\\bar"']))
+                c_args : default_c_args + ['''-DDEF_WITH_BACKSLASH="foo\\bar"''']))
 # Path can end in \ without any special quoting. Here we send `"foo\bar\"`.
 test('backslash end quoting',
      executable('comparer-end', 'comparer-end.c',
-                c_args : default_c_args + ['-DDEF_WITH_BACKSLASH="foo\\bar\\"']))
+                c_args : default_c_args + ['''-DDEF_WITH_BACKSLASH="foo\\bar\\"''']))
 # Path can (really) end in \ if we're not passing a string literal without any
 # special quoting. Here we're sending `foo\bar\`.
 test('backslash end quoting when not a string literal',
      executable('comparer-end-notstring', 'comparer-end-notstring.c',
-                c_args : default_c_args + ['-DDEF_WITH_BACKSLASH=foo\\bar\\']))
+                c_args : default_c_args + ['''-DDEF_WITH_BACKSLASH=foo\\bar\\''']))
