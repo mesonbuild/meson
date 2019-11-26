@@ -125,7 +125,8 @@ in problematic cases.
 The tests are split into two different parts: unit tests and full
 project tests. To run all tests, execute `./run_tests.py`. Unit tests
 can be run with `./run_unittests.py` and project tests with
-`./run_project_tests.py`.
+`./run_project_tests.py`. To run a single suite you can `cd 'test cases'`
+and `../run_project_tests.py --only fortran`.
 
 Each project test is a standalone project that can be compiled on its
 own. They are all in `test cases` subdirectory. The simplest way to
