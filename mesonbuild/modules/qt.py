@@ -206,6 +206,9 @@ class QtBaseModule(ExtensionModule):
         self._detect_tools(state.environment, kwargs.get('method', 'auto'))
         translations = []
         for ts in ts_files:
+            if not self.lrelease.found():
+                raise MesonException('qt.compile_translations: ' +
+                                     self.lrelease.name + ' not found')
             cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
