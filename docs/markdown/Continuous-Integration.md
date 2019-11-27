@@ -73,7 +73,7 @@ jobs:
     executor: meson_ubuntu_builder
     steps:
       - checkout
-      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: meson setup builddir --backend ninja
       - run: ninja -C builddir
       - run: meson test -C builddir
 
@@ -81,7 +81,7 @@ jobs:
     executor: meson_debain_builder
     steps:
       - checkout
-      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: meson setup builddir --backend ninja
       - run: ninja -C builddir
       - run: meson test -C builddir
 
@@ -89,7 +89,7 @@ jobs:
     executor: meson_fedora_builder
     steps:
       - checkout
-      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: meson setup builddir --backend ninja
       - run: ninja -C builddir
       - run: meson test -C builddir
 
