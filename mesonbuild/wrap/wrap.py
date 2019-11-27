@@ -239,7 +239,11 @@ class Resolver:
 
     def get_git(self) -> None:
         revno = self.wrap.get('revision')
-        is_shallow = self.wrap.values.get('depth', '') != ''
+        is_shallow = False
+        depth_option = []    # type: typing.List[str]
+        if self.wrap.values.get('depth', '') != '':
+            is_shallow = True
+            depth_option = ['--depth', self.wrap.values.get('depth')]
         # for some reason git only allows commit ids to be shallowly fetched by fetch not with clone
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
@@ -248,12 +252,12 @@ class Resolver:
             subprocess.check_call(['git', 'remote', 'add', 'origin', self.wrap.get('url')],
                                   cwd=self.dirname)
             revno = self.wrap.get('revision')
-            subprocess.check_call(['git', 'fetch', '--depth', self.wrap.values.get('depth'), 'origin', revno],
+            subprocess.check_call(['git', 'fetch', *depth_option, 'origin', revno],
                                   cwd=self.dirname)
             subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
                 subprocess.check_call(['git', 'submodule', 'update',
-                                       '--init', '--checkout', '--recursive', '--depth', self.wrap.values.get('depth')],
+                                       '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
@@ -269,13 +273,13 @@ class Resolver:
                         subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
                         subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
             else:
-                subprocess.check_call(['git', 'clone', '--depth', self.wrap.values.get('depth'),
+                subprocess.check_call(['git', 'clone', *depth_option,
                                        '--branch', revno,
                                        self.wrap.get('url'),
                                        self.directory], cwd=self.subdir_root)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
                 subprocess.check_call(['git', 'submodule', 'update',
-                                       '--init', '--checkout', '--recursive', '--depth', self.wrap.values.get('depth')],
+                                       '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
