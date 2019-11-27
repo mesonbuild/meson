@@ -174,11 +174,17 @@ def foreach(wrap, repo_dir, options):
         mlog.log('  -> Not downloaded yet')
         return
     try:
-        subprocess.check_call([options.command] + options.args, cwd=repo_dir)
-        mlog.log('')
+        out = subprocess.check_output([options.command] + options.args,
+                                      stderr=subprocess.STDOUT,
+                                      cwd=repo_dir).decode()
+        mlog.log(out, end='')
     except subprocess.CalledProcessError as e:
-        out = e.output.decode().strip()
-        mlog.log('  -> ', mlog.red(out))
+        err_message = "Command '%s' returned non-zero exit status %d." % (" ".join(e.cmd), e.returncode)
+        out = e.output.decode()
+        mlog.log('  -> ', mlog.red(err_message))
+        mlog.log(out, end='')
+    except Exception as e:
+        mlog.log('  -> ', mlog.red(str(e)))
 
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
