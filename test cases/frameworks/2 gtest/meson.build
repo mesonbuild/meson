@@ -1,3 +1,4 @@
+# on Ubuntu this test requires libgtest-dev
 project('gtest', 'cpp')
 
 gtest = dependency('gtest', main : true, required : false)

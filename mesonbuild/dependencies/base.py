@@ -1037,7 +1037,23 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: Environment, kwargs, language=None):
+    def __init__(self, name: str, environment: Environment, kwargs, language: str = None):
+        if language is None:
+            if kwargs.get('native', False):
+                if 'c' in environment.coredata.compilers.build.keys():
+                    language = 'c'
+                elif 'cpp' in environment.coredata.compilers.build.keys():
+                    language = 'cpp'
+                elif 'fortran' in environment.coredata.compilers.build.keys():
+                    language = 'fortran'
+            else:
+                if 'c' in environment.coredata.compilers.host.keys():
+                    language = 'c'
+                elif 'cpp' in environment.coredata.compilers.host.keys():
+                    language = 'cpp'
+                elif 'fortran' in environment.coredata.compilers.host.keys():
+                    language = 'fortran'
+
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
         self.is_libtool = False
@@ -1460,9 +1476,40 @@ class CMakeDependency(ExternalDependency):
         build_dir = Path(self.cmake_root_dir) / 'cmake_{}'.format(self.name)
         build_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy the CMakeLists.txt
+        # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
         src_cmake = Path(__file__).parent / 'data' / cmake_file
-        shutil.copyfile(str(src_cmake), str(build_dir / 'CMakeLists.txt'))  # str() is for Python 3.5
+        cmake_txt = src_cmake.read_text()
+
+        # In general, some Fortran CMake find_package() also require C language enabled,
+        # even if nothing from C is directly used. An easy Fortran example that fails
+        # without C language is
+        #   find_package(Threads)
+        # To make this general to
+        # any other language that might need this, we use a list for all
+        # languages and expand in the cmake Project(... LANGUAGES ...) statement.
+        if self.language is None:
+            cmake_language = ['NONE']
+        elif self.language == 'c':
+            cmake_language = ['C']
+        elif self.language == 'cpp':
+            cmake_language = ['CXX']
+        elif self.language == 'cs':
+            cmake_language = ['CSharp']
+        elif self.language == 'cuda':
+            cmake_language = ['CUDA']
+        elif self.language == 'fortran':
+            cmake_language = ['C', 'Fortran']
+        elif self.language == 'objc':
+            cmake_language = ['OBJC']
+        elif self.language == 'objcpp':
+            cmake_language = ['OBJCXX']
+
+        cmake_txt = """
+cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
+project(MesonTemp LANGUAGES {})
+""".format(' '.join(cmake_language)) + cmake_txt
+
+        (build_dir / 'CMakeLists.txt').write_text(cmake_txt)
 
         return str(build_dir)
 
