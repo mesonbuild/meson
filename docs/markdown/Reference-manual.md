@@ -2277,7 +2277,7 @@ an external dependency with the following methods:
 
  - `get_variable(cmake : str, pkgconfig : str, configtool : str,
    default_value : str, pkgconfig_define : [str, str])` *(Added in
-   0.51.0)* A generic variable getter method, which repalces the
+   0.51.0)* A generic variable getter method, which replaces the
    get_*type*_variable methods. This allows one to get the variable
    from a dependency without knowing specifically how that dependency
    was found. If default_value is set and the value cannot be gotten
