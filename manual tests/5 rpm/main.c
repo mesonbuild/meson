@@ -1,6 +1,6 @@
 #include<lib.h>
 #include<stdio.h>
-int main(int argc, char **argv)
+int main(void)
 {
   char *t = meson_print();
   printf("%s", t);
