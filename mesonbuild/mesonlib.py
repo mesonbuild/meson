@@ -976,7 +976,9 @@ def replace_if_different(dst, dst_tmp):
     else:
         os.unlink(dst_tmp)
 
-def listify(item, flatten=True, unholder=False):
+def listify(item: typing.Any,
+            flatten: bool = True,
+            unholder: bool = False) -> typing.List[typing.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
     This function preserves order.

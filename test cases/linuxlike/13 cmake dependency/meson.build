@@ -1,3 +1,5 @@
+# this test can ONLY be run successfully from run_project_test.py
+# due to use of setup_env.json
 project('external CMake dependency', 'c')
 
 if not find_program('cmake', required: false).found()
@@ -37,7 +39,7 @@ depf2 = dependency('ZLIB', required : false, method : 'cmake', modules : 'dfggh:
 assert(depf2.found() == false, 'Invalid CMake targets should fail')
 
 # Try to find cmMesonTestDep in a custom prefix
-
+# setup_env.json is used by run_project_tests.py:_run_test to point to ./cmake_pref_env/
 depPrefEnv = dependency('cmMesonTestDep', required : true, method : 'cmake')
 
 # Try to find a dependency with a custom CMake module

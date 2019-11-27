@@ -1,4 +1,8 @@
-cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
+# fail noisily if attempt to use this file without setting:
+# cmake_minimum_required(VERSION ${CMAKE_VERSION})
+# project(... LANGUAGES ...)
+
+cmake_policy(SET CMP0000 NEW)
 
 set(PACKAGE_FOUND FALSE)
 set(_packageName "${NAME}")

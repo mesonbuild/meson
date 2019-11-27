@@ -1,3 +1,4 @@
+# this test requires the following on Ubuntu: libboost-{system,python,log,thread,test}-dev
 project('boosttest', 'cpp',
   default_options : ['cpp_std=c++11'])
 
