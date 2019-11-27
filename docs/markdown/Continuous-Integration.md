@@ -32,8 +32,8 @@ services:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install meson; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install meson ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull YOUR/REPO:yakkety; fi
 
 script:
@@ -67,9 +67,6 @@ platform:
   - x64
 
 install:
-  # Download ninja
-  - cmd: mkdir C:\ninja-build
-  - ps: (new-object net.webclient).DownloadFile('https://github.com/mesonbuild/cidata/raw/master/ninja.exe', 'C:\ninja-build\ninja.exe')
   # Set paths to dependencies (based on architecture)
   - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
   # Print out dependency paths
@@ -77,7 +74,7 @@ install:
   # Add necessary paths to PATH variable
   - cmd: set PATH=%cd%;C:\ninja-build;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
   # Install meson
-  - cmd: pip install meson
+  - cmd: pip install ninja meson
   # Set up the build environment
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
