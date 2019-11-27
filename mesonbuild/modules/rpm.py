@@ -151,7 +151,7 @@ class RPMModule(ExtensionModule):
 
     def __get_required_compilers(self):
         required_compilers = set()
-        for compiler in self.coredata.compilers.values():
+        for compiler in self.coredata.environment.coredata.compilers.host.values():
             # Elbrus has one 'lcc' package for every compiler
             if isinstance(compiler, compilers.GnuCCompiler):
                 required_compilers.add('gcc')
