@@ -44,6 +44,65 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && ninja -C builddir test; fi
 ```
 
+## CircleCi for Linux (with Docker)
+
+For CI on Linux, [CircleCi](https://circleci.com/) is probably
+your best bet. Here's a sample `yml` file for use with that.
+
+```yaml
+version: 2.1
+
+executors:
+  # Your dependencies would go in the docker images that represent
+  # the Linux distributions you are supporting
+  meson_ubuntu_builder:
+    docker:
+      - image: michaelbadcruble/ubuntu-sys
+
+  meson_debain_builder:
+    docker:
+      - image: michaelbadcruble/debian-sys
+
+  meson_fedora_builder:
+    docker:
+      - image: michaelbadcruble/fedora-sys
+
+
+jobs:
+  meson_ubuntu_build:
+    executor: meson_ubuntu_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+  meson_debain_build:
+    executor: meson_debain_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+  meson_fedora_build:
+    executor: meson_fedora_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --buildtype=minsize --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+
+workflows:
+  version: 2
+  linux_workflow:
+    jobs:
+      - meson_ubuntu_build
+      - meson_debain_build
+      - meson_fedora_build
+```
+
 ## AppVeyor for Windows
 
 For CI on Windows, [AppVeyor](https://www.appveyor.com/) is probably
