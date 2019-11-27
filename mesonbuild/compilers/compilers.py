@@ -261,6 +261,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
                                                     'from_buildtype'),
+                'b_debuginfo': coredata.UserComboOption('Debug information format to use.',
+                                                        ['none', 'embedded', 'standalone', 'edit-and-continue', 'from_buildtype'],
+                                                        'from_buildtype'),
                 }
 
 def option_enabled(boptions, options, option):
@@ -318,6 +321,14 @@ def get_base_compile_args(options, compiler):
             pass
     except KeyError:
         pass
+
+    try:
+        debuginfo_val = options['b_debuginfo'].value
+        buildtype = options['buildtype'].value
+        args += compiler.get_debug_info_format_args(debuginfo_val, buildtype)
+    except KeyError:
+        pass
+
     return args
 
 def get_base_link_args(options, linker, is_shared_module):
@@ -1055,6 +1066,9 @@ class Compiler:
 
     def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
         return self.linker.get_debugfile_args(targetfile)
+
+    def get_debug_info_format_args(self, di_format: str, buildtype: str) -> typing.List[str]:
+        return []
 
     def get_std_shared_lib_link_args(self) -> typing.List[str]:
         return self.linker.get_std_shared_lib_args()
