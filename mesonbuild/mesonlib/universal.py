@@ -1293,7 +1293,16 @@ def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: 
                     ofile.write(f'{prefix}undef {k}\n\n')
             elif isinstance(v, (int, str)):
                 if isinstance(v, str):
-                    v = '\\\n'.join(v.rstrip().split('\n'))
+                    if re.match(r'^ *\n', v):
+                        mlog.warning('While generating header "%s", the macro "%s" has been set '
+                                     'to a value starting with a newline. If you did it on purpose '
+                                     'as a hack to inject code in a header file, this is deprecated. '
+                                     'Please use an intermediate configuration file (for instance `%s.in`) instead. '
+                                     'Code injection usage is accepted for backward compatibility but '
+                                     'this will be changed in the future.' %
+                                     (ofilename, k, os.path.basename(ofilename)))
+                    else:
+                        v = '\\\n'.join(v.rstrip().split('\n'))
                 ofile.write(f'{prefix}define {k} {v}\n\n')
             else:
                 raise MesonException('Unknown data type in configuration file entry: ' + k)
