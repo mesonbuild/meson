@@ -41,6 +41,10 @@ def update_file(wrap, repo_dir, options):
 
 def git(cmd, workingdir):
     return subprocess.check_output(['git', '-C', workingdir] + cmd,
+                                   # Redirect stdin to DEVNULL otherwise git
+                                   # messes up the console and ANSI colors stop
+                                   # working on Windows.
+                                   stdin=subprocess.DEVNULL,
                                    stderr=subprocess.STDOUT).decode()
 
 def git_show(repo_dir):
