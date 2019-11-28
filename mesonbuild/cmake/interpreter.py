@@ -841,6 +841,7 @@ class CMakeInterpreter:
         root_cb.lines += [assign(run_script_var, function('find_program', [[run_script]], {'required': True}))]
 
         # Add the targets
+        processing = []
         processed = {}
         name_map = {}
 
@@ -854,6 +855,11 @@ class CMakeInterpreter:
             res_var = processed[tgt_name]['tgt']
             return id_node(res_var) if res_var else None
 
+        def detect_cycle(tgt: Union[ConverterTarget, ConverterCustomTarget]) -> None:
+            if tgt.name in processing:
+                raise CMakeException('Cycle in CMake inputs/dependencies detected')
+            processing.append(tgt.name)
+
         def resolve_ctgt_ref(ref: CustomTargetReference) -> BaseNode:
             tgt_var = extract_tgt(ref)
             if len(ref.ctgt.outputs) == 1:
@@ -862,6 +868,8 @@ class CMakeInterpreter:
                 return indexed(tgt_var, ref.index)
 
         def process_target(tgt: ConverterTarget):
+            detect_cycle(tgt)
+
             # First handle inter target dependencies
             link_with = []
             objec_libs = []  # type: List[IdNode]
@@ -990,6 +998,7 @@ class CMakeInterpreter:
             # commands in order. This additionally allows setting the working
             # directory.
 
+            detect_cycle(tgt)
             tgt_var = tgt.name  # type: str
 
             def resolve_source(x: Any) -> Any:
