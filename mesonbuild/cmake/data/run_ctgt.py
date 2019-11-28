@@ -41,6 +41,7 @@ for i in commands:
         continue
 
     try:
+        os.makedirs(args.directory, exist_ok=True)
         subprocess.run(i, cwd=args.directory, check=True)
     except subprocess.CalledProcessError:
         exit(1)

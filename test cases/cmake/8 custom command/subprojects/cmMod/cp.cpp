@@ -12,6 +12,11 @@ int main(int argc, char *argv[]) {
   ifstream src(argv[1]);
   ofstream dst(argv[2]);
 
+  if(!src.is_open()) {
+    cerr << "Failed to open " << argv[1] << endl;
+    return 2;
+  }
+
   dst << src.rdbuf();
   return 0;
 }

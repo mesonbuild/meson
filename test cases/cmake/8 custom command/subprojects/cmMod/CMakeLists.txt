@@ -10,6 +10,7 @@ add_definitions("-DDO_NOTHING_JUST_A_FLAG=1")
 add_executable(gen main.cpp)
 add_executable(mycpy cp.cpp)
 
+# cpyBase
 add_custom_command(
   OUTPUT  "${CMAKE_CURRENT_BINARY_DIR}/genTest.cpp" "${CMAKE_CURRENT_BINARY_DIR}/genTest.hpp"
   COMMAND gen ARGS genTest
@@ -42,7 +43,53 @@ add_custom_command(
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cpyBase.hpp.something"
 )
 
-add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp)
+# cpyNext (out of order is on purpose)
+# -- first copy round
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/s1_a_hpp/file.txt"
+  COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyNext.hpp.am" file.txt
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyNext.hpp.am"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/s1_a_hpp"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/s1_b_cpp/file.txt"
+  COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyNext.cpp.am" file.txt
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyNext.cpp.am"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/s1_b_cpp"
+)
+
+# -- final cpy round
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyNext.hpp"
+  COMMAND mycpy "${CMAKE_CURRENT_BINARY_DIR}/s2_b_hpp/file.txt" cpyNext.hpp
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/s2_b_hpp/file.txt"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyNext.cpp"
+  COMMAND mycpy "${CMAKE_CURRENT_BINARY_DIR}/s2_a_cpp/file.txt" cpyNext.cpp
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/s2_a_cpp/file.txt"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
+
+# -- second copy round
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/s2_b_hpp/file.txt"
+  COMMAND mycpy "${CMAKE_CURRENT_BINARY_DIR}/s1_a_hpp/file.txt" file.txt
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/s1_a_hpp/file.txt"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/s2_b_hpp"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/s2_a_cpp/file.txt"
+  COMMAND mycpy "${CMAKE_CURRENT_BINARY_DIR}/s1_b_cpp/file.txt" file.txt
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/s1_b_cpp/file.txt"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/s2_a_cpp"
+)
+
+add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
