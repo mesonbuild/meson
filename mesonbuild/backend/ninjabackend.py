@@ -1076,6 +1076,22 @@ int dummy;
 
     def determine_dep_vapis(self, target):
         """
+        Get the list of .vapi files in use by the dependencies.
+        """
+        result = OrderedSet()
+        valac = target.compilers['vala']
+        if (mesonlib.version_compare(valac.version, '>=0.47.1')):
+            args = self.generate_basic_compiler_args(target, valac)
+            args += ['--list-sources']
+            with valac.compile('', extra_args=args, mode='compile') as p:
+                for vapipath in p.stdo.split('\n'):
+                    striped_path = vapipath.strip()
+                    if striped_path and not os.path.samefile(striped_path, p.input_name):
+                        result.add(striped_path)
+        return list(result)
+
+    def determine_internal_dep_vapis(self, target):
+        """
         Peek into the sources of BuildTargets we're linking with, and if any of
         them was built with Vala, assume that it also generated a .vapi file of
         the same name as the BuildTarget and return the path to it relative to
@@ -1255,12 +1271,13 @@ int dummy;
                 extra_args.append(relname)
             else:
                 extra_args.append(a)
+        internal_dependency_vapis = self.determine_internal_dep_vapis(target)
         dependency_vapis = self.determine_dep_vapis(target)
-        extra_dep_files += dependency_vapis
+        extra_dep_files += dependency_vapis + internal_dependency_vapis
         args += extra_args
         element = NinjaBuildElement(self.all_outputs, valac_outputs,
                                     self.compiler_to_rule_name(valac),
-                                    all_files + dependency_vapis)
+                                    all_files + internal_dependency_vapis)
         element.add_item('ARGS', args)
         element.add_dep(extra_dep_files)
         self.add_build(element)
