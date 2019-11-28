@@ -49,6 +49,20 @@ if TYPE_CHECKING:
     from ..build import Build
     from ..backend.backends import Backend
 
+# Disable all warnings automaticall enabled with --trace and friends
+# See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html
+disable_policy_warnings = [
+    'CMP0025',
+    'CMP0047',
+    'CMP0056',
+    'CMP0060',
+    'CMP0065',
+    'CMP0066',
+    'CMP0067',
+    'CMP0082',
+    'CMP0089',
+]
+
 backend_generator_map = {
     'ninja': 'Ninja',
     'xcode': 'Xcode',
@@ -495,6 +509,8 @@ class CMakeInterpreter:
 
         generator = backend_generator_map[self.backend_name]
         cmake_args = cmake_exe.get_command()
+        trace_args = ['--trace', '--trace-expand', '--no-warn-unused-cli']
+        cmcmp_args = ['-DCMAKE_POLICY_WARNING_{}=OFF'.format(x) for x in disable_policy_warnings]
 
         # Map meson compiler to CMake variables
         for lang, comp in self.env.coredata.compilers[for_machine].items():
@@ -511,7 +527,6 @@ class CMakeInterpreter:
                 cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
         cmake_args += ['-G', generator]
         cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
-        cmake_args += ['--trace', '--trace-expand']
         cmake_args += extra_cmake_options
 
         # Run CMake
@@ -519,11 +534,16 @@ class CMakeInterpreter:
         with mlog.nested():
             mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
             mlog.log(mlog.bold('Running:'), ' '.join(cmake_args))
+            mlog.log(mlog.bold('  - build directory:         '), self.build_dir)
+            mlog.log(mlog.bold('  - source directory:        '), self.src_dir)
+            mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
+            mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
             mlog.log()
             os.makedirs(self.build_dir, exist_ok=True)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
-            proc = Popen(cmake_args + [self.src_dir], stdout=PIPE, stderr=PIPE, cwd=self.build_dir, env=os_env)
+            final_command = cmake_args + trace_args + cmcmp_args + [self.src_dir]
+            proc = Popen(final_command, stdout=PIPE, stderr=PIPE, cwd=self.build_dir, env=os_env)
 
             def print_stdout():
                 while True:
@@ -536,8 +556,23 @@ class CMakeInterpreter:
             t = Thread(target=print_stdout)
             t.start()
 
-            self.raw_trace = proc.stderr.read()
-            self.raw_trace = self.raw_trace.decode('utf-8')
+            # Read stderr line by line and log non trace lines
+            self.raw_trace = ''
+            tline_start_reg = re.compile(r'^\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(.*$')
+            inside_multiline_trace = False
+            while True:
+                line = proc.stderr.readline()
+                if not line:
+                    break
+                line = line.decode('utf-8')
+                if tline_start_reg.match(line):
+                    self.raw_trace += line
+                    inside_multiline_trace = not line.endswith(' )\n')
+                elif inside_multiline_trace:
+                    self.raw_trace += line
+                else:
+                    mlog.warning(line.strip('\n'))
+
             proc.stderr.close()
             proc.wait()
 
