@@ -317,6 +317,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
     def set_quoted_method(self, args: T.Tuple[str, str], kwargs: 'kwargs.ConfigurationDataSet') -> None:
         self.__check_used()
         escaped_val = '\\"'.join(args[1].split('"'))
+        escaped_val = '\\n'.join(escaped_val.split('\n'))
         self.held_object.values[args[0]] = (f'"{escaped_val}"', kwargs['description'])
 
     @typed_pos_args('configuration_data.set10', str, (int, bool))
