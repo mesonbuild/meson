@@ -67,7 +67,6 @@ executors:
     docker:
       - image: your_dockerhub_username/fedora-sys
 
-
 jobs:
   meson_ubuntu_build:
     executor: meson_ubuntu_builder
@@ -92,7 +91,6 @@ jobs:
       - run: meson setup builddir --backend ninja
       - run: ninja -C builddir
       - run: meson test -C builddir
-
 
 workflows:
   version: 2
