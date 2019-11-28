@@ -1195,42 +1195,60 @@ class Vs2010Backend(backends.Backend):
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
 
-        extra_files = target.extra_files
-        if len(headers) + len(gen_hdrs) + len(extra_files) + len(pch_sources) > 0:
+        # Visual Studio can't load projects that present duplicated items. Filter them out
+        # by keeping track of already added paths.
+        def path_normalize_add(path, lis):
+            normalized = os.path.normcase(os.path.normpath(path))
+            if normalized not in lis:
+                lis.append(normalized)
+                return True
+            else:
+                return False
+
+        previous_includes = []
+        if len(headers) + len(gen_hdrs) + len(target.extra_files) + len(pch_sources) > 0:
             inc_hdrs = ET.SubElement(root, 'ItemGroup')
             for h in headers:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
+                if path_normalize_add(relpath, previous_includes):
+                    ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for h in gen_hdrs:
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
+                if path_normalize_add(h, previous_includes):
+                    ET.SubElement(inc_hdrs, 'CLInclude', Include=h)
             for h in target.extra_files:
                 relpath = os.path.join(down, h.rel_to_builddir(self.build_to_src))
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
+                if path_normalize_add(relpath, previous_includes):
+                    ET.SubElement(inc_hdrs, 'CLInclude', Include=relpath)
             for lang in pch_sources:
                 h = pch_sources[lang][0]
-                ET.SubElement(inc_hdrs, 'CLInclude', Include=os.path.join(proj_to_src_dir, h))
+                path = os.path.join(proj_to_src_dir, h)
+                if path_normalize_add(path, previous_includes):
+                    ET.SubElement(inc_hdrs, 'CLInclude', Include=path)
 
+        previous_sources = []
         if len(sources) + len(gen_src) + len(pch_sources) > 0:
             inc_src = ET.SubElement(root, 'ItemGroup')
             for s in sources:
                 relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
-                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
-                lang = Vs2010Backend.lang_from_source_file(s)
-                self.add_pch(pch_sources, lang, inc_cl)
-                self.add_additional_options(lang, inc_cl, file_args)
-                self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
+                if path_normalize_add(relpath, previous_sources):
+                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=relpath)
+                    lang = Vs2010Backend.lang_from_source_file(s)
+                    self.add_pch(pch_sources, lang, inc_cl)
+                    self.add_additional_options(lang, inc_cl, file_args)
+                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
             for s in gen_src:
-                inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
-                lang = Vs2010Backend.lang_from_source_file(s)
-                self.add_pch(pch_sources, lang, inc_cl)
-                self.add_additional_options(lang, inc_cl, file_args)
-                self.add_preprocessor_defines(lang, inc_cl, file_defines)
-                self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                if path_normalize_add(s, previous_sources):
+                    inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)
+                    lang = Vs2010Backend.lang_from_source_file(s)
+                    self.add_pch(pch_sources, lang, inc_cl)
+                    self.add_additional_options(lang, inc_cl, file_args)
+                    self.add_preprocessor_defines(lang, inc_cl, file_defines)
+                    self.add_include_dirs(lang, inc_cl, file_inc_dirs)
             for lang in pch_sources:
                 impl = pch_sources[lang][1]
-                if impl:
+                if impl and path_normalize_add(impl, previous_sources):
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=impl)
                     self.create_pch(pch_sources, lang, inc_cl)
                     self.add_additional_options(lang, inc_cl, file_args)
@@ -1243,13 +1261,16 @@ class Vs2010Backend(backends.Backend):
                         inc_dirs = file_inc_dirs
                     self.add_include_dirs(lang, inc_cl, inc_dirs)
 
+        previous_objects = []
         if self.has_objects(objects, additional_objects, gen_objs):
             inc_objs = ET.SubElement(root, 'ItemGroup')
             for s in objects:
                 relpath = os.path.join(down, s.rel_to_builddir(self.build_to_src))
-                ET.SubElement(inc_objs, 'Object', Include=relpath)
+                if path_normalize_add(relpath, previous_objects):
+                    ET.SubElement(inc_objs, 'Object', Include=relpath)
             for s in additional_objects:
-                ET.SubElement(inc_objs, 'Object', Include=s)
+                if path_normalize_add(s, previous_objects):
+                    ET.SubElement(inc_objs, 'Object', Include=s)
             self.add_generated_objects(inc_objs, gen_objs)
 
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
