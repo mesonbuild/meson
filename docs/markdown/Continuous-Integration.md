@@ -46,8 +46,8 @@ script:
 
 ## CircleCi for Linux (with Docker)
 
-For CI on Linux, [CircleCi](https://circleci.com/) is probably
-your best bet. Here's a sample `yml` file for use with that.
+[CircleCi](https://circleci.com/) is fantastic for spinning all of the Linux images you wish. 
+Here's a sample `yml` file for use with that.
 
 ```yaml
 version: 2.1
