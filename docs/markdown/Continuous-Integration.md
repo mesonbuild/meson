@@ -132,7 +132,7 @@ install:
   - cmd: echo Using Python at %PYTHON_ROOT%
   # Add necessary paths to PATH variable
   - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
-  # Install meson
+  # Install meson and ninja
   - cmd: pip install ninja meson
   # Set up the build environment
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
