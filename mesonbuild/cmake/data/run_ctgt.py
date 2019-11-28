@@ -13,13 +13,16 @@ SEPARATOR = ';;;'
 parser = argparse.ArgumentParser(description='Wrapper for add_custom_command')
 parser.add_argument('-d', '--directory', type=str, metavar='D', required=True, help='Working directory to cwd to')
 parser.add_argument('-o', '--outputs', nargs='+', metavar='O', required=True, help='Expected output files')
-parser.add_argument('-O', '--original-outputs', nargs='+', metavar='O', required=True, help='Output files expected by CMake')
-parser.add_argument('commands', nargs=argparse.REMAINDER, help='A "{}" separated list of commands'.format(SEPARATOR))
+parser.add_argument('-O', '--original-outputs', nargs='*', metavar='O', default=[], help='Output files expected by CMake')
+parser.add_argument('commands', nargs=argparse.REMAINDER, help='A "{}" seperated list of commands'.format(SEPARATOR))
 
 # Parse
 args = parser.parse_args()
 
-if len(args.outputs) != len(args.original_outputs):
+dummy_target = None
+if len(args.outputs) == 1 and len(args.original_outputs) == 0:
+    dummy_target = args.outputs[0]
+elif len(args.outputs) != len(args.original_outputs):
     print('Length of output list and original output list differ')
     sys.exit(1)
 
@@ -37,7 +40,15 @@ for i in commands:
     if not i:
         continue
 
-    subprocess.run(i, cwd=args.directory)
+    try:
+        subprocess.run(i, cwd=args.directory, check=True)
+    except subprocess.CalledProcessError:
+        exit(1)
+
+if dummy_target:
+    with open(dummy_target, 'a'):
+        os.utime(dummy_target, None)
+    exit(0)
 
 # Copy outputs
 zipped_outputs = zip(args.outputs, args.original_outputs)
