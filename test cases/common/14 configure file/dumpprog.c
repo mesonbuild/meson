@@ -48,13 +48,5 @@ int main(void) {
         printf("Quoted number defined incorrectly.\n");
         return 1;
     }
-    if(MULTILINE != 3) {
-        printf("Multiline macro defined incorrectly.\n");
-        return 1;
-    }
-    if(strcmp(MULTILINE_STRING, "line1\nline2") != 0) {
-        printf("Quoted multiline macro defined incorrectly.\n");
-        return 1;
-    }
     SHOULD_BE_RETURN 0;
 }
