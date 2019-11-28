@@ -126,6 +126,8 @@ blacklist_link_libs = [
 
 generated_target_name_prefix = 'cm_'
 
+transfer_dependencies_from = ['header_only']
+
 # Utility functions to generate local keys
 def _target_key(tgt_name: str) -> str:
     return '__tgt_{}__'.format(tgt_name)
@@ -362,6 +364,24 @@ class ConverterTarget:
         # Filter out object files from the sources
         self.generated = [x for x in self.generated if not isinstance(x, str) or not any([x.endswith('.' + y) for y in obj_suffixes])]
 
+    def process_inter_target_dependencies(self):
+        # Move the dependencies from all transfer_dependencies_from to the target
+        to_process = list(self.depends)
+        processed = []
+        new_deps = []
+        for i in to_process:
+            processed += [i]
+            if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
+                to_process += [x for x in i.depends if x not in processed]
+            else:
+                new_deps += [i]
+        self.depends = list(set(new_deps))
+
+    def cleanup_dependencies(self):
+        # Clear the dependencies from targets that where moved from
+        if self.meson_func() in transfer_dependencies_from:
+            self.depends = []
+
     def meson_func(self) -> str:
         return target_type_map.get(self.type.upper())
 
@@ -509,6 +529,19 @@ class ConverterCustomTarget:
                 self.inputs += [i]
             elif os.path.isabs(i) and os.path.exists(i) and os.path.commonpath([i, root_src_dir]) == root_src_dir:
                 self.inputs += [os.path.relpath(i, root_src_dir)]
+
+    def process_inter_target_dependencies(self):
+        # Move the dependencies from all transfer_dependencies_from to the target
+        to_process = list(self.depends)
+        processed = []
+        new_deps = []
+        for i in to_process:
+            processed += [i]
+            if isinstance(i, ConverterTarget) and i.meson_func() in transfer_dependencies_from:
+                to_process += [x for x in i.depends if x not in processed]
+            else:
+                new_deps += [i]
+        self.depends = list(set(new_deps))
 
     def get_ref(self, fname: str) -> Optional[CustomTargetReference]:
         try:
@@ -767,6 +800,18 @@ class CMakeInterpreter:
         # Second pass: Detect object library dependencies
         for i in self.targets:
             i.process_object_libs(object_libs)
+
+        # Third pass: Reassign dependencies to avoid some loops
+        for i in self.targets:
+            i.process_inter_target_dependencies()
+        for i in self.custom_targets:
+            i.process_inter_target_dependencies()
+            i.log()
+
+        # Fourth pass: Remove rassigned dependencies
+        for i in self.targets:
+            i.cleanup_dependencies()
+            i.log()
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
