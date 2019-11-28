@@ -57,15 +57,15 @@ executors:
   # the Linux distributions you are supporting
   meson_ubuntu_builder:
     docker:
-      - image: michaelbadcruble/ubuntu-sys
+      - image: your_dockerhub_username/ubuntu-sys
 
   meson_debain_builder:
     docker:
-      - image: michaelbadcruble/debian-sys
+      - image: your_dockerhub_username/debian-sys
 
   meson_fedora_builder:
     docker:
-      - image: michaelbadcruble/fedora-sys
+      - image: your_dockerhub_username/fedora-sys
 
 
 jobs:
