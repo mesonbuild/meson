@@ -131,7 +131,7 @@ install:
   # Print out dependency paths
   - cmd: echo Using Python at %PYTHON_ROOT%
   # Add necessary paths to PATH variable
-  - cmd: set PATH=%cd%;C:\ninja-build;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
+  - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
   # Install meson
   - cmd: pip install ninja meson
   # Set up the build environment
