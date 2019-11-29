@@ -573,6 +573,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_std_shared_module_args(self, options: 'OptionDictType') -> typing.List[str]:
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
+    def get_pie_args(self) -> typing.List[str]:
+        return ['-pie']
+
     def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
         result = []  # type: typing.List[str]
         for a in args:
