@@ -293,6 +293,7 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
                              'get': self.get_method,
                              'keys': self.keys_method,
                              'get_unquoted': self.get_unquoted_method,
+                             'append_raw_text': self.append_raw_text_method,
                              'merge_from': self.merge_from_method,
                              })
 
@@ -381,6 +382,13 @@ class ConfigurationDataHolder(ObjectHolder[build.ConfigurationData], MutableInte
 
     def keys(self) -> T.List[str]:
         return list(self.held_object.values.keys())
+
+    @FeatureNew('configuration_data.append_raw_text()', '0.64.0')
+    @typed_pos_args('configuration_data.append_raw_text()', str)
+    @noKwargs
+    def append_raw_text_method(self, args, kwargs):
+        data = args[0]
+        self.held_object.footer_data += [data]
 
     @typed_pos_args('configuration_data.merge_from', build.ConfigurationData)
     @noKwargs
