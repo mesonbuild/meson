@@ -46,7 +46,7 @@ script:
 
 ## CircleCi for Linux (with Docker)
 
-[CircleCi](https://circleci.com/) is fantastic for spinning all of the Linux images you wish. 
+[CircleCi](https://circleci.com/) can work for spinning all of the Linux images you wish. 
 Here's a sample `yml` file for use with that.
 
 ```yaml
