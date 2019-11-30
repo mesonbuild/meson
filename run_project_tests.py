@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2019 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,6 +46,12 @@ from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
+
+ALL_TESTS = ['cmake', 'common', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
+             'kconfig', 'platform-osx', 'platform-windows', 'platform-linux',
+             'java', 'C#', 'vala',  'rust', 'd', 'objective c', 'objective c++',
+             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm'
+             ]
 
 
 class BuildStep(Enum):
@@ -638,8 +644,10 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         tests to run
     """
 
-    skip_fortran = not(shutil.which('gfortran') or shutil.which('flang') or
-                       shutil.which('pgfortran') or shutil.which('ifort'))
+    skip_fortran = not(shutil.which('gfortran') or
+                       shutil.which('flang') or
+                       shutil.which('pgfortran') or
+                       shutil.which('ifort'))
 
     # Name, subdirectory, skip condition.
     all_tests = [
@@ -673,8 +681,9 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         ('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
     ]
 
+    names = [t[0] for t in all_tests]
+    assert names == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests names'
     if only:
-        names = [t[0] for t in all_tests]
         ind = [names.index(o) for o in only]
         all_tests = [all_tests[i] for i in ind]
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
@@ -939,13 +948,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
-    parser.add_argument('--backend', default=None, dest='backend',
-                        choices=backendlist)
+    parser.add_argument('--backend', dest='backend', choices=backendlist)
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', help='name of test(s) to run', nargs='+')
+    parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
     options = parser.parse_args()
     setup_commands(options.backend)
 
