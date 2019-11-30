@@ -32,7 +32,7 @@ services:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install ninja python3; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install python3 ninja; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip3 install meson; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull YOUR/REPO:yakkety; fi
 
@@ -42,6 +42,63 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && ninja -C builddir test"; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && ninja -C builddir test; fi
+```
+
+## CircleCi for Linux (with Docker)
+
+[CircleCi](https://circleci.com/) can work for spinning all of the Linux images you wish. 
+Here's a sample `yml` file for use with that.
+
+```yaml
+version: 2.1
+
+executors:
+  # Your dependencies would go in the docker images that represent
+  # the Linux distributions you are supporting
+  meson_ubuntu_builder:
+    docker:
+      - image: your_dockerhub_username/ubuntu-sys
+
+  meson_debain_builder:
+    docker:
+      - image: your_dockerhub_username/debian-sys
+
+  meson_fedora_builder:
+    docker:
+      - image: your_dockerhub_username/fedora-sys
+
+jobs:
+  meson_ubuntu_build:
+    executor: meson_ubuntu_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+  meson_debain_build:
+    executor: meson_debain_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+  meson_fedora_build:
+    executor: meson_fedora_builder
+    steps:
+      - checkout
+      - run: meson setup builddir --backend ninja
+      - run: ninja -C builddir
+      - run: meson test -C builddir
+
+workflows:
+  version: 2
+  linux_workflow:
+    jobs:
+      - meson_ubuntu_build
+      - meson_debain_build
+      - meson_fedora_build
 ```
 
 ## AppVeyor for Windows
@@ -67,17 +124,14 @@ platform:
   - x64
 
 install:
-  # Download ninja
-  - cmd: mkdir C:\ninja-build
-  - ps: (new-object net.webclient).DownloadFile('https://github.com/mesonbuild/cidata/raw/master/ninja.exe', 'C:\ninja-build\ninja.exe')
   # Set paths to dependencies (based on architecture)
   - cmd: if %arch%==x86 (set PYTHON_ROOT=C:\python37) else (set PYTHON_ROOT=C:\python37-x64)
   # Print out dependency paths
   - cmd: echo Using Python at %PYTHON_ROOT%
   # Add necessary paths to PATH variable
-  - cmd: set PATH=%cd%;C:\ninja-build;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
-  # Install meson
-  - cmd: pip install meson
+  - cmd: set PATH=%cd%;%PYTHON_ROOT%;%PYTHON_ROOT%\Scripts;%PATH%
+  # Install meson and ninja
+  - cmd: pip install ninja meson
   # Set up the build environment
   - cmd: if %compiler%==msvc2015 ( call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" %arch% )
   - cmd: if %compiler%==msvc2017 ( call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" %arch% )
