@@ -12,5 +12,10 @@ WinMain(
     int nCmdShow) {
     HICON hIcon;
     hIcon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(MY_ICON));
+// avoid unused argument error while matching template
+    ((void)hInstance);
+    ((void)hPrevInstance);
+    ((void)lpszCmdLine);
+    ((void)nCmdShow);
     return hIcon ? 0 : 1;
 }

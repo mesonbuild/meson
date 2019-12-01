@@ -12,14 +12,17 @@ on:
     - "test cases/cmake/**"
     - "test cases/common/**"
     - "test cases/fortran/**"
-    - "test cases/platform-linux/**"
+    - "test cases/linuxlike/**"
+    - "test caes/windows/**"
+
   pull_request:
     paths:
     - ".github/workflows/unusedargs_missingreturn.yml"
     - "test cases/cmake/**"
     - "test cases/common/**"
     - "test cases/fortran/**"
-    - "test cases/platform-linux/**"
+    - "test cases/linuxlike/**"
+    - "test caes/windows/**"
 
 jobs:
 
@@ -39,3 +42,20 @@ jobs:
         CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
         CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
         FFLAGS: "-fimplicit-none"
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1
+      with:
+        python-version: '3.x'
+    - run: pip install ninja
+    - run: python run_project_tests.py --only platform-windows
+      env:
+        CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
+        CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
+        FFLAGS: "-fimplicit-none"
+        CC: gcc
+        CXX: g++
+        FC: gfortran

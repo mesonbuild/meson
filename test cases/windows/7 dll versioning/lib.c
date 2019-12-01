@@ -1,6 +1,6 @@
 #ifdef _WIN32
 __declspec(dllexport)
 #endif
-int myFunc() {
+int myFunc(void) {
     return 55;
 }
