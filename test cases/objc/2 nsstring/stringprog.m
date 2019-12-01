@@ -1,6 +1,6 @@
 #import<Foundation/NSString.h>
 
-int main(int argc, char **argv) {
+int main(void) {
   int result;
   NSString *str = [NSString new];
   result = [str length];

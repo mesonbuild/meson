@@ -13,6 +13,8 @@ on:
     - "test cases/common/**"
     - "test cases/fortran/**"
     - "test cases/linuxlike/**"
+    - "test cases/objc/**"
+    - "test cases/objcpp/**"
     - "test caes/windows/**"
 
   pull_request:
@@ -22,6 +24,8 @@ on:
     - "test cases/common/**"
     - "test cases/fortran/**"
     - "test cases/linuxlike/**"
+    - "test cases/objc/**"
+    - "test cases/objcpp/**"
     - "test caes/windows/**"
 
 jobs:
@@ -36,8 +40,8 @@ jobs:
     - name: Install Compilers
       run: |
         sudo apt update -yq
-        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build
-    - run: python run_project_tests.py --only cmake common fortran platform-linux
+        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++
+    - run: python run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
       env:
         CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
         CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"

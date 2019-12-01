@@ -4,7 +4,7 @@ class TestClass
 {
 };
 
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef MESON_OBJCPP_TEST
 int x = 1;

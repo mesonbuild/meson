@@ -1,6 +1,6 @@
 #import<stdio.h>
 
-int main(int argc, char **argv)
+int main(void)
 {
 #ifdef MESON_TEST
   int x = 3;
