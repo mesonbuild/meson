@@ -181,11 +181,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
     def get_options(self):
         opts = FortranCompiler.get_options(self)
-        fortran_stds = ['legacy', 'f95', 'f2003']
-        if version_compare(self.version, '>=4.4.0'):
-            fortran_stds += ['f2008']
-        if version_compare(self.version, '>=8.0.0'):
-            fortran_stds += ['f2018']
+        fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
         opts.update({
             'std': coredata.UserComboOption(
                 'Fortran language standard to use',
@@ -196,9 +192,20 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         return opts
 
     def get_option_compile_args(self, options) -> T.List[str]:
+        """
+        While many C/C++ compilers default to an old standard that doesn't work with modern syntax,
+        Fortran compilers default to the highest possible language standard.
+        Thus it's better *not* to enforce a standard the compiler isn't fully capable of.
+        """
         args = []
         std = options['std']
         if std.value != 'none':
+            if std.value == 'f2018' and version_compare(self.version, '<8.0.0'):
+                # Gfortran < 8.0 didn't have f2018
+                return args
+            if std.value == 'f2008' and version_compare(self.version, '<4.4.0'):
+                # Gfortran < 4.4 didn't have f2008/f2018
+                return args
             args.append('-std=' + std.value)
         return args
 
