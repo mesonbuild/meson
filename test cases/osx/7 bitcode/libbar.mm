@@ -1,7 +1,7 @@
 #import <stdio.h>
 #import "vis.h"
 
-int EXPORT_PUBLIC libbar(int arg) {
+int EXPORT_PUBLIC libbar(void) {
   return 0;
 }
 

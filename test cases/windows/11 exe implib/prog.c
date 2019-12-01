@@ -1,6 +1,6 @@
 #include <windows.h>
 
 int  __declspec(dllexport)
-main() {
+main(void) {
     return 0;
 }
