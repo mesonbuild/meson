@@ -25,3 +25,5 @@ if add_languages('fortran')
     dependencies: [scalapack, mpi_f])
   test('scalapack_fortran', f_exe, timeout: 30)
 endif
+
+scalapack_cmake = dependency('scalapack', method: 'cmake', cmake_module_path: 'cmake', required: false)
