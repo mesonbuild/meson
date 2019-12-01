@@ -545,7 +545,7 @@ def skippable(suite, test):
     if test.endswith('10 gtk-doc'):
         return True
 
-    # NetCDF is not in the CI image
+    # NetCDF is not in the CI Docker image
     if test.endswith('netcdf'):
         return True
 
@@ -555,10 +555,6 @@ def skippable(suite, test):
 
     # Blocks are not supported on all compilers
     if test.endswith('29 blocks'):
-        return True
-
-    # tested on GitHub Actions instead of Docker
-    if test.endswith('30 scalapack'):
         return True
 
     # No frameworks test should be skipped on linux CI, as we expect all
