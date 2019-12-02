@@ -616,14 +616,13 @@ def has_broken_rustc() -> bool:
     mesonlib.windows_proof_rmtree(dirname)
     return pc.returncode != 0
 
-def should_skip_rust() -> bool:
+def should_skip_rust(backend: Backend) -> bool:
     if not shutil.which('rustc'):
         return True
     if backend is not Backend.ninja:
         return True
-    if mesonlib.is_windows():
-        if has_broken_rustc():
-            return True
+    if mesonlib.is_windows() and has_broken_rustc():
+        return True
     return False
 
 def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str, typing.List[Path], bool]]:
@@ -659,7 +658,7 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
         ('C#', 'csharp', skip_csharp(backend)),
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
-        ('rust', 'rust', should_skip_rust()),
+        ('rust', 'rust', should_skip_rust(backend)),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
         ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
