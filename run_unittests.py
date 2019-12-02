@@ -290,26 +290,6 @@ def no_pkgconfig():
         shutil.which = old_which
         ExternalProgram._search = old_search
 
-class PatchModule:
-    '''
-    Fancy monkey-patching! Whee! Can't use mock.patch because it only
-    patches in the local namespace.
-    '''
-
-    def __init__(self, func, name, impl):
-        self.func = func
-        assert(isinstance(name, str))
-        self.func_name = name
-        self.old_impl = None
-        self.new_impl = impl
-
-    def __enter__(self):
-        self.old_impl = self.func
-        exec('{} = self.new_impl'.format(self.func_name))
-
-    def __exit__(self, *args):
-        exec('{} = self.old_impl'.format(self.func_name))
-
 
 class InternalTests(unittest.TestCase):
 
@@ -5742,6 +5722,7 @@ c = ['{0}']
         self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
         self.run_tests()
+
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
