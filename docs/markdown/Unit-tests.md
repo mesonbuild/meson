@@ -15,8 +15,7 @@ You can add as many tests as you want. They are run with the command `ninja test
 
 Meson captures the output of all tests and writes it in the log file `meson-logs/testlog.txt`.
 
-Test parameters
---
+## Test parameters
 
 Some tests require the use of command line arguments or environment variables. These are simple to define.
 
@@ -27,15 +26,21 @@ test('envvar test', exe2, env : ['key1=value1', 'key2=value2'])
 
 Note how you need to specify multiple values as an array.
 
-Coverage
---
+### MALLOC_PERTURB_
+
+By default, environment variable
+[`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html)
+is set to a random value between 1..255. This can help find memory
+leaks on configurations using glibc, including with non-GCC compilers.
+This feature can be disabled as discussed in [test()](./Reference-manual#test).
+
+## Coverage
 
 If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml) or [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage` target is also generated which will produce all 3 coverage report types, if possible.
 
 The output of these commands is written to the log directory `meson-logs` in your build directory.
 
-Parallelism
---
+## Parallelism
 
 To reduce test times, Meson will by default run multiple unit tests in parallel. It is common to have some tests which can not be run in parallel because they require unique hold on some resource such as a file or a D-Bus name. You have to specify these tests with a keyword argument.
 
@@ -51,8 +56,7 @@ By default Meson uses as many concurrent processes as there are cores on the tes
 $ MESON_TESTTHREADS=5 ninja test
 ```
 
-Priorities
---
+## Priorities
 
 *(added in version 0.52.0)*
 
