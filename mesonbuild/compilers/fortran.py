@@ -273,6 +273,7 @@ class SunFortranCompiler(FortranCompiler):
 
 
 class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
@@ -326,15 +327,6 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
     file_suffixes = ['f90', 'f', 'for', 'ftn', 'fpp']
     always_args = ['/nologo']
 
-    BUILD_ARGS = {
-        'plain': [],
-        'debug': ["/Zi", "/Od"],
-        'debugoptimized': ["/Zi", "/O1"],
-        'release': ["/O2"],
-        'minsize': ["/Os"],
-        'custom': [],
-    }
-
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, target: str, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
@@ -366,9 +358,6 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_module_outdir_args(self, path) -> List[str]:
         return ['/module:' + path]
-
-    def get_buildtype_args(self, buildtype: str) -> List[str]:
-        return self.BUILD_ARGS[buildtype]
 
 
 class PathScaleFortranCompiler(FortranCompiler):
