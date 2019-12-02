@@ -1293,6 +1293,8 @@ int dummy;
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
+        if cratetype in {'bin', 'dylib'}:
+            args += rustc.linker.get_always_args()
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += rustc.get_debug_args(self.get_option_for_target('debug', target))
