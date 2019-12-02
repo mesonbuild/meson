@@ -399,6 +399,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
                          install_rpath: str) -> typing.List[str]:
         return []
 
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
+        return []
+
 
 class PosixDynamicLinkerMixin:
 
@@ -423,8 +428,8 @@ class GnuLikeDynamicLinkerMixin:
 
     """Mixin class for dynamic linkers that provides gnu-like interface.
 
-    This acts as a base for the GNU linkers (bfd and gold), the Intel Xild
-    (which comes with ICC), LLVM's lld, and other linkers like GNU-ld.
+    This acts as a base for the GNU linkers (bfd and gold), LLVM's lld, and
+    other linkers like GNU-ld.
     """
 
     _BUILDTYPE_ARGS = {
@@ -655,26 +660,6 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     """Representation of LLVM's lld (not lld-link) linker.
 
     This is only the posix-like linker.
-    """
-
-    pass
-
-
-class XildLinuxDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
-
-    """Representation of Intel's Xild linker.
-
-    This is only the linux-like linker which dispatches to Gnu ld.
-    """
-
-    pass
-
-
-class XildAppleDynamicLinker(AppleDynamicLinker):
-
-    """Representation of Intel's Xild linker.
-
-    This is the apple linker, which dispatches to Apple's ld.
     """
 
     pass

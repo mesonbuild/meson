@@ -2299,11 +2299,11 @@ class AllPlatformTests(BasePlatformTests):
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildAppleDynamicLinker)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 elif is_windows():
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.XilinkDynamicLinker)
                 else:
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildLinuxDynamicLinker)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuDynamicLinker)
             if isinstance(cc, msvc):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)

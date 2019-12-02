@@ -53,8 +53,6 @@ from .linkers import (
     PGIDynamicLinker,
     PGIStaticLinker,
     SolarisDynamicLinker,
-    XildAppleDynamicLinker,
-    XildLinuxDynamicLinker,
     XilinkDynamicLinker,
     CudaLinker,
 )
@@ -1046,9 +1044,9 @@ class Environment:
             if '(ICC)' in out:
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 if self.machines[for_machine].is_darwin():
-                    l = XildAppleDynamicLinker(compiler, for_machine, 'xild', cls.LINKER_PREFIX, [], version=version)
+                    l = AppleDynamicLinker(compiler, for_machine, 'APPLE ld', cls.LINKER_PREFIX, [], version=version)
                 else:
-                    l = XildLinuxDynamicLinker(compiler, for_machine, 'xild', cls.LINKER_PREFIX, [], version=version)
+                    l = self._guess_nix_linker(compiler, cls, for_machine)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=l)
@@ -1176,8 +1174,7 @@ class Environment:
                         info, exe_wrap, linker=linker)
 
                 if 'ifort (IFORT)' in out:
-                    linker = XildLinuxDynamicLinker(
-                        compiler, for_machine, 'xild', IntelFortranCompiler.LINKER_PREFIX, [], version=version)
+                    linker = self._guess_nix_linker(compiler, IntelFortranCompiler, for_machine)
                     return IntelFortranCompiler(
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
@@ -1376,8 +1373,10 @@ class Environment:
 
                     # This trickery with type() gets us the class of the linker
                     # so we can initialize a new copy for the Rust Compiler
+
                     linker = type(cc.linker)(compiler, for_machine, cc.linker.id, cc.LINKER_PREFIX,
-                                             always_args=extra_args, version=cc.linker.version)
+                                             always_args=extra_args, version=cc.linker.version,
+                                             **extra_args)
 
                 return RustCompiler(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
