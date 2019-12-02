@@ -151,9 +151,10 @@ Abort with an error message if `condition` evaluates to `false`.
 ```
 
 Creates a benchmark item that will be run when the benchmark target is
-run. The behavior of this function is identical to `test` with the
-exception that there is no `is_parallel` keyword, because benchmarks
-are never run in parallel.
+run. The behavior of this function is identical to [`test()`](#test) except for:
+
+* benchmark() has no `is_parallel` keyword because benchmarks are not run in parallel
+* benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable
 
 *Note:* Prior to 0.52.0 benchmark would warn that `depends` and `priority`
 were unsupported, this is incorrect
@@ -1512,7 +1513,25 @@ object](#build-target-object) returned by
 object](#external-program-object) returned by
 [`find_program()`](#find_program).
 
-Keyword arguments are the following:
+By default, environment variable
+[`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html)
+is automatically set by `meson test` to a random value between 1..255.
+This can help find memory leaks on configurations using glibc,
+including with non-GCC compilers. However, this can have a performance impact,
+and may fail a test due to external libraries whose internals are out of the
+user's control. To check if this feature is causing an expected runtime crash,
+disable the feature by temporarily setting environment variable
+`MALLOC_PERTURB_=0`. While it's preferable to only temporarily disable this
+check, if a project requires permanent disabling of this check
+in meson.build do like:
+
+```meson
+nomalloc = environment({'MALLOC_PERTURB_': '0'})
+
+test(..., env: nomalloc, ...)
+```
+
+#### test() Keyword arguments
 
 - `args` arguments to pass to the executable
 
