@@ -516,6 +516,9 @@ Since *0.52.0* takes an optional dictionary as first argument. If
 provided, each key/value pair is added into the `environment_object`
 as if `set()` method was called for each of them.
 
+Since *0.53.0* it has `method` ('set', 'prepend' or 'append' strings) and
+`separator` keyword arguments to control how initial values are added.
+
 ### executable()
 
 ``` meson
