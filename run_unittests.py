@@ -5723,6 +5723,43 @@ c = ['{0}']
         self.build()
         self.run_tests()
 
+    def _check_ld(self, check: str, name: str, lang: str, expected: str) -> None:
+        if is_sunos():
+            raise unittest.SkipTest('Solaris currently cannot override the linker.')
+        if not shutil.which(check):
+            raise unittest.SkipTest('Could not find {}.'.format(check))
+        with mock.patch.dict(os.environ, {'LD': name}):
+            env = get_fake_env()
+            comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            if lang != 'rust' and comp.use_linker_args('foo') == []:
+                raise unittest.SkipTest(
+                    'Compiler {} does not support using alternative linkers'.format(comp.id))
+            self.assertEqual(comp.linker.id, expected)
+
+    def test_ld_environment_variable_bfd(self):
+        self._check_ld('ld.bfd', 'bfd', 'c', 'GNU ld.bfd')
+
+    def test_ld_environment_variable_gold(self):
+        self._check_ld('ld.gold', 'gold', 'c', 'GNU ld.gold')
+
+    def test_ld_environment_variable_lld(self):
+        self._check_ld('ld.lld', 'lld', 'c', 'lld')
+
+    def test_ld_environment_variable_rust(self):
+        self._check_ld('ld.gold', 'gold', 'rust', 'GNU ld.gold')
+
+    def test_ld_environment_variable_cpp(self):
+        self._check_ld('ld.gold', 'gold', 'cpp', 'GNU ld.gold')
+
+    def test_ld_environment_variable_objc(self):
+        self._check_ld('ld.gold', 'gold', 'objc', 'GNU ld.gold')
+
+    def test_ld_environment_variable_objcpp(self):
+        self._check_ld('ld.gold', 'gold', 'objcpp', 'GNU ld.gold')
+
+    def test_ld_environment_variable_fortran(self):
+        self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
+
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
