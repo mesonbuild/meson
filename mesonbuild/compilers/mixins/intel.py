@@ -14,8 +14,10 @@
 
 """Abstractions for the Intel Compiler families.
 
-Intel provides both a posix/gcc-like compiler (ICC) and an msvc-like compiler
-(ICL).
+Intel provides both a posix/gcc-like compiler (ICC) for MacOS and Linux,
+with Meson mixin IntelGnuLikeCompiler.
+For Windows, the Intel msvc-like compiler (ICL) Meson mixin
+is IntelVisualStudioLikeCompiler.
 """
 
 import os
@@ -30,9 +32,18 @@ if typing.TYPE_CHECKING:
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
+# NOTE: the default Intel optimization is -O2, unlike GNU which defaults to -O0.
+# this can be surprising, particularly for debug builds, so we specify the
+# default as -O0.
+# https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-o
+# https://software.intel.com/en-us/cpp-compiler-developer-guide-and-reference-g
+# https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-o
+# https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-g
+# https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-traceback
+# https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
 clike_optimization_args = {
-    '0': [],
-    'g': [],
+    '0': ['-O0'],
+    'g': ['-O0'],
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
@@ -42,6 +53,15 @@ clike_optimization_args = {
 
 # Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelGnuLikeCompiler(GnuLikeCompiler):
+
+    BUILD_ARGS = {
+        'plain': [],
+        'debug': ["-g", "-O0", "-traceback"],
+        'debugoptimized': ["-g", "-O1", "-traceback"],
+        'release': ["-O2"],
+        'minsize': ["-Os"],
+        'custom': [],
+    }
 
     def __init__(self):
         super().__init__()
@@ -96,10 +116,22 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_profile_use_args(self) -> typing.List[str]:
         return ['-prof-use']
 
+    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+        return self.BUILD_ARGS[buildtype]
+
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     """Abstractions for ICL, the Intel compiler on Windows."""
+
+    BUILD_ARGS = {
+        'plain': [],
+        'debug': ["/Zi", "/Od", "/traceback"],
+        'debugoptimized': ["/Zi", "/O1", "/traceback"],
+        'release': ["/O2"],
+        'minsize': ["/Os"],
+        'custom': [],
+    }
 
     def __init__(self, target: str):
         super().__init__(target)
@@ -133,3 +165,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def openmp_flags(self) -> typing.List[str]:
         return ['/Qopenmp']
+
+    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+        return self.BUILD_ARGS[buildtype]
