@@ -595,7 +595,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-undefined,error')
 
     def get_always_args(self) -> typing.List[str]:
-        return self._apply_prefix('-headerpad_max_install_names')
+        return self._apply_prefix('-headerpad_max_install_names') + super().get_always_args()
 
     def bitcode_args(self) -> typing.List[str]:
         return self._apply_prefix('-bitcode_bundle')
@@ -818,7 +818,7 @@ class VisualStudioLikeLinkerMixin:
         return self._apply_prefix('/MACHINE:' + self.machine) + self._apply_prefix('/OUT:' + outputname)
 
     def get_always_args(self) -> typing.List[str]:
-        return self._apply_prefix('/nologo')
+        return self._apply_prefix('/nologo') + super().get_always_args()
 
     def get_search_args(self, dirname: str) -> typing.List[str]:
         return self._apply_prefix('/LIBPATH:' + dirname)
