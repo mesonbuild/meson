@@ -845,9 +845,10 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: typing.List[str], *,
                  exelist: typing.Optional[typing.List[str]] = None,
                  prefix: typing.Union[str, typing.List[str]] = '',
-                 machine: str = 'x86', version: str = 'unknown version'):
+                 machine: str = 'x86', version: str = 'unknown version',
+                 direct: bool = True):
         super().__init__(exelist or ['link.exe'], for_machine, 'link',
-                         prefix, always_args, machine=machine, version=version)
+                         prefix, always_args, machine=machine, version=version, direct=direct)
 
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
@@ -857,9 +858,10 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: typing.List[str], *,
                  exelist: typing.Optional[typing.List[str]] = None,
                  prefix: typing.Union[str, typing.List[str]] = '',
-                 version: str = 'unknown version'):
+                 machine: str = 'x86', version: str = 'unknown version',
+                 direct: bool = True):
         super().__init__(exelist or ['lld-link.exe'], for_machine, 'lld-link',
-                         prefix, always_args, version=version)
+                         prefix, always_args, machine=machine, version=version, direct=direct)
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
