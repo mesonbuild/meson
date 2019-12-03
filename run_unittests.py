@@ -4496,6 +4496,29 @@ class WindowsTests(BasePlatformTests):
 
         self.assertTrue('prog.pdb' in files)
 
+    def _check_ld(self, name: str, lang: str, expected: str) -> None:
+        if not shutil.which(name):
+            raise unittest.SkipTest('Could not find {}.'.format(name))
+        with mock.patch.dict(os.environ, {'LD': name}):
+            env = get_fake_env()
+            try:
+                comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            except EnvironmentException:
+                raise unittest.SkipTest('Could not find a compiler for {}'.format(lang))
+            self.assertEqual(comp.linker.id, expected)
+
+    def test_link_environment_variable_lld_link(self):
+        self._check_ld('lld-link', 'c', 'lld-link')
+
+    def test_link_environment_variable_link(self):
+        self._check_ld('link', 'c', 'link')
+
+    def test_link_environment_variable_optlink(self):
+        self._check_ld('optlink', 'c', 'optlink')
+
+    def test_link_environment_variable_rust(self):
+        self._check_ld('link', 'rust', 'link')
+
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
