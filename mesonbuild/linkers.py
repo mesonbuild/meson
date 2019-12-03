@@ -791,7 +791,7 @@ class VisualStudioLikeLinkerMixin:
         self.machine = machine
 
     def invoked_by_compiler(self) -> bool:
-        return self.direct
+        return not self.direct
 
     def get_debug_crt_args(self) -> typing.List[str]:
         """Arguments needed to select a debug crt for the linker.
