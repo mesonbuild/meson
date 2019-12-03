@@ -1293,8 +1293,15 @@ int dummy;
         else:
             raise InvalidArguments('Unknown target type for rustc.')
         args.append(cratetype)
+
+        # If we're dynamically linking, add those arguments
+        #
+        # Rust is super annoying, calling -C link-arg foo does not work, it has
+        # to be -C link-arg=foo
         if cratetype in {'bin', 'dylib'}:
-            args += rustc.linker.get_always_args()
+            for a in rustc.linker.get_always_args():
+                args += ['-C', 'link-arg={}'.format(a)]
+
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += rustc.get_debug_args(self.get_option_for_target('debug', target))

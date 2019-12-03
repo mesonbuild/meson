@@ -55,6 +55,7 @@ from .linkers import (
     SolarisDynamicLinker,
     XilinkDynamicLinker,
     CudaLinker,
+    VisualStudioLikeLinkerMixin,
 )
 from functools import lru_cache
 from .compilers import (
@@ -1333,6 +1334,10 @@ class Environment:
         compilers, ccache, exe_wrap = self._get_compilers('rust', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
+
+        cc = self.detect_c_compiler(for_machine)
+        is_link_exe = isinstance(cc.linker, VisualStudioLikeLinkerMixin)
+
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
@@ -1346,36 +1351,40 @@ class Environment:
             version = search_version(out)
 
             if 'rustc' in out:
-                if info.is_windows() or info.is_cygwin():
-                    # On windows rustc invokes link.exe
-                    linker = self._guess_win_linker(['link'], for_machine)
+                # On Linux and mac rustc will invoke gcc (clang for mac
+                # presumably) and it can do this windows, for dynamic linking.
+                # this means the easiest way to C compiler for dynamic linking.
+                # figure out what linker to use is to just get the value of the
+                # C compiler and use that as the basis of the rust linker.
+                # However, there are two things we need to change, if CC is not
+                # the default use that, and second add the necessary arguments
+                # to rust to use -fuse-ld
+
+                extra_args = {}
+                always_args = []
+                if is_link_exe:
+                    compiler.extend(['-C', 'linker={}'.format(cc.linker.exelist[0])])
+                    extra_args['direct'] = True
+                    extra_args['machine'] = cc.linker.machine
+                elif not ((info.is_darwin() and isinstance(cc, AppleClangCCompiler)) or
+                          isinstance(cc, GnuCCompiler)):
+                    c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
+                    compiler.extend(['-C', 'linker={}'.format(c)])
+
+                value = self.binaries[for_machine].lookup_entry('ld')
+                if value is not None:
+                    for a in cc.use_linker_args(value[0]):
+                        always_args.extend(['-C', 'link-arg={}'.format(a)])
+
+                # This trickery with type() gets us the class of the linker
+                # so we can initialize a new copy for the Rust Compiler
+
+                if is_link_exe:
+                    linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,
+                                             version=cc.linker.version, **extra_args)
                 else:
-                    # On Linux and mac rustc will invoke gcc (clang for mac
-                    # presumably), for dynamic linking. this means the easiest
-                    # way to C compiler for dynamic linking. figure out what
-                    # linker to use !windows it to just get the value of the C
-                    # compiler and use that as the basis of the rust linker.
-                    # However, there are two things we need to change, if CC is
-                    # not the default use that, and second add the necessary
-                    # arguments to rust to use -fuse-ld
-                    cc = self.detect_c_compiler(for_machine)
-
-                    extra_args = []
-                    if not ((info.is_darwin() and isinstance(cc, AppleClangCCompiler)) or
-                            isinstance(cc, GnuCCompiler)):
-                        c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
-                        extra_args.extend(['-C', 'linker={}'.format(c)])
-
-                    value = self.binaries[for_machine].lookup_entry('ld')
-                    if value is not None:
-                        for a in cc.use_linker_args(value[0]):
-                            extra_args.extend(['-C', 'link-arg={}'.format(a)])
-
-                    # This trickery with type() gets us the class of the linker
-                    # so we can initialize a new copy for the Rust Compiler
-
                     linker = type(cc.linker)(compiler, for_machine, cc.linker.id, cc.LINKER_PREFIX,
-                                             always_args=extra_args, version=cc.linker.version,
+                                             always_args=always_args, version=cc.linker.version,
                                              **extra_args)
 
                 return RustCompiler(
