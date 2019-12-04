@@ -27,16 +27,16 @@ import ast
 import argparse
 import configparser
 from typing import (
-    Any, Dict, Generic, Iterable, List, Optional, Type, TypeVar, Union
+    Any, Dict, Generic, Iterable, Iterator, List, MutableMapping, Optional, Tuple, Type, TypeVar, Union,
+    TYPE_CHECKING,
 )
-import typing
 import enum
 import shlex
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from . import dependencies
 
-    OptionDictType = typing.Dict[str, 'UserOption[Any]']
+    OptionDictType = Dict[str, 'UserOption[Any]']
 
 version = '0.52.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
@@ -231,9 +231,9 @@ def load_configs(filenames: List[str]) -> configparser.ConfigParser:
     return config
 
 
-if typing.TYPE_CHECKING:
-    CacheKeyType = typing.Tuple[typing.Tuple[typing.Any, ...], ...]
-    SubCacheKeyType = typing.Tuple[typing.Any, ...]
+if TYPE_CHECKING:
+    CacheKeyType = Tuple[Tuple[Any, ...], ...]
+    SubCacheKeyType = Tuple[Any, ...]
 
 
 class DependencyCacheType(enum.Enum):
@@ -257,7 +257,7 @@ class DependencySubCache:
 
     def __init__(self, type_: DependencyCacheType):
         self.types = [type_]
-        self.__cache = {}  # type: typing.Dict[SubCacheKeyType, dependencies.Dependency]
+        self.__cache = {}  # type: Dict[SubCacheKeyType, dependencies.Dependency]
 
     def __getitem__(self, key: 'SubCacheKeyType') -> 'dependencies.Dependency':
         return self.__cache[key]
@@ -268,7 +268,7 @@ class DependencySubCache:
     def __contains__(self, key: 'SubCacheKeyType') -> bool:
         return key in self.__cache
 
-    def values(self) -> typing.Iterable['dependencies.Dependency']:
+    def values(self) -> Iterable['dependencies.Dependency']:
         return self.__cache.values()
 
 
@@ -280,12 +280,12 @@ class DependencyCache:
     successfully lookup by providing a simple get/put interface.
     """
 
-    def __init__(self, builtins_per_machine: PerMachine[typing.Dict[str, UserOption[typing.Any]]], for_machine: MachineChoice):
-        self.__cache = OrderedDict()  # type: typing.MutableMapping[CacheKeyType, DependencySubCache]
+    def __init__(self, builtins_per_machine: PerMachine[Dict[str, UserOption[Any]]], for_machine: MachineChoice):
+        self.__cache = OrderedDict()  # type: MutableMapping[CacheKeyType, DependencySubCache]
         self.__builtins_per_machine = builtins_per_machine
         self.__for_machine = for_machine
 
-    def __calculate_subkey(self, type_: DependencyCacheType) -> typing.Tuple[typing.Any, ...]:
+    def __calculate_subkey(self, type_: DependencyCacheType) -> Tuple[Any, ...]:
         if type_ is DependencyCacheType.PKG_CONFIG:
             return tuple(self.__builtins_per_machine[self.__for_machine]['pkg_config_path'].value)
         elif type_ is DependencyCacheType.CMAKE:
@@ -293,7 +293,7 @@ class DependencyCache:
         assert type_ is DependencyCacheType.OTHER, 'Someone forgot to update subkey calculations for a new type'
         return tuple()
 
-    def __iter__(self) -> typing.Iterator['CacheKeyType']:
+    def __iter__(self) -> Iterator['CacheKeyType']:
         return self.keys()
 
     def put(self, key: 'CacheKeyType', dep: 'dependencies.Dependency') -> None:
@@ -303,7 +303,7 @@ class DependencyCache:
         subkey = self.__calculate_subkey(t)
         self.__cache[key][subkey] = dep
 
-    def get(self, key: 'CacheKeyType') -> typing.Optional['dependencies.Dependency']:
+    def get(self, key: 'CacheKeyType') -> Optional['dependencies.Dependency']:
         """Get a value from the cache.
 
         If there is no cache entry then None will be returned.
@@ -321,14 +321,14 @@ class DependencyCache:
                 pass
         return None
 
-    def values(self) -> typing.Iterator['dependencies.Dependency']:
+    def values(self) -> Iterator['dependencies.Dependency']:
         for c in self.__cache.values():
             yield from c.values()
 
-    def keys(self) -> typing.Iterator['CacheKeyType']:
+    def keys(self) -> Iterator['CacheKeyType']:
         return iter(self.__cache.keys())
 
-    def items(self) -> typing.Iterator[typing.Tuple['CacheKeyType', typing.List['dependencies.Dependency']]]:
+    def items(self) -> Iterator[Tuple['CacheKeyType', List['dependencies.Dependency']]]:
         for k, v in self.__cache.items():
             vs = []
             for t in v.types:
@@ -390,9 +390,9 @@ class CoreData:
         if not filenames:
             return []
 
-        found_invalid = []  # type: typing.List[str]
-        missing = []        # type: typing.List[str]
-        real = []           # type: typing.List[str]
+        found_invalid = []  # type: List[str]
+        missing = []        # type: List[str]
+        real = []           # type: List[str]
         for i, f in enumerate(filenames):
             f = os.path.expanduser(os.path.expandvars(f))
             if os.path.exists(f):

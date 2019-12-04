@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from pathlib import Path
-from typing import List
+from typing import TYPE_CHECKING, List
 import subprocess, os
-import typing
 
 from .. import coredata
 from .compilers import (
@@ -36,7 +35,7 @@ from mesonbuild.mesonlib import (
     version_compare, EnvironmentException, MesonException, MachineChoice, LibType
 )
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 
@@ -192,7 +191,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> typing.List[str]:
+    def get_option_compile_args(self, options) -> List[str]:
         args = []
         std = options['fortran_std']
         if std.value != 'none':
@@ -297,7 +296,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> typing.List[str]:
+    def get_option_compile_args(self, options) -> List[str]:
         args = []
         std = options['fortran_std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -317,7 +316,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self):
         return ['-lifcore', '-limf']
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> List[str]:
         return ['-gen-dep=' + outtarget, '-gen-depformat=make']
 
 
@@ -356,7 +355,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> typing.List[str]:
+    def get_option_compile_args(self, options) -> List[str]:
         args = []
         std = options['fortran_std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}

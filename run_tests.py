@@ -26,7 +26,8 @@ from io import StringIO
 from enum import Enum
 from glob import glob
 from pathlib import Path
-import mesonbuild
+from mesonbuild import compilers
+from mesonbuild import dependencies
 from mesonbuild import mesonlib
 from mesonbuild import mesonmain
 from mesonbuild import mtest
@@ -95,7 +96,6 @@ class FakeCompilerOptions:
         self.value = []
 
 def get_fake_options(prefix=''):
-    import argparse
     opts = argparse.Namespace()
     opts.native_file = []
     opts.cross_file = None
@@ -135,7 +135,7 @@ def get_meson_script():
     running in-process (which is the default).
     '''
     # Is there a meson.py next to the mesonbuild currently in use?
-    mesonbuild_dir = Path(mesonbuild.__file__).resolve().parent.parent
+    mesonbuild_dir = Path(mesonmain.__file__).resolve().parent.parent
     meson_script = mesonbuild_dir / 'meson.py'
     if meson_script.is_file():
         return str(meson_script)
@@ -263,12 +263,12 @@ def run_mtest_inprocess(commandlist):
     return returncode, mystdout.getvalue(), mystderr.getvalue()
 
 def clear_meson_configure_class_caches():
-    mesonbuild.compilers.CCompiler.library_dirs_cache = {}
-    mesonbuild.compilers.CCompiler.program_dirs_cache = {}
-    mesonbuild.compilers.CCompiler.find_library_cache = {}
-    mesonbuild.compilers.CCompiler.find_framework_cache = {}
-    mesonbuild.dependencies.PkgConfigDependency.pkgbin_cache = {}
-    mesonbuild.dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
+    compilers.CCompiler.library_dirs_cache = {}
+    compilers.CCompiler.program_dirs_cache = {}
+    compilers.CCompiler.find_library_cache = {}
+    compilers.CCompiler.find_framework_cache = {}
+    dependencies.PkgConfigDependency.pkgbin_cache = {}
+    dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
 def run_configure_inprocess(commandlist, env=None):
     old_stdout = sys.stdout

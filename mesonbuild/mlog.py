@@ -18,8 +18,7 @@ import sys
 import time
 import platform
 from contextlib import contextmanager
-import typing
-from typing import Any, Generator, List, Optional, Sequence, TextIO, Union
+from typing import Any, Generator, List, Optional, Sequence, TextIO, Union, cast
 from pathlib import Path
 
 """This is (mostly) a standalone module used to write logging
@@ -232,7 +231,7 @@ def _log_error(severity: str, *rargs: Union[str, AnsiDecorator], **kwargs: Any) 
         location_str = get_error_location_string(location_file, location.lineno)
         # Unions are frankly awful, and we have to cast here to get mypy
         # to understand that the list concatenation is safe
-        location_list = typing.cast(List[Union[str, AnsiDecorator]], [location_str])
+        location_list = cast(List[Union[str, AnsiDecorator]], [location_str])
         args = location_list + args
 
     log(*args, **kwargs)
