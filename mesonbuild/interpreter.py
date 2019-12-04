@@ -883,10 +883,10 @@ class CustomTargetHolder(TargetHolder):
         return CustomTargetIndexHolder(self.held_object[index])
 
     def __setitem__(self, index, value):
-        raise InterpreterException('Cannot set a member of a CustomTarget')
+        raise InterpreterException('Cannot set a member of a CustomTarget')  # lgtm[py/unexpected-raise-in-special-method]
 
     def __delitem__(self, index):
-        raise InterpreterException('Cannot delete a member of a CustomTarget')
+        raise InterpreterException('Cannot delete a member of a CustomTarget')  # lgtm[py/unexpected-raise-in-special-method]
 
     def outdir_include(self):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
