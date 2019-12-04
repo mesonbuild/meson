@@ -1714,7 +1714,9 @@ class ExternalProgram:
                 break
 
         if not silent:
-            if self.found():
+            # ignore the warning because derived classes never call this __init__
+            # method, and thus only the found() method of this class is ever executed
+            if self.found():  # lgtm [py/init-calls-subclass]
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
                          '(%s)' % ' '.join(self.command))
             else:

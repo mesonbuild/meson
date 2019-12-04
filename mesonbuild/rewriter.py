@@ -103,11 +103,11 @@ class RequiredKeys:
 class MTypeBase:
     def __init__(self, node: Optional[BaseNode] = None):
         if node is None:
-            self.node = self._new_node()
+            self.node = self._new_node()  # lgtm [py/init-calls-subclass] (node creation does not depend on base class state)
         else:
             self.node = node
         self.node_type = None
-        for i in self.supported_nodes():
+        for i in self.supported_nodes():  # lgtm [py/init-calls-subclass] (listing nodes does not depend on base class state)
             if isinstance(self.node, i):
                 self.node_type = i
 
