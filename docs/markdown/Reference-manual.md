@@ -701,6 +701,9 @@ Keyword arguments are the following:
   If the output is more complicated than that, the version checking will have to
   be done manually using [`run_command()`](#run_command).
 
+- `dirs` *(since 0.53.0)* Extra list of absolute paths where to look for program
+  names.
+
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
 (because the command invocator will reject the command otherwise) and

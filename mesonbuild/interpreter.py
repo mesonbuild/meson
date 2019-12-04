@@ -119,6 +119,18 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
 
     return disabled, required, feature
 
+def extract_search_dirs(kwargs):
+    search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
+    search_dirs = [Path(d).expanduser() for d in search_dirs]
+    for d in search_dirs:
+        if mesonlib.is_windows() and d.root.startswith('\\'):
+            # a Unix-path starting with `/` that is not absolute on Windows.
+            # discard without failing for end-user ease of cross-platform directory arrays
+            continue
+        if not d.is_absolute():
+            raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
+    return list(map(str, search_dirs))
+
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
         super().__init__()
@@ -1554,16 +1566,7 @@ class CompilerHolder(InterpreterObject):
             if not self.has_header_method([h], has_header_kwargs):
                 return self.notfound_library(libname)
 
-        search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
-        search_dirs = [Path(d).expanduser() for d in search_dirs]
-        for d in search_dirs:
-            if mesonlib.is_windows() and d.root.startswith('\\'):
-                # a Unix-path starting with `/` that is not absolute on Windows.
-                # discard without failing for end-user ease of cross-platform directory arrays
-                continue
-            if not d.is_absolute():
-                raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
-        search_dirs = list(map(str, search_dirs))
+        search_dirs = extract_search_dirs(kwargs)
 
         libtype = mesonlib.LibType.PREFER_SHARED
         if 'static' in kwargs:
@@ -2036,7 +2039,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                            'version',
                                            },
                     'executable': build.known_exe_kwargs,
-                    'find_program': {'required', 'native', 'version'},
+                    'find_program': {'required', 'native', 'version', 'dirs'},
                     'generator': {'arguments',
                                   'output',
                                   'depends',
@@ -2896,7 +2899,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return ExternalProgramHolder(prog)
         return None
 
-    def program_from_system(self, args, silent=False):
+    def program_from_system(self, args, search_dirs, silent=False):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -2910,12 +2913,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                     search_dir = os.path.join(self.environment.get_source_dir(),
                                               exename.subdir)
                 exename = exename.fname
+                extra_search_dirs = []
             elif isinstance(exename, str):
                 search_dir = source_dir
+                extra_search_dirs = search_dirs
             else:
                 raise InvalidArguments('find_program only accepts strings and '
                                        'files, not {!r}'.format(exename))
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
+                                                   extra_search_dirs=extra_search_dirs,
                                                    silent=silent)
             progobj = ExternalProgramHolder(extprog)
             if progobj.found():
@@ -2949,7 +2955,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST, required=True, silent=True, wanted=''):
+    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
+                          required=True, silent=True, wanted='', search_dirs=None):
         if not isinstance(args, list):
             args = [args]
 
@@ -2957,7 +2964,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if progobj is None:
             progobj = self.program_from_file_for(for_machine, args, silent=silent)
         if progobj is None:
-            progobj = self.program_from_system(args, silent=silent)
+            progobj = self.program_from_system(args, search_dirs, silent=silent)
         if progobj is None and args[0].endswith('python3'):
             prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = ExternalProgramHolder(prog)
@@ -2980,6 +2987,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
         return progobj
 
+    @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
@@ -2993,9 +3001,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
 
+        search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required, silent=False, wanted=wanted)
+        return self.find_program_impl(args, for_machine, required=required,
+                                      silent=False, wanted=wanted,
+                                      search_dirs=search_dirs)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
