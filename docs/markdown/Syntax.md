@@ -324,8 +324,8 @@ Dictionaries
 --
 
 Dictionaries are delimited by curly braces. A dictionary can contain an
-arbitrary number of key value pairs. Keys are required to be literal
-strings, values can be objects of any type.
+arbitrary number of key value pairs. Keys are required to be strings, values can
+be objects of any type. Prior to *0.53.0* keys were required to be literal strings.
 
 ```meson
 my_dict = {'foo': 42, 'bar': 'baz'}
@@ -357,6 +357,14 @@ endif
 if 'foo' not in my_dict
 # This condition is false
 endif
+```
+
+*Since 0.53.0* Keys can be any expression evaluating to a string value, not limited
+to string literals any more.
+```meson
+d = {'a' + 'b' : 42}
+k = 'cd'
+d += {k : 43}
 ```
 
 Function calls

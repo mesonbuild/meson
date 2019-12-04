@@ -496,7 +496,19 @@ class InterpreterBase:
     def evaluate_dictstatement(self, cur):
         (arguments, kwargs) = self.reduce_arguments(cur.args)
         assert (not arguments)
-        return kwargs
+        result = {}
+        self.argument_depth += 1
+        for key, value in kwargs.items():
+            if not isinstance(key, mparser.StringNode):
+                FeatureNew('Dictionary entry using non literal key', '0.53.0').use(self.subproject)
+            key = self.evaluate_statement(key)
+            if not isinstance(key, str):
+                raise InvalidArguments('Key must be a string')
+            if key in result:
+                raise InvalidArguments('Duplicate dictionary key: {}'.format(key))
+            result[key] = value
+        self.argument_depth -= 1
+        return result
 
     def evaluate_notstatement(self, cur):
         v = self.evaluate_statement(cur.value)
@@ -731,16 +743,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         elif isinstance(old_variable, dict):
             if not isinstance(addition, dict):
                 raise InvalidArguments('The += operator requires a dict on the right hand side if the variable on the left is a dict')
-            new_addition = {}
-            for (key, value) in addition.items():
-                if isinstance(key, str):
-                    new_addition[key] = value
-                elif isinstance(key, mparser.IdNode) and isinstance(self.get_variable(key.value), str):
-                    FeatureNew('Adding dictionary entry using string variable as key', '0.53.0').use(self.subproject)
-                    new_addition[self.get_variable(key.value)] = value
-                else:
-                    raise InvalidArguments('Dictionary key must be a string or string variable')
-            new_value = {**old_variable, **new_addition}
+            new_value = {**old_variable, **addition}
         # Add other data types here.
         else:
             raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints ')
