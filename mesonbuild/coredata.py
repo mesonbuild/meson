@@ -618,8 +618,7 @@ class CoreData:
                 except MesonException as e:
                     raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
                         .with_traceback(sys.exc_info()[2])
-        else:
-            raise MesonException('Tried to validate unknown option %s.' % option_name)
+        raise MesonException('Tried to validate unknown option %s.' % option_name)
 
     def get_external_args(self, for_machine: MachineChoice, lang):
         return self.compiler_options[for_machine][lang + '_args'].value
@@ -659,7 +658,6 @@ class CoreData:
         if not self.is_cross_build():
             options = self.strip_build_option_names(options)
         # Set prefix first because it's needed to sanitize other options
-        prefix = self.builtins['prefix'].value
         if 'prefix' in options:
             prefix = self.sanitize_prefix(options['prefix'])
             self.builtins['prefix'].set_value(prefix)

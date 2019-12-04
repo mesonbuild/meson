@@ -674,7 +674,6 @@ class Parser:
         a = ArgumentNode(s)
 
         while not isinstance(s, EmptyNode):
-            potential = self.current
             if self.accept('colon'):
                 key_value = self.statement()
                 if isinstance(s, StringNode):

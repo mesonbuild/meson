@@ -405,7 +405,6 @@ def run(options):
               'meson version. Please regenerate it in this case.')
         return 1
 
-    intro_vers = '0.0.0'
     with open(infofile, 'r') as fp:
         raw = json.load(fp)
         intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')

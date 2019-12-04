@@ -605,16 +605,14 @@ class VulkanDependency(ExternalDependency):
             # TODO: this config might not work on some platforms, fix bugs as reported
             # we should at least detect other 64-bit platforms (e.g. armv8)
             lib_name = 'vulkan'
+            lib_dir = 'lib'
+            inc_dir = 'include'
             if mesonlib.is_windows():
                 lib_name = 'vulkan-1'
                 lib_dir = 'Lib32'
                 inc_dir = 'Include'
                 if detect_cpu_family(self.env.coredata.compilers.host) == 'x86_64':
                     lib_dir = 'Lib'
-            else:
-                lib_name = 'vulkan'
-                lib_dir = 'lib'
-                inc_dir = 'include'
 
             # make sure header and lib are valid
             inc_path = os.path.join(self.vulkan_sdk, inc_dir)
