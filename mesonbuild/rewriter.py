@@ -854,7 +854,7 @@ class Rewriter:
                 while raw[end] in [' ', '\n', '\t']:
                     end += 1
 
-            raw = files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
+            files[i['file']]['raw'] = raw[:start] + i['str'] + raw[end:]
 
         for i in str_list:
             if i['action'] in ['modify', 'rm']:

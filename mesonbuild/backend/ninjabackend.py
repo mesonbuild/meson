@@ -769,7 +769,6 @@ int dummy;
             elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
 
         elem.add_dep(deps)
-        cmd = self.replace_paths(target, cmd)
         self.add_build(elem)
         self.processed_targets[target.get_id()] = True
 
@@ -1018,7 +1017,6 @@ int dummy;
         generated_sources = self.get_target_generated_sources(target)
         generated_rel_srcs = []
         for rel_src in generated_sources.keys():
-            dirpart, fnamepart = os.path.split(rel_src)
             if rel_src.lower().endswith('.cs'):
                 generated_rel_srcs.append(os.path.normpath(rel_src))
             deps.append(os.path.normpath(rel_src))
