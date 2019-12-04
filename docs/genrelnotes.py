@@ -18,8 +18,8 @@ import sys, os, subprocess
 from glob import glob
 
 relnote_template = '''---
-title: Release %s
-short-description: Release notes for %s
+title: Release {0}
+short-description: Release notes for {1}
 ...
 
 # New features
@@ -40,9 +40,9 @@ def add_to_sitemap(from_version, to_version):
             sf.write(line)
 
 def generate(from_version, to_version):
-    ofilename = 'Release-notes-for-%s.md' % to_version
+    ofilename = 'Release-notes-for-{0}.md'.format(to_version)
     with open(ofilename, 'w') as ofile:
-        ofile.write(relnote_template % (to_version, to_version))
+        ofile.write(relnote_template.format(to_version, to_version))
         for snippetfile in glob('snippets/*.md'):
             snippet = open(snippetfile).read()
             ofile.write(snippet)
