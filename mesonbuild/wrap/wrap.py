@@ -312,7 +312,7 @@ class Resolver:
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         hostname = urllib.parse.urlparse(url).hostname
-        if hostname.endswith('wrapdb.mesonbuild.com'):
+        if hostname == 'wrapdb.mesonbuild.com' or hostname.endswith('.wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
             try:
