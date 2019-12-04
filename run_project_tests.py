@@ -282,7 +282,6 @@ def _run_ci_include(args: typing.List[str]) -> str:
         return 'Included file {}:\n{}\n'.format(args[0], data)
     except Exception:
         return 'Failed to open {} ({})'.format(args[0])
-    return 'Appended {} to the log'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
