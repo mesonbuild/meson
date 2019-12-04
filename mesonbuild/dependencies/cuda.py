@@ -94,7 +94,7 @@ class CudaDependency(ExternalDependency):
 
         defaults = [(path, version) for (path, version, default) in paths if default]
         if defaults:
-            return (*defaults[0], True)
+            return (defaults[0][0], defaults[0][1], True)
 
         platform_msg = 'set the CUDA_PATH environment variable' if self._is_windows() \
             else 'set the CUDA_PATH environment variable/create the \'/usr/local/cuda\' symbolic link'
