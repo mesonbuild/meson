@@ -40,7 +40,7 @@ class FSModule(ExtensionModule):
 
     def _check(self, check: str, state: 'ModuleState', args: typing.Sequence[str]) -> ModuleReturnValue:
         if len(args) != 1:
-            MesonException('fs.{} takes exactly one argument.'.format(check))
+            raise MesonException('fs.{} takes exactly one argument.'.format(check))
         test_file = self._resolve_dir(state, args[0])
         return ModuleReturnValue(getattr(test_file, check)(), [])
 
@@ -68,7 +68,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def hash(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            MesonException('method takes exactly two arguments.')
+            raise MesonException('method takes exactly two arguments.')
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be hashed'.format(file))
@@ -84,7 +84,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def size(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            MesonException('method takes exactly one argument.')
+            raise MesonException('method takes exactly one argument.')
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be sized'.format(file))
@@ -97,7 +97,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def samefile(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            MesonException('method takes exactly two arguments.')
+            raise MesonException('method takes exactly two arguments.')
         file1 = self._resolve_dir(state, args[0])
         file2 = self._resolve_dir(state, args[1])
         if not file1.exists():
@@ -113,7 +113,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def replace_suffix(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            MesonException('method takes exactly two arguments.')
+            raise MesonException('method takes exactly two arguments.')
         original = PurePath(args[0])
         new = original.with_suffix(args[1])
         return ModuleReturnValue(str(new), [])
@@ -122,7 +122,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def parent(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            MesonException('method takes exactly one argument.')
+            raise MesonException('method takes exactly one argument.')
         original = PurePath(args[0])
         new = original.parent
         return ModuleReturnValue(str(new), [])
@@ -131,7 +131,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def name(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            MesonException('method takes exactly one argument.')
+            raise MesonException('method takes exactly one argument.')
         original = PurePath(args[0])
         new = original.name
         return ModuleReturnValue(str(new), [])
