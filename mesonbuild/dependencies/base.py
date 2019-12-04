@@ -23,8 +23,7 @@ import shlex
 import shutil
 import textwrap
 import platform
-import typing
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from enum import Enum
 from pathlib import Path, PurePath
 
@@ -208,8 +207,8 @@ class Dependency:
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency(self, dep_type: typing.Type['Dependency'], env: Environment,
-                            kwargs: typing.Dict[str, typing.Any], *,
+    def _add_sub_dependency(self, dep_type: Type['Dependency'], env: Environment,
+                            kwargs: Dict[str, Any], *,
                             method: DependencyMethods = DependencyMethods.AUTO) -> None:
         """Add an internal dependency of of the given type.
 
@@ -222,14 +221,14 @@ class Dependency:
         kwargs['method'] = method
         self.ext_deps.append(dep_type(env, kwargs))
 
-    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
-                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
+                     configtool: Optional[str] = None, default_value: Optional[str] = None,
+                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
         if default_value is not None:
             return default_value
         raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
 
-    def generate_system_dependency(self, include_type: str) -> typing.Type['Dependency']:
+    def generate_system_dependency(self, include_type: str) -> Type['Dependency']:
         new_dep = copy.deepcopy(self)
         new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
@@ -550,9 +549,9 @@ class ConfigToolDependency(ExternalDependency):
     def log_tried(self):
         return self.type_name
 
-    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
-                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
+                     configtool: Optional[str] = None, default_value: Optional[str] = None,
+                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
         if configtool:
             # In the not required case '' (empty string) will be returned if the
             # variable is not found. Since '' is a valid value to return we
@@ -984,9 +983,9 @@ class PkgConfigDependency(ExternalDependency):
     def log_tried(self):
         return self.type_name
 
-    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
-                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
+                     configtool: Optional[str] = None, default_value: Optional[str] = None,
+                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
         if pkgconfig:
             kwargs = {}
             if default_value is not None:
@@ -1479,9 +1478,9 @@ class CMakeDependency(ExternalDependency):
             return 'modules: ' + ', '.join(modules)
         return ''
 
-    def get_variable(self, *, cmake: typing.Optional[str] = None, pkgconfig: typing.Optional[str] = None,
-                     configtool: typing.Optional[str] = None, default_value: typing.Optional[str] = None,
-                     pkgconfig_define: typing.Optional[typing.List[str]] = None) -> typing.Union[str, typing.List[str]]:
+    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
+                     configtool: Optional[str] = None, default_value: Optional[str] = None,
+                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
         if cmake:
             try:
                 v = self.traceparser.vars[cmake]
@@ -1696,8 +1695,8 @@ class ExternalProgram:
     # An 'ExternalProgram' always runs on the build machine
     for_machine = MachineChoice.BUILD
 
-    def __init__(self, name: str, command: typing.Optional[typing.List[str]] = None,
-                 silent: bool = False, search_dir: typing.Optional[str] = None):
+    def __init__(self, name: str, command: Optional[List[str]] = None,
+                 silent: bool = False, search_dir: Optional[str] = None):
         self.name = name
         if command is not None:
             self.command = listify(command)
