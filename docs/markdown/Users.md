@@ -88,6 +88,7 @@ format files
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library (not the default yet)
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
+ - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM 
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
