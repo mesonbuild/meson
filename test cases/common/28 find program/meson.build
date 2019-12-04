@@ -27,3 +27,9 @@ assert(prog.found(), 'Program version should match')
 
 prog = find_program('print-version-with-prefix.py', version : '>=1.0')
 assert(prog.found(), 'Program version should match')
+
+prog = find_program('test_subdir.py', required : false)
+assert(not prog.found(), 'Program should not be found')
+
+prog = find_program('test_subdir.py', dirs : ['/donotexist', meson.current_source_dir() / 'scripts'])
+assert(prog.found(), 'Program should be found')

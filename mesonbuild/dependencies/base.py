@@ -1699,12 +1699,19 @@ class ExternalProgram:
     for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: Optional[List[str]] = None,
-                 silent: bool = False, search_dir: Optional[str] = None):
+                 silent: bool = False, search_dir: Optional[str] = None,
+                 extra_search_dirs: Optional[List[str]] = None):
         self.name = name
         if command is not None:
             self.command = listify(command)
         else:
-            self.command = self._search(name, search_dir)
+            all_search_dirs = [search_dir]
+            if extra_search_dirs:
+                all_search_dirs += extra_search_dirs
+            for d in all_search_dirs:
+                self.command = self._search(name, d)
+                if self.found():
+                    break
 
         # Set path to be the last item that is actually a file (in order to
         # skip options in something like ['python', '-u', 'file.py']. If we
