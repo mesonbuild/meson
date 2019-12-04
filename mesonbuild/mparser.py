@@ -682,7 +682,7 @@ class Parser:
                         # + 1 to colno to point to the actual string, not the opening quote
                         raise ParseException('Duplicate dictionary key: {}'.format(s.value), self.getline(), s.lineno, s.colno + 1)
                     a.set_kwarg(s.value, key_value)
-                elif isinstance(s, IdNode) and isinstance(key_value, StringNode):
+                elif isinstance(s, IdNode) and isinstance(s.value, str):
                     for key in a.kwargs:
                         if s.value == key.value:
                             raise ParseException('Duplicate dictionary variable key: {}'.format(s.value), self.getline(), s.lineno, s.colno)
