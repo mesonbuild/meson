@@ -199,8 +199,6 @@ class OutputTargetMap:
         return '__art_{}__'.format(os.path.basename(fname))
 
 class ConverterTarget:
-    lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
-
     def __init__(self, target: CMakeTarget, env: Environment):
         self.env = env
         self.artifacts = target.artifacts
@@ -240,7 +238,8 @@ class ConverterTarget:
 
         for i in target.files:
             # Determine the meson language
-            lang = ConverterTarget.lang_cmake_to_meson.get(i.language.lower(), 'c')
+            lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
+            lang = lang_cmake_to_meson.get(i.language.lower(), 'c')
             if lang not in self.languages:
                 self.languages += [lang]
             if lang not in self.compile_opts:
