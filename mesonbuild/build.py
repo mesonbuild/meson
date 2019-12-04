@@ -411,7 +411,7 @@ a hard error in the future.''' % name)
         return self.construct_id_from_path(
             self.subdir, self.name, self.type_suffix())
 
-    def process_kwargs(self, kwargs):
+    def process_kwargs_base(self, kwargs):
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
@@ -789,7 +789,7 @@ class BuildTarget(Target):
         return self.install_mode
 
     def process_kwargs(self, kwargs, environment):
-        super().process_kwargs(kwargs)
+        self.process_kwargs_base(kwargs)
         self.copy_kwargs(kwargs)
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
@@ -2068,7 +2068,7 @@ class CustomTarget(Target):
         return final_cmd
 
     def process_kwargs(self, kwargs, backend):
-        super().process_kwargs(kwargs)
+        self.process_kwargs_base(kwargs)
         self.sources = extract_as_list(kwargs, 'input', unholder=True)
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
@@ -2251,6 +2251,9 @@ class RunTarget(Target):
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
+    def process_kwargs(self, kwargs):
+        return self.process_kwargs_base(kwargs)
 
     def get_dependencies(self):
         return self.dependencies
