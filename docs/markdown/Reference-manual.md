@@ -144,6 +144,9 @@ build target (e.g. return value of [executable()](#executable), custom_target(),
 
 Abort with an error message if `condition` evaluates to `false`.
 
+*Since 0.53.0* `message` argument is optional and defaults to print the condition
+statement instead.
+
 ### benchmark()
 
 ``` meson

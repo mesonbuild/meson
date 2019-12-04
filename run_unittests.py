@@ -4417,6 +4417,12 @@ class FailureTests(BasePlatformTests):
         match = 'Meson version is.*but project requires >=2000'
         self.assertMesonRaises("", match, meson_version='>=2000', options=options)
 
+    def test_assert_default_message(self):
+        self.assertMesonRaises("k1 = 'a'\n" +
+                               "assert({\n" +
+                               "  k1: 1,\n" +
+                               "}['a'] == 2)\n",
+                               r"Assert failed: {k1 : 1}\['a'\] == 2")
 
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):

@@ -100,7 +100,7 @@ class AstPrinter(AstVisitor):
 
     def visit_ComparisonNode(self, node: mparser.ComparisonNode):
         node.left.accept(self)
-        self.append_padded(mparser.comparison_map[node.ctype], node)
+        self.append_padded(node.ctype, node)
         node.right.accept(self)
 
     def visit_ArithmeticNode(self, node: mparser.ArithmeticNode):
@@ -192,7 +192,10 @@ class AstPrinter(AstVisitor):
             if break_args:
                 self.newline()
         for key, val in node.kwargs.items():
-            self.append(key, node)
+            if isinstance(key, str):
+                self.append(key, node)
+            else:
+                key.accept(self)
             self.append_padded(':', node)
             val.accept(self)
             self.append(', ', node)
