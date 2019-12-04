@@ -1896,7 +1896,7 @@ class ExternalProgram:
         return self.name
 
 
-class NonExistingExternalProgram(ExternalProgram):
+class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
 
     def __init__(self, name='nonexistingprogram'):
@@ -1912,7 +1912,7 @@ class NonExistingExternalProgram(ExternalProgram):
         return False
 
 
-class EmptyExternalProgram(ExternalProgram):
+class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     '''
     A program object that returns an empty list of commands. Used for cases
     such as a cross file exe_wrapper to represent that it's not required.

@@ -612,6 +612,7 @@ class GnuDCompiler(DCompiler, GnuCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', is_cross, exe_wrapper, arch, **kwargs):
+        GnuCompiler.__init__(self, {})
         DCompiler.__init__(self, exelist, version, for_machine, info, is_cross, exe_wrapper, arch, **kwargs)
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
