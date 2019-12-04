@@ -143,7 +143,7 @@ class ArmclangCompiler:
         if ver_str:
             ver_str = ver_str.group(0)
         else:
-            mesonlib.EnvironmentException('armlink version string not found')
+            raise mesonlib.EnvironmentException('armlink version string not found')
         assert ver_str  # makes mypy happy
         # Using the regular expression from environment.search_version,
         # which is used for searching compiler version
