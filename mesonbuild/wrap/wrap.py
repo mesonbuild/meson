@@ -16,6 +16,7 @@ from .. import mlog
 import contextlib
 import urllib.request
 import urllib.error
+import urllib.parse
 import os
 import hashlib
 import shutil
@@ -310,7 +311,8 @@ class Resolver:
         blocksize = 10 * 1024
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
-        if url.startswith('https://wrapdb.mesonbuild.com'):
+        hostname = urllib.parse.urlparse(url).hostname
+        if hostname.endswith('wrapdb.mesonbuild.com'):
             resp = open_wrapdburl(url)
         else:
             try:
