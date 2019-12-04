@@ -646,13 +646,13 @@ class CompilerArgs(list):
         return new
 
     def __mul__(self, args):
-        raise TypeError("can't multiply compiler arguments")
+        raise TypeError("can't multiply compiler arguments")  # lgtm[py/unexpected-raise-in-special-method]
 
     def __imul__(self, args):
-        raise TypeError("can't multiply compiler arguments")
+        raise TypeError("can't multiply compiler arguments")  # lgtm[py/unexpected-raise-in-special-method]
 
     def __rmul__(self, args):
-        raise TypeError("can't multiply compiler arguments")
+        raise TypeError("can't multiply compiler arguments")  # lgtm[py/unexpected-raise-in-special-method]
 
     def append(self, arg):
         self.__iadd__([arg])
