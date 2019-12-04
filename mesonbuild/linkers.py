@@ -197,7 +197,7 @@ class CcrxLinker(StaticLinker):
         return False
 
     def get_output_args(self, target: str) -> typing.List[str]:
-        return ['-output=%s' % target]
+        return ['-output={0}'.format(target)]
 
     def get_linker_always_args(self) -> typing.List[str]:
         return ['-nologo', '-form=library']
@@ -695,7 +695,7 @@ class CcrxDynamicLinker(DynamicLinker):
         return []
 
     def get_output_args(self, outputname: str) -> typing.List[str]:
-        return ['-output=%s' % outputname]
+        return ['-output={}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'typing.NoReturn':
         raise EnvironmentError('rlink.exe does not have a search dir argument')
