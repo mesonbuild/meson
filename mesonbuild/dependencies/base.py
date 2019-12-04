@@ -1794,7 +1794,6 @@ class ExternalProgram:
                 return commands + [script]
         except Exception as e:
             mlog.debug(e)
-            pass
         mlog.debug('Unusable script {!r}'.format(script))
         return False
 

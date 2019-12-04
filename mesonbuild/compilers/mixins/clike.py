@@ -167,7 +167,6 @@ class CLikeCompiler:
                     retval.append(d)
                 # at this point, it's an ELF file which doesn't match the
                 # appropriate elf_class, so skip this one
-                pass
         return tuple(retval)
 
     @functools.lru_cache()
