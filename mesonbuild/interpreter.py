@@ -2366,14 +2366,24 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @noKwargs
     def func_assert(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Assert takes exactly two arguments')
-        value, message = args
+        if len(args) == 1:
+            FeatureNew('assert function without message argument', '0.53.0').use(self.subproject)
+            value = args[0]
+            message = None
+        elif len(args) == 2:
+            value, message = args
+            if not isinstance(message, str):
+                raise InterpreterException('Assert message not a string.')
+        else:
+            raise InterpreterException('Assert takes between one and two arguments')
         if not isinstance(value, bool):
             raise InterpreterException('Assert value not bool.')
-        if not isinstance(message, str):
-            raise InterpreterException('Assert message not a string.')
         if not value:
+            if message is None:
+                from .ast import AstPrinter
+                printer = AstPrinter()
+                node.args.arguments[0].accept(printer)
+                message = printer.result
             raise InterpreterException('Assert failed: ' + message)
 
     def validate_arguments(self, args, argcount, arg_types):
