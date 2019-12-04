@@ -2993,8 +2993,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
             return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
 
-        if not isinstance(required, bool):
-            raise InvalidArguments('"required" argument must be a boolean.')
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
         return self.find_program_impl(args, for_machine, required=required, silent=False, wanted=wanted)
