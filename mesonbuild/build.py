@@ -1106,7 +1106,7 @@ You probably should put it in link_with instead.''')
                 msg += "Use the 'pic' option to static_library to build with PIC."
                 raise InvalidArguments(msg)
             if self.for_machine is not t.for_machine:
-                msg = 'Tried to mix libraries for machines {1} and {2} in target {!r}'.format(self.name, self.for_machine, t.for_machine)
+                msg = 'Tried to mix libraries for machines {1} and {2} in target {0!r}'.format(self.name, self.for_machine, t.for_machine)
                 if self.environment.is_cross_build():
                     raise InvalidArguments(msg + ' This is not possible in a cross build.')
                 else:
