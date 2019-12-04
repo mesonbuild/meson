@@ -34,7 +34,7 @@ def is_invalid_name(name: str, *, log: bool = True) -> bool:
     if pref in reserved_prefixes:
         if log:
             from . import mlog
-            mlog.deprecation('Option uses prefix "%s", which is reserved for Meson. This will become an error in the future.' % pref)
+            mlog.deprecation('Option uses prefix "{0}", which is reserved for Meson. This will become an error in the future.'.format(pref))
     return False
 
 class OptionException(mesonlib.MesonException):
@@ -200,7 +200,7 @@ class OptionInterpreter:
             raise OptionException('Option call missing mandatory "type" keyword argument')
         opt_type = kwargs.pop('type')
         if opt_type not in option_types:
-            raise OptionException('Unknown type %s.' % opt_type)
+            raise OptionException('Unknown type {0}.'.format(opt_type))
         if len(posargs) != 1:
             raise OptionException('Option() must have one (and only one) positional argument')
         opt_name = posargs[0]
@@ -209,7 +209,7 @@ class OptionInterpreter:
         if optname_regex.search(opt_name) is not None:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
         if is_invalid_name(opt_name):
-            raise OptionException('Option name %s is reserved.' % opt_name)
+            raise OptionException('Option name {0} is reserved.'.format(opt_name))
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
         opt = option_types[opt_type](opt_name, kwargs.pop('description', ''), kwargs)

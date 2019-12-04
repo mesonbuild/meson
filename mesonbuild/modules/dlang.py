@@ -132,7 +132,7 @@ class DlangModule(ExtensionModule):
             dubbin = False
         if dubbin:
             mlog.log('Found DUB:', mlog.bold(dubbin.get_path()),
-                     '(%s)' % out.strip())
+                     '({0})'.format(out.strip()))
         else:
             mlog.log('Found DUB:', mlog.red('NO'))
         return dubbin

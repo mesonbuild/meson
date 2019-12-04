@@ -71,7 +71,7 @@ def condense(dirname: str):
         if e[0] != i:
             old_name = str(e[0]) + ' ' + e[1]
             new_name = str(i) + ' ' + e[1]
-            #print('git mv "%s" "%s"' % (old_name, new_name))
+            #print('git mv "{0}" "{1}"'.format(old_name, new_name))
             subprocess.check_call(['git', 'mv', old_name, new_name])
             replacements.append((old_name, new_name))
     os.chdir(curdir)

@@ -118,18 +118,18 @@ class MesonApp:
         if not os.path.exists(ndir2):
             os.makedirs(ndir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
-            raise MesonException('%s is not a directory' % dir1)
+            raise MesonException('{0} is not a directory'.format(dir1))
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
-            raise MesonException('%s is not a directory' % dir2)
+            raise MesonException('{0} is not a directory'.format(dir2))
         if os.path.samefile(dir1, dir2):
             raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
-                raise MesonException('Both directories contain a build file %s.' % environment.build_filename)
+                raise MesonException('Both directories contain a build file {0}.'.format(environment.build_filename))
             return ndir1, ndir2
         if self.has_build_file(ndir2):
             return ndir2, ndir1
-        raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
+        raise MesonException('Neither directory contains a build file {0}.'.format(environment.build_filename))
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> typing.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)
@@ -147,7 +147,7 @@ class MesonApp:
         else:
             has_cmd_line_file = os.path.exists(coredata.get_cmd_line_file(build_dir))
             if (wipe and not has_cmd_line_file) or (not wipe and reconfigure):
-                raise SystemExit('Directory does not contain a valid build tree:\n{}'.format(build_dir))
+                raise SystemExit('Directory does not contain a valid build tree:\n{0}'.format(build_dir))
         return src_dir, build_dir
 
     def generate(self):
@@ -196,8 +196,8 @@ class MesonApp:
         # Print all default option values that don't match the current value
         for def_opt_name, def_opt_value, cur_opt_value in intr.get_non_matching_default_options():
             mlog.log('Option', mlog.bold(def_opt_name), 'is:',
-                     mlog.bold('{}'.format(make_lower_case(cur_opt_value.printable_value()))),
-                     '[default: {}]'.format(make_lower_case(def_opt_value)))
+                     mlog.bold('{0}'.format(make_lower_case(cur_opt_value.printable_value()))),
+                     '[default: {0}]'.format(make_lower_case(def_opt_value)))
         try:
             dumpfile = os.path.join(env.get_scratch_dir(), 'build.dat')
             # We would like to write coredata as late as possible since we use the existence of
@@ -208,7 +208,7 @@ class MesonApp:
             # possible, but before build files, and if any error occurs, delete it.
             cdf = env.dump_coredata()
             if self.options.profile:
-                fname = 'profile-{}-backend.log'.format(intr.backend.name)
+                fname = 'profile-{0}-backend.log'.format(intr.backend.name)
                 fname = os.path.join(self.build_dir, 'meson-private', fname)
                 profile.runctx('intr.backend.generate(intr)', globals(), locals(), filename=fname)
             else:

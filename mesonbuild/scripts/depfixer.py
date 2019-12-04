@@ -144,20 +144,20 @@ class Elf(DataSizes):
             # This script gets called to non-elf targets too
             # so just ignore them.
             if self.verbose:
-                print('File "%s" is not an ELF file.' % self.bfile)
+                print('File "{0}" is not an ELF file.'.format(self.bfile))
             sys.exit(0)
         if data[4] == 1:
             ptrsize = 32
         elif data[4] == 2:
             ptrsize = 64
         else:
-            sys.exit('File "%s" has unknown ELF class.' % self.bfile)
+            sys.exit('File "{0}" has unknown ELF class.'.format(self.bfile))
         if data[5] == 1:
             is_le = True
         elif data[5] == 2:
             is_le = False
         else:
-            sys.exit('File "%s" has unknown ELF endianness.' % self.bfile)
+            sys.exit('File "{0}" has unknown ELF endianness.'.format(self.bfile))
         return ptrsize, is_le
 
     def parse_header(self):

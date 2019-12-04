@@ -43,7 +43,7 @@ class PackageGenerator:
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
         self.bytesize = 32 if '32' in platform.architecture()[0] else 64
-        self.final_output = 'meson-%s-%d.msi' % (self.version, self.bytesize)
+        self.final_output = 'meson-{0}-{1}.msi'.format(self.version, self.bytesize)
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
@@ -151,7 +151,7 @@ class PackageGenerator:
         package = ET.SubElement(product, 'Package',  {
             'Id': '*',
             'Keywords': 'Installer',
-            'Description': 'Meson %s installer' % self.version,
+            'Description': 'Meson {0} installer'.format(self.version),
             'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
             'InstallerVersion': '500',
@@ -237,7 +237,7 @@ class PackageGenerator:
     def create_xml(self, nodes, current_dir, parent_xml_node, staging_dir):
         cur_node = nodes[current_dir]
         if cur_node.files:
-            component_id = 'ApplicationFiles%d' % self.component_num
+            component_id = 'ApplicationFiles{0}'.format(self.component_num)
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
                 'Id': component_id,
                 'Guid': gen_guid(),

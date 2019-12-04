@@ -274,7 +274,7 @@ def exception(e: Exception, prefix: Optional[AnsiDecorator] = None) -> None:
         # Mypy can't figure this out, and it's pretty easy to vidual inspect
         # that this is correct, so we'll just ignore it.
         path = get_relative_path(Path(e.file), Path(os.getcwd()))
-        args.append('%s:%d:%d:' % (path, e.lineno, e.colno))  # type: ignore
+        args.append('{}:{}:{}:'.format(path, e.lineno, e.colno))  # type: ignore
     if prefix:
         args.append(prefix)
     args.append(str(e))

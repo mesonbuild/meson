@@ -38,10 +38,10 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
     try:
         return subprocess.Popen(command_array, env=child_env, cwd=cwd)
     except FileNotFoundError:
-        print('Could not execute command "%s". File not found.' % command)
+        print('Could not execute command "{0}". File not found.'.format(command))
         sys.exit(1)
     except PermissionError:
-        print('Could not execute command "%s". File not executable.' % command)
+        print('Could not execute command "{0}". File not executable.'.format(command))
         sys.exit(1)
     except OSError as err:
         print('Could not execute command "{}": {}'.format(command, err))

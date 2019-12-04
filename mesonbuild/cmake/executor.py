@@ -58,7 +58,7 @@ class CMakeExecutor:
             # Lookup in cross or machine file.
             potential_cmakepath = environment.binaries[self.for_machine].lookup_entry('cmake')
             if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', self.for_machine, potential_cmakepath)
+                mlog.debug('CMake binary for {0} specified from cross file, native file, or env var as {1}.', self.for_machine, potential_cmakepath)
                 yield ExternalProgram.from_entry('cmake', potential_cmakepath)
                 # We never fallback if the user-specified option is no good, so
                 # stop returning options.
@@ -74,12 +74,12 @@ class CMakeExecutor:
         # Only search for CMake the first time and store the result in the class
         # definition
         if CMakeExecutor.class_cmakebin[self.for_machine] is False:
-            mlog.debug('CMake binary for %s is cached as not found' % self.for_machine)
+            mlog.debug('CMake binary for {0} is cached as not found'.format(self.for_machine))
         elif CMakeExecutor.class_cmakebin[self.for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % self.for_machine)
+            mlog.debug('CMake binary for {0} is cached.'.format(self.for_machine))
         else:
             assert CMakeExecutor.class_cmakebin[self.for_machine] is None
-            mlog.debug('CMake binary for %s is not cached' % self.for_machine)
+            mlog.debug('CMake binary for {0} is not cached'.format(self.for_machine))
             for potential_cmakebin in search():
                 mlog.debug('Trying CMake binary {} for machine {} at {}'
                            .format(potential_cmakebin.name, self.for_machine, potential_cmakebin.command))
@@ -88,7 +88,7 @@ class CMakeExecutor:
                     continue
                 if not silent:
                     mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
-                             '(%s)' % version_if_ok)
+                             '({0})'.format(version_if_ok))
                 CMakeExecutor.class_cmakebin[self.for_machine] = potential_cmakebin
                 CMakeExecutor.class_cmakevers[self.for_machine] = version_if_ok
                 break

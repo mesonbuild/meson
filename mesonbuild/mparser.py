@@ -31,7 +31,7 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
 
 class MesonUnicodeDecodeError(MesonException):
     def __init__(self, match):
-        super().__init__("%s" % match)
+        super().__init__("{0}".format(match))
         self.match = match
 
 def decode_match(match):
@@ -43,7 +43,7 @@ def decode_match(match):
 class ParseException(MesonException):
     def __init__(self, text, line, lineno, colno):
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__("%s\n%s\n%s" % (text, line, '%s^' % (' ' * colno)))
+        super().__init__("{0}\n{1}\n{2}".format(text, line, '{0}^'.format(' ' * colno)))
         self.lineno = lineno
         self.colno = colno
 
@@ -58,7 +58,7 @@ class BlockParseException(MesonException):
             # Followed by a caret to show the block start
             # Followed by underscores
             # Followed by a caret to show the block end.
-            super().__init__("%s\n%s\n%s" % (text, line, '%s^%s^' % (' ' * start_colno, '_' * (colno - start_colno - 1))))
+            super().__init__("{0}\n{1}\n{2}".format(text, line, '{0}^{1}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))))
         else:
             # If block start and end are on different lines, it is formatted as:
             # Error message
@@ -67,7 +67,9 @@ class BlockParseException(MesonException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            super().__init__("%s\n%s\n%s\nFor a block that started at %d,%d\n%s\n%s" % (text, line, '%s^' % (' ' * colno), start_lineno, start_colno, start_line, "%s^" % (' ' * start_colno)))
+            super().__init__("{0}\n{1}\n{2}\nFor a block that started at {3},{4}\n{5}\n{6}".format(text, line,
+                                                                                                   '{0}^'.format(' ' * colno), start_lineno, start_colno, start_line,
+                                                                                                   "{0}^".format(' ' * start_colno)))
         self.lineno = lineno
         self.colno = colno
 
@@ -240,7 +242,7 @@ class IdNode(ElementaryNode):
         assert(isinstance(self.value, str))
 
     def __str__(self):
-        return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+        return "Id node: '{0}' ({1}, {2}).".format(self.value, self.lineno, self.colno)
 
 class NumberNode(ElementaryNode):
     def __init__(self, token):
@@ -253,7 +255,7 @@ class StringNode(ElementaryNode):
         assert(isinstance(self.value, str))
 
     def __str__(self):
-        return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+        return "String node: '{0}' ({1}, {2}).".format(self.value, self.lineno, self.colno)
 
 class ContinueNode(ElementaryNode):
     pass
@@ -510,12 +512,12 @@ class Parser:
     def expect(self, s):
         if self.accept(s):
             return True
-        raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno)
+        raise ParseException('Expecting {0} got {1}.'.format(s, self.current.tid), self.getline(), self.current.lineno, self.current.colno)
 
     def block_expect(self, s, block_start):
         if self.accept(s):
             return True
-        raise BlockParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
+        raise BlockParseException('Expecting {0} got {1}.'.format(s, self.current.tid), self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
 
     def parse(self):
         block = self.codeblock()

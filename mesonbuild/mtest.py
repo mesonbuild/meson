@@ -67,7 +67,7 @@ def determine_worker_count() -> int:
         try:
             num_workers = int(os.environ[varname])
         except ValueError:
-            print('Invalid value in %s, using 1 thread.' % varname)
+            print('Invalid value in {0}, using 1 thread.' % varname)
             num_workers = 1
     else:
         try:
@@ -136,20 +136,20 @@ def returncode_to_status(retcode: int) -> str:
             signame = signal.Signals(signum).name
         except ValueError:
             signame = 'SIGinvalid'
-        return '(killed by signal %d %s)' % (signum, signame)
+        return '(killed by signal {0} {1})'.format(signum, signame)
 
     if retcode <= 128:
-        return '(exit status %d)' % (retcode,)
+        return '(exit status {0})'.format((retcode,))
 
     signum = retcode - 128
     try:
         signame = signal.Signals(signum).name
     except ValueError:
         signame = 'SIGinvalid'
-    return '(exit status %d or signal %d %s)' % (retcode, signum, signame)
+    return '(exit status {0} or signal {1} {2})'.format(retcode, signum, signame)
 
 def env_tuple_to_str(env: typing.Iterable[typing.Tuple[str, str]]) -> str:
-    return ''.join(["%s='%s' " % (k, v) for k, v in env])
+    return ''.join(["{0}='{1}' ".format((k, v) for k, v in env)])
 
 
 class TestException(MesonException):
@@ -204,7 +204,7 @@ class TAPParser:
                 yield self.Test(num, name, TestResult.UNEXPECTEDPASS if ok else TestResult.EXPECTEDFAIL, explanation)
                 return
             else:
-                yield self.Error('invalid directive "%s"' % (directive,))
+                yield self.Error('invalid directive "{0}"'.format(directive,))
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
@@ -304,16 +304,16 @@ class TAPParser:
             if len(line) == 0:
                 continue
 
-            yield self.Error('unexpected input at line %d' % (lineno,))
+            yield self.Error('unexpected input at line {0}'.format(lineno,))
 
         if state == self._YAML:
-            yield self.Error('YAML block not terminated (started on line {})'.format(yaml_lineno))
+            yield self.Error('YAML block not terminated (started on line {0})'.format(yaml_lineno))
 
         if not bailed_out and plan and num_tests != plan.count:
             if num_tests < plan.count:
-                yield self.Error('Too few tests run (expected %d, got %d)' % (plan.count, num_tests))
+                yield self.Error('Too few tests run (expected {0}, got {1})'.format(plan.count, num_tests))
             else:
-                yield self.Error('Too many tests run (expected %d, got %d)' % (plan.count, num_tests))
+                yield self.Error('Too many tests run (expected {0}, got {1})'.format(plan.count, num_tests))
 
 
 class TestRun:
@@ -358,7 +358,7 @@ class TestRun:
 
         if returncode != 0:
             res = TestResult.ERROR
-            stde += '\n(test program exited with status code %d)' % (returncode,)
+            stde += '\n(test program exited with status code {0})'.format(returncode,)
 
         if res is None:
             # Now determine the overall result of the test based on the outcome of the subcases
@@ -559,10 +559,10 @@ class SingleTestRunner:
             p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             if self.options.verbose:
-                print('{} time out (After {} seconds)'.format(self.test.name, timeout))
+                print('{0} time out (After {1} seconds)'.format(self.test.name, timeout))
             timed_out = True
         except KeyboardInterrupt:
-            mlog.warning('CTRL-C detected while running %s' % (self.test.name))
+            mlog.warning('CTRL-C detected while running {0}'.format(self.test.name))
             kill_test = True
         finally:
             if self.options.gdb:
@@ -671,12 +671,12 @@ class TestHarness:
     def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> typing.Dict[str, str]:
         if ':' in options.setup:
             if options.setup not in self.build_data.test_setups:
-                sys.exit("Unknown test setup '%s'." % options.setup)
+                sys.exit("Unknown test setup '{0}'.".format(options.setup))
             current = self.build_data.test_setups[options.setup]
         else:
             full_name = test.project_name + ":" + options.setup
             if full_name not in self.build_data.test_setups:
-                sys.exit("Test setup '%s' not found from project '%s'." % (options.setup, test.project_name))
+                sys.exit("Test setup '{0}' not found from project '{1}'.".format(options.setup, test.project_name))
             current = self.build_data.test_setups[full_name]
         if not options.gdb:
             options.gdb = current.gdb
@@ -718,21 +718,21 @@ class TestHarness:
         elif result.res is TestResult.UNEXPECTEDPASS:
             self.unexpectedpass_count += 1
         else:
-            sys.exit('Unknown test result encountered: {}'.format(result.res))
+            sys.exit('Unknown test result encountered: {0}'.format(result.res))
 
     def print_stats(self, numlen: int, tests: typing.List['TestSerialisation'],
                     name: str, result: TestRun, i: int) -> None:
-        startpad = ' ' * (numlen - len('%d' % (i + 1)))
-        num = '%s%d/%d' % (startpad, i + 1, len(tests))
+        startpad = ' ' * (numlen - len('{0}'.format(i + 1)))
+        num = '{0}{1}/{2}'.format(startpad, i + 1, len(tests))
         padding1 = ' ' * (38 - len(name))
         padding2 = ' ' * (8 - len(result.res.value))
         status = ''
 
         if result.res is TestResult.FAIL:
             status = returncode_to_status(result.returncode)
-        result_str = '%s %s  %s%s%s%5.2f s %s' % \
-            (num, name, padding1, result.res.value, padding2, result.duration,
-             status)
+        result_str = '{0} {1}  {2}{3}{4}{5:2} s {6}'.format(num, name, padding1,
+                                                            result.res.value, padding2,
+                                                            result.duration, status)
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
         bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS,
                         TestResult.ERROR)
@@ -758,14 +758,14 @@ class TestHarness:
 
     def print_summary(self) -> None:
         msg = '''
-Ok:                 %4d
-Expected Fail:      %4d
-Fail:               %4d
-Unexpected Pass:    %4d
-Skipped:            %4d
-Timeout:            %4d
-''' % (self.success_count, self.expectedfail_count, self.fail_count,
-            self.unexpectedpass_count, self.skip_count, self.timeout_count)
+Ok:                 {0:4}
+Expected Fail:      {0:4}
+Fail:               {0:4}
+Unexpected Pass:    {0:4}
+Skipped:            {0:4}
+Timeout:            {0:4}
+'''.format(self.success_count, self.expectedfail_count, self.fail_count,
+           self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
@@ -891,10 +891,9 @@ Timeout:            %4d
         self.jsonlogfile = open(self.jsonlogfilename, 'w', encoding='utf-8', errors='replace')
         self.logfile = open(self.logfilename, 'w', encoding='utf-8', errors='surrogateescape')
 
-        self.logfile.write('Log of Meson test suite run on %s\n\n'
-                           % datetime.datetime.now().isoformat())
+        self.logfile.write('Log of Meson test suite run on {0}\n\n'.format(datetime.datetime.now().isoformat()))
         inherit_env = env_tuple_to_str(os.environ.items())
-        self.logfile.write('Inherited environment: {}\n\n'.format(inherit_env))
+        self.logfile.write('Inherited environment: {0}\n\n'.format(inherit_env))
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> typing.List[str]:
@@ -922,7 +921,7 @@ Timeout:            %4d
     def run_tests(self, tests: typing.List['TestSerialisation']) -> None:
         executor = None
         futures = []  # type: typing.List[typing.Tuple[conc.Future[TestRun], int, typing.List[TestSerialisation], str, int]]
-        numlen = len('%d' % len(tests))
+        numlen = len('{0}'.format(len(tests)))
         self.open_log_files()
         startdir = os.getcwd()
         if self.options.wd:
@@ -956,7 +955,7 @@ Timeout:            %4d
             self.print_collected_logs()
 
             if self.logfilename:
-                print('Full log written to %s' % self.logfilename)
+                print('Full log written to {0}'.format(self.logfilename))
         finally:
             os.chdir(startdir)
 
@@ -999,7 +998,7 @@ def rebuild_all(wd: str) -> bool:
 
     ret = subprocess.run([ninja, '-C', wd]).returncode
     if ret != 0:
-        print('Could not rebuild {}'.format(wd))
+        print('Could not rebuild {0}'.format(wd))
         return False
 
     return True

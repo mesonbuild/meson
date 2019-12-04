@@ -31,7 +31,7 @@ def do_uninstall(log):
             print('Deleted:', fname)
             successes += 1
         except Exception as e:
-            print('Could not delete %s: %s.' % (fname, e))
+            print('Could not delete {0}: {1}.'.format(fname, e))
             failures += 1
     print('\nUninstall finished.\n')
     print('Deleted:', successes)
