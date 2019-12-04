@@ -18,8 +18,11 @@
 from .common import CMakeException
 from .generator import parse_generator_expressions
 from .. import mlog
+from ..mesonlib import version_compare
 
 from typing import List, Tuple, Optional
+from pathlib import Path
+import json
 import re
 import os
 
@@ -60,7 +63,7 @@ class CMakeGeneratorTarget(CMakeTarget):
         self.working_dir = None  # type: Optional[str]
 
 class CMakeTraceParser:
-    def __init__(self, permissive: bool = False):
+    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = False):
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
         self.vars = {}
 
@@ -71,10 +74,31 @@ class CMakeTraceParser:
         self.custom_targets = []  # type: List[CMakeGeneratorTarget]
 
         self.permissive = permissive  # type: bool
+        self.trace_file = 'cmake_trace.txt'
+        self.trace_file_path = Path(build_dir) / self.trace_file
+        self.trace_format = 'json' if version_compare(cmake_version, '>=3.17') else 'old'
 
-    def parse(self, trace: str) -> None:
+    def trace_args(self) -> List[str]:
+        arg_map = {
+            'json': ['--trace-expand', '--trace-format=json-v1', '--trace-redirect={}'.format(self.trace_file), '--no-warn-unused-cli'],
+            'old': ['--trace', '--trace-expand', '--no-warn-unused-cli'],
+        }
+        return arg_map[self.trace_format]
+
+    def requires_stderr(self) -> bool:
+        return self.trace_format == 'old'
+
+    def parse(self, trace: Optional[str]) -> None:
         # First parse the trace
-        lexer1 = self._lex_trace(trace)
+        lexer1 = None
+        if self.trace_format == 'old':
+            if not trace:
+                raise CMakeException('CMake: Invalid trace input for old style CMake trace')
+            lexer1 = self._lex_trace_old(trace)
+        if self.trace_format == 'json':
+            if not self.trace_file_path.exists and not self.trace_file_path.is_file():
+                raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
+            lexer1 = self._lex_trace_json(self.trace_file_path.read_text())
 
         # All supported functions
         functions = {
@@ -380,21 +404,27 @@ class CMakeTraceParser:
         # Neither of these is awesome for obvious reasons. I'm going to try
         # option 1 first and fall back to 2, as 1 requires less code and less
         # synchroniztion for cmake changes.
+        #
+        # With the JSON output format, introduced in CMake 3.17, spaces are
+        # handled properly and we don't have to do either options
 
         arglist = []  # type: List[Tuple[str, List[str]]]
-        name = args.pop(0)
-        values = []
-        prop_regex = re.compile(r'^[A-Z_]+$')
-        for a in args:
-            if prop_regex.match(a):
-                if values:
-                    arglist.append((name, ' '.join(values).split(';')))
-                name = a
-                values = []
-            else:
-                values.append(a)
-        if values:
-            arglist.append((name, ' '.join(values).split(';')))
+        if self.trace_format == 'old':
+            name = args.pop(0)
+            values = []
+            prop_regex = re.compile(r'^[A-Z_]+$')
+            for a in args:
+                if prop_regex.match(a):
+                    if values:
+                        arglist.append((name, ' '.join(values).split(';')))
+                    name = a
+                    values = []
+                else:
+                    values.append(a)
+            if values:
+                arglist.append((name, ' '.join(values).split(';')))
+        else:
+            arglist = [(x[0], x[1].split(';')) for x in zip(args[::2], args[1::2])]
 
         for name, value in arglist:
             for i in targets:
@@ -476,7 +506,7 @@ class CMakeTraceParser:
 
             self.targets[target].properties[i[0]] += i[1]
 
-    def _lex_trace(self, trace):
+    def _lex_trace_old(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
         reg_other = re.compile(r'[^\n]*\n')
@@ -504,9 +534,21 @@ class CMakeTraceParser:
 
             yield CMakeTraceLine(file, line, func, args)
 
-    def _guess_files(self, broken_list: List[str]) -> List[str]:
-        #Try joining file paths that contain spaces
+    def _lex_trace_json(self, trace: str):
+        lines = trace.splitlines(keepends=False)
+        lines.pop(0)  # The first line is the version
+        for i in lines:
+            data = json.loads(i)
+            args = data['args']
+            args = [parse_generator_expressions(x) for x in args]
+            yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
 
+    def _guess_files(self, broken_list: List[str]) -> List[str]:
+        # Nothing has to be done for newer formats
+        if self.trace_format != 'old':
+            return broken_list
+
+        #Try joining file paths that contain spaces
         reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 

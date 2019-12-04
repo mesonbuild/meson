@@ -916,7 +916,7 @@ def print_tool_versions():
         {
             'tool': 'cmake',
             'args': ['--version'],
-            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*)$'),
+            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
             'match_group': 1,
         },
     ]

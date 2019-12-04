@@ -396,6 +396,9 @@ class LLVMDependencyCMake(CMakeDependency):
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
 
+        if self.traceparser is None:
+            return
+
         # Extract extra include directories and definitions
         inc_dirs = self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS')
         defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
