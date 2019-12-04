@@ -180,7 +180,7 @@ def ensure_stdout_accepts_unicode():
 def run(original_args, mainfile):
     if sys.version_info < (3, 5):
         print('Meson works correctly only with python 3.5+.')
-        print('You have python %s.' % sys.version)
+        print('You have python {0}.'.format(sys.version))
         print('Please update your environment')
         return 1
 
