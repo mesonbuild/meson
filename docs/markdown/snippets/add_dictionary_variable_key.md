@@ -1,17 +1,9 @@
-## Adding dictionary entry using string variable as key
+## Dictionary entry using string variable as key
 
-New dictionary entry can now be added using string variable as key, 
-in addition to using string literal as key.
-
+Keys can now be any expression evaluating to a string value, not limited
+to string literals any more.
 ```meson
-dict = {}
-
-# A variable to be used as a key
-key = 'myKey'
-
-# Add new entry using the variable
-dict += {key : 'myValue'}
-
-# Test that the stored value is correct 
-assert(dict[key] == 'myValue', 'Incorrect value retrieved from dictionary')
+d = {'a' + 'b' : 42}
+k = 'cd'
+d += {k : 43}
 ```
