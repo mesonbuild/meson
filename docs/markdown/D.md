@@ -74,6 +74,8 @@ my_lib = library('mylib',
     soversion: project_soversion,
     d_module_versions: ['FeatureA', 'featureB']
 )
+
+pkgc = import('pkgconfig')
 pkgc.generate(name: 'mylib',
               libraries: my_lib,
               subdirs: 'd/mylib',
