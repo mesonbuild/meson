@@ -20,7 +20,7 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
 
-from .base import (DependencyException, ExternalDependency, HasNativeKwarg)
+from .base import (DependencyException, ExternalDependency)
 
 
 class CudaDependency(ExternalDependency):
@@ -28,8 +28,7 @@ class CudaDependency(ExternalDependency):
     supported_languages = ['cuda', 'cpp', 'c'] # see also _default_language
 
     def __init__(self, environment, kwargs):
-        HasNativeKwarg.__init__(self, kwargs) # initialize self.for_machine
-        compilers = environment.coredata.compilers[self.for_machine]
+        compilers = environment.coredata.compilers[self.get_for_machine_from_kwargs(kwargs)]
         language = self._detect_language(compilers)
         if language not in self.supported_languages:
             raise DependencyException('Language \'{}\' is not supported by the CUDA Toolkit. Supported languages are {}.'.format(language, self.supported_languages))

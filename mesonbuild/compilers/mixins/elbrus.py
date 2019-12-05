@@ -19,18 +19,18 @@ import typing
 import subprocess
 import re
 
-from .gnu import GnuCompiler
+from .gnu import GnuLikeCompiler
 from ...mesonlib import Popen_safe
 
 if typing.TYPE_CHECKING:
     from ...environment import Environment
 
 
-class ElbrusCompiler(GnuCompiler):
+class ElbrusCompiler(GnuLikeCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
     def __init__(self, defines: typing.Dict[str, str]):
-        GnuCompiler.__init__(self, defines)
+        super().__init__()
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic',

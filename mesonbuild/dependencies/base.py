@@ -273,7 +273,10 @@ class InternalDependency(Dependency):
 
 class HasNativeKwarg:
     def __init__(self, kwargs):
-        self.for_machine = MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
+        self.for_machine = self.get_for_machine_from_kwargs(kwargs)
+
+    def get_for_machine_from_kwargs(self, kwargs):
+        return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
     def __init__(self, type_name, environment, language, kwargs):
