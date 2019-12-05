@@ -36,7 +36,8 @@ import shlex
 if TYPE_CHECKING:
     from . import dependencies
 
-    OptionDictType = Dict[str, 'UserOption[Any]']
+    UserOptionType = TypeVar('UserOptionType', bound=UserOption)
+    OptionDictType = Dict[str, UserOptionType]
 
 version = '0.52.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
@@ -68,6 +69,7 @@ class UserOption(Generic[_T]):
 
     def set_value(self, newvalue):
         self.value = self.validate_value(newvalue)
+
 
 class UserStringOption(UserOption[str]):
     def __init__(self, description, value, choices=None, yielding=None):

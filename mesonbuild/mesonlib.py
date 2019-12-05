@@ -30,6 +30,8 @@ from mesonbuild import mlog
 _T = typing.TypeVar('_T')
 _U = typing.TypeVar('_U')
 
+FileOrStrType = typing.Union[str, 'File']
+
 have_fcntl = False
 have_msvcrt = False
 # {subproject: project_meson_version}
