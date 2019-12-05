@@ -25,7 +25,7 @@ from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineC
 from ..environment import get_llvm_tool_names
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency, HasNativeKwarg
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency
 )
 from .misc import ThreadDependency
 
@@ -205,17 +205,13 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     __cpp_blacklist = {'-DNDEBUG'}
 
     def __init__(self, environment, kwargs):
-        # Already called by `super().__init__`, but need `self.for_machine`
-        # before `super().__init__` is called.
-        HasNativeKwarg.__init__(self, kwargs)
-
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
         # of bits in the isa that llvm targets, for example, on x86_64
         # and aarch64 the name will be llvm-config-64, on x86 and arm
         # it will be llvm-config-32.
-        if environment.machines[self.for_machine].is_64_bit:
+        if environment.machines[self.get_for_machine_from_kwargs(kwargs)].is_64_bit:
             self.tools.append('llvm-config-64')
         else:
             self.tools.append('llvm-config-32')
