@@ -31,6 +31,7 @@ import operator
 import threading
 import urllib.error
 import urllib.request
+import zipfile
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -2546,7 +2547,7 @@ class AllPlatformTests(BasePlatformTests):
             subprocess.check_call(['hg', 'commit', '-m', 'I am a project'], cwd=project_dir)
 
         try:
-            self.dist_impl(hg_init)
+            self.dist_impl(hg_init, include_subprojects=False)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the hg files so cleaning up the dir
@@ -2573,7 +2574,14 @@ class AllPlatformTests(BasePlatformTests):
             # fails sometimes.
             pass
 
-    def dist_impl(self, vcs_init):
+    def create_dummy_subproject(self, project_dir, name):
+        path = os.path.join(project_dir, 'subprojects', name)
+        os.makedirs(path)
+        with open(os.path.join(path, 'meson.build'), 'w') as ofile:
+            ofile.write("project('{}')".format(name))
+        return path
+
+    def dist_impl(self, vcs_init, include_subprojects=True):
         # Create this on the fly because having rogue .git directories inside
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
@@ -2581,6 +2589,8 @@ class AllPlatformTests(BasePlatformTests):
                 ofile.write('''project('disttest', 'c', version : '1.4.3')
 e = executable('distexe', 'distexe.c')
 test('dist test', e)
+subproject('vcssub', required : false)
+subproject('tarballsub', required : false)
 ''')
             with open(os.path.join(project_dir, 'distexe.c'), 'w') as ofile:
                 ofile.write('''#include<stdio.h>
@@ -2595,6 +2605,10 @@ int main(int argc, char **argv) {
             zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
             zip_checksumfile = zip_distfile + '.sha256sum'
             vcs_init(project_dir)
+            if include_subprojects:
+                vcs_init(self.create_dummy_subproject(project_dir, 'vcssub'))
+                self.create_dummy_subproject(project_dir, 'tarballsub')
+                self.create_dummy_subproject(project_dir, 'unusedsub')
             self.init(project_dir)
             self.build('dist')
             self.assertPathExists(xz_distfile)
@@ -2605,6 +2619,27 @@ int main(int argc, char **argv) {
                       workdir=self.builddir)
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
+
+            if include_subprojects:
+                z = zipfile.ZipFile(zip_distfile)
+                self.assertEqual(sorted(['disttest-1.4.3/',
+                                         'disttest-1.4.3/meson.build',
+                                         'disttest-1.4.3/distexe.c']),
+                                 sorted(z.namelist()))
+
+                self._run(self.meson_command + ['dist', '--formats', 'zip', '--include-subprojects'],
+                          workdir=self.builddir)
+                z = zipfile.ZipFile(zip_distfile)
+                self.assertEqual(sorted(['disttest-1.4.3/',
+                                         'disttest-1.4.3/subprojects/',
+                                         'disttest-1.4.3/meson.build',
+                                         'disttest-1.4.3/distexe.c',
+                                         'disttest-1.4.3/subprojects/tarballsub/',
+                                         'disttest-1.4.3/subprojects/vcssub/',
+                                         'disttest-1.4.3/subprojects/tarballsub/meson.build',
+                                         'disttest-1.4.3/subprojects/vcssub/meson.build']),
+                                 sorted(z.namelist()))
+
 
     def test_rpath_uses_ORIGIN(self):
         '''

@@ -36,6 +36,8 @@ def add_arguments(parser):
                         help='directory to cd into before running')
     parser.add_argument('--formats', default='xztar',
                         help='Comma separated list of archive types to create.')
+    parser.add_argument('--include-subprojects', action='store_true',
+                        help='Include source code of subprojects that have been used for the build.')
 
 
 def create_hash(fname):
@@ -87,22 +89,37 @@ def run_dist_scripts(dist_root, dist_scripts):
             print('Failed to run dist script {!r}'.format(name))
             sys.exit(1)
 
+def is_git(src_root):
+    _git = os.path.join(src_root, '.git')
+    return os.path.isdir(_git) or os.path.isfile(_git)
 
 def git_have_dirty_index(src_root):
     '''Check whether there are uncommitted changes in git'''
     ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
     return ret == 1
 
-def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
+def git_clone(src_root, distdir):
     if git_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
-    distdir = os.path.join(dist_sub, dist_name)
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
     os.makedirs(distdir)
     subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
     process_submodules(distdir)
     del_gitfiles(distdir)
+
+def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
+    distdir = os.path.join(dist_sub, dist_name)
+    git_clone(src_root, distdir)
+    for path in subprojects:
+        sub_src_root = os.path.join(src_root, path)
+        sub_distdir = os.path.join(distdir, path)
+        if os.path.exists(sub_distdir):
+            continue
+        if is_git(sub_src_root):
+            git_clone(sub_src_root, sub_distdir)
+        else:
+            shutil.copytree(sub_src_root, sub_distdir)
     run_dist_scripts(distdir, dist_scripts)
     output_names = []
     for a in archives:
@@ -112,6 +129,8 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
     shutil.rmtree(distdir)
     return output_names
 
+def is_hg(src_root):
+    return os.path.isdir(os.path.join(src_root, '.hg'))
 
 def hg_have_dirty_index(src_root):
     '''Check whether there are uncommitted changes in hg'''
@@ -147,7 +166,7 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
     return output_names
 
 
-def check_dist(packagename, meson_command, bld_root, privdir):
+def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     print('Testing distribution package %s' % packagename)
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -165,6 +184,7 @@ def check_dist(packagename, meson_command, bld_root, privdir):
         with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json')) as boptions:
             meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
                               if o['name'] not in ['backend', 'install_umask']]
+        meson_command += extra_meson_args
         if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
             print('Running Meson on distribution package failed')
             return 1
@@ -214,10 +234,18 @@ def run(options):
 
     archives = determine_archives_to_generate(options)
 
-    _git = os.path.join(src_root, '.git')
-    if os.path.isdir(_git) or os.path.isfile(_git):
-        names = create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts)
-    elif os.path.isdir(os.path.join(src_root, '.hg')):
+    subprojects = []
+    extra_meson_args = []
+    if options.include_subprojects:
+        subprojects = [os.path.join(b.subproject_dir, sub) for sub in b.subprojects]
+        extra_meson_args.append('-Dwrap_mode=nodownload')
+
+    if is_git(src_root):
+        names = create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts, subprojects)
+    elif is_hg(src_root):
+        if subprojects:
+            print('--include-subprojects option currently not supported with Mercurial')
+            return 1
         names = create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, b.dist_scripts)
     else:
         print('Dist currently only works with Git or Mercurial repos')
@@ -225,7 +253,7 @@ def run(options):
     if names is None:
         return 1
     # Check only one.
-    rc = check_dist(names[0], meson_command, bld_root, priv_dir)
+    rc = check_dist(names[0], meson_command, extra_meson_args, bld_root, priv_dir)
     if rc == 0:
         for name in names:
             create_hash(name)
