@@ -40,7 +40,7 @@ def list_projects():
     return 0
 
 def unpack(sproj, branch, outdir):
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{0}.git'.format(sproj, outdir)])
+    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{0}.git'.format(sproj) outdir])
     usfile = os.path.join(outdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser()
