@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import contextlib, os.path, re, tempfile
+import collections.abc
 import typing
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
@@ -385,11 +386,12 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
-class CompilerArgs(list):
+class CompilerArgs(typing.MutableSequence[str]):
     '''
-    Class derived from list() that manages a list of compiler arguments. Should
-    be used while constructing compiler arguments from various sources. Can be
-    operated with ordinary lists, so this does not need to be used everywhere.
+    List-like class that manages a list of compiler arguments. Should be used
+    while constructing compiler arguments from various sources. Can be
+    operated with ordinary lists, so this does not need to be used
+    everywhere.
 
     All arguments must be inserted and stored in GCC-style (-lfoo, -Idir, etc)
     and can converted to the native type of each compiler by using the
@@ -438,37 +440,45 @@ class CompilerArgs(list):
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
     always_dedup_args = tuple('-l' + lib for lib in unixy_compiler_internal_libs)
-    compiler = None
 
-    def _check_args(self, args):
-        cargs = []
-        if len(args) > 2:
-            raise TypeError("CompilerArgs() only accepts at most 2 arguments: "
-                            "The compiler, and optionally an initial list")
-        elif not args:
-            return cargs
-        elif len(args) == 1:
-            if isinstance(args[0], (Compiler, StaticLinker)):
-                self.compiler = args[0]
-            else:
-                raise TypeError("you must pass a Compiler instance as one of "
-                                "the arguments")
-        elif len(args) == 2:
-            if isinstance(args[0], (Compiler, StaticLinker)):
-                self.compiler = args[0]
-                cargs = args[1]
-            elif isinstance(args[1], (Compiler, StaticLinker)):
-                cargs = args[0]
-                self.compiler = args[1]
-            else:
-                raise TypeError("you must pass a Compiler instance as one of "
-                                "the two arguments")
-        else:
-            raise AssertionError('Not reached')
-        return cargs
+    def __init__(self, compiler: typing.Union['Compiler', StaticLinker],
+                 iterable: typing.Optional[typing.Iterable[str]] = None):
+        self.compiler = compiler
+        self.__container = list(iterable) if iterable is not None else []  # type: typing.List[str]
 
-    def __init__(self, *args):
-        super().__init__(self._check_args(args))
+    @typing.overload
+    def __getitem__(self, index: int) -> str:
+        pass
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> typing.List[str]:
+        pass
+
+    def __getitem__(self, index):
+        return self.__container[index]
+
+    @typing.overload
+    def __setitem__(self, index: int, value: str) -> None:
+        pass
+
+    @typing.overload
+    def __setitem__(self, index: slice, value: typing.List[str]) -> None:
+        pass
+
+    def __setitem__(self, index, value) -> None:
+        self.__container[index] = value
+
+    def __delitem__(self, index: typing.Union[int, slice]) -> None:
+        del self.__container[index]
+
+    def __len__(self) -> int:
+        return len(self.__container)
+
+    def insert(self, index: int, value: str) -> None:
+        self.__container.insert(index, value)
+
+    def copy(self) -> 'CompilerArgs':
+        return CompilerArgs(self.compiler, self.__container.copy())
 
     @classmethod
     def _can_dedup(cls, arg):
@@ -533,7 +543,7 @@ class CompilerArgs(list):
         # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
         # all act like (or are) gnu ld
         # TODO: this could probably be added to the DynamicLinker instead
-        if (hasattr(self.compiler, 'linker') and
+        if (isinstance(self.compiler, Compiler) and
                 self.compiler.linker is not None and
                 isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
             group_start = -1
@@ -553,7 +563,7 @@ class CompilerArgs(list):
         # Remove system/default include paths added with -isystem
         if hasattr(self.compiler, 'get_default_include_dirs'):
             default_dirs = self.compiler.get_default_include_dirs()
-            bad_idx_list = []
+            bad_idx_list = []  # type: typing.List[int]
             for i, each in enumerate(new):
                 # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
@@ -566,9 +576,9 @@ class CompilerArgs(list):
                     bad_idx_list += [i]
             for i in reversed(bad_idx_list):
                 new.pop(i)
-        return self.compiler.unix_args_to_native(new)
+        return self.compiler.unix_args_to_native(new.__container)
 
-    def append_direct(self, arg):
+    def append_direct(self, arg: str) -> None:
         '''
         Append the specified argument without any reordering or de-dup except
         for absolute paths to libraries, etc, which can always be de-duped
@@ -577,9 +587,9 @@ class CompilerArgs(list):
         if os.path.isabs(arg):
             self.append(arg)
         else:
-            super().append(arg)
+            self.__container.append(arg)
 
-    def extend_direct(self, iterable):
+    def extend_direct(self, iterable: typing.Iterable[str]) -> None:
         '''
         Extend using the elements in the specified iterable without any
         reordering or de-dup except for absolute paths where the order of
@@ -588,7 +598,7 @@ class CompilerArgs(list):
         for elem in iterable:
             self.append_direct(elem)
 
-    def extend_preserving_lflags(self, iterable):
+    def extend_preserving_lflags(self, iterable: typing.Iterable[str]) -> None:
         normal_flags = []
         lflags = []
         for i in iterable:
@@ -599,20 +609,20 @@ class CompilerArgs(list):
         self.extend(normal_flags)
         self.extend_direct(lflags)
 
-    def __add__(self, args):
-        new = CompilerArgs(self, self.compiler)
+    def __add__(self, args: typing.Iterable[str]) -> 'CompilerArgs':
+        new = self.copy()
         new += args
         return new
 
-    def __iadd__(self, args):
+    def __iadd__(self, args: typing.Iterable[str]) -> 'CompilerArgs':
         '''
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        pre = []
-        post = []
-        if not isinstance(args, list):
-            raise TypeError('can only concatenate list (not "{}") to list'.format(args))
+        pre = []   # type: typing.List[str]
+        post = []  # type: typing.List[str]
+        if not isinstance(args, collections.abc.Iterable):
+            raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
         for arg in args:
             # If the argument can be de-duped, do it either by removing the
             # previous occurrence of it and adding a new one, or not adding the
@@ -637,38 +647,30 @@ class CompilerArgs(list):
         # Insert at the beginning
         self[:0] = pre
         # Append to the end
-        super().__iadd__(post)
+        self.__container += post
         return self
 
-    def __radd__(self, args):
-        new = CompilerArgs(args, self.compiler)
+    def __radd__(self, args: typing.Iterable[str]):
+        new = CompilerArgs(self.compiler, args)
         new += self
         return new
 
-    def __eq__(self, other: object) -> bool:
-        '''
-        Only checks for equalety of self.compilers if the attribute is present.
-        Use the default list equalety for the compiler args.
-        '''
-        comp_eq = True
-        if hasattr(other, 'compiler'):
-            comp_eq = self.compiler == other.compiler
-        return comp_eq and super().__eq__(other)
+    def __eq__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+        # Only allow equality checks against other CompilerArgs and lists instances
+        if isinstance(other, CompilerArgs):
+            return self.compiler == other.compiler and self.__container == other.__container
+        elif isinstance(other, list):
+            return self.__container == other
+        return NotImplemented
 
-    def __mul__(self, args):  # lgtm[py/unexpected-raise-in-special-method]
-        raise TypeError("can't multiply compiler arguments")
-
-    def __imul__(self, args):  # lgtm[py/unexpected-raise-in-special-method]
-        raise TypeError("can't multiply compiler arguments")
-
-    def __rmul__(self, args):  # lgtm[py/unexpected-raise-in-special-method]
-        raise TypeError("can't multiply compiler arguments")
-
-    def append(self, arg):
+    def append(self, arg: str) -> None:
         self.__iadd__([arg])
 
-    def extend(self, args):
+    def extend(self, args: typing.Iterable[str]) -> None:
         self.__iadd__(args)
+
+    def __repr__(self) -> str:
+        return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
 
 class Compiler:
     # Libraries to ignore in find_library() since they are provided by the
