@@ -29,7 +29,7 @@ from .. import mlog
 from .. import dependencies
 from .. import compilers
 from ..compilers import (Compiler, CompilerArgs, CCompiler, FortranCompiler,
-                         PGICCompiler, VisualStudioLikeCompiler)
+                         PGICCompiler, VisualStudioLikeCompiler, CompilerType)
 from ..linkers import ArLinker
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar, quote_arg
@@ -421,7 +421,7 @@ int dummy;
                 return False
         return True
 
-    def create_target_source_introspection(self, target: build.Target, comp: compilers.Compiler, parameters, sources, generated_sources):
+    def create_target_source_introspection(self, target: build.Target, comp: CompilerType, parameters, sources, generated_sources):
         '''
         Adds the source file introspection information for a language of a target
 
@@ -1370,11 +1370,11 @@ int dummy;
         return '%s_PCH%s' % (lang, cls.get_rule_suffix(for_machine))
 
     @classmethod
-    def compiler_to_rule_name(cls, compiler: Compiler) -> str:
+    def compiler_to_rule_name(cls, compiler: CompilerType) -> str:
         return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine)
 
     @classmethod
-    def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
+    def compiler_to_pch_rule_name(cls, compiler: CompilerType) -> str:
         return cls.get_pch_rule_name(compiler.get_language(), compiler.for_machine)
 
     def swift_module_file_name(self, target):

@@ -28,7 +28,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
 )
-from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes
+from .compilers import CompilerType, is_object, clink_langs, sort_clink, lang_suffixes
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
@@ -467,7 +467,7 @@ class BuildTarget(Target):
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.sources = []
-        self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
+        self.compilers = OrderedDict() # type: OrderedDict[str, CompilerType]
         self.objects = []
         self.external_deps = []
         self.include_dirs = []

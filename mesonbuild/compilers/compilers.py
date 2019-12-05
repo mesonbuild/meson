@@ -443,7 +443,7 @@ class CompilerArgs(typing.MutableSequence[str]):
     # *always* de-dup these because they're special arguments to the linker
     always_dedup_args = tuple('-l' + lib for lib in unixy_compiler_internal_libs)
 
-    def __init__(self, compiler: typing.Union['Compiler', StaticLinker],
+    def __init__(self, compiler: typing.Union['CompilerType', StaticLinker],
                  iterable: typing.Optional[typing.Iterable[str]] = None):
         self.compiler = compiler
         self.__container = list(iterable) if iterable is not None else []  # type: typing.List[str]
@@ -1215,3 +1215,6 @@ def get_largefile_args(compiler):
         # transitionary features and must be enabled by programs that use
         # those features explicitly.
     return []
+
+
+CompilerType = typing.TypeVar('CompilerType', bound=Compiler)

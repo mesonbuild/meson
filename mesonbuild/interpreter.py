@@ -999,7 +999,7 @@ find_library_permitted_kwargs = set([
 find_library_permitted_kwargs |= set(['header_' + k for k in header_permitted_kwargs])
 
 class CompilerHolder(InterpreterObject):
-    def __init__(self, compiler, env, subproject):
+    def __init__(self, compiler: compilers.CompilerType, env, subproject):
         InterpreterObject.__init__(self)
         self.compiler = compiler
         self.environment = env

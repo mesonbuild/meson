@@ -32,6 +32,7 @@ from .envconfig import (
 from . import compilers
 from .compilers import (
     Compiler,
+    CompilerType,
     is_assembly,
     is_header,
     is_library,
@@ -1034,13 +1035,13 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def detect_c_compiler(self, for_machine):
+    def detect_c_compiler(self, for_machine: MachineChoice) -> CompilerType:
         return self._detect_c_or_cpp_compiler('c', for_machine)
 
-    def detect_cpp_compiler(self, for_machine):
+    def detect_cpp_compiler(self, for_machine: MachineChoice) -> CompilerType:
         return self._detect_c_or_cpp_compiler('cpp', for_machine)
 
-    def detect_cuda_compiler(self, for_machine):
+    def detect_cuda_compiler(self, for_machine: MachineChoice) -> CompilerType:
         popen_exceptions = {}
         is_cross = not self.machines.matches_build_machine(for_machine)
         compilers, ccache, exe_wrap = self._get_compilers('cuda', for_machine)
@@ -1077,7 +1078,7 @@ class Environment:
             return CudaCompiler(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
-    def detect_fortran_compiler(self, for_machine: MachineChoice):
+    def detect_fortran_compiler(self, for_machine: MachineChoice) -> CompilerType:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('fortran', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
@@ -1188,13 +1189,13 @@ class Environment:
     def get_scratch_dir(self):
         return self.scratch_dir
 
-    def detect_objc_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+    def detect_objc_compiler(self, for_machine: MachineInfo) -> CompilerType:
         return self._detect_objc_or_objcpp_compiler(for_machine, True)
 
-    def detect_objcpp_compiler(self, for_machine: MachineInfo) -> 'Compiler':
+    def detect_objcpp_compiler(self, for_machine: MachineInfo) -> CompilerType:
         return self._detect_objc_or_objcpp_compiler(for_machine, False)
 
-    def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
+    def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> CompilerType:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('objc' if objc else 'objcpp', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
@@ -1239,7 +1240,7 @@ class Environment:
                     is_cross, info, exe_wrap, linker=linker)
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def detect_java_compiler(self, for_machine):
+    def detect_java_compiler(self, for_machine: MachineChoice) -> CompilerType:
         exelist = self.binaries.host.lookup_entry('java')
         info = self.machines[for_machine]
         if exelist is None:
@@ -1259,7 +1260,7 @@ class Environment:
             return JavaCompiler(exelist, version, for_machine, info)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_cs_compiler(self, for_machine):
+    def detect_cs_compiler(self, for_machine: MachineChoice) -> CompilerType:
         compilers, ccache, exe_wrap = self._get_compilers('cs', for_machine)
         popen_exceptions = {}
         info = self.machines[for_machine]
@@ -1281,7 +1282,7 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def detect_vala_compiler(self, for_machine):
+    def detect_vala_compiler(self, for_machine: MachineChoice) -> CompilerType:
         exelist = self.binaries.host.lookup_entry('vala')
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
@@ -1298,7 +1299,7 @@ class Environment:
             return ValaCompiler(exelist, version, for_machine, info, is_cross)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_rust_compiler(self, for_machine):
+    def detect_rust_compiler(self, for_machine: MachineChoice) -> CompilerType:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('rust', for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
@@ -1335,7 +1336,7 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def detect_d_compiler(self, for_machine: MachineChoice):
+    def detect_d_compiler(self, for_machine: MachineChoice) -> CompilerType:
         info = self.machines[for_machine]
 
         # Detect the target architecture, required for proper architecture handling on Windows.
@@ -1430,7 +1431,7 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def detect_swift_compiler(self, for_machine):
+    def detect_swift_compiler(self, for_machine: MachineChoice) -> CompilerType:
         exelist = self.binaries.host.lookup_entry('swift')
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
@@ -1455,7 +1456,7 @@ class Environment:
 
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def compiler_from_language(self, lang: str, for_machine: MachineChoice):
+    def compiler_from_language(self, lang: str, for_machine: MachineChoice) -> CompilerType:
         if lang == 'c':
             comp = self.detect_c_compiler(for_machine)
         elif lang == 'cpp':

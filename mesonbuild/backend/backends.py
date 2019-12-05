@@ -23,7 +23,7 @@ import subprocess
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, OptionOverrideProxy
 from ..mesonlib import classify_unity_sources
 from ..mesonlib import File
-from ..compilers import CompilerArgs, VisualStudioLikeCompiler
+from ..compilers import CompilerArgs, VisualStudioLikeCompiler, CompilerType
 from collections import OrderedDict
 import shlex
 from functools import lru_cache
@@ -391,7 +391,7 @@ class Backend:
         return l, stdlib_args
 
     @staticmethod
-    def _libdir_is_system(libdir, compilers, env):
+    def _libdir_is_system(libdir, compilers: typing.Iterable[CompilerType], env):
         libdir = os.path.normpath(libdir)
         for cc in compilers.values():
             if libdir in cc.get_library_dirs(env):
@@ -536,7 +536,7 @@ class Backend:
         return pch_rel_to_build
 
     @staticmethod
-    def escape_extra_args(compiler, args):
+    def escape_extra_args(compiler: CompilerType, args):
         # No extra escaping/quoting needed when not running on Windows
         if not mesonlib.is_windows():
             return args
