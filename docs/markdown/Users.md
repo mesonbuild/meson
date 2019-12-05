@@ -65,6 +65,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
+ - [libglvnd](https://gitlab.freedesktop.org/glvnd/libglvnd), Vendor neutral OpenGL dispatch library for Unix-like OSes
  - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata.
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
