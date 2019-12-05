@@ -149,7 +149,7 @@ def returncode_to_status(retcode: int) -> str:
     return '(exit status {0} or signal {1} {2})'.format(retcode, signum, signame)
 
 def env_tuple_to_str(env: typing.Iterable[typing.Tuple[str, str]]) -> str:
-    return ''.join(["{0}='{1}' ".format((k, v) for k, v in env)])
+    return ''.join(["%s='%s' " % (k, v) for k, v in env])
 
 
 class TestException(MesonException):
