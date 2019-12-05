@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import contextlib, os.path, re, tempfile
-from typing import TYPE_CHECKING, Optional, Tuple, List, Union
+import typing
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from .. import coredata
@@ -27,7 +27,7 @@ from ..envconfig import (
     Properties,
 )
 
-if TYPE_CHECKING:
+if typing.TYPE_CHECKING:
     from ..coredata import OptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -521,7 +521,7 @@ class CompilerArgs(list):
             return True
         return False
 
-    def to_native(self, copy: bool = False) -> List[str]:
+    def to_native(self, copy: bool = False) -> typing.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
@@ -678,10 +678,10 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
-    LINKER_PREFIX = None  # type: Union[None, str, List[str]]
+    LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
 
     def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
-                 linker: Optional['DynamicLinker'] = None, **kwargs):
+                 linker: typing.Optional['DynamicLinker'] = None, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
@@ -735,7 +735,7 @@ class Compiler:
     def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies) -> Tuple[str, bool]:
+    def get_define(self, dname, prefix, env, extra_args, dependencies) -> typing.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
@@ -744,10 +744,12 @@ class Compiler:
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None) -> Tuple[bool, bool]:
+    def has_members(self, typename, membernames, prefix, env, *,
+                    extra_args=None, dependencies=None) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, *, dependencies=None) -> Tuple[bool, bool]:
+    def has_type(self, typename, prefix, env, extra_args, *,
+                 dependencies=None) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
     def symbols_have_underscore_prefix(self, env) -> bool:
@@ -756,10 +758,10 @@ class Compiler:
     def get_exelist(self):
         return self.exelist[:]
 
-    def get_linker_exelist(self) -> List[str]:
+    def get_linker_exelist(self) -> typing.List[str]:
         return self.linker.get_exelist()
 
-    def get_linker_output_args(self, outputname: str) -> List[str]:
+    def get_linker_output_args(self, outputname: str) -> typing.List[str]:
         return self.linker.get_output_args(outputname)
 
     def get_builtin_define(self, *args, **kwargs):
@@ -802,15 +804,15 @@ class Compiler:
         """
         return self.get_language() in languages_using_ldflags
 
-    def get_linker_args_from_envvars(self) -> List[str]:
+    def get_linker_args_from_envvars(self) -> typing.List[str]:
         return self.linker.get_args_from_envvars()
 
-    def get_args_from_envvars(self) -> Tuple[List[str], List[str]]:
+    def get_args_from_envvars(self) -> typing.Tuple[typing.List[str], typing.List[str]]:
         """
         Returns a tuple of (compile_flags, link_flags) for the specified language
         from the inherited environment
         """
-        def log_var(var, val: Optional[str]):
+        def log_var(var, val: typing.Optional[str]):
             if val:
                 mlog.log('Appending {} from environment: {!r}'.format(var, val))
             else:
@@ -822,8 +824,8 @@ class Compiler:
         if lang not in cflags_mapping:
             return [], []
 
-        compile_flags = []  # type: List[str]
-        link_flags = []     # type: List[str]
+        compile_flags = []  # type: typing.List[str]
+        link_flags = []     # type: typing.List[str]
 
         env_compile_flags = os.environ.get(cflags_mapping[lang])
         log_var(cflags_mapping[lang], env_compile_flags)
@@ -894,22 +896,22 @@ class Compiler:
     def get_option_compile_args(self, options):
         return []
 
-    def get_option_link_args(self, options: 'OptionDictType') -> List[str]:
+    def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
         return self.linker.get_option_args(options)
 
-    def check_header(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def check_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_header_symbol(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def compiles(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def links(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
     def run(self, *args, **kwargs) -> RunResult:
@@ -921,7 +923,7 @@ class Compiler:
     def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> Tuple[bool, bool]:
+    def has_function(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -930,7 +932,7 @@ class Compiler:
         return args[:]
 
     @classmethod
-    def native_args_to_unix(cls, args: List[str]) -> List[str]:
+    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
         "Always returns a copy that can be independently mutated"
         return args[:]
 
@@ -943,12 +945,12 @@ class Compiler:
     def get_program_dirs(self, *args, **kwargs):
         return []
 
-    def has_multi_arguments(self, args, env) -> Tuple[bool, bool]:
+    def has_multi_arguments(self, args, env) -> typing.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: List[str], env: 'Environment') -> Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: typing.List[str], env: 'Environment') -> typing.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname, mode):
@@ -1062,22 +1064,22 @@ class Compiler:
     def get_compile_debugfile_args(self, rel_obj, **kwargs):
         return []
 
-    def get_link_debugfile_args(self, targetfile: str) -> List[str]:
+    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
         return self.linker.get_debugfile_args(targetfile)
 
-    def get_std_shared_lib_link_args(self) -> List[str]:
+    def get_std_shared_lib_link_args(self) -> typing.List[str]:
         return self.linker.get_std_shared_lib_args()
 
-    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> List[str]:
+    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> typing.List[str]:
         return self.linker.get_std_shared_module_args(options)
 
-    def get_link_whole_for(self, args: List[str]) -> List[str]:
+    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
         return self.linker.get_link_whole_for(args)
 
-    def get_allow_undefined_link_args(self) -> List[str]:
+    def get_allow_undefined_link_args(self) -> typing.List[str]:
         return self.linker.get_allow_undefined_args()
 
-    def no_undefined_link_args(self) -> List[str]:
+    def no_undefined_link_args(self) -> typing.List[str]:
         return self.linker.no_undefined_args()
 
     # Compiler arguments needed to enable the given instruction set.
@@ -1088,7 +1090,7 @@ class Compiler:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> List[str]:
+                         install_rpath: str) -> typing.List[str]:
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
@@ -1119,7 +1121,7 @@ class Compiler:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_link_args(self) -> List[str]:
+    def get_pie_link_args(self) -> typing.List[str]:
         return self.linker.get_pie_args()
 
     def get_argument_syntax(self):
@@ -1141,39 +1143,40 @@ class Compiler:
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
-    def get_undefined_link_args(self) -> List[str]:
+    def get_undefined_link_args(self) -> typing.List[str]:
         return self.linker.get_undefined_link_args()
 
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
 
-    def get_lto_compile_args(self) -> List[str]:
+    def get_lto_compile_args(self) -> typing.List[str]:
         return []
 
-    def get_lto_link_args(self) -> List[str]:
+    def get_lto_link_args(self) -> typing.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> List[str]:
+    def sanitizer_compile_args(self, value: str) -> typing.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> List[str]:
+    def sanitizer_link_args(self, value: str) -> typing.List[str]:
         return self.linker.sanitizer_args(value)
 
-    def get_asneeded_args(self) -> List[str]:
+    def get_asneeded_args(self) -> typing.List[str]:
         return self.linker.get_asneeded_args()
 
-    def bitcode_args(self) -> List[str]:
+    def bitcode_args(self) -> typing.List[str]:
         return self.linker.bitcode_args()
 
-    def get_linker_debug_crt_args(self) -> List[str]:
+    def get_linker_debug_crt_args(self) -> typing.List[str]:
         return self.linker.get_debug_crt_args()
 
-    def get_buildtype_linker_args(self, buildtype: str) -> List[str]:
+    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
         return self.linker.get_buildtype_args(buildtype)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
-                        suffix: str, soversion: str, darwin_versions: Tuple[str, str],
-                        is_shared_module: bool) -> List[str]:
+                        suffix: str, soversion: str,
+                        darwin_versions: typing.Tuple[str, str],
+                        is_shared_module: bool) -> typing.List[str]:
         return self.linker.get_soname_args(
             env, prefix, shlib_name, suffix, soversion,
             darwin_versions, is_shared_module)
