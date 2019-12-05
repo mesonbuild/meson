@@ -18,8 +18,8 @@ import sys, os, subprocess
 from glob import glob
 
 relnote_template = '''---
-title: Release {0}
-short-description: Release notes for {1}
+title: Release {}
+short-description: Release notes for {}
 ...
 
 # New features
