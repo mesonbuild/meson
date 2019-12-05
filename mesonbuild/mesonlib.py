@@ -1416,8 +1416,14 @@ class LibType(Enum):
     PREFER_STATIC = 3
 
 
-class ProgressBarFallback:
-    '''Fallback progress bar implementation when tqdm is not found'''
+class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
+    '''
+    Fallback progress bar implementation when tqdm is not found
+
+    Since this class is not an actual iterator, but only provides a minimal
+    fallback, it is safe to ignore the 'Iterator does not return self from
+    __iter__ method' warning.
+    '''
     def __init__(self, iterable=None, total=None, bar_type=None, desc=None):
         if iterable is not None:
             self.iterable = iter(iterable)
