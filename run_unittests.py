@@ -360,18 +360,14 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
-        # Test that bad initialization fails
-        self.assertRaises(TypeError, cargsfunc, [])
-        self.assertRaises(TypeError, cargsfunc, [], [])
-        self.assertRaises(TypeError, cargsfunc, cc, [], [])
         # Test that empty initialization works
         a = cargsfunc(cc)
         self.assertEqual(a, [])
         # Test that list initialization works
-        a = cargsfunc(['-I.', '-I..'], cc)
+        a = cargsfunc(cc, ['-I.', '-I..'])
         self.assertEqual(a, ['-I.', '-I..'])
         # Test that there is no de-dup on initialization
-        self.assertEqual(cargsfunc(['-I.', '-I.'], cc), ['-I.', '-I.'])
+        self.assertEqual(cargsfunc(cc, ['-I.', '-I.']), ['-I.', '-I.'])
 
         ## Test that appending works
         a.append('-I..')
