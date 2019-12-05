@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""This file contains the data files of all compilers Meson knows about.
+
+To support a new compiler, add its information below. Also add corresponding
+autodetection code in environment.py.
+"""
+
 import contextlib, os.path, re, tempfile
 import collections.abc
 import typing
@@ -33,10 +39,6 @@ if typing.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
-
-"""This file contains the data files of all compilers Meson knows
-about. To support a new compiler, add its information below.
-Also add corresponding autodetection code in environment.py."""
 
 header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')
 obj_suffixes = ('o', 'obj', 'res')
