@@ -1385,10 +1385,18 @@ class Environment:
                         linker = ClangClDynamicLinker(for_machine, version=search_version(o))
                 else:
                     with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                        # LDC writes an object file to the current working directory.
+                        # Clean it up.
+                        objectfile = os.path.basename(f.name)[:-1] + 'o'
                         linker = self._guess_nix_linker(
                             exelist, for_machine,
                             compilers.LLVMDCompiler.LINKER_PREFIX,
                             extra_args=[f.name])
+                        try:
+                            os.unlink(objectfile)
+                        except Exception:
+                            # Thank you Windows file system semantics and virus scanners.
+                            pass
                 return compilers.LLVMDCompiler(
                     exelist, version, for_machine, info, arch,
                     full_version=full_version, linker=linker)
