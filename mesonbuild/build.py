@@ -355,6 +355,18 @@ a hard error in the future.''' % name)
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
+    def __lt__(self, other: object) -> bool:
+        return self.get_id() < other.get_id()
+
+    def __le__(self, other: object) -> bool:
+        return self.get_id() <= other.get_id()
+
+    def __gt__(self, other: object) -> bool:
+        return self.get_id() > other.get_id()
+
+    def __ge__(self, other: object) -> bool:
+        return self.get_id() >= other.get_id()
+
     def get_install_dir(self, environment):
         # Find the installation directory.
         default_install_dir = self.get_default_install_dir(environment)
@@ -487,9 +499,6 @@ class BuildTarget(Target):
         self.validate_sources()
         self.validate_install(environment)
         self.check_module_linking()
-
-    def __lt__(self, other):
-        return self.get_id() < other.get_id()
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -2005,9 +2014,6 @@ class CustomTarget(Target):
     def get_default_install_dir(self, environment):
         return None
 
-    def __lt__(self, other):
-        return self.get_id() < other.get_id()
-
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
@@ -2244,9 +2250,6 @@ class RunTarget(Target):
         self.command = command
         self.args = args
         self.dependencies = dependencies
-
-    def __lt__(self, other):
-        return self.get_id() < other.get_id()
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
