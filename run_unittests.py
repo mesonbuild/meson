@@ -1160,6 +1160,37 @@ class InternalTests(unittest.TestCase):
             deps = d.get_all_dependencies(target)
             self.assertEqual(deps, expdeps)
 
+    def test_ordered_set(self):
+        with self.subTest(i='add'):
+            s = mesonbuild.mesonlib.OrderedSet(['a', 'b', 'c'])
+            s.add('d')
+            self.assertListEqual(list(s), ['a', 'b', 'c', 'd'])
+
+        with self.subTest(i='getitem'):
+            s = mesonbuild.mesonlib.OrderedSet(range(6))
+            self.assertEqual(s[0], 0)
+            self.assertEqual(s[0:2], [0, 1])
+            self.assertEqual(s[0:4:2], [0, 2])
+
+        with self.subTest(i='discard'):
+            s = mesonbuild.mesonlib.OrderedSet(['a', 'b', 'c'])
+            s.discard('a')
+            self.assertListEqual(list(s), ['b', 'c'])
+
+        with self.subTest(i='update'):
+            s = mesonbuild.mesonlib.OrderedSet(['a', 'b', 'c'])
+            s.update(['a', 'd'])
+            self.assertListEqual(list(s), ['a', 'b', 'c', 'd'])
+
+        with self.subTest(i='difference'):
+            s = mesonbuild.mesonlib.OrderedSet(['a', 'b', 'c'])
+            s = s.difference({'a', 'b'})
+            self.assertListEqual(list(s), ['c'])
+
+        with self.subTest(i='index'):
+            s = mesonbuild.mesonlib.OrderedSet(['a', 'b', 'c'])
+            self.assertEqual(s.index('c'), 2)
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):

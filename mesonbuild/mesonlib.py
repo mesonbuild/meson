@@ -1351,6 +1351,31 @@ class OrderedSet(typing.MutableSet[_T]):
     def __len__(self) -> int:
         return len(self.__container)
 
+    @typing.overload
+    def __getitem__(self, index: int) -> _T:
+        pass
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> typing.List[_T]:
+        pass
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            if index > len(self):
+                raise IndexError('No object at index {}'.format(index))
+            for i, v in enumerate(self.__container):
+                if index == i:
+                    return v
+        elif isinstance(index, slice):
+            values = []
+            for i, v in enumerate(self.__container):
+                if index.start <= i < index.stop:
+                    if index.step is None or i % index.step == 0:
+                        values.append(v)
+            return values
+
+        raise TypeError('Unindexable type {!r}'.formt(type(index)))
+
     def __repr__(self) -> str:
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
@@ -1371,6 +1396,13 @@ class OrderedSet(typing.MutableSet[_T]):
 
     def difference(self, set_: typing.Set[_T]) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
+
+    def index(self, value: _T) -> int:
+        for i, v in enumerate(self.__container):
+            if value == v:
+                return i
+        raise ValueError('{} not in OrderedSet'.format(value))
+
 
 class BuildDirLock:
 
