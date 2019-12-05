@@ -34,7 +34,9 @@ if typing.TYPE_CHECKING:
     import http.client
 
 try:
-    import ssl
+    # Importing is just done to check if SSL exists, so all warnings
+    # regarding 'imported but unused' can be safely ignored
+    import ssl  # noqa
     has_ssl = True
     API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
 except ImportError:
@@ -43,14 +45,6 @@ except ImportError:
 
 req_timeout = 600.0
 ssl_warning_printed = False
-
-def build_ssl_context() -> 'ssl.SSLContext':
-    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-    ctx.options |= ssl.OP_NO_SSLv2
-    ctx.options |= ssl.OP_NO_SSLv3
-    ctx.verify_mode = ssl.CERT_REQUIRED
-    ctx.load_default_certs()
-    return ctx
 
 def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]:
     try:
@@ -66,7 +60,7 @@ def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
     global ssl_warning_printed
     if has_ssl:
         try:
-            return urllib.request.urlopen(urlstring, timeout=req_timeout)# , context=build_ssl_context())
+            return urllib.request.urlopen(urlstring, timeout=req_timeout)  # , context=ssl.create_default_context())
         except urllib.error.URLError:
             if not ssl_warning_printed:
                 print('SSL connection failed. Falling back to unencrypted connections.', file=sys.stderr)
