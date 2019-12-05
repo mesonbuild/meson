@@ -758,12 +758,12 @@ class TestHarness:
 
     def print_summary(self) -> None:
         msg = '''
-Ok:                 {0:4}
-Expected Fail:      {0:4}
-Fail:               {0:4}
-Unexpected Pass:    {0:4}
-Skipped:            {0:4}
-Timeout:            {0:4}
+Ok:                 {:4}
+Expected Fail:      {:4}
+Fail:               {:4}
+Unexpected Pass:    {:4}
+Skipped:            {:4}
+Timeout:            {:4}
 '''.format(self.success_count, self.expectedfail_count, self.fail_count,
            self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
