@@ -355,16 +355,24 @@ a hard error in the future.''' % name)
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
-    def __lt__(self, other: object) -> bool:
+    def __lt__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+        if not hasattr(other, 'get_id') and not callable(other.get_id):
+            return NotImplemented
         return self.get_id() < other.get_id()
 
-    def __le__(self, other: object) -> bool:
+    def __le__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+        if not hasattr(other, 'get_id') and not callable(other.get_id):
+            return NotImplemented
         return self.get_id() <= other.get_id()
 
-    def __gt__(self, other: object) -> bool:
+    def __gt__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+        if not hasattr(other, 'get_id') and not callable(other.get_id):
+            return NotImplemented
         return self.get_id() > other.get_id()
 
-    def __ge__(self, other: object) -> bool:
+    def __ge__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+        if not hasattr(other, 'get_id') and not callable(other.get_id):
+            return NotImplemented
         return self.get_id() >= other.get_id()
 
     def get_install_dir(self, environment):
