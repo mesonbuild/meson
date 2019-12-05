@@ -144,7 +144,7 @@ def detect_ninja(version: str = '1.5', log: bool = False) -> str:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
-def detect_ninja_command_and_version(version: str = '1.5', log: bool = False) -> (str, str):
+def detect_ninja_command_and_version(version: str = '1.5', log: bool = False) -> typing.Tuple[str, str]:
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         try:
