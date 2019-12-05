@@ -58,7 +58,8 @@ class BlockParseException(MesonException):
             # Followed by a caret to show the block start
             # Followed by underscores
             # Followed by a caret to show the block end.
-            super().__init__("{0}\n{1}\n{2}".format(text, line, '{0}^{1}^'.format(' ' * start_colno, '_' * (colno - start_colno - 1))))
+            longstr_1 = "{0}\n{1}\n{2}".format(text, line, '{0}^{1}^')
+            super().__init__(longstr_1.format(' ' * start_colno, '_' * (colno - start_colno - 1)))
         else:
             # If block start and end are on different lines, it is formatted as:
             # Error message
@@ -67,9 +68,13 @@ class BlockParseException(MesonException):
             # Followed by a message saying where the block started.
             # Followed by the line of the block start.
             # Followed by a caret for the block start.
-            super().__init__("{0}\n{1}\n{2}\nFor a block that started at {3},{4}\n{5}\n{6}".format(text, line,
-                                                                                                   '{0}^'.format(' ' * colno), start_lineno, start_colno, start_line,
-                                                                                                   "{0}^".format(' ' * start_colno)))
+            longstr_2 = "{0}\n{1}\n{2}\nFor a block that started at {3},{4}\n{5}\n{6}"
+            super().__init__(longstr_2.format(text, line,
+                                              '{0}^'.format(' ' * colno),
+                                              start_lineno,
+                                              start_colno,
+                                              start_line,
+                                              "{0}^".format(' ' * start_colno)))
         self.lineno = lineno
         self.colno = colno
 
