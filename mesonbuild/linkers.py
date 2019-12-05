@@ -137,7 +137,7 @@ class IntelVisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
 class ArLinker(StaticLinker):
 
     def __init__(self, exelist: typing.List[str]):
-        StaticLinker.__init__(self, exelist)
+        super().__init__(exelist)
         self.id = 'ar'
         pc, stdo = mesonlib.Popen_safe(self.exelist + ['-h'])[0:2]
         # Enable deterministic builds if they are available.
@@ -167,7 +167,7 @@ class ArmarLinker(ArLinker):  # lgtm [py/missing-call-to-init]
 
 class DLinker(StaticLinker):
     def __init__(self, exelist: typing.List[str], arch: str):
-        StaticLinker.__init__(self, exelist)
+        super().__init__(exelist)
         self.id = exelist[0]
         self.arch = arch
 
@@ -190,7 +190,7 @@ class DLinker(StaticLinker):
 class CcrxLinker(StaticLinker):
 
     def __init__(self, exelist: typing.List[str]):
-        StaticLinker.__init__(self, exelist)
+        super().__init__(exelist)
         self.id = 'rlink'
 
     def can_linker_accept_rsp(self) -> bool:
@@ -682,8 +682,8 @@ class CcrxDynamicLinker(DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        DynamicLinker.__init__(self, ['rlink.exe'], for_machine, 'rlink', '',
-                               version=version)
+        super().__init__(['rlink.exe'], for_machine, 'rlink', '',
+                         version=version)
 
     def get_accepts_rsp(self) -> bool:
         return False
@@ -715,8 +715,8 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        DynamicLinker.__init__(self, ['armlink'], for_machine, 'armlink', '',
-                               version=version)
+        super().__init__(['armlink'], for_machine, 'armlink', '',
+                         version=version)
 
     def get_accepts_rsp(self) -> bool:
         return False
@@ -773,7 +773,7 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
 class PGIStaticLinker(StaticLinker):
     def __init__(self, exelist: typing.List[str]):
-        StaticLinker.__init__(self, exelist)
+        super().__init__(exelist)
         self.id = 'ar'
         self.std_args = ['-r']
 
@@ -796,7 +796,8 @@ class VisualStudioLikeLinkerMixin:
         'custom': [],
     }  # type: typing.Dict[str, typing.List[str]]
 
-    def __init__(self, direct: bool = True, machine: str = 'x86'):
+    def __init__(self, *args, direct: bool = True, machine: str = 'x86', **kwargs):
+        super().__init__(*args, **kwargs)
         self.direct = direct
         self.machine = machine
 
@@ -856,9 +857,8 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  exelist: typing.Optional[typing.List[str]] = None,
                  prefix: typing.Union[str, typing.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version'):
-        VisualStudioLikeLinkerMixin.__init__(self, machine=machine)
-        DynamicLinker.__init__(self, exelist or ['link.exe'], for_machine, 'link',
-                               prefix, version=version)
+        super().__init__(exelist or ['link.exe'], for_machine, 'link',
+                         prefix, machine=machine, version=version)
 
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
@@ -869,9 +869,8 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  exelist: typing.Optional[typing.List[str]] = None,
                  prefix: typing.Union[str, typing.List[str]] = '',
                  version: str = 'unknown version'):
-        VisualStudioLikeLinkerMixin.__init__(self)
-        DynamicLinker.__init__(self, exelist or ['lld-link.exe'], for_machine,
-                               'lld-link', prefix, version=version)
+        super().__init__(exelist or ['lld-link.exe'], for_machine,
+                         'lld-link', prefix, version=version)
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
@@ -880,8 +879,7 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        VisualStudioLikeLinkerMixin.__init__(self)
-        DynamicLinker.__init__(self, ['xilink.exe'], for_machine, 'xilink', '', version=version)
+        super().__init__(['xilink.exe'], for_machine, 'xilink', '', version=version)
 
 
 class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
@@ -938,8 +936,7 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
                  *, version: str = 'unknown version'):
         # Use optlink instead of link so we don't interfer with other link.exe
         # implementations.
-        VisualStudioLikeLinkerMixin.__init__(self)
-        DynamicLinker.__init__(self, ['optlink.exe'], for_machine, 'optlink', prefix_arg='', version=version)
+        super().__init__(['optlink.exe'], for_machine, 'optlink', prefix_arg='', version=version)
 
     def get_allow_undefined_args(self) -> typing.List[str]:
         return []
