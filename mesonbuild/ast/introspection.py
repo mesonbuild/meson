@@ -136,11 +136,15 @@ class IntrospectionInterpreter(AstInterpreter):
 
     def func_dependency(self, node, args, kwargs):
         args = self.flatten_args(args)
+        kwargs = self.flatten_kwargs(kwargs)
         if not args:
             return
         name = args[0]
         has_fallback = 'fallback' in kwargs
         required = kwargs.get('required', True)
+        version = kwargs.get('version', [])
+        if not isinstance(version, list):
+            version = [version]
         condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
         if isinstance(required, ElementaryNode):
             required = required.value
@@ -149,9 +153,10 @@ class IntrospectionInterpreter(AstInterpreter):
         self.dependencies += [{
             'name': name,
             'required': required,
+            'version': version,
             'has_fallback': has_fallback,
             'conditional': condition_level > 0,
-            'node': node
+            'node': node,
         }]
 
     def build_target(self, node, args, kwargs, targetclass):

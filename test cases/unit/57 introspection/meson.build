@@ -13,8 +13,9 @@ set_variable('list_test_plusassign', [])
 list_test_plusassign += ['bugs everywhere']
 
 if false
-  dependency('somethingthatdoesnotexist', required: true)
-  dependency('look_i_have_a_fallback', fallback: ['oh_no', 'the_subproject_does_not_exist'])
+  vers_str = '<=99.9.9'
+  dependency('somethingthatdoesnotexist', required: true, version: '>=1.2.3')
+  dependency('look_i_have_a_fallback', version: ['>=1.0.0', vers_str], fallback: ['oh_no', 'the_subproject_does_not_exist'])
 endif
 
 subdir('sharedlib')

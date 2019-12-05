@@ -207,6 +207,7 @@ The output format is as follows:
   {
     "name": "The name of the dependency",
     "required": true,
+    "version": [">=1.2.3"],
     "conditional": false,
     "has_fallback": false
   }
@@ -219,7 +220,10 @@ in the `meson.build` (all dependencies are required by default). The
 inside a conditional block. In a real meson run these dependencies might not be
 used, thus they _may_ not be required, even if the `required` key is set. The
 `has_fallback` key just indicates whether a fallback was directly set in the
-`dependency()` function.
+`dependency()` function. The `version` key always contains a list of version
+requirements from the `meson.build` and **not** the actual version of the
+dependency on disc. The version list is empty if no version was specified
+in the `meson.build`.
 
 ## Tests
 
