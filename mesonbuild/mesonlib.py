@@ -1333,46 +1333,43 @@ def substring_is_in_list(substr: str, strlist: typing.List[str]) -> bool:
             return True
     return False
 
-class OrderedSet(collections.abc.MutableSet):
+class OrderedSet(typing.MutableSet[_T]):
     """A set that preserves the order in which items are added, by first
     insertion.
     """
-    def __init__(self, iterable=None):
-        self.__container = collections.OrderedDict()
+    def __init__(self, iterable: typing.Optional[typing.Iterable[_T]] = None):
+        self.__container = collections.OrderedDict()  # type: typing.MutableMapping[_T, None]
         if iterable:
             self.update(iterable)
 
-    def __contains__(self, value):
+    def __contains__(self, value: typing.Any) -> bool:
         return value in self.__container
 
-    def __iter__(self):
+    def __iter__(self) -> typing.Iterator[_T]:
         return iter(self.__container.keys())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__container)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
             return 'OrderedSet("{}")'.format(
                 '", "'.join(repr(e) for e in self.__container.keys()))
         return 'OrderedSet()'
 
-    def __reversed__(self):
-        return reversed(self.__container)
-
-    def add(self, value):
+    def add(self, value: _T) -> None:
         self.__container[value] = None
 
-    def discard(self, value):
+    def discard(self, value: _T) -> None:
         if value in self.__container:
             del self.__container[value]
 
-    def update(self, iterable):
+    def update(self, iterable: typing.Iterable[_T]) -> None:
         for item in iterable:
             self.__container[item] = None
 
-    def difference(self, set_):
+    def difference(self, set_: typing.Set[_T]) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
 
 class BuildDirLock:
