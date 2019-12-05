@@ -645,6 +645,16 @@ class CompilerArgs(list):
         new += self
         return new
 
+    def __eq__(self, other: object) -> bool:
+        '''
+        Only checks for equalety of self.compilers if the attribute is present.
+        Use the default list equalety for the compiler args.
+        '''
+        comp_eq = True
+        if hasattr(other, 'compiler'):
+            comp_eq = self.compiler == other.compiler
+        return comp_eq and super().__eq__(other)
+
     def __mul__(self, args):  # lgtm[py/unexpected-raise-in-special-method]
         raise TypeError("can't multiply compiler arguments")
 
