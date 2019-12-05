@@ -4063,30 +4063,35 @@ recommended as it is not supported on some platforms''')
             {
                 'name': 'threads',
                 'required': True,
+                'version': [],
                 'has_fallback': False,
                 'conditional': False
             },
             {
                 'name': 'zlib',
                 'required': False,
+                'version': [],
                 'has_fallback': False,
                 'conditional': False
             },
             {
                 'name': 'bugDep1',
-                'required': False,
+                'required': True,
+                'version': [],
                 'has_fallback': False,
                 'conditional': False
             },
             {
                 'name': 'somethingthatdoesnotexist',
                 'required': True,
+                'version': ['>=1.2.3'],
                 'has_fallback': False,
                 'conditional': True
             },
             {
                 'name': 'look_i_have_a_fallback',
                 'required': True,
+                'version': ['>=1.0.0', '<=99.9.9'],
                 'has_fallback': True,
                 'conditional': True
             }

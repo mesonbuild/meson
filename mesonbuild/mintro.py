@@ -263,7 +263,14 @@ def list_buildsystem_files(builddata: build.Build) -> List[str]:
 def list_deps_from_source(intr: IntrospectionInterpreter) -> List[Dict[str, Union[str, bool]]]:
     result = []  # type: List[Dict[str, Union[str, bool]]]
     for i in intr.dependencies:
-        result += [{k: v for k, v in i.items() if k in ['name', 'required', 'has_fallback', 'conditional']}]
+        keys = [
+            'name',
+            'required',
+            'version',
+            'has_fallback',
+            'conditional',
+        ]
+        result += [{k: v for k, v in i.items() if k in keys}]
     return result
 
 def list_deps(coredata: cdata.CoreData) -> List[Dict[str, Union[str, List[str]]]]:
