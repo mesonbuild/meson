@@ -73,7 +73,7 @@ class CudaCompiler(Compiler):
 
     def sanity_check(self, work_dir, environment):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
-        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
+        mlog.debug('Is cross compiler: {}.'.format(str(self.is_cross)))
 
         sname = 'sanitycheckcuda.cu'
         code = r'''
