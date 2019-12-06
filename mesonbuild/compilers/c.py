@@ -410,7 +410,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         return ['-optimize=0']
 
     def get_output_args(self, target):
-        return ['-output=obj=%s' % target]
+        return ['-output=obj={}'.format(target)]
 
     def get_werror_args(self):
         return ['-change_message=error']
