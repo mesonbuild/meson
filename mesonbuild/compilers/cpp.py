@@ -605,7 +605,7 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
         return []
 
     def get_output_args(self, target):
-        return ['-output=obj=%s' % target]
+        return ['-output=obj={}'.format(target)]
 
     def get_option_link_args(self, options):
         return []
