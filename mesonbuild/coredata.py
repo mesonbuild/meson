@@ -170,7 +170,7 @@ class UserArrayOption(UserOption[List[str]]):
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
-    def validate_value(self, value, user_input=True) -> List[str]:
+    def validate_value(self, value, user_input: bool = True) -> List[str]:
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
@@ -191,7 +191,7 @@ class UserArrayOption(UserOption[List[str]]):
         elif isinstance(value, list):
             newvalue = value
         else:
-            raise MesonException('"{0}" should be a string array, but it is not'.format(str(newvalue)))
+            raise MesonException('"{}" should be a string array, but it is not'.format(newvalue))
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
