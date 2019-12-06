@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, os, subprocess
+import subprocess
+import sys
+import os
 from glob import glob
 
 RELNOTE_TEMPLATE = '''---
@@ -35,12 +37,12 @@ def add_to_sitemap(from_version, to_version):
     s_f = open(sitemapfile)
     lines = s_f.readlines()
     s_f.close()
-    with open(sitemapfile, 'w') as sf:
+    with open(sitemapfile, 'w') as s_f:
         for line in lines:
             if 'Release-notes' in line and from_version in line:
                 new_line = line.replace(from_version, to_version)
-                sf.write(new_line)
-            sf.write(line)
+                s_f.write(new_line)
+            s_f.write(line)
 
 def generate(from_version, to_version):
     '''
