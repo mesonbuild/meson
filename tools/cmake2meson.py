@@ -84,7 +84,7 @@ class Lexer:
                         raise ValueError('lex: unknown element {}'.format(tid))
                     break
             if not matched:
-                raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
+                raise ValueError('Lexer got confused line {} column {}'.format(lineno, col))
 
 class Parser:
     def __init__(self, code: str):
@@ -106,7 +106,7 @@ class Parser:
     def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
-        raise ValueError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
+        raise ValueError('Expecting {} got {}.'.format(s, self.current.tid), self.current.lineno, self.current.colno)
 
     def statement(self) -> Statement:
         cur = self.current
@@ -160,11 +160,11 @@ class Converter:
             end = ''
         for i in args:
             if i.tid == 'id':
-                res.append("'%s'" % i.value)
+                res.append("'{}'".format(i.value))
             elif i.tid == 'varexp':
-                res.append('%s' % i.value.lower())
+                res.append('{}'.format(i.value.lower()))
             elif i.tid == 'string':
-                res.append("'%s'" % i.value)
+                res.append("'{}'".format(i.value))
             else:
                 raise ValueError('Unknown arg type {}'.format(i.tid))
         if len(res) > 1:
@@ -184,17 +184,17 @@ class Converter:
             line = "subdir('" + t.args[0].value + "')"
         elif t.name == 'pkg_search_module' or t.name == 'pkg_search_modules':
             varname = t.args[0].value.lower()
-            mods = ["dependency('%s')" % i.value for i in t.args[1:]]
+            mods = ["dependency('{}')".format(i.value for i in t.args[1:])]
             if len(mods) == 1:
-                line = '%s = %s' % (varname, mods[0])
+                line = '{} = {}'.format(varname, mods[0])
             else:
-                line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
+                line = '{} = [{}]'.format(varname, ', '.join(["'{}'".format(i for i in mods)]))
         elif t.name == 'find_package':
-            line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
+            line = "{}_dep = dependency('{}')".format(t.args[0].value, t.args[0].value)
         elif t.name == 'find_library':
-            line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
+            line = "{} = find_library('{}')".format(t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':
-            line = '%s_exe = executable(%s)' % (t.args[0].value, self.convert_args(t.args, False))
+            line = '{}_exe = executable({})'.format(t.args[0].value, self.convert_args(t.args, False))
         elif t.name == 'add_library':
             if t.args[1].value == 'SHARED':
                 libcmd = 'shared_library'
@@ -205,9 +205,9 @@ class Converter:
             else:
                 libcmd = 'library'
                 args = t.args
-            line = '%s_lib = %s(%s)' % (t.args[0].value, libcmd, self.convert_args(args, False))
+            line = '{}_lib = {}({})'.format(t.args[0].value, libcmd, self.convert_args(args, False))
         elif t.name == 'add_test':
-            line = 'test(%s)' % self.convert_args(t.args, False)
+            line = 'test({})'.format(self.convert_args(t.args, False))
         elif t.name == 'option':
             optname = t.args[0].value
             description = t.args[1].value
@@ -225,15 +225,15 @@ class Converter:
                 if l == 'cxx':
                     l = 'cpp'
                 args.append(l)
-            args = ["'%s'" % i for i in args]
+            args = ["'{}'".format(i for i in args)]
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
-            line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
+            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
             try:
-                line = 'if %s' % self.convert_args(t.args, False)
+                line = 'if {}'.format(self.convert_args(t.args, False))
             except AttributeError:  # complex if statements
                 line = t.name
                 for arg in t.args:
@@ -247,7 +247,7 @@ class Converter:
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
-            line = 'elif %s' % self.convert_args(t.args, False)
+            line = 'elif {}'.format(self.convert_args(t.args, False))
         elif t.name == 'else':
             preincrement = -1
             postincrement = 1
@@ -256,7 +256,7 @@ class Converter:
             preincrement = -1
             line = 'endif'
         else:
-            line = '''# %s(%s)''' % (t.name, self.convert_args(t.args))
+            line = '''# {}({})'''.format(t.name, self.convert_args(t.args))
         self.indent_level += preincrement
         indent = self.indent_level * self.indent_unit
         outfile.write(indent)
@@ -305,11 +305,11 @@ class Converter:
                         typestr = ' type : \'boolean\','
                     else:
                         typestr = ' type : \'string\','
-                    defaultstr = ' value : %s,' % default
-                line = "option(%r,%s%s description : '%s')\n" % (optname,
-                                                                 typestr,
-                                                                 defaultstr,
-                                                                 description)
+                    defaultstr = ' value : {},'.format(default)
+                line = "option({},{}{} description : '{}')\n".format(optname,
+                                                                     typestr,
+                                                                     defaultstr,
+                                                                     description)
                 optfile.write(line)
 
 if __name__ == '__main__':
