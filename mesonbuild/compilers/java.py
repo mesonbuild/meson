@@ -97,14 +97,14 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
         pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('Java compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Java compiler {} can not compile programs.'.format(self.name_string()))
         runner = shutil.which(self.javarunner)
         if runner:
             cmdlist = [runner, obj]
             pe = subprocess.Popen(cmdlist, cwd=work_dir)
             pe.wait()
             if pe.returncode != 0:
-                raise EnvironmentException('Executables created by Java compiler %s are not runnable.' % self.name_string())
+                raise EnvironmentException('Executables created by Java compiler {} are not runnable.'.format(self.name_string()))
         else:
             m = "Java Virtual Machine wasn't found, but it's needed by Meson. " \
                 "Please install a JRE.\nIf you have specific needs where this " \
