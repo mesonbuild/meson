@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-help_message = """Usage: %s <config.h.meson>
+help_message = """Usage: {} <config.h.meson>
 
 This script reads config.h.meson, looks for header
 checks and writes the corresponding meson declaration.
@@ -368,7 +368,7 @@ functions = []
 sizes = []
 
 if len(sys.argv) != 2:
-    print(help_message % sys.argv[0])
+    print(help_message.format(sys.argv[0]))
     sys.exit(0)
 
 with open(sys.argv[1]) as f:
@@ -414,7 +414,7 @@ cdata = configuration_data()''')
 
 print('check_headers = [')
 for token, hname in headers:
-    print("  ['%s', '%s']," % (token, hname))
+    print("  ['{}', '{}'],".format(token, hname))
 print(']\n')
 
 print('''foreach h : check_headers
@@ -430,7 +430,7 @@ print('check_functions = [')
 for tok in functions:
     if len(tok) == 3:
         tokstr, fdata0, fdata1 = tok
-        print("  ['%s', '%s', '#include<%s>']," % (tokstr, fdata0, fdata1))
+        print("  ['{}', '{}', '#include<{}>'],".format(tokstr, fdata0, fdata1))
     else:
         print('# check token', tok)
 print(']\n')
@@ -445,7 +445,7 @@ endforeach
 # Convert sizeof checks.
 
 for elem, typename in sizes:
-    print("cdata.set('%s', cc.sizeof('%s'))" % (elem, typename))
+    print("cdata.set('{}', cc.sizeof('{}'))".format(elem, typename))
 
 print('''
 configure_file(input : 'config.h.meson',

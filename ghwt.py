@@ -40,7 +40,7 @@ def list_projects():
     return 0
 
 def unpack(sproj, branch, outdir):
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/%s.git' % sproj, outdir])
+    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), outdir])
     usfile = os.path.join(outdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser()
@@ -82,7 +82,7 @@ def install(sproj):
     if os.path.isdir(sproj_dir):
         print('Subproject is already there. To update, nuke the dir and reinstall.')
         return 1
-    blist = gh_get('https://api.github.com/repos/mesonbuild/%s/branches' % sproj)
+    blist = gh_get('https://api.github.com/repos/mesonbuild/{}/branches'.format(sproj))
     blist = [b['name'] for b in blist]
     blist = [b for b in blist if b != 'master']
     blist.sort()
