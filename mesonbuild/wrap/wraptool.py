@@ -180,7 +180,7 @@ def promote(options):
         raise SystemExit('Subproject {} not found in directory tree.'.format(argument))
     matches = sprojs[argument]
     if len(matches) > 1:
-        print('There is more than one version of {} in tree. Please specify which one to promote:\n'.format(argument, file=sys.stderr))
+        print('There is more than one version of {} in tree. Please specify which one to promote:\n'.format(argument), file=sys.stderr)
         for s in matches:
             print(s, file=sys.stderr)
         raise SystemExit(1)
