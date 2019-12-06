@@ -17,7 +17,7 @@
 import sys, os, subprocess
 from glob import glob
 
-relnote_template = '''---
+RELNOTE_TEMPLATE = '''---
 title: Release {}
 short-description: Release notes for {}
 ...
@@ -28,10 +28,13 @@ short-description: Release notes for {}
 
 
 def add_to_sitemap(from_version, to_version):
+    '''
+       Adds release note entry to sitemap.txt.
+    '''
     sitemapfile = '../sitemap.txt'
-    sf = open(sitemapfile)
-    lines = sf.readlines()
-    sf.close()
+    s_f = open(sitemapfile)
+    lines = s_f.readlines()
+    s_f.close()
     with open(sitemapfile, 'w') as sf:
         for line in lines:
             if 'Release-notes' in line and from_version in line:
@@ -40,9 +43,12 @@ def add_to_sitemap(from_version, to_version):
             sf.write(line)
 
 def generate(from_version, to_version):
+    '''
+       Generate notes for Meson build next release.
+    '''
     ofilename = 'Release-notes-for-{}.md'.format(to_version)
     with open(ofilename, 'w') as ofile:
-        ofile.write(relnote_template.format(to_version, to_version))
+        ofile.write(RELNOTE_TEMPLATE.format(to_version, to_version))
         for snippetfile in glob('snippets/*.md'):
             snippet = open(snippetfile).read()
             ofile.write(snippet)
