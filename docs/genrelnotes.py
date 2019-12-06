@@ -63,7 +63,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         print(sys.argv[0], 'from_version to_version')
         sys.exit(1)
-    from_version = sys.argv[1]
-    to_version = sys.argv[2]
+    FROM_VERSION = sys.argv[1]
+    TO_VERSION = sys.argv[2]
     os.chdir('markdown')
-    generate(from_version, to_version)
+    generate(FROM_VERSION, TO_VERSION)
