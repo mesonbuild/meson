@@ -117,7 +117,7 @@ class XCodeBackend(backends.Backend):
         xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
-            mlog.warning('Unknown file type "%s" fallbacking to "%s". Xcode project might be malformed.' % (fname, xcodetype))
+            mlog.warning('Unknown file type "{}" fallbacking to "{}". Xcode project might be malformed.'.format(fname, xcodetype))
         return xcodetype
 
     def generate_filemap(self):
@@ -227,39 +227,39 @@ class XCodeBackend(backends.Backend):
             buildconf_id = t[2]
             build_phases = t[3]
             dependencies = t[4]
-            self.write_line('%s /* %s */ = {' % (t[0], name))
+            self.write_line('{} /* {} */ = {'.format(t[0], name))
             self.indent_level += 1
             self.write_line('isa = PBXAggregateTarget;')
-            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXAggregateTarget "%s" */;' % (buildconf_id, name))
+            self.write_line('buildConfigurationList = {} /* Build configuration list for PBXAggregateTarget "{}" */;'.format(buildconf_id, name))
             self.write_line('buildPhases = (')
             self.indent_level += 1
             for bp in build_phases:
-                self.write_line('%s /* ShellScript */,' % bp)
+                self.write_line('{} /* ShellScript */,'.format(bp))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('dependencies = (')
             self.indent_level += 1
             for td in dependencies:
-                self.write_line('%s /* PBXTargetDependency */,' % td)
+                self.write_line('{} /* PBXTargetDependency */,'.format(td))
             self.indent_level -= 1
             self.write_line(');')
-            self.write_line('name = %s;' % name)
-            self.write_line('productName = %s;' % name)
+            self.write_line('name = {};'.format(name))
+            self.write_line('productName = {};'.format(name))
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
         self.ofile.write('\n/* Begin PBXBuildFile section */\n')
-        templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
-        otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
+        templ = '{} /* {} */ = { isa = PBXBuildFile; fileRef = {} /* {} */; settings = { COMPILER_FLAGS = "{}"; }; };\n'
+        otempl = '{} /* {} */ = { isa = PBXBuildFile; fileRef = {} /* {} */;};\n'
 
         for t in self.build.targets.values():
 
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' % (self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+                        self.write_line('{} /* {}.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = {} /* {}.framework */; };\n'.format(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
 
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
@@ -272,21 +272,21 @@ class XCodeBackend(backends.Backend):
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
                     compiler_args = ''
-                    self.write_line(templ % (idval, fullpath, fileref, fullpath2, compiler_args))
+                    self.write_line(templ.format(idval, fullpath, fileref, fullpath2, compiler_args))
             for o in t.objects:
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
                 fileref = self.filemap[o]
                 fullpath = os.path.join(self.environment.get_source_dir(), o)
                 fullpath2 = fullpath
-                self.write_line(otempl % (idval, fullpath, fileref, fullpath2))
+                self.write_line(otempl.format(idval, fullpath, fileref, fullpath2))
         self.ofile.write('/* End PBXBuildFile section */\n')
 
     def generate_pbx_build_style(self):
         # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
         self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
         for name, idval in self.buildstylemap.items():
-            self.write_line('%s /* %s */ = {\n' % (idval, name))
+            self.write_line('{} /* {} */ = {\n'.format(idval, name))
             self.indent_level += 1
             self.write_line('isa = PBXBuildStyle;\n')
             self.write_line('buildSettings = {\n')
@@ -294,7 +294,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('COPY_PHASE_STRIP = NO;\n')
             self.indent_level -= 1
             self.write_line('};\n')
-            self.write_line('name = "%s";\n' % name)
+            self.write_line('name = "{}";\n'.format(name))
             self.indent_level -= 1
             self.write_line('};\n')
         self.ofile.write('/* End PBXBuildStyle section */\n')
@@ -302,13 +302,13 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_container_item_proxy(self):
         self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
         for t in self.build.targets:
-            self.write_line('%s /* PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
+            self.write_line('{} /* PBXContainerItemProxy */ = {'.format(self.containerproxy_map[t]))
             self.indent_level += 1
             self.write_line('isa = PBXContainerItemProxy;')
-            self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
+            self.write_line('containerPortal = {} /* Project object */;'.format(self.project_uid))
             self.write_line('proxyType = 1;')
-            self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
-            self.write_line('remoteInfo = "%s";' % t)
+            self.write_line('remoteGlobalIDString = {};'.format(self.native_targets[t]))
+            self.write_line('remoteInfo = "{}";'.format(t))
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXContainerItemProxy section */\n')
@@ -319,15 +319,15 @@ class XCodeBackend(backends.Backend):
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' % (self.native_frameworks_fileref[f], f, f, f))
-        src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
+                        self.write_line('{} /* {}.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = {}.framework; path = System/Library/Frameworks/{}.framework; sourceTree = SDKROOT; };\n'.format(self.native_frameworks_fileref[f], f, f, f))
+        src_templ = '{} /* {} */ = { isa = PBXFileReference; explicitFileType = "{}"; fileEncoding = 4; name = "{}"; path = "{}"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
             name = os.path.basename(fname)
             path = fname
-            self.write_line(src_templ % (idval, fullpath, xcodetype, name, path))
-        target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
+            self.write_line(src_templ.format(idval, fullpath, xcodetype, name, path))
+        target_templ = '{} /* {} */ = { isa = PBXFileReference; explicitFileType = "{}"; path = {}; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
         for tname, idval in self.target_filemap.items():
             t = self.build.targets[tname]
             fname = t.get_filename()
@@ -340,23 +340,23 @@ class XCodeBackend(backends.Backend):
                 path = fname
             else:
                 typestr = self.get_xcodetype(fname)
-                path = '"%s"' % t.get_filename()
-            self.write_line(target_templ % (idval, tname, typestr, path, reftype))
+                path = '"{}"'.format(t.get_filename())
+            self.write_line(target_templ.format(idval, tname, typestr, path, reftype))
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_frameworks_buildphase(self):
         for t in self.build.targets.values():
             self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
-            self.write_line('%s /* %s */ = {\n' % (t.buildphasemap['Frameworks'], 'Frameworks'))
+            self.write_line('{} /* {} */ = {\n'.format(t.buildphasemap['Frameworks'], 'Frameworks'))
             self.indent_level += 1
             self.write_line('isa = PBXFrameworksBuildPhase;\n')
-            self.write_line('buildActionMask = %s;\n' % (2147483647))
+            self.write_line('buildActionMask = {};\n'.format(2147483647))
             self.write_line('files = (\n')
             self.indent_level += 1
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */,\n' % (self.native_frameworks[f], f))
+                        self.write_line('{} /* {}.framework in Frameworks */,\n'.format(self.native_frameworks[f], f))
             self.indent_level -= 1
             self.write_line(');\n')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
@@ -375,15 +375,15 @@ class XCodeBackend(backends.Backend):
         resources_id = self.gen_id()
         products_id = self.gen_id()
         frameworks_id = self.gen_id()
-        self.write_line('%s = {' % self.maingroup_id)
+        self.write_line('{} = {'.format(self.maingroup_id))
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
         self.indent_level += 1
-        self.write_line('%s /* Sources */,' % sources_id)
-        self.write_line('%s /* Resources */,' % resources_id)
-        self.write_line('%s /* Products */,' % products_id)
-        self.write_line('%s /* Frameworks */,' % frameworks_id)
+        self.write_line('{} /* Sources */,'.format(sources_id))
+        self.write_line('{} /* Resources */,'.format(resources_id))
+        self.write_line('{} /* Products */,'.format(products_id))
+        self.write_line('{} /* Frameworks */,'.format(frameworks_id))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('sourceTree = "<group>";')
@@ -391,13 +391,13 @@ class XCodeBackend(backends.Backend):
         self.write_line('};')
 
         # Sources
-        self.write_line('%s /* Sources */ = {' % sources_id)
+        self.write_line('{} /* Sources */ = {'.format(sources_id))
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
         self.indent_level += 1
         for t in self.build.targets:
-            self.write_line('%s /* %s */,' % (groupmap[t], t))
+            self.write_line('{} /* {} */,'.format(groupmap[t], t))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Sources;')
@@ -405,7 +405,7 @@ class XCodeBackend(backends.Backend):
         self.indent_level -= 1
         self.write_line('};')
 
-        self.write_line('%s /* Resources */ = {' % resources_id)
+        self.write_line('{} /* Resources */ = {'.format(resources_id))
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
@@ -415,7 +415,7 @@ class XCodeBackend(backends.Backend):
         self.indent_level -= 1
         self.write_line('};')
 
-        self.write_line('%s /* Frameworks */ = {' % frameworks_id)
+        self.write_line('{} /* Frameworks */ = {'.format(frameworks_id))
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
@@ -426,7 +426,7 @@ class XCodeBackend(backends.Backend):
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework */,\n' % (self.native_frameworks_fileref[f], f))
+                        self.write_line('{} /* {}.framework */,\n'.format(self.native_frameworks_fileref[f], f))
 
         self.indent_level -= 1
         self.write_line(');')
@@ -437,19 +437,19 @@ class XCodeBackend(backends.Backend):
 
         # Targets
         for t in self.build.targets:
-            self.write_line('%s /* %s */ = {' % (groupmap[t], t))
+            self.write_line('{} /* {} */ = {'.format(groupmap[t], t))
             self.indent_level += 1
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
             self.indent_level += 1
-            self.write_line('%s /* Source files */,' % target_src_map[t])
+            self.write_line('{} /* Source files */,'.format(target_src_map[t]))
             self.indent_level -= 1
             self.write_line(');')
-            self.write_line('name = "%s";' % t)
+            self.write_line('name = "{}";'.format(t))
             self.write_line('sourceTree = "<group>";')
             self.indent_level -= 1
             self.write_line('};')
-            self.write_line('%s /* Source files */ = {' % target_src_map[t])
+            self.write_line('{} /* Source files */ = {'.format(target_src_map[t]))
             self.indent_level += 1
             self.write_line('isa = PBXGroup;')
             self.write_line('children = (')
@@ -457,10 +457,10 @@ class XCodeBackend(backends.Backend):
             for s in self.build.targets[t].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if isinstance(s, str):
-                    self.write_line('%s /* %s */,' % (self.filemap[s], s))
+                    self.write_line('{} /* {} */,'.format(self.filemap[s], s))
             for o in self.build.targets[t].objects:
                 o = os.path.join(self.build.targets[t].subdir, o)
-                self.write_line('%s /* %s */,' % (self.filemap[o], o))
+                self.write_line('{} /* {} */,'.format(self.filemap[o], o))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = "Source files";')
@@ -469,13 +469,13 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
 
         # And finally products
-        self.write_line('%s /* Products */ = {' % products_id)
+        self.write_line('{} /* Products */ = {'.format(products_id))
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
         self.write_line('children = (')
         self.indent_level += 1
         for t in self.build.targets:
-            self.write_line('%s /* %s */,' % (self.target_filemap[t], t))
+            self.write_line('{} /* {} */,'.format(self.target_filemap[t], t))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Products;')
@@ -488,15 +488,14 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('\n/* Begin PBXNativeTarget section */\n')
         for tname, idval in self.native_targets.items():
             t = self.build.targets[tname]
-            self.write_line('%s /* %s */ = {' % (idval, tname))
+            self.write_line('{} /* {} */ = {'.format(idval, tname))
             self.indent_level += 1
             self.write_line('isa = PBXNativeTarget;')
-            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'
-                            % (self.buildconflistmap[tname], tname))
+            self.write_line('buildConfigurationList = {} /* Build configuration list for PBXNativeTarget "{}" */;'.format(self.buildconflistmap[tname], tname))
             self.write_line('buildPhases = (')
             self.indent_level += 1
             for bpname, bpval in t.buildphasemap.items():
-                self.write_line('%s /* %s yyy */,' % (bpval, bpname))
+                self.write_line('{} /* {} yyy */,'.format(bpval, bpname))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('buildRules = (')
@@ -507,12 +506,12 @@ class XCodeBackend(backends.Backend):
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
                 idval = self.pbx_dep_map[lt.get_id()]
-                self.write_line('%s /* PBXTargetDependency */,' % idval)
+                self.write_line('{} /* PBXTargetDependency */,'.format(idval))
             self.indent_level -= 1
             self.write_line(");")
-            self.write_line('name = "%s";' % tname)
-            self.write_line('productName = "%s";' % tname)
-            self.write_line('productReference = %s /* %s */;' % (self.target_filemap[tname], tname))
+            self.write_line('name = "{}";'.format(tname))
+            self.write_line('productName = "{}";'.format(tname))
+            self.write_line('productReference = {} /* {} */;'.format(self.target_filemap[tname], tname))
             if isinstance(t, build.Executable):
                 typestr = 'com.apple.product-type.tool'
             elif isinstance(t, build.StaticLibrary):
@@ -520,15 +519,15 @@ class XCodeBackend(backends.Backend):
             elif isinstance(t, build.SharedLibrary):
                 typestr = 'com.apple.product-type.library.dynamic'
             else:
-                raise MesonException('Unknown target type for %s' % tname)
-            self.write_line('productType = "%s";' % typestr)
+                raise MesonException('Unknown target type for {}'.format(tname))
+            self.write_line('productType = "{}";'.format(typestr))
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXNativeTarget section */\n')
 
     def generate_pbx_project(self):
         self.ofile.write('\n/* Begin PBXProject section */\n')
-        self.write_line('%s /* Project object */ = {' % self.project_uid)
+        self.write_line('{} /* Project object */ = {'.format(self.project_uid))
         self.indent_level += 1
         self.write_line('isa = PBXProject;')
         self.write_line('attributes = {')
@@ -536,27 +535,27 @@ class XCodeBackend(backends.Backend):
         self.write_line('BuildIndependentTargetsInParallel = YES;')
         self.indent_level -= 1
         self.write_line('};')
-        conftempl = 'buildConfigurationList = %s /* Build configuration list for PBXProject "%s" */;'
-        self.write_line(conftempl % (self.project_conflist, self.build.project_name))
+        conftempl = 'buildConfigurationList = {} /* Build configuration list for PBXProject "{}" */;'
+        self.write_line(conftempl.format(self.project_conflist, self.build.project_name))
         self.write_line('buildSettings = {')
         self.write_line('};')
         self.write_line('buildStyles = (')
         self.indent_level += 1
         for name, idval in self.buildstylemap.items():
-            self.write_line('%s /* %s */,' % (idval, name))
+            self.write_line('{} /* {} */,'.format(idval, name))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('compatibilityVersion = "Xcode 3.2";')
         self.write_line('hasScannedForEncodings = 0;')
-        self.write_line('mainGroup = %s;' % self.maingroup_id)
-        self.write_line('projectDirPath = "%s";' % self.build_to_src)
+        self.write_line('mainGroup = {};'.format(self.maingroup_id))
+        self.write_line('projectDirPath = "{}";'.format(self.build_to_src))
         self.write_line('projectRoot = "";')
         self.write_line('targets = (')
         self.indent_level += 1
-        self.write_line('%s /* ALL_BUILD */,' % self.all_id)
-        self.write_line('%s /* RUN_TESTS */,' % self.test_id)
+        self.write_line('{} /* ALL_BUILD */,'.format(self.all_id))
+        self.write_line('{} /* RUN_TESTS */,'.format(self.test_id))
         for t in self.build.targets:
-            self.write_line('%s /* %s */,' % (self.native_targets[t], t))
+            self.write_line('{} /* {} */,'.format(self.native_targets[t], t))
         self.indent_level -= 1
         self.write_line(');')
         self.indent_level -= 1
@@ -565,7 +564,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_pbx_shell_build_phase(self, test_data):
         self.ofile.write('\n/* Begin PBXShellScriptBuildPhase section */\n')
-        self.write_line('%s /* ShellScript */ = {' % self.test_command_id)
+        self.write_line('{} /* ShellScript */ = {'.format(self.test_command_id))
         self.indent_level += 1
         self.write_line('isa = PBXShellScriptBuildPhase;')
         self.write_line('buildActionMask = 2147483647;')
@@ -578,8 +577,8 @@ class XCodeBackend(backends.Backend):
         self.write_line('runOnlyForDeploymentPostprocessing = 0;')
         self.write_line('shellPath = /bin/sh;')
         cmd = mesonlib.meson_command + ['test', test_data, '-C', self.environment.get_build_dir()]
-        cmdstr = ' '.join(["'%s'" % i for i in cmd])
-        self.write_line('shellScript = "%s";' % cmdstr)
+        cmdstr = ' '.join(["'{}'".format(i for i in cmd)])
+        self.write_line('shellScript = "{}";'.format(cmdstr))
         self.write_line('showEnvVarsInLog = 0;')
         self.indent_level -= 1
         self.write_line('};')
@@ -589,7 +588,7 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
         for name in self.source_phase.keys():
             t = self.build.targets[name]
-            self.write_line('%s /* Sources */ = {' % (t.buildphasemap[name]))
+            self.write_line('{} /* Sources */ = {'.format(t.buildphasemap[name]))
             self.indent_level += 1
             self.write_line('isa = PBXSourcesBuildPhase;')
             self.write_line('buildActionMask = 2147483647;')
@@ -598,7 +597,7 @@ class XCodeBackend(backends.Backend):
             for s in self.build.targets[name].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
-                    self.write_line('%s /* %s */,' % (self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
+                    self.write_line('{} /* {} */,'.format(self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;')
@@ -616,11 +615,11 @@ class XCodeBackend(backends.Backend):
         sorted_targets = sorted(targets, key=operator.itemgetter(0))
         self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
         for t in sorted_targets:
-            self.write_line('%s /* PBXTargetDependency */ = {' % t[0])
+            self.write_line('{} /* PBXTargetDependency */ = {'.format(t[0]))
             self.indent_level += 1
             self.write_line('isa = PBXTargetDependency;')
-            self.write_line('target = %s /* %s */;' % (t[1], t[2]))
-            self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % t[3])
+            self.write_line('target = {} /* {} */;'.format(t[1], t[2]))
+            self.write_line('targetProxy = {} /* PBXContainerItemProxy */;'.format(t[3]))
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
@@ -629,7 +628,7 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
         # First the setup for the toplevel project.
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */ = {' % (self.project_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */ = {'.format(self.project_configurations[buildtype], buildtype))
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
@@ -637,16 +636,16 @@ class XCodeBackend(backends.Backend):
             self.write_line('ARCHS = "$(ARCHS_STANDARD_64_BIT)";')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
             self.write_line('SDKROOT = "macosx";')
-            self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
+            self.write_line('SYMROOT = "{}/build";'.format(self.environment.get_build_dir()))
             self.indent_level -= 1
             self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
+            self.write_line('name = "{}";'.format(buildtype))
             self.indent_level -= 1
             self.write_line('};')
 
         # Then the all target.
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */ = {' % (self.buildall_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */ = {'.format(self.buildall_configurations[buildtype], buildtype))
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
@@ -663,18 +662,18 @@ class XCodeBackend(backends.Backend):
             self.write_line('OTHER_REZFLAGS = "";')
             self.write_line('PRODUCT_NAME = ALL_BUILD;')
             self.write_line('SECTORDER_FLAGS = "";')
-            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+            self.write_line('SYMROOT = "{}";'.format(self.environment.get_build_dir()))
             self.write_line('USE_HEADERMAP = NO;')
             self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
             self.indent_level -= 1
             self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
+            self.write_line('name = "{}";'.format(buildtype))
             self.indent_level -= 1
             self.write_line('};')
 
         # Then the test target.
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */ = {' % (self.test_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */ = {'.format(self.test_configurations[buildtype], buildtype))
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
             self.write_line('buildSettings = {')
@@ -691,12 +690,12 @@ class XCodeBackend(backends.Backend):
             self.write_line('OTHER_REZFLAGS = "";')
             self.write_line('PRODUCT_NAME = RUN_TESTS;')
             self.write_line('SECTORDER_FLAGS = "";')
-            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+            self.write_line('SYMROOT = "{}";'.format(self.environment.get_build_dir()))
             self.write_line('USE_HEADERMAP = NO;')
             self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
             self.indent_level -= 1
             self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
+            self.write_line('name = "{}";'.format(buildtype))
             self.indent_level -= 1
             self.write_line('};')
 
@@ -715,7 +714,7 @@ class XCodeBackend(backends.Backend):
                 for l in target.link_targets:
                     abs_path = os.path.join(self.environment.get_build_dir(),
                                             l.subdir, buildtype, l.get_filename())
-                    dep_libs.append("'%s'" % abs_path)
+                    dep_libs.append("'{}'".format(abs_path))
                     if isinstance(l, build.SharedLibrary):
                         links_dylib = True
                 if links_dylib:
@@ -751,20 +750,20 @@ class XCodeBackend(backends.Backend):
                     if args:
                         langargs[langnamemap[lang]] = args
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
-                self.write_line('%s /* %s */ = {' % (valid, buildtype))
+                self.write_line('{} /* {} */ = {'.format(valid, buildtype))
                 self.indent_level += 1
                 self.write_line('isa = XCBuildConfiguration;')
                 self.write_line('buildSettings = {')
                 self.indent_level += 1
                 self.write_line('COMBINE_HIDPI_IMAGES = YES;')
                 if dylib_version is not None:
-                    self.write_line('DYLIB_CURRENT_VERSION = "%s";' % dylib_version)
-                self.write_line('EXECUTABLE_PREFIX = "%s";' % target.prefix)
+                    self.write_line('DYLIB_CURRENT_VERSION = "{}";'.format(dylib_version))
+                self.write_line('EXECUTABLE_PREFIX = "{}";'.format(target.prefix))
                 if target.suffix == '':
                     suffix = ''
                 else:
                     suffix = '.' + target.suffix
-                self.write_line('EXECUTABLE_SUFFIX = "%s";' % suffix)
+                self.write_line('EXECUTABLE_SUFFIX = "{}";'.format(suffix))
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
@@ -777,32 +776,32 @@ class XCodeBackend(backends.Backend):
                     pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
                     if pchs:
                         if len(pchs) > 1:
-                            mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "%s". Target "%s" might not compile correctly.' % (str(pchs), target.name))
+                            mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
                         relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
                         self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
-                        self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
+                        self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/{}";'.format(relative_pch_path))
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
                 if headerdirs:
-                    quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
-                    self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
-                self.write_line('INSTALL_PATH = "%s";' % install_path)
+                    quotedh = ','.join(['"\\"{}\\""'.format(i for i in headerdirs)])
+                    self.write_line('HEADER_SEARCH_PATHS=({});'.format(quotedh))
+                self.write_line('INSTALL_PATH = "{}";'.format(install_path))
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
                 for langname, args in langargs.items():
-                    self.write_build_setting_line('OTHER_%sFLAGS' % langname, args)
-                self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
+                    self.write_build_setting_line('OTHER_{}FLAGS'.format(langname, args))
+                self.write_line('OTHER_LDFLAGS = "{}";'.format(ldstr))
                 self.write_line('OTHER_REZFLAGS = "";')
-                self.write_line('PRODUCT_NAME = %s;' % product_name)
+                self.write_line('PRODUCT_NAME = {};'.format(product_name))
                 self.write_line('SECTORDER_FLAGS = "";')
-                self.write_line('SYMROOT = "%s";' % symroot)
+                self.write_line('SYMROOT = "{}";'.format(symroot))
                 self.write_build_setting_line('SYSTEM_HEADER_SEARCH_PATHS', [self.environment.get_build_dir()])
                 self.write_line('USE_HEADERMAP = NO;')
                 self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
                 self.indent_level -= 1
                 self.write_line('};')
-                self.write_line('name = %s;' % buildtype)
+                self.write_line('name = {};'.format(buildtype))
                 self.indent_level -= 1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
@@ -810,13 +809,13 @@ class XCodeBackend(backends.Backend):
     def generate_xc_configurationList(self):
         # FIXME: sort items
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
-        self.write_line('%s /* Build configuration list for PBXProject "%s" */ = {' % (self.project_conflist, self.build.project_name))
+        self.write_line('{} /* Build configuration list for PBXProject "{}" */ = {'.format(self.project_conflist, self.build.project_name))
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
         self.indent_level += 1
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */,' % (self.project_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */,'.format(self.project_configurations[buildtype], buildtype))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
@@ -825,13 +824,13 @@ class XCodeBackend(backends.Backend):
         self.write_line('};')
 
         # Now the all target
-        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
+        self.write_line('{} /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {'.format(self.all_buildconf_id))
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
         self.indent_level += 1
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */,' % (self.buildall_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */,'.format(self.buildall_configurations[buildtype], buildtype))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
@@ -840,13 +839,13 @@ class XCodeBackend(backends.Backend):
         self.write_line('};')
 
         # Test target
-        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.test_buildconf_id)
+        self.write_line('{} /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {'.format(self.test_buildconf_id))
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
         self.write_line('buildConfigurations = (')
         self.indent_level += 1
         for buildtype in self.buildtypes:
-            self.write_line('%s /* %s */,' % (self.test_configurations[buildtype], buildtype))
+            self.write_line('{} /* {} */,'.format(self.test_configurations[buildtype], buildtype))
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
@@ -856,18 +855,18 @@ class XCodeBackend(backends.Backend):
 
         for target_name in self.build.targets:
             listid = self.buildconflistmap[target_name]
-            self.write_line('%s /* Build configuration list for PBXNativeTarget "%s" */ = {' % (listid, target_name))
+            self.write_line('{} /* Build configuration list for PBXNativeTarget "{}" */ = {'.format(listid, target_name))
             self.indent_level += 1
             self.write_line('isa = XCConfigurationList;')
             self.write_line('buildConfigurations = (')
             self.indent_level += 1
             typestr = 'debug'
             idval = self.buildconfmap[target_name][typestr]
-            self.write_line('%s /* %s */,' % (idval, typestr))
+            self.write_line('{} /* {} */,'.format(idval, typestr))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0;')
-            self.write_line('defaultConfigurationName = %s;' % typestr)
+            self.write_line('defaultConfigurationName = {};'.format(typestr))
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
@@ -878,23 +877,23 @@ class XCodeBackend(backends.Backend):
                 value = flag_values[0]
                 if (' ' in value):
                     # If path contains spaces surround it with double colon
-                    self.write_line('%s = "\\"%s\\"";' % (flag_name, value))
+                    self.write_line('{} = "\\"{}\\"";'.format(flag_name, value))
                 else:
-                    self.write_line('%s = "%s";' % (flag_name, value))
+                    self.write_line('{} = "{}";'.format(flag_name, value))
             else:
-                self.write_line('%s = (' % flag_name)
+                self.write_line('{} = ('.format(flag_name))
                 self.indent_level += 1
                 for value in flag_values:
                     if (' ' in value):
                         # If path contains spaces surround it with double colon
-                        self.write_line('"\\"%s\\"",' % value)
+                        self.write_line('"\\"{}\\"",'.format(value))
                     else:
-                        self.write_line('"%s",' % value)
+                        self.write_line('"{}",'.format(value))
                 self.indent_level -= 1
                 self.write_line(');')
         else:
             if explicit:
-                self.write_line('%s = "";' % flag_name)
+                self.write_line('{} = "";'.format(flag_name))
 
     def generate_prefix(self):
         self.ofile.write('// !$*UTF8*$!\n{\n')
