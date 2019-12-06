@@ -13,13 +13,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import sys, os, subprocess
+'''
+  Generates release notes for new releases of Meson build system
+'''
+import subprocess
+import sys
+import os
 from glob import glob
 
-relnote_template = '''---
-title: Release %s
-short-description: Release notes for %s
+RELNOTE_TEMPLATE = '''---
+title: Release {}
+short-description: Release notes for {}
 ...
 
 # New features
@@ -28,21 +32,27 @@ short-description: Release notes for %s
 
 
 def add_to_sitemap(from_version, to_version):
+    '''
+       Adds release note entry to sitemap.txt.
+    '''
     sitemapfile = '../sitemap.txt'
-    sf = open(sitemapfile)
-    lines = sf.readlines()
-    sf.close()
-    with open(sitemapfile, 'w') as sf:
+    s_f = open(sitemapfile)
+    lines = s_f.readlines()
+    s_f.close()
+    with open(sitemapfile, 'w') as s_f:
         for line in lines:
             if 'Release-notes' in line and from_version in line:
                 new_line = line.replace(from_version, to_version)
-                sf.write(new_line)
-            sf.write(line)
+                s_f.write(new_line)
+            s_f.write(line)
 
 def generate(from_version, to_version):
-    ofilename = 'Release-notes-for-%s.md' % to_version
+    '''
+       Generate notes for Meson build next release.
+    '''
+    ofilename = 'Release-notes-for-{}.md'.format(to_version)
     with open(ofilename, 'w') as ofile:
-        ofile.write(relnote_template % (to_version, to_version))
+        ofile.write(RELNOTE_TEMPLATE.format(to_version, to_version))
         for snippetfile in glob('snippets/*.md'):
             snippet = open(snippetfile).read()
             ofile.write(snippet)
@@ -57,7 +67,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 3:
         print(sys.argv[0], 'from_version to_version')
         sys.exit(1)
-    from_version = sys.argv[1]
-    to_version = sys.argv[2]
+    FROM_VERSION = sys.argv[1]
+    TO_VERSION = sys.argv[2]
     os.chdir('markdown')
-    generate(from_version, to_version)
+    generate(FROM_VERSION, TO_VERSION)
