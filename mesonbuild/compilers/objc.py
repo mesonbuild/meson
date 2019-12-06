@@ -52,14 +52,14 @@ class ObjCCompiler(CLikeCompiler, Compiler):
         pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('ObjC compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('ObjC compiler {} can not compile programs.'.format(self.name_string()))
         if self.is_cross:
             # Can't check if the binaries run so we have to assume they do
             return
         pe = subprocess.Popen(binary_name)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by ObjC compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by ObjC compiler {} are not runnable.'.format(self.name_string()))
 
 
 class GnuObjCCompiler(GnuCompiler, ObjCCompiler):
