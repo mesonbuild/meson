@@ -204,7 +204,7 @@ class CLikeCompiler:
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
-        mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
+        mlog.debug('Is cross compiler: {}.'.format(str(self.is_cross)))
 
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
@@ -252,7 +252,7 @@ class CLikeCompiler:
         try:
             pe = subprocess.Popen(cmdlist)
         except Exception as e:
-            raise mesonlib.EnvironmentException('Could not invoke sanity test executable: %s.' % str(e))
+            raise mesonlib.EnvironmentException('Could not invoke sanity test executable: {}.'.format(str(e)))
         pe.wait()
         if pe.returncode != 0:
             raise mesonlib.EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
@@ -374,7 +374,7 @@ class CLikeCompiler:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
             if p.returncode != 0:
-                mlog.debug('Could not compile test file %s: %d\n' % (
+                mlog.debug('Could not compile test file {}: {}\n'.format(
                     p.input_name,
                     p.returncode))
                 return compilers.RunResult(False)
@@ -385,7 +385,7 @@ class CLikeCompiler:
             try:
                 pe, so, se = mesonlib.Popen_safe(cmdlist)
             except Exception as e:
-                mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
+                mlog.debug('Could not run: {} (error: {})\n'.format(cmdlist, e))
                 return compilers.RunResult(False)
 
         mlog.debug('Program stdout:\n')
@@ -405,16 +405,16 @@ class CLikeCompiler:
     def cross_compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies):
         # Try user's guess first
         if isinstance(guess, int):
-            if self._compile_int('%s == %d' % (expression, guess), prefix, env, extra_args, dependencies):
+            if self._compile_int('{} == {}'.format(expression, guess), prefix, env, extra_args, dependencies):
                 return guess
 
         # If no bounds are given, compute them in the limit of int32
         maxint = 0x7fffffff
         minint = -0x80000000
         if not isinstance(low, int) or not isinstance(high, int):
-            if self._compile_int('%s >= 0' % (expression), prefix, env, extra_args, dependencies):
+            if self._compile_int('{} >= 0'.format(expression), prefix, env, extra_args, dependencies):
                 low = cur = 0
-                while self._compile_int('%s > %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                while self._compile_int('{} > {}'.format(expression, cur), prefix, env, extra_args, dependencies):
                     low = cur + 1
                     if low > maxint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
@@ -424,7 +424,7 @@ class CLikeCompiler:
                 high = cur
             else:
                 high = cur = -1
-                while self._compile_int('%s < %d' % (expression, cur), prefix, env, extra_args, dependencies):
+                while self._compile_int('{} < {}'.format(expression, cur), prefix, env, extra_args, dependencies):
                     high = cur - 1
                     if high < minint:
                         raise mesonlib.EnvironmentException('Cross-compile check overflowed')
@@ -436,14 +436,14 @@ class CLikeCompiler:
             # Sanity check limits given by user
             if high < low:
                 raise mesonlib.EnvironmentException('high limit smaller than low limit')
-            condition = '%s <= %d && %s >= %d' % (expression, high, expression, low)
+            condition = '{} <= {} && {} >= {}'.format(expression, high, expression, low)
             if not self._compile_int(condition, prefix, env, extra_args, dependencies):
                 raise mesonlib.EnvironmentException('Value out of given range')
 
         # Binary search
         while low != high:
             cur = low + int((high - low) / 2)
-            if self._compile_int('%s <= %d' % (expression, cur), prefix, env, extra_args, dependencies):
+            if self._compile_int('{} <= {}'.format(expression, cur), prefix, env, extra_args, dependencies):
                 high = cur
             else:
                 low = cur + 1
@@ -483,7 +483,7 @@ class CLikeCompiler:
         if not self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)[0]:
             return -1
-        return self.cross_compute_int('sizeof(%s)' % typename, None, None, None, prefix, env, extra_args, dependencies)
+        return self.cross_compute_int('sizeof({})'.format(typename), None, None, None, prefix, env, extra_args, dependencies)
 
     def sizeof(self, typename, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -553,7 +553,7 @@ class CLikeCompiler:
             raise mesonlib.EnvironmentException('Could not run alignment test binary.')
         align = int(res.stdout)
         if align == 0:
-            raise mesonlib.EnvironmentException('Could not determine alignment of %s. Sorry. You might want to file a bug.' % typename)
+            raise mesonlib.EnvironmentException('Could not determine alignment of {}. Sorry. You might want to file a bug.'.format(typename))
         return align
 
     def get_define(self, dname, prefix, env, extra_args, dependencies, disable_cache=False):
