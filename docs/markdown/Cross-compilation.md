@@ -35,14 +35,24 @@ three machines are the same. Simple so far.
 Let's next look at the most common cross-compilation setup. Let's
 suppose you are on a 64 bit OSX machine and you are cross compiling a
 binary that will run on a 32 bit ARM Linux board. In this case your
-*build machine* is 64 bit OSX and both your *host* and *target
-machines* are 32 bit ARM Linux. This should be quite understandable as
-well.
+*build machine* is 64 bit OSX, your *host machine* is 32 bit ARM Linux
+and your *target machine* is irrelevant (but defaults to the same value
+as the *host machine*). This should be quite understandable as well.
 
-It gets a bit trickier when we think about how the cross compiler was
-generated. It was built and it runs on a specific platform but the
-output it generates is for a different platform. In this case *build*
-and *host machines* are the same, but *target machine* is different.
+The usual mistake in this case is to call the OSX system the *host* and
+the ARM Linux board the *target*. That's because these were their actual
+names when the cross-compiler itself was compiled!  Let's assume the
+cross-compiler was created on OSX too. When that happened the *build*
+and *host machines* were the same OSX and different from the ARM Linux
+*target machine*.
+
+In a nutshell, the typical mistake assumes that the terms *build*,
+*host* and *target* refer to some fixed positions whereas they're
+actually relative to where the current compiler is running. Think of
+*host* as a *child* of the current compiler and *target* as an optional
+*grand-child*. Compilers don't change their terminology when they're
+creating another compiler, that would at the very least make their user
+interface much more complex.
 
 The most complicated case is when you cross-compile a cross
 compiler. As an example you can, on a Linux machine, generate a cross
@@ -56,8 +66,8 @@ Wikipedia or the net in general. It is very common for them to get
 build, host and target mixed up, even in consecutive sentences, which
 can leave you puzzled until you figure it out.
 
-A lot of confusion stems from the fact that when you cross-compile
-something, the 3 systems (*build*, *host*, and *target*) used when
+Again note that when you cross-compile something,
+the 3 systems (*build*, *host*, and *target*) used when
 building the cross compiler don't align with the ones used when
 building something with that newly-built cross compiler. To take our
 Canadian Cross scenario from above (for full generality), since its
@@ -67,8 +77,8 @@ Linux, the *host machine* of anything we build with it is *MIPS
 Linux*. Only the *target machine* of whatever we build with it can be
 freely chosen by us, say if we want to build another cross compiler
 that runs on MIPS Linux and targets Aarch64 iOS. As this example
-hopefully makes clear to you, the platforms are shifted over to the
-left by one position.
+hopefully makes clear to you, the machine names are relative and
+shifted over to the left by one position.
 
 If you did not understand all of the details, don't worry. For most
 people it takes a while to wrap their head around these
