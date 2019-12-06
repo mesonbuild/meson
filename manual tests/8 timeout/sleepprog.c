@@ -1,6 +1,6 @@
 #include<unistd.h>
 
-int main(int argc, char **argv) {
+int main(void) {
     sleep(1000);
     return 0;
 }

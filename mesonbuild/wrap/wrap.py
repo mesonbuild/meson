@@ -45,37 +45,49 @@ except ImportError:
 
 req_timeout = 600.0
 ssl_warning_printed = False
+whitelist_subdomain = 'wrapdb.mesonbuild.com'
+
 
 def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]:
-    try:
-        pc = subprocess.run(['git', '-C', workingdir] + cmd, universal_newlines=True,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    except FileNotFoundError as e:
-        return False, str(e)
+    git = shutil.which('git')
+    if not git:
+        return False, 'Git program not found.'
+    pc = subprocess.run([git, '-C', workingdir] + cmd, universal_newlines=True,
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if pc.returncode != 0:
         return False, pc.stderr
     return True, pc.stdout
 
+def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
+    """ raises WrapException if not whitelisted subdomain """
+    url = urllib.parse.urlparse(urlstr)
+    if not url.hostname:
+        raise WrapException('{} is not a valid URL'.format(urlstr))
+    if not url.hostname.endswith(whitelist_subdomain):
+        raise WrapException('{} is not a whitelisted WrapDB URL'.format(urlstr))
+    if has_ssl and not url.scheme == 'https':
+        raise WrapException('WrapDB did not have expected SSL https url, instead got {}'.format(urlstr))
+    return url
+
 def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
     global ssl_warning_printed
+
+    url = whitelist_wrapdb(urlstring)
     if has_ssl:
         try:
-            return urllib.request.urlopen(urlstring, timeout=req_timeout)  # , context=ssl.create_default_context())
-        except urllib.error.URLError:
-            if not ssl_warning_printed:
-                print('SSL connection failed. Falling back to unencrypted connections.', file=sys.stderr)
-                ssl_warning_printed = True
+            return urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=req_timeout)
+        except urllib.error.URLError as excp:
+            raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
+
+    # following code is only for those without Python SSL
+    nossl_url = url._replace(scheme='http')
     if not ssl_warning_printed:
-        print('Warning: SSL not available, traffic not authenticated.', file=sys.stderr)
+        mlog.warning('SSL module not available in {}: WrapDB traffic not authenticated.'.format(sys.executable))
         ssl_warning_printed = True
-    # Trying to open SSL connection to wrapdb fails because the
-    # certificate is not known.
-    if urlstring.startswith('https'):
-        urlstring = 'http' + urlstring[5:]
     try:
-        return urllib.request.urlopen(urlstring, timeout=req_timeout)
-    except urllib.error.URLError:
-        raise WrapException('failed to get {} is the internet available?'.format(urlstring))
+        return urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=req_timeout)
+    except urllib.error.URLError as excp:
+        raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
 
 class WrapException(MesonException):
@@ -189,6 +201,9 @@ class Resolver:
             raise WrapException(m)
 
     def resolve_git_submodule(self) -> bool:
+        git = shutil.which('git')
+        if not git:
+            raise WrapException('Git program not found.')
         # Are we in a git repository?
         ret, out = quiet_git(['rev-parse'], self.subdir_root)
         if not ret:
@@ -205,12 +220,13 @@ class Resolver:
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith('-'):
-            if subprocess.call(['git', '-C', self.subdir_root, 'submodule', 'update', '--init', self.dirname]) == 0:
+            if subprocess.run([git, '-C', self.subdir_root,
+                              'submodule', 'update', '--init', self.dirname]).returncode == 0:
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(' '):
-            subprocess.call(['git', 'checkout', '.'], cwd=self.dirname)
+            subprocess.run([git, 'checkout', '.'], cwd=self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
@@ -233,6 +249,9 @@ class Resolver:
             self.apply_patch()
 
     def get_git(self) -> None:
+        git = shutil.which('git')
+        if not git:
+            raise WrapException('Git program not found.')
         revno = self.wrap.get('revision')
         is_shallow = False
         depth_option = []    # type: typing.List[str]
@@ -243,42 +262,42 @@ class Resolver:
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
             # so we follow https://stackoverflow.com/a/43136160
-            subprocess.check_call(['git', 'init', self.directory], cwd=self.subdir_root)
-            subprocess.check_call(['git', 'remote', 'add', 'origin', self.wrap.get('url')],
+            subprocess.check_call([git, 'init', self.directory], cwd=self.subdir_root)
+            subprocess.check_call([git, 'remote', 'add', 'origin', self.wrap.get('url')],
                                   cwd=self.dirname)
             revno = self.wrap.get('revision')
-            subprocess.check_call(['git', 'fetch', *depth_option, 'origin', revno],
+            subprocess.check_call([git, 'fetch', *depth_option, 'origin', revno],
                                   cwd=self.dirname)
-            subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
+            subprocess.check_call([git, 'checkout', revno], cwd=self.dirname)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call(['git', 'submodule', 'update',
+                subprocess.check_call([git, 'submodule', 'update',
                                        '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call(['git', 'remote', 'set-url',
+                subprocess.check_call([git, 'remote', 'set-url',
                                        '--push', 'origin', push_url],
                                       cwd=self.dirname)
         else:
             if not is_shallow:
-                subprocess.check_call(['git', 'clone', self.wrap.get('url'),
+                subprocess.check_call([git, 'clone', self.wrap.get('url'),
                                        self.directory], cwd=self.subdir_root)
                 if revno.lower() != 'head':
-                    if subprocess.call(['git', 'checkout', revno], cwd=self.dirname) != 0:
-                        subprocess.check_call(['git', 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
-                        subprocess.check_call(['git', 'checkout', revno], cwd=self.dirname)
+                    if subprocess.run([git, 'checkout', revno], cwd=self.dirname).returncode != 0:
+                        subprocess.check_call([git, 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
+                        subprocess.check_call([git, 'checkout', revno], cwd=self.dirname)
             else:
-                subprocess.check_call(['git', 'clone', *depth_option,
+                subprocess.check_call([git, 'clone', *depth_option,
                                        '--branch', revno,
                                        self.wrap.get('url'),
                                        self.directory], cwd=self.subdir_root)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call(['git', 'submodule', 'update',
+                subprocess.check_call([git, 'submodule', 'update',
                                        '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call(['git', 'remote', 'set-url',
+                subprocess.check_call([git, 'remote', 'set-url',
                                        '--push', 'origin', push_url],
                                       cwd=self.dirname)
 
@@ -290,29 +309,39 @@ class Resolver:
 
     def get_hg(self) -> None:
         revno = self.wrap.get('revision')
-        subprocess.check_call(['hg', 'clone', self.wrap.get('url'),
+        hg = shutil.which('hg')
+        if not hg:
+            raise WrapException('Mercurial program not found.')
+        subprocess.check_call([hg, 'clone', self.wrap.get('url'),
                                self.directory], cwd=self.subdir_root)
         if revno.lower() != 'tip':
-            subprocess.check_call(['hg', 'checkout', revno],
+            subprocess.check_call([hg, 'checkout', revno],
                                   cwd=self.dirname)
 
     def get_svn(self) -> None:
         revno = self.wrap.get('revision')
-        subprocess.check_call(['svn', 'checkout', '-r', revno, self.wrap.get('url'),
+        svn = shutil.which('svn')
+        if not svn:
+            raise WrapException('SVN program not found.')
+        subprocess.check_call([svn, 'checkout', '-r', revno, self.wrap.get('url'),
                                self.directory], cwd=self.subdir_root)
 
-    def get_data(self, url: str) -> typing.Tuple[str, str]:
+    def get_data(self, urlstring: str) -> typing.Tuple[str, str]:
         blocksize = 10 * 1024
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
-        hostname = urllib.parse.urlparse(url).hostname
-        if hostname == 'wrapdb.mesonbuild.com' or hostname.endswith('.wrapdb.mesonbuild.com'):
-            resp = open_wrapdburl(url)
+        url = urllib.parse.urlparse(urlstring)
+        if not url.hostname:
+            raise WrapException('{} is not a valid URL'.format(urlstring))
+        if url.hostname.endswith(whitelist_subdomain):
+            resp = open_wrapdburl(urlstring)
+        elif whitelist_subdomain in urlstring:
+            raise WrapException('{} may be a WrapDB-impersonating URL'.format(urlstring))
         else:
             try:
-                resp = urllib.request.urlopen(url, timeout=req_timeout)
+                resp = urllib.request.urlopen(urlstring, timeout=req_timeout)
             except urllib.error.URLError:
-                raise WrapException('could not get {} is the internet available?'.format(url))
+                raise WrapException('could not get {} is the internet available?'.format(urlstring))
         with contextlib.closing(resp) as resp:
             try:
                 dlsize = int(resp.info()['Content-Length'])
