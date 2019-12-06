@@ -180,7 +180,10 @@ class UserArrayOption(UserOption[List[str]]):
 
         if isinstance(value, str):
             if value.startswith('['):
-                newvalue = ast.literal_eval(value)
+                try:
+                    newvalue = ast.literal_eval(value)
+                except ValueError:
+                    raise MesonException('malformed option {}'.format(value))
             elif value == '':
                 newvalue = []
             else:
