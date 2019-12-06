@@ -109,12 +109,12 @@ class SwiftCompiler(Compiler):
         pc = subprocess.Popen(self.exelist + extra_flags + ['-emit-executable', '-o', output_name, src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Swift compiler {} can not compile programs.'.format(self.name_string()))
         if self.is_cross:
             # Can't check if the binaries run so we have to assume they do
             return
         if subprocess.call(output_name) != 0:
-            raise EnvironmentException('Executables created by Swift compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by Swift compiler {} are not runnable.'.format(self.name_string()))
 
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
