@@ -378,7 +378,7 @@ class Resolver:
             h.update(f.read())
         dhash = h.hexdigest()
         if dhash != expected:
-            raise WrapException('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
+            raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
 
     def download(self, what: str, ofname: str) -> None:
         self.check_can_download()
@@ -388,7 +388,7 @@ class Resolver:
         expected = self.wrap.get(what + '_hash')
         if dhash != expected:
             os.remove(tmpfile)
-            raise WrapException('Incorrect hash for %s:\n %s expected\n %s actual.' % (what, expected, dhash))
+            raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
         os.rename(tmpfile, ofname)
 
     def get_file_internal(self, what: str) -> str:
