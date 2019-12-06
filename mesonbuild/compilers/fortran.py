@@ -82,7 +82,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
         returncode = subprocess.run(self.exelist + extra_flags + [str(source_name), '-o', str(binary_name)],
                                     cwd=str(work_dir)).returncode
         if returncode != 0:
-            raise EnvironmentException('Compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('Compiler {} can not compile programs.'.format(self.name_string()))
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
@@ -94,9 +94,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
         try:
             returncode = subprocess.run(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
             if returncode != 0:
-                raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+                raise EnvironmentException('Executables created by Fortran compiler {} are not runnable.'.format(self.name_string()))
         except OSError:
-            raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by Fortran compiler {} are not runnable.'.format(self.name_string()))
 
     def get_std_warn_args(self, level):
         return FortranCompiler.std_warn_args
