@@ -129,7 +129,7 @@ class DmdLikeCompilerMixin:
             unittest = kwargs.pop('unittest')
             unittest_arg = d_feature_args[self.id]['unittest']
             if not unittest_arg:
-                raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support the "unittest" feature.'.format(self.name_string()))
             if unittest:
                 res.append(unittest_arg)
 
@@ -141,7 +141,7 @@ class DmdLikeCompilerMixin:
 
             debug_arg = d_feature_args[self.id]['debug']
             if not debug_arg:
-                raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support conditional debug identifiers.'.format(self.name_string()))
 
             # Parse all debug identifiers and the largest debug level identifier
             for d in debugs:
@@ -165,7 +165,7 @@ class DmdLikeCompilerMixin:
 
             version_arg = d_feature_args[self.id]['version']
             if not version_arg:
-                raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support conditional version identifiers.'.format(self.name_string()))
 
             # Parse all version identifiers and the largest version level identifier
             for v in versions:
@@ -188,7 +188,7 @@ class DmdLikeCompilerMixin:
 
             import_dir_arg = d_feature_args[self.id]['import_dir']
             if not import_dir_arg:
-                raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support the "string import directories" feature.'.format(self.name_string()))
             for idir_obj in import_dirs:
                 basedir = idir_obj.get_curdir()
                 for idir in idir_obj.get_incdirs():
@@ -201,7 +201,7 @@ class DmdLikeCompilerMixin:
                     res.append('{0}{1}'.format(import_dir_arg, srctreedir))
 
         if kwargs:
-            raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
+            raise EnvironmentException('Unknown D compiler feature(s) selected: {}'.format(', '.join(kwargs.keys())))
 
         return res
 
@@ -429,7 +429,7 @@ class DCompiler(Compiler):
         pc = subprocess.Popen(self.exelist + self.get_output_args(output_name) + self.get_target_arch_args() + [source_name], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
-            raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
+            raise EnvironmentException('D compiler {} can not compile programs.'.format(self.name_string()))
         if self.is_cross:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
@@ -438,7 +438,7 @@ class DCompiler(Compiler):
         else:
             cmdlist = [output_name]
         if subprocess.call(cmdlist) != 0:
-            raise EnvironmentException('Executables created by D compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by D compiler {} are not runnable.'.format(self.name_string()))
 
     def needs_static_linker(self):
         return True
@@ -460,7 +460,7 @@ class DCompiler(Compiler):
             unittest = kwargs.pop('unittest')
             unittest_arg = d_feature_args[self.id]['unittest']
             if not unittest_arg:
-                raise EnvironmentException('D compiler %s does not support the "unittest" feature.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support the "unittest" feature.'.format(self.name_string()))
             if unittest:
                 res.append(unittest_arg)
 
@@ -472,7 +472,7 @@ class DCompiler(Compiler):
 
             debug_arg = d_feature_args[self.id]['debug']
             if not debug_arg:
-                raise EnvironmentException('D compiler %s does not support conditional debug identifiers.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support conditional debug identifiers.'.format(self.name_string()))
 
             # Parse all debug identifiers and the largest debug level identifier
             for d in debugs:
@@ -496,7 +496,7 @@ class DCompiler(Compiler):
 
             version_arg = d_feature_args[self.id]['version']
             if not version_arg:
-                raise EnvironmentException('D compiler %s does not support conditional version identifiers.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support conditional version identifiers.'.format(self.name_string()))
 
             # Parse all version identifiers and the largest version level identifier
             for v in versions:
@@ -519,7 +519,7 @@ class DCompiler(Compiler):
 
             import_dir_arg = d_feature_args[self.id]['import_dir']
             if not import_dir_arg:
-                raise EnvironmentException('D compiler %s does not support the "string import directories" feature.' % self.name_string())
+                raise EnvironmentException('D compiler {} does not support the "string import directories" feature.'.format(self.name_string()))
             for idir_obj in import_dirs:
                 basedir = idir_obj.get_curdir()
                 for idir in idir_obj.get_incdirs():
@@ -532,7 +532,7 @@ class DCompiler(Compiler):
                     res.append('{0}{1}'.format(import_dir_arg, srctreedir))
 
         if kwargs:
-            raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
+            raise EnvironmentException('Unknown D compiler feature(s) selected: {}'.format(', '.join(kwargs.keys())))
 
         return res
 
