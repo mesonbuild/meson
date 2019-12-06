@@ -90,7 +90,7 @@ cflags_mapping = {'c': 'CFLAGS',
                   'vala': 'VALAFLAGS',
                   'rust': 'RUSTFLAGS'}
 
-unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
+unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')  # typing.Tuple[str, ...]
 # execinfo is a compiler lib on FreeBSD and NetBSD
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
     unixy_compiler_internal_libs += ('execinfo',)
@@ -109,35 +109,35 @@ def sort_clink(lang: str) -> int:
     return -clink_langs.index(lang)
 
 def is_header(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in header_suffixes
 
 def is_source(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1].lower()
     return suffix in clink_suffixes
 
 def is_assembly(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     return fname.split('.')[-1].lower() == 's'
 
 def is_llvm_ir(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     return fname.split('.')[-1] == 'll'
 
 def is_object(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in obj_suffixes
 
 def is_library(fname: FileOrStrType) -> bool:
-    if hasattr(fname, 'fname'):
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
 
     if soregex.match(fname):
@@ -1196,7 +1196,7 @@ class Compiler:
         return dep.get_link_args()
 
 
-def get_largefile_args(compiler):
+def get_largefile_args(compiler: CompilerType) -> typing.List[str]:
     '''
     Enable transparent large-file-support for 32-bit UNIX systems
     '''
