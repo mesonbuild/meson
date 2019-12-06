@@ -63,7 +63,7 @@ class RustCompiler(Compiler):
         stdo = stdo.decode('utf-8', errors='replace')
         stde = stde.decode('utf-8', errors='replace')
         if pc.returncode != 0:
-            raise EnvironmentException('Rust compiler %s can not compile programs.\n%s\n%s' % (
+            raise EnvironmentException('Rust compiler {} can not compile programs.\n{}\n{}'.format(
                 self.name_string(),
                 stdo,
                 stde))
@@ -77,7 +77,7 @@ class RustCompiler(Compiler):
         pe = subprocess.Popen(cmdlist, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by Rust compiler %s are not runnable.' % self.name_string())
+            raise EnvironmentException('Executables created by Rust compiler {} are not runnable.'.format(self.name_string()))
 
     def get_dependency_gen_args(self, outfile):
         return ['--dep-info', outfile]
