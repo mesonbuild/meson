@@ -251,7 +251,12 @@ The `find_library()` method of the Vala compiler object needs to have the `dir`
 keyword added to include the project VAPI directory. This is not added
 automatically by `add_project_arguments()`.
 
+### Working with the Vala Preprocessor
+Passing arguments to [Vala's preprocessor](https://wiki.gnome.org/Projects/Vala/Manual/Preprocessor) requires specifying the language as `c`.  For example, the following statement sets the preprocessor symbol `FUSE_USE_VERSION` to the value `26`:
 
+```meson
+add_project_arguments('-DFUSE_USE_VERSION=26', language: 'c')
+```
 
 ## Building libraries
 
