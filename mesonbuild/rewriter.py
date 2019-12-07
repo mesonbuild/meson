@@ -113,7 +113,7 @@ class MTypeBase:
 
     def _new_node(self):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_node of MTypeBase was called')
 
     def can_modify(self):
         return self.node_type is not None
@@ -189,7 +189,7 @@ class MTypeList(MTypeBase):
 
     def _new_element_node(self, value):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self):
         if not isinstance(self.node, ArrayNode):
@@ -522,6 +522,8 @@ class Rewriter:
             mlog.error('Unable to find the function node')
         assert(isinstance(node, FunctionNode))
         assert(isinstance(arg_node, ArgumentNode))
+        # Transform the key nodes to plain strings
+        arg_node.kwargs = {k.value: v for k, v in arg_node.kwargs.items()}
 
         # Print kwargs info
         if cmd['operation'] == 'info':
@@ -585,6 +587,8 @@ class Rewriter:
             arg_node.kwargs[key] = modifyer.get_node()
             num_changed += 1
 
+        # Convert the keys back to IdNode's
+        arg_node.kwargs = {IdNode(Token('', '', 0, 0, 0, None, k)): v for k, v in arg_node.kwargs.items()}
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 

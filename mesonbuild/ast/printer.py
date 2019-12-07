@@ -143,7 +143,7 @@ class AstPrinter(AstVisitor):
         node.value.accept(self)
 
     def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode):
-        varnames = [x.value for x in node.varnames]
+        varnames = [x for x in node.varnames]
         self.append_padded('foreach', node)
         self.append_padded(', '.join(varnames), node)
         self.append_padded(':', node)
@@ -192,10 +192,7 @@ class AstPrinter(AstVisitor):
             if break_args:
                 self.newline()
         for key, val in node.kwargs.items():
-            if isinstance(key, str):
-                self.append(key, node)
-            else:
-                key.accept(self)
+            key.accept(self)
             self.append_padded(':', node)
             val.accept(self)
             self.append(', ', node)

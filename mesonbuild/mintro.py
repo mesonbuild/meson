@@ -25,7 +25,7 @@ from . import mesonlib
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator
 from . import mlog
 from .backend import backends
-from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
 from .interpreter import Interpreter
 from pathlib import PurePath
 import typing as T
@@ -110,7 +110,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
     for i in intr.targets:
         sources = []  # type: T.List[str]
         for n in i['sources']:
-            args = []  # type: T.List[T.Union[str, StringNode]]
+            args = []  # type: T.List[BaseNode]
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
                 if n.func_name in build_target_functions:
@@ -121,6 +121,7 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                 args = n.arguments
             for j in args:
                 if isinstance(j, StringNode):
+                    assert isinstance(j.value, str)
                     sources += [j.value]
                 elif isinstance(j, str):
                     sources += [j]

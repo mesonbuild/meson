@@ -1002,7 +1002,7 @@ class CMakeInterpreter:
             if not isinstance(args, list):
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
-            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items() if v is not None}
+            args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
             func_n = FunctionNode(self.subdir, 0, 0, 0, 0, name, args_n)
             return func_n
 
@@ -1013,7 +1013,7 @@ class CMakeInterpreter:
             if not isinstance(args, list):
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
-            args_n.kwargs = {k: nodeify(v) for k, v in kwargs.items() if v is not None}
+            args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
             return MethodNode(self.subdir, 0, 0, obj, name, args_n)
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:

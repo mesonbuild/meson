@@ -14,9 +14,15 @@
 
 import re
 import codecs
+import textwrap
 import types
+import typing as T
+from typing import Dict, List, Tuple, Optional, Union, TYPE_CHECKING
 from .mesonlib import MesonException
 from . import mlog
+
+if TYPE_CHECKING:
+    from .ast import AstVisitor
 
 # This is the regex for the supported escape sequences of a regular string
 # literal, like 'abc\x00'
@@ -72,22 +78,22 @@ class BlockParseException(MesonException):
         self.colno = colno
 
 class Token:
-    def __init__(self, tid, filename, line_start, lineno, colno, bytespan, value):
-        self.tid = tid
-        self.filename = filename
-        self.line_start = line_start
-        self.lineno = lineno
-        self.colno = colno
-        self.bytespan = bytespan
-        self.value = value
+    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: Tuple[int, int], value: Union[str, bool, int]) -> None:
+        self.tid = tid                # type: str
+        self.filename = filename      # type: str
+        self.line_start = line_start  # type: int
+        self.lineno = lineno          # type: int
+        self.colno = colno            # type: int
+        self.bytespan = bytespan      # type: Tuple[int, int]
+        self.value = value            # type: Union[str, bool, int]
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if isinstance(other, str):
             return self.tid == other
         return self.tid == other.tid
 
 class Lexer:
-    def __init__(self, code):
+    def __init__(self, code: str) -> None:
         self.code = code
         self.keywords = {'true', 'false', 'if', 'else', 'elif',
                          'endif', 'and', 'or', 'not', 'foreach', 'endforeach',
@@ -129,10 +135,10 @@ class Lexer:
             ('questionmark', re.compile(r'\?')),
         ]
 
-    def getline(self, line_start):
+    def getline(self, line_start: int) -> str:
         return self.code[line_start:self.code.find('\n', line_start)]
 
-    def lex(self, filename):
+    def lex(self, filename: str) -> T.Generator[Token, None, None]:
         line_start = 0
         lineno = 1
         loc = 0
@@ -142,7 +148,7 @@ class Lexer:
         col = 0
         while loc < len(self.code):
             matched = False
-            value = None
+            value = None  # type: Union[str, bool, int]
             for (tid, reg) in self.token_specification:
                 mo = reg.match(self.code, loc)
                 if mo:
@@ -174,8 +180,14 @@ class Lexer:
                     elif tid == 'string':
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
-                            mlog.warning("""Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
-This will become a hard error in a future Meson release.""", self.getline(line_start), lineno, col)
+                            mlog.warning(textwrap.dedent("""\
+                                    Newline character in a string detected, use ''' (three single quotes) for multiline strings instead.
+                                    This will become a hard error in a future Meson release.\
+                                """),
+                                self.getline(line_start),
+                                str(lineno),
+                                str(col)
+                            )
                         value = match_text[1:-1]
                         try:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
@@ -213,7 +225,14 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                 raise ParseException('lexer', self.getline(line_start), lineno, col)
 
 class BaseNode:
-    def accept(self, visitor):
+    def __init__(self, lineno: int, colno: int, filename: str, end_lineno: Optional[int] = None, end_colno: Optional[int] = None) -> None:
+        self.lineno = lineno      # type: int
+        self.colno = colno        # type: int
+        self.filename = filename  # type: str
+        self.end_lineno = end_lineno if end_lineno is not None else self.lineno
+        self.end_colno = end_colno if end_colno is not None else self.colno
+
+    def accept(self, visitor: 'AstVisitor') -> None:
         fname = 'visit_{}'.format(type(self).__name__)
         if hasattr(visitor, fname):
             func = getattr(visitor, fname)
@@ -221,21 +240,19 @@ class BaseNode:
                 func(self)
 
 class ElementaryNode(BaseNode):
-    def __init__(self, token):
-        self.lineno = token.lineno
-        self.filename = token.filename
-        self.colno = token.colno
+    def __init__(self, token: Token) -> None:
+        super().__init__(token.lineno, token.colno, token.filename)
         self.value = token.value
         self.bytespan = token.bytespan
 
 class BooleanNode(ElementaryNode):
-    def __init__(self, token, value):
+    def __init__(self, token: Token, value: bool) -> None:
         super().__init__(token)
         self.value = value
         assert(isinstance(self.value, bool))
 
 class IdNode(ElementaryNode):
-    def __init__(self, token):
+    def __init__(self, token: Token) -> None:
         super().__init__(token)
         assert(isinstance(self.value, str))
 
@@ -243,12 +260,12 @@ class IdNode(ElementaryNode):
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
 class NumberNode(ElementaryNode):
-    def __init__(self, token):
+    def __init__(self, token: Token) -> None:
         super().__init__(token)
         assert(isinstance(self.value, int))
 
 class StringNode(ElementaryNode):
-    def __init__(self, token):
+    def __init__(self, token: Token) -> None:
         super().__init__(token)
         assert(isinstance(self.value, str))
 
@@ -261,203 +278,163 @@ class ContinueNode(ElementaryNode):
 class BreakNode(ElementaryNode):
     pass
 
-class ArrayNode(BaseNode):
-    def __init__(self, args, lineno, colno, end_lineno, end_colno):
-        self.filename = args.filename
-        self.lineno = lineno
-        self.colno = colno
-        self.end_lineno = end_lineno
-        self.end_colno = end_colno
-        self.args = args
-
-class DictNode(BaseNode):
-    def __init__(self, args, lineno, colno, end_lineno, end_colno):
-        self.filename = args.filename
-        self.lineno = lineno
-        self.colno = colno
-        self.end_lineno = end_lineno
-        self.end_colno = end_colno
-        self.args = args
-
-class EmptyNode(BaseNode):
-    def __init__(self, lineno, colno):
-        self.filename = ''
-        self.lineno = lineno
-        self.colno = colno
-        self.value = None
-
-class OrNode(BaseNode):
-    def __init__(self, left, right):
-        self.filename = left.filename
-        self.lineno = left.lineno
-        self.colno = left.colno
-        self.left = left
-        self.right = right
-
-class AndNode(BaseNode):
-    def __init__(self, left, right):
-        self.filename = left.filename
-        self.lineno = left.lineno
-        self.colno = left.colno
-        self.left = left
-        self.right = right
-
-class ComparisonNode(BaseNode):
-    def __init__(self, ctype, left, right):
-        self.lineno = left.lineno
-        self.colno = left.colno
-        self.filename = left.filename
-        self.left = left
-        self.right = right
-        self.ctype = ctype
-
-class ArithmeticNode(BaseNode):
-    def __init__(self, operation, left, right):
-        self.filename = left.filename
-        self.lineno = left.lineno
-        self.colno = left.colno
-        self.left = left
-        self.right = right
-        self.operation = operation
-
-class NotNode(BaseNode):
-    def __init__(self, location_node, value):
-        self.filename = location_node.filename
-        self.lineno = location_node.lineno
-        self.colno = location_node.colno
-        self.value = value
-
-class CodeBlockNode(BaseNode):
-    def __init__(self, location_node):
-        self.filename = location_node.filename
-        self.lineno = location_node.lineno
-        self.colno = location_node.colno
-        self.lines = []
-
-class IndexNode(BaseNode):
-    def __init__(self, iobject, index):
-        self.iobject = iobject
-        self.index = index
-        self.filename = iobject.filename
-        self.lineno = iobject.lineno
-        self.colno = iobject.colno
-
-class MethodNode(BaseNode):
-    def __init__(self, filename, lineno, colno, source_object, name, args):
-        self.filename = filename
-        self.lineno = lineno
-        self.colno = colno
-        self.source_object = source_object
-        self.name = name
-        assert(isinstance(self.name, str))
-        self.args = args
-
-class FunctionNode(BaseNode):
-    def __init__(self, filename, lineno, colno, end_lineno, end_colno, func_name, args):
-        self.filename = filename
-        self.lineno = lineno
-        self.colno = colno
-        self.end_lineno = end_lineno
-        self.end_colno = end_colno
-        self.func_name = func_name
-        assert(isinstance(func_name, str))
-        self.args = args
-
-class AssignmentNode(BaseNode):
-    def __init__(self, filename, lineno, colno, var_name, value):
-        self.filename = filename
-        self.lineno = lineno
-        self.colno = colno
-        self.var_name = var_name
-        assert(isinstance(var_name, str))
-        self.value = value
-
-class PlusAssignmentNode(BaseNode):
-    def __init__(self, filename, lineno, colno, var_name, value):
-        self.filename = filename
-        self.lineno = lineno
-        self.colno = colno
-        self.var_name = var_name
-        assert(isinstance(var_name, str))
-        self.value = value
-
-class ForeachClauseNode(BaseNode):
-    def __init__(self, lineno, colno, varnames, items, block):
-        self.lineno = lineno
-        self.colno = colno
-        self.varnames = varnames
-        self.items = items
-        self.block = block
-
-class IfClauseNode(BaseNode):
-    def __init__(self, lineno, colno):
-        self.lineno = lineno
-        self.colno = colno
-        self.ifs = []
-        self.elseblock = EmptyNode(lineno, colno)
-
-class UMinusNode(BaseNode):
-    def __init__(self, current_location, value):
-        self.filename = current_location.filename
-        self.lineno = current_location.lineno
-        self.colno = current_location.colno
-        self.value = value
-
-class IfNode(BaseNode):
-    def __init__(self, lineno, colno, condition, block):
-        self.lineno = lineno
-        self.colno = colno
-        self.condition = condition
-        self.block = block
-
-class TernaryNode(BaseNode):
-    def __init__(self, filename, lineno, colno, condition, trueblock, falseblock):
-        self.filename = filename
-        self.lineno = lineno
-        self.colno = colno
-        self.condition = condition
-        self.trueblock = trueblock
-        self.falseblock = falseblock
-
 class ArgumentNode(BaseNode):
-    def __init__(self, token):
-        self.lineno = token.lineno
-        self.colno = token.colno
-        self.filename = token.filename
-        self.arguments = []
-        self.commas = []
-        self.kwargs = {}
+    def __init__(self, token: Token) -> None:
+        super().__init__(token.lineno, token.colno, token.filename)
+        self.arguments = []  # type: List[BaseNode]
+        self.commas = []     # type: List[Token]
+        self.kwargs = {}     # type: Dict[BaseNode, BaseNode]
         self.order_error = False
 
-    def prepend(self, statement):
+    def prepend(self, statement: BaseNode) -> None:
         if self.num_kwargs() > 0:
             self.order_error = True
         if not isinstance(statement, EmptyNode):
             self.arguments = [statement] + self.arguments
 
-    def append(self, statement):
+    def append(self, statement: BaseNode) -> None:
         if self.num_kwargs() > 0:
             self.order_error = True
         if not isinstance(statement, EmptyNode):
             self.arguments += [statement]
 
-    def set_kwarg(self, name, value):
-        if name in self.kwargs:
-            mlog.warning('Keyword argument "{}" defined multiple times.'.format(name), location=self)
+    def set_kwarg(self, name: IdNode, value: BaseNode) -> None:
+        if name.value in [x.value for x in self.kwargs.keys() if isinstance(x, IdNode)]:
+            mlog.warning('Keyword argument "{}" defined multiple times.'.format(name.value), location=self)
             mlog.warning('This will be an error in future Meson releases.')
         self.kwargs[name] = value
 
-    def num_args(self):
+    def set_kwarg_no_check(self, name: BaseNode, value: BaseNode) -> None:
+        self.kwargs[name] = value
+
+    def num_args(self) -> int:
         return len(self.arguments)
 
-    def num_kwargs(self):
+    def num_kwargs(self) -> int:
         return len(self.kwargs)
 
-    def incorrect_order(self):
+    def incorrect_order(self) -> bool:
         return self.order_error
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.num_args() # Fixme
+
+class ArrayNode(BaseNode):
+    def __init__(self, args: ArgumentNode, lineno: int, colno: int, end_lineno: int, end_colno: int) -> None:
+        super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
+        self.args = args              # type: ArgumentNode
+
+class DictNode(BaseNode):
+    def __init__(self, args: ArgumentNode, lineno: int, colno: int, end_lineno: int, end_colno: int) -> None:
+        super().__init__(lineno, colno, args.filename, end_lineno=end_lineno, end_colno=end_colno)
+        self.args = args
+
+class EmptyNode(BaseNode):
+    def __init__(self, lineno: int, colno: int, filename: str) -> None:
+        super().__init__(lineno, colno, filename)
+        self.value = None
+
+class OrNode(BaseNode):
+    def __init__(self, left: BaseNode, right: BaseNode) -> None:
+        super().__init__(left.lineno, left.colno, left.filename)
+        self.left = left    # type: BaseNode
+        self.right = right  # type: BaseNode
+
+class AndNode(BaseNode):
+    def __init__(self, left: BaseNode, right: BaseNode) -> None:
+        super().__init__(left.lineno, left.colno, left.filename)
+        self.left = left    # type: BaseNode
+        self.right = right  # type: BaseNode
+
+class ComparisonNode(BaseNode):
+    def __init__(self, ctype: str, left: BaseNode, right: BaseNode) -> None:
+        super().__init__(left.lineno, left.colno, left.filename)
+        self.left = left    # type: BaseNode
+        self.right = right  # type: BaseNode
+        self.ctype = ctype  # type: str
+
+class ArithmeticNode(BaseNode):
+    def __init__(self, operation: str, left: BaseNode, right: BaseNode) -> None:
+        super().__init__(left.lineno, left.colno, left.filename)
+        self.left = left            # type: BaseNode
+        self.right = right          # type: BaseNode
+        self.operation = operation  # type: str
+
+class NotNode(BaseNode):
+    def __init__(self, token: Token, value: BaseNode) -> None:
+        super().__init__(token.lineno, token.colno, token.filename)
+        self.value = value  # type: BaseNode
+
+class CodeBlockNode(BaseNode):
+    def __init__(self, token: Token) -> None:
+        super().__init__(token.lineno, token.colno, token.filename)
+        self.lines = []  # type: List[BaseNode]
+
+class IndexNode(BaseNode):
+    def __init__(self, iobject: BaseNode, index: BaseNode) -> None:
+        super().__init__(iobject.lineno, iobject.colno, iobject.filename)
+        self.iobject = iobject  # type: BaseNode
+        self.index = index      # type: BaseNode
+
+class MethodNode(BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, source_object: BaseNode, name: str, args: ArgumentNode) -> None:
+        super().__init__(lineno, colno, filename)
+        self.source_object = source_object  # type: BaseNode
+        self.name = name                    # type: str
+        assert(isinstance(self.name, str))
+        self.args = args                    # type: ArgumentNode
+
+class FunctionNode(BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, end_lineno: int, end_colno: int, func_name: str, args: ArgumentNode) -> None:
+        super().__init__(lineno, colno, filename, end_lineno=end_lineno, end_colno=end_colno)
+        self.func_name = func_name  # type: str
+        assert(isinstance(func_name, str))
+        self.args = args  # type: ArgumentNode
+
+class AssignmentNode(BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode) -> None:
+        super().__init__(lineno, colno, filename)
+        self.var_name = var_name  # type: str
+        assert(isinstance(var_name, str))
+        self.value = value  # type: BaseNode
+
+class PlusAssignmentNode(BaseNode):
+    def __init__(self, filename: str, lineno: int, colno: int, var_name: str, value: BaseNode) -> None:
+        super().__init__(lineno, colno, filename)
+        self.var_name = var_name  # type: str
+        assert(isinstance(var_name, str))
+        self.value = value  # type: BaseNode
+
+class ForeachClauseNode(BaseNode):
+    def __init__(self, token: Token, varnames: List[str], items: BaseNode, block: CodeBlockNode) -> None:
+        super().__init__(token.lineno, token.colno, token.filename)
+        self.varnames = varnames  # type: List[str]
+        self.items = items        # type: BaseNode
+        self.block = block        # type: CodeBlockNode
+
+class IfNode(BaseNode):
+    def __init__(self, linenode: BaseNode, condition: BaseNode, block: CodeBlockNode):
+        super().__init__(linenode.lineno, linenode.colno, linenode.filename)
+        self.condition = condition  # type: BaseNode
+        self.block = block          # type: CodeBlockNode
+
+class IfClauseNode(BaseNode):
+    def __init__(self, linenode: BaseNode) -> None:
+        super().__init__(linenode.lineno, linenode.colno, linenode.filename)
+        self.ifs = []  # type: List[IfNode]
+        self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)  # type: Union[EmptyNode, CodeBlockNode]
+
+class UMinusNode(BaseNode):
+    def __init__(self, current_location: Token, value: BaseNode):
+        super().__init__(current_location.lineno, current_location.colno, current_location.filename)
+        self.value = value  # type: BaseNode
+
+class TernaryNode(BaseNode):
+    def __init__(self, condition: BaseNode, trueblock: BaseNode, falseblock: BaseNode):
+        super().__init__(condition.lineno, condition.colno, condition.filename)
+        self.condition = condition    # type: BaseNode
+        self.trueblock = trueblock    # type: BaseNode
+        self.falseblock = falseblock  # type: BaseNode
 
 comparison_map = {'equal': '==',
                   'nequal': '!=',
@@ -485,58 +462,60 @@ comparison_map = {'equal': '==',
 # 9 plain token
 
 class Parser:
-    def __init__(self, code, filename):
+    def __init__(self, code: str, filename: str) -> None:
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(filename)
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.getsym()
         self.in_ternary = False
 
-    def getsym(self):
+    def getsym(self) -> None:
         try:
             self.current = next(self.stream)
         except StopIteration:
             self.current = Token('eof', '', self.current.line_start, self.current.lineno, self.current.colno + self.current.bytespan[1] - self.current.bytespan[0], (0, 0), None)
 
-    def getline(self):
+    def getline(self) -> str:
         return self.lexer.getline(self.current.line_start)
 
-    def accept(self, s):
+    def accept(self, s: str) -> bool:
         if self.current.tid == s:
             self.getsym()
             return True
         return False
 
-    def expect(self, s):
+    def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
         raise ParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno)
 
-    def block_expect(self, s, block_start):
+    def block_expect(self, s: str, block_start: Token) -> bool:
         if self.accept(s):
             return True
         raise BlockParseException('Expecting %s got %s.' % (s, self.current.tid), self.getline(), self.current.lineno, self.current.colno, self.lexer.getline(block_start.line_start), block_start.lineno, block_start.colno)
 
-    def parse(self):
+    def parse(self) -> CodeBlockNode:
         block = self.codeblock()
         self.expect('eof')
         return block
 
-    def statement(self):
+    def statement(self) -> BaseNode:
         return self.e1()
 
-    def e1(self):
+    def e1(self) -> BaseNode:
         left = self.e2()
         if self.accept('plusassign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
+            assert isinstance(left.value, str)
             return PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
+            assert isinstance(left.value, str)
             return AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
@@ -547,10 +526,10 @@ class Parser:
             self.expect('colon')
             falseblock = self.e1()
             self.in_ternary = False
-            return TernaryNode(left.filename, left.lineno, left.colno, left, trueblock, falseblock)
+            return TernaryNode(left, trueblock, falseblock)
         return left
 
-    def e2(self):
+    def e2(self) -> BaseNode:
         left = self.e3()
         while self.accept('or'):
             if isinstance(left, EmptyNode):
@@ -559,7 +538,7 @@ class Parser:
             left = OrNode(left, self.e3())
         return left
 
-    def e3(self):
+    def e3(self) -> BaseNode:
         left = self.e4()
         while self.accept('and'):
             if isinstance(left, EmptyNode):
@@ -568,7 +547,7 @@ class Parser:
             left = AndNode(left, self.e4())
         return left
 
-    def e4(self):
+    def e4(self) -> BaseNode:
         left = self.e5()
         for nodename, operator_type in comparison_map.items():
             if self.accept(nodename):
@@ -577,47 +556,47 @@ class Parser:
             return ComparisonNode('notin', left, self.e5())
         return left
 
-    def e5(self):
+    def e5(self) -> BaseNode:
         return self.e5add()
 
-    def e5add(self):
+    def e5add(self) -> BaseNode:
         left = self.e5sub()
         if self.accept('plus'):
             return ArithmeticNode('add', left, self.e5add())
         return left
 
-    def e5sub(self):
+    def e5sub(self) -> BaseNode:
         left = self.e5mod()
         if self.accept('dash'):
             return ArithmeticNode('sub', left, self.e5sub())
         return left
 
-    def e5mod(self):
+    def e5mod(self) -> BaseNode:
         left = self.e5mul()
         if self.accept('percent'):
             return ArithmeticNode('mod', left, self.e5mod())
         return left
 
-    def e5mul(self):
+    def e5mul(self) -> BaseNode:
         left = self.e5div()
         if self.accept('star'):
             return ArithmeticNode('mul', left, self.e5mul())
         return left
 
-    def e5div(self):
+    def e5div(self) -> BaseNode:
         left = self.e6()
         if self.accept('fslash'):
             return ArithmeticNode('div', left, self.e5div())
         return left
 
-    def e6(self):
+    def e6(self) -> BaseNode:
         if self.accept('not'):
             return NotNode(self.current, self.e7())
         if self.accept('dash'):
             return UMinusNode(self.current, self.e7())
         return self.e7()
 
-    def e7(self):
+    def e7(self) -> BaseNode:
         left = self.e8()
         block_start = self.current
         if self.accept('lparen'):
@@ -626,6 +605,7 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
+            assert isinstance(left.value, str)
             left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
         go_again = True
         while go_again:
@@ -638,7 +618,7 @@ class Parser:
                 left = self.index_call(left)
         return left
 
-    def e8(self):
+    def e8(self) -> BaseNode:
         block_start = self.current
         if self.accept('lparen'):
             e = self.statement()
@@ -655,7 +635,7 @@ class Parser:
         else:
             return self.e9()
 
-    def e9(self):
+    def e9(self) -> BaseNode:
         t = self.current
         if self.accept('true'):
             return BooleanNode(t, True)
@@ -667,15 +647,15 @@ class Parser:
             return NumberNode(t)
         if self.accept('string'):
             return StringNode(t)
-        return EmptyNode(self.current.lineno, self.current.colno)
+        return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
-    def key_values(self):
-        s = self.statement()
-        a = ArgumentNode(s)
+    def key_values(self) -> ArgumentNode:
+        s = self.statement()  # type: BaseNode
+        a = ArgumentNode(self.current)
 
         while not isinstance(s, EmptyNode):
             if self.accept('colon'):
-                a.set_kwarg(s, self.statement())
+                a.set_kwarg_no_check(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
                     return a
@@ -686,9 +666,9 @@ class Parser:
             s = self.statement()
         return a
 
-    def args(self):
-        s = self.statement()
-        a = ArgumentNode(s)
+    def args(self) -> ArgumentNode:
+        s = self.statement()  # type: BaseNode
+        a = ArgumentNode(self.current)
 
         while not isinstance(s, EmptyNode):
             potential = self.current
@@ -699,7 +679,7 @@ class Parser:
                 if not isinstance(s, IdNode):
                     raise ParseException('Dictionary key must be a plain identifier.',
                                          self.getline(), s.lineno, s.colno)
-                a.set_kwarg(s.value, self.statement())
+                a.set_kwarg(s, self.statement())
                 potential = self.current
                 if not self.accept('comma'):
                     return a
@@ -710,11 +690,12 @@ class Parser:
             s = self.statement()
         return a
 
-    def method_call(self, source_object):
+    def method_call(self, source_object) -> MethodNode:
         methodname = self.e9()
         if not(isinstance(methodname, IdNode)):
             raise ParseException('Method name must be plain id',
                                  self.getline(), self.current.lineno, self.current.colno)
+        assert isinstance(methodname.value, str)
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
@@ -723,68 +704,73 @@ class Parser:
             return self.method_call(method)
         return method
 
-    def index_call(self, source_object):
+    def index_call(self, source_object) -> IndexNode:
         index_statement = self.statement()
         self.expect('rbracket')
         return IndexNode(source_object, index_statement)
 
-    def foreachblock(self):
+    def foreachblock(self) -> ForeachClauseNode:
         t = self.current
         self.expect('id')
+        assert isinstance(t.value, str)
         varname = t
-        varnames = [t]
+        varnames = [t.value]  # type: List[str]
 
         if self.accept('comma'):
             t = self.current
             self.expect('id')
-            varnames.append(t)
+            assert isinstance(t.value, str)
+            varnames.append(t.value)
 
         self.expect('colon')
         items = self.statement()
         block = self.codeblock()
-        return ForeachClauseNode(varname.lineno, varname.colno, varnames, items, block)
+        return ForeachClauseNode(varname, varnames, items, block)
 
-    def ifblock(self):
+    def ifblock(self) -> IfClauseNode:
         condition = self.statement()
-        clause = IfClauseNode(condition.lineno, condition.colno)
+        clause = IfClauseNode(condition)
         self.expect('eol')
         block = self.codeblock()
-        clause.ifs.append(IfNode(clause.lineno, clause.colno, condition, block))
+        clause.ifs.append(IfNode(clause, condition, block))
         self.elseifblock(clause)
-        clause.elseblock = self.elseblock()
+        elseblock = self.elseblock()
+        if elseblock:
+            clause.elseblock = elseblock
         return clause
 
-    def elseifblock(self, clause):
+    def elseifblock(self, clause) -> None:
         while self.accept('elif'):
             s = self.statement()
             self.expect('eol')
             b = self.codeblock()
-            clause.ifs.append(IfNode(s.lineno, s.colno, s, b))
+            clause.ifs.append(IfNode(s, s, b))
 
-    def elseblock(self):
+    def elseblock(self) -> Optional[CodeBlockNode]:
         if self.accept('else'):
             self.expect('eol')
             return self.codeblock()
+        return None
 
-    def line(self):
+    def line(self) -> BaseNode:
         block_start = self.current
         if self.current == 'eol':
-            return EmptyNode(self.current.lineno, self.current.colno)
+            return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
         if self.accept('if'):
-            block = self.ifblock()
+            ifblock = self.ifblock()
             self.block_expect('endif', block_start)
-            return block
+            return ifblock
         if self.accept('foreach'):
-            block = self.foreachblock()
+            forblock = self.foreachblock()
             self.block_expect('endforeach', block_start)
-            return block
+            return forblock
         if self.accept('continue'):
             return ContinueNode(self.current)
         if self.accept('break'):
             return BreakNode(self.current)
         return self.statement()
 
-    def codeblock(self):
+    def codeblock(self) -> CodeBlockNode:
         block = CodeBlockNode(self.current)
         cond = True
         while cond:

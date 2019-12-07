@@ -29,6 +29,7 @@ from ..mparser import (
     ElementaryNode,
     EmptyNode,
     IdNode,
+    StringNode,
     MethodNode,
     PlusAssignmentNode,
     TernaryNode,
@@ -201,9 +202,16 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
     def reduce_arguments(self, args):
         if isinstance(args, ArgumentNode):
+            kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], BaseNode]
+            for key, val in args.kwargs.items():
+                if isinstance(key, (StringNode, IdNode)):
+                    assert isinstance(key.value, str)
+                    kwargs[key.value] = val
+                else:
+                    kwargs[key] = val
             if args.incorrect_order():
                 raise InvalidArguments('All keyword arguments must be after positional arguments.')
-            return self.flatten_args(args.arguments), args.kwargs
+            return self.flatten_args(args.arguments), kwargs
         else:
             return self.flatten_args(args), {}
 

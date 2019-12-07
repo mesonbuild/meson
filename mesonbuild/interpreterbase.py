@@ -20,6 +20,7 @@ from . import environment, dependencies
 
 import os, copy, re
 from functools import wraps
+from typing import Union, Optional
 
 class ObjectHolder:
     def __init__(self, obj, subproject=None):
@@ -494,7 +495,7 @@ class InterpreterBase:
 
     @FeatureNew('dict', '0.47.0')
     def evaluate_dictstatement(self, cur):
-        (arguments, kwargs) = self.reduce_arguments(cur.args)
+        (arguments, kwargs) = self.reduce_arguments(cur.args, resolve_key_nodes=False)
         assert (not arguments)
         result = {}
         self.argument_depth += 1
@@ -693,7 +694,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         if isinstance(items, list):
             if len(node.varnames) != 1:
                 raise InvalidArguments('Foreach on array does not unpack')
-            varname = node.varnames[0].value
+            varname = node.varnames[0]
             for item in items:
                 self.set_variable(varname, item)
                 try:
@@ -706,8 +707,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
             for key, value in items.items():
-                self.set_variable(node.varnames[0].value, key)
-                self.set_variable(node.varnames[1].value, value)
+                self.set_variable(node.varnames[0], key)
+                self.set_variable(node.varnames[1], value)
                 try:
                     self.evaluate_codeblock(node.block)
                 except ContinueRequest:
@@ -1025,7 +1026,7 @@ The result of this is undefined and will become a hard error in a future Meson r
 
         raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 
-    def reduce_arguments(self, args):
+    def reduce_arguments(self, args: mparser.ArgumentNode, resolve_key_nodes: Optional[bool] = True):
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
@@ -1033,8 +1034,12 @@ The result of this is undefined and will become a hard error in a future Meson r
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
+            reduced_key = key  # type: Union[str, mparser.BaseNode]
+            if resolve_key_nodes and isinstance(key, mparser.IdNode):
+                assert isinstance(key.value, str)
+                reduced_key = key.value
             a = args.kwargs[key]
-            reduced_kw[key] = self.evaluate_statement(a)
+            reduced_kw[reduced_key] = self.evaluate_statement(a)
         self.argument_depth -= 1
         final_kw = self.expand_default_kwargs(reduced_kw)
         return reduced_pos, final_kw
