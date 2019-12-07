@@ -2182,13 +2182,12 @@ class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
                  modules = None, default_project_options=None, mock=False, ast=None):
-        super().__init__(build.environment.get_source_dir(), subdir)
+        super().__init__(build.environment.get_source_dir(), subdir, subproject)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
         self.environment = build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
-        self.subproject = subproject
         self.summary = {}
         if modules is None:
             self.modules = {}

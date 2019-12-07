@@ -1398,7 +1398,7 @@ class DataTests(unittest.TestCase):
         '''
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
-        astint = AstInterpreter('.', '')
+        astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
 

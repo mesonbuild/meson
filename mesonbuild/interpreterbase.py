@@ -360,12 +360,12 @@ def is_disabled(args, kwargs) -> bool:
     return False
 
 class InterpreterBase:
-    def __init__(self, source_root, subdir):
+    def __init__(self, source_root: str, subdir: str, subproject: str) -> None:
         self.source_root = source_root
         self.funcs = {}
         self.builtin = {}
         self.subdir = subdir
-        self.variables = {}
+        self.subproject = subproject
         self.argument_depth = 0
         self.current_lineno = -1
         # Current node set during a function call. This can be used as location

@@ -38,7 +38,7 @@ class IntrospectionInterpreter(AstInterpreter):
     # Most of the code is stolen from interpreter.Interpreter
     def __init__(self, source_root, subdir, backend, visitors=None, cross_file=None, subproject='', subproject_dir='subprojects', env=None):
         visitors = visitors if visitors is not None else []
-        super().__init__(source_root, subdir, visitors=visitors)
+        super().__init__(source_root, subdir, subproject, visitors=visitors)
 
         options = IntrospectionHelper(cross_file)
         self.cross_file = cross_file
@@ -46,7 +46,6 @@ class IntrospectionInterpreter(AstInterpreter):
             self.environment = environment.Environment(source_root, None, options)
         else:
             self.environment = env
-        self.subproject = subproject
         self.subproject_dir = subproject_dir
         self.coredata = self.environment.get_coredata()
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
@@ -183,8 +182,8 @@ class IntrospectionInterpreter(AstInterpreter):
             elif isinstance(curr, IdNode):
                 # Try to resolve the ID and append the node to the queue
                 var_name = curr.value
-                if var_name in self.assignments and self.assignments[var_name]:
-                    tmp_node = self.assignments[var_name][0]
+                if var_name in self.assignments:
+                    tmp_node = self.assignments[var_name]
                     if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
                         srcqueue += [tmp_node]
             elif isinstance(curr, ArithmeticNode):

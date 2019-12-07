@@ -21,18 +21,27 @@ from .. import environment
 
 from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
 from ..mparser import (
+    AndNode,
     ArgumentNode,
     ArithmeticNode,
     ArrayNode,
     AssignmentNode,
     BaseNode,
+    ComparisonNode,
     ElementaryNode,
     EmptyNode,
+    ForeachClauseNode,
     IdNode,
-    StringNode,
+    IfClauseNode,
+    IfNode,
+    IndexNode,
     MethodNode,
+    NotNode,
+    OrNode,
     PlusAssignmentNode,
+    StringNode,
     TernaryNode,
+    UMinusNode,
 )
 
 import os, sys
@@ -60,13 +69,13 @@ ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, visitors: T.Optional[T.List[AstVisitor]] = None):
-        super().__init__(source_root, subdir)
+    def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None) -> None:
+        super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
-        self.visited_subdirs = {}
-        self.assignments = {}
-        self.assign_vals = {}
-        self.reverse_assignment = {}
+        self.visited_subdirs = {}     # type: T.Dict[str, bool]
+        self.assignments = {}         # type: T.Dict[str, BaseNode]
+        self.assign_vals = {}         # type: T.Dict[str, T.Any]
+        self.reverse_assignment = {}  # type: T.Dict[str, BaseNode]
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -123,21 +132,21 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'summary': self.func_do_nothing,
                            })
 
-    def func_do_nothing(self, node, args, kwargs):
+    def func_do_nothing(self, node: BaseNode, args: T.List[T.Union[BaseNode, str, int, float, bool]], kwargs: T.Dict[str, T.Union[BaseNode, str, int, float, bool]]) -> bool:
         return True
 
-    def load_root_meson_file(self):
+    def load_root_meson_file(self) -> None:
         super().load_root_meson_file()
         for i in self.visitors:
             self.ast.accept(i)
 
-    def func_subdir(self, node, args, kwargs):
+    def func_subdir(self, node: BaseNode, args: T.List[T.Union[BaseNode, str, int, float, bool]], kwargs: T.Dict[str, T.Union[BaseNode, str, int, float, bool]]) -> None:
         args = self.flatten_args(args)
         if len(args) != 1 or not isinstance(args[0], str):
             sys.stderr.write('Unable to evaluate subdir({}) in AstInterpreter --> Skipping\n'.format(args))
             return
 
-        prev_subdir = self.subdir
+        prev_subdir = self.subdir  # type: str
         subdir = os.path.join(prev_subdir, args[0])
         absdir = os.path.join(self.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
@@ -166,41 +175,39 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.evaluate_codeblock(codeblock)
         self.subdir = prev_subdir
 
-    def method_call(self, node):
+    def method_call(self, node: BaseNode) -> bool:
         return True
 
-    def evaluate_arithmeticstatement(self, cur):
+    def evaluate_arithmeticstatement(self, cur: ArithmeticNode) -> int:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
         return 0
 
-    def evaluate_uminusstatement(self, cur):
+    def evaluate_uminusstatement(self, cur: UMinusNode) -> int:
         self.evaluate_statement(cur.value)
         return 0
 
-    def evaluate_ternary(self, node):
+    def evaluate_ternary(self, node: TernaryNode) -> None:
         assert(isinstance(node, TernaryNode))
         self.evaluate_statement(node.condition)
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
 
-    def evaluate_plusassign(self, node):
+    def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert(isinstance(node, PlusAssignmentNode))
-        if node.var_name not in self.assignments:
-            self.assignments[node.var_name] = []
-            self.assign_vals[node.var_name] = []
-        self.assignments[node.var_name] += [node.value] # Save a reference to the value node
+        # Cheat by doing a reassignment
+        self.assignments[node.var_name] = node.value # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name] += [self.evaluate_statement(node.value)]
+        self.assign_vals[node.var_name] = self.evaluate_statement(node.value)
 
-    def evaluate_indexing(self, node):
+    def evaluate_indexing(self, node: IndexNode) -> int:
         return 0
 
-    def unknown_function_called(self, func_name):
+    def unknown_function_called(self, func_name: str) -> None:
         pass
 
-    def reduce_arguments(self, args):
+    def reduce_arguments(self, args: ArgumentNode, resolve_key_nodes: bool = True) -> T.Tuple[list, dict]:
         if isinstance(args, ArgumentNode):
             kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], BaseNode]
             for key, val in args.kwargs.items():
@@ -215,22 +222,22 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         else:
             return self.flatten_args(args), {}
 
-    def evaluate_comparison(self, node):
+    def evaluate_comparison(self, node: ComparisonNode) -> bool:
         self.evaluate_statement(node.left)
         self.evaluate_statement(node.right)
         return False
 
-    def evaluate_andstatement(self, cur):
+    def evaluate_andstatement(self, cur: AndNode) -> bool:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
         return False
 
-    def evaluate_orstatement(self, cur):
+    def evaluate_orstatement(self, cur: OrNode) -> bool:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
         return False
 
-    def evaluate_foreach(self, node):
+    def evaluate_foreach(self, node: ForeachClauseNode) -> None:
         try:
             self.evaluate_codeblock(node.block)
         except ContinueRequest:
@@ -238,30 +245,31 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         except BreakRequest:
             pass
 
-    def evaluate_if(self, node):
+    def evaluate_if(self, node: IfClauseNode) -> None:
         for i in node.ifs:
             self.evaluate_codeblock(i.block)
         if not isinstance(node.elseblock, EmptyNode):
             self.evaluate_codeblock(node.elseblock)
 
-    def get_variable(self, varname):
+    def get_variable(self, varname: str) -> int:
         return 0
 
-    def assignment(self, node):
+    def assignment(self, node: AssignmentNode) -> None:
         assert(isinstance(node, AssignmentNode))
-        self.assignments[node.var_name] = [node.value] # Save a reference to the value node
+        self.assignments[node.var_name] = node.value # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
-        self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
+        self.assign_vals[node.var_name] = self.evaluate_statement(node.value) # Evaluate the value just in case
 
     def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
         def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
             if loop_detect is None:
                 loop_detect = []
             if isinstance(n, IdNode):
+                assert isinstance(n.value, str)
                 if n.value in loop_detect or n.value not in self.assignments:
                     return []
-                return quick_resolve(self.assignments[n.value][0], loop_detect = loop_detect + [n.value])
+                return quick_resolve(self.assignments[n.value], loop_detect = loop_detect + [n.value])
             elif isinstance(n, ElementaryNode):
                 return n.value
             else:
@@ -323,7 +331,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if isinstance(result, BaseNode):
             result = self.resolve_node(result, include_unknown_args, id_loop_detect)
         elif isinstance(result, list):
-            new_res = []
+            new_res = []  # type: T.List[T.Union[BaseNode, str, bool, int, float]]
             for i in result:
                 if isinstance(i, BaseNode):
                     resolved = self.resolve_node(i, include_unknown_args, id_loop_detect)
@@ -335,12 +343,12 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         return result
 
-    def flatten_args(self, args: T.Any, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[T.Any]:
+    def flatten_args(self, args: T.Any, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[T.Union[BaseNode, str, bool, int, float]]:
         # Make sure we are always dealing with lists
         if not isinstance(args, list):
             args = [args]
 
-        flattend_args = []
+        flattend_args = []  # type: T.List[T.Union[BaseNode, str, bool, int, float]]
 
         # Resolve the contents of args
         for i in args:
@@ -354,7 +362,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                 flattend_args += [i]
         return flattend_args
 
-    def flatten_kwargs(self, kwargs: object, include_unknown_args: bool = False):
+    def flatten_kwargs(self, kwargs: T.Dict[str, T.Union[BaseNode, str, bool, int, float]], include_unknown_args: bool = False) -> T.Dict[str, T.Union[BaseNode, str, bool, int, float]]:
         flattend_kwargs = {}
         for key, val in kwargs.items():
             if isinstance(val, BaseNode):

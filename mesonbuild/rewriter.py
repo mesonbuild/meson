@@ -414,10 +414,10 @@ class Rewriter:
         # Check the assignments
         tgt = None
         if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target][0]
+            node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
-                    tgt = self.interpreter.assign_vals[target][0]
+                    tgt = self.interpreter.assign_vals[target]
 
         return tgt
 
@@ -434,7 +434,7 @@ class Rewriter:
 
         # Check the assignments
         if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency][0]
+            node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['dependency']:
                     name = self.interpreter.flatten_args(node.args)[0]
