@@ -27,6 +27,7 @@ RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" \
 && eatmydata apt-get -y install libboost-python-dev \
 && eatmydata apt-get -y install libblocksruntime-dev \
 && eatmydata apt-get -y install libperl-dev \
+&& eatmydata apt-get -y install liblapack-dev libscalapack-mpi-dev \
 && eatmydata dub fetch urld && dub build urld --compiler=gdc \
 && eatmydata dub fetch dubtestproject \
 && eatmydata dub build dubtestproject:test1 --compiler=ldc2 \

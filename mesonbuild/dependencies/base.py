@@ -151,7 +151,7 @@ class Dependency:
             return converted
         return self.compile_args
 
-    def get_link_args(self, raw=False):
+    def get_link_args(self, raw: bool = False) -> typing.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
@@ -726,6 +726,9 @@ class PkgConfigDependency(ExternalDependency):
             elif arg.startswith('/'):
                 pargs = PurePath(arg).parts
                 tmpl = '{}:/{}'
+            elif arg.startswith(('-L', '-I')) or arg[1] == ':':
+                # clean out improper '\\ ' as comes from some Windows pkg-config files
+                arg = arg.replace('\\ ', ' ')
             if len(pargs) > 1 and len(pargs[1]) == 1:
                 arg = tmpl.format(pargs[1], '/'.join(pargs[2:]))
             converted.append(arg)

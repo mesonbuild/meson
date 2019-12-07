@@ -544,7 +544,7 @@ def skippable(suite, test):
     if test.endswith('10 gtk-doc'):
         return True
 
-    # NetCDF is not in the CI image
+    # NetCDF is not in the CI Docker image
     if test.endswith('netcdf'):
         return True
 

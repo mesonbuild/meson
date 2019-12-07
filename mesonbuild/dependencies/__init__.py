@@ -22,6 +22,7 @@ from .base import (  # noqa: F401
 from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
 from .coarrays import CoarrayDependency
 from .mpi import MPIDependency
+from .scalapack import ScalapackDependency
 from .misc import (BlocksDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency, PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, GpgmeDependency, ShadercDependency)
 from .platform import AppleFrameworks
 from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
@@ -37,11 +38,14 @@ packages.update({
     'boost': BoostDependency,
     'cuda': CudaDependency,
 
+    # per-file
+    'coarray': CoarrayDependency,
+    'hdf5': HDF5Dependency,
+    'mpi': MPIDependency,
+    'scalapack': ScalapackDependency,
+
     # From misc:
     'blocks': BlocksDependency,
-    'coarray': CoarrayDependency,
-    'mpi': MPIDependency,
-    'hdf5': HDF5Dependency,
     'netcdf': NetCDFDependency,
     'openmp': OpenMPDependency,
     'python3': Python3Dependency,
