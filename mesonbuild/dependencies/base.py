@@ -151,7 +151,7 @@ class Dependency:
             return converted
         return self.compile_args
 
-    def get_link_args(self, raw: bool = False) -> typing.List[str]:
+    def get_link_args(self, raw: bool = False) -> List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
