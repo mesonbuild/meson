@@ -232,6 +232,11 @@ class BaseNode:
         self.end_lineno = end_lineno if end_lineno is not None else self.lineno
         self.end_colno = end_colno if end_colno is not None else self.colno
 
+        # Attributes for the visitors
+        self.level = 0            # type: int
+        self.ast_id = ''          # type: str
+        self.condition_level = 0  # type: int
+
     def accept(self, visitor: 'AstVisitor') -> None:
         fname = 'visit_{}'.format(type(self).__name__)
         if hasattr(visitor, fname):

@@ -190,7 +190,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             self.assignments[node.var_name] = []
             self.assign_vals[node.var_name] = []
         self.assignments[node.var_name] += [node.value] # Save a reference to the value node
-        if hasattr(node.value, 'ast_id'):
+        if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] += [self.evaluate_statement(node.value)]
 
@@ -250,7 +250,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def assignment(self, node):
         assert(isinstance(node, AssignmentNode))
         self.assignments[node.var_name] = [node.value] # Save a reference to the value node
-        if hasattr(node.value, 'ast_id'):
+        if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
@@ -274,7 +274,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if not isinstance(node, BaseNode):
             return None
 
-        assert(hasattr(node, 'ast_id'))
+        assert node.ast_id
         if node.ast_id in id_loop_detect:
             return None # Loop detected
         id_loop_detect += [node.ast_id]

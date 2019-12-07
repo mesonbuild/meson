@@ -593,7 +593,7 @@ class Rewriter:
             self.modefied_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
+        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
 

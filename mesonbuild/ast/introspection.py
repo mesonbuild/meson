@@ -145,7 +145,6 @@ class IntrospectionInterpreter(AstInterpreter):
         version = kwargs.get('version', [])
         if not isinstance(version, list):
             version = [version]
-        condition_level = node.condition_level if hasattr(node, 'condition_level') else 0
         if isinstance(required, ElementaryNode):
             required = required.value
         if not isinstance(required, bool):
@@ -155,8 +154,8 @@ class IntrospectionInterpreter(AstInterpreter):
             'required': required,
             'version': version,
             'has_fallback': has_fallback,
-            'conditional': condition_level > 0,
-            'node': node,
+            'conditional': node.condition_level > 0,
+            'node': node
         }]
 
     def build_target(self, node, args, kwargs, targetclass):
