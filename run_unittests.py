@@ -4778,6 +4778,17 @@ class FailureTests(BasePlatformTests):
         self.assertMesonOutputs("warning('Array:', ['a', 'b'])",
                                 r"WARNING:.* Array: \['a', 'b'\]")
 
+    def test_override_dependency_twice(self):
+        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n" +
+                               "meson.override_dependency('foo', declare_dependency())",
+                               """Tried to override dependency 'foo' which has already been resolved or overridden""")
+
+    @unittest.skipIf(is_windows(), 'zlib is not available on Windows')
+    def test_override_resolved_dependency(self):
+        self.assertMesonRaises("dependency('zlib')\n" +
+                               "meson.override_dependency('zlib', declare_dependency())",
+                               """Tried to override dependency 'zlib' which has already been resolved or overridden""")
+
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''
