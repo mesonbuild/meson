@@ -19,7 +19,7 @@ from .visitor import AstVisitor
 from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
-from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest, TYPE_nvar, TYPE_nkwargs
+from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest, TYPE_nvar
 from ..mparser import (
     AndNode,
     ArgumentNode,
@@ -341,7 +341,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         return result
 
-    def flatten_args(self, args_raw: T.Sequence[TYPE_nvar], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_nvar]:
+    def flatten_args(self, args_raw: T.Union[TYPE_nvar, T.Sequence[TYPE_nvar]], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_nvar]:
         # Make sure we are always dealing with lists
         if isinstance(args_raw, list):
             args = args_raw
@@ -362,17 +362,9 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                 flattend_args += [i]
         return flattend_args
 
-    def flatten_kwargs(self, kwargs: TYPE_nkwargs, include_unknown_args: bool = False) -> T.Dict[str, TYPE_nvar]:
+    def flatten_kwargs(self, kwargs: T.Dict[str, TYPE_nvar], include_unknown_args: bool = False) -> T.Dict[str, TYPE_nvar]:
         flattend_kwargs = {}
-        for key_node, val in kwargs.items():
-            key = None  # type: str
-            if isinstance(key_node, str):
-                key = key_node
-            elif isinstance(key_node, StringNode):
-                assert isinstance(key_node.value, str)
-                key = key_node.value
-            else:
-                continue
+        for key, val in kwargs.items():
             if isinstance(val, BaseNode):
                 resolved = self.resolve_node(val, include_unknown_args)
                 if resolved is not None:
