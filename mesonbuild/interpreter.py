@@ -2275,7 +2275,7 @@ class Interpreter(InterpreterBase):
             if f.is_built:
                 return
             f = os.path.normpath(f.relative_name())
-        elif os.path.isfile(f):
+        elif os.path.isfile(f) and not f.startswith('/dev'):
             srcdir = self.environment.get_source_dir()
             builddir = self.environment.get_build_dir()
             f = os.path.normpath(f)
