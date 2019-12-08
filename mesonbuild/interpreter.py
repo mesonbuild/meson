@@ -4499,7 +4499,7 @@ This will become a hard error in the future.''', location=self.current_node)
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     # Only permit object extraction from the same subproject
-    def validate_extraction(self, buildtarget):
+    def validate_extraction(self, buildtarget: InterpreterObject) -> None:
         if not self.subdir.startswith(self.subproject_dir):
             if buildtarget.subdir.startswith(self.subproject_dir):
                 raise InterpreterException('Tried to extract objects from a subproject target.')
@@ -4508,19 +4508,6 @@ This will become a hard error in the future.''', location=self.current_node)
                 raise InterpreterException('Tried to extract objects from the main project from a subproject.')
             if self.subdir.split('/')[1] != buildtarget.subdir.split('/')[1]:
                 raise InterpreterException('Tried to extract objects from a different subproject.')
-
-    def check_contains(self, obj, args):
-        if len(args) != 1:
-            raise InterpreterException('Contains method takes exactly one argument.')
-        item = args[0]
-        for element in obj:
-            if isinstance(element, list):
-                found = self.check_contains(element, args)
-                if found:
-                    return True
-            if element == item:
-                return True
-        return False
 
     def is_subproject(self):
         return self.subproject != ''

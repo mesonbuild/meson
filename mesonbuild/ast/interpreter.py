@@ -19,7 +19,7 @@ from .visitor import AstVisitor
 from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
-from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest
+from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest, TYPE_nvar, TYPE_nkwargs
 from ..mparser import (
     AndNode,
     ArgumentNode,
@@ -33,10 +33,8 @@ from ..mparser import (
     ForeachClauseNode,
     IdNode,
     IfClauseNode,
-    IfNode,
     IndexNode,
     MethodNode,
-    NotNode,
     OrNode,
     PlusAssignmentNode,
     StringNode,
@@ -132,7 +130,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'summary': self.func_do_nothing,
                            })
 
-    def func_do_nothing(self, node: BaseNode, args: T.List[T.Union[BaseNode, str, int, float, bool]], kwargs: T.Dict[str, T.Union[BaseNode, str, int, float, bool]]) -> bool:
+    def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> bool:
         return True
 
     def load_root_meson_file(self) -> None:
@@ -140,7 +138,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         for i in self.visitors:
             self.ast.accept(i)
 
-    def func_subdir(self, node: BaseNode, args: T.List[T.Union[BaseNode, str, int, float, bool]], kwargs: T.Dict[str, T.Union[BaseNode, str, int, float, bool]]) -> None:
+    def func_subdir(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         args = self.flatten_args(args)
         if len(args) != 1 or not isinstance(args[0], str):
             sys.stderr.write('Unable to evaluate subdir({}) in AstInterpreter --> Skipping\n'.format(args))
@@ -312,7 +310,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         elif isinstance(node, MethodNode):
             src = quick_resolve(node.source_object)
-            margs = self.flatten_args(node.args, include_unknown_args, id_loop_detect)
+            margs = self.flatten_args(node.args.arguments, include_unknown_args, id_loop_detect)
             try:
                 if isinstance(src, str):
                     result = self.string_method_call(src, node.name, margs)
@@ -331,7 +329,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if isinstance(result, BaseNode):
             result = self.resolve_node(result, include_unknown_args, id_loop_detect)
         elif isinstance(result, list):
-            new_res = []  # type: T.List[T.Union[BaseNode, str, bool, int, float]]
+            new_res = []  # type: T.List[TYPE_nvar]
             for i in result:
                 if isinstance(i, BaseNode):
                     resolved = self.resolve_node(i, include_unknown_args, id_loop_detect)
@@ -343,12 +341,14 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         return result
 
-    def flatten_args(self, args: T.Any, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[T.Union[BaseNode, str, bool, int, float]]:
+    def flatten_args(self, args_raw: T.Sequence[TYPE_nvar], include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[TYPE_nvar]:
         # Make sure we are always dealing with lists
-        if not isinstance(args, list):
-            args = [args]
+        if isinstance(args_raw, list):
+            args = args_raw
+        else:
+            args = [args_raw]
 
-        flattend_args = []  # type: T.List[T.Union[BaseNode, str, bool, int, float]]
+        flattend_args = []  # type: T.List[TYPE_nvar]
 
         # Resolve the contents of args
         for i in args:
@@ -362,9 +362,17 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                 flattend_args += [i]
         return flattend_args
 
-    def flatten_kwargs(self, kwargs: T.Dict[str, T.Union[BaseNode, str, bool, int, float]], include_unknown_args: bool = False) -> T.Dict[str, T.Union[BaseNode, str, bool, int, float]]:
+    def flatten_kwargs(self, kwargs: TYPE_nkwargs, include_unknown_args: bool = False) -> T.Dict[str, TYPE_nvar]:
         flattend_kwargs = {}
-        for key, val in kwargs.items():
+        for key_node, val in kwargs.items():
+            key = None  # type: str
+            if isinstance(key_node, str):
+                key = key_node
+            elif isinstance(key_node, StringNode):
+                assert isinstance(key_node.value, str)
+                key = key_node.value
+            else:
+                continue
             if isinstance(val, BaseNode):
                 resolved = self.resolve_node(val, include_unknown_args)
                 if resolved is not None:
