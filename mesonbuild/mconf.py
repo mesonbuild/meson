@@ -190,12 +190,14 @@ class Conf:
                             'infodir',
                             'libdir',
                             'libexecdir',
+                            'libpkgconfigdir',
                             'localedir',
                             'localstatedir',
                             'mandir',
                             'prefix',
                             'sbindir',
                             'sharedstatedir',
+                            'sharepkgconfigdir',
                             'sysconfdir']
         test_option_names = ['errorlogs',
                              'stdsplit']

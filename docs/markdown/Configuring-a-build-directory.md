@@ -68,21 +68,23 @@ sample output for a simple project.
       fortran_std   []            [none, legacy, f95, f2003, f2008, f2018]                                                                      language standard to use
 
     Directories:
-      Option         Current Value        Description
-      ------         -------------        -----------
-      bindir         bin                  Executable directory
-      datadir        share                Data file directory
-      includedir     include              Header file directory
-      infodir        share/info           Info page directory
-      libdir         lib/x86_64-linux-gnu Library directory
-      libexecdir     libexec              Library executable directory
-      localedir      share/locale         Locale data directory
-      localstatedir  /var/local           Localstate data directory
-      mandir         share/man            Manual page directory
-      prefix         /usr/local           Installation prefix
-      sbindir        sbin                 System executable directory
-      sharedstatedir /var/local/lib       Architecture-independent data directory
-      sysconfdir     etc                  Sysconf data directory
+      Option            Current Value        Description
+      ------            -------------        -----------
+      bindir            bin                  Executable directory
+      datadir           share                Data file directory
+      includedir        include              Header file directory
+      infodir           share/info           Info page directory
+      libdir            lib/x86_64-linux-gnu Library directory
+      libexecdir        libexec              Library executable directory
+      libpkgconfigdir   lib/pkgconfig        Pkg-config directory
+      localedir         share/locale         Locale data directory
+      localstatedir     /var/local           Localstate data directory
+      mandir            share/man            Manual page directory
+      prefix            /usr/local           Installation prefix
+      sbindir           sbin                 System executable directory
+      sharedstatedir    /var/local/lib       Architecture-independent data directory
+      sharepkgconfigdir share/pkgconfig      Architecture-independent pkg-config directory
+      sysconfdir        etc                  Sysconf data directory
 
     Project options:
       Option         Current Value Possible Values           Description

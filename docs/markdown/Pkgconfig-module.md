@@ -24,7 +24,10 @@ keyword arguments.
   example, the value of `libfoo` would produce a pkg-config file called
   `libfoo.pc`
 - `install_dir` the directory to install to, defaults to the value of
-  option `libdir` followed by `/pkgconfig`
+  option `libpkgconfigdir`
+- `install_data` when true, the pkg-config file is considered
+  architecture-independent and the default value of `install_dir` is changed
+  to the value of option `sharepkgconfigdir`. (*since 0.54.0*)
 - `libraries` a list of built libraries (usually results of
   shared_library) that the user needs to link against. Arbitrary strings can
   also be provided and they will be added into the `Libs` field. Since 0.45.0

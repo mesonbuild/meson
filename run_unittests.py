@@ -1357,6 +1357,7 @@ class BasePlatformTests(unittest.TestCase):
         self.src_root = src_root
         self.prefix = '/usr'
         self.libdir = 'lib'
+        self.libpkgconfigdir = 'lib/pkgconfig'
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
@@ -1467,7 +1468,8 @@ class BasePlatformTests(unittest.TestCase):
         args = [srcdir, self.builddir]
         if default_args:
             args += ['--prefix', self.prefix,
-                     '--libdir', self.libdir]
+                     '--libdir', self.libdir,
+                     '--libpkgconfigdir', self.libpkgconfigdir]
             if self.meson_cross_file:
                 args += ['--cross-file', self.meson_cross_file]
         self.privatedir = os.path.join(self.builddir, 'meson-private')
@@ -2871,8 +2873,10 @@ int main(int argc, char **argv) {
         testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
         prefix = '/usr/with spaces'
         libdir = 'lib'
+        libpkgconfigdir = 'lib/pkgconfig'
         self.init(testdir, extra_args=['--prefix=' + prefix,
-                                       '--libdir=' + libdir])
+                                       '--libdir=' + libdir,
+                                       '--libpkgconfigdir=' + libpkgconfigdir])
         # Find foo dependency
         os.environ['PKG_CONFIG_LIBDIR'] = self.privatedir
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -5479,7 +5483,10 @@ class LinuxlikeTests(BasePlatformTests):
                            stderr=subprocess.DEVNULL) != 0:
             raise unittest.SkipTest('Glib 2.0 dependency not available.')
         with tempfile.TemporaryDirectory() as tempdirname:
-            self.init(testdir1, extra_args=['--prefix=' + tempdirname, '--libdir=lib'], default_args=False)
+            self.init(testdir1, extra_args=['--prefix=' + tempdirname,
+                                            '--libdir=lib',
+                                            '--libpkgconfigdir=lib/pkgconfig'],
+                      default_args=False)
             self.install(use_destdir=False)
             shutil.rmtree(self.builddir)
             os.mkdir(self.builddir)
@@ -5534,6 +5541,7 @@ class LinuxlikeTests(BasePlatformTests):
             testdirlib = os.path.join(testdirbase, 'lib')
             self.init(testdirlib, extra_args=['--prefix=' + tempdirname,
                                               '--libdir=lib',
+                                              '--libpkgconfigdir=lib/pkgconfig',
                                               '--default-library=static'], default_args=False)
             self.build()
             self.install(use_destdir=False)
@@ -5559,6 +5567,7 @@ class LinuxlikeTests(BasePlatformTests):
             testlibprefix = os.path.join(tempdirname, 'libprefix')
             self.init(testdirlib, extra_args=['--prefix=' + testlibprefix,
                                               '--libdir=lib',
+                                              '--libpkgconfigdir=lib/pkgconfig',
                                               '--default-library=static',
                                               '--buildtype=debug',
                                               '--strip'], default_args=False)

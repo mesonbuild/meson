@@ -35,11 +35,13 @@ Installation options are all relative to the prefix, except:
 | infodir                              | share/info    | Info page directory |
 | libdir                               | see below     | Library directory |
 | libexecdir                           | libexec       | Library executable directory |
+| libpkgconfigdir                      | see below     | Pkg-config directory |
 | localedir                            | share/locale  | Locale data directory |
 | localstatedir                        | var           | Localstate data directory |
 | mandir                               | share/man     | Manual page directory |
 | sbindir                              | sbin          | System executable directory |
 | sharedstatedir                       | com           | Architecture-independent data directory |
+| sharepkgconfigdir                    | see below     | Architecture-independent pkg-config directory |
 | sysconfdir                           | etc           | Sysconf data directory |
 
 
@@ -52,6 +54,10 @@ cross compiles meson will try to guess the correct libdir, but it may not be
 accurate, especially on Linux where different distributions have different
 defaults. Using a [cross file](Cross-compilation.md#defining-the-environment),
 particularly the paths section may be necessary.
+
+Both `libpkgconfigdir` and `sharepkgconfigdir` default to `libdata/pkgconfig`
+on FreeBSD, and `<default libdir>/pkgconfig` and `share/pkgconfig` otherwise.
+"default libdir" means the default value of `libdir`.
 
 ### Core options
 

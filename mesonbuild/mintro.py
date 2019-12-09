@@ -189,12 +189,14 @@ def list_buildoptions(coredata: cdata.CoreData) -> List[Dict[str, Union[str, boo
                         'infodir',
                         'libdir',
                         'libexecdir',
+                        'libpkgconfigdir',
                         'localedir',
                         'localstatedir',
                         'mandir',
                         'prefix',
                         'sbindir',
                         'sharedstatedir',
+                        'sharepkgconfigdir',
                         'sysconfdir']
     test_option_names = ['errorlogs',
                          'stdsplit']

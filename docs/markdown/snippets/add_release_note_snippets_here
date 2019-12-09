@@ -1,3 +1,19 @@
 ## Added `cpp_std` option for the Visual Studio C++ compiler
 Allows the use of C++17 features and experimental not-yet-standardized
 features. Valid options are `c++11`, `c++14`, `c++17`, and `c++latest`.
+
+## Added `libpkgconfigdir` and `sharepkgconfigdir` options
+These options allow users to control where pkg-config files are installed when
+keyword argument `install_dir` is not specified in `pkgconfig.generate` calls.
+The addition of these options may change existing behaviors. If you previously
+use a non-default `libdir` for your build, you now have to specify both `libdir`
+and `libpkgconfigdir` to keep the same configuration. The default value of
+`libpkgconfigdir` is determined by the default value of `libdir`, but changing
+`libdir` does not change `libpkgconfigdir`. Similarly, changing `datadir` does
+not change `sharepkgconfigdir`.
+
+## Added `install_data` keyword argument to `pkg.generate()`
+`pkg.generate()` now accepts `install_data` keyword argument for switching the
+installation directory from `libpkgconfigdir` to `sharepkgconfigdir` when
+`install_dir` is not specified. Using `install_dir` in a way that ignores
+`libpkgconfigdir` or `sharepkgconfigdir` set by the user now triggers a warning.
