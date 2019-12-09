@@ -2294,12 +2294,14 @@ def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, An
     # Otherwise, just use the pkgconfig and cmake dependency detector
     if 'auto' == kwargs.get('method', 'auto'):
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
-        candidates.append(functools.partial(CMakeDependency,     name, env, kwargs))
 
         # On OSX, also try framework dependency detector
         if mesonlib.is_osx():
             candidates.append(functools.partial(ExtraFrameworkDependency, name,
                                                 False, None, env, None, kwargs))
+
+        # Only use CMake as a last resort, since it might not work 100% (see #6113)
+        candidates.append(functools.partial(CMakeDependency, name, env, kwargs))
 
     return candidates
 
