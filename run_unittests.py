@@ -7026,6 +7026,8 @@ def main():
         import pytest # noqa: F401
         # Need pytest-xdist for `-n` arg
         import xdist # noqa: F401
+        if sys.version_info.major <= 3 and sys.version_info.minor <= 5:
+            raise ImportError('pytest with python <= 3.5 is causing issues on the CI')
         pytest_args = ['-n', 'auto', './run_unittests.py']
         pytest_args += convert_args(sys.argv[1:])
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
