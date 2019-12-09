@@ -28,6 +28,12 @@ jobs:
           backend: vs2015
 
   steps:
+  - powershell: 'Invoke-WebRequest https://www.python.org/ftp/python/3.7.4/python-3.7.4.exe -OutFile c:\py3-setup.exe'
+  - script: |
+      c:\py3-setup.exe /quiet PrependPath=1 InstallAllUsers=1 Include_doc=0 Include_dev=0 Include_debug=0 TargetDir=c:\Python3
+  - script: |
+      @echo ##vso[task.prependpath]C:\Python3
+      @echo ##vso[task.prependpath]C:\Python3\Scripts
   - template: ci/azure-steps.yml
 
 - job: vs2017
