@@ -19,8 +19,9 @@ from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
 import os, copy, re
+import collections.abc
 from functools import wraps
-from typing import Any, Callable, Dict, List, Set, Sequence, Tuple, Optional, Union
+from typing import Any, Callable, ClassVar, Dict, Generic, List, Set, Sequence, Tuple, TypeVar, Optional, Union
 
 class InterpreterObject:
     def __init__(self):
@@ -37,7 +38,9 @@ class InterpreterObject:
             return method(args, kwargs)
         raise InvalidCode('Unknown method "%s" in object.' % method_name)
 
-class ObjectHolder:
+TV_InterpreterObject = TypeVar('TV_InterpreterObject')
+
+class ObjectHolder(Generic[TV_InterpreterObject]):
     def __init__(self, obj: InterpreterObject, subproject: Optional[str] = None):
         self.held_object = obj        # type: InterpreterObject
         self.subproject = subproject  # type: str
@@ -125,7 +128,7 @@ def flatten(args: Union[TYPE_nvar, List[TYPE_nvar]]) -> List[TYPE_nvar]:
     if isinstance(args, mparser.StringNode):
         assert isinstance(args.value, str)
         return [args.value]
-    if isinstance(args, (int, float, bool, str, ObjectHolder, mparser.BaseNode, mesonlib.File, InterpreterObject)):
+    if not isinstance(args, collections.abc.Sequence):
         return [args]
     result = []  # type: List[TYPE_nvar]
     for a in args:
@@ -203,7 +206,7 @@ class FeatureCheckBase:
     # Class variable, shared across all instances
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
-    feature_registry = {}  # type: Dict[str, Dict[str, Set[str]]]
+    feature_registry = {}  # type: ClassVar[Dict[str, Dict[str, Set[str]]]]
 
     def __init__(self, feature_name: str, version: str) -> None:
         self.feature_name = feature_name  # type: str

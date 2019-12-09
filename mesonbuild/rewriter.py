@@ -159,7 +159,7 @@ class MTypeBool(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, False))
+        return BooleanNode(Token('', '', 0, 0, 0, None, False))
 
     def supported_nodes(self):
         return [BooleanNode]
@@ -172,7 +172,7 @@ class MTypeID(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, ''))
+        return IdNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
         return [IdNode]

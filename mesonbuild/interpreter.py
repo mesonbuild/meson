@@ -4425,15 +4425,15 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if targetholder is ExecutableHolder:
+        if targetholder == ExecutableHolder:
             targetclass = build.Executable
-        elif targetholder is SharedLibraryHolder:
+        elif targetholder == SharedLibraryHolder:
             targetclass = build.SharedLibrary
-        elif targetholder is SharedModuleHolder:
+        elif targetholder == SharedModuleHolder:
             targetclass = build.SharedModule
-        elif targetholder is StaticLibraryHolder:
+        elif targetholder == StaticLibraryHolder:
             targetclass = build.StaticLibrary
-        elif targetholder is JarHolder:
+        elif targetholder == JarHolder:
             targetclass = build.Jar
         else:
             mlog.debug('Unknown target type:', str(targetholder))

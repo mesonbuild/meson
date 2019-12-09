@@ -978,7 +978,7 @@ class CMakeInterpreter:
             if isinstance(value, str):
                 return string(value)
             elif isinstance(value, bool):
-                return BooleanNode(token(), value)
+                return BooleanNode(token(val=value))
             elif isinstance(value, int):
                 return number(value)
             elif isinstance(value, list):

@@ -17,7 +17,7 @@ import codecs
 import textwrap
 import types
 import typing as T
-from typing import Dict, List, Tuple, Optional, Union, TYPE_CHECKING
+from typing import Dict, Generic, Generator, List, Tuple, TypeVar, Optional, Union, TYPE_CHECKING
 from .mesonlib import MesonException
 from . import mlog
 
@@ -77,15 +77,17 @@ class BlockParseException(MesonException):
         self.lineno = lineno
         self.colno = colno
 
-class Token:
-    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: Tuple[int, int], value: Union[str, bool, int]) -> None:
+TV_TokenTypes = TypeVar('TV_TokenTypes', int, str, bool)
+
+class Token(Generic[TV_TokenTypes]):
+    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: Tuple[int, int], value: TV_TokenTypes) -> None:
         self.tid = tid                # type: str
         self.filename = filename      # type: str
         self.line_start = line_start  # type: int
         self.lineno = lineno          # type: int
         self.colno = colno            # type: int
         self.bytespan = bytespan      # type: Tuple[int, int]
-        self.value = value            # type: Union[str, bool, int]
+        self.value = value            # type: TV_TokenTypes
 
     def __eq__(self, other) -> bool:
         if isinstance(other, str):
@@ -244,35 +246,34 @@ class BaseNode:
             if callable(func):
                 func(self)
 
-class ElementaryNode(BaseNode):
-    def __init__(self, token: Token) -> None:
+class ElementaryNode(Generic[TV_TokenTypes], BaseNode):
+    def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
-        self.value = token.value
-        self.bytespan = token.bytespan
+        self.value = token.value        # type: TV_TokenTypes
+        self.bytespan = token.bytespan  # type: Tuple[int, int]
 
-class BooleanNode(ElementaryNode):
-    def __init__(self, token: Token, value: bool) -> None:
+class BooleanNode(ElementaryNode[bool]):
+    def __init__(self, token: Token[bool]) -> None:
         super().__init__(token)
-        self.value = value
-        assert(isinstance(self.value, bool))
+        assert isinstance(self.value, bool)
 
-class IdNode(ElementaryNode):
-    def __init__(self, token: Token) -> None:
+class IdNode(ElementaryNode[str]):
+    def __init__(self, token: Token[str]) -> None:
         super().__init__(token)
-        assert(isinstance(self.value, str))
+        assert isinstance(self.value, str)
 
     def __str__(self):
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
-class NumberNode(ElementaryNode):
-    def __init__(self, token: Token) -> None:
+class NumberNode(ElementaryNode[int]):
+    def __init__(self, token: Token[int]) -> None:
         super().__init__(token)
-        assert(isinstance(self.value, int))
+        assert isinstance(self.value, int)
 
-class StringNode(ElementaryNode):
-    def __init__(self, token: Token) -> None:
+class StringNode(ElementaryNode[str]):
+    def __init__(self, token: Token[str]) -> None:
         super().__init__(token)
-        assert(isinstance(self.value, str))
+        assert isinstance(self.value, str)
 
     def __str__(self):
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
@@ -284,10 +285,10 @@ class BreakNode(ElementaryNode):
     pass
 
 class ArgumentNode(BaseNode):
-    def __init__(self, token: Token) -> None:
+    def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
         self.arguments = []  # type: List[BaseNode]
-        self.commas = []     # type: List[Token]
+        self.commas = []     # type: List[Token[TV_TokenTypes]]
         self.kwargs = {}     # type: Dict[BaseNode, BaseNode]
         self.order_error = False
 
@@ -366,12 +367,12 @@ class ArithmeticNode(BaseNode):
         self.operation = operation  # type: str
 
 class NotNode(BaseNode):
-    def __init__(self, token: Token, value: BaseNode) -> None:
+    def __init__(self, token: Token[TV_TokenTypes], value: BaseNode) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
         self.value = value  # type: BaseNode
 
 class CodeBlockNode(BaseNode):
-    def __init__(self, token: Token) -> None:
+    def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
         self.lines = []  # type: List[BaseNode]
 
@@ -470,7 +471,7 @@ class Parser:
     def __init__(self, code: str, filename: str) -> None:
         self.lexer = Lexer(code)
         self.stream = self.lexer.lex(filename)
-        self.current = Token('eof', '', 0, 0, 0, (0, 0), None)
+        self.current = Token('eof', '', 0, 0, 0, (0, 0), None)  # type: Token
         self.getsym()
         self.in_ternary = False
 
@@ -643,9 +644,11 @@ class Parser:
     def e9(self) -> BaseNode:
         t = self.current
         if self.accept('true'):
-            return BooleanNode(t, True)
+            t.value = True
+            return BooleanNode(t)
         if self.accept('false'):
-            return BooleanNode(t, False)
+            t.value = False
+            return BooleanNode(t)
         if self.accept('id'):
             return IdNode(t)
         if self.accept('number'):

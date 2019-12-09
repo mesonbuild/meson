@@ -19,7 +19,7 @@ from .visitor import AstVisitor
 from .. import interpreterbase, mparser, mesonlib
 from .. import environment
 
-from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest, TYPE_nvar
+from ..interpreterbase import InvalidArguments, BreakRequest, ContinueRequest, TYPE_nvar, TYPE_nkwargs
 from ..mparser import (
     AndNode,
     ArgumentNode,
@@ -144,7 +144,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             sys.stderr.write('Unable to evaluate subdir({}) in AstInterpreter --> Skipping\n'.format(args))
             return
 
-        prev_subdir = self.subdir  # type: str
+        prev_subdir = self.subdir
         subdir = os.path.join(prev_subdir, args[0])
         absdir = os.path.join(self.source_root, subdir)
         buildfilename = os.path.join(subdir, environment.build_filename)
@@ -194,7 +194,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert(isinstance(node, PlusAssignmentNode))
         # Cheat by doing a reassignment
-        self.assignments[node.var_name] = node.value # Save a reference to the value node
+        self.assignments[node.var_name] = node.value  # Save a reference to the value node
         if node.value.ast_id:
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = self.evaluate_statement(node.value)
@@ -205,9 +205,9 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def unknown_function_called(self, func_name: str) -> None:
         pass
 
-    def reduce_arguments(self, args: ArgumentNode, resolve_key_nodes: bool = True) -> T.Tuple[list, dict]:
+    def reduce_arguments(self, args: ArgumentNode, resolve_key_nodes: bool = True) -> T.Tuple[T.List[TYPE_nvar], TYPE_nkwargs]:
         if isinstance(args, ArgumentNode):
-            kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], BaseNode]
+            kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], TYPE_nvar]
             for key, val in args.kwargs.items():
                 if isinstance(key, (StringNode, IdNode)):
                     assert isinstance(key.value, str)
