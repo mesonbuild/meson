@@ -51,16 +51,6 @@ steps:
      }
 
      if ($env:compiler -eq 'msvc2015') {
-       if ($env:arch -eq 'x86') {
-         $forcex86 = "--forcex86"
-       }
-
-       # download and install python3 and add to path (since it's not installed in vs2015 image!)
-       Set-ExecutionPolicy Bypass -Scope Process -Force
-       iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-       choco install python3 -y --no-progress $forcex86 --params "/InstallDir:C:\Python3"
-       $env:Path = "C:\Python3;$env:Path"
-
        # add JDK installed in vs2015 image to PATH
        $env:Path = "C:\java\jdk\jdk1.8.0_102\bin\;$env:Path"
      }
