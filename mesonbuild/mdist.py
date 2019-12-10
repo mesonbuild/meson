@@ -24,6 +24,7 @@ from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree, MesonException
+from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build
 
 archive_choices = ['gztar', 'xztar', 'zip']
@@ -237,7 +238,10 @@ def run(options):
     subprojects = []
     extra_meson_args = []
     if options.include_subprojects:
-        subprojects = [os.path.join(b.subproject_dir, sub) for sub in b.subprojects]
+        subproject_dir = os.path.join(src_root, b.subproject_dir)
+        for sub in b.subprojects:
+            _, directory = wrap.get_directory(subproject_dir, sub)
+            subprojects.append(os.path.join(b.subproject_dir, directory))
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     if is_git(src_root):
