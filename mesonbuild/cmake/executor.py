@@ -15,20 +15,21 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .. import mlog, mesonlib
-from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
-from ..environment import Environment
-
+import subprocess
 from pathlib import Path
 from typing import List, Tuple, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..dependencies.base import ExternalProgram
-
 import re
 import os
 import shutil
 import ctypes
+
+from .. import mlog, mesonlib
+from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
+from ..environment import Environment
+
+if TYPE_CHECKING:
+    from ..dependencies.base import ExternalProgram
+
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -137,8 +138,12 @@ class CMakeExecutor:
     def _call_real(self, args: List[str], build_dir: str, env) -> Tuple[int, str, str]:
         os.makedirs(build_dir, exist_ok=True)
         cmd = self.cmakebin.get_command() + args
-        p, out, err = Popen_safe(cmd, env=env, cwd=build_dir)
-        rc = p.returncode
+        ret = subprocess.run(cmd, env=env, cwd=build_dir, close_fds=False,
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             universal_newlines=False)
+        rc = ret.returncode
+        out = ret.stdout.decode(errors='ignore')
+        err = ret.stderr.decode(errors='ignore')
         call = ' '.join(cmd)
         mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
         return rc, out, err
