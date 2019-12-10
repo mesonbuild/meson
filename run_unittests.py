@@ -3812,6 +3812,7 @@ recommended as it is not supported on some platforms''')
             ('timeout', int),
             ('suite', list),
             ('is_parallel', bool),
+            ('protocol', str),
         ]
 
         buildoptions_keylist = [

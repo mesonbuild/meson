@@ -235,7 +235,7 @@ When these tests fail, the user probably wants to run the failing test in a
 debugger. To make this as integrated as possible, extract the tests from the
 `intro-tests.json` and `intro-benchmarks.json` files. This provides you with
 all the information needed to run the test: what command to execute, command
-line arguments and environment variable settings.
+line arguments, environment variable settings and how to process the output.
 
 ```json
 {
@@ -244,6 +244,7 @@ line arguments and environment variable settings.
     "timeout": "the test timeout",
     "suite": ["list", "of", "test", "suites"],
     "is_parallel": true / false,
+    "protocol": "exitcode" / "tap",
     "cmd": ["command", "to", "run"],
     "env": {
         "VARIABLE1": "value 1",
