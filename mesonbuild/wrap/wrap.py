@@ -125,6 +125,23 @@ class PackageDefinition:
     def has_patch(self) -> bool:
         return 'patch_url' in self.values
 
+def load_wrap(subdir_root: str, packagename: str) -> PackageDefinition:
+    fname = os.path.join(subdir_root, packagename + '.wrap')
+    if os.path.isfile(fname):
+        return PackageDefinition(fname)
+    return None
+
+def get_directory(subdir_root: str, packagename: str):
+    directory = packagename
+    # We always have to load the wrap file, if it exists, because it could
+    # override the default directory name.
+    wrap = load_wrap(subdir_root, packagename)
+    if wrap and 'directory' in wrap.values:
+        directory = wrap.get('directory')
+        if os.path.dirname(directory):
+            raise WrapException('Directory key must be a name and not a path')
+    return wrap, directory
+
 class Resolver:
     def __init__(self, subdir_root: str, wrap_mode=WrapMode.default):
         self.wrap_mode = wrap_mode
@@ -133,14 +150,7 @@ class Resolver:
 
     def resolve(self, packagename: str, method: str) -> str:
         self.packagename = packagename
-        self.directory = packagename
-        # We always have to load the wrap file, if it exists, because it could
-        # override the default directory name.
-        self.wrap = self.load_wrap()
-        if self.wrap and 'directory' in self.wrap.values:
-            self.directory = self.wrap.get('directory')
-            if os.path.dirname(self.directory):
-                raise WrapException('Directory key must be a name and not a path')
+        self.wrap, self.directory = get_directory(self.subdir_root, self.packagename)
         self.dirname = os.path.join(self.subdir_root, self.directory)
         meson_file = os.path.join(self.dirname, 'meson.build')
         cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
@@ -186,12 +196,6 @@ class Resolver:
             raise WrapException('Subproject exists but has no CMakeLists.txt file')
 
         return self.directory
-
-    def load_wrap(self) -> PackageDefinition:
-        fname = os.path.join(self.subdir_root, self.packagename + '.wrap')
-        if os.path.isfile(fname):
-            return PackageDefinition(fname)
-        return None
 
     def check_can_download(self) -> None:
         # Don't download subproject data based on wrap file if requested.
