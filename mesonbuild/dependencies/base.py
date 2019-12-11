@@ -21,6 +21,7 @@ import re
 import json
 import shlex
 import shutil
+import stat
 import textwrap
 import platform
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
@@ -1859,10 +1860,11 @@ class ExternalProgram:
 
     def _is_executable(self, path):
         suffix = os.path.splitext(path)[-1].lower()[1:]
+        execmask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         if mesonlib.is_windows():
             if suffix in self.windows_exts:
                 return True
-        elif os.access(path, os.X_OK):
+        elif os.stat(path).st_mode & execmask:
             return not os.path.isdir(path)
         return False
 
