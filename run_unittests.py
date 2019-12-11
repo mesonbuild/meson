@@ -4113,6 +4113,41 @@ recommended as it is not supported on some platforms''')
         self.init(testdir)
         self._run(self.mconf_command + [self.builddir])
 
+    # FIXME: The test is failing on Windows CI even if the print looks good.
+    # Maybe encoding issue?
+    @unittest.skipIf(is_windows(), 'This test fails on Windows CI')
+    def test_summary(self):
+        testdir = os.path.join(self.unit_test_dir, '74 summary')
+        out = self.init(testdir)
+        expected = textwrap.dedent(r'''
+            Some Subproject 2.0
+
+              Features
+                foo: bar
+
+            My Project 1.0
+
+              Directories
+                         bindir: bin
+                         libdir: lib
+                        datadir: share
+
+              Configuration
+                   Some boolean: False
+                Another boolean: True
+                    Some string: Hello World
+                         A list: string
+                                 1
+                                 True
+            ''')
+        # Dict ordering is not guaranteed and an exact string comparison randomly
+        # fails on the CI because lines are reordered.
+        expected_lines = expected.split('\n')[1:]
+        out_start = out.find(expected_lines[0])
+        out_lines = out[out_start:].split('\n')[:len(expected_lines)]
+        self.assertEqual(sorted(expected_lines), sorted(out_lines))
+
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

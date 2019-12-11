@@ -38,7 +38,7 @@ from pathlib import Path, PurePath
 import os, shutil, uuid
 import re, shlex
 import subprocess
-from collections import namedtuple
+import collections
 from itertools import chain
 import functools
 from typing import Sequence, List, Union, Optional, Dict, Any
@@ -1691,7 +1691,7 @@ class CompilerHolder(InterpreterObject):
         return self.compiler.get_argument_syntax()
 
 
-ModuleState = namedtuple('ModuleState', [
+ModuleState = collections.namedtuple('ModuleState', [
     'source_root', 'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
     'project_name', 'project_version', 'backend', 'targets',
     'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
@@ -1750,6 +1750,40 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             if num_targets != len(self.interpreter.build.targets):
                 raise InterpreterException('Extension module altered internal state illegally.')
             return self.interpreter.module_method_callback(value)
+
+
+class Summary:
+    def __init__(self, project_name, project_version):
+        self.project_name = project_name
+        self.project_version = project_version
+        self.sections = collections.defaultdict(dict)
+        self.max_key_len = 0
+
+    def add_section(self, section, values):
+        for k, v in values.items():
+            if k in self.sections[section]:
+                raise InterpreterException('Summary section {!r} already have key {!r}'.format(section, k))
+            v = listify(v)
+            for i in v:
+                if not isinstance(i, (str, int)):
+                    m = 'Summary value in section {!r}, key {!r}, must be string, integer or boolean'
+                    raise InterpreterException(m.format(section, k))
+            self.sections[section][k] = v
+            self.max_key_len = max(self.max_key_len, len(k))
+
+    def dump(self):
+        mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
+        for section, values in self.sections.items():
+            mlog.log('')  # newline
+            mlog.log(' ', mlog.bold(section))
+            for k, v in values.items():
+                indent = self.max_key_len - len(k) + 3
+                mlog.log(' ' * indent, k + ':', v[0])
+                indent = self.max_key_len + 5
+                for i in v[1:]:
+                    mlog.log(' ' * indent, i)
+        mlog.log('')  # newline
+
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -2078,6 +2112,7 @@ class Interpreter(InterpreterBase):
         self.coredata = self.environment.get_coredata()
         self.backend = backend
         self.subproject = subproject
+        self.summary = {}
         if modules is None:
             self.modules = {}
         else:
@@ -2188,6 +2223,7 @@ class Interpreter(InterpreterBase):
                            'subdir': self.func_subdir,
                            'subdir_done': self.func_subdir_done,
                            'subproject': self.func_subproject,
+                           'summary': self.func_summary,
                            'shared_library': self.func_shared_lib,
                            'shared_module': self.func_shared_module,
                            'static_library': self.func_static_lib,
@@ -2594,6 +2630,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[dirname] = subi.project_version
+        self.summary.update(subi.summary)
         return self.subprojects[dirname]
 
     def _do_subproject_cmake(self, dirname, subdir, subdir_abs, default_options, kwargs):
@@ -2829,6 +2866,29 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def message_impl(self, argstr):
         mlog.log(mlog.bold('Message:'), argstr)
+
+    @noArgsFlattening
+    @noKwargs
+    @FeatureNew('summary', '0.53.0')
+    def func_summary(self, node, args, kwargs):
+        if len(args) != 2:
+            raise InterpreterException('Summary accepts exactly two arguments.')
+        section, values = args
+        if not isinstance(section, str):
+            raise InterpreterException('Argument 1 must be a string.')
+        if not isinstance(values, dict):
+            raise InterpreterException('Argument 2 must be a dictionary.')
+        if self.subproject not in self.summary:
+            self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
+        self.summary[self.subproject].add_section(section, values)
+
+    def _print_summary(self):
+        mlog.log('')  # newline
+        main_summary = self.summary.pop('', None)
+        for _, summary in sorted(self.summary.items()):
+            summary.dump()
+        if main_summary:
+            main_summary.dump()
 
     @FeatureNew('warning', '0.44.0')
     @noKwargs
@@ -4070,6 +4130,8 @@ different subdirectory.
         FeatureDeprecated.report(self.subproject)
         if not self.is_subproject():
             self.print_extra_warnings()
+        if self.subproject == '':
+            self._print_summary()
 
     def print_extra_warnings(self):
         # TODO cross compilation

@@ -119,6 +119,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'find_library': self.func_do_nothing,
                            'subdir_done': self.func_do_nothing,
                            'alias_target': self.func_do_nothing,
+                           'summary': self.func_do_nothing,
                            })
 
     def func_do_nothing(self, node, args, kwargs):

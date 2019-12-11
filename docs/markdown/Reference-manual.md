@@ -1206,6 +1206,58 @@ This function prints its argument to stdout prefixed with WARNING:.
 
 *Added 0.44.0*
 
+### summary()
+
+``` meson
+    void summary(section_name, dictionary)
+```
+
+This function is used to summarize build configuration at the end of the build
+process. This function provides a way for projects (and subprojects) to report
+this information in a clear way.
+
+The first argument is a section name, the second argument is a dictionary.
+`summary()` can be called multiple times as long as the same dict key doesn't
+appear twice in the same section. All sections will be collected and printed at
+the end of the configuration in the same order as they have been called.
+
+Dictionary values can only be lists, integers, booleans or strings.
+
+Example:
+```meson
+project('My Project', version : '1.0')
+summary('Directories', {'bindir': get_option('bindir'),
+                        'libdir': get_option('libdir'),
+                        'datadir': get_option('datadir'),
+                        })
+summary('Configuration', {'Some boolean': false,
+                          'Another boolean': true,
+                          'Some string': 'Hello World',
+                          'A list': ['string', 1, true],
+                          })
+```
+
+Output:
+```
+My Project 1.0
+
+  Directories
+             prefix: /opt/gnome
+             bindir: bin
+             libdir: lib/x86_64-linux-gnu
+            datadir: share
+
+  Configuration
+       Some boolean: False
+    Another boolean: True
+        Some string: Hello World
+             A list: string
+                     1
+                     True
+```
+
+*Added 0.53.0*
+
 ### project()
 
 ``` meson

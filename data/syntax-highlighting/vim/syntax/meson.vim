@@ -117,6 +117,7 @@ syn keyword mesonBuiltin
   \ subdir
   \ subdir_done
   \ subproject
+  \ summary
   \ target_machine
   \ test
   \ vcs_tag
