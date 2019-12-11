@@ -291,26 +291,6 @@ def no_pkgconfig():
         shutil.which = old_which
         ExternalProgram._search = old_search
 
-class PatchModule:
-    '''
-    Fancy monkey-patching! Whee! Can't use mock.patch because it only
-    patches in the local namespace.
-    '''
-
-    def __init__(self, func, name, impl):
-        self.func = func
-        assert(isinstance(name, str))
-        self.func_name = name
-        self.old_impl = None
-        self.new_impl = impl
-
-    def __enter__(self):
-        self.old_impl = self.func
-        exec('{} = self.new_impl'.format(self.func_name))
-
-    def __exit__(self, *args):
-        exec('{} = self.old_impl'.format(self.func_name))
-
 
 class InternalTests(unittest.TestCase):
 
@@ -442,7 +422,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_class_gnuld(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
-        linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,')
+        linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,', [])
         gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
@@ -471,7 +451,7 @@ class InternalTests(unittest.TestCase):
     def test_compiler_args_remove_system(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         ## Test --start/end-group
-        linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,')
+        linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,', [])
         gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
         ## Ensure that the fake compiler is never called by overriding the relevant function
         gcc.get_default_include_dirs = lambda: ['/usr/include', '/usr/share/include', '/usr/local/include']
@@ -2316,11 +2296,11 @@ class AllPlatformTests(BasePlatformTests):
             if isinstance(cc, intel):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildAppleDynamicLinker)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 elif is_windows():
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.XilinkDynamicLinker)
                 else:
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.XildLinuxDynamicLinker)
+                    self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuDynamicLinker)
             if isinstance(cc, msvc):
                 self.assertTrue(is_windows())
                 self.assertIsInstance(linker, lib)
@@ -4558,6 +4538,29 @@ class WindowsTests(BasePlatformTests):
 
         self.assertTrue('prog.pdb' in files)
 
+    def _check_ld(self, name: str, lang: str, expected: str) -> None:
+        if not shutil.which(name):
+            raise unittest.SkipTest('Could not find {}.'.format(name))
+        with mock.patch.dict(os.environ, {'LD': name}):
+            env = get_fake_env()
+            try:
+                comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            except EnvironmentException:
+                raise unittest.SkipTest('Could not find a compiler for {}'.format(lang))
+            self.assertEqual(comp.linker.id, expected)
+
+    def test_link_environment_variable_lld_link(self):
+        self._check_ld('lld-link', 'c', 'lld-link')
+
+    def test_link_environment_variable_link(self):
+        self._check_ld('link', 'c', 'link')
+
+    def test_link_environment_variable_optlink(self):
+        self._check_ld('optlink', 'c', 'optlink')
+
+    def test_link_environment_variable_rust(self):
+        self._check_ld('link', 'rust', 'link')
+
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
@@ -5784,6 +5787,44 @@ c = ['{0}']
         self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
         self.run_tests()
+
+    def _check_ld(self, check: str, name: str, lang: str, expected: str) -> None:
+        if is_sunos():
+            raise unittest.SkipTest('Solaris currently cannot override the linker.')
+        if not shutil.which(check):
+            raise unittest.SkipTest('Could not find {}.'.format(check))
+        with mock.patch.dict(os.environ, {'LD': name}):
+            env = get_fake_env()
+            comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            if lang != 'rust' and comp.use_linker_args('foo') == []:
+                raise unittest.SkipTest(
+                    'Compiler {} does not support using alternative linkers'.format(comp.id))
+            self.assertEqual(comp.linker.id, expected)
+
+    def test_ld_environment_variable_bfd(self):
+        self._check_ld('ld.bfd', 'bfd', 'c', 'GNU ld.bfd')
+
+    def test_ld_environment_variable_gold(self):
+        self._check_ld('ld.gold', 'gold', 'c', 'GNU ld.gold')
+
+    def test_ld_environment_variable_lld(self):
+        self._check_ld('ld.lld', 'lld', 'c', 'lld')
+
+    def test_ld_environment_variable_rust(self):
+        self._check_ld('ld.gold', 'gold', 'rust', 'GNU ld.gold')
+
+    def test_ld_environment_variable_cpp(self):
+        self._check_ld('ld.gold', 'gold', 'cpp', 'GNU ld.gold')
+
+    def test_ld_environment_variable_objc(self):
+        self._check_ld('ld.gold', 'gold', 'objc', 'GNU ld.gold')
+
+    def test_ld_environment_variable_objcpp(self):
+        self._check_ld('ld.gold', 'gold', 'objcpp', 'GNU ld.gold')
+
+    def test_ld_environment_variable_fortran(self):
+        self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
+
 
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')

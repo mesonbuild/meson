@@ -1192,6 +1192,12 @@ class Compiler:
     def get_dependency_link_args(self, dep):
         return dep.get_link_args()
 
+    @classmethod
+    def use_linker_args(cls, linker: str) -> typing.List[str]:
+        """Get a list of arguments to pass to the compiler to set the linker.
+        """
+        return []
+
 
 def get_largefile_args(compiler):
     '''

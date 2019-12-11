@@ -23,8 +23,29 @@ compilation is done by setting `CC` to point to the cross compiler
 that Meson supports natively the case where you compile helper tools
 (such as code generators) and use the results during the
 build. Because of this Meson needs to know both the native and the
-cross compiler. The former is set via the environment variables and
-the latter via the cross file only.
+cross compiler. The former is set via the environment variables or
+native-files and the latter via the cross file only.
+
+## Set dynamic linker
+
+```console
+$ CC=clang LD=lld meson <options>
+```
+
+or
+
+```console
+$ CC=clang-cl LD=link meson <options>
+```
+
+Like the compiler, the linker is selected via the LD environment variable, or
+through the `ld` entry in a native or cross file. You must be aware of
+whehter you're using a compiler that invokes the linker itself (most
+compilers including GCC and Clang) or a linker that is invoked directly (when
+using MSVC or compilers that act like it, including Clang-Cl). With the
+former `ld` or `LD` should be the value to pass to the compiler's special
+argument (such as `-fuse-ld` with clang and gcc), with the latter it should
+be an exectuable, such as `lld-link.exe`.
 
 ## Set default C/C++ language version
 

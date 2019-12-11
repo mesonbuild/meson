@@ -156,9 +156,10 @@ steps:
 
 
      echo ""
-     echo "Locating cl, rc:"
+     echo "Locating cl, rc, link:"
      where.exe cl
      where.exe rc
+     where.exe link
 
      echo ""
      echo "=== Start running tests ==="

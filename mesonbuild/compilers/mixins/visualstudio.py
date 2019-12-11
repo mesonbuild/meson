@@ -381,3 +381,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     def get_argument_syntax(self) -> str:
         return 'msvc'
+
+    @classmethod
+    def use_linker_args(cls, linker: str) -> typing.List[str]:
+        return []
