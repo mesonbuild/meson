@@ -484,7 +484,7 @@ class CPP11AsCPP14Mixin:
         # if one is using anything before that point, one cannot set the standard.
         if options['cpp_std'].value in {'vc++11', 'c++11'}:
             mlog.warning(self.id, 'does not support C++11;',
-                         'attempting best effort; setting the standard to C++14')
+                         'attempting best effort; setting the standard to C++14', once=True)
             # Don't mutate anything we're going to change, we need to use
             # deepcopy since we're messing with members, and we can't simply
             # copy the members because the option proxy doesn't support it.
