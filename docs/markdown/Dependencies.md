@@ -540,18 +540,6 @@ Meson substitutes `modules` to `wx-config` invocation, it generates
 - `compile_args` using `wx-config --cxxflags $modules...`
 - `link_args` using `wx-config --libs $modules...`
 
-## Shaderc
-
-*(added 0.51.0)*
-
-Shaderc currently does not ship with any means of detection. Nevertheless, Meson
-can try to detect it using `pkg-config`, but will default to looking for the
-appropriate library manually. If the `static` keyword argument is `true`,
-`shaderc_combined` is preferred. Otherwise, `shaderc_shared` is preferred. Note
-that it is not possible to obtain the shaderc version using this method.
-
-`method` may be `auto`, `pkg-config` or `system`.
-
 ### Example
 
 ```meson
@@ -567,6 +555,18 @@ $ wx-config --cxxflags std stc
 # link_args:
 $ wx-config --libs std stc
 ```
+
+## Shaderc
+
+*(added 0.51.0)*
+
+Shaderc currently does not ship with any means of detection. Nevertheless, Meson
+can try to detect it using `pkg-config`, but will default to looking for the
+appropriate library manually. If the `static` keyword argument is `true`,
+`shaderc_combined` is preferred. Otherwise, `shaderc_shared` is preferred. Note
+that it is not possible to obtain the shaderc version using this method.
+
+`method` may be `auto`, `pkg-config` or `system`.
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
