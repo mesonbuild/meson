@@ -1775,7 +1775,8 @@ class Summary:
         mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
         for section, values in self.sections.items():
             mlog.log('')  # newline
-            mlog.log(' ', mlog.bold(section))
+            if section:
+                mlog.log(' ', mlog.bold(section))
             for k, v in values.items():
                 indent = self.max_key_len - len(k) + 3
                 mlog.log(' ' * indent, k + ':', v[0])
@@ -2871,13 +2872,28 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     @FeatureNew('summary', '0.53.0')
     def func_summary(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Summary accepts exactly two arguments.')
-        section, values = args
-        if not isinstance(section, str):
-            raise InterpreterException('Argument 1 must be a string.')
-        if not isinstance(values, dict):
-            raise InterpreterException('Argument 2 must be a dictionary.')
+        if len(args) == 1:
+            if not isinstance(args[0], dict):
+                raise InterpreterException('Argument 1 must be a dictionary.')
+            section = ''
+            values = args[0]
+        elif len(args) == 2:
+            if not isinstance(args[0], str):
+                raise InterpreterException('Argument 1 must be a string.')
+            if isinstance(args[1], dict):
+                section, values = args
+            else:
+                section = ''
+                values = {args[0]: args[1]}
+        elif len(args) == 3:
+            if not isinstance(args[0], str):
+                raise InterpreterException('Argument 1 must be a string.')
+            if not isinstance(args[1], str):
+                raise InterpreterException('Argument 2 must be a string.')
+            section, key, value = args
+            values = {key: value}
+        else:
+            raise InterpreterException('Summary accepts at most 3 arguments.')
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
         self.summary[self.subproject].add_section(section, values)

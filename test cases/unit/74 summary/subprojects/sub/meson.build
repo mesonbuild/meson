@@ -1,3 +1,4 @@
 project('Some Subproject', version : '2.0')
 
-summary('Features', {'foo': 'bar'})
+summary('string', 'bar')
+summary({'integer': 1, 'boolean': true})

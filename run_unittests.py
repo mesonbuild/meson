@@ -4122,15 +4122,11 @@ recommended as it is not supported on some platforms''')
         expected = textwrap.dedent(r'''
             Some Subproject 2.0
 
-              Features
-                foo: bar
+                 string: bar
+                integer: 1
+                boolean: True
 
             My Project 1.0
-
-              Directories
-                         bindir: bin
-                         libdir: lib
-                        datadir: share
 
               Configuration
                    Some boolean: False
@@ -4139,6 +4135,7 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
+                       A number: 1
             ''')
         # Dict ordering is not guaranteed and an exact string comparison randomly
         # fails on the CI because lines are reordered.

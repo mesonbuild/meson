@@ -1209,6 +1209,9 @@ This function prints its argument to stdout prefixed with WARNING:.
 ### summary()
 
 ``` meson
+    void summary(key, value)
+    void summary(dictionary)
+    void summary(section_name, key, value)
     void summary(section_name, dictionary)
 ```
 
@@ -1216,12 +1219,16 @@ This function is used to summarize build configuration at the end of the build
 process. This function provides a way for projects (and subprojects) to report
 this information in a clear way.
 
-The first argument is a section name, the second argument is a dictionary.
-`summary()` can be called multiple times as long as the same dict key doesn't
-appear twice in the same section. All sections will be collected and printed at
-the end of the configuration in the same order as they have been called.
+The content is a serie of key/value pairs grouped into sections. If the section
+argument is omitted, those key/value pairs are implicitly grouped into a section
+with no title. key/value pairs can optionally be grouped into a dictionary,
+but keep in mind that dictionaries does not guarantee ordering.
+`section_name` and `key` must be strings, `value` can only be lists, integers,
+booleans or strings.
 
-Dictionary values can only be lists, integers, booleans or strings.
+`summary()` can be called multiple times as long as the same section_name/key
+pair doesn't appear twice. All sections will be collected and printed at
+the end of the configuration in the same order as they have been called.
 
 Example:
 ```meson
