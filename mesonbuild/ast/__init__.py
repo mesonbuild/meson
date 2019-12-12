@@ -20,6 +20,7 @@ __all__ = [
     'AstInterpreter',
     'AstIDGenerator',
     'AstIndentationGenerator',
+    'AstJSONPrinter',
     'AstVisitor',
     'AstPrinter',
     'IntrospectionInterpreter',
@@ -30,4 +31,4 @@ from .interpreter import AstInterpreter
 from .introspection import IntrospectionInterpreter, build_target_functions
 from .visitor import AstVisitor
 from .postprocess import AstConditionLevel, AstIDGenerator, AstIndentationGenerator
-from .printer import AstPrinter
+from .printer import AstPrinter, AstJSONPrinter
