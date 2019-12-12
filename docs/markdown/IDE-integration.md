@@ -29,16 +29,16 @@ watch for changes in this directory to know when something changed.
 
 The `meson-info` directory should contain the following files:
 
-| File                            | Description                                                         |
-| ----                            | -----------                                                         |
-| `intro-benchmarks.json`         | Lists all benchmarks                                                |
-| `intro-buildoptions.json`       | Contains a full list of meson configuration options for the project |
-| `intro-buildsystem_files.json`  | Full list of all meson build files                                  |
-| `intro-dependencies.json`       | Lists all dependencies used in the project                          |
-| `intro-installed.json`          | Contains mapping of files to their installed location               |
-| `intro-projectinfo.json`        | Stores basic information about the project (name, version, etc.)    |
-| `intro-targets.json`            | Full list of all build targets                                      |
-| `intro-tests.json`              | Lists all tests with instructions how to run them                   |
+| File                           | Description                                                         |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `intro-benchmarks.json`        | Lists all benchmarks                                                |
+| `intro-buildoptions.json`      | Contains a full list of meson configuration options for the project |
+| `intro-buildsystem_files.json` | Full list of all meson build files                                  |
+| `intro-dependencies.json`      | Lists all dependencies used in the project                          |
+| `intro-installed.json`         | Contains mapping of files to their installed location               |
+| `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)    |
+| `intro-targets.json`           | Full list of all build targets                                      |
+| `intro-tests.json`             | Lists all tests with instructions how to run them                   |
 
 The content of the JSON files is further specified in the remainder of this document.
 
@@ -99,15 +99,15 @@ for actual compilation.
 
 The following table shows all valid types for a target.
 
-| value of `type`  | Description                                  |
-| ---------------  | -----------                                  |
-| `executable`     | This target will generate an executable file |
-| `static library` | Target for a static library                  |
-| `shared library` | Target for a shared library                  |
+| value of `type`  | Description                                                                                   |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| `executable`     | This target will generate an executable file                                                  |
+| `static library` | Target for a static library                                                                   |
+| `shared library` | Target for a shared library                                                                   |
 | `shared module`  | A shared library that is meant to be used with dlopen rather than linking into something else |
-| `custom`         | A custom target                              |
-| `run`            | A Meson run target                           |
-| `jar`            | A Java JAR target                            |
+| `custom`         | A custom target                                                                               |
+| `run`            | A Meson run target                                                                            |
+| `jar`            | A Java JAR target                                                                             |
 
 ### Using `--targets` without a build directory
 
@@ -274,6 +274,57 @@ Meson also provides the `meson introspect` for project introspection via the
 command line. Use `meson introspect -h` to see all available options.
 
 This API can also work without a build directory for the `--projectinfo` command.
+
+# AST of a `meson.build`
+
+Since meson *0.55.0* it is possible to dump the AST of a `meson.build` as a JSON
+object. The interface for this is `meson introspect --ast /path/to/meson.build`.
+
+Each node of the AST has at least the following entries:
+
+| Key          | Description                                             |
+| ------------ | ------------------------------------------------------- |
+| `node`       | Type of the node (see following table)                  |
+| `lineno`     | Line number of the node in the file                     |
+| `colno`      | Column number of the node in the file                   |
+| `end_lineno` | Marks the end of the node (may be the same as `lineno`) |
+| `end_colno`  | Marks the end of the node (may be the same as `colno`)  |
+
+Possible values for `node` with additional keys:
+
+| Node type            | Additional keys                                  |
+| -------------------- | ------------------------------------------------ |
+| `BooleanNode`        | `value`: bool                                    |
+| `IdNode`             | `value`: str                                     |
+| `NumberNode`         | `value`: int                                     |
+| `StringNode`         | `value`: str                                     |
+| `ContinueNode`       |                                                  |
+| `BreakNode`          |                                                  |
+| `ArgumentNode`       | `positional`: node list; `kwargs`: accept_kwargs |
+| `ArrayNode`          | `args`: node                                     |
+| `DictNode`           | `args`: node                                     |
+| `EmptyNode`          |                                                  |
+| `OrNode`             | `left`: node; `right`: node                      |
+| `AndNode`            | `left`: node; `right`: node                      |
+| `ComparisonNode`     | `left`: node; `right`: node; `ctype`: str        |
+| `ArithmeticNode`     | `left`: node; `right`: node; `op`: str           |
+| `NotNode`            | `right`: node                                    |
+| `CodeBlockNode`      | `lines`: node list                               |
+| `IndexNode`          | `object`: node; `index`: node                    |
+| `MethodNode`         | `object`: node; `args`: node; `name`: str        |
+| `FunctionNode`       | `args`: node; `name`: str                        |
+| `AssignmentNode`     | `value`: node; `var_name`: str                   |
+| `PlusAssignmentNode` | `value`: node; `var_name`: str                   |
+| `ForeachClauseNode`  | `items`: node; `block`: node; `varnames`: list   |
+| `IfClauseNode`       | `ifs`: node list; `else`: node                   |
+| `IfNode`             | `condition`: node; `block`: node                 |
+| `UMinusNode`         | `right`: node                                    |
+| `TernaryNode`        | `condition`: node; `true`: node; `false`: node   |
+
+We do not guarantee the stability of this format since it is heavily linked to
+the internal Meson AST. However, breaking changes (removal of a node type or the
+removal of a key) are unlikely and will be announced in the release notes.
+
 
 # Existing integrations
 
