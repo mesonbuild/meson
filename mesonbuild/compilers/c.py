@@ -326,8 +326,6 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     """Intel "ICL" compiler abstraction."""
 
-    __have_warned = False
-
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
@@ -346,9 +344,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         args = []
         std = options['c_std']
         if std.value == 'c89':
-            if not self.__have_warned:
-                self.__have_warned = True
-                mlog.warning("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.")
+            mlog.warning("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
         elif std.value != 'none':
             args.append('/Qstd:' + std.value)
         return args
