@@ -302,6 +302,7 @@ def get_test_list(testdata) -> List[Dict[str, Union[str, int, List[str], Dict[st
         to['suite'] = t.suite
         to['is_parallel'] = t.is_parallel
         to['priority'] = t.priority
+        to['protocol'] = t.protocol
         result.append(to)
     return result
 
