@@ -160,7 +160,6 @@ def process_markup(args: Sequence[Union[AnsiDecorator, str]], keep: bool) -> Lis
     return arr
 
 def force_print(*args: str, **kwargs: Any) -> None:
-    global log_disable_stdout
     if log_disable_stdout:
         return
     iostr = io.StringIO()
@@ -197,7 +196,6 @@ def cmd_ci_include(file: str) -> None:
 
 def log(*args: Union[str, AnsiDecorator], is_error: bool = False,
         **kwargs: Any) -> None:
-    global log_errors_only
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
