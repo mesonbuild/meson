@@ -4400,6 +4400,83 @@ recommended as it is not supported on some platforms''')
         self.maxDiff = None
         self.assertListEqual(res_nb, res_wb)
 
+    def test_introspect_ast_source(self):
+        testdir = os.path.join(self.unit_test_dir, '57 introspection')
+        testfile = os.path.join(testdir, 'meson.build')
+        res_nb = self.introspect_directory(testfile, ['--ast'] + self.meson_args)
+
+        node_counter = {}
+
+        def accept_node(json_node):
+            self.assertIsInstance(json_node, dict)
+            for i in ['lineno', 'colno', 'end_lineno', 'end_colno']:
+                self.assertIn(i, json_node)
+                self.assertIsInstance(json_node[i], int)
+            self.assertIn('node', json_node)
+            n = json_node['node']
+            self.assertIsInstance(n, str)
+            self.assertIn(n, nodes)
+            if n not in node_counter:
+                node_counter[n] = 0
+            node_counter[n] = node_counter[n] + 1
+            for nodeDesc in nodes[n]:
+                key = nodeDesc[0]
+                func = nodeDesc[1]
+                self.assertIn(key, json_node)
+                if func is None:
+                    tp = nodeDesc[2]
+                    self.assertIsInstance(json_node[key], tp)
+                    continue
+                func(json_node[key])
+
+        def accept_node_list(node_list):
+            self.assertIsInstance(node_list, list)
+            for i in node_list:
+                accept_node(i)
+
+        def accept_kwargs(kwargs):
+            self.assertIsInstance(kwargs, list)
+            for i in kwargs:
+                self.assertIn('key', i)
+                self.assertIn('val', i)
+                accept_node(i['key'])
+                accept_node(i['val'])
+
+        nodes = {
+            'BooleanNode': [('value', None, bool)],
+            'IdNode': [('value', None, str)],
+            'NumberNode': [('value', None, int)],
+            'StringNode': [('value', None, str)],
+            'ContinueNode': [],
+            'BreakNode': [],
+            'ArgumentNode': [('positional', accept_node_list), ('kwargs', accept_kwargs)],
+            'ArrayNode': [('args', accept_node)],
+            'DictNode': [('args', accept_node)],
+            'EmptyNode': [],
+            'OrNode': [('left', accept_node), ('right', accept_node)],
+            'AndNode': [('left', accept_node), ('right', accept_node)],
+            'ComparisonNode': [('left', accept_node), ('right', accept_node), ('ctype', None, str)],
+            'ArithmeticNode': [('left', accept_node), ('right', accept_node), ('op', None, str)],
+            'NotNode': [('right', accept_node)],
+            'CodeBlockNode': [('lines', accept_node_list)],
+            'IndexNode': [('object', accept_node), ('index', accept_node)],
+            'MethodNode': [('object', accept_node), ('args', accept_node), ('name', None, str)],
+            'FunctionNode': [('args', accept_node), ('name', None, str)],
+            'AssignmentNode': [('value', accept_node), ('var_name', None, str)],
+            'PlusAssignmentNode': [('value', accept_node), ('var_name', None, str)],
+            'ForeachClauseNode': [('items', accept_node), ('block', accept_node), ('varnames', None, list)],
+            'IfClauseNode': [('ifs', accept_node_list), ('else', accept_node)],
+            'IfNode': [('condition', accept_node), ('block', accept_node)],
+            'UMinusNode': [('right', accept_node)],
+            'TernaryNode': [('condition', accept_node), ('true', accept_node), ('false', accept_node)],
+        }
+
+        accept_node(res_nb)
+
+        for n, c in [('ContinueNode', 2), ('BreakNode', 1), ('NotNode', 3)]:
+            self.assertIn(n, node_counter)
+            self.assertEqual(node_counter[n], c)
+
     def test_introspect_dependencies_from_source(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')
         testfile = os.path.join(testdir, 'meson.build')
