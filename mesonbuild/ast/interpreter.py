@@ -297,6 +297,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         elif isinstance(node, ElementaryNode):
             result = node.value
 
+        elif isinstance(node, NotNode):
+            result = self.resolve_node(node.value, include_unknown_args, id_loop_detect)
+            if isinstance(result, bool):
+                result = not result
+
         elif isinstance(node, ArrayNode):
             result = [x for x in node.args.arguments]
 
