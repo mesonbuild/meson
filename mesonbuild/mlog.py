@@ -18,7 +18,18 @@ import sys
 import time
 import platform
 from contextlib import contextmanager
-from typing import Any, Generator, List, Optional, Sequence, TextIO, Union, cast
+from typing import (
+    Any,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TextIO,
+    Tuple,
+    Union,
+    cast,
+)
 from pathlib import Path
 
 """This is (mostly) a standalone module used to write logging
@@ -56,6 +67,7 @@ log_fatal_warnings = False   # type: bool
 log_disable_stdout = False   # type: bool
 log_errors_only = False      # type: bool
 _in_ci = 'CI' in os.environ  # type: bool
+_logged_once = set()         # type: Set[Tuple[str, ...]]
 
 def disable() -> None:
     global log_disable_stdout
@@ -205,7 +217,21 @@ def log(*args: Union[str, AnsiDecorator], is_error: bool = False,
     if not log_errors_only or is_error:
         force_print(*arr, **kwargs)
 
-def _log_error(severity: str, *rargs: Union[str, AnsiDecorator], **kwargs: Any) -> None:
+def log_once(*args: Union[str, AnsiDecorator], is_error: bool = False,
+             **kwargs: Any) -> None:
+    """Log variant that only prints a given message one time per meson invocation.
+
+    This considers nasi decorated values by the values they wrap without
+    regard for the AnsiDecorator itself.
+    """
+    t = tuple(a.text if isinstance(a, AnsiDecorator) else a for a in args)
+    if t in _logged_once:
+        return
+    _logged_once.add(t)
+    log(*args, is_error=is_error, **kwargs)
+
+def _log_error(severity: str, *rargs: Union[str, AnsiDecorator],
+               once: bool = False, **kwargs: Any) -> None:
     from .mesonlib import get_error_location_string
     from .environment import build_filename
     from .mesonlib import MesonException
@@ -232,20 +258,22 @@ def _log_error(severity: str, *rargs: Union[str, AnsiDecorator], **kwargs: Any) 
         location_list = cast(List[Union[str, AnsiDecorator]], [location_str])
         args = location_list + args
 
-    log(*args, **kwargs)
+    if once:
+        log_once(*args, **kwargs)
+    else:
+        log(*args, **kwargs)
 
-    global log_fatal_warnings
     if log_fatal_warnings:
         raise MesonException("Fatal warnings enabled, aborting")
 
-def error(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
-    return _log_error('error', *args, **kwargs, is_error=True)
+def error(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+    return _log_error('error', *args, **kwargs, is_error=True, once=once)
 
-def warning(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
-    return _log_error('warning', *args, **kwargs, is_error=True)
+def warning(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+    return _log_error('warning', *args, **kwargs, is_error=True, once=once)
 
-def deprecation(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
-    return _log_error('deprecation', *args, **kwargs, is_error=True)
+def deprecation(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+    return _log_error('deprecation', *args, **kwargs, is_error=True, once=once)
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""

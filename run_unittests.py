@@ -1141,6 +1141,35 @@ class InternalTests(unittest.TestCase):
             deps = d.get_all_dependencies(target)
             self.assertEqual(deps, expdeps)
 
+    def test_log_once(self):
+        f = io.StringIO()
+        with mock.patch('mesonbuild.mlog.log_file', f), \
+                mock.patch('mesonbuild.mlog._logged_once', set()):
+            mesonbuild.mlog.log_once('foo')
+            mesonbuild.mlog.log_once('foo')
+            actual = f.getvalue().strip()
+            self.assertEqual(actual, 'foo', actual)
+
+    def test_log_once_ansi(self):
+        f = io.StringIO()
+        with mock.patch('mesonbuild.mlog.log_file', f), \
+                mock.patch('mesonbuild.mlog._logged_once', set()):
+            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
+            mesonbuild.mlog.log_once(mesonbuild.mlog.bold('foo'))
+            actual = f.getvalue().strip()
+            self.assertEqual(actual.count('foo'), 1, actual)
+
+            mesonbuild.mlog.log_once('foo')
+            actual = f.getvalue().strip()
+            self.assertEqual(actual.count('foo'), 1, actual)
+
+            f.truncate()
+
+            mesonbuild.mlog.warning('bar', once=True)
+            mesonbuild.mlog.warning('bar', once=True)
+            actual = f.getvalue().strip()
+            self.assertEqual(actual.count('bar'), 1, actual)
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
