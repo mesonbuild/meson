@@ -2620,7 +2620,6 @@ int main(int argc, char **argv) {
                                          'disttest-1.4.3/subprojects/vcssub/meson.build']),
                                  sorted(z.namelist()))
 
-
     def test_rpath_uses_ORIGIN(self):
         '''
         Test that built targets use $ORIGIN in rpath, which ensures that they
