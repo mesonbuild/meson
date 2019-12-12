@@ -41,26 +41,32 @@ if typing.TYPE_CHECKING:
 # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-g
 # https://software.intel.com/en-us/fortran-compiler-developer-guide-and-reference-traceback
 # https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
-clike_optimization_args = {
-    '0': ['-O0'],
-    'g': ['-O0'],
-    '1': ['-O1'],
-    '2': ['-O2'],
-    '3': ['-O3'],
-    's': ['-Os'],
-}  # type: typing.Dict[str, typing.List[str]]
 
 
-# Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0.0
 class IntelGnuLikeCompiler(GnuLikeCompiler):
+    """
+    Tested on linux for ICC 14.0.3, 15.0.6, 16.0.4, 17.0.1, 19.0
+    debugoptimized: -g -O2
+    release: -O3
+    minsize: -O2
+    """
 
     BUILD_ARGS = {
         'plain': [],
-        'debug': ["-g", "-O0", "-traceback"],
-        'debugoptimized': ["-g", "-O1", "-traceback"],
-        'release': ["-O2"],
-        'minsize': ["-Os"],
+        'debug': ["-g", "-traceback"],
+        'debugoptimized': ["-g", "-traceback"],
+        'release': [],
+        'minsize': [],
         'custom': [],
+    }  # type: typing.Dict[str, typing.List[str]]
+
+    OPTIM_ARGS = {
+        '0': ['-O0'],
+        'g': ['-O0'],
+        '1': ['-O1'],
+        '2': ['-O2'],
+        '3': ['-O3'],
+        's': ['-Os'],
     }
 
     def __init__(self):
@@ -74,9 +80,6 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
                              'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie']
         self.id = 'intel'
         self.lang_header = 'none'
-
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
-        return clike_optimization_args[optimization_level]
 
     def get_pch_suffix(self) -> str:
         return 'pchi'
@@ -119,6 +122,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return self.BUILD_ARGS[buildtype]
 
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+        return self.OPTIM_ARGS[optimization_level]
+
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
@@ -126,11 +132,20 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     BUILD_ARGS = {
         'plain': [],
-        'debug': ["/Zi", "/Od", "/traceback"],
-        'debugoptimized': ["/Zi", "/O1", "/traceback"],
-        'release': ["/O2"],
-        'minsize': ["/Os"],
+        'debug': ["/Zi", "/traceback"],
+        'debugoptimized': ["/Zi", "/traceback"],
+        'release': [],
+        'minsize': [],
         'custom': [],
+    }  # type: typing.Dict[str, typing.List[str]]
+
+    OPTIM_ARGS = {
+        '0': ['/O0'],
+        'g': ['/O0'],
+        '1': ['/O1'],
+        '2': ['/O2'],
+        '3': ['/O3'],
+        's': ['/Os'],
     }
 
     def __init__(self, target: str):
@@ -168,3 +183,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
         return self.BUILD_ARGS[buildtype]
+
+    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+        return self.OPTIM_ARGS[optimization_level]
