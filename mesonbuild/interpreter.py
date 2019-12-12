@@ -2529,15 +2529,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname = args[0]
         return self.do_subproject(dirname, 'meson', kwargs)
 
-    def disabled_subproject(self, dirname):
-        self.subprojects[dirname] = SubprojectHolder(None, self.subproject_dir, dirname)
-        return self.subprojects[dirname]
+    def disabled_subproject(self, dirname, feature=None):
+        sub = SubprojectHolder(None, self.subproject_dir, dirname)
+        if feature:
+            sub.disabled_feature = feature
+        self.subprojects[dirname] = sub
+        return sub
 
     def do_subproject(self, dirname: str, method: str, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(dirname)
+            return self.disabled_subproject(dirname, feature)
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
@@ -2901,11 +2904,24 @@ external dependencies (including libraries) must go to "dependencies".''')
             values = {key: value}
         else:
             raise InterpreterException('Summary accepts at most 3 arguments.')
+        self.summary_impl(section, values, kwargs)
+
+    def summary_impl(self, section, values, kwargs):
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
         self.summary[self.subproject].add_section(section, values, kwargs)
 
     def _print_summary(self):
+        # Add automatic 'Supbrojects' section in main project.
+        all_subprojects = collections.OrderedDict()
+        for name, subp in sorted(self.subprojects.items()):
+            value = subp.found()
+            if not value and hasattr(subp, 'disabled_feature'):
+                value = 'Feature {!r} disabled'.format(subp.disabled_feature)
+            all_subprojects[name] = value
+        if all_subprojects:
+            self.summary_impl('Subprojects', all_subprojects, {'bool_yn': True})
+        # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
         for _, summary in sorted(self.summary.items()):
