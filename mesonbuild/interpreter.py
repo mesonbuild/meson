@@ -1759,16 +1759,23 @@ class Summary:
         self.sections = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section, values):
+    def add_section(self, section, values, kwargs):
+        bool_yn = kwargs.get('bool_yn', False)
+        if not isinstance(bool_yn, bool):
+            raise InterpreterException('bool_yn keyword argument must be boolean')
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException('Summary section {!r} already have key {!r}'.format(section, k))
-            v = listify(v)
-            for i in v:
+            formatted_values = []
+            for i in listify(v):
                 if not isinstance(i, (str, int)):
                     m = 'Summary value in section {!r}, key {!r}, must be string, integer or boolean'
                     raise InterpreterException(m.format(section, k))
-            self.sections[section][k] = v
+                if bool_yn and isinstance(i, bool):
+                    formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
+                else:
+                    formatted_values.append(i)
+            self.sections[section][k] = formatted_values
             self.max_key_len = max(self.max_key_len, len(k))
 
     def dump(self):
@@ -2869,7 +2876,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), argstr)
 
     @noArgsFlattening
-    @noKwargs
+    @permittedKwargs({'bool_yn'})
     @FeatureNew('summary', '0.53.0')
     def func_summary(self, node, args, kwargs):
         if len(args) == 1:
@@ -2896,7 +2903,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Summary accepts at most 3 arguments.')
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
-        self.summary[self.subproject].add_section(section, values)
+        self.summary[self.subproject].add_section(section, values, kwargs)
 
     def _print_summary(self):
         mlog.log('')  # newline

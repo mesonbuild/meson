@@ -9,3 +9,5 @@ summary('Configuration', {'Some boolean': false,
                           'A list': ['string', 1, true],
                           })
 summary('Configuration', 'A number', 1)
+summary('Configuration', 'yes', true, bool_yn : true)
+summary('Configuration', 'no', false, bool_yn : true)

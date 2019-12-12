@@ -1230,6 +1230,10 @@ booleans or strings.
 pair doesn't appear twice. All sections will be collected and printed at
 the end of the configuration in the same order as they have been called.
 
+Keyword arguments:
+- `bool_yn` if set to true, all boolean values will be replaced by green YES
+  or red NO.
+
 Example:
 ```meson
 project('My Project', version : '1.0')

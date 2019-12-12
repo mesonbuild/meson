@@ -4136,6 +4136,8 @@ recommended as it is not supported on some platforms''')
                                  1
                                  True
                        A number: 1
+                            yes: YES
+                             no: NO
             ''')
         # Dict ordering is not guaranteed and an exact string comparison randomly
         # fails on the CI because lines are reordered.
