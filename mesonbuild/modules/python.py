@@ -27,7 +27,7 @@ from ..interpreterbase import (
     InvalidArguments,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..interpreter import ExternalProgramHolder, extract_required_kwarg
+from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_kwargs
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
@@ -47,6 +47,7 @@ class PythonDependency(ExternalDependency):
         super().__init__('python', environment, None, kwargs)
         self.name = 'python'
         self.static = kwargs.get('static', False)
+        self.embed = kwargs.get('embed', False)
         self.version = python_holder.version
         self.platform = python_holder.platform
         self.pkgdep = None
@@ -62,9 +63,11 @@ class PythonDependency(ExternalDependency):
         if DependencyMethods.PKGCONFIG in self.methods and not python_holder.is_pypy:
             pkg_version = self.variables.get('LDVERSION') or self.version
             pkg_libdir = self.variables.get('LIBPC')
+            pkg_embed = '-embed' if self.embed and mesonlib.version_compare(self.version, '>=3.8') else ''
+            pkg_name = 'python-{}{}'.format(pkg_version, pkg_embed)
 
             # If python-X.Y.pc exists in LIBPC, we will try to use it
-            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, 'python-{}.pc'.format(pkg_version))).is_file():
+            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, '{}.pc'.format(pkg_name))).is_file():
                 old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
                 old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
 
@@ -74,11 +77,11 @@ class PythonDependency(ExternalDependency):
                     os.environ['PKG_CONFIG_LIBDIR'] = pkg_libdir
 
                 try:
-                    self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
-                    mlog.debug('Found "python-{}" via pkgconfig lookup in LIBPC ({})'.format(pkg_version, pkg_libdir))
+                    self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
+                    mlog.debug('Found "{}" via pkgconfig lookup in LIBPC ({})'.format(pkg_name, pkg_libdir))
                     py_lookup_method = 'pkgconfig'
                 except MesonException as e:
-                    mlog.debug('"python-{}" could not be found in LIBPC ({})'.format(pkg_version, pkg_libdir))
+                    mlog.debug('"{}" could not be found in LIBPC ({})'.format(pkg_name, pkg_libdir))
                     mlog.debug(e)
 
                 if old_pkg_path is not None:
@@ -89,16 +92,16 @@ class PythonDependency(ExternalDependency):
                 else:
                     os.environ.pop('PKG_CONFIG_LIBDIR', None)
             else:
-                mlog.debug('"python-{}" could not be found in LIBPC ({}), this is likely due to a relocated python installation'.format(pkg_version, pkg_libdir))
+                mlog.debug('"{}" could not be found in LIBPC ({}), this is likely due to a relocated python installation'.format(pkg_name, pkg_libdir))
 
             # If lookup via LIBPC failed, try to use fallback PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH mechanisms
             if self.pkgdep is None or not self.pkgdep.found():
                 try:
-                    self.pkgdep = PkgConfigDependency('python-{}'.format(pkg_version), environment, kwargs)
-                    mlog.debug('Found "python-{}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_version))
+                    self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
+                    mlog.debug('Found "{}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_name))
                     py_lookup_method = 'pkgconfig-fallback'
                 except MesonException as e:
-                    mlog.debug('"python-{}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_version))
+                    mlog.debug('"{}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_name))
                     mlog.debug(e)
 
         if self.pkgdep and self.pkgdep.found():
@@ -345,6 +348,9 @@ class PythonInstallation(ExternalProgramHolder):
 
         return self.interpreter.func_shared_module(None, args, kwargs)
 
+    @noPosargs
+    @permittedKwargs(permitted_kwargs['dependency'])
+    @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     def dependency_method(self, args, kwargs):
         dep = PythonDependency(self, self.interpreter.environment, kwargs)
         return self.interpreter.holderify(dep)

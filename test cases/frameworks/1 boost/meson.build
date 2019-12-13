@@ -30,8 +30,8 @@ extralibdep = dependency('boost', modules : ['thread', 'system', 'log_setup', 'l
 pymod = import('python')
 python2 = pymod.find_installation('python2', required: host_machine.system() == 'linux', disabler: true)
 python3 = pymod.find_installation('python3', required: host_machine.system() == 'linux', disabler: true)
-python2dep = python2.dependency(required: host_machine.system() == 'linux', disabler: true)
-python3dep = python3.dependency(required: host_machine.system() == 'linux', disabler: true)
+python2dep = python2.dependency(required: host_machine.system() == 'linux', embed: true, disabler: true)
+python3dep = python3.dependency(required: host_machine.system() == 'linux', embed: true, disabler: true)
 
 # compile python 2/3 modules only if we found a corresponding python version
 if(python2dep.found() and host_machine.system() == 'linux')
