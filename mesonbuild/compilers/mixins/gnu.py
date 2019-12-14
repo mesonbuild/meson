@@ -100,14 +100,15 @@ def gnulike_default_include_dirs(compiler: typing.Tuple[str], lang: str) -> typi
     p = subprocess.Popen(
         cmd,
         stdin=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         stdout=subprocess.PIPE,
         env=env
     )
-    stderr = p.stderr.read().decode('utf-8', errors='replace')
+    stdout = p.stdout.read().decode('utf-8', errors='replace')
     parse_state = 0
     paths = []
-    for line in stderr.split('\n'):
+    for line in stdout.split('\n'):
+        line = line.strip(' \n\r\t')
         if parse_state == 0:
             if line == '#include "..." search starts here:':
                 parse_state = 1
@@ -115,14 +116,16 @@ def gnulike_default_include_dirs(compiler: typing.Tuple[str], lang: str) -> typi
             if line == '#include <...> search starts here:':
                 parse_state = 2
             else:
-                paths.append(line[1:])
+                paths.append(line)
         elif parse_state == 2:
             if line == 'End of search list.':
                 break
             else:
-                paths.append(line[1:])
+                paths.append(line)
     if not paths:
         mlog.warning('No include directory found parsing "{cmd}" output'.format(cmd=" ".join(cmd)))
+    # Append a normalized copy of paths to make path lookup easier
+    paths += [os.path.normpath(x) for x in paths]
     return paths
 
 
