@@ -9,7 +9,12 @@ set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
 
 while(TRUE)
-  find_package("${NAME}" QUIET)
+
+  if(cmake_components)
+    find_package("${NAME}" QUIET COMPONENTS ${cmake_components})
+  else()
+    find_package("${NAME}" QUIET)
+  endif()
 
   # ARCHS has to be set via the CMD interface
   if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${ARCHS}" STREQUAL "")

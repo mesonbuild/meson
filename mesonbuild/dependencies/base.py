@@ -1103,6 +1103,7 @@ class CMakeDependency(ExternalDependency):
 
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
+        cm_components = stringlistify(extract_as_list(kwargs, 'cmake_components'))
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
         cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
@@ -1121,7 +1122,7 @@ class CMakeDependency(ExternalDependency):
 
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             return
-        self._detect_dep(name, modules, cm_args)
+        self._detect_dep(name, modules, cm_components, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1295,7 +1296,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], args: List[str]):
+    def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], components: List[str], args: List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1313,11 +1314,18 @@ class CMakeDependency(ExternalDependency):
             gen_list += [CMakeDependency.class_working_generator]
         gen_list += CMakeDependency.class_cmake_generators
 
+        # CMake library components
+        # optional parameter to find_package that selects package features
+        component_args = ['-Dcmake_components=' + ';'.join(components)]
+
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts = ['--trace-expand',
+                          '-DNAME={}'.format(name),
+                          '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts += component_args + args + ['.']
             cmake_opts += self._extra_cmake_opts()
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
