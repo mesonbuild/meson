@@ -1,7 +1,8 @@
-project('cmake_object_lib_test', ['c', 'cpp'])
+project('cmake_object_lib_test', 'cpp')
 
-if build_machine.system() == 'windows'
-  error('MESON_SKIP_TEST: Windows is not supported because of symbol export problems')
+cpp = meson.get_compiler('cpp')
+if build_machine.system() == 'windows' and cpp.get_id() != 'gcc'
+  error('MESON_SKIP_TEST: Windows link.exe is not supported because of symbol export problems')
 endif
 
 cm = import('cmake')
