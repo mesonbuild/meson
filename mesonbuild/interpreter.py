@@ -3292,6 +3292,15 @@ external dependencies (including libraries) must go to "dependencies".''')
     def notfound_dependency(self):
         return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
 
+    def verify_fallback_consistency(self, dirname, varname, cached_dep):
+        subi = self.subprojects.get(dirname)
+        if not cached_dep or not varname or not subi or not cached_dep.found():
+            return
+        dep = subi.get_variable_method([varname], {})
+        if dep.held_object != cached_dep:
+            m = 'Inconsistency: Subproject has overriden the dependency with another variable than {!r}'
+            raise DependencyException(m.format(varname))
+
     def get_subproject_dep(self, name, display_name, dirname, varname, kwargs):
         required = kwargs.get('required', True)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
@@ -3299,9 +3308,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         dep = self.notfound_dependency()
         try:
             subproject = self.subprojects[dirname]
+            _, cached_dep = self._find_cached_dep(name, kwargs)
             if varname is None:
                 # Assuming the subproject overriden the dependency we want
-                _, cached_dep = self._find_cached_dep(name, kwargs)
                 if cached_dep:
                     if required and not cached_dep.found():
                         m = 'Dependency {!r} is not satisfied'
@@ -3311,6 +3320,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     m = 'Subproject {} did not override dependency {}'
                     raise DependencyException(m.format(subproj_path, display_name))
             if subproject.found():
+                self.verify_fallback_consistency(dirname, varname, cached_dep)
                 dep = self.subprojects[dirname].get_variable_method([varname], {})
         except InvalidArguments:
             pass
@@ -3413,6 +3423,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         identifier, cached_dep = self._find_cached_dep(name, kwargs)
         if cached_dep:
+            if has_fallback:
+                dirname, varname = self.get_subproject_infos(kwargs)
+                self.verify_fallback_consistency(dirname, varname, cached_dep)
             if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
                 raise DependencyException(m.format(display_name))
@@ -3431,7 +3444,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not has_fallback
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
-
             kwargs['required'] = required
             # Only store found-deps in the cache
             # Never add fallback deps to self.coredata.deps since we

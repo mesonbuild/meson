@@ -71,18 +71,18 @@ assert(somefail_dep.found() == false, 'somefail_dep found via wrong fallback')
 
 # Fallback should only be used if the primary was not found
 fallbackzlib_dep = dependency('zlib',
-  fallback : ['somelib', 'fakezlib_dep'])
+  fallback : ['fakezlib', 'fakezlib_dep'])
 assert(fallbackzlib_dep.type_name() == 'pkgconfig', 'fallbackzlib_dep should be of type "pkgconfig", not ' + fallbackzlib_dep.type_name())
 # Check that the above dependency was pkgconfig because the fallback wasn't
 # checked, not because the fallback didn't work
 fakezlib_dep = dependency('fakezlib',
-  fallback : ['somelib', 'fakezlib_dep'])
+  fallback : ['fakezlib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
 
 # Verify that once we got a system dependency, we won't fallback if a newer
 # version is requested.
 d = dependency('zlib', version: '>= 999',
-  fallback : ['somelib', 'some_dep'],
+  fallback : ['donotexist', 'fakezlib_dep'],
   required: false)
 assert(not d.found(), 'version should not match and it should not fallback')
 
