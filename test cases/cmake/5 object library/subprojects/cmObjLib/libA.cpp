@@ -1,5 +1,5 @@
 #include "libA.hpp"
 
-std::string getLibStr() {
+std::string getLibStr(void) {
   return "Hello World";
 }
