@@ -31,6 +31,19 @@ These are return values of the `get_id` (Compiler family) and
 | sun       | Sun Fortran compiler             |                 |
 | valac     | Vala compiler                    |                 |
 
+## Linker ids
+
+These are return values of the `get_linker_id` (Linker family) method in a compiler object.
+
+| Value     | Linker family                              |
+| -----     | ---------------                            |
+| ld.bfd    | GNU Compiler Collection                    |
+| {ld.bfd,lld} | Clang non-Windows                       |
+| link      | MSVC, Clang-cl, clang Windows              |
+| pgi       | Portland/Nvidia PGI                        |
+| {ld.bfd,gold,xild}  | Intel compiler non-Windows       |
+| xilink    | Intel-cl Windows                           |
+
 ## Script environment variables
 
 | Value               | Comment                         |
@@ -41,15 +54,14 @@ These are return values of the `get_id` (Compiler family) and
 | MESON_SOURCE_ROOT   | Absolute path to the source dir |
 | MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
 
-
 ## CPU families
 
 These are returned by the `cpu_family` method of `build_machine`,
 `host_machine` and `target_machine`. For cross compilation they are
 set in the cross file.
 
-| Value               | Comment                         |
-| -----               | -------                         |
+| Value               | Comment               |
+| -----               | -------               |
 | aarch64             | 64 bit ARM processor  |
 | alpha               | DEC Alpha processor   |
 | arc                 | 32 bit ARC processor  |
@@ -103,7 +115,6 @@ These are provided by the `.system()` method call.
 
 Any string not listed above is not guaranteed to remain stable in
 future releases.
-
 
 ## Language arguments parameter names
 

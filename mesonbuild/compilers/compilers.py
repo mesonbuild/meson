@@ -723,6 +723,9 @@ class Compiler:
     def get_id(self) -> str:
         return self.id
 
+    def get_linker_id(self) -> str:
+        return self.linker.id
+
     def get_version_string(self) -> str:
         details = [self.id, self.version]
         if self.full_version:

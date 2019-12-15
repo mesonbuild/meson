@@ -1007,6 +1007,7 @@ class CompilerHolder(InterpreterObject):
         self.methods.update({'compiles': self.compiles_method,
                              'links': self.links_method,
                              'get_id': self.get_id_method,
+                             'get_linker_id': self.get_linker_id_method,
                              'compute_int': self.compute_int_method,
                              'sizeof': self.sizeof_method,
                              'get_define': self.get_define_method,
@@ -1160,6 +1161,12 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def get_id_method(self, args, kwargs):
         return self.compiler.get_id()
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('compiler.get_linker_id', '0.53.0')
+    def get_linker_id_method(self, args, kwargs):
+        return self.compiler.get_linker_id()
 
     @noPosargs
     @permittedKwargs({})

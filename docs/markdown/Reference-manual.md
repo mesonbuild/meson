@@ -6,7 +6,6 @@ The following functions are available in build files. Click on each to
 see the description and usage. The objects returned by them are [list
 afterwards](#returned-objects).
 
-
 ### add_global_arguments()
 
 ``` meson
@@ -2049,6 +2048,9 @@ the following methods:
   gcc or msvc, but use the same argument syntax as one of those two compilers
   such as clang or icc, especially when they use different syntax on different
   operating systems.
+
+- `get_linker_id()` *(added 0.53.0)* returns a string identifying the linker.
+   For example, `ld.bfd`, `link`, [and more](Reference-tables.md#linker-ids).
 
 - `get_supported_arguments(list_of_string)` *(added 0.43.0)* returns
   an array containing only the arguments supported by the compiler,
