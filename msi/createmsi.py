@@ -13,8 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import sys, os, subprocess, shutil, uuid
+'''
+    This script is for generating MSI packages
+    for Windows users.
+'''
+import subprocess
+import shutil
+import uuid
+import sys
+import os
 from glob import glob
 import platform
 import xml.etree.ElementTree as ET
@@ -23,27 +30,53 @@ sys.path.append(os.getcwd())
 from mesonbuild import coredata
 
 def gen_guid():
+    '''
+       Generate guid
+    '''
     return str(uuid.uuid4()).upper()
 
 class Node:
+    '''
+       Node to hold path and directory values
+    '''
+
     def __init__(self, dirs, files):
-        assert(isinstance(dirs, list))
-        assert(isinstance(files, list))
+        self.check_dirs(dirs)
+        self.check_files(files)
         self.dirs = dirs
         self.files = files
 
+    @staticmethod
+    def check_dirs(dirs):
+        '''
+           Check to see if directory is instance of list
+        '''
+        assert isinstance(dirs, list)
+
+    @staticmethod
+    def check_files(files):
+        '''
+           Check to see if files is instance of list
+        '''
+        assert isinstance(files, list)
+
+
 class PackageGenerator:
+    '''
+       Package generator for MSI pacakges
+    '''
 
     def __init__(self):
         self.product_name = 'Meson Build System'
         self.manufacturer = 'The Meson Development Team'
         self.version = coredata.version.replace('dev', '')
+        self.root = None
         self.guid = '*'
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
         self.bytesize = 32 if '32' in platform.architecture()[0] else 64
-        self.final_output = 'meson-%s-%d.msi' % (self.version, self.bytesize)
+        self.final_output = 'meson-{}-{}.msi'.format(self.version, self.bytesize)
         self.staging_dirs = ['dist', 'dist2']
         if self.bytesize == 64:
             self.progfile_dir = 'ProgramFiles64Folder'
@@ -72,18 +105,28 @@ class PackageGenerator:
             }
         }
         self.feature_components = {}
-        for sd in self.staging_dirs:
-            self.feature_components[sd] = []
+        for s_d in self.staging_dirs:
+            self.feature_components[s_d] = []
 
-    def get_all_modules_from_dir(self, dirname):
+    @staticmethod
+    def get_all_modules_from_dir(dirname):
+        '''
+           Get all modules required for Meson build MSI package
+           from directories.
+        '''
         modname = os.path.basename(dirname)
         modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
         modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
         return modules
 
-    def get_more_modules(self):
-        # Python packagers want to minimal and only copy the things that
-        # they can see that are used. They are blind to many things.
+    @staticmethod
+    def get_more_modules():
+        '''
+           Getter for missing Modules.
+
+           Python packagers want to be minimal and only copy the things
+           that they can see that being used. They are blind to many things.
+        '''
         return ['distutils.archive_util',
                 'distutils.cmd',
                 'distutils.config',
@@ -104,6 +147,9 @@ class PackageGenerator:
                 ]
 
     def build_dist(self):
+        '''
+           Build dist file from PyInstaller info
+        '''
         for sdir in self.staging_dirs:
             if os.path.exists(sdir):
                 shutil.rmtree(sdir)
@@ -137,6 +183,9 @@ class PackageGenerator:
             sys.exit('Ninja exe missing from staging dir.')
 
     def generate_files(self):
+        '''
+           Generate package files for MSI installer package
+        '''
         self.root = ET.Element('Wix', {'xmlns': 'http://schemas.microsoft.com/wix/2006/wi'})
         product = ET.SubElement(self.root, 'Product', {
             'Name': self.product_name,
@@ -148,10 +197,10 @@ class PackageGenerator:
             'Version': self.version,
         })
 
-        package = ET.SubElement(product, 'Package',  {
+        package = ET.SubElement(product, 'Package', {
             'Id': '*',
             'Keywords': 'Installer',
-            'Description': 'Meson %s installer' % self.version,
+            'Description': 'Meson {} installer'.format(self.version),
             'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
             'InstallerVersion': '500',
@@ -195,8 +244,8 @@ class PackageGenerator:
         ET.SubElement(product, 'UIRef', {
             'Id': 'WixUI_FeatureTree',
         })
-        for sd in self.staging_dirs:
-            assert(os.path.isdir(sd))
+        for s_d in self.staging_dirs:
+            assert os.path.isdir(s_d)
         top_feature = ET.SubElement(product, 'Feature', {
             'Id': 'Complete',
             'Title': 'Meson ' + self.version,
@@ -205,13 +254,13 @@ class PackageGenerator:
             'Level': '1',
             'ConfigurableDirectory': 'INSTALLDIR',
         })
-        for sd in self.staging_dirs:
+        for s_d in self.staging_dirs:
             nodes = {}
-            for root, dirs, files in os.walk(sd):
+            for root, dirs, files in os.walk(s_d):
                 cur_node = Node(dirs, files)
                 nodes[root] = cur_node
-            self.create_xml(nodes, sd, installdir, sd)
-            self.build_features(nodes, top_feature, sd)
+            self.create_xml(nodes, s_d, installdir, s_d)
+            self.build_features(top_feature, s_d)
         vcredist_feature = ET.SubElement(top_feature, 'Feature', {
             'Id': 'VCRedist',
             'Title': 'Visual C++ runtime',
@@ -224,20 +273,26 @@ class PackageGenerator:
         # ElementTree can not do prettyprinting so do it manually
         import xml.dom.minidom
         doc = xml.dom.minidom.parse(self.main_xml)
-        with open(self.main_xml, 'w') as of:
-            of.write(doc.toprettyxml())
+        with open(self.main_xml, 'w') as open_file:
+            open_file.write(doc.toprettyxml())
 
-    def build_features(self, nodes, top_feature, staging_dir):
-        feature = ET.SubElement(top_feature, 'Feature',  self.feature_properties[staging_dir])
+    def build_features(self, top_feature, staging_dir):
+        '''
+           Generate build features
+        '''
+        feature = ET.SubElement(top_feature, 'Feature', self.feature_properties[staging_dir])
         for component_id in self.feature_components[staging_dir]:
             ET.SubElement(feature, 'ComponentRef', {
                 'Id': component_id,
             })
 
     def create_xml(self, nodes, current_dir, parent_xml_node, staging_dir):
+        '''
+           Create XML file
+        '''
         cur_node = nodes[current_dir]
         if cur_node.files:
-            component_id = 'ApplicationFiles%d' % self.component_num
+            component_id = 'ApplicationFiles{}'.format(self.component_num)
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
                 'Id': component_id,
                 'Guid': gen_guid(),
@@ -255,12 +310,12 @@ class PackageGenerator:
                     'Value': '[INSTALLDIR]',
                 })
             self.component_num += 1
-            for f in cur_node.files:
-                file_id = os.path.join(current_dir, f).replace('\\', '_').replace('#', '_').replace('-', '_')
+            for f_node in cur_node.files:
+                file_id = os.path.join(current_dir, f_node).replace('\\', '_').replace('#', '_').replace('-', '_')
                 ET.SubElement(comp_xml_node, 'File', {
                     'Id': file_id,
-                    'Name': f,
-                    'Source': os.path.join(current_dir, f),
+                    'Name': f_node,
+                    'Source': os.path.join(current_dir, f_node),
                 })
 
         for dirname in cur_node.dirs:
@@ -272,6 +327,9 @@ class PackageGenerator:
             self.create_xml(nodes, os.path.join(current_dir, dirname), dir_node, staging_dir)
 
     def build_package(self):
+        '''
+           Generate the Meson build MSI package.
+        '''
         wixdir = 'c:\\Program Files\\Wix Toolset v3.11\\bin'
         if not os.path.isdir(wixdir):
             wixdir = 'c:\\Program Files (x86)\\Wix Toolset v3.11\\bin'
@@ -291,7 +349,7 @@ if __name__ == '__main__':
         sys.exit(print('Run me in the top level source dir.'))
     subprocess.check_call(['pip', 'install', '--upgrade', 'pyinstaller'])
 
-    p = PackageGenerator()
-    p.build_dist()
-    p.generate_files()
-    p.build_package()
+    PACKAGE = PackageGenerator()
+    PACKAGE.build_dist()
+    PACKAGE.generate_files()
+    PACKAGE.build_package()
