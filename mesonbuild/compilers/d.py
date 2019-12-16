@@ -395,6 +395,17 @@ class DmdLikeCompilerMixin:
             soargs.append('-L=' + arg)
         return soargs
 
+    def get_allow_undefined_link_args(self) -> T.List[str]:
+        args = self.linker.get_allow_undefined_args()
+        if self.info.is_darwin():
+            # On macOS we're passing these options to the C compiler, but
+            # they're linker options and need -Wl, so clang/gcc knows what to
+            # do with them. I'm assuming, but don't know for certain, that
+            # ldc/dmd do some kind of mapping internally for arguments they
+            # understand, but pass arguments they don't understand directly.
+            args = [a.replace('-L=', '-Xcc=-Wl,') for a in args]
+        return args
+
 
 class DCompiler(Compiler):
     mscrt_args = {
