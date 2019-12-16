@@ -21,14 +21,14 @@ from .base import CMakeDependency, DependencyMethods, ExternalDependency, PkgCon
 
 class ScalapackDependency(ExternalDependency):
     def __init__(self, environment, kwargs: dict):
-        methods = mesonlib.listify(kwargs.get('method', 'auto'))
         super().__init__('scalapack', environment, None, kwargs)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
         self.static = kwargs.get('static', False)
+        methods = mesonlib.listify(self.methods)
 
-        if set(methods).intersection(['auto', 'pkg-config']):
+        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
             pkgconfig_files = []
             mklroot = None
             is_gcc = self.clib_compiler.get_id() == 'gcc'
@@ -106,8 +106,8 @@ class ScalapackDependency(ExternalDependency):
                     self.pcdep = pkgdep
                     return
 
-        if set(methods).intersection(['auto', 'cmake']):
-            cmakedep = CMakeDependency('Scalapack', environment, kwargs)
+        if set([DependencyMethods.AUTO, DependencyMethods.CMAKE]).intersection(methods):
+            cmakedep = CMakeDependency('Scalapack', environment, kwargs, language=self.language)
             if cmakedep.found():
                 self.compile_args = cmakedep.get_compile_args()
                 self.link_args = cmakedep.get_link_args()
