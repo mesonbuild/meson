@@ -28,7 +28,6 @@ from .compilers import (
     CompilerArgs,
 )
 from .mixins.gnu import GnuCompiler
-from .mixins.islinker import LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -69,7 +68,7 @@ dmd_optimization_args = {'0': [],
 
 class DmdLikeCompilerMixin:
 
-    LINKER_PREFIX = '-L'
+    LINKER_PREFIX = '-L='
 
     def get_output_args(self, target):
         return ['-of=' + target]
@@ -214,7 +213,7 @@ class DmdLikeCompilerMixin:
         return []
 
     def gen_import_library_args(self, implibname):
-        return ['-Wl,--out-implib=' + implibname]
+        return self.linker.import_library_args(implibname)
 
     def build_rpath_args(self, env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if self.info.is_windows():
@@ -392,15 +391,9 @@ class DmdLikeCompilerMixin:
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
         soargs = []
-        for arg in Compiler.get_soname_args(self, *args, **kwargs):
+        for arg in super().get_soname_args(*args, **kwargs):
             soargs.append('-L=' + arg)
         return soargs
-
-    def get_allow_undefined_link_args(self) -> T.List[str]:
-        args = []
-        for arg in self.linker.get_allow_undefined_args():
-            args.append('-L=' + arg)
-        return args
 
 
 class DCompiler(Compiler):
@@ -600,7 +593,7 @@ class DCompiler(Compiler):
         return []
 
     def thread_link_flags(self, env):
-        return ['-pthread']
+        return self.linker.thread_flags(env)
 
     def name_string(self):
         return ' '.join(self.exelist)
@@ -658,7 +651,7 @@ class GnuDCompiler(DCompiler, GnuCompiler):
         return self.linker.get_allow_undefined_args()
 
 
-class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
@@ -687,9 +680,6 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
     def get_pic_args(self):
         return ['-relocation-model=pic']
 
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
-
     def get_crt_link_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
 
@@ -700,7 +690,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
         return ldc_optimization_args[optimization_level]
 
 
-class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
