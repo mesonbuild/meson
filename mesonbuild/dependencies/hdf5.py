@@ -33,14 +33,17 @@ class HDF5Dependency(ExternalDependency):
         # 1. pkg-config
         pkgconfig_files = ['hdf5', 'hdf5-serial']
         # some distros put hdf5-1.2.3.pc with version number in .pc filename.
-        ret = subprocess.run(['pkg-config', '--list-all'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                             universal_newlines=True)
-        if ret.returncode == 0:
-            for pkg in ret.stdout.split('\n'):
-                if pkg.startswith(('hdf5')):
-                    pkgconfig_files.append(pkg.split(' ', 1)[0])
-            pkgconfig_files = list(set(pkgconfig_files))  # dedupe
-
+        try:
+            ret = subprocess.run(['pkg-config', '--list-all'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                 universal_newlines=True)
+            if ret.returncode == 0:
+                for pkg in ret.stdout.split('\n'):
+                    if pkg.startswith(('hdf5')):
+                        pkgconfig_files.append(pkg.split(' ', 1)[0])
+                pkgconfig_files = list(set(pkgconfig_files))  # dedupe
+        except FileNotFoundError:
+            # pkg-config was not available
+            pass
         if language not in ('c', 'cpp', 'fortran'):
             raise DependencyException('Language {} is not supported with HDF5.'.format(language))
 
