@@ -8,10 +8,11 @@ endif
 
 zlib_dep = dependency('zlib', required: required)
 if zlib_dep.found()
+  build_rpath = zlib_dep.type_name() == 'pkgconfig' ? zlib_dep.get_pkgconfig_variable('libdir') : 'lib'
   some = shared_library('some', 'lib.c',
     # duplicate the rpath again, in order
     # to test Meson's RPATH deduplication
-    build_rpath : zlib_dep.get_pkgconfig_variable('libdir'),
+    build_rpath : build_rpath,
     dependencies : zlib_dep,
     version : '1.2.3',
     soversion : '7',
