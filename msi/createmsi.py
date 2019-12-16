@@ -348,7 +348,7 @@ if __name__ == '__main__':
         sys.exit(print('Run me in the top level source dir.'))
     subprocess.check_call(['pip', 'install', '--upgrade', 'pyinstaller'])
 
-    MSI_PKG = PackageGenerator()
-    MSI_PKG.build_dist()
-    MSI_PKG.generate_files()
-    MSI_PKG.build_package()
+    p = PackageGenerator()
+    p.build_dist()
+    p.generate_files()
+    p.build_package()
