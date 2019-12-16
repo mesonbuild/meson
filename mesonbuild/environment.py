@@ -813,7 +813,8 @@ class Environment:
         _, o, e = Popen_safe(compiler + check_args)
         v = search_version(o)
         if o.startswith('LLD'):
-            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
+            linker = LLVMDynamicLinker(
+                compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
             # Toolchain wrapper got in the way; this happens with e.g. https://github.com/mstorsjo/llvm-mingw
             # Let's try to extract the linker invocation command to grab the version.
@@ -957,7 +958,7 @@ class Environment:
                 version = search_version(arm_ver_str)
                 full_version = arm_ver_str
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
-                linker = ArmClangDynamicLinker(for_machine, [], version=version)
+                linker = ArmClangDynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
@@ -1008,7 +1009,7 @@ class Environment:
                 version = search_version(err)
                 target = 'x86' if 'IA-32' in err else 'x86_64'
                 cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
-                linker = XilinkDynamicLinker(for_machine, version=version)
+                linker = XilinkDynamicLinker(for_machine, [], version=version)
                 return cls(
                     compiler, version, for_machine, is_cross, info=info,
                     exe_wrap=exe_wrap, target=target, linker=linker)
@@ -1105,7 +1106,7 @@ class Environment:
             # the full version:
             version = out.strip().split('V')[-1]
             cpp_compiler = self.detect_cpp_compiler(for_machine)
-            linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, version=CudaLinker.parse_version())
+            linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
             return CudaCompiler(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
@@ -1188,7 +1189,7 @@ class Environment:
                 if 'PGI Compilers' in out:
                     linker = PGIDynamicLinker(
                         compiler, for_machine, 'pgi',
-                        PGIFortranCompiler.LINKER_PREFIX, version=version)
+                        PGIFortranCompiler.LINKER_PREFIX, [], version=version)
                     return PGIFortranCompiler(
                         compiler, version, for_machine, is_cross, info, exe_wrap,
                         full_version=full_version, linker=linker)
