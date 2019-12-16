@@ -829,8 +829,7 @@ class VisualStudioLikeLinkerMixin:
         return l
 
     def get_allow_undefined_args(self) -> typing.List[str]:
-        # link.exe
-        return self._apply_prefix('/FORCE:UNRESOLVED')
+        return []
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: typing.Tuple[str, str],
