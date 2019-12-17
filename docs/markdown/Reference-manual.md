@@ -1206,6 +1206,69 @@ This function prints its argument to stdout prefixed with WARNING:.
 
 *Added 0.44.0*
 
+### summary()
+
+``` meson
+    void summary(key, value)
+    void summary(dictionary)
+    void summary(section_name, key, value)
+    void summary(section_name, dictionary)
+```
+
+This function is used to summarize build configuration at the end of the build
+process. This function provides a way for projects (and subprojects) to report
+this information in a clear way.
+
+The content is a serie of key/value pairs grouped into sections. If the section
+argument is omitted, those key/value pairs are implicitly grouped into a section
+with no title. key/value pairs can optionally be grouped into a dictionary,
+but keep in mind that dictionaries does not guarantee ordering.
+`section_name` and `key` must be strings, `value` can only be lists, integers,
+booleans or strings.
+
+`summary()` can be called multiple times as long as the same section_name/key
+pair doesn't appear twice. All sections will be collected and printed at
+the end of the configuration in the same order as they have been called.
+
+Keyword arguments:
+- `bool_yn` if set to true, all boolean values will be replaced by green YES
+  or red NO.
+
+Example:
+```meson
+project('My Project', version : '1.0')
+summary('Directories', {'bindir': get_option('bindir'),
+                        'libdir': get_option('libdir'),
+                        'datadir': get_option('datadir'),
+                        })
+summary('Configuration', {'Some boolean': false,
+                          'Another boolean': true,
+                          'Some string': 'Hello World',
+                          'A list': ['string', 1, true],
+                          })
+```
+
+Output:
+```
+My Project 1.0
+
+  Directories
+             prefix: /opt/gnome
+             bindir: bin
+             libdir: lib/x86_64-linux-gnu
+            datadir: share
+
+  Configuration
+       Some boolean: False
+    Another boolean: True
+        Some string: Hello World
+             A list: string
+                     1
+                     True
+```
+
+*Added 0.53.0*
+
 ### project()
 
 ``` meson
