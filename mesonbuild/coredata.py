@@ -35,6 +35,8 @@ import shlex
 
 if TYPE_CHECKING:
     from . import dependencies
+    from .compilers import Compiler  # noqa: F401
+    from .environment import Environment
 
     OptionDictType = Dict[str, 'UserOption[Any]']
 
@@ -742,13 +744,29 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def process_new_compiler(self, lang: str, comp, env):
+    def add_lang_args(self, lang: str, comp: Type['Compiler'],
+                      for_machine: MachineChoice, env: 'Environment') -> None:
+        """Add global language arguments that are needed before compiler/linker detection."""
+        from .compilers import compilers
+
+        optprefix = lang + '_'
+        for k, o in compilers.get_global_options(lang, comp, env.properties[for_machine]).items():
+            if not k.startswith(optprefix):
+                raise MesonException('Internal error, %s has incorrect prefix.' % k)
+            # prefixed compiler options affect just this machine
+            opt_prefix = for_machine.get_prefix()
+            if opt_prefix + k in env.cmd_line_options:
+                o.set_value(env.cmd_line_options[opt_prefix + k])
+            self.compiler_options[for_machine].setdefault(k, o)
+
+    def process_new_compiler(self, lang: str, comp: Type['Compiler'], env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
+        enabled_opts = []
 
         optprefix = lang + '_'
-        for k, o in comp.get_and_default_options(env.properties[comp.for_machine]).items():
+        for k, o in comp.get_options().items():
             if not k.startswith(optprefix):
                 raise MesonException('Internal error, %s has incorrect prefix.' % k)
             # prefixed compiler options affect just this machine

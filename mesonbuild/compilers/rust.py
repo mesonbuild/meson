@@ -33,10 +33,10 @@ rust_optimization_args = {'0': [],
 class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
+    language = 'rust'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        self.language = 'rust'
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'

@@ -344,10 +344,6 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         raise mesonlib.EnvironmentException(
             'Linker {} does not support allow undefined'.format(self.id))
 
-    def invoked_by_compiler(self) -> bool:
-        """True if meson uses the compiler to invoke the linker."""
-        return True
-
     @abc.abstractmethod
     def get_output_args(self, outname: str) -> typing.List[str]:
         pass
@@ -467,10 +463,6 @@ class GnuLikeDynamicLinkerMixin:
         if value == 'none':
             return []
         return ['-fsanitize=' + value]
-
-    def invoked_by_compiler(self) -> bool:
-        """True if meson uses the compiler to invoke the linker."""
-        return True
 
     def get_coverage_args(self) -> typing.List[str]:
         return ['--coverage']
@@ -787,7 +779,6 @@ class VisualStudioLikeLinkerMixin:
 
     def __init__(self, *args, direct: bool = True, machine: str = 'x86', **kwargs):
         super().__init__(*args, **kwargs)
-        self.direct = direct
         self.machine = machine
 
     def invoked_by_compiler(self) -> bool:

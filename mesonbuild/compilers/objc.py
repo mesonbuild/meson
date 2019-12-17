@@ -27,14 +27,17 @@ if typing.TYPE_CHECKING:
 
 
 class ObjCCompiler(CLikeCompiler, Compiler):
+
+    language = 'objc'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrap: typing.Optional[str], **kwargs):
-        self.language = 'objc'
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
-    def get_display_language(self):
+    @staticmethod
+    def get_display_language():
         return 'Objective-C'
 
     def sanity_check(self, work_dir, environment):

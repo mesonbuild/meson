@@ -26,14 +26,17 @@ if typing.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
+
+    language = 'objcpp'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrap: typing.Optional[str], **kwargs):
-        self.language = 'objcpp'
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 
-    def get_display_language(self):
+    @staticmethod
+    def get_display_language():
         return 'Objective-C++'
 
     def sanity_check(self, work_dir, environment):
