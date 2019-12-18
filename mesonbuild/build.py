@@ -1086,10 +1086,17 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in listify(target, unholder=True):
-            if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
-                # When we're a static library and we link_with to an
-                # internal/convenience library, promote to link_whole.
-                return self.link_whole(t)
+            if isinstance(self, StaticLibrary) and self.need_install:
+                if isinstance(t, (CustomTarget, CustomTargetIndex)):
+                    if (isinstance(t, CustomTarget) and not t.should_install()) or (isinstance(t, CustomTargetIndex) and not t.target.should_install()):
+                        mlog.warning('Try to link an installed static library target {} with a custom target '
+                                     'that is not installed, this might cause problems when you try to use '
+                                     'this static library'.format(self.name))
+                    self.link_targets.append(t)
+                elif t.is_internal():
+                    # When we're a static library and we link_with to an
+                    # internal/convenience library, promote to link_whole.
+                    return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
