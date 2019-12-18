@@ -458,6 +458,9 @@ a hard error in the future.''' % name)
     def is_linkable_target(self) -> bool:
         return False
 
+    def is_internal(self):
+        return isinstance(self, StaticLibrary) and not self.need_install
+
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
@@ -1080,9 +1083,6 @@ You probably should put it in link_with instead.''')
 
     def get_external_deps(self):
         return self.external_deps
-
-    def is_internal(self):
-        return isinstance(self, StaticLibrary) and not self.need_install
 
     def link(self, target):
         for t in listify(target, unholder=True):
