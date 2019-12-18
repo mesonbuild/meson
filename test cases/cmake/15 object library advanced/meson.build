@@ -1,4 +1,4 @@
-project('cmake_object_lib_test', 'cpp')
+project('cmake_object_lib_test', 'cpp', default_options: ['cpp_std=c++11'])
 
 cm = import('cmake')
 

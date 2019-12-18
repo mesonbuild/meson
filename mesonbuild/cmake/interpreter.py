@@ -25,9 +25,10 @@ from ..environment import Environment
 from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from subprocess import Popen, PIPE
-from typing import Any, List, Dict, Optional, Union, TYPE_CHECKING
+from typing import Any, List, Dict, Optional, Set, Union, TYPE_CHECKING
 from threading import Thread
 from enum import Enum
+from functools import lru_cache
 import os, re
 
 from ..mparser import (
@@ -391,22 +392,59 @@ class ConverterTarget:
             if tgt:
                 self.depends.append(tgt)
 
-    def process_object_libs(self, obj_target_list: List['ConverterTarget']):
+    def process_object_libs(self, obj_target_list: List['ConverterTarget'], linker_workaround: bool):
         # Try to detect the object library(s) from the generated input sources
         temp = [x for x in self.generated if isinstance(x, str)]
         temp = [os.path.basename(x) for x in temp]
         temp = [x for x in temp if any([x.endswith('.' + y) for y in obj_suffixes])]
         temp = [os.path.splitext(x)[0] for x in temp]
+        exts = self._all_source_suffixes()
         # Temp now stores the source filenames of the object files
         for i in obj_target_list:
-            source_files = [os.path.basename(x) for x in i.sources + i.generated]
-            for j in source_files:
-                if j in temp:
-                    self.object_libs += [i]
+            source_files = [x for x in i.sources + i.generated if isinstance(x, str)]
+            source_files = [os.path.basename(x) for x in source_files]
+            for j in temp:
+                # On some platforms (specifically looking at you Windows with vs20xy backend) CMake does
+                # not produce object files with the format `foo.cpp.obj`, instead it skipps the language
+                # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
+                # undo this step and guess the correct language suffix of the object file. This is done
+                # by trying all language suffixes meson knows and checking if one of them fits.
+                candidates = [j]  # type: List[str]
+                if not any([j.endswith('.' + x) for x in exts]):
+                    mlog.warning('Object files do not contain source file extensions, thus falling back to guessing them.', once=True)
+                    candidates += ['{}.{}'.format(j, x) for x in exts]
+                if any([x in source_files for x in candidates]):
+                    if linker_workaround:
+                        self._append_objlib_sources(i)
+                    else:
+                        self.includes += i.includes
+                        self.includes = list(set(self.includes))
+                        self.object_libs += [i]
                     break
 
         # Filter out object files from the sources
         self.generated = [x for x in self.generated if not isinstance(x, str) or not any([x.endswith('.' + y) for y in obj_suffixes])]
+
+    def _append_objlib_sources(self, tgt: 'ConverterTarget') -> None:
+        self.includes += tgt.includes
+        self.sources += tgt.sources
+        self.generated += tgt.generated
+        self.sources = list(set(self.sources))
+        self.generated = list(set(self.generated))
+        self.includes = list(set(self.includes))
+
+        # Inherit compiler arguments since they may be required for building
+        for lang, opts in tgt.compile_opts.items():
+            if lang not in self.compile_opts:
+                self.compile_opts[lang] = []
+            self.compile_opts[lang] += [x for x in opts if x not in self.compile_opts[lang]]
+
+    @lru_cache(maxsize=None)
+    def _all_source_suffixes(self) -> List[str]:
+        suffixes = []  # type: List[str]
+        for exts in lang_suffixes.values():
+            suffixes += [x for x in exts]
+        return suffixes
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
@@ -620,6 +658,7 @@ class CMakeInterpreter:
         self.install_prefix = install_prefix
         self.env = env
         self.backend_name = backend.name
+        self.linkers = set()  # type: Set[str]
         self.cmake_api = CMakeAPI.SERVER
         self.client = CMakeClient(self.env)
         self.fileapi = CMakeFileAPI(self.build_dir)
@@ -661,6 +700,7 @@ class CMakeInterpreter:
         for lang, comp in self.env.coredata.compilers[for_machine].items():
             if lang not in language_map:
                 continue
+            self.linkers.add(comp.get_linker_id())
             cmake_lang = language_map[lang]
             exelist = comp.get_exelist()
             if len(exelist) == 1:
@@ -787,12 +827,16 @@ class CMakeInterpreter:
         self.trace.parse(self.raw_trace)
 
         # Find all targets
+        added_target_names = []  # type: List[str]
         for i in self.codemodel_configs:
             for j in i.projects:
                 if not self.project_name:
                     self.project_name = j.name
                 for k in j.targets:
-                    if k.type not in skip_targets:
+                    # Avoid duplicate targets from different configurations and known
+                    # dummy CMake internal target types
+                    if k.type not in skip_targets and k.name not in added_target_names:
+                        added_target_names += [k.name]
                         self.targets += [ConverterTarget(k, self.env)]
 
         # Add interface targets from trace, if not already present.
@@ -830,7 +874,7 @@ class CMakeInterpreter:
 
         # Second pass: Detect object library dependencies
         for i in self.targets:
-            i.process_object_libs(object_libs)
+            i.process_object_libs(object_libs, self._object_lib_workaround())
 
         # Third pass: Reassign dependencies to avoid some loops
         for i in self.targets:
@@ -1010,6 +1054,7 @@ class CMakeInterpreter:
 
             # Generate target kwargs
             tgt_kwargs = {
+                'build_by_default': False,
                 'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': link_with,
                 'include_directories': id_node(inc_var),
@@ -1144,3 +1189,6 @@ class CMakeInterpreter:
         res = [x for x in self.generated_targets.keys()]
         res = [x[prx_len:] if x.startswith(prx_str) else x for x in res]
         return res
+
+    def _object_lib_workaround(self) -> bool:
+        return 'link' in self.linkers and self.backend_name.startswith('vs')

@@ -1,13 +1,8 @@
-project('cmake_object_lib_test', 'cpp')
+project('cmake_object_lib_test', ['c', 'cpp'])
 
 dep_test = dependency('ZLIB', method: 'cmake', required: false)
 if not dep_test.found()
   error('MESON_SKIP_TEST: zlib is not installed')
-endif
-
-cpp = meson.get_compiler('cpp')
-if build_machine.system() == 'windows' and cpp.get_id() != 'gcc'
-  error('MESON_SKIP_TEST: Windows link.exe is not supported because of symbol export problems')
 endif
 
 cm = import('cmake')
