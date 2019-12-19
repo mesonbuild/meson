@@ -40,7 +40,7 @@ jobs:
     - name: Install Compilers
       run: |
         sudo apt update -yq
-        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++
+        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++ libomp-dev
     - run: python run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
       env:
         CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
