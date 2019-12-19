@@ -1,6 +1,6 @@
 project('gir link order 2', 'c')
 
-if not dependency('gobject-2.0', required : false).found()
+if not dependency('gobject-2.0', required : false).found() or not find_program('g-ir-scanner', required: false).found()
   error('MESON_SKIP_TEST gobject not found.')
 endif
 

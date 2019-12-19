@@ -1,6 +1,6 @@
 project('gir link order', 'c')
 
-if not dependency('glib-2.0', required : false).found()
+if not dependency('glib-2.0', required : false).found() or not find_program('g-ir-scanner', required: false).found()
   error('MESON_SKIP_TEST glib not found.')
 endif
 
