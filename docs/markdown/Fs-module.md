@@ -46,13 +46,13 @@ md5, sha1, sha224, sha256, sha384, sha512.
 The `fs.size(filename)` method returns the size of the file in integer bytes.
 Symlinks will be resolved if possible.
 
-### samefile
+### is_samepath
 
-The `fs.samefile(filename1, filename2)` returns boolean `true` if the input filenames refer to the same file.
-For example, suppose filename1 is a symlink and filename2 is a relative path.
-If filename1 can be resolved to a file that is the same file as filename2, then `true` is returned.
-If filename1 is not resolved to be the same as filename2, `false` is returned.
-If either filename does not exist, an error message is raised.
+The `fs.is_samepath(path1, path2)` returns boolean `true` if both paths resolve to the same path.
+For example, suppose path1 is a symlink and path2 is a relative path.
+If path1 can be resolved to path2, then `true` is returned.
+If path1 is not resolved to path2, `false` is returned.
+If path1 or path2 do not exist, `false` is returned.
 
 Examples:
 
@@ -60,9 +60,20 @@ Examples:
 x = 'foo.txt'
 y = 'sub/../foo.txt'
 z = 'bar.txt'  # a symlink pointing to foo.txt
+j = 'notafile.txt'  # non-existant file
 
-fs.samefile(x, y)  # true
-fs.samefile(x, z)  # true
+fs.is_samepath(x, y)  # true
+fs.is_samepath(x, z)  # true
+fs.is_samepath(x, j)  # false
+
+p = 'foo/bar'
+q = 'foo/bar/../baz'
+r = 'buz'  # a symlink pointing to foo/bar
+s = 'notapath'  # non-existant directory
+
+fs.is_samepath(p, q)  # true
+fs.is_samepath(p, r)  # true
+fs.is_samepath(p, s)  # false
 ```
 
 
