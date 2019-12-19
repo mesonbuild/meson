@@ -18,7 +18,7 @@ if nc_cpp.found()
 endif
 
 # --- Fortran tests
-if build_machine.system() != 'windows'
+if build_machine.system() != 'windows' and build_machine.system() != 'darwin'
   add_languages('fortran')
 
   nc_f = dependency('netcdf', language : 'fortran', required : false)
