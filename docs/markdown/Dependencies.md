@@ -179,6 +179,14 @@ should only be used if the CMake files are not stored in the project itself.
 
 Additional CMake parameters can be specified with the `cmake_args` property.
 
+*(new in 0.53.0)* `cmake_components` allows specifying
+`find_package(... COMPONENTS ...)`, which are useful and even necessary for
+packages like HDF5 using CMake.
+
+*(new in 0.53.0)* `cmake_full_find: true` tells CMake to not prefill the CMake cache
+with information from Meson. This makes CMake slower, but is more reliable
+and even necessary for packages like OpenMP that use CMake try_compile
+
 ### Some notes on Dub
 
 Please understand that meson is only able to find dependencies that
@@ -289,16 +297,16 @@ libraries that have been compiled for single-threaded use instead.
 
 *(added 0.53.0)*
 
-Enables compiling and linking against the CUDA Toolkit. The `version` 
-and `modules` keywords may be passed to request the use of a specific 
+Enables compiling and linking against the CUDA Toolkit. The `version`
+and `modules` keywords may be passed to request the use of a specific
 CUDA Toolkit version and/or additional CUDA libraries, correspondingly:
 
 ```meson
 dep = dependency('cuda', version : '>=10', modules : ['cublas'])
 ```
 
-Note that explicitly adding this dependency is only necessary if you are 
-using CUDA Toolkit from a C/C++ file or project, or if you are utilizing 
+Note that explicitly adding this dependency is only necessary if you are
+using CUDA Toolkit from a C/C++ file or project, or if you are utilizing
 additional toolkit libraries that need to be explicitly linked to.
 
 ## CUPS
