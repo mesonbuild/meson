@@ -62,11 +62,13 @@ assert(size == 19, 'file size not found correctly')
 # -- are filenames referring to the same file?
 f1 = 'meson.build'
 f2 = 'subdir/../meson.build'
-assert(fs.samefile(f1, f2), 'samefile not realized')
-assert(not fs.samefile(f1, 'subdir/subdirfile.txt'), 'samefile known bad comparison')
+assert(fs.is_samepath(f1, f2), 'is_samepath not detercting same files')
+assert(fs.is_samepath(meson.source_root(), 'subdir/..'), 'is_samepath not detecting same directory')
+assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad comparison')
+assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
 if not is_windows and build_machine.system() != 'cygwin'
-  assert(fs.samefile('a_symlink', 'meson.build'), 'symlink samefile fail')
+  assert(fs.is_samepath('a_symlink', 'meson.build'), 'symlink is_samepath fail')
 endif
 
 assert(fs.parent('foo/bar') == 'foo', 'failed to get dirname')

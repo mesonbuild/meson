@@ -95,19 +95,19 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
-    def samefile(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    def is_samepath(self, state: 'ModuleState', args: typing.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 2:
-            raise MesonException('method takes exactly two arguments.')
+            raise MesonException('fs.is_samepath takes exactly two arguments.')
         file1 = self._resolve_dir(state, args[0])
         file2 = self._resolve_dir(state, args[1])
         if not file1.exists():
-            raise MesonException('{} is not a file, symlink or directory and therefore cannot be compared'.format(file1))
+            return ModuleReturnValue(False, [])
         if not file2.exists():
-            raise MesonException('{} is not a file, symlink or directory and therefore cannot be compared'.format(file2))
+            return ModuleReturnValue(False, [])
         try:
             return ModuleReturnValue(file1.samefile(file2), [])
         except OSError:
-            raise MesonException('{} could not be compared to {}'.format(file1, file2))
+            return ModuleReturnValue(False, [])
 
     @stringArgs
     @noKwargs
