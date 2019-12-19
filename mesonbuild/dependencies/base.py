@@ -1079,6 +1079,7 @@ class CMakeDependency(ExternalDependency):
         self.cmakebin = None
         self.cmakeinfo = None
         self.traceparser = CMakeTraceParser()
+        self.full_find = kwargs.get('cmake_full_find', False)
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
@@ -1297,12 +1298,14 @@ class CMakeDependency(ExternalDependency):
         return False
 
     def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], components: List[str], args: List[str]):
-        # Detect a dependency with CMake using the '--find-package' mode
-        # and the trace output (stderr)
-        #
-        # When the trace output is enabled CMake prints all functions with
-        # parameters to stderr as they are executed. Since CMake 3.4.0
-        # variables ("${VAR}") are also replaced in the trace output.
+        """
+        Detect a dependency with CMake using the '--find-package' mode
+        and the trace output (stderr)
+
+        When the trace output is enabled CMake prints all functions with
+        parameters to stderr as they are executed. Since CMake 3.4.0
+        variables ("${VAR}") are also replaced in the trace output.
+        """
         mlog.debug('\nDetermining dependency {!r} with CMake executable '
                    '{!r}'.format(name, self.cmakebin.executable_path()))
 
@@ -1332,7 +1335,6 @@ class CMakeDependency(ExternalDependency):
 
             # Run CMake
             ret1, out1, err1 = self._call_cmake(cmake_opts, self._main_cmake_file())
-
             # Current generator was successful
             if ret1 == 0:
                 CMakeDependency.class_working_generator = i
@@ -1539,8 +1541,17 @@ project(MesonTemp LANGUAGES {})
         return str(build_dir)
 
     def _call_cmake(self, args, cmake_file: str, env=None):
+        """
+        Get ready to call CMake
+
+        full_find: if True, don't make fake CMake compiler cache files,
+        as this breaks CMake try_compile() needed for some packages
+        """
         build_dir = self._setup_cmake_dir(cmake_file)
-        return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
+        if self.full_find:
+            return self.cmakebin.call(args, build_dir, env=env)
+        else:
+            return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
 
     @staticmethod
     def get_methods():
