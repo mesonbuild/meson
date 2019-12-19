@@ -9,8 +9,13 @@ Non-absolute paths are looked up relative to the directory where the
 current `meson.build` file is.
 
 If specified, a leading `~` is expanded to the user home directory.
+Environment variables are not available as is the rule throughout Meson.
+That is, $HOME, %USERPROFILE%, $MKLROOT, etc. have no meaning to the Meson
+filesystem module. If needed, pass such variables into Meson via command
+line options in `meson_options.txt`, native-file or cross-file.
 
-Where possible, symlinks and parent directory notation are resolved to an absolute path.
+Where possible, symlinks and parent directory notation are resolved to an
+absolute path.
 
 ### exists
 
@@ -42,7 +47,7 @@ Return a boolean indicating if the path string specified is absolute, WITHOUT ex
 Examples:
 
 ```meson
-fs.is_absolute('~')   # false unless you literally have a path with string name `~`
+fs.is_absolute('~')   # false
 
 home = fs.expanduser('~')
 fs.is_absolute(home)  # true
@@ -84,7 +89,7 @@ fs.is_samepath(x, z)  # true
 fs.is_samepath(x, j)  # false
 
 p = 'foo/bar'
-q = 'foo/bar/../baz'
+q = 'foo/bar/baz/..'
 r = 'buz'  # a symlink pointing to foo/bar
 s = 'notapath'  # non-existant directory
 
@@ -92,7 +97,6 @@ fs.is_samepath(p, q)  # true
 fs.is_samepath(p, r)  # true
 fs.is_samepath(p, s)  # false
 ```
-
 
 ## Filename modification
 
