@@ -6,15 +6,15 @@ summarize build configuration at the end of the build process.
 Example:
 ```meson
 project('My Project', version : '1.0')
-summary('Directories', {'bindir': get_option('bindir'),
-                        'libdir': get_option('libdir'),
-                        'datadir': get_option('datadir'),
-                        })
-summary('Configuration', {'Some boolean': false,
-                          'Another boolean': true,
-                          'Some string': 'Hello World',
-                          'A list': ['string', 1, true],
-                          })
+summary({'bindir': get_option('bindir'),
+         'libdir': get_option('libdir'),
+         'datadir': get_option('datadir'),
+        }, section: 'Directories')
+summary({'Some boolean': false,
+         'Another boolean': true,
+         'Some string': 'Hello World',
+         'A list': ['string', 1, true],
+        }, section: 'Configuration')
 ```
 
 Output:

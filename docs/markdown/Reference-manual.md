@@ -1210,8 +1210,6 @@ This function prints its argument to stdout prefixed with WARNING:.
 ``` meson
     void summary(key, value)
     void summary(dictionary)
-    void summary(section_name, key, value)
-    void summary(section_name, dictionary)
 ```
 
 This function is used to summarize build configuration at the end of the build
@@ -1219,32 +1217,32 @@ process. This function provides a way for projects (and subprojects) to report
 this information in a clear way.
 
 The content is a serie of key/value pairs grouped into sections. If the section
-argument is omitted, those key/value pairs are implicitly grouped into a section
+keyword argument is omitted, those key/value pairs are implicitly grouped into a section
 with no title. key/value pairs can optionally be grouped into a dictionary,
-but keep in mind that dictionaries does not guarantee ordering.
-`section_name` and `key` must be strings, `value` can only be lists, integers,
-booleans or strings.
+but keep in mind that dictionaries does not guarantee ordering. `key` must be string,
+`value` can only be integer, boolean, string, or a list of those.
 
-`summary()` can be called multiple times as long as the same section_name/key
+`summary()` can be called multiple times as long as the same section/key
 pair doesn't appear twice. All sections will be collected and printed at
 the end of the configuration in the same order as they have been called.
 
 Keyword arguments:
 - `bool_yn` if set to true, all boolean values will be replaced by green YES
   or red NO.
+- `section` title to group a set of key/value pairs.
 
 Example:
 ```meson
 project('My Project', version : '1.0')
-summary('Directories', {'bindir': get_option('bindir'),
-                        'libdir': get_option('libdir'),
-                        'datadir': get_option('datadir'),
-                        })
-summary('Configuration', {'Some boolean': false,
-                          'Another boolean': true,
-                          'Some string': 'Hello World',
-                          'A list': ['string', 1, true],
-                          })
+summary({'bindir': get_option('bindir'),
+         'libdir': get_option('libdir'),
+         'datadir': get_option('datadir'),
+        }, section: 'Directories')
+summary({'Some boolean': false,
+         'Another boolean': true,
+         'Some string': 'Hello World',
+         'A list': ['string', 1, true],
+        }, section: 'Configuration')
 ```
 
 Output:

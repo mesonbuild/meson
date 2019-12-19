@@ -2887,31 +2887,22 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), argstr)
 
     @noArgsFlattening
-    @permittedKwargs({'bool_yn'})
+    @permittedKwargs({'section', 'bool_yn'})
     @FeatureNew('summary', '0.53.0')
     def func_summary(self, node, args, kwargs):
         if len(args) == 1:
             if not isinstance(args[0], dict):
-                raise InterpreterException('Argument 1 must be a dictionary.')
-            section = ''
+                raise InterpreterException('Summary first argument must be dictionary.')
             values = args[0]
         elif len(args) == 2:
             if not isinstance(args[0], str):
-                raise InterpreterException('Argument 1 must be a string.')
-            if isinstance(args[1], dict):
-                section, values = args
-            else:
-                section = ''
-                values = {args[0]: args[1]}
-        elif len(args) == 3:
-            if not isinstance(args[0], str):
-                raise InterpreterException('Argument 1 must be a string.')
-            if not isinstance(args[1], str):
-                raise InterpreterException('Argument 2 must be a string.')
-            section, key, value = args
-            values = {key: value}
+                raise InterpreterException('Summary first argument must be string.')
+            values = {args[0]: args[1]}
         else:
-            raise InterpreterException('Summary accepts at most 3 arguments.')
+            raise InterpreterException('Summary accepts at most 2 arguments.')
+        section = kwargs.get('section', '')
+        if not isinstance(section, str):
+            raise InterpreterException('Summary\'s section keyword argument must be string.')
         self.summary_impl(section, values, kwargs)
 
     def summary_impl(self, section, values, kwargs):
