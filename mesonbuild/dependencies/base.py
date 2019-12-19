@@ -1484,6 +1484,12 @@ class CMakeDependency(ExternalDependency):
 
                 processed_targets += [curr]
 
+        # some packages like OpenMP don't have everything in imported target
+        for c in components:
+            key = '{}_{}_FLAGS'.format(name, c)
+            if key in self.traceparser.vars:
+                compileOptions += self.traceparser.vars[key]
+
         # Make sure all elements in the lists are unique and sorted
         incDirs = sorted(set(incDirs))
         compileDefinitions = sorted(set(compileDefinitions))
