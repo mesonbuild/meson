@@ -165,6 +165,24 @@ new = fs.replace_suffix(original, '')  # /opt/foo.dll
 
 Returns the parent directory (i.e. dirname).
 
+```meson
+new = fs.parent('foo/bar')  # foo
+new = fs.parent('foo/bar/baz.dll')  # foo/bar
+```
+
 ### name
 
 Returns the last component of the path (i.e. basename).
+
+```meson
+fs.name('foo/bar/baz.dll.a')  # baz.dll.a
+```
+
+### stem
+
+Returns the last component of the path, dropping the last part of the suffix
+
+```meson
+fs.stem('foo/bar/baz.dll')  # baz
+fs.stem('foo/bar/baz.dll.a')  # baz.dll
+```

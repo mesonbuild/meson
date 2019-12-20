@@ -165,7 +165,7 @@ class FSModule(ExtensionModule):
     @noKwargs
     def parent(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            raise MesonException('method takes exactly one argument.')
+            raise MesonException('fs.parent takes exactly one argument.')
         original = PurePath(args[0])
         new = original.parent
         return ModuleReturnValue(str(new), [])
@@ -174,9 +174,18 @@ class FSModule(ExtensionModule):
     @noKwargs
     def name(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
-            raise MesonException('method takes exactly one argument.')
+            raise MesonException('fs.name takes exactly one argument.')
         original = PurePath(args[0])
         new = original.name
+        return ModuleReturnValue(str(new), [])
+
+    @stringArgs
+    @noKwargs
+    def stem(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        if len(args) != 1:
+            raise MesonException('fs.stem takes exactly one argument.')
+        original = PurePath(args[0])
+        new = original.stem
         return ModuleReturnValue(str(new), [])
 
 def initialize(*args, **kwargs) -> FSModule:
