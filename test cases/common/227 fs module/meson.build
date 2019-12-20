@@ -107,7 +107,11 @@ if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
   assert(fs.is_samepath('a_symlink', 'meson.build'), 'symlink is_samepath fail')
 endif
 
+# parts of path
 assert(fs.parent('foo/bar') == 'foo', 'failed to get dirname')
 assert(fs.name('foo/bar') == 'bar', 'failed to get basename')
+assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
+assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
+assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
 
 subdir('subdir')
