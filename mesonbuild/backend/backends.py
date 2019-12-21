@@ -243,19 +243,20 @@ class Backend:
         # target that the GeneratedList is used in
         return os.path.join(self.get_target_private_dir(target), src)
 
-    def get_unity_source_file(self, target, suffix):
+    def get_unity_source_file(self, target, suffix, number):
         # There is a potential conflict here, but it is unlikely that
         # anyone both enables unity builds and has a file called foo-unity.cpp.
-        osrc = target.name + '-unity.' + suffix
+        osrc = '{}-unity{}.{}'.format(target.name, number, suffix)
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
     def generate_unity_files(self, target, unity_src):
         abs_files = []
         result = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
+        unity_size = self.get_option_for_target('unity_size', target)
 
-        def init_language_file(suffix):
-            unity_src = self.get_unity_source_file(target, suffix)
+        def init_language_file(suffix, unity_file_number):
+            unity_src = self.get_unity_source_file(target, suffix, unity_file_number)
             outfileabs = unity_src.absolute_path(self.environment.get_source_dir(),
                                                  self.environment.get_build_dir())
             outfileabs_tmp = outfileabs + '.tmp'
@@ -266,11 +267,23 @@ class Backend:
             result.append(unity_src)
             return open(outfileabs_tmp, 'w')
 
-        # For each language, generate a unity source file and return the list
+        # For each language, generate unity source files and return the list
         for comp, srcs in compsrcs.items():
-            with init_language_file(comp.get_default_suffix()) as ofile:
-                for src in srcs:
-                    ofile.write('#include<%s>\n' % src)
+            files_in_current = unity_size + 1
+            unity_file_number = 0
+            ofile = None
+            for src in srcs:
+                if files_in_current >= unity_size:
+                    if ofile:
+                        ofile.close()
+                    ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
+                    unity_file_number += 1
+                    files_in_current = 0
+                ofile.write('#include<%s>\n' % src)
+                files_in_current += 1
+            if ofile:
+                ofile.close()
+
         [mesonlib.replace_if_different(x, x + '.tmp') for x in abs_files]
         return result
 
@@ -489,16 +502,18 @@ class Backend:
 
         targetdir = self.get_target_private_dir(extobj.target)
 
-        # With unity builds, there's just one object that contains all the
-        # sources, and we only support extracting all the objects in this mode,
-        # so just return that.
+        # With unity builds, sources don't map directly to objects,
+        # we only support extracting all the objects in this mode,
+        # so just return all object files.
         if self.is_unity(extobj.target):
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            for comp in compsrcs.keys():
-                osrc = self.get_unity_source_file(extobj.target,
-                                                  comp.get_default_suffix())
-                sources.append(osrc)
+            unity_size = self.get_option_for_target('unity_size', extobj.target)
+            for comp, srcs in compsrcs.items():
+                for i in range(len(srcs) // unity_size + 1):
+                    osrc = self.get_unity_source_file(extobj.target,
+                                                      comp.get_default_suffix(), i)
+                    sources.append(osrc)
 
         for osrc in sources:
             objname = self.object_filename_from_source(extobj.target, osrc)
