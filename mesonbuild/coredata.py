@@ -96,11 +96,12 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description, min_value, max_value, value, yielding=None):
+    def __init__(self, description, value, yielding=None):
+        min_value, max_value, default_value = value
         super().__init__(description, [True, False], yielding)
         self.min_value = min_value
         self.max_value = max_value
-        self.set_value(value)
+        self.set_value(default_value)
         c = []
         if min_value is not None:
             c.append('>=' + str(min_value))
@@ -127,7 +128,7 @@ class UserIntegerOption(UserOption[int]):
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, int]]):
     def __init__(self, description, value, yielding=None):
-        super().__init__(description, 0, 0o777, value, yielding)
+        super().__init__(description, (0, 0o777, value), yielding)
         self.choices = ['preserve', '0000-0777']
 
     def printable_value(self):
@@ -525,7 +526,7 @@ class CoreData:
                 UserIntegerOption(
                     'Maximum number of linker processes to run or 0 for no '
                     'limit',
-                    0, None, 0)
+                    (0, None, 0))
         elif backend_name.startswith('vs'):
             self.backend_options['backend_startup_project'] = \
                 UserStringOption(
@@ -967,7 +968,7 @@ class BuiltinOption(T.Generic[_T, _U]):
 
     """Class for a builtin option type.
 
-    Currently doesn't support UserIntegerOption, or a few other cases.
+    There are some cases that are not fully supported yet.
     """
 
     def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
