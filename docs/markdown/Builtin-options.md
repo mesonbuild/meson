@@ -82,6 +82,7 @@ Using the option as-is with no prefix affects all machines. For example:
 | stdsplit                             | true          | Split stdout and stderr in test logs                           | no             |
 | strip                                | false         | Strip targets on install                                       | no             |
 | unity {on, off, subprojects}         | off           | Unity build                                                    | no             |
+| unity_size {>=2}                     | 4             | Unity file block size                                          | no             |
 | warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             |
 | werror                               | false         | Treat warnings as errors                                       | no             |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |

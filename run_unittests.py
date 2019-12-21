@@ -5304,9 +5304,9 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '45 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
         simpletest_id = Target.construct_id_from_path('subprojects/sublib', 'simpletest', '@exe')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', simpletest_id, 'simpletest-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', simpletest_id, 'simpletest-unity0.c'))
         sublib_id = Target.construct_id_from_path('subprojects/sublib', 'sublib', '@sha')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', sublib_id, 'sublib-unity.c'))
+        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', sublib_id, 'sublib-unity0.c'))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 
