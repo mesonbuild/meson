@@ -19,9 +19,10 @@ import subprocess
 
 from .. import mlog
 from .. import mesonlib
-from ..mesonlib import split_args
+from ..mesonlib import split_args, listify
 from ..environment import detect_cpu_family
-from .base import DependencyException, ExternalDependency, ExternalProgram, PkgConfigDependency
+from .base import (DependencyException, DependencyMethods, ExternalDependency, ExternalProgram,
+                   PkgConfigDependency)
 
 
 class MPIDependency(ExternalDependency):
@@ -32,6 +33,8 @@ class MPIDependency(ExternalDependency):
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
+        methods = listify(self.methods)
+
         env_vars = []
         default_wrappers = []
         pkgconfig_files = []
@@ -68,9 +71,8 @@ class MPIDependency(ExternalDependency):
         else:
             raise DependencyException('Language {} is not supported with MPI.'.format(language))
 
-        # 1. try pkg-config
-        for pkg in pkgconfig_files:
-            try:
+        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
+            for pkg in pkgconfig_files:
                 pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
                 if pkgdep.found():
                     self.compile_args = pkgdep.get_compile_args()
@@ -79,43 +81,42 @@ class MPIDependency(ExternalDependency):
                     self.is_found = True
                     self.pcdep = pkgdep
                     return
-            except Exception:
-                pass
 
-        # 2. Try environment variables
-        for var in env_vars:
-            if var in os.environ:
-                wrappers = [os.environ[var]]
-                break
-        else:
-            # Or search for default wrappers.
-            wrappers = default_wrappers
+        if DependencyMethods.AUTO in methods:
+            for var in env_vars:
+                if var in os.environ:
+                    wrappers = [os.environ[var]]
+                    break
+            else:
+                # Or search for default wrappers.
+                wrappers = default_wrappers
 
-        for prog in wrappers:
-            # Note: Some use OpenMPI with Intel compilers on Linux
-            result = self._try_openmpi_wrapper(prog, cid)
-            if result is not None:
-                self.is_found = True
-                self.version = result[0]
-                self.compile_args = self._filter_compile_args(result[1])
-                self.link_args = self._filter_link_args(result[2], cid)
-                break
-            result = self._try_other_wrapper(prog, cid)
-            if result is not None:
-                self.is_found = True
-                self.version = result[0]
-                self.compile_args = self._filter_compile_args(result[1])
-                self.link_args = self._filter_link_args(result[2], cid)
-                break
+            for prog in wrappers:
+                # Note: Some use OpenMPI with Intel compilers on Linux
+                result = self._try_openmpi_wrapper(prog, cid)
+                if result is not None:
+                    self.is_found = True
+                    self.version = result[0]
+                    self.compile_args = self._filter_compile_args(result[1])
+                    self.link_args = self._filter_link_args(result[2], cid)
+                    break
+                result = self._try_other_wrapper(prog, cid)
+                if result is not None:
+                    self.is_found = True
+                    self.version = result[0]
+                    self.compile_args = self._filter_compile_args(result[1])
+                    self.link_args = self._filter_link_args(result[2], cid)
+                    break
 
-        if not self.is_found and mesonlib.is_windows():
-            # only Intel Fortran compiler is compatible with Microsoft MPI at this time.
-            if language == 'fortran' and cid != 'intel-cl':
-                return
-            result = self._try_msmpi()
-            if result is not None:
-                self.is_found = True
-                self.version, self.compile_args, self.link_args = result
+            if not self.is_found and mesonlib.is_windows():
+                # only Intel Fortran compiler is compatible with Microsoft MPI at this time.
+                if language == 'fortran' and cid != 'intel-cl':
+                    return
+                result = self._try_msmpi()
+                if result is not None:
+                    self.is_found = True
+                    self.version, self.compile_args, self.link_args = result
+            return
 
     def _filter_compile_args(self, args: typing.Sequence[str]) -> typing.List[str]:
         """
@@ -272,3 +273,7 @@ class MPIDependency(ExternalDependency):
             return (None,
                     ['-I' + incdir, '-I' + os.path.join(incdir, post)],
                     [os.path.join(libdir, 'msmpi.lib')])
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]

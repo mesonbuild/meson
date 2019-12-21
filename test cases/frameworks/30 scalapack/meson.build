@@ -5,7 +5,6 @@ if not mpi_c.found()
   error('MESON_SKIP_TEST: MPI library not available')
 endif
 
-
 scalapack = dependency('scalapack', required: false)
 if not scalapack.found()
   error('MESON_SKIP_TEST: scalapack library not available')
@@ -15,7 +14,7 @@ c_exe = executable('scalapack_c', 'main.c',
   dependencies: [scalapack, mpi_c])
 test('scalapack_c', c_exe, timeout: 30)
 
-if add_languages('fortran')
+if add_languages('fortran', required: false)
   mpi_f = dependency('mpi', language: 'fortran', required: false)
   if not mpi_f.found()
     error('MESON_SKIP_TEST: MPI Fortran library not available')
