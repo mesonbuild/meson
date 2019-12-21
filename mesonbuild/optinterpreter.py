@@ -90,10 +90,9 @@ def ComboParser(description, kwargs):
 def IntegerParser(description, kwargs):
     if 'value' not in kwargs:
         raise OptionException('Integer option must contain value argument.')
+    inttuple = (kwargs.get('min', None), kwargs.get('max', None), kwargs['value'])
     return coredata.UserIntegerOption(description,
-                                      kwargs.get('min', None),
-                                      kwargs.get('max', None),
-                                      kwargs['value'],
+                                      inttuple,
                                       kwargs.get('yield', coredata.default_yielding))
 
 # FIXME: Cannot use FeatureNew while parsing options because we parse it before
