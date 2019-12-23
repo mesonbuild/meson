@@ -61,6 +61,8 @@ class NetCDFDependency(ExternalDependency):
                     self.version = pkgdep.get_version()
                     self.is_found = True
                     self.pcdep.append(pkgdep)
+            if self.is_found:
+                return
 
         if set([DependencyMethods.AUTO, DependencyMethods.CMAKE]).intersection(methods):
             cmakedep = CMakeDependency('NetCDF', environment, kwargs, language=self.language)
