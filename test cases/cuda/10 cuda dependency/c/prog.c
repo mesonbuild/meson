@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 
-int cuda_devices() {
+int cuda_devices(void) {
     int result = 0;
     cudaGetDeviceCount(&result);
     return result;

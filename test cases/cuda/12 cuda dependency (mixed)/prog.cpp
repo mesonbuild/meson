@@ -2,7 +2,7 @@
 #include <cublas_v2.h>
 #include <iostream>
 
-void do_cuda_stuff();
+void do_cuda_stuff(void);
 
 int cuda_devices(void) {
     int result = 0;

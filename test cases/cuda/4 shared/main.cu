@@ -3,7 +3,7 @@
 #include "shared/kernels.h"
 
 
-int main(int argc, char **argv) {
+int main(void) {
     int cuda_devices = 0;
     cudaGetDeviceCount(&cuda_devices);
     if(cuda_devices == 0) {

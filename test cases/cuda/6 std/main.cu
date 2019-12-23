@@ -1,14 +1,14 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-auto cuda_devices() {
+auto cuda_devices(void) {
     int result = 0;
     cudaGetDeviceCount(&result);
     return result;
 }
 
 
-int main() {
+int main(void) {
     int n = cuda_devices();
     if (n == 0) {
         std::cout << "No Cuda hardware found. Exiting.\n";

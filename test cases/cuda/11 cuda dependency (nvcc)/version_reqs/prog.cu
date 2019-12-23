@@ -1,13 +1,13 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-int cuda_devices() {
+int cuda_devices(void) {
     int result = 0;
     cudaGetDeviceCount(&result);
     return result;
 }
 
-int main() {
+int main(void) {
     std::cout << "Compiled against CUDA version: " << CUDART_VERSION << "\n";
     int runtime_version = 0;
     cudaError_t r = cudaRuntimeGetVersion(&runtime_version);
