@@ -33,15 +33,15 @@ remove them.
 
 Every new feature requires some extra steps, namely:
 
- - Must include a project test under `test cases/`, or if that's not
-   possible or if the test requires a special environment, it must go
-   into `run_unittests.py`.
- - Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#feature-detection-based-on-meson_version-in-project)
-   that will warn the user if they try to use a new feature while
-   targeting an older meson version.
- - Needs a release note snippet inside `docs/markdown/snippets/` with
-   a heading and a brief paragraph explaining what the feature does
-   with an example.
+- Must include a project test under `test cases/`, or if that's not
+  possible or if the test requires a special environment, it must go
+  into `run_unittests.py`.
+- Must be registered with the [FeatureChecks framework](Release-notes-for-0.47.0.md#feature-detection-based-on-meson_version-in-project)
+  that will warn the user if they try to use a new feature while
+  targeting an older meson version.
+- Needs a release note snippet inside `docs/markdown/snippets/` with
+  a heading and a brief paragraph explaining what the feature does
+  with an example.
 
 ## Acceptance and merging
 
@@ -68,19 +68,19 @@ require the approval of the project lead.
 
 In a simplified list form the split would look like the following:
 
- - members with commit access can do:
-   - documentation changes (directly to master if warranted)
-   - bug fixes that don't change functionality
-   - refactorings
-   - new dependency types
-   - new tool support (e.g. a new Doxygen-kind of tool)
-   - support for new compilers to existing languages
- - project leader decision is needed for:
-   - new modules
-   - new functions in the Meson language
-   - syntax changes for Meson files
-   - changes breaking backwards compatibility
-   - support for new languages
+- members with commit access can do:
+  - documentation changes (directly to master if warranted)
+  - bug fixes that don't change functionality
+  - refactorings
+  - new dependency types
+  - new tool support (e.g. a new Doxygen-kind of tool)
+  - support for new compilers to existing languages
+- project leader decision is needed for:
+  - new modules
+  - new functions in the Meson language
+  - syntax changes for Meson files
+  - changes breaking backwards compatibility
+  - support for new languages
 
 ## Strategy for merging pull requests to trunk
 
@@ -97,14 +97,14 @@ often requires some judgement on part of the person doing the
 merge. Github provides three different merge options, The rules of
 thumb for choosing between them goes like this:
 
- - single commit pull requests should always be rebased
+- single commit pull requests should always be rebased
 
- - a pull request with one commit and one "fixup" commit (such as
-   testing something to see if it passes CI) should be squashed
+- a pull request with one commit and one "fixup" commit (such as
+  testing something to see if it passes CI) should be squashed
 
- - large branches with many commits should be merged with a merge
-   commit, especially if one of the commits does not pass all tests
-   (which happens in e.g. large and difficult refactorings)
+- large branches with many commits should be merged with a merge
+  commit, especially if one of the commits does not pass all tests
+  (which happens in e.g. large and difficult refactorings)
 
 If in doubt, ask for guidance on IRC.
 
@@ -126,6 +126,17 @@ The tests are split into two different parts: unit tests and full
 project tests. To run all tests, execute `./run_tests.py`. Unit tests
 can be run with `./run_unittests.py` and project tests with
 `./run_project_tests.py`.
+
+Subsets of project tests can be selected with
+`./run_project_tests.py --only` option. This can save a great deal of
+time when only a certain part of Meson is being tested.
+For example, a useful and easy contribution to Meson is making
+sure the full set of compilers is supported. One could for example test
+various Fortran compilers by setting `FC=ifort` or `FC=flang` or similar
+with `./run_project_test.py --only fortran`.
+Some families of tests require a particular backend to run.
+For example, all the CUDA project tests run and pass on Windows via
+`./run_project_tests.py --only cuda --backend ninja`
 
 Each project test is a standalone project that can be compiled on its
 own. They are all in `test cases` subdirectory. The simplest way to
@@ -168,7 +179,7 @@ Continuous integration systems currently used:
 
 To promote consistent naming policy, use:
 
-   - `[skip ci]` in the commit title if you want to disable all integration tests
+- `[skip ci]` in the commit title if you want to disable all integration tests
 
 ## Documentation
 
@@ -225,8 +236,6 @@ those are simple.
 - indent 4 spaces, no tabs ever
 - brace always on the same line as if/for/else/function definition
 
-
-
 ## External dependencies
 
 The goal of Meson is to be as easily usable as possible. The user
@@ -257,8 +266,8 @@ languages. It has inputs, which include `meson.build` files, values of
 options, compilers and so on. These are passed to a function, which
 generates output build definition. This function is pure, which means that:
 
- - for any given input the output is always the same
- - running Meson twice in a row _always_ produce the same output in both runs
+- for any given input the output is always the same
+- running Meson twice in a row _always_ produce the same output in both runs
 
 The latter one is important, because it enforces that there is no way
 for "secret state" to pass between consecutive invocations of
