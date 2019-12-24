@@ -704,7 +704,7 @@ class PkgConfigDependency(ExternalDependency):
             cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
         return cache[(self.pkgbin, targs, fenv)]
 
-    def _convert_mingw_paths(self, args):
+    def _convert_mingw_paths(self, args: List[str]) -> List[str]:
         '''
         Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
         paths so convert them to C:/foo. We cannot resolve other paths starting
@@ -727,7 +727,7 @@ class PkgConfigDependency(ExternalDependency):
             elif arg.startswith('/'):
                 pargs = PurePath(arg).parts
                 tmpl = '{}:/{}'
-            elif arg.startswith(('-L', '-I')) or arg[1] == ':':
+            elif arg.startswith(('-L', '-I')) or (len(arg) > 2 and arg[1] == ':'):
                 # clean out improper '\\ ' as comes from some Windows pkg-config files
                 arg = arg.replace('\\ ', ' ')
             if len(pargs) > 1 and len(pargs[1]) == 1:
