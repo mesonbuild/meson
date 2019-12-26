@@ -410,9 +410,9 @@ class BoostDependency(ExternalDependency):
                     self.libdir = libdir
                     break
                 if lib_sf:
-                    full_path = os.path.join(root, lib_sf)
-                    if os.path.isdir(full_path):
-                        self.libdir = full_path
+                    abs_path = os.path.join(root, lib_sf)
+                    if os.path.isdir(abs_path):
+                        self.libdir = abs_path
                         break
 
         if not self.libdir:

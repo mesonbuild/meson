@@ -510,7 +510,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
         self.methods.update({'found': self.found_method,
-                             'path': self.path_method})
+                             'path': self.abs_path_method})
         self.cached_version = None
 
     @noPosargs
@@ -520,7 +520,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     @noPosargs
     @permittedKwargs({})
-    def path_method(self, args, kwargs):
+    def abs_path_method(self, args, kwargs):
         return self.held_object.get_path()
 
     def found(self):
@@ -769,7 +769,8 @@ class BuildTargetHolder(TargetHolder):
                              'extract_all_objects': self.extract_all_objects_method,
                              'get_id': self.get_id_method,
                              'outdir': self.outdir_method,
-                             'full_path': self.full_path_method,
+                             'full_path': self.abs_path_method,  # deprecated
+                             'path': self.abs_path_method,
                              'private_dir_include': self.private_dir_include_method,
                              })
 
@@ -789,7 +790,7 @@ class BuildTargetHolder(TargetHolder):
 
     @noPosargs
     @permittedKwargs({})
-    def full_path_method(self, args, kwargs):
+    def abs_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
     @noPosargs
@@ -878,7 +879,8 @@ class CustomTargetIndexHolder(InterpreterObject, ObjectHolder):
 class CustomTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
-        self.methods.update({'full_path': self.full_path_method,
+        self.methods.update({'full_path': self.abs_path_method,  # deprecated
+                             'path': self.abs_path_method,
                              })
 
     def __repr__(self):
@@ -888,7 +890,7 @@ class CustomTargetHolder(TargetHolder):
 
     @noPosargs
     @permittedKwargs({})
-    def full_path_method(self, args, kwargs):
+    def abs_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
     def __getitem__(self, index):
