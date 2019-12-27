@@ -1,4 +1,4 @@
-project('Inclusive', 'fortran',
+project('IncludeStatements', 'fortran',
   meson_version: '>= 0.51.1')
 
 hier_exe = executable('include_hierarchy', 'include_hierarchy.f90')

@@ -38,10 +38,10 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 
-FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
+FORTRAN_INCLUDE_PAT = r"^\s*(!\$)?\s*#?include\s*['\"](\S+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
-FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
+FORTRAN_USE_PAT = r"^\s*(!\$)?\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
 if mesonlib.is_windows():
     # FIXME: can't use quote_arg on Windows just yet; there are a number of existing workarounds
@@ -2802,14 +2802,20 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
 
     It makes a number of assumptions, including
 
-    * `use`, `module`, `submodule` name is not on a continuation line
+    * {use,module,submodule} name or include filename is not on a continuation line
+    * files included by `include` do not contain {use,module,submodule}.
+      This would substantially increae difficulty for the non-standard Fortran `include "foo.f90"`,
+      intended for little snippets of code.
 
     Regex
     -----
 
-    * `incre` works for `#include "foo.f90"` and `include "foo.f90"`
-    * `usere` works for legacy and Fortran 2003 `use` statements
-    * `submodre` is for Fortran >= 2008 `submodule`
+    * `incre` works for files with a Fortran filename suffix with statements like
+        * #include "foo.f90"
+        * include "foo.f90"
+        * !$ include "foo.f90"
+    * `usere` works for legacy and Fortran 2003 "use" statements, including OpenMP !$ prefix
+    * `submodre` is for Fortran >= 2008 submodule
     """
 
     incre = re.compile(FORTRAN_INCLUDE_PAT, re.IGNORECASE)
@@ -2823,13 +2829,13 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
             # included files
             incmatch = incre.match(line)
             if incmatch is not None:
-                incfile = srcdir / incmatch.group(1)
+                incfile = srcdir / incmatch.group(2)
                 if incfile.suffix.lower()[1:] in compiler.file_suffixes:
                     mod_files.extend(_scan_fortran_file_deps(incfile, srcdir, dirname, tdeps, compiler))
             # modules
             usematch = usere.match(line)
             if usematch is not None:
-                usename = usematch.group(1).lower()
+                usename = usematch.group(2).lower()
                 if usename == 'intrinsic':  # this keeps the regex simpler
                     continue
                 if usename not in tdeps:
