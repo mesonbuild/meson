@@ -11,7 +11,7 @@ target = hotdoc.generate_doc(
   install: true,
 )
 
-assert(target.config_path() == target.full_path() + '.json',
+assert(target.config_path() == target.path() + '.json',
   'Hotdoc config paths do not match.'
 )
 

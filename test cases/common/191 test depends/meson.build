@@ -19,7 +19,7 @@ test('string dependencies', test_prog,
     # real use case might have some obscure method
     # to find these dependencies, e.g. automatic plugin loading.
     'custom_dep.txt',
-    exe_dep.full_path(),
+    exe_dep.path(),
   ],
   depends : [custom_dep, exe_dep],
   workdir : meson.current_build_dir(),

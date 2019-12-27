@@ -31,7 +31,7 @@ m = custom_target(
   output : 'bob-ct.map',
   depend_files : 'bob.map',
 )
-vflag = '-Wl,--version-script,@0@'.format(m.full_path())
+vflag = '-Wl,--version-script,@0@'.format(m.path())
 
 l = shared_library('bob-ct', ['bob.c', m], link_args : vflag, link_depends : m)
 e = executable('prog-ct', 'prog.c', link_with : l)

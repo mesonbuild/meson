@@ -510,6 +510,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
         self.methods.update({'found': self.found_method,
+                             'full_path': self.abs_path_method,  # deprecated
                              'path': self.abs_path_method})
         self.cached_version = None
 

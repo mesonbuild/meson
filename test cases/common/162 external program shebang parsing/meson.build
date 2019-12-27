@@ -3,7 +3,7 @@ project('shebang parsing', 'c')
 interpreter = executable('aninterp', 'main.c', native : true)
 
 cdata = configuration_data()
-cdata.set('INTRP', interpreter.full_path())
+cdata.set('INTRP', interpreter.path())
 
 f = configure_file(input : 'script.int.in',
                    output : 'script.int',

@@ -4,7 +4,7 @@ copier = executable('copier', 'filecopier.c', native: true)
 
 cg = generator(runner,
     output: ['@BASENAME@.c'],
-    arguments: [copier.full_path(), '@INPUT@', '@OUTPUT@'],
+    arguments: [copier.path(), '@INPUT@', '@OUTPUT@'],
     depends: copier)
 
 test('generatordep',

@@ -13,7 +13,7 @@ dep_file = custom_target('gen_dep',
 
 exe = executable('foo', 'foo.c',
         link_depends: dep_file,
-        c_args: ['-DDEPFILE="' + dep_file.full_path()+ '"'])
+        c_args: ['-DDEPFILE="' + dep_file.path()+ '"'])
 
 # check that dep_file exists, which means that link_depends target ran
 test('runtest', exe)

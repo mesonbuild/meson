@@ -29,8 +29,8 @@ test('test dynamic', exe_dynamic)
 
 if has_static
   test('verify static linking', find_program('verify_static.py'),
-      args: ['--platform=' + host_machine.system(), exe_static.full_path()])
+      args: ['--platform=' + host_machine.system(), exe_static.path()])
 endif
 test('verify dynamic linking', find_program('verify_static.py'),
-    args: ['--platform=' + host_machine.system(), exe_dynamic.full_path()],
+    args: ['--platform=' + host_machine.system(), exe_dynamic.path()],
     should_fail: true)

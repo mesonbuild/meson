@@ -6,5 +6,5 @@ else
     exe = executable('main', 'main.c')
     test_runner = find_program('test_runner.sh')
 
-    test('My Ambiguous Status Test', test_runner, args : [exe.full_path()])
+    test('My Ambiguous Status Test', test_runner, args : [exe.path()])
 endif
