@@ -2229,10 +2229,17 @@ A build target is either an [executable](#executable),
   some source files with custom flags. To use the object file(s)
   in another build target, use the `objects:` keyword argument.
 
-- `full_path()` returns a full path pointing to the result target file.
-  NOTE: In most cases using the object itself will do the same job as
+- `path()` returns a full path pointing to the result target file.
+  **NOTE:** In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
+  One exception is explicitly concatenating the path with another
+  string; e.g., to set a var such as `shell_var = 'SHELL=' +
+  ksh.path()` that will be used to modify the environment of an external
+  program.
+
+- `full_path()` is an alias for `path()` but is deprecated and should not be
+  used. It may be removed at some future date.
 
 - `private_dir_include()` returns a opaque value that works like
   `include_directories` but points to the private directory of this
@@ -2283,10 +2290,17 @@ cause a syntax error.
 This object is returned by [`custom_target`](#custom_target) and
 contains a target with the following methods:
 
-- `full_path()` returns a full path pointing to the result target file
-  NOTE: In most cases using the object itself will do the same job as
+- `path()` returns a full path pointing to the result target file
+  **NOTE:** In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
+  One exception is explicitly concatenating the path with another
+  string; e.g., to set a var such as `shell_var = 'SHELL=' +
+  ksh.path()` that will be used to modify the environment of an external
+  program.
+
+- `full_path()` is an alias for `path()` but is deprecated and should not be
+  used. It may be removed at some future date.
 
 - `[index]` returns an opaque object that references this target, and
   can be used as a source in other targets. When it is used as such it
@@ -2392,7 +2406,14 @@ and has the following methods:
 
 - `path()` which returns a string pointing to the script or executable
   **NOTE:** You should not need to use this method. Passing the object
-  itself should work in all cases. For example: `run_command(obj, arg1, arg2)`
+  itself should work in all cases. For example: `run_command(obj, arg1, arg2)`.
+  One exception is explicitly concatenating the path with another
+  string; e.g., to set a var such as `shell_var = 'SHELL=' +
+  ksh.path()` that will be used to modify the environment of an external
+  program.
+
+- `full_path()` is an alias for `path()` but is deprecated and should not be
+  used. It may be removed at some future date.
 
 ### `environment` object
 
