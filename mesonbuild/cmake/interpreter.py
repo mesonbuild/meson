@@ -301,6 +301,72 @@ class ConverterTarget:
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
                 self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
                 self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
+
+            # TODO refactor this copy paste from CMakeDependency for future releases
+            reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-l?pthread)$')
+            to_process = [self.cmake_name]
+            processed = []
+            while len(to_process) > 0:
+                curr = to_process.pop(0)
+
+                if curr in processed or curr not in trace.targets:
+                    continue
+
+                tgt = trace.targets[curr]
+                cfgs = []
+                cfg = ''
+                otherDeps = []
+                libraries = []
+                mlog.debug(tgt)
+
+                if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
+                    self.public_compile_opts += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
+
+                if 'INTERFACE_COMPILE_OPTIONS' in tgt.properties:
+                    self.public_compile_opts += [x for x in tgt.properties['INTERFACE_COMPILE_OPTIONS'] if x]
+
+                if 'IMPORTED_CONFIGURATIONS' in tgt.properties:
+                    cfgs += [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
+                    cfg = cfgs[0]
+
+                if 'CONFIGURATIONS' in tgt.properties:
+                    cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
+                    cfg = cfgs[0]
+
+                if 'RELEASE' in cfgs:
+                    cfg = 'RELEASE'
+
+                if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
+                elif 'IMPORTED_IMPLIB' in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
+                elif 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION_{}'.format(cfg)] if x]
+                elif 'IMPORTED_LOCATION' in tgt.properties:
+                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
+
+                if 'LINK_LIBRARIES' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['LINK_LIBRARIES'] if x]
+
+                if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
+
+                if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)] if x]
+                elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
+
+                for j in otherDeps:
+                    if j in trace.targets:
+                        to_process += [j]
+                    elif reg_is_lib.match(j) or os.path.exists(j):
+                        libraries += [j]
+
+                for j in libraries:
+                    if j not in self.link_libraries:
+                        self.link_libraries += [j]
+
+                processed += [curr]
         elif self.type.upper() not in ['EXECUTABLE', 'OBJECT_LIBRARY']:
             mlog.warning('CMake: Target', mlog.bold(self.cmake_name), 'not found in CMake trace. This can lead to build errors')
 

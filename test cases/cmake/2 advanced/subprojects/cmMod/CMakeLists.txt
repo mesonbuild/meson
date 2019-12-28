@@ -10,7 +10,8 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR} ${CM
 set(CONFIG_OPT 42)
 configure_file("config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 
-add_library(cmModLib SHARED lib/cmMod.cpp)
+add_library(cmModLib       SHARED lib/cmMod.cpp)
+add_library(cmModLibStatic STATIC lib/cmMod.cpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
@@ -18,7 +19,10 @@ set_target_properties(cmModLib PROPERTIES VERSION 1.0.1)
 
 add_executable(testEXE main.cpp)
 
-target_link_libraries(cmModLib ZLIB::ZLIB)
+target_link_libraries(cmModLib       ZLIB::ZLIB)
+target_link_libraries(cmModLibStatic ZLIB::ZLIB)
 target_link_libraries(testEXE cmModLib)
+
+target_compile_definitions(cmModLibStatic PUBLIC CMMODLIB_STATIC_DEFINE)
 
 install(TARGETS cmModLib testEXE LIBRARY DESTINATION lib RUNTIME DESTINATION bin)

@@ -89,6 +89,7 @@ class CMakeTraceParser:
             'target_compile_definitions': self._cmake_target_compile_definitions,
             'target_compile_options': self._cmake_target_compile_options,
             'target_include_directories': self._cmake_target_include_directories,
+            'target_link_libraries': self._cmake_target_link_libraries,
             'target_link_options': self._cmake_target_link_options,
             'add_dependencies': self._cmake_add_dependencies,
         }
@@ -432,6 +433,10 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_options.html
         self._parse_common_target_options('target_link_options', 'LINK_OPTIONS', 'INTERFACE_LINK_OPTIONS', tline)
 
+    def _cmake_target_link_libraries(self, tline: CMakeTraceLine) -> None:
+        # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
+        self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
+
     def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: Optional[List[str]] = None, paths: bool = False):
         if ignore is None:
             ignore = ['BEFORE']
@@ -453,14 +458,14 @@ class CMakeTraceParser:
             if i in ignore:
                 continue
 
-            if i in ['INTERFACE', 'PUBLIC', 'PRIVATE']:
+            if i in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'PRIVATE', 'LINK_PUBLIC', 'LINK_PRIVATE']:
                 mode = i
                 continue
 
-            if mode in ['INTERFACE', 'PUBLIC']:
+            if mode in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC']:
                 interface += [i]
 
-            if mode in ['PUBLIC', 'PRIVATE']:
+            if mode in ['PUBLIC', 'PRIVATE', 'LINK_PRIVATE']:
                 private += [i]
 
         if paths:
