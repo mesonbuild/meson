@@ -581,7 +581,7 @@ def skippable(suite, test):
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
-def skip_csharp(backend):
+def skip_csharp(backend) -> bool:
     if backend is not Backend.ninja:
         return True
     if not shutil.which('resgen'):
@@ -671,6 +671,7 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
         ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
         ('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
+        # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
         ('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         ('python3', 'python3', backend is not Backend.ninja),
         ('python', 'python', backend is not Backend.ninja),

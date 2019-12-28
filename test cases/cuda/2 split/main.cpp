@@ -1,7 +1,7 @@
 #include<iostream>
 
-int do_cuda_stuff();
+int do_cuda_stuff(void);
 
-int main(int argc, char **argv) {
+int main(void) {
   return do_cuda_stuff();
 }

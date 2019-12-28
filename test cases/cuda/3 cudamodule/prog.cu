@@ -1,6 +1,6 @@
 #include <iostream>
 
-int main(int argc, char **argv) {
+int main(void) {
     int cuda_devices = 0;
     std::cout << "CUDA version: " << CUDART_VERSION << "\n";
     cudaGetDeviceCount(&cuda_devices);
