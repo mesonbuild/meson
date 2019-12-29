@@ -7,7 +7,17 @@ fs = import('fs')
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 
-if not is_windows and build_machine.system() != 'cygwin'
+# When one creates a source release with sdist, Python
+# does not store symlinks in the archive as native symlinks.
+# Thus the extracted archive does not contain them either.
+# Sadly this means that we can only execute the symlink test when
+# running from a git checkout because otherwise we'd need to
+# do postprocessing on the generated archive before actual release.
+# That is both nonstandard an error prone and having symlinks in
+# the archive would probably break on Windows anyway.
+is_git_checkout = fs.exists('../../../.git')
+
+if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
   assert(fs.is_symlink('a_symlink'), 'Symlink not detected.')
   assert(not fs.is_symlink('meson.build'), 'Regular file detected as symlink.')
 endif
