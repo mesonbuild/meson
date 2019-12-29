@@ -88,13 +88,15 @@ test('{test_name}', test_exe)
 # Make this library usable from the Dlang
 # build system.
 dlang_mod = import('dlang')
-dlang_mod.generate_dub_file(meson.project_name().to_lower(), meson.source_root(),
-  name : meson.project_name(),
-  license: meson.project_license(),
-  sourceFiles : '{source_file}',
-  description : 'Meson sample project.',
-  version : '{version}',
-)
+if find_program('dub', required: false).found()
+  dlang_mod.generate_dub_file(meson.project_name().to_lower(), meson.source_root(),
+    name : meson.project_name(),
+    license: meson.project_license(),
+    sourceFiles : '{source_file}',
+    description : 'Meson sample project.',
+    version : '{version}',
+  )
+endif
 '''
 
 def create_exe_d_sample(project_name, project_version):
