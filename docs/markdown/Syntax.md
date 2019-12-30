@@ -560,6 +560,19 @@ The only exception is that nested ternary operators are forbidden to
 improve legibility. If your branching needs are more complex than this
 you need to write an `if/else` construct.
 
+Null-Coalescing operator
+--
+
+The null-coalescing operator works just like in C# language.
+
+```meson
+x = condition_value ?? false_value
+```
+
+The only exception is that null-coalescing operators are forbidden to
+improve legibility. If your branching needs are more complex than this
+you need to write an `if/else` construct or `ternary` operator.
+
 Includes
 --
 

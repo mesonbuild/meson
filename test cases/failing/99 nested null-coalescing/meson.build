@@ -1,0 +1,5 @@
+project('null-coalescing', 'c')
+
+one = true ?? (false ?? 1)
+two = false ?? (true ?? 1)
+three = false ?? (false ?? 1)

@@ -179,6 +179,11 @@ class AstPrinter(AstVisitor):
         self.append_padded(':', node)
         node.falseblock.accept(self)
 
+    def visit_NullCoalescingNode(self, node: mparser.NullCoalescingNode):
+        node.left.accept(self)
+        self.append_padded('??', node)
+        node.right.accept(self)
+
     def visit_ArgumentNode(self, node: mparser.ArgumentNode):
         break_args = (len(node.arguments) + len(node.kwargs)) > self.arg_newline_cutoff
         for i in node.arguments + list(node.kwargs.values()):

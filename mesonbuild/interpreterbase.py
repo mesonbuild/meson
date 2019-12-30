@@ -477,6 +477,8 @@ class InterpreterBase:
             return self.evaluate_indexing(cur)
         elif isinstance(cur, mparser.TernaryNode):
             return self.evaluate_ternary(cur)
+        elif isinstance(cur, mparser.NullCoalescingNode):
+            return self.evaluate_nullcoalescing(cur)
         elif isinstance(cur, mparser.ContinueNode):
             raise ContinueRequest()
         elif isinstance(cur, mparser.BreakNode):
@@ -685,6 +687,16 @@ The result of this is undefined and will become a hard error in a future Meson r
             return self.evaluate_statement(node.trueblock)
         else:
             return self.evaluate_statement(node.falseblock)
+
+    def evaluate_nullcoalescing(self, node):
+        assert(isinstance(node, mparser.NullCoalescingNode))
+        result = self.evaluate_statement(node.left)
+        if is_disabler(result):
+            return result
+        if result:
+            return result
+        else:
+            return self.evaluate_statement(node.right)
 
     def evaluate_foreach(self, node):
         assert(isinstance(node, mparser.ForeachClauseNode))

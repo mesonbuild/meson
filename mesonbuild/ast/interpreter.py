@@ -32,6 +32,7 @@ from ..mparser import (
     MethodNode,
     PlusAssignmentNode,
     TernaryNode,
+    NullCoalescingNode,
 )
 
 import os, sys
@@ -182,6 +183,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.evaluate_statement(node.condition)
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
+
+    def evaluate_nullcoalescing(self, node):
+        assert isinstance(node, NullCoalescingNode)
+        self.evaluate_statement(node.leftblock)
+        self.evaluate_statement(node.rightblock)
 
     def evaluate_plusassign(self, node):
         assert(isinstance(node, PlusAssignmentNode))

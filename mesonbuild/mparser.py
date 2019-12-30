@@ -126,6 +126,7 @@ class Lexer:
             ('lt', re.compile(r'<')),
             ('ge', re.compile(r'>=')),
             ('gt', re.compile(r'>')),
+            ('doublequestionmark', re.compile(r'\?\?')),
             ('questionmark', re.compile(r'\?')),
         ]
 
@@ -419,6 +420,14 @@ class TernaryNode(BaseNode):
         self.trueblock = trueblock
         self.falseblock = falseblock
 
+class NullCoalescingNode(BaseNode):
+    def __init__(self, subdir, lineno, colno, left, right):
+        self.subdir = subdir
+        self.lineno = lineno
+        self.colno = colno
+        self.left = left
+        self.right = right
+
 class ArgumentNode(BaseNode):
     def __init__(self, token):
         self.lineno = token.lineno
@@ -491,6 +500,7 @@ class Parser:
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.getsym()
         self.in_ternary = False
+        self.in_null_coalescing = False
 
     def getsym(self):
         try:
@@ -538,6 +548,14 @@ class Parser:
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
             return AssignmentNode(left.subdir, left.lineno, left.colno, left.value, value)
+        elif self.accept('doublequestionmark'):
+            if self.in_null_coalescing:
+                raise ParseException('Nested null-coalescing operators are not allowed.',
+                                     self.getline(), left.lineno, left.colno)
+            self.in_null_coalescing = True
+            right = self.e1()
+            self.in_null_coalescing = False
+            return NullCoalescingNode(left.subdir, left.lineno, left.colno, left, right)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
