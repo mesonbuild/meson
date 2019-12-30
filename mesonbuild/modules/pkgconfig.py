@@ -256,8 +256,12 @@ class PkgConfigModule(ExtensionModule):
             prefix = prefix.as_posix()
         if isinstance(subdir, PurePath):
             subdir = subdir.as_posix()
-        if subdir.startswith(prefix):
-            subdir = subdir.replace(prefix, '')
+        try:
+            if os.path.commonpath([prefix, subdir]) == prefix:
+                skip = len(prefix) + 1
+                subdir = subdir[skip:]
+        except ValueError:
+            pass
         return subdir
 
     def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
