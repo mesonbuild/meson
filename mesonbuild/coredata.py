@@ -477,7 +477,10 @@ class CoreData:
 
         .as_posix() keeps the posix-like file seperators Meson uses.
         '''
-        value = PurePath(value)
+        try:
+            value = PurePath(value)
+        except TypeError:
+            return value
         if option.endswith('dir') and value.is_absolute() and \
            option not in builtin_dir_noprefix_options:
             # Value must be a subdir of the prefix
