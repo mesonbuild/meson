@@ -1772,16 +1772,25 @@ class AllPlatformTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         # libdir being inside prefix is ok
-        args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
+        if is_windows():
+            args = ['--prefix', 'x:/opt', '--libdir', 'x:/opt/lib32']
+        else:
+            args = ['--prefix', '/opt', '--libdir', '/opt/lib32']
         self.init(testdir, extra_args=args)
         self.wipe()
         # libdir not being inside prefix is not ok
-        args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
+        if is_windows():
+            args = ['--prefix', 'x:/usr', '--libdir', 'x:/opt/lib32']
+        else:
+            args = ['--prefix', '/usr', '--libdir', '/opt/lib32']
         self.assertRaises(subprocess.CalledProcessError, self.init, testdir, extra_args=args)
         self.wipe()
         # libdir must be inside prefix even when set via mesonconf
         self.init(testdir)
-        self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
+        if is_windows():
+            self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=x:/opt', False)
+        else:
+            self.assertRaises(subprocess.CalledProcessError, self.setconf, '-Dlibdir=/opt', False)
 
     def test_prefix_dependent_defaults(self):
         '''
