@@ -41,6 +41,7 @@ Installation options are all relative to the prefix, except:
 | sbindir                              | sbin          | System executable directory |
 | sharedstatedir                       | com           | Architecture-independent data directory |
 | sysconfdir                           | etc           | Sysconf data directory |
+| runstatedir                          | run           | Runtime data directory |
 
 
 `prefix` defaults to `C:/` on Windows, and `/usr/local/` otherwise. You should always

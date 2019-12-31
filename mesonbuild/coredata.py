@@ -1022,6 +1022,7 @@ builtin_options = OrderedDict([
     ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
     ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
     ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+    ('runstatedir',     BuiltinOption(UserStringOption, 'Runtime data directory', 'run')),
     # Core options
     ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
