@@ -1750,7 +1750,8 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/1345
         '''
         testdir = os.path.join(self.common_test_dir, '90 default options')
-        prefix = '/someabs'
+        # on Windows, /someabs is *not* an absolute path
+        prefix = 'x:/someabs' if is_windows() else '/someabs'
         libdir = 'libdir'
         extra_args = ['--prefix=' + prefix,
                       # This can just be a relative path, but we want to test

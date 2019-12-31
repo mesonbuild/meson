@@ -474,6 +474,8 @@ class CoreData:
 
         This way everyone can do f.ex, get_option('libdir') and be sure to get
         the library directory relative to prefix.
+
+        .as_posix() keeps the posix-like file seperators Meson uses.
         '''
         value = PurePath(value)
         if option.endswith('dir') and value.is_absolute() and \
@@ -493,7 +495,7 @@ class CoreData:
                 raise MesonException(msg.format(option, value, prefix))
             if '..' in str(value):
                 raise MesonException(msg.format(option, value, prefix))
-        return str(value)
+        return value.as_posix()
 
     def init_builtins(self):
         # Create builtin options with default values
