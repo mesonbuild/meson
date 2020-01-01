@@ -466,7 +466,7 @@ class CoreData:
                 prefix = prefix[:-1]
         return prefix
 
-    def sanitize_dir_option_value(self, prefix: str, option: str, value: PurePath) -> str:
+    def sanitize_dir_option_value(self, prefix: str, option: str, value: Any) -> Any:
         '''
         If the option is an installation directory option and the value is an
         absolute path, check that it resides within prefix and return the value
