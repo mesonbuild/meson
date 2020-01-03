@@ -111,6 +111,14 @@ C_FUNC_ATTRIBUTES = {
     'weakref': '''
         static int foo(void) { return 0; }
         static int var(void) __attribute__((weakref("foo")));''',
+    'tls_model:global-dynamic':
+        '__thread int i __attribute__((tls_model("global-dynamic")));',
+    'tls_model:local-dynamic':
+        '__thread int i __attribute__((tls_model("local-dynamic")));',
+    'tls_model:initial-exec':
+        '__thread int i __attribute__((tls_model("initial-exec")));',
+    'tls_model:local-exec':
+        '__thread int i __attribute__((tls_model("local-exec")));',
 }
 
 CXX_FUNC_ATTRIBUTES = {
