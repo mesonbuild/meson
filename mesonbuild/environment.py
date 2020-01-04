@@ -679,7 +679,7 @@ class Environment:
             if d != '#define':
                 continue
             if len(rest) == 1:
-                defines[rest] = True
+                defines[rest[0]] = True
             if len(rest) == 2:
                 defines[rest[0]] = rest[1]
         return defines
