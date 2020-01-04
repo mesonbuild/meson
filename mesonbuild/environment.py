@@ -1041,6 +1041,7 @@ class Environment:
                     target, linker=linker)
             if 'PGI Compilers' in out:
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = PGIDynamicLinker(compiler, for_machine, 'pgi', cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
@@ -1191,10 +1192,11 @@ class Environment:
                         exe_wrap, full_version=full_version)
 
                 if 'PGI Compilers' in out:
-                    linker = PGIDynamicLinker(
-                        compiler, for_machine, 'pgi',
-                        PGIFortranCompiler.LINKER_PREFIX, [], version=version)
-                    return PGIFortranCompiler(
+                    cls = PGIFortranCompiler
+                    self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                    linker = PGIDynamicLinker(compiler, for_machine, 'pgi',
+                                              cls.LINKER_PREFIX, [], version=version)
+                    return cls(
                         compiler, version, for_machine, is_cross, info, exe_wrap,
                         full_version=full_version, linker=linker)
 
