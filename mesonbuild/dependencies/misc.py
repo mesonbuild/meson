@@ -557,3 +557,26 @@ class ShadercDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
+
+class CursesDependency(ExternalDependency):
+    def __init__(self, environment, kwargs):
+        super().__init__('curses', environment, None, kwargs)
+        self.name = 'curses'
+        self.is_found = False
+        methods = listify(self.methods)
+
+        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
+            pkgconfig_files = ['ncurses', 'ncursesw']
+            for pkg in pkgconfig_files:
+                pkgdep = PkgConfigDependency(pkg, environment, kwargs)
+                if pkgdep.found():
+                    self.compile_args = pkgdep.get_compile_args()
+                    self.link_args = pkgdep.get_link_args()
+                    self.version = pkgdep.get_version()
+                    self.is_found = True
+                    self.pcdep = pkgdep
+                    return
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
