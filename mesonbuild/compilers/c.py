@@ -146,7 +146,7 @@ class EmscriptenCCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsComp
 
 class ArmclangCCompiler(ArmclangCompiler, CCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', is_cross, exe_wrapper=None, **kwargs):
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
                            info, exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self)

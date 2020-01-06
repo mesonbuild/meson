@@ -26,7 +26,7 @@ ar = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armar'
 
 [properties]
 
-#c_args = ['--target=aarch64-arm-none-eabi']
+c_args = ['--target=aarch64-arm-none-eabi']
 
 [host_machine]
 system = 'baremetal'
