@@ -837,8 +837,8 @@ class Environment:
                 v = search_version(o)
 
             linker = LLVMDynamicLinker(compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)
-        # first is for apple clang, second is for real gcc
-        elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e:
+        # first is for apple clang, second is for real gcc, the third is icc
+        elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
             if isinstance(comp_class.LINKER_PREFIX, str):
                 _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args)
             else:
@@ -1054,10 +1054,7 @@ class Environment:
                     info, exe_wrap, linker=linker)
             if '(ICC)' in out:
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
-                if self.machines[for_machine].is_darwin():
-                    l = AppleDynamicLinker(compiler, for_machine, 'APPLE ld', cls.LINKER_PREFIX, [], version=version)
-                else:
-                    l = self._guess_nix_linker(compiler, cls, for_machine)
+                l = self._guess_nix_linker(compiler, cls, for_machine)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=l)
