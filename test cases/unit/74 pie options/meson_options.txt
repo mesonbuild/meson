@@ -1,0 +1,9 @@
+option(
+  'pie_bool',
+  type : 'boolean'
+)
+option(
+  'pie_str',
+  type : 'string',
+  value : '',
+)

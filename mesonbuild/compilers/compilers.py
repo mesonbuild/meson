@@ -255,8 +255,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                                                      ['true', 'false', 'if-release'], 'false'),
                 'b_staticpic': coredata.UserBooleanOption('Build static libraries as position independent',
                                                           True),
-                'b_pie': coredata.UserBooleanOption('Build executables as position independent',
-                                                    False),
+                'b_pie': coredata.UserComboOption('Build executables as position independent',
+                                                  ['true', 'false', 'default'],
+                                                  'default'),
                 'b_bitcode': coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)',
                                                         False),
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
@@ -319,6 +320,7 @@ def get_base_compile_args(options, compiler):
             pass
     except KeyError:
         pass
+
     return args
 
 def get_base_link_args(options, linker, is_shared_module):
@@ -1058,12 +1060,17 @@ class Compiler:
         m = 'Language {} does not support position-independent code'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_args(self):
-        m = 'Language {} does not support position-independent executable'
-        raise EnvironmentException(m.format(self.get_display_language()))
+    def get_pie_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        """Get arguments for pie.
 
-    def get_pie_link_args(self) -> T.List[str]:
-        return self.linker.get_pie_args()
+        If enabled is true then the arguments will enable pie explicitly, if
+        it's false they'll disable it. IF it is None, then nothing will be
+        done, and you will get the compiler default.
+        """
+        return []
+
+    def get_pie_link_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        return self.linker.get_pie_args(enabled)
 
     def get_argument_syntax(self):
         """Returns the argument family type.

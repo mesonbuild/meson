@@ -208,6 +208,12 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self):
         return ['-lgfortran', '-lm']
 
+    def get_pie_link_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        # On macOS gfortran only has a -pie argument, not -no-pie or -no_pie
+        if not enabled and self.info.is_darwin():
+            return []
+        return super().get_pie_link_args(enabled)
+
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,

@@ -4451,6 +4451,14 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         # passed to library() when default_library == 'static'.
         kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
 
+        p = kwargs.get('pie')
+        if p is not None:
+            if p == 'default':
+                FeatureNew('Executable pie "default" argument', '0.54.0').use(self.subproject)
+            elif not isinstance(p, bool):
+                raise InterpreterException(
+                    'pie argument must be a boolean or the string "default"')
+
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
         target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs, self.environment, kwargs)
 

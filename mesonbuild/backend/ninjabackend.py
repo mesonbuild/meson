@@ -2348,8 +2348,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
                 commands += linker.gen_import_library_args(self.get_import_filename(target))
-            if target.pie:
-                commands += linker.get_pie_link_args()
+            commands += linker.get_pie_link_args(target.pie)
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
                 options = self.environment.coredata.base_options

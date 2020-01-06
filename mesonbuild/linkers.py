@@ -327,12 +327,11 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_std_shared_module_args(self, options: 'OptionDictType') -> T.List[str]:
         return self.get_std_shared_lib_args()
 
-    def get_pie_args(self) -> T.List[str]:
-        # TODO: this really needs to take a boolean and return the args to
-        # disable pie, otherwise it only acts to enable pie if pie *isn't* the
-        # default.
-        m = 'Linker {} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+    def get_pie_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        if enabled:
+            m = 'Linker {} does not support position-independent executable'
+            raise mesonlib.EnvironmentException(m.format(self.id))
+        return []
 
     def get_lto_args(self) -> T.List[str]:
         return []
@@ -454,8 +453,12 @@ class GnuLikeDynamicLinkerMixin:
         # _BUILDTYPE_ARGS value.
         return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
 
-    def get_pie_args(self) -> T.List[str]:
-        return ['-pie']
+    def get_pie_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        if enabled is None:
+            return []
+        elif enabled:
+            return ['-pie']
+        return ['-no-pie']
 
     def get_asneeded_args(self) -> T.List[str]:
         return self._apply_prefix('--as-needed')
@@ -589,8 +592,12 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_std_shared_module_args(self, options: 'OptionDictType') -> T.List[str]:
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
-    def get_pie_args(self) -> T.List[str]:
-        return ['-pie']
+    def get_pie_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        if enabled is None:
+            return []
+        elif enabled:
+            return ['-pie']
+        return ['-no_pie']
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         result = []  # type: T.List[str]

@@ -1462,6 +1462,7 @@ class BasePlatformTests(unittest.TestCase):
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
+        self.d_test_dir = os.path.join(src_root, 'test cases/d')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
@@ -4461,6 +4462,42 @@ recommended as it is not supported on some platforms''')
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
         self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+
+    def test_pie_options_script(self):
+        """Test valid and invalid pie options from meson language."""
+        testdir = os.path.join(self.unit_test_dir, '74 pie options')
+
+        # valid cases
+        for e in ['-Dpie_bool=true', '-Dpie_bool=false', '-Dpie_str=default']:
+            self.init(testdir, extra_args=[e])
+            self.wipe()
+
+        # invalid cases
+        for e in ['-Dpie_str=true', '-Dpie_str=false', '-Dpie_str=random']:
+            with self.assertRaises(Exception):
+                self.init(testdir, extra_args=[e])
+
+    def test_pie_options_cmdline(self):
+        """Test valid and invalid pie options from cmd line."""
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+
+        for e in ['-Db_pie=true', '-Db_pie=false', '-Db_pie=default']:
+            self.init(testdir, extra_args=[e])
+            self.wipe()
+
+        # This test only works with a compiler that supports b_pie, don't run
+        # it otherwise
+        env = get_fake_env()
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if 'b_pie' in cc.base_options:
+            with self.assertRaises(Exception):
+                self.init(testdir, extra_args=['-Db_pie=foo'])
+
+    @skip_if_not_language('d')
+    def test_pie_with_non_pie_language(self):
+        testdir = os.path.join(self.d_test_dir, '5 mixed')
+        self.init(testdir, extra_args=['-Db_pie=true'])
+        self.build()
 
 
 class FailureTests(BasePlatformTests):

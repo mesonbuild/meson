@@ -94,9 +94,9 @@ class BasicLinkerIsCompilerMixin:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support allow undefined'.format(self.id))
 
-    def get_pie_link_args(self) -> T.List[str]:
-        m = 'Linker {} does not support position-independent executable'
-        raise mesonlib.EnvironmentException(m.format(self.id))
+    def get_pie_link_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        """Get linker pie arguments."""
+        return []
 
     def get_undefined_link_args(self) -> T.List[str]:
         return []

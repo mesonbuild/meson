@@ -127,11 +127,16 @@ platforms or with all compilers:
 | b_pgo       | off           | off, generate, use      | Use profile guided optimization |
 | b_sanitize  | none          | see below               | Code sanitizer to use |
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
-| b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
+| b_pie       | default       | true, false, default*   | Build position-independent executables (since 0.49.0)|
 | b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype | VS runtime library to use (since 0.48.0) |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
+
+\* Since 0.54.0 false means "turn off explicitly" and default means "compiler
+default", before 0.54.0 false meant "compiler default". The default value has
+also changed so that the behavior remains unchanged if -Db_pie is unset, but
+using false will now actually turn pie off.
 
 ### Notes about Apple Bitcode support
 

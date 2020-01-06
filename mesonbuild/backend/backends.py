@@ -622,8 +622,9 @@ class Backend:
         # Set -fPIC for static libraries by default unless explicitly disabled
         if isinstance(target, build.StaticLibrary) and target.pic:
             commands += compiler.get_pic_args()
-        if isinstance(target, build.Executable) and target.pie:
-            commands += compiler.get_pie_args()
+        if isinstance(target, build.Executable):
+            if 'b_pie' in compiler.base_options:
+                commands += compiler.get_pie_args(target.pie)
         # Add compile args needed to find external dependencies. Link args are
         # added while generating the link command.
         # NOTE: We must preserve the order in which external deps are

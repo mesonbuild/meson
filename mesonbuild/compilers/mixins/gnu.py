@@ -154,8 +154,19 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             return [] # On Window and OS X, pic is always on.
         return ['-fPIC']
 
-    def get_pie_args(self) -> T.List[str]:
-        return ['-fPIE']
+    def get_pie_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        if enabled:
+            return ['-fPIE']
+        return []
+
+    def get_pie_link_args(self, enabled: T.Optional[bool]) -> T.List[str]:
+        # GCC-esque compilers like clang take -no-pie, even on macos, where the
+        # linker takes -no_pie instead.
+        if enabled is None:
+            return []
+        elif enabled:
+            return ['-pie']
+        return ['-no-pie']
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return gnulike_buildtype_args[buildtype]

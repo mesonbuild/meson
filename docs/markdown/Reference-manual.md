@@ -646,7 +646,10 @@ be passed to [shared and static libraries](#library).
 - `d_unittest`, when set to true, the D modules are compiled in debug mode
 - `d_module_versions` list of module version identifiers set when compiling D sources
 - `d_debug` list of module debug identifiers set when compiling D sources
-- `pie` *(added 0.49.0)* build a position-independent executable
+- `pie` *(added 0.49.0)* build a position-independent executable. Before 0.54.0
+  `true` would force pie off, and `false` would use the compiler default. In
+  0.54.0 This changed so that `false` forces pie off and `'default'` or unset
+  is compiler default.
 - `native`, is a boolean controlling whether the target is compiled for the
   build or host machines. Defaults to false, building for the host machine.
 

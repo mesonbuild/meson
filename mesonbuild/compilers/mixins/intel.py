@@ -49,6 +49,11 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     debugoptimized: -g -O2
     release: -O3
     minsize: -O2
+
+    The Linux help claims that icc only supports -pie and -no_pie, the macOS
+    documentation claims that it only supports -pie and -no-pie. As far as I
+    can tell both work in both places, so we inherit the GnuLikeCompiler
+    implementation.
     """
 
     BUILD_ARGS = {
@@ -124,6 +129,12 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_pie_args(self, enabled: bool) -> T.List[str]:
+        # on macOS icc doesn't understand -fPIE and emits a warning.
+        if self.info.is_darwin():
+            return []
+        return super().get_pie_args(enabled)
 
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
