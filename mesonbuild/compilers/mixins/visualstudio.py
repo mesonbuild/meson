@@ -61,6 +61,15 @@ msvc_buildtype_args = {
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
+# Clang-cl doesn't have /ZI, and /Zi and /Z7 do the same thing
+# quoting the docs (https://clang.llvm.org/docs/MSVCCompatibility.html):
+#
+# Clang emits relatively complete CodeView debug information if /Z7 or /Zi is
+# passed. Microsoft’s link.exe will transform the CodeView debug information
+# into a PDB
+clangcl_buildtype_args = msvc_buildtype_args.copy()
+clangcl_buildtype_args['debug'] = ['/Zi', '/Ob0', '/Od', '/RTC1']
+
 msvc_optimization_args = {
     '0': [],
     'g': ['/O0'],
@@ -129,9 +138,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Override CCompiler.get_always_args
     def get_always_args(self) -> T.List[str]:
         return self.always_args
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return msvc_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'
@@ -398,7 +404,7 @@ class MSVCCompiler(VisualStudioLikeCompiler):
         return super().get_instruction_set_args(instruction_set)
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        args = super().get_buildtype_args(buildtype)
+        args = msvc_buildtype_args[buildtype]
         if mesonlib.version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
         return args
@@ -426,3 +432,6 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def get_pch_base_name(self, header: str) -> str:
         return header
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return clangcl_buildtype_args[buildtype]
