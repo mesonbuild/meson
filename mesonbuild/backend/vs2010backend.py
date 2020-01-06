@@ -18,6 +18,7 @@ import pickle
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 import uuid
+import typing as T
 from pathlib import Path, PurePath
 
 from . import backends
@@ -26,12 +27,13 @@ from .. import dependencies
 from .. import mlog
 from .. import compilers
 from ..compilers import CompilerArgs
+from ..interpreter import Interpreter
 from ..mesonlib import (
     MesonException, File, python_command, replace_if_different
 )
 from ..environment import Environment, build_filename
 
-def autodetect_vs_version(build):
+def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
     vs_version = os.getenv('VisualStudioVersion', None)
     vs_install_dir = os.getenv('VSINSTALLDIR', None)
     if not vs_install_dir:
@@ -41,17 +43,17 @@ def autodetect_vs_version(build):
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
     if vs_version == '14.0' or 'Visual Studio 14' in vs_install_dir:
         from mesonbuild.backend.vs2015backend import Vs2015Backend
-        return Vs2015Backend(build)
+        return Vs2015Backend(build, interpreter)
     if vs_version == '15.0' or 'Visual Studio 17' in vs_install_dir or \
        'Visual Studio\\2017' in vs_install_dir:
         from mesonbuild.backend.vs2017backend import Vs2017Backend
-        return Vs2017Backend(build)
+        return Vs2017Backend(build, interpreter)
     if vs_version == '16.0' or 'Visual Studio 19' in vs_install_dir or \
        'Visual Studio\\2019' in vs_install_dir:
         from mesonbuild.backend.vs2019backend import Vs2019Backend
-        return Vs2019Backend(build)
+        return Vs2019Backend(build, interpreter)
     if 'Visual Studio 10.0' in vs_install_dir:
-        return Vs2010Backend(build)
+        return Vs2010Backend(build, interpreter)
     raise MesonException('Could not detect Visual Studio using VisualStudioVersion: {!r} or VSINSTALLDIR: {!r}!\n'
                          'Please specify the exact backend to use.'.format(vs_version, vs_install_dir))
 
@@ -86,8 +88,8 @@ class RegenInfo:
         self.depfiles = depfiles
 
 class Vs2010Backend(backends.Backend):
-    def __init__(self, build):
-        super().__init__(build)
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+        super().__init__(build, interpreter)
         self.name = 'vs2010'
         self.project_file_version = '10.0.30319.1'
         self.platform_toolset = None
@@ -163,8 +165,7 @@ class Vs2010Backend(backends.Backend):
                     ET.SubElement(cbs, 'AdditionalInputs').text = ';'.join(deps)
         return generator_output_files, custom_target_output_files, custom_target_include_dirs
 
-    def generate(self, interp):
-        self.interpreter = interp
+    def generate(self):
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
         if target_machine.endswith('64'):
             # amd64 or x86_64

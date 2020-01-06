@@ -37,6 +37,7 @@ from ..mesonlib import (
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
+from ..interpreter import Interpreter
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -203,8 +204,8 @@ class NinjaBuildElement:
 
 class NinjaBackend(backends.Backend):
 
-    def __init__(self, build):
-        super().__init__(build)
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+        super().__init__(build, interpreter)
         self.name = 'ninja'
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
@@ -283,8 +284,7 @@ int dummy;
 
         raise MesonException('Could not determine vs dep dependency prefix string.')
 
-    def generate(self, interp):
-        self.interpreter = interp
+    def generate(self):
         ninja = environment.detect_ninja_command_and_version(log=True)
         if ninja is None:
             raise MesonException('Could not detect Ninja v1.5 or newer')

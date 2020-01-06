@@ -212,7 +212,7 @@ class MesonApp:
                 fname = os.path.join(self.build_dir, 'meson-private', fname)
                 profile.runctx('intr.backend.generate(intr)', globals(), locals(), filename=fname)
             else:
-                intr.backend.generate(intr)
+                intr.backend.generate()
             build.save(b, dumpfile)
             if env.first_invocation:
                 coredata.write_cmd_line_file(self.build_dir, self.options)

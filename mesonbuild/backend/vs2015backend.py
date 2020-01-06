@@ -14,11 +14,14 @@
 
 from .vs2010backend import Vs2010Backend
 from ..mesonlib import MesonException
+from ..interpreter import Interpreter
+from ..build import Build
+import typing as T
 
 
 class Vs2015Backend(Vs2010Backend):
-    def __init__(self, build):
-        super().__init__(build)
+    def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
+        super().__init__(build, interpreter)
         self.name = 'vs2015'
         self.vs_version = '2015'
         if self.environment is not None:
