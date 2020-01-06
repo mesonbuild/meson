@@ -870,15 +870,23 @@ class JarHolder(BuildTargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
 
-class CustomTargetIndexHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, object_to_hold):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, object_to_hold)
+class CustomTargetIndexHolder(TargetHolder):
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
+        self.methods.update({'full_path': self.full_path_method,
+                             })
+
+    @FeatureNew('custom_target[i].full_path', '0.54.0')
+    @noPosargs
+    @permittedKwargs({})
+    def full_path_method(self, args, kwargs):
+        return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
 class CustomTargetHolder(TargetHolder):
     def __init__(self, target, interp):
         super().__init__(target, interp)
         self.methods.update({'full_path': self.full_path_method,
+                             'to_list': self.to_list_method,
                              })
 
     def __repr__(self):
@@ -891,8 +899,17 @@ class CustomTargetHolder(TargetHolder):
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
+    @FeatureNew('custom_target.to_list', '0.54.0')
+    @noPosargs
+    @permittedKwargs({})
+    def to_list_method(self, args, kwargs):
+        result = []
+        for i in self.held_object:
+            result.append(CustomTargetIndexHolder(i, self.interpreter))
+        return result
+
     def __getitem__(self, index):
-        return CustomTargetIndexHolder(self.held_object[index])
+        return CustomTargetIndexHolder(self.held_object[index], self.interpreter)
 
     def __setitem__(self, index, value):  # lgtm[py/unexpected-raise-in-special-method]
         raise InterpreterException('Cannot set a member of a CustomTarget')

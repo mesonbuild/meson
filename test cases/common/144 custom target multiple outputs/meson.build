@@ -21,8 +21,19 @@ custom_target('only-install-first',
   install : true,
   install_dir : [join_paths(get_option('prefix'), get_option('includedir')), false])
 
-custom_target('only-install-second',
+targets = custom_target('only-install-second',
   output : ['second.h', 'second.sh'],
   command : [gen, 'second', '@OUTDIR@'],
   install : true,
   install_dir : [false, join_paths(get_option('prefix'), get_option('bindir'))])
+
+paths = []
+foreach i : targets.to_list()
+  paths += i.full_path()
+endforeach
+
+# Skip on Windows because paths are not identical, '/' VS '\'.
+if host_machine.system() != 'windows'
+  assert(paths == [meson.current_build_dir() / 'second.h',
+                   meson.current_build_dir() / 'second.sh'])
+endif

@@ -2287,12 +2287,18 @@ contains a target with the following methods:
   NOTE: In most cases using the object itself will do the same job as
   this and will also allow Meson to setup inter-target dependencies
   correctly. Please file a bug if that doesn't work for you.
+  *Since 0.54.0* it can be also called on indexes objects:
+  `custom_targets[i].full_path()`.
 
 - `[index]` returns an opaque object that references this target, and
   can be used as a source in other targets. When it is used as such it
   will make that target depend on this custom target, but the only
   source added will be the one that corresponds to the index of the
   custom target's output argument.
+
+- `to_list()` *Since 0.54.0*, returns a list of opaque objects that references
+  this target, and can be used as a source in other targets. This can be used to
+  iterate outputs with `foreach` loop.
 
 ### `dependency` object
 
