@@ -2250,6 +2250,10 @@ class CustomTarget(Target):
     def __delitem__(self, index):
         raise NotImplementedError
 
+    def __iter__(self):
+        for i in self.outputs:
+            yield CustomTargetIndex(self, i)
+
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):
         self.typename = 'run'
