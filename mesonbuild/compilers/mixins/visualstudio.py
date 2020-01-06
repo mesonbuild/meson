@@ -18,12 +18,12 @@ interface.
 
 import abc
 import os
-import typing
+import typing as T
 
 from ... import mesonlib
 from ... import mlog
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ...environment import Environment
 
 vs32_instruction_set_args = {
@@ -36,7 +36,7 @@ vs32_instruction_set_args = {
     'avx': ['/arch:AVX'],
     'avx2': ['/arch:AVX2'],
     'neon': None,
-}  # typing.Dicst[str, typing.Optional[typing.List[str]]]
+}  # T.Dicst[str, T.Optional[T.List[str]]]
 
 # The 64 bit compiler defaults to /arch:avx.
 vs64_instruction_set_args = {
@@ -50,7 +50,7 @@ vs64_instruction_set_args = {
     'avx': ['/arch:AVX'],
     'avx2': ['/arch:AVX2'],
     'neon': None,
-}  # typing.Dicst[str, typing.Optional[typing.List[str]]]
+}  # T.Dicst[str, T.Optional[T.List[str]]]
 
 msvc_buildtype_args = {
     'plain': [],
@@ -59,7 +59,7 @@ msvc_buildtype_args = {
     'release': ["/Ob2", "/Gw"],
     'minsize': ["/Zi", "/Gw"],
     'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
+}  # type: T.Dict[str, T.List[str]]
 
 msvc_optimization_args = {
     '0': [],
@@ -68,12 +68,12 @@ msvc_optimization_args = {
     '2': ['/O2'],
     '3': ['/O2'],
     's': ['/O1'], # Implies /Os.
-}  # type: typing.Dict[str, typing.List[str]]
+}  # type: T.Dict[str, T.List[str]]
 
 msvc_debug_args = {
     False: [],
     True: []  # Fixme!
-}  # type: typing.Dict[bool, typing.List[str]]
+}  # type: T.Dict[bool, T.List[str]]
 
 
 class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
@@ -99,7 +99,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         'mdd': ['/MDd'],
         'mt': ['/MT'],
         'mtd': ['/MTd'],
-    }  # type: typing.Dict[str, typing.List[str]]
+    }  # type: T.Dict[str, T.List[str]]
 
     # /showIncludes is needed for build dependency tracking in Ninja
     # See: https://ninja-build.org/manual.html#_deps
@@ -109,7 +109,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         '1': ['/W2'],
         '2': ['/W3'],
         '3': ['/W4'],
-    }  # type: typing.Dict[str, typing.List[str]]
+    }  # type: T.Dict[str, T.List[str]]
 
     INVOKES_LINKER = False
 
@@ -127,10 +127,10 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         self.linker.machine = self.machine
 
     # Override CCompiler.get_always_args
-    def get_always_args(self) -> typing.List[str]:
+    def get_always_args(self) -> T.List[str]:
         return self.always_args
 
-    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         args = msvc_buildtype_args[buildtype]
         if self.id == 'msvc' and mesonlib.version_compare(self.version, '<18.0'):
             args = [arg for arg in args if arg != '/Gw']
@@ -145,40 +145,40 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         pchname = '.'.join(chopped)
         return pchname
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         base = os.path.basename(header)
         if self.id == 'clang-cl':
             base = header
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
-    def get_preprocess_only_args(self) -> typing.List[str]:
+    def get_preprocess_only_args(self) -> T.List[str]:
         return ['/EP']
 
-    def get_compile_only_args(self) -> typing.List[str]:
+    def get_compile_only_args(self) -> T.List[str]:
         return ['/c']
 
-    def get_no_optimization_args(self) -> typing.List[str]:
+    def get_no_optimization_args(self) -> T.List[str]:
         return ['/Od']
 
-    def get_output_args(self, target: str) -> typing.List[str]:
+    def get_output_args(self, target: str) -> T.List[str]:
         if target.endswith('.exe'):
             return ['/Fe' + target]
         return ['/Fo' + target]
 
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return msvc_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return msvc_debug_args[is_debug]
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
 
-    def linker_to_compiler_args(self, args: typing.List[str]) -> typing.List[str]:
+    def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return ['/link'] + args
 
-    def get_gui_app_args(self, value: bool) -> typing.List[str]:
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
         # the default is for the linker to guess the subsystem based on presence
         # of main or WinMain symbols, so always be explicit
         if value:
@@ -186,33 +186,33 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         else:
             return ['/SUBSYSTEM:CONSOLE']
 
-    def get_pic_args(self) -> typing.List[str]:
+    def get_pic_args(self) -> T.List[str]:
         return [] # PIC is handled by the loader on Windows
 
-    def gen_vs_module_defs_args(self, defsfile: str) -> typing.List[str]:
+    def gen_vs_module_defs_args(self, defsfile: str) -> T.List[str]:
         if not isinstance(defsfile, str):
             raise RuntimeError('Module definitions file should be str')
         # With MSVC, DLLs only export symbols that are explicitly exported,
         # so if a module defs file is specified, we use that to export symbols
         return ['/DEF:' + defsfile]
 
-    def gen_pch_args(self, header: str, source: str, pchname: str) -> typing.Tuple[str, typing.List[str]]:
+    def gen_pch_args(self, header: str, source: str, pchname: str) -> T.Tuple[str, T.List[str]]:
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
+    def gen_import_library_args(self, implibname: str) -> T.List[str]:
         "The name of the outputted import library"
         return ['/IMPLIB:' + implibname]
 
-    def openmp_flags(self) -> typing.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['/openmp']
 
     # FIXME, no idea what these should be.
-    def thread_flags(self, env: 'Environment') -> typing.List[str]:
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
     @classmethod
-    def unix_args_to_native(cls, args: typing.List[str]) -> typing.List[str]:
+    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
         result = []
         for i in args:
             # -mms-bitfields is specific to MinGW-GCC
@@ -251,7 +251,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         return result
 
     @classmethod
-    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+    def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         result = []
         for arg in args:
             if arg.startswith(('/LIBPATH:', '-LIBPATH:')):
@@ -262,16 +262,16 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
                 result.append(arg)
         return result
 
-    def get_werror_args(self) -> typing.List[str]:
+    def get_werror_args(self) -> T.List[str]:
         return ['/WX']
 
-    def get_include_args(self, path: str, is_system: bool) -> typing.List[str]:
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if path == '':
             path = '.'
         # msvc does not have a concept of system header dirs.
         return ['-I' + path]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '/I':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
@@ -283,7 +283,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: typing.List[str], env: 'Environment', code, mode: str) -> typing.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
         if self.id == 'clang-cl' and mode != 'link':
             args = args + ['-Werror=unknown-argument']
@@ -292,7 +292,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
                 return False, p.cached
             return not(warning_text in p.stde or warning_text in p.stdo), p.cached
 
-    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> typing.List[str]:
+    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         pdbarr = rel_obj.split('.')[:-1]
         pdbarr += ['pdb']
         args = ['/Fd' + '.'.join(pdbarr)]
@@ -306,7 +306,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             args = ['/FS'] + args
         return args
 
-    def get_instruction_set_args(self, instruction_set: str) -> typing.Optional[typing.List[str]]:
+    def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
         if self.id == 'msvc' and self.version.split('.')[0] == '16' and instruction_set == 'avx':
@@ -316,7 +316,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return None
         return vs32_instruction_set_args.get(instruction_set, None)
 
-    def _calculate_toolset_version(self, version: int) -> typing.Optional[str]:
+    def _calculate_toolset_version(self, version: int) -> T.Optional[str]:
         if version < 1310:
             return '7.0'
         elif version < 1400:
@@ -340,7 +340,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         mlog.warning('Could not find toolset for version {!r}'.format(self.version))
         return None
 
-    def get_toolset_version(self) -> typing.Optional[str]:
+    def get_toolset_version(self) -> T.Optional[str]:
         if self.id == 'clang-cl':
             # I have no idea
             return '14.1'
@@ -352,12 +352,12 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return None
         return self._calculate_toolset_version(version)
 
-    def get_default_include_dirs(self) -> typing.List[str]:
+    def get_default_include_dirs(self) -> T.List[str]:
         if 'INCLUDE' not in os.environ:
             return []
         return os.environ['INCLUDE'].split(os.pathsep)
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> typing.List[str]:
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if crt_val in self.crt_args:
             return self.crt_args[crt_val]
         assert(crt_val == 'from_buildtype')
@@ -376,7 +376,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             assert(buildtype == 'custom')
             raise mesonlib.EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> typing.Tuple[bool, bool]:
+    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         # MSVC doesn't have __attribute__ like Clang and GCC do, so just return
         # false without compiling anything
         return name in ['dllimport', 'dllexport'], False
@@ -385,5 +385,5 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         return 'msvc'
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> typing.List[str]:
+    def use_linker_args(cls, linker: str) -> T.List[str]:
         return []

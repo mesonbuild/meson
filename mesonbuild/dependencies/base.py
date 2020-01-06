@@ -24,7 +24,7 @@ import shutil
 import stat
 import textwrap
 import platform
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+import typing as T
 from enum import Enum
 from pathlib import Path, PurePath
 
@@ -127,7 +127,7 @@ class Dependency:
         self.sources = []
         self.methods = self._process_method_kw(kwargs)
         self.include_type = self._process_include_type_kw(kwargs)
-        self.ext_deps = []  # type: List[Dependency]
+        self.ext_deps = []  # type: T.List[Dependency]
 
     def __repr__(self):
         s = '<{0} {1}: {2}>'
@@ -152,7 +152,7 @@ class Dependency:
             return converted
         return self.compile_args
 
-    def get_link_args(self, raw: bool = False) -> List[str]:
+    def get_link_args(self, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
@@ -208,8 +208,8 @@ class Dependency:
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency(self, dep_type: Type['Dependency'], env: Environment,
-                            kwargs: Dict[str, Any], *,
+    def _add_sub_dependency(self, dep_type: T.Type['Dependency'], env: Environment,
+                            kwargs: T.Dict[str, T.Any], *,
                             method: DependencyMethods = DependencyMethods.AUTO) -> None:
         """Add an internal dependency of of the given type.
 
@@ -222,14 +222,14 @@ class Dependency:
         kwargs['method'] = method
         self.ext_deps.append(dep_type(env, kwargs))
 
-    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
-                     configtool: Optional[str] = None, default_value: Optional[str] = None,
-                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if default_value is not None:
             return default_value
         raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
 
-    def generate_system_dependency(self, include_type: str) -> Type['Dependency']:
+    def generate_system_dependency(self, include_type: str) -> T.Type['Dependency']:
         new_dep = copy.deepcopy(self)
         new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
@@ -553,9 +553,9 @@ class ConfigToolDependency(ExternalDependency):
     def log_tried(self):
         return self.type_name
 
-    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
-                     configtool: Optional[str] = None, default_value: Optional[str] = None,
-                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if configtool:
             # In the not required case '' (empty string) will be returned if the
             # variable is not found. Since '' is a valid value to return we
@@ -704,7 +704,7 @@ class PkgConfigDependency(ExternalDependency):
             cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
         return cache[(self.pkgbin, targs, fenv)]
 
-    def _convert_mingw_paths(self, args: List[str]) -> List[str]:
+    def _convert_mingw_paths(self, args: T.List[str]) -> T.List[str]:
         '''
         Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
         paths so convert them to C:/foo. We cannot resolve other paths starting
@@ -1006,9 +1006,9 @@ class PkgConfigDependency(ExternalDependency):
     def log_tried(self):
         return self.type_name
 
-    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
-                     configtool: Optional[str] = None, default_value: Optional[str] = None,
-                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if pkgconfig:
             kwargs = {}
             if default_value is not None:
@@ -1039,10 +1039,10 @@ class CMakeDependency(ExternalDependency):
     def _main_cmake_file(self) -> str:
         return 'CMakeLists.txt'
 
-    def _extra_cmake_opts(self) -> List[str]:
+    def _extra_cmake_opts(self) -> T.List[str]:
         return []
 
-    def _map_module_list(self, modules: List[Tuple[str, bool]]) -> List[Tuple[str, bool]]:
+    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
         # Map the input module list to something else
         # This function will only be executed AFTER the initial CMake
         # interpreter pass has completed. Thus variables defined in the
@@ -1083,7 +1083,7 @@ class CMakeDependency(ExternalDependency):
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
 
-        # List of successfully found modules
+        # T.List of successfully found modules
         self.found_modules = []
 
         self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
@@ -1203,7 +1203,7 @@ class CMakeDependency(ExternalDependency):
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def _cached_listdir(path: str) -> Tuple[Tuple[str, str]]:
+    def _cached_listdir(path: str) -> T.Tuple[T.Tuple[str, str]]:
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
@@ -1217,7 +1217,7 @@ class CMakeDependency(ExternalDependency):
         except OSError:
             return False
 
-    def _preliminary_find_check(self, name: str, module_path: List[str], prefix_path: List[str], machine: MachineInfo) -> bool:
+    def _preliminary_find_check(self, name: str, module_path: T.List[str], prefix_path: T.List[str], machine: MachineInfo) -> bool:
         lname = str(name).lower()
 
         # Checks <path>, <path>/cmake, <path>/CMake
@@ -1295,7 +1295,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: List[Tuple[str, bool]], args: List[str]):
+    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], args: T.List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1410,7 +1410,7 @@ class CMakeDependency(ExternalDependency):
         for i, required in modules:
             if i not in self.traceparser.targets:
                 if not required:
-                    mlog.warning('CMake: Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
+                    mlog.warning('CMake: T.Optional module', mlog.bold(self._original_module_name(i)), 'for', mlog.bold(name), 'was not found')
                     continue
                 raise self._gen_exception('CMake: invalid module {} for {}.\n'
                                           'Try to explicitly specify one or more targets with the "modules" property.\n'
@@ -1548,9 +1548,9 @@ project(MesonTemp LANGUAGES {})
             return 'modules: ' + ', '.join(modules)
         return ''
 
-    def get_variable(self, *, cmake: Optional[str] = None, pkgconfig: Optional[str] = None,
-                     configtool: Optional[str] = None, default_value: Optional[str] = None,
-                     pkgconfig_define: Optional[List[str]] = None) -> Union[str, List[str]]:
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if cmake:
             try:
                 v = self.traceparser.vars[cmake]
@@ -1765,9 +1765,9 @@ class ExternalProgram:
     # An 'ExternalProgram' always runs on the build machine
     for_machine = MachineChoice.BUILD
 
-    def __init__(self, name: str, command: Optional[List[str]] = None,
-                 silent: bool = False, search_dir: Optional[str] = None,
-                 extra_search_dirs: Optional[List[str]] = None):
+    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+                 silent: bool = False, search_dir: T.Optional[str] = None,
+                 extra_search_dirs: T.Optional[T.List[str]] = None):
         self.name = name
         if command is not None:
             self.command = listify(command)
@@ -2172,7 +2172,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         return 'framework'
 
 
-def get_dep_identifier(name, kwargs) -> Tuple:
+def get_dep_identifier(name, kwargs) -> T.Tuple:
     identifier = (name, )
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
@@ -2286,7 +2286,7 @@ def find_external_dependency(name, env, kwargs):
     return NotFoundDependency(env)
 
 
-def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, Any]) -> list:
+def _build_external_dependency_list(name, env: Environment, kwargs: T.Dict[str, T.Any]) -> list:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
@@ -2343,7 +2343,7 @@ def _build_external_dependency_list(name, env: Environment, kwargs: Dict[str, An
     return candidates
 
 
-def sort_libpaths(libpaths: List[str], refpaths: List[str]) -> List[str]:
+def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
     """Sort <libpaths> according to <refpaths>
 
     It is intended to be used to sort -L flags returned by pkg-config.

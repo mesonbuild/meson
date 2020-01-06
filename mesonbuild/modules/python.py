@@ -15,7 +15,7 @@
 import os
 import json
 import shutil
-import typing
+import typing as T
 
 from pathlib import Path
 from .. import mesonlib
@@ -495,9 +495,9 @@ class PythonModule(ExtensionModule):
     def find_installation(self, interpreter, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
-        want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: typing.List[str]
-        found_modules = []    # type: typing.List[str]
-        missing_modules = []  # type: typing.List[str]
+        want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
+        found_modules = []    # type: T.List[str]
+        missing_modules = []  # type: T.List[str]
 
         if len(args) > 1:
             raise InvalidArguments('find_installation takes zero or one positional argument.')

@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
+import typing as T
 import os
 import re
 import pickle
@@ -1872,7 +1872,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
 
-    def get_fortran_deps(self, compiler: FortranCompiler, src: Path, target) -> List[str]:
+    def get_fortran_deps(self, compiler: FortranCompiler, src: Path, target) -> T.List[str]:
         """
         Find all module and submodule needed by a Fortran target
         """
@@ -2795,7 +2795,7 @@ def load(build_dir):
     return obj
 
 
-def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> List[str]:
+def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> T.List[str]:
     """
     scan a Fortran file for dependencies. Needs to be distinct from target
     to allow for recursion induced by `include` statements.er

@@ -13,14 +13,14 @@
 # limitations under the License.
 
 import os.path, subprocess
-import typing
+import typing as T
 
 from ..mesonlib import EnvironmentException
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 cs_optimization_args = {'0': [],

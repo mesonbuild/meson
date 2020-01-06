@@ -25,12 +25,12 @@ import stat
 import subprocess
 import sys
 import configparser
-import typing
+import typing as T
 
 from . import WrapMode
 from ..mesonlib import ProgressBar, MesonException
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     import http.client
 
 try:
@@ -48,7 +48,7 @@ ssl_warning_printed = False
 whitelist_subdomain = 'wrapdb.mesonbuild.com'
 
 
-def quiet_git(cmd: typing.List[str], workingdir: str) -> typing.Tuple[bool, str]:
+def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
     git = shutil.which('git')
     if not git:
         return False, 'Git program not found.'
@@ -258,7 +258,7 @@ class Resolver:
             raise WrapException('Git program not found.')
         revno = self.wrap.get('revision')
         is_shallow = False
-        depth_option = []    # type: typing.List[str]
+        depth_option = []    # type: T.List[str]
         if self.wrap.values.get('depth', '') != '':
             is_shallow = True
             depth_option = ['--depth', self.wrap.values.get('depth')]
@@ -330,7 +330,7 @@ class Resolver:
         subprocess.check_call([svn, 'checkout', '-r', revno, self.wrap.get('url'),
                                self.directory], cwd=self.subdir_root)
 
-    def get_data(self, urlstring: str) -> typing.Tuple[str, str]:
+    def get_data(self, urlstring: str) -> T.Tuple[str, str]:
         blocksize = 10 * 1024
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)

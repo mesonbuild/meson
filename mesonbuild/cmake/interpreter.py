@@ -25,10 +25,10 @@ from ..environment import Environment
 from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from subprocess import Popen, PIPE
-from typing import Any, List, Dict, Optional, Set, Union, TYPE_CHECKING
 from threading import Thread
 from enum import Enum
 from functools import lru_cache
+import typing as T
 import os, re
 
 from ..mparser import (
@@ -48,7 +48,7 @@ from ..mparser import (
 )
 
 
-if TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..build import Build
     from ..backend.backends import Backend
 
@@ -136,8 +136,8 @@ class OutputTargetMap:
         self.tgt_map = {}
         self.build_dir = build_dir
 
-    def add(self, tgt: Union['ConverterTarget', 'ConverterCustomTarget']) -> None:
-        def assign_keys(keys: List[str]) -> None:
+    def add(self, tgt: T.Union['ConverterTarget', 'ConverterCustomTarget']) -> None:
+        def assign_keys(keys: T.List[str]) -> None:
             for i in [x for x in keys if x]:
                 self.tgt_map[i] = tgt
         keys = [self._target_key(tgt.cmake_name)]
@@ -150,16 +150,16 @@ class OutputTargetMap:
             keys += [self._base_generated_file_key(x) for x in tgt.original_outputs]
         assign_keys(keys)
 
-    def _return_first_valid_key(self, keys: List[str]) -> Optional[Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def _return_first_valid_key(self, keys: T.List[str]) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         for i in keys:
             if i and i in self.tgt_map:
                 return self.tgt_map[i]
         return None
 
-    def target(self, name: str) -> Optional[Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def target(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         return self._return_first_valid_key([self._target_key(name)])
 
-    def artifact(self, name: str) -> Optional[Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def artifact(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         keys = []
         candidates = [name, OutputTargetMap.rm_so_version.sub('', name)]
         for i in lib_suffixes:
@@ -172,11 +172,11 @@ class OutputTargetMap:
             keys += [self._rel_artifact_key(i), os.path.basename(i), self._base_artifact_key(i)]
         return self._return_first_valid_key(keys)
 
-    def generated(self, name: str) -> Optional[Union['ConverterTarget', 'ConverterCustomTarget']]:
+    def generated(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         return self._return_first_valid_key([self._rel_generated_file_key(name), self._base_generated_file_key(name)])
 
     # Utility functions to generate local keys
-    def _rel_path(self, fname: str) -> Optional[str]:
+    def _rel_path(self, fname: str) -> T.Optional[str]:
         fname = os.path.normpath(os.path.join(self.build_dir, fname))
         if os.path.commonpath([self.build_dir, fname]) != self.build_dir:
             return None
@@ -185,14 +185,14 @@ class OutputTargetMap:
     def _target_key(self, tgt_name: str) -> str:
         return '__tgt_{}__'.format(tgt_name)
 
-    def _rel_generated_file_key(self, fname: str) -> Optional[str]:
+    def _rel_generated_file_key(self, fname: str) -> T.Optional[str]:
         path = self._rel_path(fname)
         return '__relgen_{}__'.format(path) if path else None
 
     def _base_generated_file_key(self, fname: str) -> str:
         return '__gen_{}__'.format(os.path.basename(fname))
 
-    def _rel_artifact_key(self, fname: str) -> Optional[str]:
+    def _rel_artifact_key(self, fname: str) -> T.Optional[str]:
         path = self._rel_path(fname)
         return '__relart_{}__'.format(path) if path else None
 
@@ -393,7 +393,7 @@ class ConverterTarget:
         self.generated = [x for x in self.generated if any([x.endswith(y) for y in supported])]
 
         # Make paths relative
-        def rel_path(x: str, is_header: bool, is_generated: bool) -> Optional[str]:
+        def rel_path(x: str, is_header: bool, is_generated: bool) -> T.Optional[str]:
             if not os.path.isabs(x):
                 x = os.path.normpath(os.path.join(self.src_dir, x))
             if not os.path.exists(x) and not any([x.endswith(y) for y in obj_suffixes]) and not is_generated:
@@ -458,7 +458,7 @@ class ConverterTarget:
             if tgt:
                 self.depends.append(tgt)
 
-    def process_object_libs(self, obj_target_list: List['ConverterTarget'], linker_workaround: bool):
+    def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool):
         # Try to detect the object library(s) from the generated input sources
         temp = [x for x in self.generated if isinstance(x, str)]
         temp = [os.path.basename(x) for x in temp]
@@ -475,7 +475,7 @@ class ConverterTarget:
                 # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
                 # undo this step and guess the correct language suffix of the object file. This is done
                 # by trying all language suffixes meson knows and checking if one of them fits.
-                candidates = [j]  # type: List[str]
+                candidates = [j]  # type: T.List[str]
                 if not any([j.endswith('.' + x) for x in exts]):
                     mlog.warning('Object files do not contain source file extensions, thus falling back to guessing them.', once=True)
                     candidates += ['{}.{}'.format(j, x) for x in exts]
@@ -506,8 +506,8 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in opts if x not in self.compile_opts[lang]]
 
     @lru_cache(maxsize=None)
-    def _all_source_suffixes(self) -> List[str]:
-        suffixes = []  # type: List[str]
+    def _all_source_suffixes(self) -> T.List[str]:
+        suffixes = []  # type: T.List[str]
         for exts in lang_suffixes.values():
             suffixes += [x for x in exts]
         return suffixes
@@ -599,7 +599,7 @@ class ConverterCustomTarget:
     def __repr__(self) -> str:
         return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
 
-    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, build_dir: str, all_outputs: List[str]) -> None:
+    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, build_dir: str, all_outputs: T.List[str]) -> None:
         # Default the working directory to the CMake build dir. This
         # is not 100% correct, since it should be the value of
         # ${CMAKE_CURRENT_BINARY_DIR} when add_custom_command is
@@ -626,7 +626,7 @@ class ConverterCustomTarget:
         # Ensure that there is no duplicate output in the project so
         # that meson can handle cases where the same filename is
         # generated in multiple directories
-        temp_outputs = []  # type: List[str]
+        temp_outputs = []  # type: T.List[str]
         for i in self.outputs:
             if i in all_outputs:
                 old = str(i)
@@ -689,7 +689,7 @@ class ConverterCustomTarget:
                 new_deps += [i]
         self.depends = list(set(new_deps))
 
-    def get_ref(self, fname: str) -> Optional[CustomTargetReference]:
+    def get_ref(self, fname: str) -> T.Optional[CustomTargetReference]:
         fname = os.path.basename(fname)
         try:
             if fname in self.conflict_map:
@@ -724,7 +724,7 @@ class CMakeInterpreter:
         self.install_prefix = install_prefix
         self.env = env
         self.backend_name = backend.name
-        self.linkers = set()  # type: Set[str]
+        self.linkers = set()  # type: T.Set[str]
         self.cmake_api = CMakeAPI.SERVER
         self.client = CMakeClient(self.env)
         self.fileapi = CMakeFileAPI(self.build_dir)
@@ -738,7 +738,7 @@ class CMakeInterpreter:
         self.project_name = ''
         self.languages = []
         self.targets = []
-        self.custom_targets = []  # type: List[ConverterCustomTarget]
+        self.custom_targets = []  # type: T.List[ConverterCustomTarget]
         self.trace = CMakeTraceParser()
         self.output_target_map = OutputTargetMap(self.build_dir)
 
@@ -746,7 +746,7 @@ class CMakeInterpreter:
         self.generated_targets = {}
         self.internal_name_map = {}
 
-    def configure(self, extra_cmake_options: List[str]) -> None:
+    def configure(self, extra_cmake_options: T.List[str]) -> None:
         for_machine = MachineChoice.HOST # TODO make parameter
         # Find CMake
         cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
@@ -835,7 +835,7 @@ class CMakeInterpreter:
         if proc.returncode != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
-    def initialise(self, extra_cmake_options: List[str]) -> None:
+    def initialise(self, extra_cmake_options: T.List[str]) -> None:
         # Run configure the old way because doing it
         # with the server doesn't work for some reason
         # Additionally, the File API requires a configure anyway
@@ -893,7 +893,7 @@ class CMakeInterpreter:
         self.trace.parse(self.raw_trace)
 
         # Find all targets
-        added_target_names = []  # type: List[str]
+        added_target_names = []  # type: T.List[str]
         for i in self.codemodel_configs:
             for j in i.projects:
                 if not self.project_name:
@@ -929,7 +929,7 @@ class CMakeInterpreter:
 
         # First pass: Basic target cleanup
         object_libs = []
-        custom_target_outputs = []  # type: List[str]
+        custom_target_outputs = []  # type: T.List[str]
         for i in self.custom_targets:
             i.postprocess(self.output_target_map, self.src_dir, self.subdir, self.build_dir, custom_target_outputs)
         for i in self.targets:
@@ -1029,7 +1029,7 @@ class CMakeInterpreter:
         processed = {}
         name_map = {}
 
-        def extract_tgt(tgt: Union[ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> IdNode:
+        def extract_tgt(tgt: T.Union[ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> IdNode:
             tgt_name = None
             if isinstance(tgt, (ConverterTarget, ConverterCustomTarget)):
                 tgt_name = tgt.name
@@ -1039,7 +1039,7 @@ class CMakeInterpreter:
             res_var = processed[tgt_name]['tgt']
             return id_node(res_var) if res_var else None
 
-        def detect_cycle(tgt: Union[ConverterTarget, ConverterCustomTarget]) -> None:
+        def detect_cycle(tgt: T.Union[ConverterTarget, ConverterCustomTarget]) -> None:
             if tgt.name in processing:
                 raise CMakeException('Cycle in CMake inputs/dependencies detected')
             processing.append(tgt.name)
@@ -1056,7 +1056,7 @@ class CMakeInterpreter:
 
             # First handle inter target dependencies
             link_with = []
-            objec_libs = []  # type: List[IdNode]
+            objec_libs = []  # type: T.List[IdNode]
             sources = []
             generated = []
             generated_filenames = []
@@ -1186,7 +1186,7 @@ class CMakeInterpreter:
             detect_cycle(tgt)
             tgt_var = tgt.name  # type: str
 
-            def resolve_source(x: Any) -> Any:
+            def resolve_source(x: T.Any) -> T.Any:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
                         process_target(x)
@@ -1236,7 +1236,7 @@ class CMakeInterpreter:
         self.internal_name_map = name_map
         return root_cb
 
-    def target_info(self, target: str) -> Optional[Dict[str, str]]:
+    def target_info(self, target: str) -> T.Optional[T.Dict[str, str]]:
         # Try resolving the target name
         # start by checking if there is a 100% match (excluding the name prefix)
         prx_tgt = generated_target_name_prefix + target
@@ -1249,7 +1249,7 @@ class CMakeInterpreter:
             return self.generated_targets[target]
         return None
 
-    def target_list(self) -> List[str]:
+    def target_list(self) -> T.List[str]:
         prx_str = generated_target_name_prefix
         prx_len = len(prx_str)
         res = [x for x in self.generated_targets.keys()]

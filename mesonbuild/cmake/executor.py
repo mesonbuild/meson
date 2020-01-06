@@ -17,7 +17,7 @@
 
 import subprocess
 from pathlib import Path
-from typing import List, Tuple, Optional, TYPE_CHECKING
+import typing as T
 import re
 import os
 import shutil
@@ -27,7 +27,7 @@ from .. import mlog, mesonlib
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
 from ..environment import Environment
 
-if TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
 
@@ -55,7 +55,7 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> Tuple['ExternalProgram', str]:
+    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple['ExternalProgram', str]:
         from ..dependencies.base import ExternalProgram
 
         # Create an iterator of options
@@ -107,7 +107,7 @@ class CMakeExecutor:
 
         return CMakeExecutor.class_cmakebin[self.for_machine], CMakeExecutor.class_cmakevers[self.for_machine]
 
-    def check_cmake(self, cmakebin: 'ExternalProgram') -> Optional[str]:
+    def check_cmake(self, cmakebin: 'ExternalProgram') -> T.Optional[str]:
         if not cmakebin.found():
             mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
             return None
@@ -130,12 +130,12 @@ class CMakeExecutor:
         cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
         return cmvers
 
-    def _cache_key(self, args: List[str], build_dir: str, env):
+    def _cache_key(self, args: T.List[str], build_dir: str, env):
         fenv = frozenset(env.items()) if env is not None else None
         targs = tuple(args)
         return (self.cmakebin, targs, build_dir, fenv)
 
-    def _call_real(self, args: List[str], build_dir: str, env) -> Tuple[int, str, str]:
+    def _call_real(self, args: T.List[str], build_dir: str, env) -> T.Tuple[int, str, str]:
         os.makedirs(build_dir, exist_ok=True)
         cmd = self.cmakebin.get_command() + args
         ret = subprocess.run(cmd, env=env, cwd=build_dir, close_fds=False,
@@ -148,7 +148,7 @@ class CMakeExecutor:
         mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
         return rc, out, err
 
-    def call(self, args: List[str], build_dir: str, env=None, disable_cache: bool = False):
+    def call(self, args: T.List[str], build_dir: str, env=None, disable_cache: bool = False):
         if env is None:
             env = os.environ
 
@@ -162,7 +162,7 @@ class CMakeExecutor:
             cache[key] = self._call_real(args, build_dir, env)
         return cache[key]
 
-    def call_with_fake_build(self, args: List[str], build_dir: str, env=None):
+    def call_with_fake_build(self, args: T.List[str], build_dir: str, env=None):
         # First check the cache
         cache = CMakeExecutor.class_cmake_cache
         key = self._cache_key(args, build_dir, env)
@@ -186,7 +186,7 @@ class CMakeExecutor:
                 p = fallback
             return p
 
-        def choose_compiler(lang: str) -> Tuple[str, str]:
+        def choose_compiler(lang: str) -> T.Tuple[str, str]:
             exe_list = []
             if lang in compilers:
                 exe_list = compilers[lang].get_exelist()

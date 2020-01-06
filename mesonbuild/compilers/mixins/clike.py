@@ -26,7 +26,7 @@ import itertools
 import os
 import re
 import subprocess
-import typing
+import typing as T
 from pathlib import Path
 
 from ... import mesonlib
@@ -35,7 +35,7 @@ from ... import mlog
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ...environment import Environment
 
 
@@ -50,7 +50,7 @@ class CLikeCompiler:
     find_framework_cache = {}
     internal_libs = compilers.unixy_compiler_internal_libs
 
-    def __init__(self, is_cross: bool, exe_wrapper: typing.Optional[str] = None):
+    def __init__(self, is_cross: bool, exe_wrapper: T.Optional[str] = None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         self.is_cross = is_cross
         self.can_compile_suffixes.add('h')
@@ -117,7 +117,7 @@ class CLikeCompiler:
     def get_coverage_args(self):
         return ['--coverage']
 
-    def get_coverage_link_args(self) -> typing.List[str]:
+    def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
     def get_werror_args(self):
@@ -134,7 +134,7 @@ class CLikeCompiler:
             return ['-isystem', path]
         return ['-I' + path]
 
-    def get_compiler_dirs(self, env: 'Environment', name: str) -> typing.List[str]:
+    def get_compiler_dirs(self, env: 'Environment', name: str) -> T.List[str]:
         '''
         Get dirs from the compiler, either `libraries:` or `programs:`
         '''
@@ -177,28 +177,28 @@ class CLikeCompiler:
         '''
         return self.get_compiler_dirs(env, 'programs')
 
-    def get_pic_args(self) -> typing.List[str]:
+    def get_pic_args(self) -> T.List[str]:
         return ['-fPIC']
 
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-include', os.path.basename(header)]
 
     def get_pch_name(self, header_name: str) -> str:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def get_linker_search_args(self, dirname: str) -> typing.List[str]:
+    def get_linker_search_args(self, dirname: str) -> T.List[str]:
         return self.linker.get_search_args(dirname)
 
     def get_default_include_dirs(self):
         return []
 
-    def gen_export_dynamic_link_args(self, env: 'Environment') -> typing.List[str]:
+    def gen_export_dynamic_link_args(self, env: 'Environment') -> T.List[str]:
         return self.linker.export_dynamic_args(env)
 
-    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
+    def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
@@ -901,7 +901,7 @@ class CLikeCompiler:
         return [f]
 
     @staticmethod
-    def _get_file_from_list(env, files: typing.List[str]) -> Path:
+    def _get_file_from_list(env, files: T.List[str]) -> Path:
         '''
         We just check whether the library exists. We can't do a link check
         because the library might have unresolved symbols that require other
@@ -1055,10 +1055,10 @@ class CLikeCompiler:
             raise mesonlib.MesonException('Cannot find frameworks with non-clang compiler')
         return self.find_framework_impl(name, env, extra_dirs, allow_system)
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> typing.List[str]:
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> typing.List[str]:
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         return []
 
     def thread_flags(self, env):
@@ -1067,7 +1067,7 @@ class CLikeCompiler:
             return []
         return ['-pthread']
 
-    def thread_link_flags(self, env: 'Environment') -> typing.List[str]:
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return self.linker.thread_flags(env)
 
     def linker_to_compiler_args(self, args):

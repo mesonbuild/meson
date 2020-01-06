@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os.path, subprocess
-import typing
+import typing as T
 
 from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare,
@@ -30,7 +30,7 @@ from .compilers import (
 from .mixins.gnu import GnuCompiler
 from .mixins.islinker import LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
@@ -388,7 +388,7 @@ class DmdLikeCompilerMixin:
             assert(buildtype == 'custom')
             raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
 
-    def get_soname_args(self, *args, **kwargs) -> typing.List[str]:
+    def get_soname_args(self, *args, **kwargs) -> T.List[str]:
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
         soargs = []
@@ -396,7 +396,7 @@ class DmdLikeCompilerMixin:
             soargs.append('-L=' + arg)
         return soargs
 
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
+    def get_allow_undefined_link_args(self) -> T.List[str]:
         args = []
         for arg in self.linker.get_allow_undefined_args():
             args.append('-L=' + arg)
@@ -654,7 +654,7 @@ class GnuDCompiler(DCompiler, GnuCompiler):
 
         return parameter_list
 
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
+    def get_allow_undefined_link_args(self) -> T.List[str]:
         return self.linker.get_allow_undefined_args()
 
 
