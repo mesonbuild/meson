@@ -1271,7 +1271,7 @@ def windows_proof_rmtree(f):
             return
         except FileNotFoundError:
             return
-        except (OSError, PermissionError):
+        except OSError:
             time.sleep(d)
     # Try one last time and throw if it fails.
     shutil.rmtree(f)
@@ -1288,7 +1288,7 @@ def windows_proof_rm(fpath):
             return
         except FileNotFoundError:
             return
-        except (OSError, PermissionError):
+        except OSError:
             time.sleep(d)
     os.unlink(fpath)
 

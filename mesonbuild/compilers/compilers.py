@@ -446,26 +446,26 @@ class CompilerArgs(T.MutableSequence[str]):
         self.compiler = compiler
         self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
 
-    @T.overload
-    def __getitem__(self, index: int) -> str:
+    @T.overload                                # noqa: F811
+    def __getitem__(self, index: int) -> str:  # noqa: F811
         pass
 
-    @T.overload
-    def __getitem__(self, index: slice) -> T.List[str]:
+    @T.overload                                          # noqa: F811
+    def __getitem__(self, index: slice) -> T.List[str]:  # noqa: F811
         pass
 
-    def __getitem__(self, index):
+    def __getitem__(self, index):  # noqa: F811
         return self.__container[index]
 
-    @T.overload
-    def __setitem__(self, index: int, value: str) -> None:
+    @T.overload                                             # noqa: F811
+    def __setitem__(self, index: int, value: str) -> None:  # noqa: F811
         pass
 
-    @T.overload
-    def __setitem__(self, index: slice, value: T.List[str]) -> None:
+    @T.overload                                                       # noqa: F811
+    def __setitem__(self, index: slice, value: T.List[str]) -> None:  # noqa: F811
         pass
 
-    def __setitem__(self, index, value) -> None:
+    def __setitem__(self, index, value) -> None:  # noqa: F811
         self.__container[index] = value
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
@@ -929,7 +929,7 @@ class Compiler:
                     p.output_name = output
                 p.cached = False  # Make sure that the cached attribute always exists
                 yield p
-        except (PermissionError, OSError):
+        except OSError:
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
             # catch OSError because the directory is then no longer empty.
