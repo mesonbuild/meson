@@ -26,9 +26,10 @@ from .ast import IntrospectionInterpreter, build_target_functions, AstConditionL
 from . import mlog
 from .backend import backends
 from .mparser import FunctionNode, ArrayNode, ArgumentNode, StringNode
+from .interpreter import Interpreter
+from pathlib import PurePath
 import typing as T
 import os
-import pathlib
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
@@ -56,19 +57,20 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         benchmarkdata = backend.create_test_serialisation(builddata.get_benchmarks())
         testdata = backend.create_test_serialisation(builddata.get_tests())
         installdata = backend.create_install_data()
+        interpreter = backend.interpreter
     else:
         benchmarkdata = testdata = installdata = None
 
     return {
-        'benchmarks': IntroCommand('T.List all benchmarks', func=lambda: list_benchmarks(benchmarkdata)),
-        'buildoptions': IntroCommand('T.List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source),
-        'buildsystem_files': IntroCommand('T.List files that make up the build system', func=lambda: list_buildsystem_files(builddata)),
-        'dependencies': IntroCommand('T.List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source),
+        'benchmarks': IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata)),
+        'buildoptions': IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source),
+        'buildsystem_files': IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter)),
+        'dependencies': IntroCommand('List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source),
         'scan_dependencies': IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source),
-        'installed': IntroCommand('T.List all installed files and directories', func=lambda: list_installed(installdata)),
+        'installed': IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata)),
         'projectinfo': IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source),
-        'targets': IntroCommand('T.List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source),
-        'tests': IntroCommand('T.List all unit tests', func=lambda: list_tests(testdata)),
+        'targets': IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source),
+        'tests': IntroCommand('List all unit tests', func=lambda: list_tests(testdata)),
     }
 
 def add_arguments(parser):
@@ -152,7 +154,7 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
     install_lookuptable = {}
     for i in installdata.targets:
         outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
-        install_lookuptable[os.path.basename(i.fname)] = str(pathlib.PurePath(outname))
+        install_lookuptable[os.path.basename(i.fname)] = str(PurePath(outname))
 
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
@@ -254,10 +256,10 @@ def find_buildsystem_files_list(src_dir) -> T.List[str]:
                 filelist.append(os.path.relpath(os.path.join(root, f), src_dir))
     return filelist
 
-def list_buildsystem_files(builddata: build.Build) -> T.List[str]:
+def list_buildsystem_files(builddata: build.Build, interpreter: Interpreter) -> T.List[str]:
     src_dir = builddata.environment.get_source_dir()
-    filelist = find_buildsystem_files_list(src_dir)
-    filelist = [os.path.join(src_dir, x) for x in filelist]
+    filelist = interpreter.get_build_def_files()
+    filelist = [PurePath(src_dir, x).as_posix() for x in filelist]
     return filelist
 
 def list_deps_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool]]]:
@@ -367,7 +369,7 @@ def run(options) -> int:
     if 'meson.build' in [os.path.basename(options.builddir), options.builddir]:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         mlog.disable()
-        backend = backends.get_backend_from_name(options.backend, None)
+        backend = backends.get_backend_from_name(options.backend)
         intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         intr.analyze()
         # Re-enable logging just in case
