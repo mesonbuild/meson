@@ -2807,6 +2807,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
             self.coredata.merge_user_options(oi.options)
+            self.add_build_def_file(self.option_file)
 
         # Do not set default_options on reconfigure otherwise it would override
         # values previously set from command line. That means that changing

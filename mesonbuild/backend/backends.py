@@ -789,12 +789,6 @@ class Backend:
             deps.extend(self.environment.coredata.cross_files)
         deps.extend(self.environment.coredata.config_files)
         deps.append('meson-private/coredata.dat')
-        if os.path.exists(os.path.join(self.environment.get_source_dir(), 'meson_options.txt')):
-            deps.append(os.path.join(self.build_to_src, 'meson_options.txt'))
-        for sp in self.build.subprojects.keys():
-            fname = os.path.join(self.environment.get_source_dir(), sp, 'meson_options.txt')
-            if os.path.isfile(fname):
-                deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
         self.check_clock_skew(deps)
         return deps
 
