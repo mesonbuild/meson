@@ -18,12 +18,14 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 import uuid, os, operator
+import typing as T
 
 from ..mesonlib import MesonException
+from ..interpreter import Interpreter
 
 class XCodeBackend(backends.Backend):
-    def __init__(self, build):
-        super().__init__(build)
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+        super().__init__(build, interpreter)
         self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.project_conflist = self.gen_id()
@@ -74,8 +76,7 @@ class XCodeBackend(backends.Backend):
         if not text.endswith('\n'):
             self.ofile.write('\n')
 
-    def generate(self, interp):
-        self.interpreter = interp
+    def generate(self):
         test_data = self.serialize_tests()[0]
         self.generate_filemap()
         self.generate_buildmap()

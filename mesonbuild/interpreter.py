@@ -2771,7 +2771,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return
         backend = self.coredata.get_builtin_option('backend')
         from .backend import backends
-        self.backend = backends.get_backend_from_name(backend, self.build)
+        self.backend = backends.get_backend_from_name(backend, self.build, self)
 
         if self.backend is None:
             raise InterpreterException('Unknown backend "%s".' % backend)

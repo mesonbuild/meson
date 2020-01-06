@@ -13,15 +13,18 @@
 # limitations under the License.
 
 import os
+import typing as T
 import xml.etree.ElementTree as ET
 
 from .vs2010backend import Vs2010Backend
 from ..mesonlib import MesonException
+from ..interpreter import Interpreter
+from ..build import Build
 
 
 class Vs2017Backend(Vs2010Backend):
-    def __init__(self, build):
-        super().__init__(build)
+    def __init__(self, build: T.Optional[Build], interpreter: T.Optional[Interpreter]):
+        super().__init__(build, interpreter)
         self.name = 'vs2017'
         self.vs_version = '2017'
         # We assume that host == build
