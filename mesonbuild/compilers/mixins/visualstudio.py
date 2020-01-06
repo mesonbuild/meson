@@ -131,10 +131,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         return self.always_args
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        args = msvc_buildtype_args[buildtype]
-        if self.id == 'msvc' and mesonlib.version_compare(self.version, '<18.0'):
-            args = [arg for arg in args if arg != '/Gw']
-        return args
+        return msvc_buildtype_args[buildtype]
 
     def get_pch_suffix(self) -> str:
         return 'pch'
@@ -145,10 +142,12 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         pchname = '.'.join(chopped)
         return pchname
 
+    def get_pch_base_name(self, header: str) -> str:
+        # This needs to be implemented by inherting classes
+        raise NotImplementedError
+
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
-        base = os.path.basename(header)
-        if self.id == 'clang-cl':
-            base = header
+        base = self.get_pch_base_name(header)
         pchname = self.get_pch_name(header)
         return ['/FI' + base, '/Yu' + base, '/Fp' + os.path.join(pch_dir, pchname)]
 
@@ -285,8 +284,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
     def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
-        if self.id == 'clang-cl' and mode != 'link':
-            args = args + ['-Werror=unknown-argument']
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
@@ -296,24 +293,11 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         pdbarr = rel_obj.split('.')[:-1]
         pdbarr += ['pdb']
         args = ['/Fd' + '.'.join(pdbarr)]
-        # When generating a PDB file with PCH, all compile commands write
-        # to the same PDB file. Hence, we need to serialize the PDB
-        # writes using /FS since we do parallel builds. This slows down the
-        # build obviously, which is why we only do this when PCH is on.
-        # This was added in Visual Studio 2013 (MSVC 18.0). Before that it was
-        # always on: https://msdn.microsoft.com/en-us/library/dn502518.aspx
-        if pch and self.id == 'msvc' and mesonlib.version_compare(self.version, '>=18.0'):
-            args = ['/FS'] + args
         return args
 
     def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
         if self.is_64:
             return vs64_instruction_set_args.get(instruction_set, None)
-        if self.id == 'msvc' and self.version.split('.')[0] == '16' and instruction_set == 'avx':
-            # VS documentation says that this exists and should work, but
-            # it does not. The headers do not contain AVX intrinsics
-            # and the can not be called.
-            return None
         return vs32_instruction_set_args.get(instruction_set, None)
 
     def _calculate_toolset_version(self, version: int) -> T.Optional[str]:
@@ -341,10 +325,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         return None
 
     def get_toolset_version(self) -> T.Optional[str]:
-        if self.id == 'clang-cl':
-            # I have no idea
-            return '14.1'
-
         # See boost/config/compiler/visualc.cpp for up to date mapping
         try:
             version = int(''.join(self.version.split('.')[0:2]))
@@ -387,3 +367,62 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
         return []
+
+
+class MSVCCompiler(VisualStudioLikeCompiler):
+
+    """Spcific to the Microsoft Compilers."""
+
+    def __init__(self, target: str):
+        super().__init__(target)
+        self.id = 'msvc'
+
+    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
+        args = super().get_compile_debugfile_args(rel_obj, pch)
+        # When generating a PDB file with PCH, all compile commands write
+        # to the same PDB file. Hence, we need to serialize the PDB
+        # writes using /FS since we do parallel builds. This slows down the
+        # build obviously, which is why we only do this when PCH is on.
+        # This was added in Visual Studio 2013 (MSVC 18.0). Before that it was
+        # always on: https://msdn.microsoft.com/en-us/library/dn502518.aspx
+        if pch and mesonlib.version_compare(self.version, '>=18.0'):
+            args = ['/FS'] + args
+        return args
+
+    def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
+        if self.version.split('.')[0] == '16' and instruction_set == 'avx':
+            # VS documentation says that this exists and should work, but
+            # it does not. The headers do not contain AVX intrinsics
+            # and they can not be called.
+            return None
+        return super().get_instruction_set_args(instruction_set)
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        args = super().get_buildtype_args(buildtype)
+        if mesonlib.version_compare(self.version, '<18.0'):
+            args = [arg for arg in args if arg != '/Gw']
+        return args
+
+    def get_pch_base_name(self, header: str) -> str:
+        return os.path.basename(header)
+
+
+class ClangClCompiler(VisualStudioLikeCompiler):
+
+    """Spcific to Clang-CL."""
+
+    def __init__(self, target: str):
+        super().__init__(target)
+        self.id = 'clang-cl'
+
+    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+        if mode != 'link':
+            args = args + ['-Werror=unknown-argument']
+        return super().has_arguments(args, env, code, mode)
+
+    def get_toolset_version(self) -> T.Optional[str]:
+        # XXX: what is the right thing to do here?
+        return '14.1'
+
+    def get_pch_base_name(self, header: str) -> str:
+        return header

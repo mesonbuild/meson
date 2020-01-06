@@ -21,7 +21,7 @@ from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import VisualStudioLikeCompiler
+from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
@@ -304,24 +304,22 @@ class VisualStudioLikeCCompilerMixin:
         return options['c_winlibs'].value[:]
 
 
-class VisualStudioCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
+class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target: str,
                  **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
                            info, exe_wrap, **kwargs)
-        VisualStudioLikeCompiler.__init__(self, target)
-        self.id = 'msvc'
+        MSVCCompiler.__init__(self, target)
 
 
-class ClangClCCompiler(VisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
+class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross,
                            info, exe_wrap, **kwargs)
-        VisualStudioLikeCompiler.__init__(self, target)
-        self.id = 'clang-cl'
+        ClangClCompiler.__init__(self, target)
 
 
 class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):

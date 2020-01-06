@@ -30,7 +30,7 @@ from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
-from .mixins.visualstudio import VisualStudioLikeCompiler
+from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
@@ -511,11 +511,11 @@ class CPP11AsCPP14Mixin:
         return super().get_option_compile_args(options)
 
 
-class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
+class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, MSVCCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrap, **kwargs)
-        VisualStudioLikeCompiler.__init__(self, target)
+        MSVCCompiler.__init__(self, target)
         self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
         self.id = 'msvc'
 
@@ -545,12 +545,12 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             del args[i]
         return args
 
-class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, VisualStudioLikeCompiler, CPPCompiler):
+class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrap, **kwargs)
-        VisualStudioLikeCompiler.__init__(self, target)
+        ClangClCompiler.__init__(self, target)
         self.id = 'clang-cl'
 
     def get_options(self):
