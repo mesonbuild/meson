@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import subprocess, os.path
-import typing
+import typing as T
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
 from .compilers import Compiler, swift_buildtype_args, clike_debug_args
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 swift_optimization_args = {'0': [],

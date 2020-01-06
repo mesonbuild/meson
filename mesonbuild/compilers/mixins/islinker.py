@@ -21,11 +21,11 @@ classes for those cases.
 """
 
 import os
-import typing
+import typing as T
 
 from ... import mesonlib
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ...coredata import OptionDictType
     from ...environment import Environment
 
@@ -34,7 +34,7 @@ class LinkerEnvVarsMixin:
 
     """Mixin reading LDFLAGS from the environment."""
 
-    def get_linker_args_from_envvars(self) -> typing.List[str]:
+    def get_linker_args_from_envvars(self) -> T.List[str]:
         flags = os.environ.get('LDFLAGS')
         if not flags:
             return []
@@ -50,83 +50,83 @@ class BasicLinkerIsCompilerMixin:
     functionality itself.
     """
 
-    def sanitizer_link_args(self, value: str) -> typing.List[str]:
+    def sanitizer_link_args(self, value: str) -> T.List[str]:
         return []
 
-    def get_lto_link_args(self) -> typing.List[str]:
+    def get_lto_link_args(self) -> T.List[str]:
         return []
 
     def can_linker_accept_rsp(self) -> bool:
         return mesonlib.is_windows()
 
-    def get_linker_exelist(self) -> typing.List[str]:
+    def get_linker_exelist(self) -> T.List[str]:
         return self.exelist.copy()
 
-    def get_linker_output_args(self, output: str) -> typing.List[str]:
+    def get_linker_output_args(self, output: str) -> T.List[str]:
         return []
 
-    def get_linker_always_args(self) -> typing.List[str]:
+    def get_linker_always_args(self) -> T.List[str]:
         return []
 
     def get_linker_lib_prefix(self) -> str:
         return ''
 
-    def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return []
 
-    def has_multi_link_args(self, args: typing.List[str], env: 'Environment') -> typing.Tuple[bool, bool]:
+    def has_multi_link_args(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return False, False
 
-    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
+    def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
         return []
 
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
         return []
 
-    def get_std_shared_module_args(self, options: 'OptionDictType') -> typing.List[str]:
+    def get_std_shared_module_args(self, options: 'OptionDictType') -> T.List[str]:
         return self.get_std_shared_lib_link_args()
 
-    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support link_whole'.format(self.id))
 
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
+    def get_allow_undefined_link_args(self) -> T.List[str]:
         raise mesonlib.EnvironmentException(
             'Linker {} does not support allow undefined'.format(self.id))
 
-    def get_pie_link_args(self) -> typing.List[str]:
+    def get_pie_link_args(self) -> T.List[str]:
         m = 'Linker {} does not support position-independent executable'
         raise mesonlib.EnvironmentException(m.format(self.id))
 
-    def get_undefined_link_args(self) -> typing.List[str]:
+    def get_undefined_link_args(self) -> T.List[str]:
         return []
 
-    def get_coverage_link_args(self) -> typing.List[str]:
+    def get_coverage_link_args(self) -> T.List[str]:
         m = "Linker {} doesn't implement coverage data generation.".format(self.id)
         raise mesonlib.EnvironmentException(m)
 
-    def no_undefined_link_args(self) -> typing.List[str]:
+    def no_undefined_link_args(self) -> T.List[str]:
         return []
 
-    def bitcode_args(self) -> typing.List[str]:
+    def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException("This linker doesn't support bitcode bundles")
 
     def get_soname_args(self, for_machine: 'mesonlib.MachineChoice',
                         prefix: str, shlib_name: str, suffix: str, soversion: str,
-                        darwin_versions: typing.Tuple[str, str],
-                        is_shared_module: bool) -> typing.List[str]:
+                        darwin_versions: T.Tuple[str, str],
+                        is_shared_module: bool) -> T.List[str]:
         raise mesonlib.MesonException("This linker doesn't support soname args")
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> typing.List[str]:
+                         install_rpath: str) -> T.List[str]:
         return []
 
-    def get_linker_debug_crt_args(self) -> typing.List[str]:
+    def get_linker_debug_crt_args(self) -> T.List[str]:
         return []
 
-    def get_asneeded_args(self) -> typing.List[str]:
+    def get_asneeded_args(self) -> T.List[str]:
         return []
 
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return []

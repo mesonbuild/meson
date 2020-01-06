@@ -15,21 +15,21 @@
 """Abstractions for the Elbrus family of compilers."""
 
 import os
-import typing
+import typing as T
 import subprocess
 import re
 
 from .gnu import GnuLikeCompiler
 from ...mesonlib import Popen_safe
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ...environment import Environment
 
 
 class ElbrusCompiler(GnuLikeCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, defines: typing.Dict[str, str]):
+    def __init__(self, defines: T.Dict[str, str]):
         super().__init__()
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
@@ -38,7 +38,7 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     # FIXME: use _build_wrapper to call this so that linker flags from the env
     # get applied
-    def get_library_dirs(self, env: 'Environment', elf_class: typing.Optional[int] = None) -> typing.List[str]:
+    def get_library_dirs(self, env: 'Environment', elf_class: T.Optional[int] = None) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
@@ -49,7 +49,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':') if os.path.exists(p)]
         return []
 
-    def get_program_dirs(self, env: 'Environment') -> typing.List[str]:
+    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         stdo = Popen_safe(self.exelist + ['--print-search-dirs'], env=os_env)[1]
@@ -60,7 +60,7 @@ class ElbrusCompiler(GnuLikeCompiler):
                 return [os.path.realpath(p) for p in libstr.split(':')]
         return []
 
-    def get_default_include_dirs(self) -> typing.List[str]:
+    def get_default_include_dirs(self) -> T.List[str]:
         os_env = os.environ.copy()
         os_env['LC_ALL'] = 'C'
         p = subprocess.Popen(self.exelist + ['-xc', '-E', '-v', '-'], env=os_env, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

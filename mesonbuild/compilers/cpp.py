@@ -15,7 +15,7 @@
 import copy
 import functools
 import os.path
-import typing
+import typing as T
 
 from .. import coredata
 from .. import mlog
@@ -39,7 +39,7 @@ from .mixins.pgi import PGICompiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 
@@ -62,7 +62,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
     language = 'cpp'
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrap: typing.Optional[str] = None, **kwargs):
+                 info: 'MachineInfo', exe_wrap: T.Optional[str] = None, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
@@ -431,7 +431,7 @@ class VisualStudioLikeCPPCompilerMixin:
     def get_option_link_args(self, options):
         return options['cpp_winlibs'].value[:]
 
-    def _get_options_impl(self, opts, cpp_stds: typing.List[str]):
+    def _get_options_impl(self, opts, cpp_stds: T.List[str]):
         opts.update({'cpp_eh': coredata.UserComboOption('C++ exception handling type.',
                                                         ['none', 'default', 'a', 's', 'sc'],
                                                         'default'),

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing
+import typing as T
 import os
 import re
 import subprocess
@@ -118,7 +118,7 @@ class MPIDependency(ExternalDependency):
                     self.version, self.compile_args, self.link_args = result
             return
 
-    def _filter_compile_args(self, args: typing.Sequence[str]) -> typing.List[str]:
+    def _filter_compile_args(self, args: T.Sequence[str]) -> T.List[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
@@ -142,7 +142,7 @@ class MPIDependency(ExternalDependency):
                 result.append(f)
         return result
 
-    def _filter_link_args(self, args: typing.Sequence[str], cid: str) -> typing.List[str]:
+    def _filter_link_args(self, args: T.Sequence[str], cid: str) -> T.List[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
@@ -210,7 +210,7 @@ class MPIDependency(ExternalDependency):
 
         return version, cargs, libs
 
-    def _try_other_wrapper(self, prog, cid: str) -> typing.Tuple[str, typing.List[str], typing.List[str]]:
+    def _try_other_wrapper(self, prog, cid: str) -> T.Tuple[str, T.List[str], T.List[str]]:
         prog = ExternalProgram(prog, silent=True)
         if not prog.found():
             return None
@@ -243,7 +243,7 @@ class MPIDependency(ExternalDependency):
 
         return version, args, args
 
-    def _try_msmpi(self) -> typing.Tuple[str, typing.List[str], typing.List[str]]:
+    def _try_msmpi(self) -> T.Tuple[str, T.List[str], T.List[str]]:
         if self.language == 'cpp':
             # MS-MPI does not support the C++ version of MPI, only the standard C API.
             return None

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List
+import typing as T
 import subprocess, os
 
 from .. import coredata
@@ -35,7 +35,7 @@ from mesonbuild.mesonlib import (
     version_compare, EnvironmentException, MesonException, MachineChoice, LibType
 )
 
-if TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 
@@ -189,7 +189,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> List[str]:
+    def get_option_compile_args(self, options) -> T.List[str]:
         args = []
         std = options['fortran_std']
         if std.value != 'none':
@@ -295,7 +295,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> List[str]:
+    def get_option_compile_args(self, options) -> T.List[str]:
         args = []
         std = options['fortran_std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -315,7 +315,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self):
         return ['-lifcore', '-limf']
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-gen-dep=' + outtarget, '-gen-depformat=make']
 
 
@@ -345,7 +345,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                                                              'none')})
         return opts
 
-    def get_option_compile_args(self, options) -> List[str]:
+    def get_option_compile_args(self, options) -> T.List[str]:
         args = []
         std = options['fortran_std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -353,7 +353,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
             args.append('/stand:' + stds[std.value])
         return args
 
-    def get_module_outdir_args(self, path) -> List[str]:
+    def get_module_outdir_args(self, path) -> T.List[str]:
         return ['/module:' + path]
 
 
@@ -388,7 +388,7 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args + ['-Mdclchk']}
 
-    def language_stdlib_only_link_flags(self) -> List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lpgf90rtl', '-lpgf90', '-lpgf90_rpm1', '-lpgf902',
                 '-lpgf90rtl', '-lpgftnrtl', '-lrt']
 
@@ -406,7 +406,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def language_stdlib_only_link_flags(self) -> List[str]:
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lflang', '-lpgmath']
 
 class Open64FortranCompiler(FortranCompiler):

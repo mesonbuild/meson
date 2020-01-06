@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, platform, re, sys, shutil, subprocess, typing
+import os, platform, re, sys, shutil, subprocess
 import tempfile
 import shlex
+import typing as T
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, IntelVisualStudioLinker
@@ -110,7 +111,7 @@ from .compilers import (
 
 build_filename = 'meson.build'
 
-CompilersDict = typing.Dict[str, Compiler]
+CompilersDict = T.Dict[str, Compiler]
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
@@ -167,7 +168,7 @@ def detect_ninja_command_and_version(version: str = '1.5', log: bool = False) ->
                 mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
             return (n, found)
 
-def get_llvm_tool_names(tool: str) -> typing.List[str]:
+def get_llvm_tool_names(tool: str) -> T.List[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with
     # base, then try newest back to oldest (3.5 is arbitrary), and finally the
     # devel version. Please note that the development snapshot in Debian does
@@ -194,7 +195,7 @@ def get_llvm_tool_names(tool: str) -> typing.List[str]:
         names.append(tool + suffix)
     return names
 
-def detect_scanbuild() -> typing.List[str]:
+def detect_scanbuild() -> T.List[str]:
     """ Look for scan-build binary on build platform
 
     First, if a SCANBUILD env variable has been provided, give it precedence
@@ -225,7 +226,7 @@ def detect_scanbuild() -> typing.List[str]:
             return [tool]
     return []
 
-def detect_clangformat() -> typing.List[str]:
+def detect_clangformat() -> T.List[str]:
     """ Look for clang-format binary on build platform
 
     Do the same thing as detect_scanbuild to find clang-format except it
@@ -397,7 +398,7 @@ def detect_msys2_arch():
         return os.environ['MSYSTEM_CARCH']
     return None
 
-def detect_machine_info(compilers: typing.Optional[CompilersDict] = None) -> MachineInfo:
+def detect_machine_info(compilers: T.Optional[CompilersDict] = None) -> MachineInfo:
     """Detect the machine we're running on
 
     If compilers are not provided, we cannot know as much. None out those
@@ -732,7 +733,7 @@ class Environment:
                 errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
         raise EnvironmentException(errmsg)
 
-    def _guess_win_linker(self, compiler: typing.List[str], comp_class: Compiler,
+    def _guess_win_linker(self, compiler: T.List[str], comp_class: Compiler,
                           for_machine: MachineChoice, *,
                           use_linker_prefix: bool = True) -> 'DynamicLinker':
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
@@ -747,7 +748,7 @@ class Environment:
 
         check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
-        override = []  # type: typing.List[str]
+        override = []  # type: T.List[str]
         value = self.binaries[for_machine].lookup_entry('ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
@@ -791,9 +792,9 @@ class Environment:
                 "%PATH% variable to resolve this.")
         raise EnvironmentException('Unable to determine dynamic linker')
 
-    def _guess_nix_linker(self, compiler: typing.List[str], comp_class: typing.Type[Compiler],
+    def _guess_nix_linker(self, compiler: T.List[str], comp_class: T.Type[Compiler],
                           for_machine: MachineChoice, *,
-                          extra_args: typing.Optional[typing.List[str]] = None) -> 'DynamicLinker':
+                          extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
         """Helper for guessing what linker to use on Unix-Like OSes.
 
         :compiler: Invocation to use to get linker
@@ -802,7 +803,7 @@ class Environment:
         :extra_args: Any additional arguments required (such as a source file)
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
-        extra_args = typing.cast(typing.List[str], extra_args or [])
+        extra_args = T.cast(T.List[str], extra_args or [])
         extra_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
@@ -810,7 +811,7 @@ class Environment:
         else:
             check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
-        override = []  # type: typing.List[str]
+        override = []  # type: T.List[str]
         value = self.binaries[for_machine].lookup_entry('ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])

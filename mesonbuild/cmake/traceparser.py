@@ -19,7 +19,7 @@ from .common import CMakeException
 from .generator import parse_generator_expressions
 from .. import mlog
 
-from typing import List, Tuple, Optional
+import typing as T
 import re
 import os
 
@@ -35,7 +35,7 @@ class CMakeTraceLine:
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeTarget:
-    def __init__(self, name, target_type, properties=None, imported: bool = False, tline: Optional[CMakeTraceLine] = None):
+    def __init__(self, name, target_type, properties=None, imported: bool = False, tline: T.Optional[CMakeTraceLine] = None):
         if properties is None:
             properties = {}
         self.name = name
@@ -55,9 +55,9 @@ class CMakeTarget:
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name):
         super().__init__(name, 'CUSTOM', {})
-        self.outputs = []        # type: List[str]
-        self.command = []        # type: List[List[str]]
-        self.working_dir = None  # type: Optional[str]
+        self.outputs = []        # type: T.List[str]
+        self.command = []        # type: T.List[T.List[str]]
+        self.working_dir = None  # type: T.Optional[str]
 
 class CMakeTraceParser:
     def __init__(self, permissive: bool = False):
@@ -67,8 +67,8 @@ class CMakeTraceParser:
         # Dict of CMakeTarget
         self.targets = {}
 
-        # List of targes that were added with add_custom_command to generate files
-        self.custom_targets = []  # type: List[CMakeGeneratorTarget]
+        # T.List of targes that were added with add_custom_command to generate files
+        self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
 
         self.permissive = permissive  # type: bool
 
@@ -101,7 +101,7 @@ class CMakeTraceParser:
             if(fn):
                 fn(l)
 
-    def get_first_cmake_var_of(self, var_list: List[str]) -> List[str]:
+    def get_first_cmake_var_of(self, var_list: T.List[str]) -> T.List[str]:
         # Return the first found CMake variable in list var_list
         for i in var_list:
             if i in self.vars:
@@ -109,7 +109,7 @@ class CMakeTraceParser:
 
         return []
 
-    def get_cmake_var(self, var: str) -> List[str]:
+    def get_cmake_var(self, var: str) -> T.List[str]:
         # Return the value of the CMake variable var or an empty list if var does not exist
         if var in self.vars:
             return self.vars[var]
@@ -382,7 +382,7 @@ class CMakeTraceParser:
         # option 1 first and fall back to 2, as 1 requires less code and less
         # synchroniztion for cmake changes.
 
-        arglist = []  # type: List[Tuple[str, List[str]]]
+        arglist = []  # type: T.List[T.Tuple[str, T.List[str]]]
         name = args.pop(0)
         values = []
         prop_regex = re.compile(r'^[A-Z_]+$')
@@ -437,7 +437,7 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
         self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
 
-    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: Optional[List[str]] = None, paths: bool = False):
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False):
         if ignore is None:
             ignore = ['BEFORE']
 
@@ -509,14 +509,14 @@ class CMakeTraceParser:
 
             yield CMakeTraceLine(file, line, func, args)
 
-    def _guess_files(self, broken_list: List[str]) -> List[str]:
+    def _guess_files(self, broken_list: T.List[str]) -> T.List[str]:
         #Try joining file paths that contain spaces
 
         reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
-        fixed_list = []  # type: List[str]
-        curr_str = None  # type: Optional[str]
+        fixed_list = []  # type: T.List[str]
+        curr_str = None  # type: T.Optional[str]
 
         for i in broken_list:
             if curr_str is None:

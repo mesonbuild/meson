@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os.path
-import typing
+import typing as T
 from functools import partial
 
 from .. import coredata
@@ -22,7 +22,7 @@ from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOv
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args)
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
 
@@ -197,9 +197,9 @@ class CudaCompiler(Compiler):
         return args + self._to_host_flags(self.host_compiler.get_option_compile_args(self._to_host_compiler_options(options)))
 
     @classmethod
-    def _cook_link_args(cls, args: typing.List[str]) -> typing.List[str]:
+    def _cook_link_args(cls, args: T.List[str]) -> T.List[str]:
         # Prepare link args for nvcc
-        cooked = []  # type: typing.List[str]
+        cooked = []  # type: T.List[str]
         for arg in args:
             if arg.startswith('-Wl,'): # strip GNU-style -Wl prefix
                 arg = arg.replace('-Wl,', '', 1)
@@ -263,7 +263,7 @@ class CudaCompiler(Compiler):
     def get_depfile_suffix(self):
         return 'd'
 
-    def get_linker_debug_crt_args(self) -> typing.List[str]:
+    def get_linker_debug_crt_args(self) -> T.List[str]:
         return self._cook_link_args(self.host_compiler.get_linker_debug_crt_args())
 
     def get_buildtype_linker_args(self, buildtype):
@@ -271,7 +271,7 @@ class CudaCompiler(Compiler):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> typing.List[str]:
+                         install_rpath: str) -> T.List[str]:
         return self._cook_link_args(self.host_compiler.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath))
 
@@ -284,10 +284,10 @@ class CudaCompiler(Compiler):
     def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
         return []
 
-    def get_output_args(self, target: str) -> typing.List[str]:
+    def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
-    def get_std_exe_link_args(self) -> typing.List[str]:
+    def get_std_exe_link_args(self) -> T.List[str]:
         return self._cook_link_args(self.host_compiler.get_std_exe_link_args())
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):

@@ -32,14 +32,14 @@ to this:
 This directory must be run from source root as it touches run_unittests.py.
 '''
 
-import typing
+import typing as T
 import os
 import sys
 import subprocess
 
 from glob import glob
 
-def get_entries() -> typing.List[typing.Tuple[int, str]]:
+def get_entries() -> T.List[T.Tuple[int, str]]:
     entries = []
     for e in glob('*'):
         if not os.path.isdir(e):
@@ -53,7 +53,7 @@ def get_entries() -> typing.List[typing.Tuple[int, str]]:
     entries.sort()
     return entries
 
-def replace_source(sourcefile: str, replacements: typing.List[typing.Tuple[str, str]]):
+def replace_source(sourcefile: str, replacements: T.List[T.Tuple[str, str]]):
     with open(sourcefile, 'r') as f:
         contents = f.read()
     for old_name, new_name in replacements:

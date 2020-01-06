@@ -41,7 +41,7 @@ import subprocess
 import collections
 from itertools import chain
 import functools
-from typing import Sequence, List, Union, Optional, Dict, Any
+import typing as T
 
 import importlib
 
@@ -914,10 +914,10 @@ class RunTargetHolder(TargetHolder):
         return r.format(self.__class__.__name__, h.get_id(), h.command)
 
 class Test(InterpreterObject):
-    def __init__(self, name: str, project: str, suite: List[str], exe: build.Executable,
-                 depends: List[Union[build.CustomTarget, build.BuildTarget]],
-                 is_parallel: bool, cmd_args: List[str], env: build.EnvironmentVariables,
-                 should_fail: bool, timeout: int, workdir: Optional[str], protocol: str,
+    def __init__(self, name: str, project: str, suite: T.List[str], exe: build.Executable,
+                 depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
+                 is_parallel: bool, cmd_args: T.List[str], env: build.EnvironmentVariables,
+                 should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int):
         InterpreterObject.__init__(self)
         self.name = name
@@ -2944,7 +2944,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.validate_arguments(args, 0, [])
         raise Exception()
 
-    def add_languages(self, args: Sequence[str], required: bool) -> bool:
+    def add_languages(self, args: T.Sequence[str], required: bool) -> bool:
         success = self.add_languages_for(args, required, MachineChoice.BUILD)
         success &= self.add_languages_for(args, required, MachineChoice.HOST)
         if not self.coredata.is_cross_build():
@@ -3407,7 +3407,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
-            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
+            FeatureNew('T.Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
@@ -4469,7 +4469,7 @@ This will become a hard error in the future.''', location=self.current_node)
         return varname in self.variables
 
     @staticmethod
-    def machine_from_native_kwarg(kwargs: Dict[str, Any]) -> MachineChoice:
+    def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
         native = kwargs.get('native', False)
         if not isinstance(native, bool):
             raise InvalidArguments('Argument to "native" must be a boolean.')

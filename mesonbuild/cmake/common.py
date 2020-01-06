@@ -17,7 +17,7 @@
 
 from ..mesonlib import MesonException
 from .. import mlog
-from typing import List
+import typing as T
 
 class CMakeException(MesonException):
     pass
@@ -31,7 +31,7 @@ class CMakeBuildFile:
     def __repr__(self):
         return '<{}: {}; cmake={}; temp={}>'.format(self.__class__.__name__, self.file, self.is_cmake, self.is_temp)
 
-def _flags_to_list(raw: str) -> List[str]:
+def _flags_to_list(raw: str) -> T.List[str]:
     # Convert a raw commandline string into a list of strings
     res = []
     curr = ''

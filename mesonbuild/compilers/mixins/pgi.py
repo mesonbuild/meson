@@ -14,7 +14,7 @@
 
 """Abstractions for the PGI family of compilers."""
 
-import typing
+import typing as T
 import os
 from pathlib import Path
 
@@ -27,7 +27,7 @@ pgi_buildtype_args = {
     'release': [],
     'minsize': [],
     'custom': [],
-}  # type: typing.Dict[str, typing.List[str]]
+}  # type: T.Dict[str, T.List[str]]
 
 
 class PGICompiler:
@@ -41,50 +41,50 @@ class PGICompiler:
                           '2': default_warn_args,
                           '3': default_warn_args}
 
-    def get_module_incdir_args(self) -> typing.Tuple[str]:
+    def get_module_incdir_args(self) -> T.Tuple[str]:
         return ('-module', )
 
-    def get_no_warn_args(self) -> typing.List[str]:
+    def get_no_warn_args(self) -> T.List[str]:
         return ['-silent']
 
-    def gen_import_library_args(self, implibname: str) -> typing.List[str]:
+    def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return []
 
-    def get_pic_args(self) -> typing.List[str]:
+    def get_pic_args(self) -> T.List[str]:
         # PGI -fPIC is Linux only.
         if self.info.is_linux():
             return ['-fPIC']
         return []
 
-    def openmp_flags(self) -> typing.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['-mp']
 
-    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return pgi_buildtype_args[buildtype]
 
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return clike_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug: bool) -> typing.List[str]:
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: typing.List[str], build_dir: str) -> typing.List[str]:
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> typing.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
 
-    def get_always_args(self) -> typing.List[str]:
+    def get_always_args(self) -> T.List[str]:
         return []
 
     def get_pch_suffix(self) -> str:
         # PGI defaults to .pch suffix for PCH on Linux and Windows with --pch option
         return 'pch'
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         # PGI supports PCH for C++ only.
         hdr = Path(pch_dir).resolve().parent / header
         if self.language == 'cpp':

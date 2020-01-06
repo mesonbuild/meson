@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing
+import typing as T
 from pathlib import Path
 import sys
 import re
@@ -47,7 +47,7 @@ class Lexer:
             ('rparen', re.compile(r'\)')),
         ]
 
-    def lex(self, code: str) -> typing.Iterator[Token]:
+    def lex(self, code: str) -> T.Iterator[Token]:
         lineno = 1
         line_start = 0
         loc = 0
@@ -135,7 +135,7 @@ class Parser:
             args += rest
         return args
 
-    def parse(self) -> typing.Iterator[Statement]:
+    def parse(self) -> T.Iterator[Statement]:
         while not self.accept('eof'):
             yield(self.statement())
 
@@ -148,9 +148,9 @@ class Converter:
         self.cmake_root = Path(cmake_root).expanduser()
         self.indent_unit = '  '
         self.indent_level = 0
-        self.options = []  # type: typing.List[tuple]
+        self.options = []  # type: T.List[tuple]
 
-    def convert_args(self, args: typing.List[Token], as_array: bool = True) -> str:
+    def convert_args(self, args: T.List[Token], as_array: bool = True) -> str:
         res = []
         if as_array:
             start = '['
@@ -173,7 +173,7 @@ class Converter:
             return res[0]
         return ''
 
-    def write_entry(self, outfile: typing.TextIO, t: Statement):
+    def write_entry(self, outfile: T.TextIO, t: Statement):
         if t.name in Converter.ignored_funcs:
             return
         preincrement = 0

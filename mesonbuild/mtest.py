@@ -34,7 +34,7 @@ import subprocess
 import sys
 import tempfile
 import time
-import typing
+import typing as T
 
 from . import build
 from . import environment
@@ -42,7 +42,7 @@ from . import mlog
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from .backend.backends import TestSerialisation
 
 # GNU autotools interprets a return code of 77 from tests it executes to
@@ -148,7 +148,7 @@ def returncode_to_status(retcode: int) -> str:
         signame = 'SIGinvalid'
     return '(exit status %d or signal %d %s)' % (retcode, signum, signame)
 
-def env_tuple_to_str(env: typing.Iterable[typing.Tuple[str, str]]) -> str:
+def env_tuple_to_str(env: T.Iterable[T.Tuple[str, str]]) -> str:
     return ''.join(["%s='%s' " % (k, v) for k, v in env])
 
 
@@ -187,11 +187,11 @@ class TAPParser:
     _RE_YAML_START = re.compile(r'(\s+)---.*')
     _RE_YAML_END = re.compile(r'\s+\.\.\.\s*')
 
-    def __init__(self, io: typing.Iterator[str]):
+    def __init__(self, io: T.Iterator[str]):
         self.io = io
 
-    def parse_test(self, ok: bool, num: int, name: str, directive: typing.Optional[str], explanation: typing.Optional[str]) -> \
-            typing.Generator[typing.Union['TAPParser.Test', 'TAPParser.Error'], None, None]:
+    def parse_test(self, ok: bool, num: int, name: str, directive: T.Optional[str], explanation: T.Optional[str]) -> \
+            T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error'], None, None]:
         name = name.strip()
         explanation = explanation.strip() if explanation else None
         if directive is not None:
@@ -208,7 +208,7 @@ class TAPParser:
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
-    def parse(self) -> typing.Generator[typing.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout'], None, None]:
+    def parse(self) -> T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout'], None, None]:
         found_late_test = False
         bailed_out = False
         plan = None
@@ -319,10 +319,10 @@ class TAPParser:
 class TestRun:
 
     @classmethod
-    def make_exitcode(cls, test: 'TestSerialisation', test_env: typing.Dict[str, str],
+    def make_exitcode(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                       returncode: int, starttime: float, duration: float,
-                      stdo: typing.Optional[str], stde: typing.Optional[str],
-                      cmd: typing.Optional[typing.List[str]]) -> 'TestRun':
+                      stdo: T.Optional[str], stde: T.Optional[str],
+                      cmd: T.Optional[T.List[str]]) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
@@ -334,10 +334,10 @@ class TestRun:
         return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
 
     @classmethod
-    def make_tap(cls, test: 'TestSerialisation', test_env: typing.Dict[str, str],
+    def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
-                 cmd: typing.Optional[typing.List[str]]) -> 'TestRun':
+                 cmd: T.Optional[T.List[str]]) -> 'TestRun':
         res = None
         num_tests = 0
         failed = False
@@ -372,10 +372,10 @@ class TestRun:
 
         return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
 
-    def __init__(self, test: 'TestSerialisation', test_env: typing.Dict[str, str],
+    def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  res: TestResult, returncode: int, starttime: float, duration: float,
-                 stdo: typing.Optional[str], stde: typing.Optional[str],
-                 cmd: typing.Optional[typing.List[str]]):
+                 stdo: T.Optional[str], stde: T.Optional[str],
+                 cmd: T.Optional[T.List[str]]):
         assert isinstance(res, TestResult)
         self.res = res
         self.returncode = returncode
@@ -410,7 +410,7 @@ class TestRun:
         res += '-------\n\n'
         return res
 
-def decode(stream: typing.Union[None, bytes]) -> str:
+def decode(stream: T.Union[None, bytes]) -> str:
     if stream is None:
         return ''
     try:
@@ -418,7 +418,7 @@ def decode(stream: typing.Union[None, bytes]) -> str:
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
 
-def write_json_log(jsonlogfile: typing.TextIO, test_name: str, result: TestRun) -> None:
+def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> None:
     jresult = {'name': test_name,
                'stdout': result.stdo,
                'result': result.res.value,
@@ -426,7 +426,7 @@ def write_json_log(jsonlogfile: typing.TextIO, test_name: str, result: TestRun) 
                'duration': result.duration,
                'returncode': result.returncode,
                'env': result.env,
-               'command': result.cmd}  # type: typing.Dict[str, typing.Any]
+               'command': result.cmd}  # type: T.Dict[str, T.Any]
     if result.stde:
         jresult['stderr'] = result.stde
     jsonlogfile.write(json.dumps(jresult) + '\n')
@@ -436,33 +436,33 @@ def run_with_mono(fname: str) -> bool:
         return True
     return False
 
-def load_benchmarks(build_dir: str) -> typing.List['TestSerialisation']:
+def load_benchmarks(build_dir: str) -> T.List['TestSerialisation']:
     datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = typing.cast(typing.List['TestSerialisation'], pickle.load(f))
+        obj = T.cast(T.List['TestSerialisation'], pickle.load(f))
     return obj
 
-def load_tests(build_dir: str) -> typing.List['TestSerialisation']:
+def load_tests(build_dir: str) -> T.List['TestSerialisation']:
     datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = typing.cast(typing.List['TestSerialisation'], pickle.load(f))
+        obj = T.cast(T.List['TestSerialisation'], pickle.load(f))
     return obj
 
 
 class SingleTestRunner:
 
-    def __init__(self, test: 'TestSerialisation', test_env: typing.Dict[str, str],
-                 env: typing.Dict[str, str], options: argparse.Namespace):
+    def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
+                 env: T.Dict[str, str], options: argparse.Namespace):
         self.test = test
         self.test_env = test_env
         self.env = env
         self.options = options
 
-    def _get_cmd(self) -> typing.Optional[typing.List[str]]:
+    def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
@@ -493,7 +493,7 @@ class SingleTestRunner:
                 self.test.timeout = None
             return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
 
-    def _run_cmd(self, cmd: typing.List[str]) -> TestRun:
+    def _run_cmd(self, cmd: T.List[str]) -> TestRun:
         starttime = time.time()
 
         if len(self.test.extra_paths) > 0:
@@ -629,7 +629,7 @@ class SingleTestRunner:
 class TestHarness:
     def __init__(self, options: argparse.Namespace):
         self.options = options
-        self.collected_logs = []  # type: typing.List[str]
+        self.collected_logs = []  # type: T.List[str]
         self.fail_count = 0
         self.expectedfail_count = 0
         self.unexpectedpass_count = 0
@@ -638,9 +638,9 @@ class TestHarness:
         self.timeout_count = 0
         self.is_run = False
         self.tests = None
-        self.logfilename = None   # type: typing.Optional[str]
-        self.logfile = None       # type: typing.Optional[typing.TextIO]
-        self.jsonlogfile = None   # type: typing.Optional[typing.TextIO]
+        self.logfilename = None   # type: T.Optional[str]
+        self.logfile = None       # type: T.Optional[T.TextIO]
+        self.jsonlogfile = None   # type: T.Optional[T.TextIO]
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
         else:
@@ -668,7 +668,7 @@ class TestHarness:
             self.jsonlogfile.close()
             self.jsonlogfile = None
 
-    def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> typing.Dict[str, str]:
+    def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> T.Dict[str, str]:
         if ':' in options.setup:
             if options.setup not in self.build_data.test_setups:
                 sys.exit("Unknown test setup '%s'." % options.setup)
@@ -720,7 +720,7 @@ class TestHarness:
         else:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
-    def print_stats(self, numlen: int, tests: typing.List['TestSerialisation'],
+    def print_stats(self, numlen: int, tests: T.List['TestSerialisation'],
                     name: str, result: TestRun, i: int) -> None:
         startpad = ' ' * (numlen - len('%d' % (i + 1)))
         num = '%s%d/%d' % (startpad, i + 1, len(tests))
@@ -803,16 +803,16 @@ Timeout:            %4d
         return self.total_failure_count()
 
     @staticmethod
-    def split_suite_string(suite: str) -> typing.Tuple[str, str]:
+    def split_suite_string(suite: str) -> T.Tuple[str, str]:
         if ':' in suite:
             # mypy can't figure out that str.split(n, 1) will return a list of
             # length 2, so we have to help it.
-            return typing.cast(typing.Tuple[str, str], tuple(suite.split(':', 1)))
+            return T.cast(T.Tuple[str, str], tuple(suite.split(':', 1)))
         else:
             return suite, ""
 
     @staticmethod
-    def test_in_suites(test: 'TestSerialisation', suites: typing.List[str]) -> bool:
+    def test_in_suites(test: 'TestSerialisation', suites: T.List[str]) -> bool:
         for suite in suites:
             (prj_match, st_match) = TestHarness.split_suite_string(suite)
             for prjst in test.suite:
@@ -848,7 +848,7 @@ Timeout:            %4d
                 TestHarness.test_in_suites(test, self.options.include_suites)) and not
                 TestHarness.test_in_suites(test, self.options.exclude_suites))
 
-    def get_tests(self) -> typing.List['TestSerialisation']:
+    def get_tests(self) -> T.List['TestSerialisation']:
         if not self.tests:
             print('No tests defined.')
             return []
@@ -897,8 +897,8 @@ Timeout:            %4d
         self.logfile.write('Inherited environment: {}\n\n'.format(inherit_env))
 
     @staticmethod
-    def get_wrapper(options: argparse.Namespace) -> typing.List[str]:
-        wrap = []  # type: typing.List[str]
+    def get_wrapper(options: argparse.Namespace) -> T.List[str]:
+        wrap = []  # type: T.List[str]
         if options.gdb:
             wrap = [options.gdb_path, '--quiet', '--nh']
             if options.repeat > 1:
@@ -919,9 +919,9 @@ Timeout:            %4d
         else:
             return test.name
 
-    def run_tests(self, tests: typing.List['TestSerialisation']) -> None:
+    def run_tests(self, tests: T.List['TestSerialisation']) -> None:
         executor = None
-        futures = []  # type: typing.List[typing.Tuple[conc.Future[TestRun], int, typing.List[TestSerialisation], str, int]]
+        futures = []  # type: T.List[T.Tuple[conc.Future[TestRun], int, T.List[TestSerialisation], str, int]]
         numlen = len('%d' % len(tests))
         self.open_log_files()
         startdir = os.getcwd()
@@ -960,7 +960,7 @@ Timeout:            %4d
         finally:
             os.chdir(startdir)
 
-    def drain_futures(self, futures: typing.List[typing.Tuple['conc.Future[TestRun]', int, typing.List['TestSerialisation'], str, int]]) -> None:
+    def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, T.List['TestSerialisation'], str, int]]) -> None:
         for x in futures:
             (result, numlen, tests, name, i) = x
             if self.options.repeat > 1 and self.fail_count:
@@ -1052,7 +1052,7 @@ def run(options: argparse.Namespace) -> int:
                 print(e)
             return 1
 
-def run_with_args(args: typing.List[str]) -> int:
+def run_with_args(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser(prog='meson test')
     add_arguments(parser)
     options = parser.parse_args(args)

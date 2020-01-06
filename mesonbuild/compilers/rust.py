@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import subprocess, os.path
-import typing
+import typing as T
 
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
 
