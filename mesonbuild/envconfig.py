@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import configparser, os, subprocess
-import typing
+import typing as T
 
 from . import mesonlib
 from .mesonlib import EnvironmentException, split_args
 from . import mlog
 
-_T = typing.TypeVar('_T')
+_T = T.TypeVar('_T')
 
 
 # These classes contains all the data pulled from configuration files (native
@@ -77,7 +77,7 @@ CPU_FAMILES_64_BIT = [
 
 class MesonConfigFile:
     @classmethod
-    def from_config_parser(cls, parser: configparser.ConfigParser) -> typing.Dict[str, typing.Dict[str, typing.Dict[str, str]]]:
+    def from_config_parser(cls, parser: configparser.ConfigParser) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
         out = {}
         # This is a bit hackish at the moment.
         for s in parser.sections():
@@ -120,10 +120,10 @@ class HasEnvVarFallback:
 class Properties(HasEnvVarFallback):
     def __init__(
             self,
-            properties: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None,
+            properties: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
             fallback: bool = True):
         super().__init__(fallback)
-        self.properties = properties or {}  # type: typing.Dict[str, typing.Union[str, typing.List[str]]]
+        self.properties = properties or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
 
     def has_stdlib(self, language: str) -> bool:
         return language + '_stdlib' in self.properties
@@ -131,30 +131,30 @@ class Properties(HasEnvVarFallback):
     # Some of get_stdlib, get_root, get_sys_root are wider than is actually
     # true, but without heterogenious dict annotations it's not practical to
     # narrow them
-    def get_stdlib(self, language: str) -> typing.Union[str, typing.List[str]]:
+    def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
         return self.properties[language + '_stdlib']
 
-    def get_root(self) -> typing.Optional[typing.Union[str, typing.List[str]]]:
+    def get_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
         return self.properties.get('root', None)
 
-    def get_sys_root(self) -> typing.Optional[typing.Union[str, typing.List[str]]]:
+    def get_sys_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
         return self.properties.get('sys_root', None)
 
-    def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
         if isinstance(other, type(self)):
             return self.properties == other.properties
         return NotImplemented
 
     # TODO consider removing so Properties is less freeform
-    def __getitem__(self, key: str) -> typing.Any:
+    def __getitem__(self, key: str) -> T.Any:
         return self.properties[key]
 
     # TODO consider removing so Properties is less freeform
-    def __contains__(self, item: typing.Any) -> bool:
+    def __contains__(self, item: T.Any) -> bool:
         return item in self.properties
 
     # TODO consider removing, for same reasons as above
-    def get(self, key: str, default: typing.Any = None) -> typing.Any:
+    def get(self, key: str, default: T.Any = None) -> T.Any:
         return self.properties.get(key, default)
 
 class MachineInfo:
@@ -165,7 +165,7 @@ class MachineInfo:
         self.endian = endian
         self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
 
-    def __eq__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
         if self.__class__ is not other.__class__:
             return NotImplemented
         return \
@@ -174,7 +174,7 @@ class MachineInfo:
             self.cpu == other.cpu and \
             self.endian == other.endian
 
-    def __ne__(self, other: typing.Any) -> 'typing.Union[bool, NotImplemented]':
+    def __ne__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
         if self.__class__ is not other.__class__:
             return NotImplemented
         return not self.__eq__(other)
@@ -183,7 +183,7 @@ class MachineInfo:
         return '<MachineInfo: {} {} ({})>'.format(self.system, self.cpu_family, self.cpu)
 
     @classmethod
-    def from_literal(cls, literal: typing.Dict[str, str]) -> 'MachineInfo':
+    def from_literal(cls, literal: T.Dict[str, str]) -> 'MachineInfo':
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
         if set(literal) < minimum_literal:
             raise EnvironmentException(
@@ -281,10 +281,10 @@ class MachineInfo:
 class BinaryTable(HasEnvVarFallback):
     def __init__(
             self,
-            binaries: typing.Optional[typing.Dict[str, typing.Union[str, typing.List[str]]]] = None,
+            binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
             fallback: bool = True):
         super().__init__(fallback)
-        self.binaries = binaries or {}  # type: typing.Dict[str, typing.Union[str, typing.List[str]]]
+        self.binaries = binaries or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
         for name, command in self.binaries.items():
             if not isinstance(command, (list, str)):
                 # TODO generalize message
@@ -315,10 +315,10 @@ class BinaryTable(HasEnvVarFallback):
         'cmake': 'CMAKE',
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
-    }  # type: typing.Dict[str, str]
+    }  # type: T.Dict[str, str]
 
     @staticmethod
-    def detect_ccache() -> typing.List[str]:
+    def detect_ccache() -> T.List[str]:
         try:
             subprocess.check_call(['ccache', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except (OSError, subprocess.CalledProcessError):
@@ -333,7 +333,7 @@ class BinaryTable(HasEnvVarFallback):
 This is probably wrong, it should always point to the native compiler.''' % evar)
 
     @classmethod
-    def parse_entry(cls, entry: typing.Union[str, typing.List[str]]) -> typing.Tuple[typing.List[str], typing.List[str]]:
+    def parse_entry(cls, entry: T.Union[str, T.List[str]]) -> T.Tuple[T.List[str], T.List[str]]:
         compiler = mesonlib.stringlistify(entry)
         # Ensure ccache exists and remove it if it doesn't
         if compiler[0] == 'ccache':
@@ -344,7 +344,7 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 
-    def lookup_entry(self, name: str) -> typing.Optional[typing.List[str]]:
+    def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
         """Lookup binaryk
 
         Returns command with args as list if found, Returns `None` if nothing is
@@ -377,13 +377,13 @@ class Directories:
     builds.
     """
 
-    def __init__(self, bindir: typing.Optional[str] = None, datadir: typing.Optional[str] = None,
-                 includedir: typing.Optional[str] = None, infodir: typing.Optional[str] = None,
-                 libdir: typing.Optional[str] = None, libexecdir: typing.Optional[str] = None,
-                 localedir: typing.Optional[str] = None, localstatedir: typing.Optional[str] = None,
-                 mandir: typing.Optional[str] = None, prefix: typing.Optional[str] = None,
-                 sbindir: typing.Optional[str] = None, sharedstatedir: typing.Optional[str] = None,
-                 sysconfdir: typing.Optional[str] = None):
+    def __init__(self, bindir: T.Optional[str] = None, datadir: T.Optional[str] = None,
+                 includedir: T.Optional[str] = None, infodir: T.Optional[str] = None,
+                 libdir: T.Optional[str] = None, libexecdir: T.Optional[str] = None,
+                 localedir: T.Optional[str] = None, localstatedir: T.Optional[str] = None,
+                 mandir: T.Optional[str] = None, prefix: T.Optional[str] = None,
+                 sbindir: T.Optional[str] = None, sharedstatedir: T.Optional[str] = None,
+                 sysconfdir: T.Optional[str] = None):
         self.bindir = bindir
         self.datadir = datadir
         self.includedir = includedir
@@ -401,12 +401,12 @@ class Directories:
     def __contains__(self, key: str) -> bool:
         return hasattr(self, key)
 
-    def __getitem__(self, key: str) -> typing.Optional[str]:
+    def __getitem__(self, key: str) -> T.Optional[str]:
         # Mypy can't figure out what to do with getattr here, so we'll case for it
-        return typing.cast(typing.Optional[str], getattr(self, key))
+        return T.cast(T.Optional[str], getattr(self, key))
 
-    def __setitem__(self, key: str, value: typing.Optional[str]) -> None:
+    def __setitem__(self, key: str, value: T.Optional[str]) -> None:
         setattr(self, key, value)
 
-    def __iter__(self) -> typing.Iterator[typing.Tuple[str, str]]:
+    def __iter__(self) -> T.Iterator[T.Tuple[str, str]]:
         return iter(self.__dict__.items())

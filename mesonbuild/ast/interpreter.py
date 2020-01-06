@@ -35,7 +35,7 @@ from ..mparser import (
 )
 
 import os, sys
-from typing import List, Any, Optional
+import typing as T
 
 class DontCareObject(interpreterbase.InterpreterObject):
     pass
@@ -59,7 +59,7 @@ ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, visitors: Optional[List[AstVisitor]] = None):
+    def __init__(self, source_root: str, subdir: str, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir)
         self.visitors = visitors if visitors is not None else []
         self.visited_subdirs = {}
@@ -246,8 +246,8 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             self.reverse_assignment[node.value.ast_id] = node
         self.assign_vals[node.var_name] = [self.evaluate_statement(node.value)] # Evaluate the value just in case
 
-    def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: Optional[List[str]] = None) -> Optional[Any]:
-        def quick_resolve(n: BaseNode, loop_detect: Optional[List[str]] = None) -> Any:
+    def resolve_node(self, node: BaseNode, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.Optional[T.Any]:
+        def quick_resolve(n: BaseNode, loop_detect: T.Optional[T.List[str]] = None) -> T.Any:
             if loop_detect is None:
                 loop_detect = []
             if isinstance(n, IdNode):
@@ -327,7 +327,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
 
         return result
 
-    def flatten_args(self, args: Any, include_unknown_args: bool = False, id_loop_detect: Optional[List[str]] = None) -> List[Any]:
+    def flatten_args(self, args: T.Any, include_unknown_args: bool = False, id_loop_detect: T.Optional[T.List[str]] = None) -> T.List[T.Any]:
         # Make sure we are always dealing with lists
         if not isinstance(args, list):
             args = [args]

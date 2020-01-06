@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os.path, subprocess
-import typing
+import typing as T
 
 from ..mesonlib import EnvironmentException, MachineChoice
 
@@ -22,7 +22,7 @@ from .mixins.clike import CLikeCompiler
 from .mixins.gnu import GnuCompiler
 from .mixins.clang import ClangCompiler
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 
@@ -32,7 +32,7 @@ class ObjCCompiler(CLikeCompiler, Compiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrap: typing.Optional[str], **kwargs):
+                 exe_wrap: T.Optional[str], **kwargs):
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrap)
 

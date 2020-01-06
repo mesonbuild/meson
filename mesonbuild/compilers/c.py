@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os.path
-import typing
+import typing as T
 
 from .. import coredata
 from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
@@ -35,7 +35,7 @@ from .compilers import (
     Compiler,
 )
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
 
 
@@ -51,7 +51,7 @@ class CCompiler(CLikeCompiler, Compiler):
     language = 'c'
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
-                 info: 'MachineInfo', exe_wrapper: typing.Optional[str] = None, **kwargs):
+                 info: 'MachineInfo', exe_wrapper: T.Optional[str] = None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
         Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
         CLikeCompiler.__init__(self, is_cross, exe_wrapper)

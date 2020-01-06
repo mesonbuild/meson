@@ -14,7 +14,7 @@
 
 import os, re
 import functools
-import typing
+import typing as T
 
 from . import mparser
 from . import coredata
@@ -131,7 +131,7 @@ option_types = {'string': StringParser,
                 'integer': IntegerParser,
                 'array': string_array_parser,
                 'feature': FeatureParser,
-                } # type: typing.Dict[str, typing.Callable[[str, typing.Dict], coredata.UserOption]]
+                } # type: T.Dict[str, T.Callable[[str, T.Dict], coredata.UserOption]]
 
 class OptionInterpreter:
     def __init__(self, subproject):

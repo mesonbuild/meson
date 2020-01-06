@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
-from typing import Any, List, Tuple
+import typing as T
 from .. import mlog
 import os
 import json
@@ -34,10 +34,10 @@ class CMakeFileAPI:
             'cmakeFiles': self._parse_cmakeFiles,
         }
 
-    def get_cmake_sources(self) -> List[CMakeBuildFile]:
+    def get_cmake_sources(self) -> T.List[CMakeBuildFile]:
         return self.cmake_sources
 
-    def get_cmake_configurations(self) -> List[CMakeConfiguration]:
+    def get_cmake_configurations(self) -> T.List[CMakeConfiguration]:
         return self.cmake_configurations
 
     def setup_request(self) -> None:
@@ -100,7 +100,7 @@ class CMakeFileAPI:
         # resolved and the resulting data structure is identical
         # to the CMake serve output.
 
-        def helper_parse_dir(dir_entry: dict) -> Tuple[str, str]:
+        def helper_parse_dir(dir_entry: dict) -> T.Tuple[str, str]:
             src_dir = dir_entry.get('source', '.')
             bld_dir = dir_entry.get('build', '.')
             src_dir = src_dir if os.path.isabs(src_dir) else os.path.join(source_dir, src_dir)
@@ -110,7 +110,7 @@ class CMakeFileAPI:
 
             return src_dir, bld_dir
 
-        def parse_sources(comp_group: dict, tgt: dict) -> Tuple[List[str], List[str], List[int]]:
+        def parse_sources(comp_group: dict, tgt: dict) -> T.Tuple[T.List[str], T.List[str], T.List[int]]:
             gen = []
             src = []
             idx = []
@@ -279,7 +279,7 @@ class CMakeFileAPI:
             path = path if os.path.isabs(path) else os.path.join(src_dir, path)
             self.cmake_sources += [CMakeBuildFile(path, i.get('isCMake', False), i.get('isGenerated', False))]
 
-    def _strip_data(self, data: Any) -> Any:
+    def _strip_data(self, data: T.Any) -> T.Any:
         if isinstance(data, list):
             for idx, i in enumerate(data):
                 data[idx] = self._strip_data(i)
@@ -293,7 +293,7 @@ class CMakeFileAPI:
 
         return data
 
-    def _resolve_references(self, data: Any) -> Any:
+    def _resolve_references(self, data: T.Any) -> T.Any:
         if isinstance(data, list):
             for idx, i in enumerate(data):
                 data[idx] = self._resolve_references(i)

@@ -14,7 +14,7 @@
 
 import contextlib, os.path, re, tempfile
 import collections.abc
-import typing
+import typing as T
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from .. import coredata
@@ -28,7 +28,7 @@ from ..envconfig import (
     Properties,
 )
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from ..coredata import OptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -386,7 +386,7 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
-class CompilerArgs(typing.MutableSequence[str]):
+class CompilerArgs(T.MutableSequence[str]):
     '''
     List-like class that manages a list of compiler arguments. Should be used
     while constructing compiler arguments from various sources. Can be
@@ -441,34 +441,34 @@ class CompilerArgs(typing.MutableSequence[str]):
     # *always* de-dup these because they're special arguments to the linker
     always_dedup_args = tuple('-l' + lib for lib in unixy_compiler_internal_libs)
 
-    def __init__(self, compiler: typing.Union['Compiler', StaticLinker],
-                 iterable: typing.Optional[typing.Iterable[str]] = None):
+    def __init__(self, compiler: T.Union['Compiler', StaticLinker],
+                 iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
-        self.__container = list(iterable) if iterable is not None else []  # type: typing.List[str]
+        self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
 
-    @typing.overload
+    @T.overload
     def __getitem__(self, index: int) -> str:
         pass
 
-    @typing.overload
-    def __getitem__(self, index: slice) -> typing.List[str]:
+    @T.overload
+    def __getitem__(self, index: slice) -> T.List[str]:
         pass
 
     def __getitem__(self, index):
         return self.__container[index]
 
-    @typing.overload
+    @T.overload
     def __setitem__(self, index: int, value: str) -> None:
         pass
 
-    @typing.overload
-    def __setitem__(self, index: slice, value: typing.List[str]) -> None:
+    @T.overload
+    def __setitem__(self, index: slice, value: T.List[str]) -> None:
         pass
 
     def __setitem__(self, index, value) -> None:
         self.__container[index] = value
 
-    def __delitem__(self, index: typing.Union[int, slice]) -> None:
+    def __delitem__(self, index: T.Union[int, slice]) -> None:
         del self.__container[index]
 
     def __len__(self) -> int:
@@ -531,7 +531,7 @@ class CompilerArgs(typing.MutableSequence[str]):
             return True
         return False
 
-    def to_native(self, copy: bool = False) -> typing.List[str]:
+    def to_native(self, copy: bool = False) -> T.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
@@ -563,7 +563,7 @@ class CompilerArgs(typing.MutableSequence[str]):
         # Remove system/default include paths added with -isystem
         if hasattr(self.compiler, 'get_default_include_dirs'):
             default_dirs = self.compiler.get_default_include_dirs()
-            bad_idx_list = []  # type: typing.List[int]
+            bad_idx_list = []  # type: T.List[int]
             for i, each in enumerate(new):
                 # Remove the -isystem and the path if the path is a default path
                 if (each == '-isystem' and
@@ -589,7 +589,7 @@ class CompilerArgs(typing.MutableSequence[str]):
         else:
             self.__container.append(arg)
 
-    def extend_direct(self, iterable: typing.Iterable[str]) -> None:
+    def extend_direct(self, iterable: T.Iterable[str]) -> None:
         '''
         Extend using the elements in the specified iterable without any
         reordering or de-dup except for absolute paths where the order of
@@ -598,7 +598,7 @@ class CompilerArgs(typing.MutableSequence[str]):
         for elem in iterable:
             self.append_direct(elem)
 
-    def extend_preserving_lflags(self, iterable: typing.Iterable[str]) -> None:
+    def extend_preserving_lflags(self, iterable: T.Iterable[str]) -> None:
         normal_flags = []
         lflags = []
         for i in iterable:
@@ -609,18 +609,18 @@ class CompilerArgs(typing.MutableSequence[str]):
         self.extend(normal_flags)
         self.extend_direct(lflags)
 
-    def __add__(self, args: typing.Iterable[str]) -> 'CompilerArgs':
+    def __add__(self, args: T.Iterable[str]) -> 'CompilerArgs':
         new = self.copy()
         new += args
         return new
 
-    def __iadd__(self, args: typing.Iterable[str]) -> 'CompilerArgs':
+    def __iadd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
         '''
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        pre = []   # type: typing.List[str]
-        post = []  # type: typing.List[str]
+        pre = []   # type: T.List[str]
+        post = []  # type: T.List[str]
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
         for arg in args:
@@ -650,12 +650,12 @@ class CompilerArgs(typing.MutableSequence[str]):
         self.__container += post
         return self
 
-    def __radd__(self, args: typing.Iterable[str]):
+    def __radd__(self, args: T.Iterable[str]):
         new = CompilerArgs(self.compiler, args)
         new += self
         return new
 
-    def __eq__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __eq__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
             return self.compiler == other.compiler and self.__container == other.__container
@@ -666,7 +666,7 @@ class CompilerArgs(typing.MutableSequence[str]):
     def append(self, arg: str) -> None:
         self.__iadd__([arg])
 
-    def extend(self, args: typing.Iterable[str]) -> None:
+    def extend(self, args: T.Iterable[str]) -> None:
         self.__iadd__(args)
 
     def __repr__(self) -> str:
@@ -680,11 +680,11 @@ class Compiler:
     # manually searched.
     internal_libs = ()
 
-    LINKER_PREFIX = None  # type: typing.Union[None, str, typing.List[str]]
+    LINKER_PREFIX = None  # type: T.Union[None, str, T.List[str]]
     INVOKES_LINKER = True
 
     def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
-                 linker: typing.Optional['DynamicLinker'] = None, **kwargs):
+                 linker: T.Optional['DynamicLinker'] = None, **kwargs):
         if isinstance(exelist, str):
             self.exelist = [exelist]
         elif isinstance(exelist, list):
@@ -742,7 +742,7 @@ class Compiler:
     def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies) -> typing.Tuple[str, bool]:
+    def get_define(self, dname, prefix, env, extra_args, dependencies) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
@@ -752,11 +752,11 @@ class Compiler:
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
     def has_members(self, typename, membernames, prefix, env, *,
-                    extra_args=None, dependencies=None) -> typing.Tuple[bool, bool]:
+                    extra_args=None, dependencies=None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
     def has_type(self, typename, prefix, env, extra_args, *,
-                 dependencies=None) -> typing.Tuple[bool, bool]:
+                 dependencies=None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
     def symbols_have_underscore_prefix(self, env) -> bool:
@@ -765,10 +765,10 @@ class Compiler:
     def get_exelist(self):
         return self.exelist[:]
 
-    def get_linker_exelist(self) -> typing.List[str]:
+    def get_linker_exelist(self) -> T.List[str]:
         return self.linker.get_exelist()
 
-    def get_linker_output_args(self, outputname: str) -> typing.List[str]:
+    def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return self.linker.get_output_args(outputname)
 
     def get_builtin_define(self, *args, **kwargs):
@@ -799,31 +799,31 @@ class Compiler:
         """
         return []
 
-    def get_linker_args_from_envvars(self) -> typing.List[str]:
+    def get_linker_args_from_envvars(self) -> T.List[str]:
         return self.linker.get_args_from_envvars()
 
-    def get_options(self) -> typing.Dict[str, coredata.UserOption]:
+    def get_options(self) -> T.Dict[str, coredata.UserOption]:
         return {}
 
     def get_option_compile_args(self, options):
         return []
 
-    def get_option_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return self.linker.get_option_args(options)
 
-    def check_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def check_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def has_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def has_header_symbol(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def compiles(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def links(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
     def run(self, *args, **kwargs) -> RunResult:
@@ -835,7 +835,7 @@ class Compiler:
     def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def has_function(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -844,7 +844,7 @@ class Compiler:
         return args[:]
 
     @classmethod
-    def native_args_to_unix(cls, args: typing.List[str]) -> typing.List[str]:
+    def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
         return args[:]
 
@@ -857,12 +857,12 @@ class Compiler:
     def get_program_dirs(self, *args, **kwargs):
         return []
 
-    def has_multi_arguments(self, args, env) -> typing.Tuple[bool, bool]:
+    def has_multi_arguments(self, args, env) -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
 
-    def has_multi_link_arguments(self, args: typing.List[str], env: 'Environment') -> typing.Tuple[bool, bool]:
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
     def _get_compile_output(self, dirname, mode):
@@ -976,22 +976,22 @@ class Compiler:
     def get_compile_debugfile_args(self, rel_obj, **kwargs):
         return []
 
-    def get_link_debugfile_args(self, targetfile: str) -> typing.List[str]:
+    def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
         return self.linker.get_debugfile_args(targetfile)
 
-    def get_std_shared_lib_link_args(self) -> typing.List[str]:
+    def get_std_shared_lib_link_args(self) -> T.List[str]:
         return self.linker.get_std_shared_lib_args()
 
-    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> typing.List[str]:
+    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return self.linker.get_std_shared_module_args(options)
 
-    def get_link_whole_for(self, args: typing.List[str]) -> typing.List[str]:
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         return self.linker.get_link_whole_for(args)
 
-    def get_allow_undefined_link_args(self) -> typing.List[str]:
+    def get_allow_undefined_link_args(self) -> T.List[str]:
         return self.linker.get_allow_undefined_args()
 
-    def no_undefined_link_args(self) -> typing.List[str]:
+    def no_undefined_link_args(self) -> T.List[str]:
         return self.linker.no_undefined_args()
 
     # Compiler arguments needed to enable the given instruction set.
@@ -1002,7 +1002,7 @@ class Compiler:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> typing.List[str]:
+                         install_rpath: str) -> T.List[str]:
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
@@ -1033,7 +1033,7 @@ class Compiler:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_link_args(self) -> typing.List[str]:
+    def get_pie_link_args(self) -> T.List[str]:
         return self.linker.get_pie_args()
 
     def get_argument_syntax(self):
@@ -1055,40 +1055,40 @@ class Compiler:
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
-    def get_undefined_link_args(self) -> typing.List[str]:
+    def get_undefined_link_args(self) -> T.List[str]:
         return self.linker.get_undefined_link_args()
 
     def remove_linkerlike_args(self, args):
         return [x for x in args if not x.startswith('-Wl')]
 
-    def get_lto_compile_args(self) -> typing.List[str]:
+    def get_lto_compile_args(self) -> T.List[str]:
         return []
 
-    def get_lto_link_args(self) -> typing.List[str]:
+    def get_lto_link_args(self) -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def sanitizer_compile_args(self, value: str) -> typing.List[str]:
+    def sanitizer_compile_args(self, value: str) -> T.List[str]:
         return []
 
-    def sanitizer_link_args(self, value: str) -> typing.List[str]:
+    def sanitizer_link_args(self, value: str) -> T.List[str]:
         return self.linker.sanitizer_args(value)
 
-    def get_asneeded_args(self) -> typing.List[str]:
+    def get_asneeded_args(self) -> T.List[str]:
         return self.linker.get_asneeded_args()
 
-    def bitcode_args(self) -> typing.List[str]:
+    def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
 
-    def get_linker_debug_crt_args(self) -> typing.List[str]:
+    def get_linker_debug_crt_args(self) -> T.List[str]:
         return self.linker.get_debug_crt_args()
 
-    def get_buildtype_linker_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
-                        darwin_versions: typing.Tuple[str, str],
-                        is_shared_module: bool) -> typing.List[str]:
+                        darwin_versions: T.Tuple[str, str],
+                        is_shared_module: bool) -> T.List[str]:
         return self.linker.get_soname_args(
             env, prefix, shlib_name, suffix, soversion,
             darwin_versions, is_shared_module)
@@ -1103,7 +1103,7 @@ class Compiler:
         return dep.get_link_args()
 
     @classmethod
-    def use_linker_args(cls, linker: str) -> typing.List[str]:
+    def use_linker_args(cls, linker: str) -> T.List[str]:
         """Get a list of arguments to pass to the compiler to set the linker.
         """
         return []
@@ -1131,12 +1131,12 @@ def get_largefile_args(compiler):
     return []
 
 
-def get_args_from_envvars(lang: str, use_linker_args: bool) -> typing.Tuple[typing.List[str], typing.List[str]]:
+def get_args_from_envvars(lang: str, use_linker_args: bool) -> T.Tuple[T.List[str], T.List[str]]:
     """
     Returns a tuple of (compile_flags, link_flags) for the specified language
     from the inherited environment
     """
-    def log_var(var, val: typing.Optional[str]):
+    def log_var(var, val: T.Optional[str]):
         if val:
             mlog.log('Appending {} from environment: {!r}'.format(var, val))
         else:
@@ -1145,8 +1145,8 @@ def get_args_from_envvars(lang: str, use_linker_args: bool) -> typing.Tuple[typi
     if lang not in cflags_mapping:
         return [], []
 
-    compile_flags = []  # type: typing.List[str]
-    link_flags = []     # type: typing.List[str]
+    compile_flags = []  # type: T.List[str]
+    link_flags = []     # type: T.List[str]
 
     env_compile_flags = os.environ.get(cflags_mapping[lang])
     log_var(cflags_mapping[lang], env_compile_flags)
@@ -1179,8 +1179,8 @@ def get_args_from_envvars(lang: str, use_linker_args: bool) -> typing.Tuple[typi
     return compile_flags, link_flags
 
 
-def get_global_options(lang: str, comp: typing.Type[Compiler],
-                       properties: Properties) -> typing.Dict[str, coredata.UserOption]:
+def get_global_options(lang: str, comp: T.Type[Compiler],
+                       properties: Properties) -> T.Dict[str, coredata.UserOption]:
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     opts = {

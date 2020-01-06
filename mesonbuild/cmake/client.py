@@ -22,7 +22,7 @@ from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
-from typing import List, Optional
+import typing as T
 import json
 import os
 
@@ -110,11 +110,11 @@ class Progress(MessageBase):
         pass
 
 class MessageHello(MessageBase):
-    def __init__(self, supported_protocol_versions: List[dict]):
+    def __init__(self, supported_protocol_versions: T.List[dict]):
         super().__init__('hello', '')
         self.supported_protocol_versions = supported_protocol_versions
 
-    def supports(self, major: int, minor: Optional[int] = None) -> bool:
+    def supports(self, major: int, minor: T.Optional[int] = None) -> bool:
         for i in self.supported_protocol_versions:
             if major == i['major']:
                 if minor is None or minor == i['minor']:
@@ -124,7 +124,7 @@ class MessageHello(MessageBase):
 # Request classes
 
 class RequestHandShake(RequestBase):
-    def __init__(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: Optional[int] = None):
+    def __init__(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None):
         super().__init__('handshake')
         self.src_dir = src_dir
         self.build_dir = build_dir
@@ -150,7 +150,7 @@ class RequestHandShake(RequestBase):
         }
 
 class RequestConfigure(RequestBase):
-    def __init__(self, args: Optional[List[str]] = None):
+    def __init__(self, args: T.Optional[T.List[str]] = None):
         super().__init__('configure')
         self.args = args
 
@@ -187,7 +187,7 @@ class ReplyCompute(ReplyBase):
         super().__init__(cookie, 'compute')
 
 class ReplyCMakeInputs(ReplyBase):
-    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: List[CMakeBuildFile]):
+    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: T.List[CMakeBuildFile]):
         super().__init__(cookie, 'cmakeInputs')
         self.cmake_root = cmake_root
         self.src_dir = src_dir
@@ -296,7 +296,7 @@ class CMakeClient:
             raise CMakeException('CMake server query failed')
         return reply
 
-    def do_handshake(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: Optional[int] = None) -> None:
+    def do_handshake(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
         # CMake prints the hello message on startup
         msg = self.readMessage()
         if not isinstance(msg, MessageHello):

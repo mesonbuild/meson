@@ -21,13 +21,13 @@ is IntelVisualStudioLikeCompiler.
 """
 
 import os
-import typing
+import typing as T
 
 from ... import mesonlib
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
-if typing.TYPE_CHECKING:
+if T.TYPE_CHECKING:
     import subprocess  # noqa: F401
 
 # XXX: avoid circular dependencies
@@ -58,7 +58,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: typing.Dict[str, typing.List[str]]
+    }  # type: T.Dict[str, T.List[str]]
 
     OPTIM_ARGS = {
         '0': ['-O0'],
@@ -84,20 +84,20 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
     def get_pch_suffix(self) -> str:
         return 'pchi'
 
-    def get_pch_use_args(self, pch_dir: str, header: str) -> typing.List[str]:
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return ['-pch', '-pch_dir', os.path.join(pch_dir), '-x',
                 self.lang_header, '-include', header, '-x', 'none']
 
     def get_pch_name(self, header_name: str) -> str:
         return os.path.basename(header_name) + '.' + self.get_pch_suffix()
 
-    def openmp_flags(self) -> typing.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=15.0.0'):
             return ['-qopenmp']
         else:
             return ['-openmp']
 
-    def compiles(self, *args, **kwargs) -> typing.Tuple[bool, bool]:
+    def compiles(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
         # defined and is None
         extra_args = kwargs.get('extra_args') or []
@@ -113,16 +113,16 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         ]
         return super().compiles(*args, **kwargs)
 
-    def get_profile_generate_args(self) -> typing.List[str]:
+    def get_profile_generate_args(self) -> T.List[str]:
         return ['-prof-gen=threadsafe']
 
-    def get_profile_use_args(self) -> typing.List[str]:
+    def get_profile_use_args(self) -> T.List[str]:
         return ['-prof-use']
 
-    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return self.BUILD_ARGS[buildtype]
 
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
 
 
@@ -137,7 +137,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         'release': [],
         'minsize': [],
         'custom': [],
-    }  # type: typing.Dict[str, typing.List[str]]
+    }  # type: T.Dict[str, T.List[str]]
 
     OPTIM_ARGS = {
         '0': ['/O0'],
@@ -152,7 +152,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'intel-cl'
 
-    def compile(self, code, *, extra_args: typing.Optional[typing.List[str]] = None, **kwargs) -> typing.Iterator['subprocess.Popen']:
+    def compile(self, code, *, extra_args: T.Optional[T.List[str]] = None, **kwargs) -> T.Iterator['subprocess.Popen']:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
         if kwargs.get('mode', 'compile') != 'link':
             extra_args = extra_args.copy() if extra_args is not None else []
@@ -166,7 +166,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
             ])
         return super().compile(code, extra_args, **kwargs)
 
-    def get_toolset_version(self) -> typing.Optional[str]:
+    def get_toolset_version(self) -> T.Optional[str]:
         # Avoid circular dependencies....
         from ...environment import search_version
 
@@ -178,11 +178,11 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         version = int(v1 + v2)
         return self._calculate_toolset_version(version)
 
-    def openmp_flags(self) -> typing.List[str]:
+    def openmp_flags(self) -> T.List[str]:
         return ['/Qopenmp']
 
-    def get_buildtype_args(self, buildtype: str) -> typing.List[str]:
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return self.BUILD_ARGS[buildtype]
 
-    def get_optimization_args(self, optimization_level: str) -> typing.List[str]:
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]

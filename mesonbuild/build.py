@@ -18,7 +18,7 @@ import itertools, pathlib
 import hashlib
 import pickle
 from functools import lru_cache
-import typing
+import typing as T
 
 from . import environment
 from . import dependencies
@@ -117,11 +117,11 @@ class Build:
         self.environment = environment
         self.projects = {}
         self.targets = OrderedDict()
-        self.run_target_names = set() # type: typing.Set[typing.Tuple[str, str]]
-        self.global_args = PerMachine({}, {})         # type: PerMachine[typing.Dict[str, typing.List[str]]]
-        self.projects_args = PerMachine({}, {})       # type: PerMachine[typing.Dict[str, typing.List[str]]]
-        self.global_link_args = PerMachine({}, {})    # type: PerMachine[typing.Dict[str, typing.List[str]]]
-        self.projects_link_args = PerMachine({}, {})  # type: PerMachine[typing.Dict[str, typing.List[str]]]
+        self.run_target_names = set() # type: T.Set[T.Tuple[str, str]]
+        self.global_args = PerMachine({}, {})         # type: PerMachine[T.Dict[str, T.List[str]]]
+        self.projects_args = PerMachine({}, {})       # type: PerMachine[T.Dict[str, T.List[str]]]
+        self.global_link_args = PerMachine({}, {})    # type: PerMachine[T.Dict[str, T.List[str]]]
+        self.projects_link_args = PerMachine({}, {})  # type: PerMachine[T.Dict[str, T.List[str]]]
         self.tests = []
         self.benchmarks = []
         self.headers = []
@@ -137,7 +137,7 @@ class Build:
         self.dep_manifest_name = None
         self.dep_manifest = {}
         self.stdlibs = PerMachine({}, {})
-        self.test_setups = {}                         # type: typing.Dict[str, TestSetup]
+        self.test_setups = {}                         # type: T.Dict[str, TestSetup]
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
@@ -331,7 +331,7 @@ class EnvironmentVariables:
 
         return value
 
-    def get_env(self, full_env: typing.Dict[str, str]) -> typing.Dict[str, str]:
+    def get_env(self, full_env: T.Dict[str, str]) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, kwargs in self.envvars:
             env[name] = method(full_env, name, values, kwargs)
@@ -355,22 +355,22 @@ a hard error in the future.''' % name)
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
-    def __lt__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __lt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() < other.get_id()
 
-    def __le__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __le__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() <= other.get_id()
 
-    def __gt__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __gt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() > other.get_id()
 
-    def __ge__(self, other: typing.Any) -> typing.Union[bool, 'NotImplemented']:
+    def __ge__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() >= other.get_id()
@@ -1171,7 +1171,7 @@ You probably should put it in link_with instead.''')
                 raise MesonException('File %s does not exist.' % f)
         self.pch[language] = pchlist
 
-    def add_include_dirs(self, args, set_is_system: typing.Optional[str] = None):
+    def add_include_dirs(self, args, set_is_system: T.Optional[str] = None):
         ids = []
         for a in args:
             # FIXME same hack, forcibly unpack from holder.
@@ -1200,7 +1200,7 @@ You probably should put it in link_with instead.''')
     def get_aliases(self):
         return {}
 
-    def get_langs_used_by_deps(self) -> typing.List[str]:
+    def get_langs_used_by_deps(self) -> T.List[str]:
         '''
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
@@ -2448,7 +2448,7 @@ class RunScript(dict):
         self['args'] = args
 
 class TestSetup:
-    def __init__(self, exe_wrapper: typing.Optional[typing.List[str]], gdb: bool,
+    def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
                  timeout_multiplier: int, env: EnvironmentVariables):
         self.exe_wrapper = exe_wrapper
         self.gdb = gdb

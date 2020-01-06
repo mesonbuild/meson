@@ -17,19 +17,8 @@ import io
 import sys
 import time
 import platform
+import typing as T
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Generator,
-    List,
-    Optional,
-    Sequence,
-    Set,
-    TextIO,
-    Tuple,
-    Union,
-    cast,
-)
 from pathlib import Path
 
 """This is (mostly) a standalone module used to write logging
@@ -58,16 +47,16 @@ try:
         colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
 except Exception:
     colorize_console = False
-log_dir = None               # type: Optional[str]
-log_file = None              # type: Optional[TextIO]
+log_dir = None               # type: T.Optional[str]
+log_file = None              # type: T.Optional[T.TextIO]
 log_fname = 'meson-log.txt'  # type: str
 log_depth = 0                # type: int
-log_timestamp_start = None   # type: Optional[float]
+log_timestamp_start = None   # type: T.Optional[float]
 log_fatal_warnings = False   # type: bool
 log_disable_stdout = False   # type: bool
 log_errors_only = False      # type: bool
 _in_ci = 'CI' in os.environ  # type: bool
-_logged_once = set()         # type: Set[Tuple[str, ...]]
+_logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
 
 def disable() -> None:
     global log_disable_stdout
@@ -95,7 +84,7 @@ def set_timestamp_start(start: float) -> None:
     global log_timestamp_start
     log_timestamp_start = start
 
-def shutdown() -> Optional[str]:
+def shutdown() -> T.Optional[str]:
     global log_file
     if log_file is not None:
         path = log_file.name
@@ -156,8 +145,8 @@ def normal_cyan(text: str) -> AnsiDecorator:
 
 # This really should be AnsiDecorator or anything that implements
 # __str__(), but that requires protocols from typing_extensions
-def process_markup(args: Sequence[Union[AnsiDecorator, str]], keep: bool) -> List[str]:
-    arr = []  # type: List[str]
+def process_markup(args: T.Sequence[T.Union[AnsiDecorator, str]], keep: bool) -> T.List[str]:
+    arr = []  # type: T.List[str]
     if log_timestamp_start is not None:
         arr = ['[{:.3f}]'.format(time.monotonic() - log_timestamp_start)]
     for arg in args:
@@ -171,7 +160,7 @@ def process_markup(args: Sequence[Union[AnsiDecorator, str]], keep: bool) -> Lis
             arr.append(str(arg))
     return arr
 
-def force_print(*args: str, **kwargs: Any) -> None:
+def force_print(*args: str, **kwargs: T.Any) -> None:
     if log_disable_stdout:
         return
     iostr = io.StringIO()
@@ -191,13 +180,13 @@ def force_print(*args: str, **kwargs: Any) -> None:
         print(cleaned, end='')
 
 # We really want a heterogeneous dict for this, but that's in typing_extensions
-def debug(*args: Union[str, AnsiDecorator], **kwargs: Any) -> None:
+def debug(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
         log_file.flush()
 
-def _debug_log_cmd(cmd: str, args: List[str]) -> None:
+def _debug_log_cmd(cmd: str, args: T.List[str]) -> None:
     if not _in_ci:
         return
     args = ['"{}"'.format(x) for x in args]  # Quote all args, just in case
@@ -206,8 +195,8 @@ def _debug_log_cmd(cmd: str, args: List[str]) -> None:
 def cmd_ci_include(file: str) -> None:
     _debug_log_cmd('ci_include', [file])
 
-def log(*args: Union[str, AnsiDecorator], is_error: bool = False,
-        **kwargs: Any) -> None:
+def log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
+        **kwargs: T.Any) -> None:
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
@@ -217,8 +206,8 @@ def log(*args: Union[str, AnsiDecorator], is_error: bool = False,
     if not log_errors_only or is_error:
         force_print(*arr, **kwargs)
 
-def log_once(*args: Union[str, AnsiDecorator], is_error: bool = False,
-             **kwargs: Any) -> None:
+def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
+             **kwargs: T.Any) -> None:
     """Log variant that only prints a given message one time per meson invocation.
 
     This considers nasi decorated values by the values they wrap without
@@ -230,16 +219,16 @@ def log_once(*args: Union[str, AnsiDecorator], is_error: bool = False,
     _logged_once.add(t)
     log(*args, is_error=is_error, **kwargs)
 
-def _log_error(severity: str, *rargs: Union[str, AnsiDecorator],
-               once: bool = False, **kwargs: Any) -> None:
+def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
+               once: bool = False, **kwargs: T.Any) -> None:
     from .mesonlib import get_error_location_string
     from .environment import build_filename
     from .mesonlib import MesonException
 
     # The tping requirements here are non-obvious. Lists are invariant,
-    # therefore List[A] and List[Union[A, B]] are not able to be joined
+    # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
     if severity == 'warning':
-        label = [yellow('WARNING:')]  # type: List[Union[str, AnsiDecorator]]
+        label = [yellow('WARNING:')]  # type: T.List[T.Union[str, AnsiDecorator]]
     elif severity == 'error':
         label = [red('ERROR:')]
     elif severity == 'deprecation':
@@ -253,9 +242,9 @@ def _log_error(severity: str, *rargs: Union[str, AnsiDecorator],
     if location is not None:
         location_file = os.path.join(location.subdir, build_filename)
         location_str = get_error_location_string(location_file, location.lineno)
-        # Unions are frankly awful, and we have to cast here to get mypy
+        # Unions are frankly awful, and we have to T.cast here to get mypy
         # to understand that the list concatenation is safe
-        location_list = cast(List[Union[str, AnsiDecorator]], [location_str])
+        location_list = T.cast(T.List[T.Union[str, AnsiDecorator]], [location_str])
         args = location_list + args
 
     if once:
@@ -266,13 +255,13 @@ def _log_error(severity: str, *rargs: Union[str, AnsiDecorator],
     if log_fatal_warnings:
         raise MesonException("Fatal warnings enabled, aborting")
 
-def error(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+def error(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
     return _log_error('error', *args, **kwargs, is_error=True, once=once)
 
-def warning(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+def warning(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
     return _log_error('warning', *args, **kwargs, is_error=True, once=once)
 
-def deprecation(*args: Union[str, AnsiDecorator], once: bool = False, **kwargs: Any) -> None:
+def deprecation(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
     return _log_error('deprecation', *args, **kwargs, is_error=True, once=once)
 
 def get_relative_path(target: Path, current: Path) -> Path:
@@ -290,11 +279,11 @@ def get_relative_path(target: Path, current: Path) -> Path:
     # we failed, should not get here
     return target
 
-def exception(e: Exception, prefix: Optional[AnsiDecorator] = None) -> None:
+def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
     if prefix is None:
         prefix = red('ERROR:')
     log()
-    args = []  # type: List[Union[AnsiDecorator, str]]
+    args = []  # type: T.List[T.Union[AnsiDecorator, str]]
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
         # Mypy can't figure this out, and it's pretty easy to vidual inspect
         # that this is correct, so we'll just ignore it.
@@ -307,7 +296,7 @@ def exception(e: Exception, prefix: Optional[AnsiDecorator] = None) -> None:
 
 # Format a list for logging purposes as a string. It separates
 # all but the last item with commas, and the last with 'and'.
-def format_list(input_list: List[str]) -> str:
+def format_list(input_list: T.List[str]) -> str:
     l = len(input_list)
     if l > 2:
         return ' and '.join([', '.join(input_list[:-1]), input_list[-1]])
@@ -319,7 +308,7 @@ def format_list(input_list: List[str]) -> str:
         return ''
 
 @contextmanager
-def nested() -> Generator[None, None, None]:
+def nested() -> T.Generator[None, None, None]:
     global log_depth
     log_depth += 1
     try:

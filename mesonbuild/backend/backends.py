@@ -27,7 +27,7 @@ from ..compilers import CompilerArgs, VisualStudioLikeCompiler
 from collections import OrderedDict
 import shlex
 from functools import lru_cache
-import typing
+import typing as T
 
 
 class CleanTrees:
@@ -81,12 +81,12 @@ class ExecutableSerialisation:
         self.capture = capture
 
 class TestSerialisation:
-    def __init__(self, name: str, project: str, suite: str, fname: typing.List[str],
-                 is_cross_built: bool, exe_wrapper: typing.Optional[build.Executable],
-                 needs_exe_wrapper: bool, is_parallel: bool, cmd_args: typing.List[str],
+    def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
+                 is_cross_built: bool, exe_wrapper: T.Optional[build.Executable],
+                 needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
-                 timeout: typing.Optional[int], workdir: typing.Optional[str],
-                 extra_paths: typing.List[str], protocol: str, priority: int):
+                 timeout: T.Optional[int], workdir: T.Optional[str],
+                 extra_paths: T.List[str], protocol: str, priority: int):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -676,7 +676,7 @@ class Backend:
                 paths.update(cc.get_library_dirs(self.environment))
         return list(paths)
 
-    def determine_windows_extra_paths(self, target: typing.Union[build.BuildTarget, str], extra_bdeps):
+    def determine_windows_extra_paths(self, target: T.Union[build.BuildTarget, str], extra_bdeps):
         '''On Windows there is no such thing as an rpath.
         We must determine all locations of DLLs that this exe
         links to and return them so they can be used in unit

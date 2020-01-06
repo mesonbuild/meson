@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing
+import typing as T
 import itertools
 import os
 import subprocess
@@ -117,7 +117,7 @@ def setup_commands(optbackend):
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
-def get_relative_files_list_from_dir(fromdir: Path) -> typing.List[Path]:
+def get_relative_files_list_from_dir(fromdir: Path) -> T.List[Path]:
     return [file.relative_to(fromdir) for file in fromdir.rglob('*') if file.is_file()]
 
 def platform_fix_name(fname: str, compiler, env) -> str:
@@ -207,7 +207,7 @@ def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
     installdir = Path(installdir)
     # If this exists, the test does not install any other files
     noinst_file = Path('usr/no-installed-files')
-    expected = {}  # type: typing.Dict[Path, bool]
+    expected = {}  # type: T.Dict[Path, bool]
     ret_msg = ''
     # Generate list of expected files
     if (installdir / noinst_file).is_file():
@@ -279,7 +279,7 @@ def yellow(text):
     return mlog.yellow(text).get_text(mlog.colorize_console)
 
 
-def _run_ci_include(args: typing.List[str]) -> str:
+def _run_ci_include(args: T.List[str]) -> str:
     if not args:
         return 'At least one parameter required'
     try:
@@ -293,7 +293,7 @@ ci_commands = {
     'ci_include': _run_ci_include
 }
 
-def run_ci_commands(raw_log: str) -> typing.List[str]:
+def run_ci_commands(raw_log: str) -> T.List[str]:
     res = []
     for l in raw_log.splitlines():
         if not l.startswith('!meson_ci!/'):
@@ -474,7 +474,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path) -> typing.List[Path]:
+def gather_tests(testdir: Path) -> T.List[Path]:
     test_names = [t.name for t in testdir.glob('*') if t.is_dir()]
     test_names = [t for t in test_names if not t.startswith('.')] # Filter non-tests files (dot files, etc)
     test_nums = [(int(t.split()[0]), t) for t in test_names]
@@ -630,7 +630,7 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str, typing.List[Path], bool]]:
+def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[Path], bool]]:
     """
     Parameters
     ----------
@@ -689,18 +689,18 @@ def detect_tests_to_run(only: typing.List[str]) -> typing.List[typing.Tuple[str,
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
-def run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]],
+def run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
               log_name_base: str, failfast: bool,
-              extra_args: typing.List[str]) -> typing.Tuple[int, int, int]:
+              extra_args: T.List[str]) -> T.Tuple[int, int, int]:
     global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
         return _run_tests(all_tests, log_name_base, failfast, extra_args)
 
-def _run_tests(all_tests: typing.List[typing.Tuple[str, typing.List[Path], bool]],
+def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
                log_name_base: str, failfast: bool,
-               extra_args: typing.List[str]) -> typing.Tuple[int, int, int]:
+               extra_args: T.List[str]) -> T.Tuple[int, int, int]:
     global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
