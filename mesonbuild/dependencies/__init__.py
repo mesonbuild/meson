@@ -18,8 +18,9 @@ from .hdf5 import HDF5Dependency
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
-    PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language)
-from .dev import GMockDependency, GTestDependency, LLVMDependency, ValgrindDependency
+    PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language,
+    DependencyFactory)
+from .dev import GMockDependency, GTestDependency, ValgrindDependency, llvm_factory
 from .coarrays import CoarrayDependency
 from .mpi import MPIDependency
 from .scalapack import ScalapackDependency
@@ -33,7 +34,7 @@ packages.update({
     # From dev:
     'gtest': GTestDependency,
     'gmock': GMockDependency,
-    'llvm': LLVMDependency,
+    'llvm': llvm_factory,
     'valgrind': ValgrindDependency,
 
     'boost': BoostDependency,

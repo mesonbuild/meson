@@ -2212,6 +2212,7 @@ class DependencyFactory:
     """
 
     def __init__(self, name: str, methods: T.List[DependencyMethods], *,
+                 extra_kwargs: T.Optional[T.Dict[str, T.Any]] = None,
                  pkgconfig_name: T.Optional[str] = None,
                  pkgconfig_class: 'T.Type[PkgConfigDependency]' = PkgConfigDependency,
                  cmake_name: T.Optional[str] = None,
@@ -2224,6 +2225,7 @@ class DependencyFactory:
         if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
             raise DependencyException('A configtool must have a custom class')
 
+        self.extra_kwargs = extra_kwargs or {}
         self.methods = methods
         self.classes = {
             # Just attach the correct name right now, either the generic name
@@ -2256,8 +2258,10 @@ class DependencyFactory:
                  kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
+        nwargs = self.extra_kwargs.copy()
+        nwargs.update(kwargs)
 
-        return [functools.partial(self.classes[m], env, kwargs) for m in methods
+        return [functools.partial(self.classes[m], env, nwargs) for m in methods
                 if self._process_method(m, env, for_machine)]
 
 

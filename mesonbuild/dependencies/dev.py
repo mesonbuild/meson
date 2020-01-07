@@ -19,17 +19,17 @@ import functools
 import glob
 import os
 import re
+import typing as T
 
 from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from ..environment import get_llvm_tool_names
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency, process_method_kw
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency, process_method_kw,
+    DependencyFactory,
 )
 from .misc import ThreadDependency
-
-import typing as T
 
 
 def get_shared_library_suffix(environment, for_machine: MachineChoice):
@@ -204,7 +204,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
     tool_name = 'llvm-config'
     __cpp_blacklist = {'-DNDEBUG'}
 
-    def __init__(self, environment, kwargs):
+    def __init__(self, name: str, environment, kwargs):
         self.tools = get_llvm_tool_names('llvm-config')
 
         # Fedora starting with Fedora 30 adds a suffix of the number
@@ -218,7 +218,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__('LLVM', environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs, language='cpp')
         self.provided_modules = []
         self.required_modules = set()
         self.module_details = []
@@ -391,10 +391,10 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         return ''
 
 class LLVMDependencyCMake(CMakeDependency):
-    def __init__(self, env, kwargs):
+    def __init__(self, name: str, env, kwargs):
         self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        super().__init__('LLVM', env, kwargs, language='cpp')
+        super().__init__(name, env, kwargs, language='cpp')
 
         if self.traceparser is None:
             return
@@ -433,26 +433,6 @@ class LLVMDependencyCMake(CMakeDependency):
             return orig_name[0]
         return module
 
-class LLVMDependency(ExternalDependency):
-    def __init__(self, env, kwargs):
-        super().__init__('LLVM', env, kwargs, language='cpp')
-
-    @classmethod
-    def _factory(cls, env, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(LLVMDependencyConfigTool, env, kwargs))
-
-        if DependencyMethods.CMAKE in methods:
-            candidates.append(functools.partial(LLVMDependencyCMake, env, kwargs))
-
-        return candidates
-
-    @staticmethod
-    def get_methods():
-        return [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL]
 
 class ValgrindDependency(PkgConfigDependency):
     '''
@@ -464,3 +444,11 @@ class ValgrindDependency(PkgConfigDependency):
 
     def get_link_args(self, **kwargs):
         return []
+
+
+llvm_factory = DependencyFactory(
+    'LLVM',
+    [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
+    cmake_class=LLVMDependencyCMake,
+    configtool_class=LLVMDependencyConfigTool,
+)
