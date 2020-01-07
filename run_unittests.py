@@ -4166,7 +4166,7 @@ recommended as it is not supported on some platforms''')
     # Maybe encoding issue?
     @unittest.skipIf(is_windows(), 'This test fails on Windows CI')
     def test_summary(self):
-        testdir = os.path.join(self.unit_test_dir, '74 summary')
+        testdir = os.path.join(self.unit_test_dir, '72 summary')
         out = self.init(testdir)
         expected = textwrap.dedent(r'''
             Some Subproject 2.0
@@ -5605,7 +5605,7 @@ class LinuxlikeTests(BasePlatformTests):
         Check that Meson produces valid static archives with --strip enabled
         '''
         with tempfile.TemporaryDirectory() as tempdirname:
-            testdirbase = os.path.join(self.unit_test_dir, '68 static archive stripping')
+            testdirbase = os.path.join(self.unit_test_dir, '67 static archive stripping')
 
             # build lib
             self.new_builddir()
@@ -5853,7 +5853,7 @@ c = ['{0}']
             raise unittest.SkipTest("Cygwin doesn't support LD_LIBRARY_PATH.")
 
         # Build some libraries and install them
-        testdir = os.path.join(self.unit_test_dir, '69 static link/lib')
+        testdir = os.path.join(self.unit_test_dir, '68 static link/lib')
         libdir = os.path.join(self.installdir, self.libdir)
         oldprefix = self.prefix
         self.prefix = self.installdir
@@ -5865,7 +5865,7 @@ c = ['{0}']
         self.prefix = oldprefix
         meson_args = ['-Dc_link_args=-L{}'.format(libdir),
                       '--fatal-meson-warnings']
-        testdir = os.path.join(self.unit_test_dir, '69 static link')
+        testdir = os.path.join(self.unit_test_dir, '68 static link')
         env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
         self.init(testdir, extra_args=meson_args, override_envvars=env)
         self.build()
