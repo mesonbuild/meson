@@ -28,6 +28,8 @@ from .base import (
     strip_system_libdirs, ConfigToolDependency, CMakeDependency, DependencyFactory,
 )
 from .misc import threads_factory
+from ..compilers.c import AppleClangCCompiler
+from ..compilers.cpp import AppleClangCPPCompiler
 
 if T.TYPE_CHECKING:
     from .. environment import Environment
@@ -449,6 +451,27 @@ class ValgrindDependency(PkgConfigDependency):
         return []
 
 
+class ZlibSystemDependency(ExternalDependency):
+
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+
+        # I'm not sure this is entirely correct. What if we're cross compiling
+        # from something to macOS?
+        if (self.env.machines[self.for_machine].is_darwin() and
+                isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))):
+            self.is_found = True
+            self.link_args = ['-lz']
+            # No need to set includes, xcode/clang will do that for us.
+
+            v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
+            self.version = v.strip('"')
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.SYSTEM]
+
+
 llvm_factory = DependencyFactory(
     'LLVM',
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
@@ -468,4 +491,11 @@ gmock_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     pkgconfig_class=GMockDependencyPC,
     system_class=GMockDependencySystem,
+)
+
+zlib_factory = DependencyFactory(
+    'zlib',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM],
+    cmake_name='ZLIB',
+    system_class=ZlibSystemDependency,
 )
