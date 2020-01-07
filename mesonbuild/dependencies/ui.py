@@ -30,7 +30,7 @@ from ..environment import detect_cpu_family
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
-from .base import ConfigToolDependency
+from .base import ConfigToolDependency, process_method_kw
 
 
 class GLDependency(ExternalDependency):
@@ -52,7 +52,7 @@ class GLDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -532,7 +532,7 @@ class SDL2Dependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -648,7 +648,7 @@ class VulkanDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
