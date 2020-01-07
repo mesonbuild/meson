@@ -77,7 +77,7 @@ assert(fs.is_samepath(meson.source_root(), 'subdir/..'), 'is_samepath not detect
 assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad comparison')
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
-if not is_windows and build_machine.system() != 'cygwin'
+if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
   assert(fs.is_samepath('a_symlink', 'meson.build'), 'symlink is_samepath fail')
 endif
 
