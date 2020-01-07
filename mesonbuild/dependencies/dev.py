@@ -456,13 +456,18 @@ class ZlibSystemDependency(ExternalDependency):
     def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__(name, environment, kwargs)
 
+        m = self.env.machines[self.for_machine]
+
         # I'm not sure this is entirely correct. What if we're cross compiling
         # from something to macOS?
-        if (self.env.machines[self.for_machine].is_darwin() and
-                isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))):
+        if ((m.is_darwin() and isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))) or
+                m.is_freebsd() or m.is_dragonflybsd()):
             self.is_found = True
             self.link_args = ['-lz']
-            # No need to set includes, xcode/clang will do that for us.
+
+            # No need to set includes,
+            # on macos xcode/clang will do that for us.
+            # on freebsd zlib.h is in /usr/include
 
             v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
             self.version = v.strip('"')
