@@ -37,6 +37,9 @@ from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
 
+if T.TYPE_CHECKING:
+    DependencyType = T.TypeVar('DependencyType', bound='Dependency')
+
 # These must be defined in this file to avoid cyclical references.
 packages = {}
 _packages_accept_language = set()
@@ -2169,6 +2172,79 @@ class ExtraFrameworkDependency(ExternalDependency):
         return 'framework'
 
 
+class DependencyFactory:
+
+    """Factory to get dependencies from multiple sources.
+
+    This class provides an initializer that takes a set of names and classes
+    for various kinds of dependencies. When the initialized object is called
+    it returns a list of callables return Dependency objects to try in order.
+
+    :name: The name of the dependency. This will be passed as the name
+        parameter of the each dependency unless it is overridden on a per
+        type basis.
+    :methods: An ordered list of DependencyMethods. This is the order
+        dependencies will be returned in unless they are removed by the
+        _process_method function
+    :*_name: This will overwrite the name passed to the coresponding class.
+        For example, if the name is 'zlib', but cmake calls the dependency
+        'Z', then using `cmake_name='Z'` will pass the name as 'Z' to cmake.
+    :*_class: A *type* or callable that creates a class, and has the
+        signature of an ExternalDependency
+    :system_class: If you pass DependencyMethods.SYSTEM in methods, you must
+        set this argument.
+    """
+
+    def __init__(self, name: str, methods: T.List[DependencyMethods], *,
+                 pkgconfig_name: T.Optional[str] = None,
+                 pkgconfig_class: 'T.Type[PkgConfigDependency]' = PkgConfigDependency,
+                 cmake_name: T.Optional[str] = None,
+                 cmake_class: 'T.Type[CMakeDependency]' = CMakeDependency,
+                 configtool_class: 'T.Optional[T.Type[ConfigToolDependency]]' = None,
+                 framework_name: T.Optional[str] = None,
+                 framework_class: 'T.Type[ExtraFrameworkDependency]' = ExtraFrameworkDependency,
+                 system_class: 'T.Type[ExternalDependency]' = ExternalDependency):
+
+        if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
+            raise DependencyException('A configtool must have a custom class')
+
+        self.methods = methods
+        self.classes = {
+            # Just attach the correct name right now, either the generic name
+            # or the method specific name.
+            DependencyMethods.EXTRAFRAMEWORK: functools.partial(framework_class, framework_name or name),
+            DependencyMethods.PKGCONFIG: functools.partial(pkgconfig_class, pkgconfig_name or name),
+            DependencyMethods.CMAKE: functools.partial(cmake_class, cmake_name or name),
+            DependencyMethods.SYSTEM: functools.partial(system_class, name),
+            DependencyMethods.CONFIG_TOOL: None,
+        }
+        if configtool_class is not None:
+            self.classes[DependencyMethods.CONFIG_TOOL] = functools.partial(configtool_class, name)
+
+    @staticmethod
+    def _process_method(method: DependencyMethods, env: Environment, for_machine: MachineChoice) -> bool:
+        """Report whether a method is valid or not.
+
+        If the method is valid, return true, otherwise return false. This is
+        used in a list comprehension to filter methods that are not possible.
+
+        By default this only remove EXTRAFRAMEWORK dependencies for non-mac platforms.
+        """
+        # Extra frameworks are only valid for macOS and other apple products
+        if (method is DependencyMethods.EXTRAFRAMEWORK and
+                not env.machines[for_machine].is_darwin()):
+            return False
+        return True
+
+    def __call__(self, env: Environment, for_machine: MachineChoice,
+                 kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
+        """Return a list of Dependencies with the arguments already attached."""
+        methods = process_method_kw(self.methods, kwargs)
+
+        return [functools.partial(self.classes[m], env, kwargs) for m in methods
+                if self._process_method(m, env, for_machine)]
+
+
 def get_dep_identifier(name, kwargs) -> T.Tuple:
     identifier = (name, )
     for key, value in kwargs.items():
@@ -2220,7 +2296,7 @@ def find_external_dependency(name, env, kwargs):
     type_text = PerMachine('Build-time', 'Run-time')[for_machine] + ' dependency'
 
     # build a list of dependency methods to try
-    candidates = _build_external_dependency_list(name, env, kwargs)
+    candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
     pkg_exc = []
     pkgdep = []
@@ -2283,7 +2359,8 @@ def find_external_dependency(name, env, kwargs):
     return NotFoundDependency(env)
 
 
-def _build_external_dependency_list(name, env: Environment, kwargs: T.Dict[str, T.Any]) -> list:
+def _build_external_dependency_list(name: str, env: Environment, for_machine: MachineChoice,
+                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
@@ -2294,10 +2371,10 @@ def _build_external_dependency_list(name, env: Environment, kwargs: T.Dict[str, 
         # Create the list of dependency object constructors using a factory
         # class method, if one exists, otherwise the list just consists of the
         # constructor
-        if getattr(packages[lname], '_factory', None):
-            dep = packages[lname]._factory(env, kwargs)
-        else:
+        if isinstance(packages[lname], type) and issubclass(packages[lname], Dependency):
             dep = [functools.partial(packages[lname], env, kwargs)]
+        else:
+            dep = packages[lname](env, for_machine, kwargs)
         return dep
 
     candidates = []
