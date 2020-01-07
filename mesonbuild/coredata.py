@@ -40,7 +40,7 @@ if TYPE_CHECKING:
 
     OptionDictType = Dict[str, 'UserOption[Any]']
 
-version = '0.52.999'
+version = '0.53.0'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
