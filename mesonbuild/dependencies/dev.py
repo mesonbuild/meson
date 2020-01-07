@@ -25,7 +25,7 @@ from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineC
 from ..environment import get_llvm_tool_names
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency, process_method_kw
 )
 from .misc import ThreadDependency
 
@@ -100,7 +100,7 @@ class GTestDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -179,7 +179,7 @@ class GMockDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -439,7 +439,7 @@ class LLVMDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, env, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.CONFIG_TOOL in methods:

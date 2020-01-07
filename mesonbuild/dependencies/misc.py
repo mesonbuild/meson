@@ -27,7 +27,7 @@ from ..mesonlib import listify
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     ExtraFrameworkDependency, PkgConfigDependency,
-    CMakeDependency, ConfigToolDependency,
+    CMakeDependency, ConfigToolDependency, process_method_kw,
 )
 
 
@@ -205,7 +205,7 @@ class Python3Dependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -329,7 +329,7 @@ class PcapDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -374,7 +374,7 @@ class CupsDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -416,7 +416,7 @@ class LibWmfDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -444,7 +444,7 @@ class LibGCryptDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -475,7 +475,7 @@ class GpgmeDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:
@@ -530,7 +530,7 @@ class ShadercDependency(ExternalDependency):
 
     @classmethod
     def _factory(cls, environment, kwargs):
-        methods = cls._process_method_kw(kwargs)
+        methods = process_method_kw(cls.get_methods(), kwargs)
         candidates = []
 
         if DependencyMethods.PKGCONFIG in methods:

@@ -70,38 +70,6 @@ class DependencyMethods(Enum):
 
 
 class Dependency:
-    @classmethod
-    def _process_method_kw(cls, kwargs):
-        method = kwargs.get('method', 'auto')
-        if isinstance(method, DependencyMethods):
-            return method
-        if method not in [e.value for e in DependencyMethods]:
-            raise DependencyException('method {!r} is invalid'.format(method))
-        method = DependencyMethods(method)
-
-        # This sets per-tool config methods which are deprecated to to the new
-        # generic CONFIG_TOOL value.
-        if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
-                      DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-            mlog.warning(textwrap.dedent("""\
-                Configuration method {} has been deprecated in favor of
-                'config-tool'. This will be removed in a future version of
-                meson.""".format(method)))
-            method = DependencyMethods.CONFIG_TOOL
-
-        # Set the detection method. If the method is set to auto, use any available method.
-        # If method is set to a specific string, allow only that detection method.
-        if method == DependencyMethods.AUTO:
-            methods = cls.get_methods()
-        elif method in cls.get_methods():
-            methods = [method]
-        else:
-            raise DependencyException(
-                'Unsupported detection method: {}, allowed methods are {}'.format(
-                    method.value,
-                    mlog.format_list([x.value for x in [DependencyMethods.AUTO] + cls.get_methods()])))
-
-        return methods
 
     @classmethod
     def _process_include_type_kw(cls, kwargs) -> str:
@@ -125,7 +93,7 @@ class Dependency:
         # If None, self.link_args will be used
         self.raw_link_args = None
         self.sources = []
-        self.methods = self._process_method_kw(kwargs)
+        self.methods = process_method_kw(self.get_methods(), kwargs)
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps = []  # type: T.List[Dependency]
 
@@ -2405,3 +2373,36 @@ def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
     """
     exclude = {'-L{}'.format(p) for p in environment.get_compiler_system_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]
+
+
+def process_method_kw(possible: T.List[DependencyMethods], kwargs) -> T.List[DependencyMethods]:
+    method = kwargs.get('method', 'auto')
+    if isinstance(method, DependencyMethods):
+        return method
+    if method not in [e.value for e in DependencyMethods]:
+        raise DependencyException('method {!r} is invalid'.format(method))
+    method = DependencyMethods(method)
+
+    # This sets per-tool config methods which are deprecated to to the new
+    # generic CONFIG_TOOL value.
+    if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
+                  DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
+        mlog.warning(textwrap.dedent("""\
+            Configuration method {} has been deprecated in favor of
+            'config-tool'. This will be removed in a future version of
+            meson.""".format(method)))
+        method = DependencyMethods.CONFIG_TOOL
+
+    # Set the detection method. If the method is set to auto, use any available method.
+    # If method is set to a specific string, allow only that detection method.
+    if method == DependencyMethods.AUTO:
+        methods = possible
+    elif method in possible:
+        methods = [method]
+    else:
+        raise DependencyException(
+            'Unsupported detection method: {}, allowed methods are {}'.format(
+                method.value,
+                mlog.format_list([x.value for x in [DependencyMethods.AUTO] + possible])))
+
+    return methods
