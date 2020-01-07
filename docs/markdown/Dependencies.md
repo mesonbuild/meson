@@ -67,6 +67,7 @@ page](#dependencies-with-custom-lookup-functionality).
 # Arbitrary variables from dependencies that can be found multiple ways
 
 *Note* new in 0.51.0
+*new in 0.54.0, the `internal` keyword*
 
 When you need to get an arbitrary variables from a dependency that can be
 found multiple ways and you don't want to constrain the type you can use
@@ -79,13 +80,14 @@ var = foo.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', config
 ```
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
-'configtool', and 'default_value'. 'pkgconfig_define' works just like the
-'define_variable' argument to `get_pkgconfig_variable`. When this method is
-invoked the keyword corresponding to the underlying type of the dependency
-will be used to look for a variable. If that variable cannot be found or if
-the caller does not provide an argument for the type of dependency, one of
-the following will happen: If 'default_value' was provided that value will be
-returned, if 'default_value' was not provided then an error will be raised.
+'configtool', 'internal', and 'default_value'. 'pkgconfig_define' works just
+like the 'define_variable' argument to `get_pkgconfig_variable`. When this
+method is invoked the keyword corresponding to the underlying type of the
+dependency will be used to look for a variable. If that variable cannot be
+found or if the caller does not provide an argument for the type of
+dependency, one of the following will happen: If 'default_value' was provided
+that value will be returned, if 'default_value' was not provided then an
+error will be raised.
 
 # Declaring your own
 
@@ -289,16 +291,16 @@ libraries that have been compiled for single-threaded use instead.
 
 *(added 0.53.0)*
 
-Enables compiling and linking against the CUDA Toolkit. The `version` 
-and `modules` keywords may be passed to request the use of a specific 
+Enables compiling and linking against the CUDA Toolkit. The `version`
+and `modules` keywords may be passed to request the use of a specific
 CUDA Toolkit version and/or additional CUDA libraries, correspondingly:
 
 ```meson
 dep = dependency('cuda', version : '>=10', modules : ['cublas'])
 ```
 
-Note that explicitly adding this dependency is only necessary if you are 
-using CUDA Toolkit from a C/C++ file or project, or if you are utilizing 
+Note that explicitly adding this dependency is only necessary if you are
+using CUDA Toolkit from a C/C++ file or project, or if you are utilizing
 additional toolkit libraries that need to be explicitly linked to.
 
 ## CUPS

@@ -413,6 +413,9 @@ keyword arguments.
   - `sources`, sources to add to targets (or generated header files
     that should be built before sources including them are built)
   - `version`, the version of this dependency, such as `1.2.3`
+  - `variables`, a dictionary of arbitrary strings, this is meant to be used
+    in subprojects where special variables would be provided via cmake or
+    pkg-config. Since 0.54.0
 
 ### dependency()
 
@@ -2364,13 +2367,15 @@ an external dependency with the following methods:
    - sources: any compiled or static sources the dependency has
 
  - `get_variable(cmake : str, pkgconfig : str, configtool : str,
-   default_value : str, pkgconfig_define : [str, str])` *(Added in
-   0.51.0)* A generic variable getter method, which replaces the
+   internal: str, default_value : str, pkgconfig_define : [str, str])`
+   *(Added in 0.51.0)* A generic variable getter method, which replaces the
    get_*type*_variable methods. This allows one to get the variable
    from a dependency without knowing specifically how that dependency
    was found. If default_value is set and the value cannot be gotten
    from the object then default_value is returned, if it is not set
    then an error is raised.
+
+   *New in 0.54.0, the `internal` keyword*
 
 ### `disabler` object
 
