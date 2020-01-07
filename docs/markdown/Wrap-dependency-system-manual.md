@@ -1,10 +1,8 @@
 # Wrap dependency system manual
 
 One of the major problems of multiplatform development is wrangling
-all your dependencies. This is easy on Linux where you can use system
-packages (and happen to know that your target distribution provides a
-recent enough version of the dependency) but awkward on other
-platforms. Most of those do not have a package manager at all. This
+all your dependencies. This is awkward on many platforms, especially
+on ones that do not have a built-in package manager. The latter problem
 has been worked around by having third party package managers. They
 are not really a solution for end user deployment, because you can't
 tell them to install a package manager just to use your app. On these
