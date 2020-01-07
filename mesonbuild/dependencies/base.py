@@ -223,7 +223,8 @@ class Dependency:
         self.ext_deps.append(dep_type(env, kwargs))
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if default_value is not None:
             return default_value
@@ -235,7 +236,8 @@ class Dependency:
         return new_dep
 
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries, whole_libraries, sources, ext_deps):
+    def __init__(self, version, incdirs, compile_args, link_args, libraries,
+                 whole_libraries, sources, ext_deps, variables: T.Dict[str, T.Any]):
         super().__init__('internal', {})
         self.version = version
         self.is_found = True
@@ -246,6 +248,7 @@ class InternalDependency(Dependency):
         self.whole_libraries = whole_libraries
         self.sources = sources
         self.ext_deps = ext_deps
+        self.variables = variables
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         raise DependencyException('Method "get_pkgconfig_variable()" is '
@@ -270,7 +273,17 @@ class InternalDependency(Dependency):
         return InternalDependency(
             self.version, final_includes, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
-            final_sources, final_deps)
+            final_sources, final_deps, self.variables)
+
+    def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     default_value: T.Optional[str] = None,
+                     pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
+        val = self.variables.get(internal, default_value)
+        if val is not None:
+            return val
+        raise DependencyException('Could not get an internal variable and no default provided for {!r}'.format(self))
+
 
 class HasNativeKwarg:
     def __init__(self, kwargs):
@@ -554,7 +567,8 @@ class ConfigToolDependency(ExternalDependency):
         return self.type_name
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if configtool:
             # In the not required case '' (empty string) will be returned if the
@@ -1007,7 +1021,8 @@ class PkgConfigDependency(ExternalDependency):
         return self.type_name
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if pkgconfig:
             kwargs = {}
@@ -1549,7 +1564,8 @@ project(MesonTemp LANGUAGES {})
         return ''
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
-                     configtool: T.Optional[str] = None, default_value: T.Optional[str] = None,
+                     configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
+                     default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if cmake:
             try:

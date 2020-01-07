@@ -1053,7 +1053,7 @@ This will become a hard error in a future Meson release.''')
                                                               [],
                                                               dep.get_compile_args(),
                                                               dep.get_link_args(),
-                                                              [], [], [], [])
+                                                              [], [], [], [], {})
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)

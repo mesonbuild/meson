@@ -47,6 +47,15 @@ else
         'cmake config-tool got default when we shouldn\'t have.')
 endif
 
+idep = declare_dependency(variables : {'foo' : 'value'})
+assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo',
+                         internal : 'foo', default_value : default) == 'value',
+       'internal got default when it shouldn\'t have.')
+assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo',
+                         internal : 'bar', default_value : default) == default,
+       'internal didn\'t default when it should have.')
+
 idep = declare_dependency()
-assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo', default_value : default) == default,
-       'Got something other than default from an internal dependency')
+assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo',
+                         default_value : default) == default,
+       'something went wrong with an InternalDependency with no variables.')
