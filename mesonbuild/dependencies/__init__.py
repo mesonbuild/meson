@@ -26,7 +26,7 @@ from .mpi import MPIDependency
 from .scalapack import ScalapackDependency
 from .misc import (BlocksDependency, CursesDependency, NetCDFDependency, OpenMPDependency, ThreadDependency, ShadercDependency, cups_factory, gpgme_factory, libgcrypt_factory, libwmf_factory, pcap_factory, python3_factory)
 from .platform import AppleFrameworks
-from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, gl_factory, vulkan_factory
+from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
 
 packages.update({
@@ -67,7 +67,7 @@ packages.update({
     'gnustep': GnuStepDependency,
     'qt4': Qt4Dependency,
     'qt5': Qt5Dependency,
-    'sdl2': SDL2Dependency,
+    'sdl2': sdl2_factory,
     'wxwidgets': WxDependency,
     'vulkan': vulkan_factory,
 })

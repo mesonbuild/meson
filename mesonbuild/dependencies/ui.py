@@ -14,7 +14,6 @@
 
 # This file contains the detection logic for external dependencies that
 # are UI-related.
-import functools
 import os
 import re
 import subprocess
@@ -31,7 +30,7 @@ from ..environment import detect_cpu_family
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
-from .base import ConfigToolDependency, process_method_kw, DependencyFactory
+from .base import ConfigToolDependency, DependencyFactory
 
 
 class GLDependencySystem(ExternalDependency):
@@ -512,34 +511,13 @@ class Qt5Dependency(QtBaseDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-# There are three different ways of depending on SDL2:
-# sdl2-config, pkg-config and OSX framework
-class SDL2Dependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('sdl2', environment, kwargs)
+class SDL2DependencyConfigTool(ConfigToolDependency):
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'sdl2', environment, kwargs))
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(ConfigToolDependency.factory,
-                                                'sdl2', environment, None,
-                                                kwargs, ['sdl2-config'],
-                                                'sdl2-config', SDL2Dependency.tool_finish_init))
-
-        if DependencyMethods.EXTRAFRAMEWORK in methods:
-            if mesonlib.is_osx():
-                candidates.append(functools.partial(ExtraFrameworkDependency, 'sdl2', environment, kwargs))
-                # fwdep.version = '2'  # FIXME
-        return candidates
+    tools = ['sdl2-config']
+    tool_name = 'sdl2-config'
 
     @staticmethod
-    def tool_finish_init(ctdep):
+    def finish_init(ctdep):
         ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
         ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
@@ -643,6 +621,12 @@ gl_factory = DependencyFactory(
     'gl',
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     system_class=GLDependencySystem,
+)
+
+sdl2_factory = DependencyFactory(
+    'sdl2',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK],
+    configtool_class=SDL2DependencyConfigTool,
 )
 
 vulkan_factory = DependencyFactory(
