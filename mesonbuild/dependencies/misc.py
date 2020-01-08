@@ -362,28 +362,13 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
-class LibGCryptDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('libgcrypt', environment, kwargs)
+class LibGCryptDependencyConfigTool(ConfigToolDependency):
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'libgcrypt', environment, kwargs))
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(ConfigToolDependency.factory,
-                                                'libgcrypt', environment, None, kwargs, ['libgcrypt-config'],
-                                                'libgcrypt-config',
-                                                LibGCryptDependency.tool_finish_init))
-
-        return candidates
+    tools = ['libgcrypt-config']
+    tool_name = 'libgcrypt-config'
 
     @staticmethod
-    def tool_finish_init(ctdep):
+    def finish_init(ctdep):
         ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
         ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
         ctdep.version = ctdep.get_config_value(['--version'], 'version')[0]
@@ -512,6 +497,12 @@ cups_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=CupsDependencyConfigTool,
     cmake_name='Cups',
+)
+
+libgcrypt_factory = DependencyFactory(
+    'libgcrypt',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    configtool_class=LibGCryptDependencyConfigTool,
 )
 
 libwmf_factory = DependencyFactory(
