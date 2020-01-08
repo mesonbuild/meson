@@ -34,9 +34,9 @@ from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, process_method_kw, DependencyFactory
 
 
-class GLDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('gl', environment, kwargs)
+class GLDependencySystem(ExternalDependency):
+    def __init__(self, name: str, environment, kwargs):
+        super().__init__(name, environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
             self.is_found = True
@@ -50,19 +50,6 @@ class GLDependency(ExternalDependency):
             self.link_args = ['-lopengl32']
             # FIXME: Detect version using self.clib_compiler
             return
-
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'gl', environment, kwargs))
-
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(GLDependency, environment, kwargs))
-
-        return candidates
 
     @staticmethod
     def get_methods():
@@ -652,6 +639,11 @@ class VulkanDependencySystem(ExternalDependency):
     def log_tried(self):
         return 'system'
 
+gl_factory = DependencyFactory(
+    'gl',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    system_class=GLDependencySystem,
+)
 
 vulkan_factory = DependencyFactory(
     'vulkan',
