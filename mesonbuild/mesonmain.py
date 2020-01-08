@@ -20,6 +20,15 @@ import argparse
 import codecs
 import shutil
 
+from .coredata import version as meson_version
+
+PYTHON_MININUM_VERSION = (3, 5, 2)
+
+if sys.version_info < PYTHON_MININUM_VERSION:
+    raise SystemExit('ERROR: Tried to run Meson with an unsupported Python version: \n{}'
+                     '\nMeson {} requires Python {} or greater'.format(sys.version,
+                                                                       meson_version, PYTHON_MININUM_VERSION))
+
 from . import mesonlib
 from . import mlog
 from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile
@@ -180,12 +189,6 @@ def ensure_stdout_accepts_unicode():
                 sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
 
 def run(original_args, mainfile):
-    if sys.version_info < (3, 5):
-        print('Meson works correctly only with python 3.5+.')
-        print('You have python {}.'.format(sys.version))
-        print('Please update your environment')
-        return 1
-
     # Meson gets confused if stdout can't output Unicode, if the
     # locale isn't Unicode, just force stdout to accept it. This tries
     # to emulate enough of PEP 540 to work elsewhere.
