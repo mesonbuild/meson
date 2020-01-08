@@ -347,26 +347,13 @@ class CupsDependencyConfigTool(ConfigToolDependency):
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.CMAKE]
 
 
-class LibWmfDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('libwmf', environment, kwargs)
+class LibWmfDependencyConfigTool(ConfigToolDependency):
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'libwmf', environment, kwargs))
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(ConfigToolDependency.factory,
-                                                'libwmf', environment, None, kwargs, ['libwmf-config'], 'libwmf-config', LibWmfDependency.tool_finish_init))
-
-        return candidates
+    tools = ['libwmf-config']
+    tool_name = 'libwmf-config'
 
     @staticmethod
-    def tool_finish_init(ctdep):
+    def finish_init(ctdep):
         ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
         ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
 
@@ -525,6 +512,12 @@ cups_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
     configtool_class=CupsDependencyConfigTool,
     cmake_name='Cups',
+)
+
+libwmf_factory = DependencyFactory(
+    'libwmf',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    configtool_class=LibWmfDependencyConfigTool,
 )
 
 pcap_factory = DependencyFactory(
