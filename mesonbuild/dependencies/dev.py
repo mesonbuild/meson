@@ -46,7 +46,7 @@ def get_shared_library_suffix(environment, for_machine: MachineChoice):
 
 class GTestDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('gtest', environment, 'cpp', kwargs)
+        super().__init__('gtest', environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
         self.detect()
@@ -119,7 +119,7 @@ class GTestDependency(ExternalDependency):
 
 class GMockDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('gmock', environment, 'cpp', kwargs)
+        super().__init__('gmock', environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
@@ -218,7 +218,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__('LLVM', environment, 'cpp', kwargs)
+        super().__init__('LLVM', environment, kwargs, language='cpp')
         self.provided_modules = []
         self.required_modules = set()
         self.module_details = []
@@ -394,7 +394,7 @@ class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, env, kwargs):
         self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        super().__init__(name='LLVM', environment=env, language='cpp', kwargs=kwargs)
+        super().__init__('LLVM', env, kwargs, language='cpp')
 
         if self.traceparser is None:
             return
@@ -435,7 +435,7 @@ class LLVMDependencyCMake(CMakeDependency):
 
 class LLVMDependency(ExternalDependency):
     def __init__(self, env, kwargs):
-        super().__init__('LLVM', env, 'cpp', kwargs)
+        super().__init__('LLVM', env, kwargs, language='cpp')
 
     @classmethod
     def _factory(cls, env, kwargs):

@@ -29,7 +29,7 @@ class MPIDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs: dict):
         language = kwargs.get('language', 'c')
-        super().__init__('mpi', environment, language, kwargs)
+        super().__init__('mpi', environment, kwargs, language=language)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False

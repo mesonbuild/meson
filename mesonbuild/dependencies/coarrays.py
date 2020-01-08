@@ -26,7 +26,7 @@ class CoarrayDependency(ExternalDependency):
     low-level MPI calls.
     """
     def __init__(self, environment, kwargs: dict):
-        super().__init__('coarray', environment, 'fortran', kwargs)
+        super().__init__('coarray', environment, kwargs, language='fortran')
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False

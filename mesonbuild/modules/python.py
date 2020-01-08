@@ -44,7 +44,7 @@ mod_kwargs -= set(['name_prefix', 'name_suffix'])
 class PythonDependency(ExternalDependency):
 
     def __init__(self, python_holder, environment, kwargs):
-        super().__init__('python', environment, None, kwargs)
+        super().__init__('python', environment, kwargs)
         self.name = 'python'
         self.static = kwargs.get('static', False)
         self.embed = kwargs.get('embed', False)

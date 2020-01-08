@@ -18,6 +18,7 @@ import functools
 import os
 import re
 import subprocess
+import typing as T
 from collections import OrderedDict
 
 from .. import mlog
@@ -35,7 +36,7 @@ from .base import ConfigToolDependency, process_method_kw
 
 class GLDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('gl', environment, None, kwargs)
+        super().__init__('gl', environment, kwargs)
 
         if self.env.machines[self.for_machine].is_darwin():
             self.is_found = True
@@ -79,7 +80,7 @@ class GnuStepDependency(ConfigToolDependency):
     tool_name = 'gnustep-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('gnustep', environment, 'objc', kwargs)
+        super().__init__('gnustep', environment, kwargs, language='objc')
         if not self.is_found:
             return
         self.modules = kwargs.get('modules', [])
@@ -176,8 +177,8 @@ def _qt_get_private_includes(mod_inc_dir, module, mod_version):
             os.path.join(private_dir, 'Qt' + module))
 
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
-    def __init__(self, name, required, paths, env, lang, kwargs):
-        super().__init__(name, required, paths, env, lang, kwargs)
+    def __init__(self, name, env, kwargs, language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
         self.mod_name = name[2:]
 
     def get_compile_args(self, with_private_headers=False, qt_version="0"):
@@ -191,7 +192,7 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
 
 class QtBaseDependency(ExternalDependency):
     def __init__(self, name, env, kwargs):
-        super().__init__(name, env, 'cpp', kwargs)
+        super().__init__(name, env, kwargs, language='cpp')
         self.qtname = name.capitalize()
         self.qtver = name[-1]
         if self.qtver == "4":
@@ -443,12 +444,12 @@ class QtBaseDependency(ExternalDependency):
         # ExtraFrameworkDependency doesn't support any methods
         fw_kwargs = kwargs.copy()
         fw_kwargs.pop('method', None)
+        fw_kwargs['paths'] = [libdir]
 
         for m in modules:
             fname = 'Qt' + m
             mlog.debug('Looking for qt framework ' + fname)
-            fwdep = QtExtraFrameworkDependency(fname, False, [libdir], self.env,
-                                               self.language, fw_kwargs)
+            fwdep = QtExtraFrameworkDependency(fname, self.env, fw_kwargs, language=self.language)
             self.compile_args.append('-F' + libdir)
             if fwdep.found():
                 self.compile_args += fwdep.get_compile_args(with_private_headers=self.private_headers,
@@ -528,7 +529,7 @@ class Qt5Dependency(QtBaseDependency):
 # sdl2-config, pkg-config and OSX framework
 class SDL2Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('sdl2', environment, None, kwargs)
+        super().__init__('sdl2', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -546,9 +547,7 @@ class SDL2Dependency(ExternalDependency):
 
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
-                candidates.append(functools.partial(ExtraFrameworkDependency,
-                                                    'sdl2', False, None, environment,
-                                                    kwargs.get('language', None), kwargs))
+                candidates.append(functools.partial(ExtraFrameworkDependency, 'sdl2', environment, kwargs))
                 # fwdep.version = '2'  # FIXME
         return candidates
 
@@ -571,7 +570,7 @@ class WxDependency(ConfigToolDependency):
     tool_name = 'wx-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('WxWidgets', environment, None, kwargs)
+        super().__init__('WxWidgets', environment, kwargs)
         if not self.is_found:
             return
         self.requested_modules = self.get_requested(kwargs)
@@ -593,7 +592,7 @@ class WxDependency(ConfigToolDependency):
 class VulkanDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
-        super().__init__('vulkan', environment, None, kwargs)
+        super().__init__('vulkan', environment, kwargs)
 
         try:
             self.vulkan_sdk = os.environ['VULKAN_SDK']

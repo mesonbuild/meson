@@ -21,7 +21,7 @@ from .base import CMakeDependency, DependencyMethods, ExternalDependency, PkgCon
 
 class ScalapackDependency(ExternalDependency):
     def __init__(self, environment, kwargs: dict):
-        super().__init__('scalapack', environment, None, kwargs)
+        super().__init__('scalapack', environment, kwargs)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False

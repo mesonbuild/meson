@@ -35,7 +35,7 @@ class NetCDFDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
-        super().__init__('netcdf', environment, language, kwargs)
+        super().__init__('netcdf', environment, kwargs, language=language)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
@@ -94,7 +94,7 @@ class OpenMPDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         language = kwargs.get('language')
-        super().__init__('openmp', environment, language, kwargs)
+        super().__init__('openmp', environment, kwargs, language=language)
         self.is_found = False
         if self.clib_compiler.get_id() == 'pgi':
             # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
@@ -125,7 +125,7 @@ class OpenMPDependency(ExternalDependency):
 
 class ThreadDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('threads', environment, None, kwargs)
+        super().__init__('threads', environment, kwargs)
         self.name = 'threads'
         self.is_found = False
         methods = listify(self.methods)
@@ -159,7 +159,7 @@ class ThreadDependency(ExternalDependency):
 
 class BlocksDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('blocks', environment, None, kwargs)
+        super().__init__('blocks', environment, kwargs)
         self.name = 'blocks'
         self.is_found = False
 
@@ -192,7 +192,7 @@ class BlocksDependency(ExternalDependency):
 
 class Python3Dependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('python3', environment, None, kwargs)
+        super().__init__('python3', environment, kwargs)
 
         if not environment.machines.matches_build_machine(self.for_machine):
             return
@@ -219,9 +219,10 @@ class Python3Dependency(ExternalDependency):
             # number in its name.
             # There is a python in /System/Library/Frameworks, but that's
             # python 2, Python 3 will always be in /Library
+            _kargs = kwargs.copy()
+            _kargs[paths] = ['/Library/Frameworks']
             candidates.append(functools.partial(
-                ExtraFrameworkDependency, 'Python', False, ['/Library/Frameworks'],
-                environment, kwargs.get('language', None), kwargs))
+                ExtraFrameworkDependency, 'Python', environment, _kargs))
 
         return candidates
 
@@ -325,7 +326,7 @@ class Python3Dependency(ExternalDependency):
 class PcapDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
-        super().__init__('pcap', environment, None, kwargs)
+        super().__init__('pcap', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -370,7 +371,7 @@ class PcapDependency(ExternalDependency):
 
 class CupsDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('cups', environment, None, kwargs)
+        super().__init__('cups', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -389,8 +390,7 @@ class CupsDependency(ExternalDependency):
         if DependencyMethods.EXTRAFRAMEWORK in methods:
             if mesonlib.is_osx():
                 candidates.append(functools.partial(
-                    ExtraFrameworkDependency, 'cups', False, None, environment,
-                    kwargs.get('language', None), kwargs))
+                    ExtraFrameworkDependency, 'cups', environment, kwargs))
 
         if DependencyMethods.CMAKE in methods:
             candidates.append(functools.partial(CMakeDependency, 'Cups', environment, kwargs))
@@ -412,7 +412,7 @@ class CupsDependency(ExternalDependency):
 
 class LibWmfDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('libwmf', environment, None, kwargs)
+        super().__init__('libwmf', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -440,7 +440,7 @@ class LibWmfDependency(ExternalDependency):
 
 class LibGCryptDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('libgcrypt', environment, None, kwargs)
+        super().__init__('libgcrypt', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -471,7 +471,7 @@ class LibGCryptDependency(ExternalDependency):
 
 class GpgmeDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('gpgme', environment, None, kwargs)
+        super().__init__('gpgme', environment, kwargs)
 
     @classmethod
     def _factory(cls, environment, kwargs):
@@ -503,7 +503,7 @@ class GpgmeDependency(ExternalDependency):
 class ShadercDependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
-        super().__init__('shaderc', environment, None, kwargs)
+        super().__init__('shaderc', environment, kwargs)
 
         static_lib = 'shaderc_combined'
         shared_lib = 'shaderc_shared'
