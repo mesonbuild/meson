@@ -26,9 +26,8 @@ from ..mesonlib import listify
 
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
-    ExtraFrameworkDependency, PkgConfigDependency,
-    CMakeDependency, ConfigToolDependency, process_method_kw,
-    DependencyFactory,
+    PkgConfigDependency, CMakeDependency, ConfigToolDependency,
+    process_method_kw, DependencyFactory,
 )
 
 class NetCDFDependency(ExternalDependency):
@@ -330,36 +329,13 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         return v
 
 
-class CupsDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('cups', environment, kwargs)
+class CupsDependencyConfigTool(ConfigToolDependency):
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'cups', environment, kwargs))
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(ConfigToolDependency.factory,
-                                                'cups', environment, None,
-                                                kwargs, ['cups-config'],
-                                                'cups-config', CupsDependency.tool_finish_init))
-
-        if DependencyMethods.EXTRAFRAMEWORK in methods:
-            if mesonlib.is_osx():
-                candidates.append(functools.partial(
-                    ExtraFrameworkDependency, 'cups', environment, kwargs))
-
-        if DependencyMethods.CMAKE in methods:
-            candidates.append(functools.partial(CMakeDependency, 'Cups', environment, kwargs))
-
-        return candidates
+    tools = ['cups-config']
+    tool_name = 'cups-config'
 
     @staticmethod
-    def tool_finish_init(ctdep):
+    def finish_init(ctdep):
         ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
         ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
 
@@ -543,6 +519,13 @@ class CursesDependency(ExternalDependency):
     def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
 
+
+cups_factory = DependencyFactory(
+    'cups',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE],
+    configtool_class=CupsDependencyConfigTool,
+    cmake_name='Cups',
+)
 
 pcap_factory = DependencyFactory(
     'pcap',
