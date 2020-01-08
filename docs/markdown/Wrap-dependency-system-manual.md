@@ -6,7 +6,9 @@ on ones that do not have a built-in package manager. The latter problem
 has been worked around by having third party package managers. They
 are not really a solution for end user deployment, because you can't
 tell them to install a package manager just to use your app. On these
-platforms you must produce self-contained applications.
+platforms you must produce self-contained applications. Same applies
+when destination platform is missing (up-to-date versions of) your
+application's dependencies.
 
 The traditional approach to this has been to bundle dependencies
 inside your own project. Either as prebuilt libraries and headers or
