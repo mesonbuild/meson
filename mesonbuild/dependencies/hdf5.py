@@ -27,7 +27,7 @@ class HDF5Dependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
         language = kwargs.get('language', 'c')
-        super().__init__('hdf5', environment, language, kwargs)
+        super().__init__('hdf5', environment, kwargs, language=language)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False

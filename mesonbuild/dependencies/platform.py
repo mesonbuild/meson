@@ -20,7 +20,7 @@ from ..mesonlib import MesonException
 
 class AppleFrameworks(ExternalDependency):
     def __init__(self, env, kwargs):
-        super().__init__('appleframeworks', env, None, kwargs)
+        super().__init__('appleframeworks', env, kwargs)
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
             modules = [modules]

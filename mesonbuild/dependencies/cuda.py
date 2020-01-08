@@ -33,7 +33,7 @@ class CudaDependency(ExternalDependency):
         if language not in self.supported_languages:
             raise DependencyException('Language \'{}\' is not supported by the CUDA Toolkit. Supported languages are {}.'.format(language, self.supported_languages))
 
-        super().__init__('cuda', environment, language, kwargs)
+        super().__init__('cuda', environment, kwargs, language=language)
         self.requested_modules = self.get_requested(kwargs)
         if 'cudart' not in self.requested_modules:
             self.requested_modules = ['cudart'] + self.requested_modules

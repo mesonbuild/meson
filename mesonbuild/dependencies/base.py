@@ -261,7 +261,7 @@ class HasNativeKwarg:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name, environment, language, kwargs):
+    def __init__(self, type_name, environment, kwargs, language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
@@ -383,8 +383,8 @@ class ConfigToolDependency(ExternalDependency):
     tool_name = None
     __strip_version = re.compile(r'^[0-9.]*')
 
-    def __init__(self, name, environment, language, kwargs):
-        super().__init__('config-tool', environment, language, kwargs)
+    def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
+        super().__init__('config-tool', environment, kwargs, language=language)
         self.name = name
         self.tools = listify(kwargs.get('tools', self.tools))
 
@@ -426,7 +426,7 @@ class ConfigToolDependency(ExternalDependency):
         sub = type('{}Dependency'.format(name.capitalize()), (cls, ),
                    {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce, 'finish_init': staticmethod(finish_init)})
 
-        return sub(name, environment, language, kwargs)
+        return sub(name, environment, kwargs, language=language)
 
     @classmethod
     def _unpickle(cls):
@@ -563,8 +563,8 @@ class PkgConfigDependency(ExternalDependency):
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache = {}
 
-    def __init__(self, name, environment, kwargs, language=None):
-        super().__init__('pkgconfig', environment, language, kwargs)
+    def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
+        super().__init__('pkgconfig', environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is
@@ -1043,7 +1043,7 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: Environment, kwargs, language: str = None):
+    def __init__(self, name: str, environment: Environment, kwargs, language: T.Optional[str] = None):
         # Gather a list of all languages to support
         self.language_list = []  # type: T.List[str]
         if language is None:
@@ -1065,7 +1065,7 @@ class CMakeDependency(ExternalDependency):
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
 
-        super().__init__('cmake', environment, language, kwargs)
+        super().__init__('cmake', environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         # Store a copy of the CMake path on the object itself so it is
@@ -1566,7 +1566,7 @@ class DubDependency(ExternalDependency):
     class_dubbin = None
 
     def __init__(self, name, environment, kwargs):
-        super().__init__('dub', environment, 'd', kwargs)
+        super().__init__('dub', environment, kwargs, language='d')
         self.name = name
         self.compiler = super().get_compiler()
         self.module_path = None
@@ -2028,7 +2028,7 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
 
 class ExternalLibrary(ExternalDependency):
     def __init__(self, name, link_args, environment, language, silent=False):
-        super().__init__('library', environment, language, {})
+        super().__init__('library', environment, {}, language=language)
         self.name = name
         self.language = language
         self.is_found = False
@@ -2070,10 +2070,10 @@ class ExternalLibrary(ExternalDependency):
 class ExtraFrameworkDependency(ExternalDependency):
     system_framework_paths = None
 
-    def __init__(self, name, required, paths, env, lang, kwargs):
-        super().__init__('extraframeworks', env, lang, kwargs)
+    def __init__(self, name, env, kwargs, language: T.Optional[str] = None):
+        paths = kwargs.get('paths', [])
+        super().__init__('extraframeworks', env, kwargs, language=language)
         self.name = name
-        self.required = required
         # Full path to framework directory
         self.framework_path = None
         if not self.clib_compiler:
@@ -2321,8 +2321,7 @@ def _build_external_dependency_list(name, env: Environment, kwargs: T.Dict[str, 
     if 'extraframework' == kwargs.get('method', ''):
         # On OSX, also try framework dependency detector
         if mesonlib.is_osx():
-            candidates.append(functools.partial(ExtraFrameworkDependency, name,
-                                                False, None, env, None, kwargs))
+            candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
         return candidates
 
     # Otherwise, just use the pkgconfig and cmake dependency detector
@@ -2331,8 +2330,7 @@ def _build_external_dependency_list(name, env: Environment, kwargs: T.Dict[str, 
 
         # On OSX, also try framework dependency detector
         if mesonlib.is_osx():
-            candidates.append(functools.partial(ExtraFrameworkDependency, name,
-                                                False, None, env, None, kwargs))
+            candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 
         # Only use CMake as a last resort, since it might not work 100% (see #6113)
         candidates.append(functools.partial(CMakeDependency, name, env, kwargs))

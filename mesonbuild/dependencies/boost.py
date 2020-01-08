@@ -97,7 +97,7 @@ from .misc import ThreadDependency
 
 class BoostDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
-        super().__init__('boost', environment, 'cpp', kwargs)
+        super().__init__('boost', environment, kwargs, language='cpp')
         self.need_static_link = ['boost_exception', 'boost_test_exec_monitor']
         self.is_debug = environment.coredata.get_builtin_option('buildtype').startswith('debug')
         threading = kwargs.get("threading", "multi")
