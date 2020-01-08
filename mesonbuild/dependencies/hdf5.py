@@ -37,9 +37,9 @@ class HDF5Dependency(ExternalDependency):
             raise DependencyException('Language {} is not supported with HDF5.'.format(language))
 
         if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
+            pkgconfig_files = ['hdf5', 'hdf5-serial']
             PCEXE = shutil.which('pkg-config')
             if PCEXE:
-                pkgconfig_files = ['hdf5', 'hdf5-serial']
                 # some distros put hdf5-1.2.3.pc with version number in .pc filename.
                 ret = subprocess.run([PCEXE, '--list-all'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                      universal_newlines=True)
