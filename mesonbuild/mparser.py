@@ -17,11 +17,10 @@ import codecs
 import textwrap
 import types
 import typing as T
-from typing import Dict, Generic, Generator, List, Tuple, TypeVar, Optional, Union, TYPE_CHECKING
 from .mesonlib import MesonException
 from . import mlog
 
-if TYPE_CHECKING:
+if T.TYPE_CHECKING:
     from .ast import AstVisitor
 
 # This is the regex for the supported escape sequences of a regular string
@@ -77,16 +76,16 @@ class BlockParseException(MesonException):
         self.lineno = lineno
         self.colno = colno
 
-TV_TokenTypes = TypeVar('TV_TokenTypes', int, str, bool)
+TV_TokenTypes = T.TypeVar('TV_TokenTypes', int, str, bool)
 
-class Token(Generic[TV_TokenTypes]):
-    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: Tuple[int, int], value: TV_TokenTypes) -> None:
+class Token(T.Generic[TV_TokenTypes]):
+    def __init__(self, tid: str, filename: str, line_start: int, lineno: int, colno: int, bytespan: T.Tuple[int, int], value: TV_TokenTypes) -> None:
         self.tid = tid                # type: str
         self.filename = filename      # type: str
         self.line_start = line_start  # type: int
         self.lineno = lineno          # type: int
         self.colno = colno            # type: int
-        self.bytespan = bytespan      # type: Tuple[int, int]
+        self.bytespan = bytespan      # type: T.Tuple[int, int]
         self.value = value            # type: TV_TokenTypes
 
     def __eq__(self, other) -> bool:
@@ -150,7 +149,7 @@ class Lexer:
         col = 0
         while loc < len(self.code):
             matched = False
-            value = None  # type: Union[str, bool, int]
+            value = None  # type: T.Union[str, bool, int]
             for (tid, reg) in self.token_specification:
                 mo = reg.match(self.code, loc)
                 if mo:
@@ -227,7 +226,7 @@ class Lexer:
                 raise ParseException('lexer', self.getline(line_start), lineno, col)
 
 class BaseNode:
-    def __init__(self, lineno: int, colno: int, filename: str, end_lineno: Optional[int] = None, end_colno: Optional[int] = None) -> None:
+    def __init__(self, lineno: int, colno: int, filename: str, end_lineno: T.Optional[int] = None, end_colno: T.Optional[int] = None) -> None:
         self.lineno = lineno      # type: int
         self.colno = colno        # type: int
         self.filename = filename  # type: str
@@ -246,11 +245,11 @@ class BaseNode:
             if callable(func):
                 func(self)
 
-class ElementaryNode(Generic[TV_TokenTypes], BaseNode):
+class ElementaryNode(T.Generic[TV_TokenTypes], BaseNode):
     def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
         self.value = token.value        # type: TV_TokenTypes
-        self.bytespan = token.bytespan  # type: Tuple[int, int]
+        self.bytespan = token.bytespan  # type: T.Tuple[int, int]
 
 class BooleanNode(ElementaryNode[bool]):
     def __init__(self, token: Token[bool]) -> None:
@@ -287,9 +286,9 @@ class BreakNode(ElementaryNode):
 class ArgumentNode(BaseNode):
     def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
-        self.arguments = []  # type: List[BaseNode]
-        self.commas = []     # type: List[Token[TV_TokenTypes]]
-        self.kwargs = {}     # type: Dict[BaseNode, BaseNode]
+        self.arguments = []  # type: T.List[BaseNode]
+        self.commas = []     # type: T.List[Token[TV_TokenTypes]]
+        self.kwargs = {}     # type: T.Dict[BaseNode, BaseNode]
         self.order_error = False
 
     def prepend(self, statement: BaseNode) -> None:
@@ -374,7 +373,7 @@ class NotNode(BaseNode):
 class CodeBlockNode(BaseNode):
     def __init__(self, token: Token[TV_TokenTypes]) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
-        self.lines = []  # type: List[BaseNode]
+        self.lines = []  # type: T.List[BaseNode]
 
 class IndexNode(BaseNode):
     def __init__(self, iobject: BaseNode, index: BaseNode) -> None:
@@ -412,9 +411,9 @@ class PlusAssignmentNode(BaseNode):
         self.value = value  # type: BaseNode
 
 class ForeachClauseNode(BaseNode):
-    def __init__(self, token: Token, varnames: List[str], items: BaseNode, block: CodeBlockNode) -> None:
+    def __init__(self, token: Token, varnames: T.List[str], items: BaseNode, block: CodeBlockNode) -> None:
         super().__init__(token.lineno, token.colno, token.filename)
-        self.varnames = varnames  # type: List[str]
+        self.varnames = varnames  # type: T.List[str]
         self.items = items        # type: BaseNode
         self.block = block        # type: CodeBlockNode
 
@@ -427,8 +426,8 @@ class IfNode(BaseNode):
 class IfClauseNode(BaseNode):
     def __init__(self, linenode: BaseNode) -> None:
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
-        self.ifs = []  # type: List[IfNode]
-        self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)  # type: Union[EmptyNode, CodeBlockNode]
+        self.ifs = []  # type: T.List[IfNode]
+        self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)  # type: T.Union[EmptyNode, CodeBlockNode]
 
 class UMinusNode(BaseNode):
     def __init__(self, current_location: Token, value: BaseNode):
@@ -722,7 +721,7 @@ class Parser:
         self.expect('id')
         assert isinstance(t.value, str)
         varname = t
-        varnames = [t.value]  # type: List[str]
+        varnames = [t.value]  # type: T.List[str]
 
         if self.accept('comma'):
             t = self.current
@@ -754,7 +753,7 @@ class Parser:
             b = self.codeblock()
             clause.ifs.append(IfNode(s, s, b))
 
-    def elseblock(self) -> Optional[CodeBlockNode]:
+    def elseblock(self) -> T.Optional[CodeBlockNode]:
         if self.accept('else'):
             self.expect('eol')
             return self.codeblock()

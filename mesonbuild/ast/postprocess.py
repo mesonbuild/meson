@@ -17,7 +17,7 @@
 
 from . import AstVisitor
 from .. import mparser
-from typing import Dict
+import typing as T
 
 class AstIndentationGenerator(AstVisitor):
     def __init__(self) -> None:
@@ -77,7 +77,7 @@ class AstIndentationGenerator(AstVisitor):
 
 class AstIDGenerator(AstVisitor):
     def __init__(self) -> None:
-        self.counter = {}  # type: Dict[str, int]
+        self.counter = {}  # type: T.Dict[str, int]
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
         name = type(node).__name__
