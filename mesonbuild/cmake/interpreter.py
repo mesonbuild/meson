@@ -796,7 +796,7 @@ class CMakeInterpreter:
             os_env['LC_ALL'] = 'C'
             final_args = cmake_args + trace_args + cmcmp_args + [self.src_dir]
 
-            cmake_exe.set_exec_mode(print_cmout=True)
+            cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
             rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
 
         mlog.log()

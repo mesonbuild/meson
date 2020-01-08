@@ -74,6 +74,8 @@ class CMakeTraceParser:
 
         self.permissive = permissive  # type: bool
         self.cmake_version = cmake_version  # type: str
+        self.trace_file = 'cmake_trace.txt'
+        self.trace_file_path = Path(build_dir) / self.trace_file
         self.trace_format = 'human'
 
     def trace_args(self) -> T.List[str]:
@@ -82,9 +84,20 @@ class CMakeTraceParser:
         }
 
         base_args = ['--no-warn-unused-cli']
+        if not self.requires_stderr():
+            base_args += ['--trace-redirect={}'.format(self.trace_file)]
+
         return arg_map[self.trace_format] + base_args
 
+    def requires_stderr(self) -> bool:
+        return version_compare(self.cmake_version, '<3.16')
+
     def parse(self, trace: T.Optional[str] = None) -> None:
+        # First load the trace (if required)
+        if not self.requires_stderr():
+            if not self.trace_file_path.exists and not self.trace_file_path.is_file():
+                raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
+            trace = self.trace_file_path.read_text()
         if not trace:
             raise CMakeException('CMake: The CMake trace was not provided or is empty')
 
