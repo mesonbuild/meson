@@ -15,7 +15,6 @@
 # This file contains the detection logic for external dependencies useful for
 # development purposes, such as testing, debugging, etc..
 
-import functools
 import glob
 import os
 import re
@@ -26,10 +25,12 @@ from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineC
 from ..environment import get_llvm_tool_names
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency, process_method_kw,
-    DependencyFactory,
+    strip_system_libdirs, ConfigToolDependency, CMakeDependency, DependencyFactory,
 )
 from .misc import ThreadDependency
+
+if T.TYPE_CHECKING:
+    from .. environment import Environment
 
 
 def get_shared_library_suffix(environment, for_machine: MachineChoice):
@@ -112,9 +113,9 @@ class GTestDependencyPC(PkgConfigDependency):
         super().__init__(name, environment, kwargs)
 
 
-class GMockDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('gmock', environment, kwargs, language='cpp')
+class GMockDependencySystem(ExternalDependency):
+    def __init__(self, name: str, environment, kwargs):
+        super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
@@ -171,23 +172,18 @@ class GMockDependency(ExternalDependency):
     def log_tried(self):
         return 'system'
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            pcname = 'gmock_main' if kwargs.get('main', False) else 'gmock'
-            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
-
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(GMockDependency, environment, kwargs))
-
-        return candidates
-
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+
+
+class GMockDependencyPC(PkgConfigDependency):
+
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        assert name == 'gmock'
+        if kwargs.get('main'):
+            name = 'gmock_main'
+        super().__init__(name, environment, kwargs)
 
 
 class LLVMDependencyConfigTool(ConfigToolDependency):
@@ -452,4 +448,11 @@ gtest_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
     pkgconfig_class=GTestDependencyPC,
     system_class=GTestDependencySystem,
+)
+
+gmock_factory = DependencyFactory(
+    'gmock',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    pkgconfig_class=GMockDependencyPC,
+    system_class=GMockDependencySystem,
 )
