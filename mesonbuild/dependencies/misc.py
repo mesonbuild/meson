@@ -190,11 +190,13 @@ class BlocksDependency(ExternalDependency):
             self.is_found = True
 
 
-class Python3Dependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('python3', environment, kwargs)
+class Python3DependencySystem(ExternalDependency):
+    def __init__(self, name, environment, kwargs):
+        super().__init__(name, environment, kwargs)
 
         if not environment.machines.matches_build_machine(self.for_machine):
+            return
+        if not environment.machines[self.for_machine].is_windows():
             return
 
         self.name = 'python3'
@@ -202,29 +204,6 @@ class Python3Dependency(ExternalDependency):
         # We can only be sure that it is Python 3 at this point
         self.version = '3'
         self._find_libpy3_windows(environment)
-
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'python3', environment, kwargs))
-
-        if DependencyMethods.SYSCONFIG in methods:
-            candidates.append(functools.partial(Python3Dependency, environment, kwargs))
-
-        if DependencyMethods.EXTRAFRAMEWORK in methods:
-            # In OSX the Python 3 framework does not have a version
-            # number in its name.
-            # There is a python in /System/Library/Frameworks, but that's
-            # python 2, Python 3 will always be in /Library
-            _kargs = kwargs.copy()
-            _kargs[paths] = ['/Library/Frameworks']
-            candidates.append(functools.partial(
-                ExtraFrameworkDependency, 'Python', environment, _kargs))
-
-        return candidates
 
     @staticmethod
     def get_windows_python_arch():
@@ -570,4 +549,15 @@ pcap_factory = DependencyFactory(
     [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
     configtool_class=PcapDependencyConfigTool,
     pkgconfig_name='libpcap',
+)
+
+python3_factory = DependencyFactory(
+    'python3',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM, DependencyMethods.EXTRAFRAMEWORK],
+    system_class=Python3DependencySystem,
+    # There is no version number in the macOS version number
+    framework_name='Python',
+    # There is a python in /System/Library/Frameworks, but thats python 2.x,
+    # Python 3 will always be in /Library
+    extra_kwargs={'paths': ['/Library/Frameworks']},
 )
