@@ -24,8 +24,6 @@ from .. import mlog
 from ..environment import Environment
 from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
-from subprocess import Popen, PIPE
-from threading import Thread
 from enum import Enum
 from functools import lru_cache
 import typing as T
@@ -741,7 +739,7 @@ class CMakeInterpreter:
         self.languages = []
         self.targets = []
         self.custom_targets = []  # type: T.List[ConverterCustomTarget]
-        self.trace = CMakeTraceParser()
+        self.trace = CMakeTraceParser('', '')  # Will be replaced in analyse
         self.output_target_map = OutputTargetMap(self.build_dir)
 
         # Generated meson data
@@ -754,10 +752,11 @@ class CMakeInterpreter:
         cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
+        self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
         generator = backend_generator_map[self.backend_name]
-        cmake_args = cmake_exe.get_command()
-        trace_args = ['--trace', '--trace-expand', '--no-warn-unused-cli']
+        cmake_args = []
+        trace_args = self.trace.trace_args()
         cmcmp_args = ['-DCMAKE_POLICY_WARNING_{}=OFF'.format(x) for x in disable_policy_warnings]
 
         if version_compare(cmake_exe.version(), '>=3.14'):
@@ -795,46 +794,15 @@ class CMakeInterpreter:
             os.makedirs(self.build_dir, exist_ok=True)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
-            final_command = cmake_args + trace_args + cmcmp_args + [self.src_dir]
-            proc = Popen(final_command, stdout=PIPE, stderr=PIPE, cwd=self.build_dir, env=os_env)
+            final_args = cmake_args + trace_args + cmcmp_args + [self.src_dir]
 
-            def print_stdout():
-                while True:
-                    line = proc.stdout.readline()
-                    if not line:
-                        break
-                    mlog.log(line.decode('utf-8').strip('\n'))
-                proc.stdout.close()
-
-            t = Thread(target=print_stdout)
-            t.start()
-
-            # Read stderr line by line and log non trace lines
-            self.raw_trace = ''
-            tline_start_reg = re.compile(r'^\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(.*$')
-            inside_multiline_trace = False
-            while True:
-                line = proc.stderr.readline()
-                if not line:
-                    break
-                line = line.decode('utf-8')
-                if tline_start_reg.match(line):
-                    self.raw_trace += line
-                    inside_multiline_trace = not line.endswith(' )\n')
-                elif inside_multiline_trace:
-                    self.raw_trace += line
-                else:
-                    mlog.warning(line.strip('\n'))
-
-            proc.stderr.close()
-            proc.wait()
-
-            t.join()
+            cmake_exe.set_exec_mode(print_cmout=True)
+            rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
 
         mlog.log()
-        h = mlog.green('SUCCEEDED') if proc.returncode == 0 else mlog.red('FAILED')
+        h = mlog.green('SUCCEEDED') if rc == 0 else mlog.red('FAILED')
         mlog.log('CMake configuration:', h)
-        if proc.returncode != 0:
+        if rc != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
     def initialise(self, extra_cmake_options: T.List[str]) -> None:
@@ -889,7 +857,6 @@ class CMakeInterpreter:
         self.languages = []
         self.targets = []
         self.custom_targets = []
-        self.trace = CMakeTraceParser(permissive=True)
 
         # Parse the trace
         self.trace.parse(self.raw_trace)
