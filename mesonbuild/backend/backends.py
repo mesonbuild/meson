@@ -793,7 +793,24 @@ class Backend:
             fname = os.path.join(self.environment.get_source_dir(), sp, 'meson_options.txt')
             if os.path.isfile(fname):
                 deps.append(os.path.join(self.build_to_src, sp, 'meson_options.txt'))
+        self.check_clock_skew(deps)
         return deps
+
+    def check_clock_skew(self, file_list):
+        # If a file that leads to reconfiguration has a time
+        # stamp in the future, it will trigger an eternal reconfigure
+        # loop.
+        import time
+        now = time.time()
+        for f in file_list:
+            absf = os.path.join(self.environment.get_build_dir(), f)
+            ftime = os.path.getmtime(absf)
+            delta = ftime - now
+            # On Windows disk time stamps sometimes point
+            # to the future by a minuscule amount, less than
+            # 0.001 seconds. I don't know why.
+            if delta > 0.001:
+                raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
 
     def exe_object_to_cmd_array(self, exe):
         if isinstance(exe, build.BuildTarget):
