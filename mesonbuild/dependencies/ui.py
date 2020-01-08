@@ -31,7 +31,7 @@ from ..environment import detect_cpu_family
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
-from .base import ConfigToolDependency, process_method_kw
+from .base import ConfigToolDependency, process_method_kw, DependencyFactory
 
 
 class GLDependency(ExternalDependency):
@@ -589,10 +589,10 @@ class WxDependency(ConfigToolDependency):
         return candidates
 
 
-class VulkanDependency(ExternalDependency):
+class VulkanDependencySystem(ExternalDependency):
 
-    def __init__(self, environment, kwargs):
-        super().__init__('vulkan', environment, kwargs)
+    def __init__(self, name: str, environment, kwargs, language: T.Optional[str] = None):
+        super().__init__(name, environment, kwargs, language=language)
 
         try:
             self.vulkan_sdk = os.environ['VULKAN_SDK']
@@ -645,22 +645,16 @@ class VulkanDependency(ExternalDependency):
                     self.link_args.append(lib)
                 return
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'vulkan', environment, kwargs))
-
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(VulkanDependency, environment, kwargs))
-
-        return candidates
-
     @staticmethod
     def get_methods():
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+        return [DependencyMethods.SYSTEM]
 
     def log_tried(self):
         return 'system'
+
+
+vulkan_factory = DependencyFactory(
+    'vulkan',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    system_class=VulkanDependencySystem,
+)

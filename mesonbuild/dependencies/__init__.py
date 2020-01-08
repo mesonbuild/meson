@@ -27,7 +27,7 @@ from .scalapack import ScalapackDependency
 from .misc import (BlocksDependency, CursesDependency, NetCDFDependency, OpenMPDependency, Python3Dependency, ThreadDependency,
                    PcapDependency, CupsDependency, LibWmfDependency, LibGCryptDependency, GpgmeDependency, ShadercDependency)
 from .platform import AppleFrameworks
-from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, VulkanDependency
+from .ui import GLDependency, GnuStepDependency, Qt4Dependency, Qt5Dependency, SDL2Dependency, WxDependency, vulkan_factory
 
 
 packages.update({
@@ -70,7 +70,7 @@ packages.update({
     'qt5': Qt5Dependency,
     'sdl2': SDL2Dependency,
     'wxwidgets': WxDependency,
-    'vulkan': VulkanDependency,
+    'vulkan': vulkan_factory,
 })
 _packages_accept_language.update({
     'hdf5',
