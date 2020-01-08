@@ -28,8 +28,8 @@ from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     ExtraFrameworkDependency, PkgConfigDependency,
     CMakeDependency, ConfigToolDependency, process_method_kw,
+    DependencyFactory,
 )
-
 
 class NetCDFDependency(ExternalDependency):
 
@@ -323,47 +323,29 @@ class Python3Dependency(ExternalDependency):
     def log_tried(self):
         return 'sysconfig'
 
-class PcapDependency(ExternalDependency):
+class PcapDependencyConfigTool(ConfigToolDependency):
 
-    def __init__(self, environment, kwargs):
-        super().__init__('pcap', environment, kwargs)
-
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            candidates.append(functools.partial(PkgConfigDependency, 'pcap', environment, kwargs))
-
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(ConfigToolDependency.factory,
-                                                'pcap', environment, None,
-                                                kwargs, ['pcap-config'],
-                                                'pcap-config',
-                                                PcapDependency.tool_finish_init))
-
-        return candidates
+    tools = ['pcap-config']
+    tool_name = 'pcap-config'
 
     @staticmethod
-    def tool_finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-        ctdep.version = PcapDependency.get_pcap_lib_version(ctdep)
+    def finish_init(self) -> None:
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
+        self.version = self.get_pcap_lib_version()
 
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
-    @staticmethod
-    def get_pcap_lib_version(ctdep):
+    def get_pcap_lib_version(self):
         # Since we seem to need to run a program to discover the pcap version,
         # we can't do that when cross-compiling
-        if not ctdep.env.machines.matches_build_machine(ctdep.for_machine):
+        if not self.env.machines.matches_build_machine(self.for_machine):
             return None
 
-        v = ctdep.clib_compiler.get_return_value('pcap_lib_version', 'string',
-                                                 '#include <pcap.h>', ctdep.env, [], [ctdep])
+        v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
+                                                '#include <pcap.h>', self.env, [], [self])
         v = re.sub(r'libpcap version ', '', v)
         v = re.sub(r' -- Apple version.*$', '', v)
         return v
@@ -558,6 +540,7 @@ class ShadercDependency(ExternalDependency):
     def get_methods():
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
 
+
 class CursesDependency(ExternalDependency):
     def __init__(self, environment, kwargs):
         super().__init__('curses', environment, None, kwargs)
@@ -580,3 +563,11 @@ class CursesDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
+
+
+pcap_factory = DependencyFactory(
+    'pcap',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    configtool_class=PcapDependencyConfigTool,
+    pkgconfig_name='libpcap',
+)
