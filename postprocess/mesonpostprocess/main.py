@@ -46,6 +46,7 @@ def main() -> int:
     parser.add_argument('--hints', '-H', action='store_true', help='Removes type hints')
     parser.add_argument('--imports', '-i', action='store_true', help='Remove unused imports')
     parser.add_argument('--fstrings', '-F', action='store_true', help='Convert f-strings to .format()')
+    parser.add_argument('--format', '-f', action='store_true', help='Format the result')
     parser.add_argument('--all', '-a', action='store_true', help='Execute all actions')
     parser.add_argument('--verbose', '-V', action='count', default=0, help='Set verbose output level')
     parser.add_argument('out', metavar='DIR', type=str, help='Output directory for the converted files')
@@ -72,6 +73,9 @@ def main() -> int:
 
     if args.imports or args.all:
         add_action(FixUnusedImports())
+
+    if args.format or args.all:
+        add_action(CodeFormater())
 
     if missing_imports:
         print('')
