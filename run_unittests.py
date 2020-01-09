@@ -707,18 +707,20 @@ class InternalTests(unittest.TestCase):
         class Mock:
             pass
 
+        dummystate = Mock()
+        dummystate.subproject = 'dummy'
         mock = Mock()
         mock.pcdep = Mock()
         mock.pcdep.name = "some_name"
         mock.version_reqs = []
 
         # pkgconfig dependency as lib
-        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
+        deps = mesonbuild.modules.pkgconfig.DependenciesHelper(dummystate, "thislib")
         deps.add_pub_libs([mock])
         self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
 
         # pkgconfig dependency as requires
-        deps = mesonbuild.modules.pkgconfig.DependenciesHelper("thislib")
+        deps = mesonbuild.modules.pkgconfig.DependenciesHelper(dummystate, "thislib")
         deps.add_pub_reqs([mock])
         self.assertEqual(deps.format_reqs(deps.pub_reqs), "some_name")
 

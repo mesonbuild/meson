@@ -26,7 +26,8 @@ from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
 already_warned_objs = set()
 
 class DependenciesHelper:
-    def __init__(self, name):
+    def __init__(self, state, name):
+        self.state = state
         self.name = name
         self.pub_libs = []
         self.pub_reqs = []
@@ -73,6 +74,8 @@ class DependenciesHelper:
         '''Returns string names of requirements'''
         processed_reqs = []
         for obj in mesonlib.listify(reqs, unholder=True):
+            if not isinstance(obj, str):
+                FeatureNew('pkgconfig.generate requirement from non-string object', '0.46.0').use(self.state.subproject)
             if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
@@ -395,7 +398,7 @@ class PkgConfigModule(ExtensionModule):
         if mainlib:
             libraries = [mainlib] + libraries
 
-        deps = DependenciesHelper(filebase)
+        deps = DependenciesHelper(state, filebase)
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
