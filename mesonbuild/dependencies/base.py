@@ -38,6 +38,7 @@ from ..mesonlib import Popen_safe, version_compare_many, version_compare, listif
 from ..mesonlib import Version, LibType
 
 if T.TYPE_CHECKING:
+    from ..compilers.compilers import Compiler  # noqa: F401
     DependencyType = T.TypeVar('DependencyType', bound='Dependency')
 
 # These must be defined in this file to avoid cyclical references.
@@ -296,25 +297,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
             raise DependencyException('Static keyword must be boolean')
         # Is this dependency to be run on the build platform?
         HasNativeKwarg.__init__(self, kwargs)
-        self.clib_compiler = None
-        # Set the compiler that will be used by this dependency
-        # This is only used for configuration checks
-        compilers = self.env.coredata.compilers[self.for_machine]
-        # Set the compiler for this dependency if a language is specified,
-        # else try to pick something that looks usable.
-        if self.language:
-            if self.language not in compilers:
-                m = self.name.capitalize() + ' requires a {0} compiler, but ' \
-                    '{0} is not in the list of project languages'
-                raise DependencyException(m.format(self.language.capitalize()))
-            self.clib_compiler = compilers[self.language]
-        else:
-            # Try to find a compiler that can find C libraries for
-            # running compiler.find_library()
-            for lang in clib_langs:
-                self.clib_compiler = compilers.get(lang, None)
-                if self.clib_compiler:
-                    break
+        self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self):
         return self.clib_compiler
@@ -2504,3 +2487,25 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> 'FactoryType':
         return wrapped
 
     return inner
+
+
+def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
+                    language: T.Optional[str]) -> T.Optional['Compiler']:
+    """Given a language and environment find the compiler used."""
+    compilers = env.coredata.compilers[for_machine]
+
+    # Set the compiler for this dependency if a language is specified,
+    # else try to pick something that looks usable.
+    if language:
+        if language not in compilers:
+            m = name.capitalize() + ' requires a {0} compiler, but ' \
+                '{0} is not in the list of project languages'
+            raise DependencyException(m.format(language.capitalize()))
+        return compilers[language]
+    else:
+        for lang in clib_langs:
+            try:
+                return compilers[lang]
+            except KeyError:
+                continue
+    return None
