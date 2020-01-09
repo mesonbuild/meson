@@ -18,6 +18,7 @@ from pathlib import Path
 import functools
 import re
 import sysconfig
+import typing as T
 
 from .. import mlog
 from .. import mesonlib
@@ -27,8 +28,13 @@ from ..mesonlib import listify
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     PkgConfigDependency, CMakeDependency, ConfigToolDependency,
-    process_method_kw, DependencyFactory,
+    process_method_kw, factory_methods, DependencyFactory,
 )
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment, MachineChoice
+    from .base import DependencyType  # noqa: F401
+
 
 class NetCDFDependency(ExternalDependency):
 
@@ -422,32 +428,6 @@ class ShadercDependency(ExternalDependency):
     def log_tried(self):
         return 'system'
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            # ShaderC packages their shared and static libs together
-            # and provides different pkg-config files for each one. We
-            # smooth over this difference by handling the static
-            # keyword before handing off to the pkg-config handler.
-            shared_libs = ['shaderc']
-            static_libs = ['shaderc_combined', 'shaderc_static']
-
-            if kwargs.get('static', False):
-                c = [functools.partial(PkgConfigDependency, name, environment, kwargs)
-                     for name in static_libs + shared_libs]
-            else:
-                c = [functools.partial(PkgConfigDependency, name, environment, kwargs)
-                     for name in shared_libs + static_libs]
-            candidates.extend(c)
-
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(ShadercDependency, environment, kwargs))
-
-        return candidates
-
     @staticmethod
     def get_methods():
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
@@ -475,6 +455,39 @@ class CursesDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
+
+
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
+def shaderc_factory(env: 'Environment', for_machine: 'MachineChoice',
+                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    """Custom DependencyFactory for ShaderC.
+
+    ShaderC's odd you get three different libraries from the same build
+    thing are just easier to represent as a separate function than
+    twisting DependencyFactory even more.
+    """
+    candidates = []  # type: T.List['DependencyType']
+
+    if DependencyMethods.PKGCONFIG in methods:
+        # ShaderC packages their shared and static libs together
+        # and provides different pkg-config files for each one. We
+        # smooth over this difference by handling the static
+        # keyword before handing off to the pkg-config handler.
+        shared_libs = ['shaderc']
+        static_libs = ['shaderc_combined', 'shaderc_static']
+
+        if kwargs.get('static', False):
+            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+                 for name in static_libs + shared_libs]
+        else:
+            c = [functools.partial(PkgConfigDependency, name, env, kwargs)
+                 for name in shared_libs + static_libs]
+        candidates.extend(c)
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(ShadercDependency, environment, kwargs))
+
+    return candidates
 
 
 cups_factory = DependencyFactory(
