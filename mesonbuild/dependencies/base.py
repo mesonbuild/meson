@@ -427,30 +427,6 @@ class ConfigToolDependency(ExternalDependency):
             return m.group(0).rstrip('.')
         return version
 
-    @classmethod
-    def factory(cls, name, environment, language, kwargs, tools, tool_name, finish_init=None):
-        """Constructor for use in dependencies that can be found multiple ways.
-
-        In addition to the standard constructor values, this constructor sets
-        the tool_name and tools values of the instance.
-        """
-        # This deserves some explanation, because metaprogramming is hard.
-        # This uses type() to create a dynamic subclass of ConfigToolDependency
-        # with the tools and tool_name class attributes set, this class is then
-        # instantiated and returned. The reduce function (method) is also
-        # attached, since python's pickle module won't be able to do anything
-        # with this dynamically generated class otherwise.
-        def reduce(self):
-            return (cls._unpickle, (), self.__dict__)
-        sub = type('{}Dependency'.format(name.capitalize()), (cls, ),
-                   {'tools': tools, 'tool_name': tool_name, '__reduce__': reduce, 'finish_init': staticmethod(finish_init)})
-
-        return sub(name, environment, kwargs, language=language)
-
-    @classmethod
-    def _unpickle(cls):
-        return cls.__new__(cls)
-
     def find_config(self, versions=None):
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
