@@ -27,7 +27,7 @@ from .base import (
     DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
     strip_system_libdirs, ConfigToolDependency, CMakeDependency, DependencyFactory,
 )
-from .misc import ThreadDependency
+from .misc import threads_factory
 
 if T.TYPE_CHECKING:
     from .. environment import Environment
@@ -50,8 +50,10 @@ class GTestDependencySystem(ExternalDependency):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
+        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+            self.is_found = False
+            return
         self.detect()
-        self._add_sub_dependency(ThreadDependency, environment, kwargs)
 
     def detect(self):
         gtest_detect = self.clib_compiler.find_library("gtest", self.env, [])
@@ -117,7 +119,9 @@ class GMockDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
-        self._add_sub_dependency(ThreadDependency, environment, kwargs)
+        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+            self.is_found = False
+            return
 
         # If we are getting main() from GMock, we definitely
         # want to avoid linking in main() from GTest
@@ -231,7 +235,9 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
-        self._add_sub_dependency(ThreadDependency, environment, kwargs)
+        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+            self.is_found = False
+            return
 
     def __fix_bogus_link_args(self, args):
         """This function attempts to fix bogus link arguments that llvm-config
@@ -394,7 +400,9 @@ class LLVMDependencyCMake(CMakeDependency):
         defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
-        self._add_sub_dependency(ThreadDependency, env, kwargs)
+        if not self._add_sub_dependency2(threads_factory(env, self.for_machine, {})):
+            self.is_found = False
+            return
 
     def _main_cmake_file(self) -> str:
         # Use a custom CMakeLists.txt for LLVM

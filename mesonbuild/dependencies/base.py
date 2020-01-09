@@ -195,8 +195,8 @@ class Dependency:
                 return True
         return False
 
-    def _add_sub_dependency(self, dep_type: T.Type['Dependency'], env: Environment,
-                            kwargs: T.Dict[str, T.Any], *,
+    def _add_sub_dependency(self, dep_type: T.Type['Dependency'], name: str,
+                            env: Environment, kwargs: T.Dict[str, T.Any], *,
                             method: DependencyMethods = DependencyMethods.AUTO) -> None:
         """Add an internal dependency of of the given type.
 
@@ -207,7 +207,7 @@ class Dependency:
         """
         kwargs = kwargs.copy()
         kwargs['method'] = method
-        self.ext_deps.append(dep_type(env, kwargs))
+        self.ext_deps.append(dep_type(name, env, kwargs))
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
