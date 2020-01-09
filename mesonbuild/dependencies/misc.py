@@ -36,51 +36,27 @@ if T.TYPE_CHECKING:
     from .base import DependencyType  # noqa: F401
 
 
-class NetCDFDependency(ExternalDependency):
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
+def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
+                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    language = kwargs.get('language', 'c')
+    if language not in ('c', 'cpp', 'fortran'):
+        raise DependencyException('Language {} is not supported with NetCDF.'.format(language))
 
-    def __init__(self, environment, kwargs):
-        language = kwargs.get('language', 'c')
-        super().__init__('netcdf', environment, kwargs, language=language)
-        kwargs['required'] = False
-        kwargs['silent'] = True
-        self.is_found = False
-        methods = listify(self.methods)
+    candidates = []  # type: T.List['DependencyType']
 
-        if language not in ('c', 'cpp', 'fortran'):
-            raise DependencyException('Language {} is not supported with NetCDF.'.format(language))
+    if DependencyMethods.PKGCONFIG in methods:
+        pkgconfig_files = ['netcdf']
+        if language == 'fortran':
+            pkgconfig_files.append('netcdf-fortran')
 
-        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
-            pkgconfig_files = ['netcdf']
+        for pkg in pkgconfig_files:
+            candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
 
-            if language == 'fortran':
-                pkgconfig_files.append('netcdf-fortran')
+    if DependencyMethods.CMAKE in methods:
+        candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
 
-            self.compile_args = []
-            self.link_args = []
-            self.pcdep = []
-            for pkg in pkgconfig_files:
-                pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
-                if pkgdep.found():
-                    self.compile_args.extend(pkgdep.get_compile_args())
-                    self.link_args.extend(pkgdep.get_link_args())
-                    self.version = pkgdep.get_version()
-                    self.is_found = True
-                    self.pcdep.append(pkgdep)
-            if self.is_found:
-                return
-
-        if set([DependencyMethods.AUTO, DependencyMethods.CMAKE]).intersection(methods):
-            cmakedep = CMakeDependency('NetCDF', environment, kwargs, language=self.language)
-            if cmakedep.found():
-                self.compile_args = cmakedep.get_compile_args()
-                self.link_args = cmakedep.get_link_args()
-                self.version = cmakedep.get_version()
-                self.is_found = True
-                return
-
-    @staticmethod
-    def get_methods():
-        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE]
+    return candidates
 
 
 class OpenMPDependency(ExternalDependency):
@@ -485,7 +461,7 @@ def shaderc_factory(env: 'Environment', for_machine: 'MachineChoice',
         candidates.extend(c)
 
     if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(ShadercDependency, environment, kwargs))
+        candidates.append(functools.partial(ShadercDependency, env, kwargs))
 
     return candidates
 
