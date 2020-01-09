@@ -24,7 +24,7 @@ from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory
 from .coarrays import CoarrayDependency
 from .mpi import MPIDependency
 from .scalapack import ScalapackDependency
-from .misc import (BlocksDependency, CursesDependency, OpenMPDependency, ThreadDependency, cups_factory, gpgme_factory, libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory, shaderc_factory)
+from .misc import (BlocksDependency, CursesDependency, OpenMPDependency, cups_factory, gpgme_factory, libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory, shaderc_factory, threads_factory)
 from .platform import AppleFrameworks
 from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
@@ -51,7 +51,7 @@ packages.update({
     'netcdf': netcdf_factory,
     'openmp': OpenMPDependency,
     'python3': python3_factory,
-    'threads': ThreadDependency,
+    'threads': threads_factory,
     'pcap': pcap_factory,
     'cups': cups_factory,
     'libwmf': libwmf_factory,

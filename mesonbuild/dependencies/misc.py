@@ -105,33 +105,17 @@ class OpenMPDependency(ExternalDependency):
 
 
 class ThreadDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('threads', environment, kwargs)
-        self.name = 'threads'
-        self.is_found = False
-        methods = listify(self.methods)
-        if DependencyMethods.AUTO in methods:
-            self.is_found = True
-            # Happens if you are using a language with threads
-            # concept without C, such as plain Cuda.
-            if self.clib_compiler is None:
-                self.compile_args = []
-                self.link_args = []
-            else:
-                self.compile_args = self.clib_compiler.thread_flags(environment)
-                self.link_args = self.clib_compiler.thread_link_flags(environment)
-            return
-
-        if DependencyMethods.CMAKE in methods:
-            # for unit tests and for those who simply want
-            # dependency('threads', method: 'cmake')
-            cmakedep = CMakeDependency('Threads', environment, kwargs)
-            if cmakedep.found():
-                self.compile_args = cmakedep.get_compile_args()
-                self.link_args = cmakedep.get_link_args()
-                self.version = cmakedep.get_version()
-                self.is_found = True
-                return
+    def __init__(self, name: str, environment, kwargs):
+        super().__init__(name, environment, kwargs)
+        self.is_found = True
+        # Happens if you are using a language with threads
+        # concept without C, such as plain Cuda.
+        if self.clib_compiler is None:
+            self.compile_args = []
+            self.link_args = []
+        else:
+            self.compile_args = self.clib_compiler.thread_flags(environment)
+            self.link_args = self.clib_compiler.thread_link_flags(environment)
 
     @staticmethod
     def get_methods():
@@ -507,4 +491,11 @@ python3_factory = DependencyFactory(
     # There is a python in /System/Library/Frameworks, but thats python 2.x,
     # Python 3 will always be in /Library
     extra_kwargs={'paths': ['/Library/Frameworks']},
+)
+
+threads_factory = DependencyFactory(
+    'threads',
+    [DependencyMethods.SYSTEM, DependencyMethods.CMAKE],
+    cmake_name='Threads',
+    system_class=ThreadDependency,
 )

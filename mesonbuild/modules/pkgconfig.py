@@ -17,6 +17,7 @@ from pathlib import PurePath
 
 from .. import build
 from .. import dependencies
+from ..dependencies.misc import ThreadDependency
 from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue
@@ -94,7 +95,7 @@ class DependenciesHelper:
                 self.add_version_reqs(name, version_req)
             elif isinstance(obj, dependencies.Dependency) and not obj.found():
                 pass
-            elif isinstance(obj, dependencies.ThreadDependency):
+            elif isinstance(obj, ThreadDependency):
                 pass
             else:
                 raise mesonlib.MesonException('requires argument not a string, '
@@ -125,9 +126,6 @@ class DependenciesHelper:
                 if obj.found():
                     processed_reqs.append(obj.name)
                     self.add_version_reqs(obj.name, obj.version_reqs)
-            elif isinstance(obj, dependencies.ThreadDependency):
-                processed_libs += obj.get_compiler().thread_link_flags(obj.env)
-                processed_cflags += obj.get_compiler().thread_flags(obj.env)
             elif isinstance(obj, dependencies.InternalDependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
