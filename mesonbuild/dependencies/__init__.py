@@ -21,7 +21,7 @@ from .base import (  # noqa: F401
     PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language,
     DependencyFactory)
 from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory
-from .coarrays import CoarrayDependency
+from .coarrays import coarray_factory
 from .mpi import MPIDependency
 from .scalapack import ScalapackDependency
 from .misc import (BlocksDependency, CursesDependency, OpenMPDependency, cups_factory, gpgme_factory, libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory, shaderc_factory, threads_factory)
@@ -40,7 +40,7 @@ packages.update({
     'cuda': CudaDependency,
 
     # per-file
-    'coarray': CoarrayDependency,
+    'coarray': coarray_factory,
     'hdf5': HDF5Dependency,
     'mpi': MPIDependency,
     'scalapack': ScalapackDependency,
