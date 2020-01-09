@@ -43,6 +43,7 @@ SKIP_DIRS = [
 
 def main() -> int:
     parser = argparse.ArgumentParser('Meson code post-processor')
+    parser.add_argument('--hints', '-H', action='store_true', help='Removes type hints')
     parser.add_argument('--all', '-a', action='store_true', help='Execute all actions')
     parser.add_argument('--verbose', '-V', action='count', default=0, help='Set verbose output level')
     parser.add_argument('out', metavar='DIR', type=str, help='Output directory for the converted files')
@@ -61,6 +62,8 @@ def main() -> int:
         actions += [a]
 
     # Add post processors
+    if args.hints or args.all:
+        add_action(TypeHintsRemover())
 
     if missing_imports:
         print('')
