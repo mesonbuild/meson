@@ -1,0 +1,44 @@
+name: Update postprocess branch
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  update:
+    name: Update py35 branch
+    runs-on: ubuntu-latest
+    env:
+      BRANCH: py35
+      OUT_DIR: py35_out
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+      - name: Creating py35 branch
+        run: |
+          git branch $BRANCH
+          git checkout $BRANCH
+      - name: Installing dependencies
+        run: python -m pip install strip-hints f2format autoflake autopep8
+      - name: Transpiling
+        run: python postprocess -V --hints --imports --fstrings $OUT_DIR
+      - name: Move files
+        run: |
+          find . -maxdepth 1 ! -name . ! -name $OUT_DIR ! -name .git -exec rm -rf {} \;
+          cp -R $OUT_DIR/. .
+          rm -rf $OUT_DIR
+      - name: Commit changes
+        run: |
+          git add .
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Update $BRANCH"
+      - name: Push branch
+        uses: ad-m/github-push-action@v0.5.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.BRANCH }}
+          force: true
