@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Test script that checks if zlib was statically linked to executable"""
 import subprocess
 import sys
