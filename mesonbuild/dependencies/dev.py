@@ -44,9 +44,9 @@ def get_shared_library_suffix(environment, for_machine: MachineChoice):
     return '.so'
 
 
-class GTestDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('gtest', environment, kwargs, language='cpp')
+class GTestDependencySystem(ExternalDependency):
+    def __init__(self, name: str, environment, kwargs):
+        super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
         self.detect()
@@ -98,23 +98,18 @@ class GTestDependency(ExternalDependency):
     def log_tried(self):
         return 'system'
 
-    @classmethod
-    def _factory(cls, environment, kwargs):
-        methods = process_method_kw(cls.get_methods(), kwargs)
-        candidates = []
-
-        if DependencyMethods.PKGCONFIG in methods:
-            pcname = 'gtest_main' if kwargs.get('main', False) else 'gtest'
-            candidates.append(functools.partial(PkgConfigDependency, pcname, environment, kwargs))
-
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(GTestDependency, environment, kwargs))
-
-        return candidates
-
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM]
+
+
+class GTestDependencyPC(PkgConfigDependency):
+
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        assert name == 'gtest'
+        if kwargs.get('main'):
+            name = 'gtest_main'
+        super().__init__(name, environment, kwargs)
 
 
 class GMockDependency(ExternalDependency):
@@ -132,11 +127,10 @@ class GMockDependency(ExternalDependency):
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
         # where GMock always pulls in GTest
-        gtest_dep = GTestDependency(environment, gtest_kwargs)
-        if not gtest_dep.is_found:
+        found = self._add_sub_dependency2(gtest_factory(environment, self.for_machine, gtest_kwargs))
+        if not found:
             self.is_found = False
             return
-        self.ext_deps.append(gtest_dep)
 
         # GMock may be a library or just source.
         # Work with both.
@@ -451,4 +445,11 @@ llvm_factory = DependencyFactory(
     [DependencyMethods.CMAKE, DependencyMethods.CONFIG_TOOL],
     cmake_class=LLVMDependencyCMake,
     configtool_class=LLVMDependencyConfigTool,
+)
+
+gtest_factory = DependencyFactory(
+    'gtest',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM],
+    pkgconfig_class=GTestDependencyPC,
+    system_class=GTestDependencySystem,
 )
