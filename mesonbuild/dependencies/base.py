@@ -179,6 +179,22 @@ class Dependency:
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
+    def _add_sub_dependency2(self, deplist: T.List['DependencyType']) -> bool:
+        """Add an internal depdency from a list of possible dependencies.
+
+        This method is intended to make it easier to add additional
+        dependencies to another dependency internally.
+
+        Returns true if the dependency was successfully added, false
+        otherwise.
+        """
+        for d in deplist:
+            dep = d()
+            if dep.is_found:
+                self.ext_deps.append(dep)
+                return True
+        return False
+
     def _add_sub_dependency(self, dep_type: T.Type['Dependency'], env: Environment,
                             kwargs: T.Dict[str, T.Any], *,
                             method: DependencyMethods = DependencyMethods.AUTO) -> None:
