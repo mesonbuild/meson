@@ -1191,6 +1191,10 @@ class Vs2010Backend(backends.Backend):
             targetmachine.text = 'MachineARM'
         else:
             raise MesonException('Unsupported Visual Studio target machine: ' + targetplatform)
+        # /nologo
+        ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
+        # /release
+        ET.SubElement(link, 'SetChecksum').text = 'true'
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))
