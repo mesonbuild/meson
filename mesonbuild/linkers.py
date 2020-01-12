@@ -276,7 +276,8 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         return self.exelist.copy()
 
     def get_accepts_rsp(self) -> bool:
-        # TODO: is it really a matter of is_windows or is it for_windows?
+        # rsp files are only used when building on Windows because we want to
+        # avoid issues with quoting and max argument length
         return mesonlib.is_windows()
 
     def get_always_args(self) -> T.List[str]:
