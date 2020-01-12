@@ -152,7 +152,7 @@ steps:
      python --version
 
      # Needed for running unit tests in parallel.
-     python -m pip --disable-pip-version-check install --upgrade pytest-xdist
+     python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist
 
 
      echo ""
