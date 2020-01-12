@@ -845,6 +845,9 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
         super().__init__(exelist or ['link.exe'], for_machine, 'link',
                          prefix, always_args, machine=machine, version=version, direct=direct)
 
+    def get_always_args(self) -> T.List[str]:
+        return self._apply_prefix(['/nologo', '/release']) + super().get_always_args()
+
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
