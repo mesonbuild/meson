@@ -4655,6 +4655,34 @@ class WindowsTests(BasePlatformTests):
     def test_link_environment_variable_rust(self):
         self._check_ld('link', 'rust', 'link')
 
+    def test_pefile_checksum(self):
+        try:
+            import pefile
+        except ImportError:
+            if is_ci():
+                raise
+            raise unittest.SkipTest('pefile module not found')
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir)
+        self.build()
+        # Test that binaries have a non-zero checksum
+        env = get_fake_env()
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc_id = cc.get_id()
+        ld_id = cc.get_linker_id()
+        dll = glob(os.path.join(self.builddir, '*mycpplib.dll'))[0]
+        exe = os.path.join(self.builddir, 'cppprog.exe')
+        for f in (dll, exe):
+            pe = pefile.PE(f)
+            msg = 'PE file: {!r}, compiler: {!r}, linker: {!r}'.format(f, cc_id, ld_id)
+            if cc_id == 'clang-cl':
+                # Latest clang-cl tested (7.0) does not write checksums out
+                self.assertFalse(pe.verify_checksum(), msg=msg)
+            else:
+                # Verify that a valid checksum was written by all other compilers
+                self.assertTrue(pe.verify_checksum(), msg=msg)
+
+
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
     '''
