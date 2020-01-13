@@ -351,6 +351,19 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
                                         extra_args=extra_args,
                                         dependencies=dependencies)
 
+    # Elbrus C++ compiler does not support RTTI, so don't check for it.
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append(self._find_best_cpp_std(std.value))
+
+        non_msvc_eh_options(options['cpp_eh'].value, args)
+
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
+        return args
+
 
 class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
