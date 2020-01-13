@@ -180,7 +180,7 @@ class Dependency:
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency2(self, deplist: T.List['DependencyType']) -> bool:
+    def _add_sub_dependency(self, deplist: T.List['DependencyType']) -> bool:
         """Add an internal depdency from a list of possible dependencies.
 
         This method is intended to make it easier to add additional
@@ -195,20 +195,6 @@ class Dependency:
                 self.ext_deps.append(dep)
                 return True
         return False
-
-    def _add_sub_dependency(self, dep_type: T.Type['Dependency'], name: str,
-                            env: Environment, kwargs: T.Dict[str, T.Any], *,
-                            method: DependencyMethods = DependencyMethods.AUTO) -> None:
-        """Add an internal dependency of of the given type.
-
-        This method is intended to simplify cases of adding a dependency on
-        another dependency type (such as threads). This will by default set
-        the method back to auto, but the 'method' keyword argument can be
-        used to overwrite this behavior.
-        """
-        kwargs = kwargs.copy()
-        kwargs['method'] = method
-        self.ext_deps.append(dep_type(name, env, kwargs))
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
