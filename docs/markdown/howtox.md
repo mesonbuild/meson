@@ -28,24 +28,36 @@ native-files and the latter via the cross file only.
 
 ## Set dynamic linker
 
+Like the compiler, the linker is selected via the <compiler variable>_LD
+environment variable, or through the `<compiler entry>ld` entry in a native
+or cross file. You must be aware of whether you're using a compiler that
+invokes the linker itself (most compilers including GCC and Clang) or a
+linker that is invoked directly (when using MSVC or compilers that act like
+it, including Clang-Cl). With the former `cld` or `CC_LD` should be the value
+to pass to the compiler's special argument (such as `-fuse-ld` with clang and
+gcc), with the latter it should be an executable, such as `lld-link.exe`.
+
+*NOTE* In meson 0.53.0 the `ld` entry in the cross/native file and the `LD`
+environment variable was used, this resulted in a large number of regressions
+and was changed.
+
 ```console
-$ CC=clang LD=lld meson <options>
+$ CC=clang CC_LD=lld meson <options>
 ```
 
 or
 
 ```console
-$ CC=clang-cl LD=link meson <options>
+$ CC=clang-cl CC_LD=link meson <options>
 ```
 
-Like the compiler, the linker is selected via the LD environment variable, or
-through the `ld` entry in a native or cross file. You must be aware of
-whehter you're using a compiler that invokes the linker itself (most
-compilers including GCC and Clang) or a linker that is invoked directly (when
-using MSVC or compilers that act like it, including Clang-Cl). With the
-former `ld` or `LD` should be the value to pass to the compiler's special
-argument (such as `-fuse-ld` with clang and gcc), with the latter it should
-be an exectuable, such as `lld-link.exe`.
+or in a cross or native file:
+
+```ini
+[binaries]
+c = 'clang'
+c_ld = 'lld'
+```
 
 ## Set default C/C++ language version
 
@@ -139,7 +151,7 @@ $ ninja coverage-html (or coverage-xml)
 
 The coverage report can be found in the meson-logs subdirectory.
 
-Note: Currently, Meson does not support generating coverage reports 
+Note: Currently, Meson does not support generating coverage reports
 with Clang.
 
 ## Add some optimization to debug builds
