@@ -325,7 +325,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
         GnuCPPCompiler.__init__(self, exelist, version, for_machine,
                                 is_cross, info, exe_wrapper, defines,
                                 **kwargs)
-        ElbrusCompiler.__init__(self, defines)
+        ElbrusCompiler.__init__(self)
 
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
