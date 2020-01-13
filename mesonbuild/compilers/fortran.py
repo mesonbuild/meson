@@ -215,7 +215,7 @@ class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
         GnuFortranCompiler.__init__(self, exelist, version, for_machine,
                                     is_cross, info, exe_wrapper, defines,
                                     **kwargs)
-        ElbrusCompiler.__init__(self, defines)
+        ElbrusCompiler.__init__(self)
 
 class G95FortranCompiler(FortranCompiler):
 
