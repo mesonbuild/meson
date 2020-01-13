@@ -20,6 +20,7 @@ import subprocess
 import re
 
 from .gnu import GnuLikeCompiler
+from .gnu import gnu_optimization_args
 from ...mesonlib import Popen_safe
 
 if T.TYPE_CHECKING:
@@ -80,4 +81,3 @@ class ElbrusCompiler(GnuLikeCompiler):
 
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
-
