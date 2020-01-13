@@ -3087,7 +3087,9 @@ int main(int argc, char **argv) {
             pass
         try:
             env.detect_fortran_compiler(MachineChoice.HOST)
-            langs.append('fortran')
+            if is_windows() or platform.machine().lower() != 'e2k':
+                # Elbrus Fortran compiler can't generate debug information
+                langs.append('fortran')
         except EnvironmentException:
             pass
         try:
