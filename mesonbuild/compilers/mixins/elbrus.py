@@ -70,3 +70,14 @@ class ElbrusCompiler(GnuLikeCompiler):
             if line.lstrip().startswith('--sys_include'):
                 includes.append(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line)))
         return includes
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return gnu_optimization_args[optimization_level]
+
+    def get_pch_suffix(self) -> str:
+        # Actually it's not supported for now, but probably will be supported in future
+        return 'pch'
+
+    def openmp_flags(self) -> T.List[str]:
+        return ['-fopenmp']
+
