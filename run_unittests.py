@@ -2290,7 +2290,7 @@ class AllPlatformTests(BasePlatformTests):
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
-        if not is_windows():
+        if not is_windows() and platform.machine().lower() != 'e2k':
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = get_fake_env(testdir, self.builddir, self.prefix)
