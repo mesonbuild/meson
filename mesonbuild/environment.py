@@ -586,11 +586,19 @@ class Environment:
             self.default_objcpp = ['c++', 'g++']
             self.default_cs = ['csc', 'mcs']
         else:
-            self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
-            self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
+            if platform.machine().lower() == 'e2k':
+                # There are no objc or objc++ compilers for Elbrus,
+                # and there's no clang which can build binaries for host.
+                self.default_c = ['cc', 'gcc', 'lcc']
+                self.default_cpp = ['c++', 'g++', 'l++']
+                self.default_objc = []
+                self.default_objcpp = []
+            else:
+                self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
+                self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
+                self.default_objc = ['cc', 'gcc', 'clang']
+                self.default_objcpp = ['c++', 'g++', 'clang++']
             self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
-            self.default_objc = ['cc', 'gcc', 'clang']
-            self.default_objcpp = ['c++', 'g++', 'clang++']
             self.default_cs = ['mcs', 'csc']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
         self.default_java = ['javac']
@@ -1265,7 +1273,7 @@ class Environment:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
             version = search_version(out)
-            if 'Free Software Foundation' in out or ('e2k' in out and 'lcc' in out):
+            if 'Free Software Foundation' in out:
                 defines = self.get_gnu_compiler_defines(compiler)
                 if not defines:
                     popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
