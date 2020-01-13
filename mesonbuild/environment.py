@@ -749,7 +749,7 @@ class Environment:
         check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry('ld')
+        value = self.binaries[for_machine].lookup_entry(comp_class.language + 'ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -812,7 +812,7 @@ class Environment:
             check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry('ld')
+        value = self.binaries[for_machine].lookup_entry(comp_class.language + 'ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -1355,6 +1355,7 @@ class Environment:
 
         cc = self.detect_c_compiler(for_machine)
         is_link_exe = isinstance(cc.linker, VisualStudioLikeLinkerMixin)
+        override = self.binaries[for_machine].lookup_entry('rustld')
 
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -1378,32 +1379,45 @@ class Environment:
                 # the default use that, and second add the necessary arguments
                 # to rust to use -fuse-ld
 
-                extra_args = {}
-                always_args = []
-                if is_link_exe:
-                    compiler.extend(['-C', 'linker={}'.format(cc.linker.exelist[0])])
-                    extra_args['direct'] = True
-                    extra_args['machine'] = cc.linker.machine
-                elif not ((info.is_darwin() and isinstance(cc, AppleClangCCompiler)) or
-                          isinstance(cc, GnuCCompiler)):
+                if override is None:
+                    extra_args = {}
+                    always_args = []
+                    if is_link_exe:
+                        compiler.extend(['-C', 'linker={}'.format(cc.linker.exelist[0])])
+                        extra_args['direct'] = True
+                        extra_args['machine'] = cc.linker.machine
+                    elif not ((info.is_darwin() and isinstance(cc, AppleClangCCompiler)) or
+                              isinstance(cc, GnuCCompiler)):
+                        c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
+                        compiler.extend(['-C', 'linker={}'.format(c)])
+
+                    # This trickery with type() gets us the class of the linker
+                    # so we can initialize a new copy for the Rust Compiler
+                    if is_link_exe:
+                        linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,
+                                                 version=cc.linker.version, **extra_args)
+                    else:
+                        linker = type(cc.linker)(compiler, for_machine, cc.linker.id, cc.LINKER_PREFIX,
+                                                 always_args=always_args, version=cc.linker.version,
+                                                 **extra_args)
+                elif 'link' in override[0]:
+                    linker = self._guess_win_linker(
+                        override, RustCompiler, for_machine, use_linker_prefix=False)
+                    linker.direct = True
+                else:
+                    # We're creating a new type of "C" compiler, that has rust
+                    # as it's language. This is gross, but I can't figure out
+                    # another way to handle this, because rustc is actually
+                    # invoking the c compiler as it's linker.
+                    b = type('b', (type(cc), ), {})
+                    b.language = RustCompiler.language
+                    linker = self._guess_nix_linker(cc.exelist, b, for_machine)
+
+                    # Of course, we're not going to use any of that, we just
+                    # need it to get the proper arguments to pass to rustc
                     c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
                     compiler.extend(['-C', 'linker={}'.format(c)])
-
-                value = self.binaries[for_machine].lookup_entry('ld')
-                if value is not None:
-                    for a in cc.use_linker_args(value[0]):
-                        always_args.extend(['-C', 'link-arg={}'.format(a)])
-
-                # This trickery with type() gets us the class of the linker
-                # so we can initialize a new copy for the Rust Compiler
-
-                if is_link_exe:
-                    linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,
-                                             version=cc.linker.version, **extra_args)
-                else:
-                    linker = type(cc.linker)(compiler, for_machine, cc.linker.id, cc.LINKER_PREFIX,
-                                             always_args=always_args, version=cc.linker.version,
-                                             **extra_args)
+                    compiler.extend(['-C', 'link-args={}'.format(' '.join(cc.use_linker_args(override[0])))])
 
                 return RustCompiler(
                     compiler, version, for_machine, is_cross, info, exe_wrap,

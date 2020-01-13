@@ -313,11 +313,19 @@ class BinaryTable(HasEnvVarFallback):
         'rust': 'RUSTC',
         'vala': 'VALAC',
 
+        # Linkers
+        'c_ld': 'CC_LD',
+        'cpp_ld': 'CXX_LD',
+        'd_ld': 'D_LD',
+        'fortran_ld': 'F_LD',
+        'objc_ld': 'OBJC_LD',
+        'objcpp_ld': 'OBJCPP_LD',
+        'rust_ld': 'RUST_LD',
+
         # Binutils
         'strip': 'STRIP',
         'ar': 'AR',
         'windres': 'WINDRES',
-        'ld': 'LD',
 
         # Other tools
         'cmake': 'CMAKE',
