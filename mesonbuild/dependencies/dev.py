@@ -50,7 +50,7 @@ class GTestDependencySystem(ExternalDependency):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
-        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
             return
         self.detect()
@@ -119,7 +119,7 @@ class GMockDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
-        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
             return
 
@@ -132,7 +132,7 @@ class GMockDependencySystem(ExternalDependency):
         # GMock without GTest is pretty much useless
         # this also mimics the structure given in WrapDB,
         # where GMock always pulls in GTest
-        found = self._add_sub_dependency2(gtest_factory(environment, self.for_machine, gtest_kwargs))
+        found = self._add_sub_dependency(gtest_factory(environment, self.for_machine, gtest_kwargs))
         if not found:
             self.is_found = False
             return
@@ -235,7 +235,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             self._set_old_link_args()
         self.link_args = strip_system_libdirs(environment, self.for_machine, self.link_args)
         self.link_args = self.__fix_bogus_link_args(self.link_args)
-        if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
             return
 
@@ -400,7 +400,7 @@ class LLVMDependencyCMake(CMakeDependency):
         defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
-        if not self._add_sub_dependency2(threads_factory(env, self.for_machine, {})):
+        if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
             self.is_found = False
             return
 

@@ -105,7 +105,7 @@ class BoostDependency(ExternalDependency):
 
         self.requested_modules = self.get_requested(kwargs)
         if 'thread' in self.requested_modules:
-            if not self._add_sub_dependency2(threads_factory(environment, self.for_machine, {})):
+            if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
                 self.is_found = False
                 return
 
