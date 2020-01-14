@@ -1815,6 +1815,19 @@ class ExternalProgram:
         return cls.from_entry(name, command)
 
     @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _windows_sanitize_path(path: str) -> str:
+        # Ignore executables in the WindowsApps directory which are
+        # zero-sized wrappers that magically open the Windows Store to
+        # install the application.
+        appstore_dir = Path.home() / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
+        paths = []
+        for each in path.split(os.pathsep):
+            if Path(each) != appstore_dir:
+                paths.append(each)
+        return os.pathsep.join(paths)
+
+    @staticmethod
     def from_entry(name, command):
         if isinstance(command, list):
             if len(command) == 1:
@@ -1939,7 +1952,7 @@ class ExternalProgram:
         # On Windows, interpreted scripts must have an extension otherwise they
         # cannot be found by a standard PATH search. So we do a custom search
         # where we manually search for a script with a shebang in PATH.
-        search_dirs = os.environ.get('PATH', '').split(';')
+        search_dirs = self._windows_sanitize_path(os.environ.get('PATH', '')).split(';')
         for search_dir in search_dirs:
             commands = self._search_dir(name, search_dir)
             if commands:
@@ -1955,7 +1968,10 @@ class ExternalProgram:
         if commands:
             return commands
         # Do a standard search in PATH
-        command = shutil.which(name)
+        path = os.environ.get('PATH', None)
+        if mesonlib.is_windows() and path:
+            path = self._windows_sanitize_path(path)
+        command = shutil.which(name, path=path)
         if mesonlib.is_windows():
             return self._search_windows_special_cases(name, command)
         # On UNIX-like platforms, shutil.which() is enough to find
