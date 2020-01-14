@@ -138,6 +138,7 @@ has_function_printf = true
 c_args = ['-DCROSS=1', '-DSOMETHING=3']
 c_link_args = ['-some_link_arg']
 sys_root = '/some/path'
+pkg_config_libdir = '/some/path/lib/pkgconfig'
 ```
 
 In most cases you don't need the size and alignment settings, Meson
@@ -154,6 +155,10 @@ system path (the system that will run the compiled binaries). This is used
 internally by Meson to set the PKG_CONFIG_SYSROOT_DIR environment variable
 for pkg-config. If this is unset the host system is assumed to share a root
 with the build system.
+
+*Since 0.54.0* The pkg_config_libdir property may point to a list of path used
+internally by Meson to set the PKG_CONFIG_LIBDIR environment variable for pkg-config.
+This prevents pkg-config from searching cross dependencies in system directories.
 
 One important thing to note, if you did not define an `exe_wrapper` in
 the previous section, is that Meson will make a best-effort guess at

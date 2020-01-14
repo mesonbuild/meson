@@ -693,9 +693,15 @@ class PkgConfigDependency(ExternalDependency):
         sysroot = self.env.properties[self.for_machine].get_sys_root()
         if sysroot:
             env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
-        new_pkg_config_path = ':'.join([p for p in extra_paths])
+        new_pkg_config_path = os.pathsep.join(extra_paths)
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
+
+        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
+        if pkg_config_libdir_prop:
+            new_pkg_config_libdir = os.pathsep.join(pkg_config_libdir_prop)
+            env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
+            mlog.debug('PKG_CONFIG_LIBDIR: ' + new_pkg_config_libdir)
 
         fenv = frozenset(env.items())
         targs = tuple(args)
