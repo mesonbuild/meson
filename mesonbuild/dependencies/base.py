@@ -697,6 +697,12 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
 
+        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
+        if pkg_config_libdir_prop:
+            new_pkg_config_libdir = ':'.join([p for p in pkg_config_libdir_prop])
+            env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
+            mlog.debug('PKG_CONFIG_LIBDIR: ' + new_pkg_config_libdir)
+
         fenv = frozenset(env.items())
         targs = tuple(args)
         cache = PkgConfigDependency.pkgbin_cache

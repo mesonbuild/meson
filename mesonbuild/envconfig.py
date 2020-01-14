@@ -142,6 +142,12 @@ class Properties(HasEnvVarFallback):
     def get_sys_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
         return self.properties.get('sys_root', None)
 
+    def get_pkg_config_libdir(self) -> T.Optional[T.List[str]]:
+        p = self.properties.get('pkg_config_libdir', None)
+        if p is None:
+            return p
+        return mesonlib.listify(p)
+
     def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
         if isinstance(other, type(self)):
             return self.properties == other.properties
