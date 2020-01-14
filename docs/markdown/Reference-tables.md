@@ -78,6 +78,7 @@ set in the cross file.
 | riscv64             | 64 bit RISC-V Open ISA|
 | rl78                | Renesas RL78          |
 | rx                  | Renesas RX 32 bit MCU |
+| s390                | IBM zSystem s390      |
 | s390x               | IBM zSystem s390x     |
 | sparc               | 32 bit SPARC          |
 | sparc64             | SPARC v9 processor    |
