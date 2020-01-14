@@ -23,12 +23,11 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
-from ..mesonlib import listify
 
 from .base import (
     DependencyException, DependencyMethods, ExternalDependency,
     PkgConfigDependency, CMakeDependency, ConfigToolDependency,
-    process_method_kw, factory_methods, DependencyFactory,
+    factory_methods, DependencyFactory,
 )
 
 if T.TYPE_CHECKING:
@@ -393,28 +392,17 @@ class ShadercDependency(ExternalDependency):
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
 
 
-class CursesDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
-        super().__init__('curses', environment, None, kwargs)
-        self.name = 'curses'
-        self.is_found = False
-        methods = listify(self.methods)
+@factory_methods({DependencyMethods.PKGCONFIG})
+def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
+                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    candidates = []  # type: T.List['DependencyType']
 
-        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
-            pkgconfig_files = ['ncurses', 'ncursesw']
-            for pkg in pkgconfig_files:
-                pkgdep = PkgConfigDependency(pkg, environment, kwargs)
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    self.link_args = pkgdep.get_link_args()
-                    self.version = pkgdep.get_version()
-                    self.is_found = True
-                    self.pcdep = pkgdep
-                    return
+    if DependencyMethods.PKGCONFIG in methods:
+        pkgconfig_files = ['ncurses', 'ncursesw']
+        for pkg in pkgconfig_files:
+            candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
-    @staticmethod
-    def get_methods():
-        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
+    return candidates
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
