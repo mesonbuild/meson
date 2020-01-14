@@ -36,6 +36,26 @@ from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist
 
 NINJA_1_9_OR_NEWER = False
+NINJA_CMD = None
+# If we're on CI, just assume we have ninja in PATH and it's new enough because
+# we provide that. This avoids having to detect ninja for every subprocess unit
+# test that we run.
+if 'CI' in os.environ:
+    NINJA_1_9_OR_NEWER = True
+    NINJA_CMD = 'ninja'
+else:
+    # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
+    # is fixed, else require 1.6 for -w dupbuild=err
+    for v in ('1.9', '1.6'):
+        NINJA_CMD = detect_ninja(v)
+        if NINJA_CMD is not None:
+            if mesonlib.version_compare(v, '>=1.9'):
+                NINJA_1_9_OR_NEWER = True
+            else:
+                mlog.warning('Found ninja <1.9, tests will run slower', once=True)
+            break
+if NINJA_CMD is None:
+    raise RuntimeError('Could not find Ninja v1.6 or newer')
 
 def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified
@@ -202,22 +222,8 @@ def get_backend_commands(backend, debug=False):
         clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
-        global NINJA_1_9_OR_NEWER
-        # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
-        # is fixed, else require 1.6 for -w dupbuild=err
-        for v in ('1.9', '1.6'):
-            ninja_cmd = detect_ninja(v)
-            if ninja_cmd is not None:
-                if v == '1.9':
-                    NINJA_1_9_OR_NEWER = True
-                else:
-                    mlog.warning('Found ninja <1.9, tests will run slower', once=True)
-                    if 'CI' in os.environ:
-                        raise RuntimeError('Require ninja >= 1.9 when running on Meson CI')
-                break
-        cmd = [ninja_cmd, '-w', 'dupbuild=err', '-d', 'explain']
-        if cmd[0] is None:
-            raise RuntimeError('Could not find Ninja v1.6 or newer')
+        global NINJA_CMD
+        cmd = [NINJA_CMD, '-w', 'dupbuild=err', '-d', 'explain']
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
