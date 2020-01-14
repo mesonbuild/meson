@@ -4899,7 +4899,10 @@ class LinuxlikeTests(BasePlatformTests):
         privatedir2 = self.privatedir
 
         os.environ
-        env = {'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2])}
+        env = {
+            'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
+            'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
+        }
         self._run(['pkg-config', 'dependency-test', '--validate'], override_envvars=env)
 
         # pkg-config strips some duplicated flags so we have to parse the
