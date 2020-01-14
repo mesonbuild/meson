@@ -108,7 +108,7 @@ format files
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
- - [Wayland and Weston](https://lists.freedesktop.org/archives/wayland-devel/2016-November/031984.html), a next generation display server (not merged yet)
+ - [Wayland](https://github.com/wayland-project/wayland) and [Weston](https://github.com/wayland-project/weston), a next generation display server
  - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
  - [wxFormBuilder](https://github.com/wxFormBuilder/wxFormBuilder), RAD tool for wxWidgets GUI design
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
