@@ -946,6 +946,7 @@ class Environment:
 
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version)
@@ -966,6 +967,7 @@ class Environment:
                 full_version = arm_ver_str
                 cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
                 linker = ArmClangDynamicLinker(for_machine, version=version)
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
@@ -1061,12 +1063,14 @@ class Environment:
                     exe_wrap, full_version=full_version, linker=l)
             if 'ARM' in out:
                 cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = ArmDynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, full_version=full_version, linker=linker)
             if 'RX Family' in out:
                 cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = CcrxDynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
@@ -1419,6 +1423,7 @@ class Environment:
                     compiler.extend(['-C', 'linker={}'.format(c)])
                     compiler.extend(['-C', 'link-args={}'.format(' '.join(cc.use_linker_args(override[0])))])
 
+                self.coredata.add_lang_args(RustCompiler.language, RustCompiler, for_machine, self)
                 return RustCompiler(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     linker=linker)
