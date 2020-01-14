@@ -4540,6 +4540,14 @@ class WindowsTests(BasePlatformTests):
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
         self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+        # Ensure that WindowsApps gets removed from PATH
+        path = os.environ['PATH']
+        if 'WindowsApps' not in path:
+            username = os.environ['USERNAME']
+            appstore_dir = r'C:\Users\{}\AppData\Local\Microsoft\WindowsApps'.format(username)
+            path = os.pathsep + appstore_dir
+        path = ExternalProgram._windows_sanitize_path(path)
+        self.assertNotIn('WindowsApps', path)
 
     def test_ignore_libs(self):
         '''

@@ -1817,10 +1817,13 @@ class ExternalProgram:
     @staticmethod
     @functools.lru_cache(maxsize=None)
     def _windows_sanitize_path(path: str) -> str:
+        # Ensure that we use USERPROFILE even when inside MSYS, MSYS2, Cygwin, etc.
+        if 'USERPROFILE' not in os.environ:
+            return path
         # Ignore executables in the WindowsApps directory which are
         # zero-sized wrappers that magically open the Windows Store to
         # install the application.
-        appstore_dir = Path.home() / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
+        appstore_dir = Path(os.environ['USERPROFILE']) / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
         paths = []
         for each in path.split(os.pathsep):
             if Path(each) != appstore_dir:
