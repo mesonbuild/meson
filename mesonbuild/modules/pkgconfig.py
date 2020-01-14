@@ -345,11 +345,13 @@ class PkgConfigModule(ExtensionModule):
                 ofile.write(self._escape(f))
             ofile.write('\n')
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['install_data'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
     @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
-                      'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions'})
+                      'install_dir', 'install_data', 'extra_cflags', 'variables',
+                      'url', 'd_module_versions'})
     def generate(self, state, args, kwargs):
         if 'variables' in kwargs:
             FeatureNew('custom pkgconfig variables', '0.41.0').use(state.subproject)
@@ -438,17 +440,32 @@ class PkgConfigModule(ExtensionModule):
         variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
 
         pcfile = filebase + '.pc'
-        pkgroot = kwargs.get('install_dir', default_install_dir)
-        if pkgroot is None:
-            if mesonlib.is_freebsd():
-                pkgroot = os.path.join(state.environment.coredata.get_builtin_option('prefix'), 'libdata', 'pkgconfig')
-            else:
-                pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
-        if not isinstance(pkgroot, str):
+        install_data = kwargs.get('install_data', False)
+        if install_data:
+            user_option = 'sharepkgconfigdir'
+        else:
+            user_option = 'libpkgconfigdir'
+        user_install_dir = state.environment.coredata.get_builtin_option(user_option)
+
+        install_dir = kwargs.get('install_dir', default_install_dir)
+        if install_dir is None:
+            install_dir = user_install_dir
+        elif install_dir != user_install_dir:
+            mlog.warning('''pkg-config file {} will be installed in {},
+but builtin option {} is set to {}.
+Since {} has a platform-dependen default value, it is usually
+a bad idea for a project to ignore the builtin option. To fix the issue for your
+project, you can either remove install_dir from both the pkgconfig.generate call
+and the library, or set install_dir to get_option('{}') to override
+the default value which may comes from the library.
+
+Please see https://mesonbuild.com/Pkgconfig-module.html#pkggenerate for more details.
+'''.format(pcfile, install_dir, user_option, user_install_dir, user_option, user_option))
+        if not isinstance(install_dir, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables)
-        res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
+        res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), install_dir)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a
         # 'Requires:' or 'Requires.private:'.

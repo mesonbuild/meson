@@ -683,6 +683,18 @@ def default_libexecdir():
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
 
+def default_libpkgconfigdir():
+    if is_freebsd():
+        return 'libdata/pkgconfig'
+    else:
+        return default_libdir() + '/pkgconfig'
+
+def default_sharepkgconfigdir():
+    if is_freebsd():
+        return 'libdata/pkgconfig'
+    else:
+        return 'share/pkgconfig'
+
 def default_prefix():
     return 'c:/' if is_windows() else '/usr/local'
 

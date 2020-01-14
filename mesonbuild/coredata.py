@@ -20,7 +20,9 @@ from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix, split_args
+    default_libdir, default_libexecdir, default_prefix,
+    default_libpkgconfigdir, default_sharepkgconfigdir,
+    split_args,
 )
 from .wrap import WrapMode
 import ast
@@ -1013,11 +1015,13 @@ builtin_options = OrderedDict([
     ('infodir',    BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
     ('libdir',     BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
     ('libexecdir', BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    ('libpkgconfigdir', BuiltinOption(UserStringOption, 'Pkg-config directory', default_libpkgconfigdir())),
     ('localedir',  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
     ('localstatedir',   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
     ('mandir',          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
     ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
     ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
+    ('sharepkgconfigdir',   BuiltinOption(UserStringOption, 'Architecture-independent pkg-config directory', default_sharepkgconfigdir())),
     ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
     # Core options
     ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
