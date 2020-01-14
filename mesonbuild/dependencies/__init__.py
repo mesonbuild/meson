@@ -33,6 +33,11 @@ from .platform import AppleFrameworks
 from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
 
+# This is a dict where the keys should be strings, and the values must be one
+# of:
+# - An ExternalDependency subclass
+# - A DependencyFactory object
+# - A callable with a signature of (Environment, MachineChoice, Dict[str, Any]) -> List[Callable[[], DependencyType]]
 packages.update({
     # From dev:
     'gtest': gtest_factory,
