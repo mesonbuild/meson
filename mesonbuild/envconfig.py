@@ -71,6 +71,7 @@ CPU_FAMILES_64_BIT = [
     'mips64',
     'ppc64',
     'riscv64',
+    's390x',
     'sparc64',
     'wasm64',
     'x86_64',
