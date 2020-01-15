@@ -7,6 +7,7 @@ rust = ['rustc', '--target', 'arm-unknown-linux-gnueabihf', '-C', 'linker=/usr/b
 ar = '/usr/arm-linux-gnueabihf/bin/ar'
 strip = '/usr/arm-linux-gnueabihf/bin/strip'
 pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
+ld = '/usr/bin/arm-linux/gnueabihf-ld'
 
 [properties]
 root = '/usr/arm-linux-gnueabihf'

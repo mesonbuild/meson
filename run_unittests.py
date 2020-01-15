@@ -4664,7 +4664,7 @@ class WindowsTests(BasePlatformTests):
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
             raise unittest.SkipTest('Could not find {}.'.format(name))
-        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}ld'.format(lang)]
+        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]
         with mock.patch.dict(os.environ, {envvar: name}):
             env = get_fake_env()
             try:
@@ -5945,7 +5945,7 @@ c = ['{0}']
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}ld'.format(lang)]
+        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]
         with mock.patch.dict(os.environ, {envvar: name}):
             env = get_fake_env()
             comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
