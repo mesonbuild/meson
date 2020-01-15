@@ -6,6 +6,7 @@ strip = '/usr/bin/i686-w64-mingw32-strip'
 pkgconfig = '/usr/bin/i686-w64-mingw32-pkg-config'
 windres = '/usr/bin/i686-w64-mingw32-windres'
 exe_wrapper = 'wine'
+ld = '/usr/bin/i686-w64-mingw32-ld'
 
 [properties]
 # Directory that contains 'bin', 'lib', etc
