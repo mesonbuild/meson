@@ -749,7 +749,7 @@ class Environment:
         check_args += self.coredata.compiler_options[for_machine][comp_class.language + '_args'].value
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry(comp_class.language + 'ld')
+        value = self.binaries[for_machine].lookup_entry(comp_class.language + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -812,7 +812,7 @@ class Environment:
             check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
         override = []  # type: T.List[str]
-        value = self.binaries[for_machine].lookup_entry(comp_class.language + 'ld')
+        value = self.binaries[for_machine].lookup_entry(comp_class.language + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -1355,7 +1355,7 @@ class Environment:
 
         cc = self.detect_c_compiler(for_machine)
         is_link_exe = isinstance(cc.linker, VisualStudioLikeLinkerMixin)
-        override = self.binaries[for_machine].lookup_entry('rustld')
+        override = self.binaries[for_machine].lookup_entry('rust_ld')
 
         for compiler in compilers:
             if isinstance(compiler, str):
