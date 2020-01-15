@@ -17,10 +17,5 @@ console_prog = executable('console_prog', 'console_prog.c', gui_app: false)
 
 tester = find_program('gui_app_tester.py')
 
-tool = find_program('objdump', 'dumpbin', required: false)
-# TODO: when 'llvm-objdump -f' emits the subsystem type, we could use that also
-
-if tool.found()
-  test('is_gui', tester, args: [tool.path(), gui_prog, '2'])
-  test('not_gui', tester, args: [tool.path(), console_prog, '3'])
-endif
+test('is_gui', tester, args: [gui_prog, '2'])
+test('not_gui', tester, args: [console_prog, '3'])
