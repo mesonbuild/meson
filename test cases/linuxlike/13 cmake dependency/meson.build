@@ -1,6 +1,6 @@
 # this test can ONLY be run successfully from run_project_test.py
 # due to use of setup_env.json
-project('external CMake dependency', 'c')
+project('external CMake dependency', ['c', 'cpp'])
 
 if not find_program('cmake', required: false).found()
   error('MESON_SKIP_TEST cmake binary not available.')
