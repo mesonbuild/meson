@@ -25,6 +25,7 @@ __all__ = [
     'CMakeTraceLine',
     'CMakeTraceParser',
     'parse_generator_expressions',
+    'language_map',
 ]
 
 from .common import CMakeException
@@ -32,5 +33,5 @@ from .client import CMakeClient
 from .executor import CMakeExecutor
 from .fileapi import CMakeFileAPI
 from .generator import parse_generator_expressions
-from .interpreter import CMakeInterpreter
+from .interpreter import CMakeInterpreter, language_map
 from .traceparser import CMakeTarget, CMakeTraceLine, CMakeTraceParser
