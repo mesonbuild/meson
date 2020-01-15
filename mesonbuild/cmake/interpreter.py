@@ -79,6 +79,8 @@ language_map = {
     'c': 'C',
     'cpp': 'CXX',
     'cuda': 'CUDA',
+    'objc': 'OBJC',
+    'objcpp': 'OBJCXX',
     'cs': 'CSharp',
     'java': 'Java',
     'fortran': 'Fortran',

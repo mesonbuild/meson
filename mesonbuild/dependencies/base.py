@@ -1055,21 +1055,26 @@ class CMakeDependency(ExternalDependency):
         return module
 
     def __init__(self, name: str, environment: Environment, kwargs, language: str = None):
+        # Gather a list of all languages to support
+        self.language_list = []  # type: T.List[str]
         if language is None:
+            compilers = None
             if kwargs.get('native', False):
-                if 'c' in environment.coredata.compilers.build.keys():
-                    language = 'c'
-                elif 'cpp' in environment.coredata.compilers.build.keys():
-                    language = 'cpp'
-                elif 'fortran' in environment.coredata.compilers.build.keys():
-                    language = 'fortran'
+                compilers = environment.coredata.compilers.build
             else:
-                if 'c' in environment.coredata.compilers.host.keys():
-                    language = 'c'
-                elif 'cpp' in environment.coredata.compilers.host.keys():
-                    language = 'cpp'
-                elif 'fortran' in environment.coredata.compilers.host.keys():
-                    language = 'fortran'
+                compilers = environment.coredata.compilers.host
+
+            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
+            self.language_list += [x for x in candidates if x in compilers]
+        else:
+            self.language_list += [language]
+
+        # Add additional languages if required
+        if 'fortran' in self.language_list:
+            self.language_list += ['c']
+
+        # Ensure that the list is unique
+        self.language_list = list(set(self.language_list))
 
         super().__init__('cmake', environment, language, kwargs)
         self.name = name
@@ -1504,29 +1509,19 @@ class CMakeDependency(ExternalDependency):
         # To make this general to
         # any other language that might need this, we use a list for all
         # languages and expand in the cmake Project(... LANGUAGES ...) statement.
-        if self.language is None:
-            cmake_language = ['NONE']
-        elif self.language == 'c':
-            cmake_language = ['C']
-        elif self.language == 'cpp':
-            cmake_language = ['CXX']
-        elif self.language == 'cs':
-            cmake_language = ['CSharp']
-        elif self.language == 'cuda':
-            cmake_language = ['CUDA']
-        elif self.language == 'fortran':
-            cmake_language = ['C', 'Fortran']
-        elif self.language == 'objc':
-            cmake_language = ['OBJC']
-        elif self.language == 'objcpp':
-            cmake_language = ['OBJCXX']
+        from ..cmake import language_map
+        cmake_language = [language_map[x] for x in self.language_list if x in language_map]
+        if not cmake_language:
+            cmake_language += ['NONE']
 
         cmake_txt = """
 cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
 project(MesonTemp LANGUAGES {})
 """.format(' '.join(cmake_language)) + cmake_txt
 
-        (build_dir / 'CMakeLists.txt').write_text(cmake_txt)
+        cm_file = build_dir / 'CMakeLists.txt'
+        cm_file.write_text(cmake_txt)
+        mlog.cmd_ci_include(cm_file.absolute().as_posix())
 
         return str(build_dir)
 

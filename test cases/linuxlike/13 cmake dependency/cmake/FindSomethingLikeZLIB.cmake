@@ -1,6 +1,43 @@
 find_package(ZLIB)
 
 include(CMakeFindDependencyMacro)
+include(CheckCXXSourceRuns)
+include(CheckCSourceRuns)
+
+check_cxx_source_runs(
+"
+#include <iostream>
+
+using namespace std;
+
+int main(void) {
+  cout << \"Hello World\" << endl;
+  return 0;
+}
+"
+CXX_CODE_RAN
+)
+
+check_c_source_runs(
+"
+#include <stdio.h>
+
+int main(void) {
+  printf(\"Hello World\");
+  return 0;
+}
+"
+C_CODE_RAN
+)
+
+if(NOT CXX_CODE_RAN)
+  message(FATAL_ERROR "Running CXX source code failed")
+endif()
+
+if(NOT C_CODE_RAN)
+  message(FATAL_ERROR "Running C source code failed")
+endif()
+
 find_dependency(Threads)
 
 if(ZLIB_FOUND OR ZLIB_Found)
