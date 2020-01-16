@@ -8,7 +8,7 @@
         if [ -n "$ncpus_max" ] && [ "$ncpus_max" -gt 0 ] && [ "$MESON_BUILD_NCPUS" -gt "$ncpus_max" ]; then MESON_BUILD_NCPUS="$ncpus_max"; fi; \\\
         if [ "$MESON_BUILD_NCPUS" -gt 1 ]; then echo "--num-processes $MESON_BUILD_NCPUS"; fi)
 
-%meson \
+%meson_no_vpath \
     %set_build_flags \
     %{shrink:%{__meson} \
         --buildtype=plain \
@@ -27,18 +27,28 @@
         --sharedstatedir=%{_sharedstatedir} \
         --wrap-mode=%{__meson_wrap_mode} \
         --auto-features=%{__meson_auto_features} \
-        %{_vpath_srcdir} %{_vpath_builddir} \
 	%{nil}}
 
-%meson_build \
-    %ninja_build -C %{_vpath_builddir}
+%meson_build_no_vpath \
+    %ninja_build
 
-%meson_install \
-    %ninja_install -C %{_vpath_builddir}
+%meson_install_no_vpath \
+    %ninja_install
 
-%meson_test \
+%meson_test_no_vpath \
     %{shrink: %{__meson} test \
-        -C %{_vpath_builddir} \
         %{?_smp_mesonflags} \
         --print-errorlogs \
     %{nil}}
+
+%meson \
+    %{meson_no_vpath} %{_vpath_srcdir} %{_vpath_builddir}
+
+%meson_build \
+    %{meson_build_no_vpath} -C %{_vpath_builddir}
+
+%meson_install \
+    %{meson_install_no_vpath} -C %{_vpath_builddir}
+
+%meson_test \
+    %{meson_test_no_vpath} -C %{_vpath_builddir}
