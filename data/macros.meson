@@ -8,6 +8,11 @@
         if [ -n "$ncpus_max" ] && [ "$ncpus_max" -gt 0 ] && [ "$MESON_BUILD_NCPUS" -gt "$ncpus_max" ]; then MESON_BUILD_NCPUS="$ncpus_max"; fi; \\\
         if [ "$MESON_BUILD_NCPUS" -gt 1 ]; then echo "--num-processes $MESON_BUILD_NCPUS"; fi)
 
+# Can be custom redefined easily using %%global, e.g.:
+# %global meson_builddir %{_vpath_builddir}_my_suffix
+# %global meson_builddir my_prefix_%{_vpath_builddir}
+%meson_builddir %{_vpath_builddir}
+
 %meson \
     %set_build_flags \
     %{shrink:%{__meson} \
@@ -27,18 +32,18 @@
         --sharedstatedir=%{_sharedstatedir} \
         --wrap-mode=%{__meson_wrap_mode} \
         --auto-features=%{__meson_auto_features} \
-        %{_vpath_srcdir} %{_vpath_builddir} \
+        %{_vpath_srcdir} %{meson_builddir} \
 	%{nil}}
 
 %meson_build \
-    %ninja_build -C %{_vpath_builddir}
+    %ninja_build -C %{meson_builddir}
 
 %meson_install \
-    %ninja_install -C %{_vpath_builddir}
+    %ninja_install -C %{meson_builddir}
 
 %meson_test \
     %{shrink: %{__meson} test \
-        -C %{_vpath_builddir} \
+        -C %{meson_builddir} \
         %{?_smp_mesonflags} \
         --print-errorlogs \
     %{nil}}
