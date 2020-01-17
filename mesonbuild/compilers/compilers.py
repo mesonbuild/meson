@@ -15,6 +15,7 @@
 import contextlib, os.path, re, tempfile
 import collections.abc
 import typing as T
+from functools import lru_cache
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from .. import coredata
@@ -445,6 +446,9 @@ class CompilerArgs(collections.abc.MutableSequence):
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
         self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
+        self.__seen_args = set()
+        for arg in self.__container:
+            self.__seen_args.add(arg)
 
     @T.overload                                # noqa: F811
     def __getitem__(self, index: int) -> str:  # noqa: F811
@@ -467,20 +471,27 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __setitem__(self, index, value) -> None:  # noqa: F811
         self.__container[index] = value
+        for v in value:
+            self.__seen_args.add(v)
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
+        value = self.__container[index]
         del self.__container[index]
+        if value in self.__seen_args and value in self.__container: # this is also honoring that you can have duplicated entries
+          self.__seen_args.remove(value)
 
     def __len__(self) -> int:
         return len(self.__container)
 
     def insert(self, index: int, value: str) -> None:
         self.__container.insert(index, value)
+        self.__seen_args.add(value)
 
     def copy(self) -> 'CompilerArgs':
         return CompilerArgs(self.compiler, self.__container.copy())
 
     @classmethod
+    @lru_cache(maxsize=None)
     def _can_dedup(cls, arg):
         '''
         Returns whether the argument can be safely de-duped. This is dependent
@@ -526,6 +537,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         return 0
 
     @classmethod
+    @lru_cache(maxsize=None)
     def _should_prepend(cls, arg):
         if arg.startswith(cls.prepend_prefixes):
             return True
@@ -588,6 +600,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             self.append(arg)
         else:
             self.__container.append(arg)
+            self.__seen_args.add(arg)
 
     def extend_direct(self, iterable: T.Iterable[str]) -> None:
         '''
@@ -619,6 +632,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
+        this_round_added = set() # a dict that contains a value, when the value was added this round
         pre = []   # type: T.List[str]
         post = []  # type: T.List[str]
         if not isinstance(args, collections.abc.Iterable):
@@ -630,20 +644,25 @@ class CompilerArgs(collections.abc.MutableSequence):
             dedup = self._can_dedup(arg)
             if dedup == 1:
                 # Argument already exists and adding a new instance is useless
-                if arg in self or arg in pre or arg in post:
+                if arg in self.__seen_args or arg in pre or arg in post:
                     continue
+            should_prepend = self._should_prepend(arg)
             if dedup == 2:
                 # Remove all previous occurrences of the arg and add it anew
-                if arg in self:
+                if arg in self.__seen_args and arg not in this_round_added: #if __seen_args contains arg as well as this_round_added, then its not yet part in self.
                     self.remove(arg)
-                if arg in pre:
-                    pre.remove(arg)
-                if arg in post:
-                    post.remove(arg)
-            if self._should_prepend(arg):
+                if should_prepend:
+                    if arg in pre:
+                        pre.remove(arg)
+                else:
+                    if arg in post:
+                        post.remove(arg)
+            if should_prepend:
                 pre.append(arg)
             else:
                 post.append(arg)
+            self.__seen_args.add(arg)
+            this_round_added.add(arg)
         # Insert at the beginning
         self[:0] = pre
         # Append to the end
