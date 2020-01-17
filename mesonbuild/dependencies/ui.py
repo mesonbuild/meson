@@ -373,7 +373,8 @@ class QtBaseDependency(ExternalDependency):
             (k, v) = tuple(line.split(':', 1))
             qvars[k] = v
         # Qt on macOS uses a framework, but Qt for iOS/tvOS does not
-        if self.env.machines.host.is_darwin() and 'ios' not in qvars['QMAKE_XSPEC'] and 'tvos' not in qvars['QMAKE_XSPEC']:
+        xspec = qvars.get('QMAKE_XSPEC', '')
+        if self.env.machines.host.is_darwin() and not any(s in xspec for s in ['ios', 'tvos']):
             mlog.debug("Building for macOS, looking for framework")
             self._framework_detect(qvars, mods, kwargs)
             return qmake
