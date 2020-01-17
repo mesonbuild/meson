@@ -685,6 +685,8 @@ class CoreData:
             unknown_options = ', '.join(sorted(unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
             mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
+            mlog.log('The value of new options can be set with:')
+            mlog.log(mlog.bold('meson setup <builddir> --reconfigure -Dnew_option=new_value ...'))
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
