@@ -32,6 +32,7 @@ import threading
 import urllib.error
 import urllib.request
 import zipfile
+import hashlib
 from itertools import chain
 from unittest import mock
 from configparser import ConfigParser
@@ -5949,6 +5950,39 @@ c = ['{0}']
 
     def test_ld_environment_variable_fortran(self):
         self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
+
+    def compute_sha256(self, filename):
+        with open(filename,"rb") as f:
+            return hashlib.sha256(f.read()).hexdigest();
+
+    def test_wrap_with_file_url(self):
+        testdir = os.path.join(self.unit_test_dir, '73 wrap file url')
+        source_filename = os.path.join(testdir, 'subprojects', 'foo.tar.xz')
+        patch_filename = os.path.join(testdir, 'subprojects', 'foo-patch.tar.xz')
+        wrap_filename = os.path.join(testdir, 'subprojects', 'foo.wrap')
+        source_hash = self.compute_sha256(source_filename)
+        patch_hash = self.compute_sha256(patch_filename)
+        wrap = textwrap.dedent("""\
+            [wrap-file]
+            directory = foo
+
+            source_url = file://{}
+            source_filename = foo.tar.xz
+            source_hash = {}
+
+            patch_url = file://{}
+            patch_filename = foo-patch.tar.xz
+            patch_hash = {}
+            """.format(source_filename, source_hash, patch_filename, patch_hash))
+        with open(wrap_filename, 'w') as f:
+            f.write(wrap)
+        self.init(testdir)
+        self.build()
+        self.run_tests()
+
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'packagecache'))
+        windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
+        os.unlink(wrap_filename)
 
 
 def should_run_cross_arm_tests():
