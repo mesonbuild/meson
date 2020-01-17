@@ -468,9 +468,27 @@ class ZlibSystemDependency(ExternalDependency):
             # No need to set includes,
             # on macos xcode/clang will do that for us.
             # on freebsd zlib.h is in /usr/include
+        elif m.is_windows():
+            if self.clib_compiler.get_argument_syntax() == 'msvc':
+                libs = ['zlib1' 'zlib']
+            else:
+                libs = ['z']
+            for lib in libs:
+                l = self.clib_compiler.find_library(lib, environment, [])
+                h = self.clib_compiler.has_header('zlib.h', '', environment, dependencies=[self])
+                if l and h:
+                    self.is_found = True
+                    self.link_args = l
+                    break
+            else:
+                return
+        else:
+            mlog.debug('Unsupported OS {}'.format(m.system))
+            return
 
-            v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
-            self.version = v.strip('"')
+        v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])
+        self.version = v.strip('"')
+
 
     @staticmethod
     def get_methods():
