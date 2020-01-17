@@ -335,9 +335,7 @@ class Resolver:
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         url = urllib.parse.urlparse(urlstring)
-        if not url.hostname:
-            raise WrapException('{} is not a valid URL'.format(urlstring))
-        if url.hostname.endswith(whitelist_subdomain):
+        if url.hostname and url.hostname.endswith(whitelist_subdomain):
             resp = open_wrapdburl(urlstring)
         elif whitelist_subdomain in urlstring:
             raise WrapException('{} may be a WrapDB-impersonating URL'.format(urlstring))
