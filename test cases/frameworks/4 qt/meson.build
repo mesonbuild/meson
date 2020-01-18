@@ -83,6 +83,7 @@ foreach qt : ['qt4', 'qt5']
     qtcore = dependency(qt, modules : 'Core', method : get_option('method'))
 
     qtcoreapp = executable(qt + 'core', 'q5core.cpp',
+      cpp_args: '-DQT="@0@"'.format(qt),
       dependencies : qtcore)
 
     test(qt + 'test', qtcoreapp)
