@@ -781,6 +781,9 @@ class VisualStudioLikeLinkerMixin:
         super().__init__(*args, **kwargs)
         self.machine = machine
 
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
+
     def invoked_by_compiler(self) -> bool:
         return not self.direct
 
