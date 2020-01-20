@@ -4534,6 +4534,14 @@ class FailureTests(BasePlatformTests):
                                r"Dependency \'notfound\' not found and fallback is disabled",
                                extra_args=['--wrap-mode=nofallback'])
 
+    def test_message(self):
+        self.assertMesonOutputs("message('Array:', ['a', 'b'])",
+                                r"Message:.* Array: \['a', 'b'\]")
+
+    def test_warning(self):
+        self.assertMesonOutputs("warning('Array:', ['a', 'b'])",
+                                r"WARNING:.* Array: \['a', 'b'\]")
+
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''
