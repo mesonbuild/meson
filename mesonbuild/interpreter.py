@@ -2858,13 +2858,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return False
         return self.add_languages(args, required)
 
-    def get_message_string_arg(self, node):
-        # reduce arguments again to avoid flattening posargs
-        (posargs, _) = self.reduce_arguments(node.args)
-        if len(posargs) != 1:
-            raise InvalidArguments('Expected 1 argument, got %d' % len(posargs))
-
-        arg = posargs[0]
+    def get_message_string_arg(self, arg):
         if isinstance(arg, list):
             argstr = stringifyUserArguments(arg)
         elif isinstance(arg, dict):
@@ -2878,13 +2872,16 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return argstr
 
+    @noArgsFlattening
     @noKwargs
     def func_message(self, node, args, kwargs):
-        argstr = self.get_message_string_arg(node)
-        self.message_impl(argstr)
+        if len(args) > 1:
+            FeatureNew('message with more than one argument', '0.54.0').use(self.subproject)
+        args_str = [self.get_message_string_arg(i) for i in args]
+        self.message_impl(args_str)
 
-    def message_impl(self, argstr):
-        mlog.log(mlog.bold('Message:'), argstr)
+    def message_impl(self, args):
+        mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
     @permittedKwargs({'section', 'bool_yn'})
@@ -2928,11 +2925,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         if main_summary:
             main_summary.dump()
 
+    @noArgsFlattening
     @FeatureNew('warning', '0.44.0')
     @noKwargs
     def func_warning(self, node, args, kwargs):
-        argstr = self.get_message_string_arg(node)
-        mlog.warning(argstr, location=node)
+        if len(args) > 1:
+            FeatureNew('warning with more than one argument', '0.54.0').use(self.subproject)
+        args_str = [self.get_message_string_arg(i) for i in args]
+        mlog.warning(*args_str, location=node)
 
     @noKwargs
     def func_error(self, node, args, kwargs):
@@ -3234,10 +3234,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             d = self.dependency_impl(name, display_name, kwargs)
         except Exception:
             if not_found_message:
-                self.message_impl(not_found_message)
+                self.message_impl([not_found_message])
             raise
         if not d.found() and not_found_message:
-            self.message_impl(not_found_message)
+            self.message_impl([not_found_message])
         return d
 
     def dependency_impl(self, name, display_name, kwargs):

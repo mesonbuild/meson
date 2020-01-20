@@ -1195,6 +1195,9 @@ them for the default behaviour for each platform.
 
 This function prints its argument to stdout.
 
+**Since 0.54.0** Can take more more than one argument that will be separated by
+space.
+
 ### warning()
 
 ``` meson
@@ -1204,6 +1207,9 @@ This function prints its argument to stdout.
 This function prints its argument to stdout prefixed with WARNING:.
 
 *Added 0.44.0*
+
+**Since 0.54.0** Can take more more than one argument that will be separated by
+space.
 
 ### summary()
 
