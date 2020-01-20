@@ -115,6 +115,7 @@ format files
  - [Xorg](https://cgit.freedesktop.org/xorg/xserver/), the X.org display server (not the default yet)
  - [zathura](https://github.com/pwmt/zathura), a highly customizable and functional document viewer based on the
 girara user interface library and several document libraries
+ - [Zrythm](https://git.zrythm.org/cgit/zrythm), a cross-platform digital audio workstation using GTK+ 3
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91), a compression algorithm developed at Facebook (not used by default)
 
 Note that a more up-to-date list of GNOME projects that use Meson can be found [here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
