@@ -73,10 +73,12 @@ def process_submodules(dirname):
         del_gitfiles(os.path.join(dirname, v))
 
 
-def run_dist_scripts(dist_root, dist_scripts):
+def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
     assert(os.path.isabs(dist_root))
     env = os.environ.copy()
     env['MESON_DIST_ROOT'] = dist_root
+    env['MESON_SOURCE_ROOT'] = src_root
+    env['MESON_BUILD_ROOT'] = bld_root
     for d in dist_scripts:
         script = d['exe']
         args = d['args']
@@ -121,7 +123,7 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
             git_clone(sub_src_root, sub_distdir)
         else:
             shutil.copytree(sub_src_root, sub_distdir)
-    run_dist_scripts(distdir, dist_scripts)
+    run_dist_scripts(src_root, bld_root, distdir, dist_scripts)
     output_names = []
     for a in archives:
         compressed_name = distdir + archive_extension[a]
@@ -141,6 +143,8 @@ def hg_have_dirty_index(src_root):
 def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
     if hg_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
+    if dist_scripts:
+        mlog.warning('dist scripts are not supported in Mercurial projects')
 
     os.makedirs(dist_sub, exist_ok=True)
     tarname = os.path.join(dist_sub, dist_name + '.tar')
@@ -149,8 +153,6 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
     zipname = os.path.join(dist_sub, dist_name + '.zip')
     subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
     output_names = []
-    if dist_scripts:
-        mlog.warning('dist scripts are not supported in Mercurial projects')
     if 'xztar' in archives:
         import lzma
         with lzma.open(xzname, 'wb') as xf, open(tarname, 'rb') as tf:
