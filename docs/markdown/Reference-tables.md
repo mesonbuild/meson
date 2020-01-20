@@ -142,7 +142,7 @@ linker flags.
 It is recommended that you **do not use these**. They are provided purely to
 for backwards compatibility with other build systems. There are many caveats to
 their use, especially when rebuilding the project. It is **highly** recommended
-that you use [the command line arguments](#language-arguments-parameters-names)
+that you use [the command line arguments](#language-arguments-parameter-names)
 instead.
 
 | Name      | Comment                                  |
