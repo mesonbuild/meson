@@ -1691,14 +1691,17 @@ The `meson` object allows you to introspect various properties of the
 system. This object is always mapped in the `meson` variable. It has
 the following methods.
 
-- `add_dist_script(script_name, arg1, arg, ...)` causes the script given as argument to run during
-  `dist` operation after the distribution source has been generated
-  but before it is archived. Note that this runs the script file that
-  is in the _staging_ directory, not the one in the source
-  directory. If the script file can not be found in the staging
-  directory, it is a hard error. This command can only invoked from
-  the main project, calling it from a subproject is a hard
-  error. Available since 0.48.0. Before 0.49.0, the function only accepted a single argument.
+- `add_dist_script(script_name, arg1, arg, ...)` causes the script
+  given as argument to run during `dist` operation after the
+  distribution source has been generated but before it is
+  archived. Note that this runs the script file that is in the
+  _staging_ directory, not the one in the source directory. If the
+  script file can not be found in the staging directory, it is a hard
+  error. This command can only invoked from the main project, calling
+  it from a subproject is a hard error. Available since 0.48.0. Before
+  0.49.0, the function only accepted a single argument. Since 0.54.0
+  the `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` environment variables
+  are set when dist scripts are run.
 
 - `add_install_script(script_name, arg1, arg2, ...)` causes the script
   given as an argument to be run during the install step, this script
