@@ -243,14 +243,10 @@ def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
     # List of installed files
     info_file = Path(srcdir) / 'installed_files.txt'
     installdir = Path(installdir)
-    # If this exists, the test does not install any other files
-    noinst_file = Path('usr/no-installed-files')
     expected = {}  # type: T.Dict[Path, bool]
     ret_msg = ''
     # Generate list of expected files
-    if (installdir / noinst_file).is_file():
-        expected[noinst_file] = False
-    elif info_file.is_file():
+    if info_file.is_file():
         with info_file.open() as f:
             for line in f:
                 line = platform_fix_name(line.strip(), compiler, env)
