@@ -42,6 +42,7 @@ known_cpu_families = (
     'arm',
     'e2k',
     'ia64',
+    'm68k',
     'microblaze',
     'mips',
     'mips64',
