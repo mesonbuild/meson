@@ -60,32 +60,33 @@ These are returned by the `cpu_family` method of `build_machine`,
 `host_machine` and `target_machine`. For cross compilation they are
 set in the cross file.
 
-| Value               | Comment               |
-| -----               | -------               |
-| aarch64             | 64 bit ARM processor  |
-| alpha               | DEC Alpha processor   |
-| arc                 | 32 bit ARC processor  |
-| arm                 | 32 bit ARM processor  |
-| e2k                 | MCST Elbrus processor |
-| ia64                | Itanium processor     |
-| microblaze          | MicroBlaze processor  |
-| mips                | 32 bit MIPS processor |
-| mips64              | 64 bit MIPS processor |
-| parisc              | HP PA-RISC processor  |
-| ppc                 | 32 bit PPC processors |
-| ppc64               | 64 bit PPC processors |
-| riscv32             | 32 bit RISC-V Open ISA|
-| riscv64             | 64 bit RISC-V Open ISA|
-| rl78                | Renesas RL78          |
-| rx                  | Renesas RX 32 bit MCU |
-| s390                | IBM zSystem s390      |
-| s390x               | IBM zSystem s390x     |
-| sparc               | 32 bit SPARC          |
-| sparc64             | SPARC v9 processor    |
-| wasm32              | 32 bit Webassembly    |
-| wasm64              | 64 bit Webassembly    |
-| x86                 | 32 bit x86 processor  |
-| x86_64              | 64 bit x86 processor  |
+| Value               | Comment                  |
+| -----               | -------                  |
+| aarch64             | 64 bit ARM processor     |
+| alpha               | DEC Alpha processor      |
+| arc                 | 32 bit ARC processor     |
+| arm                 | 32 bit ARM processor     |
+| e2k                 | MCST Elbrus processor    |
+| ia64                | Itanium processor        |
+| m68k                | Motorola 68000 processor |
+| microblaze          | MicroBlaze processor     |
+| mips                | 32 bit MIPS processor    |
+| mips64              | 64 bit MIPS processor    |
+| parisc              | HP PA-RISC processor     |
+| ppc                 | 32 bit PPC processors    |
+| ppc64               | 64 bit PPC processors    |
+| riscv32             | 32 bit RISC-V Open ISA   |
+| riscv64             | 64 bit RISC-V Open ISA   |
+| rl78                | Renesas RL78             |
+| rx                  | Renesas RX 32 bit MCU    |
+| s390                | IBM zSystem s390         |
+| s390x               | IBM zSystem s390x        |
+| sparc               | 32 bit SPARC             |
+| sparc64             | SPARC v9 processor       |
+| wasm32              | 32 bit Webassembly       |
+| wasm64              | 64 bit Webassembly       |
+| x86                 | 32 bit x86 processor     |
+| x86_64              | 64 bit x86 processor     |
 
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
