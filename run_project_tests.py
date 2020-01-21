@@ -191,6 +191,7 @@ class TestDef:
         self.env = os.environ.copy()
         self.installed_files = []  # type: T.List[InstalledFile]
         self.do_not_set_opts = []  # type: T.List[str]
+        self.stdout = [] # type: T.List[T.Dict[str, str]]
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -381,6 +382,54 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
     return res
 
+def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) -> str:
+    if expected:
+        i = iter(expected)
+
+        def next_expected(i):
+            # Get the next expected line
+            item = next(i)
+            how = item.get('match', 'literal')
+            expected = item.get('line')
+
+            # Simple heuristic to automatically convert path separators for
+            # Windows:
+            #
+            # Any '/' appearing before 'WARNING' or 'ERROR' (i.e. a path in a
+            # filename part of a location) is replaced with '\' (in a re: '\\'
+            # which matches a literal '\')
+            #
+            # (There should probably be a way to turn this off for more complex
+            # cases which don't fit this)
+            if mesonlib.is_windows():
+                if how != "re":
+                    sub = r'\\'
+                else:
+                    sub = r'\\\\'
+                expected = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected)
+
+            return how, expected
+
+        try:
+            how, expected = next_expected(i)
+            for actual in output.splitlines():
+                if how == "re":
+                    match = bool(re.match(expected, actual))
+                else:
+                    match = (expected == actual)
+                if match:
+                    how, expected = next_expected(i)
+
+            # reached the end of output without finding expected
+            return 'expected "{}" not found in {}'.format(expected, desc)
+        except StopIteration:
+            # matched all expected lines
+            pass
+
+    return ''
+
+def validate_output(test: TestDef, stdo: str, stde: str) -> str:
+    return _compare_output(test.stdout, stdo, 'stdout')
 
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
@@ -452,6 +501,11 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     cicmds = run_ci_commands(mesonlog)
     testresult = TestResult(cicmds)
     testresult.add_step(BuildStep.configure, stdo, stde, mesonlog, time.time() - gen_start)
+    output_msg = validate_output(test, stdo, stde)
+    testresult.mlog += output_msg
+    if output_msg:
+        testresult.fail('Unexpected output while configuring.')
+        return testresult
     if should_fail == 'meson':
         if returncode == 1:
             return testresult
@@ -566,6 +620,9 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
         if 'installed' in test_def:
             installed = [InstalledFile(x) for x in test_def['installed']]
 
+        # Handle expected output
+        stdout = test_def.get('stdout', [])
+
         # Handle the do_not_set_opts list
         do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
 
@@ -583,6 +640,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             t.env.update(env)
             t.installed_files = installed
             t.do_not_set_opts = do_not_set_opts
+            t.stdout = stdout
             all_tests += [t]
             continue
 
@@ -653,6 +711,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             test.env.update(env)
             test.installed_files = installed
             test.do_not_set_opts = do_not_set_opts
+            test.stdout = stdout
             all_tests += [test]
 
     return sorted(all_tests)
