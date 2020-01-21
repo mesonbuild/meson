@@ -15,16 +15,11 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File, MachineChoice
+from ..dependencies import Dependency, find_external_dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
-
-_QT_DEPS_LUT = {
-    4: Qt4Dependency,
-    5: Qt5Dependency
-}
 
 
 class QtBaseModule(ExtensionModule):
@@ -41,8 +36,8 @@ class QtBaseModule(ExtensionModule):
         # FIXME: We currently require QtX to exist while importing the module.
         # We should make it gracefully degrade and not create any targets if
         # the import is marked as 'optional' (not implemented yet)
-        kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
-        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
+        kwargs = {'required': True, 'modules': ['Core'], 'silent': True, 'method': method}
+        qt = find_external_dependency('qt{}'.format(self.qt_version), env, kwargs)
         # Get all tools and then make sure that they are the right version
         self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
         # Moc, uic and rcc write their version strings to stderr.

@@ -30,7 +30,7 @@ from .misc import (
     shaderc_factory, threads_factory,
 )
 from .platform import AppleFrameworks
-from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory, qt4_factory, qt5_factory
 
 
 # This is a dict where the keys should be strings, and the values must be one
@@ -74,8 +74,8 @@ packages.update({
     # From ui:
     'gl': gl_factory,
     'gnustep': GnuStepDependency,
-    'qt4': Qt4Dependency,
-    'qt5': Qt5Dependency,
+    'qt4': qt4_factory,
+    'qt5': qt5_factory,
     'sdl2': sdl2_factory,
     'wxwidgets': WxDependency,
     'vulkan': vulkan_factory,

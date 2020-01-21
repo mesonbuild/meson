@@ -2165,10 +2165,15 @@ class DependencyFactory:
                  configtool_class: 'T.Optional[T.Type[ConfigToolDependency]]' = None,
                  framework_name: T.Optional[str] = None,
                  framework_class: 'T.Type[ExtraFrameworkDependency]' = ExtraFrameworkDependency,
-                 system_class: 'T.Type[ExternalDependency]' = ExternalDependency):
+                 system_class: 'T.Optional[T.Type[ExternalDependency]]' = None,
+                 qmake_class: 'T.Optional[T.Type[ExternalDependency]]' = None):
 
         if DependencyMethods.CONFIG_TOOL in methods and not configtool_class:
             raise DependencyException('A configtool must have a custom class')
+        if DependencyMethods.SYSTEM in methods and not system_class:
+            raise DependencyException('A system dependency must have a custom class')
+        if DependencyMethods.QMAKE in methods and not qmake_class:
+            raise DependencyException('A qmake dependency must have a custom class')
 
         self.extra_kwargs = extra_kwargs or {}
         self.methods = methods
@@ -2178,11 +2183,10 @@ class DependencyFactory:
             DependencyMethods.EXTRAFRAMEWORK: functools.partial(framework_class, framework_name or name),
             DependencyMethods.PKGCONFIG: functools.partial(pkgconfig_class, pkgconfig_name or name),
             DependencyMethods.CMAKE: functools.partial(cmake_class, cmake_name or name),
-            DependencyMethods.SYSTEM: functools.partial(system_class, name),
-            DependencyMethods.CONFIG_TOOL: None,
+            DependencyMethods.SYSTEM: functools.partial(system_class, name) if system_class else None,
+            DependencyMethods.CONFIG_TOOL: functools.partial(configtool_class, name) if configtool_class else None,
+            DependencyMethods.QMAKE: functools.partial(qmake_class, name) if qmake_class else None,
         }
-        if configtool_class is not None:
-            self.classes[DependencyMethods.CONFIG_TOOL] = functools.partial(configtool_class, name)
 
     @staticmethod
     def _process_method(method: DependencyMethods, env: Environment, for_machine: MachineChoice) -> bool:
