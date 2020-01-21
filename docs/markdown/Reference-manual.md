@@ -1312,11 +1312,7 @@ My Project 1.0
 ```
 
 The first argument to this function must be a string defining the name
-of this project. It is followed by programming languages that the
-project uses. Supported values for languages are `c`, `cpp` (for
-`C++`), `cuda`, `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
-`vala` and `rust`. *(since 0.40.0)* The list of languages
-is optional.
+of this project.
 
 The project name can be any string you want, it's not used for
 anything except descriptive purposes. However since it is written to
@@ -1324,6 +1320,18 @@ e.g. the dependency manifest is usually makes sense to have it be the
 same as the project tarball or pkg-config name. So for example you
 would probably want to use the name _libfoobar_ instead of _The Foobar
 Library_.
+
+It may be followed by the list of programming languages that the project uses.
+
+*(since 0.40.0)* The list of languages is optional.
+
+These languages may be used both for `native: false` (the default) (host
+machine) targets and for `native: true` (build machine) targets. *(since
+0.56.0)* The build machine compilers for the specified languages are not
+required.
+
+Supported values for languages are `c`, `cpp` (for `C++`), `cuda`, `d`,
+`objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`), `vala` and `rust`.
 
 Project supports the following keyword arguments.
 
