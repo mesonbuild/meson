@@ -3121,8 +3121,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
-        self.add_languages(proj_langs, True, MachineChoice.BUILD)
+
         self.add_languages(proj_langs, True, MachineChoice.HOST)
+        self.add_languages(proj_langs, False, MachineChoice.BUILD)
+
         self.set_backend()
         if not self.is_subproject():
             self.check_stdlibs()
