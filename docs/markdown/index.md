@@ -24,6 +24,12 @@ code.
 *   built-in multiplatform dependency provider that works together with distro packages
 *   fun!
 
+## A full manual
+
+The documentation on this site is freely available for all. However
+there is also a full separate manual available for purchase [on this
+web page](https://meson-manual.com/).
+
 ## Community
 
 There are two main methods of connecting with other Meson
@@ -37,7 +43,7 @@ The second way is via IRC. The channel to use is `#mesonbuild` at
 
 Many projects out there are using Meson and their communities are also
 a great resource for learning about what (and what not too!) do when
-trying to convert to using Meson. 
+trying to convert to using Meson.
 
 [A short list of Meson users can be found here](Users.md)
 but there are many more. We would love to hear about your success
