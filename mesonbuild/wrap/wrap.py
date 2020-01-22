@@ -49,7 +49,10 @@ SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProcess:
-    pc = subprocess.run([GIT, '-C', workingdir] + cmd, **kwargs)
+    pc = subprocess.run([GIT, '-C', workingdir] + cmd,
+                        # Redirect stdin to DEVNULL otherwise git messes up the
+                        # console and ANSI colors stop working on Windows.
+                        stdin=subprocess.DEVNULL, **kwargs)
     return pc
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
