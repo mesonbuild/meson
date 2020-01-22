@@ -43,16 +43,16 @@ except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
+GIT = shutil.which('git')
 REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
-    git = shutil.which('git')
-    if not git:
+    if not GIT:
         return False, 'Git program not found.'
-    pc = subprocess.run([git, '-C', workingdir] + cmd, universal_newlines=True,
+    pc = subprocess.run([GIT, '-C', workingdir] + cmd, universal_newlines=True,
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if pc.returncode != 0:
         return False, pc.stderr
@@ -205,8 +205,7 @@ class Resolver:
             raise WrapException(m)
 
     def resolve_git_submodule(self) -> bool:
-        git = shutil.which('git')
-        if not git:
+        if not GIT:
             raise WrapException('Git program not found.')
         # Are we in a git repository?
         ret, out = quiet_git(['rev-parse'], self.subdir_root)
@@ -224,13 +223,13 @@ class Resolver:
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith('-'):
-            if subprocess.run([git, '-C', self.subdir_root,
+            if subprocess.run([GIT, '-C', self.subdir_root,
                               'submodule', 'update', '--init', self.dirname]).returncode == 0:
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(' '):
-            subprocess.run([git, 'checkout', '.'], cwd=self.dirname)
+            subprocess.run([GIT, 'checkout', '.'], cwd=self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
@@ -253,8 +252,7 @@ class Resolver:
             self.apply_patch()
 
     def get_git(self) -> None:
-        git = shutil.which('git')
-        if not git:
+        if not GIT:
             raise WrapException('Git program not found.')
         revno = self.wrap.get('revision')
         is_shallow = False
@@ -266,42 +264,42 @@ class Resolver:
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
             # so we follow https://stackoverflow.com/a/43136160
-            subprocess.check_call([git, 'init', self.directory], cwd=self.subdir_root)
-            subprocess.check_call([git, 'remote', 'add', 'origin', self.wrap.get('url')],
+            subprocess.check_call([GIT, 'init', self.directory], cwd=self.subdir_root)
+            subprocess.check_call([GIT, 'remote', 'add', 'origin', self.wrap.get('url')],
                                   cwd=self.dirname)
             revno = self.wrap.get('revision')
-            subprocess.check_call([git, 'fetch', *depth_option, 'origin', revno],
+            subprocess.check_call([GIT, 'fetch', *depth_option, 'origin', revno],
                                   cwd=self.dirname)
-            subprocess.check_call([git, 'checkout', revno], cwd=self.dirname)
+            subprocess.check_call([GIT, 'checkout', revno], cwd=self.dirname)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call([git, 'submodule', 'update',
+                subprocess.check_call([GIT, 'submodule', 'update',
                                        '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call([git, 'remote', 'set-url',
+                subprocess.check_call([GIT, 'remote', 'set-url',
                                        '--push', 'origin', push_url],
                                       cwd=self.dirname)
         else:
             if not is_shallow:
-                subprocess.check_call([git, 'clone', self.wrap.get('url'),
+                subprocess.check_call([GIT, 'clone', self.wrap.get('url'),
                                        self.directory], cwd=self.subdir_root)
                 if revno.lower() != 'head':
-                    if subprocess.run([git, 'checkout', revno], cwd=self.dirname).returncode != 0:
-                        subprocess.check_call([git, 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
-                        subprocess.check_call([git, 'checkout', revno], cwd=self.dirname)
+                    if subprocess.run([GIT, 'checkout', revno], cwd=self.dirname).returncode != 0:
+                        subprocess.check_call([GIT, 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
+                        subprocess.check_call([GIT, 'checkout', revno], cwd=self.dirname)
             else:
-                subprocess.check_call([git, 'clone', *depth_option,
+                subprocess.check_call([GIT, 'clone', *depth_option,
                                        '--branch', revno,
                                        self.wrap.get('url'),
                                        self.directory], cwd=self.subdir_root)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call([git, 'submodule', 'update',
+                subprocess.check_call([GIT, 'submodule', 'update',
                                        '--init', '--checkout', '--recursive', *depth_option],
                                       cwd=self.dirname)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call([git, 'remote', 'set-url',
+                subprocess.check_call([GIT, 'remote', 'set-url',
                                        '--push', 'origin', push_url],
                                       cwd=self.dirname)
 
