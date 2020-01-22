@@ -48,15 +48,23 @@ REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
+def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProcess:
+    pc = subprocess.run([GIT, '-C', workingdir] + cmd, **kwargs)
+    return pc
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
     if not GIT:
         return False, 'Git program not found.'
-    pc = subprocess.run([GIT, '-C', workingdir] + cmd, universal_newlines=True,
-                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    pc = git(cmd, workingdir, universal_newlines=True,
+             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if pc.returncode != 0:
         return False, pc.stderr
     return True, pc.stdout
+
+def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
+    if not GIT:
+        return False
+    return git(cmd, workingdir, check=check).returncode == 0
 
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
@@ -223,13 +231,12 @@ class Resolver:
             raise WrapException('git submodule has merge conflicts')
         # Submodule exists, but is deinitialized or wasn't initialized
         elif out.startswith('-'):
-            if subprocess.run([GIT, '-C', self.subdir_root,
-                              'submodule', 'update', '--init', self.dirname]).returncode == 0:
+            if verbose_git(['submodule', 'update', '--init', self.dirname], self.subdir_root):
                 return True
             raise WrapException('git submodule failed to init')
         # Submodule looks fine, but maybe it wasn't populated properly. Do a checkout.
         elif out.startswith(' '):
-            subprocess.run([GIT, 'checkout', '.'], cwd=self.dirname)
+            verbose_git(['checkout', '.'], self.dirname)
             # Even if checkout failed, try building it anyway and let the user
             # handle any problems manually.
             return True
@@ -264,44 +271,33 @@ class Resolver:
         if is_shallow and self.is_git_full_commit_id(revno):
             # git doesn't support directly cloning shallowly for commits,
             # so we follow https://stackoverflow.com/a/43136160
-            subprocess.check_call([GIT, 'init', self.directory], cwd=self.subdir_root)
-            subprocess.check_call([GIT, 'remote', 'add', 'origin', self.wrap.get('url')],
-                                  cwd=self.dirname)
+            verbose_git(['init', self.directory], self.subdir_root, check=True)
+            verbose_git(['remote', 'add', 'origin', self.wrap.get('url')], self.dirname, check=True)
             revno = self.wrap.get('revision')
-            subprocess.check_call([GIT, 'fetch', *depth_option, 'origin', revno],
-                                  cwd=self.dirname)
-            subprocess.check_call([GIT, 'checkout', revno], cwd=self.dirname)
+            verbose_git(['fetch', *depth_option, 'origin', revno], self.dirname, check=True)
+            verbose_git(['checkout', revno], self.dirname, check=True)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call([GIT, 'submodule', 'update',
-                                       '--init', '--checkout', '--recursive', *depth_option],
-                                      cwd=self.dirname)
+                verbose_git(['submodule', 'update', '--init', '--checkout',
+                             '--recursive', *depth_option], self.dirname, check=True)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call([GIT, 'remote', 'set-url',
-                                       '--push', 'origin', push_url],
-                                      cwd=self.dirname)
+                verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
         else:
             if not is_shallow:
-                subprocess.check_call([GIT, 'clone', self.wrap.get('url'),
-                                       self.directory], cwd=self.subdir_root)
+                verbose_git(['clone', self.wrap.get('url'), self.directory], self.subdir_root, check=True)
                 if revno.lower() != 'head':
-                    if subprocess.run([GIT, 'checkout', revno], cwd=self.dirname).returncode != 0:
-                        subprocess.check_call([GIT, 'fetch', self.wrap.get('url'), revno], cwd=self.dirname)
-                        subprocess.check_call([GIT, 'checkout', revno], cwd=self.dirname)
+                    if verbose_git(['checkout', revno], self.dirname):
+                        verbose_git(['fetch', self.wrap.get('url'), revno], self.dirname, check=True)
+                        verbose_git(['checkout', revno], self.dirname, check=True)
             else:
-                subprocess.check_call([GIT, 'clone', *depth_option,
-                                       '--branch', revno,
-                                       self.wrap.get('url'),
-                                       self.directory], cwd=self.subdir_root)
+                verbose_git(['clone', *depth_option, '--branch', revno, self.wrap.get('url'),
+                             self.directory], self.subdir_root, check=True)
             if self.wrap.values.get('clone-recursive', '').lower() == 'true':
-                subprocess.check_call([GIT, 'submodule', 'update',
-                                       '--init', '--checkout', '--recursive', *depth_option],
-                                      cwd=self.dirname)
+                verbose_git(['submodule', 'update', '--init', '--checkout', '--recursive', *depth_option],
+                            self.dirname, check=True)
             push_url = self.wrap.values.get('push-url')
             if push_url:
-                subprocess.check_call([GIT, 'remote', 'set-url',
-                                       '--push', 'origin', push_url],
-                                      cwd=self.dirname)
+                verbose_git(['remote', 'set-url', '--push', 'origin', push_url], self.dirname, check=True)
 
     def is_git_full_commit_id(self, revno: str) -> bool:
         result = False
