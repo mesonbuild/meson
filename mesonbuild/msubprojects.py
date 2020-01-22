@@ -2,7 +2,7 @@ import os, subprocess
 import argparse
 
 from . import mlog
-from .mesonlib import Popen_safe
+from .mesonlib import git, Popen_safe
 from .wrap.wrap import API_ROOT, PackageDefinition, Resolver, WrapException
 from .wrap import wraptool
 
@@ -40,12 +40,8 @@ def update_file(wrap, repo_dir, options):
                  '     In that case, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure'))
 
 def git_output(cmd, workingdir):
-    return subprocess.check_output(['git', '-C', workingdir] + cmd,
-                                   # Redirect stdin to DEVNULL otherwise git
-                                   # messes up the console and ANSI colors stop
-                                   # working on Windows.
-                                   stdin=subprocess.DEVNULL,
-                                   stderr=subprocess.STDOUT).decode()
+    return git(cmd, workingdir, check=True, universal_newlines=True,
+               stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
 def git_show(repo_dir):
     commit_message = git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)

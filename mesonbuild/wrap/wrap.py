@@ -18,7 +18,6 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import os
-import platform
 import hashlib
 import shutil
 import tempfile
@@ -29,7 +28,7 @@ import configparser
 import typing as T
 
 from . import WrapMode
-from ..mesonlib import ProgressBar, MesonException
+from ..mesonlib import git, GIT, ProgressBar, MesonException
 
 if T.TYPE_CHECKING:
     import http.client
@@ -44,22 +43,9 @@ except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
-GIT = shutil.which('git')
 REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
-
-def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProcess:
-    pc = subprocess.run([GIT, '-C', workingdir] + cmd,
-                        # Redirect stdin to DEVNULL otherwise git messes up the
-                        # console and ANSI colors stop working on Windows.
-                        stdin=subprocess.DEVNULL, **kwargs)
-    # Sometimes git calls git recursively, such as `git submodule update
-    # --recursive` which will be without the above workaround, so set the
-    # console mode again just in case.
-    if platform.system().lower() == 'windows':
-        mlog._windows_ansi()
-    return pc
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
     if not GIT:
