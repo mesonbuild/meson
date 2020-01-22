@@ -4,8 +4,13 @@ title: Users
 
 # List of projects using Meson
 
-If you have a project that uses Meson that you want to add to this list, please [file a pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md) for it. All the software on this list is tested for regressions before release, so it's highly recommended that projects add themselves here. Some additional projects are
-listed in the [`meson` GitHub topic](https://github.com/topics/meson).
+If you have a project that uses Meson that you want to add to this
+list, please [file a
+pull-request](https://github.com/mesonbuild/meson/edit/master/docs/markdown/Users.md)
+for it. All the software on this list is tested for regressions before
+release, so it's highly recommended that projects add themselves
+here. Some additional projects are listed in the [`meson` GitHub
+topic](https://github.com/topics/meson).
 
  - [2048.cpp](https://github.com/plibither8/2048.cpp), a fully featured terminal version of the game "2048" written in C++
  - [Aravis](https://github.com/AravisProject/aravis), a glib/gobject based library for video acquisition using Genicam cameras
@@ -22,7 +27,7 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [DPDK](http://dpdk.org/browse/dpdk), Data Plane Development Kit, a set of libraries and drivers for fast packet processing
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
- - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution 
+ - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson), sample project for using the ESP8266 Arduino port with Meson
  - [FeedReader](https://github.com/jangernert/FeedReader), a modern desktop application designed to complement existing web-based RSS accounts
@@ -68,9 +73,9 @@ listed in the [`meson` GitHub topic](https://github.com/topics/meson).
  - [libglvnd](https://gitlab.freedesktop.org/glvnd/libglvnd), Vendor neutral OpenGL dispatch library for Unix-like OSes
  - [Libhttpseverywhere](https://git.gnome.org/browse/libhttpseverywhere), a library to enable httpseverywhere on any desktop app
  - [libmodulemd](https://github.com/fedora-modularity/libmodulemd), a GObject Introspected library for managing [Fedora Project](https://getfedora.org/) module metadata.
- - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location  
+ - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location
 lookup based on OpenStreetMap data
- - [libspng](https://gitlab.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG) 
+ - [libspng](https://gitlab.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
 format files
  - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
@@ -81,7 +86,7 @@ format files
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
- - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems 
+ - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler
@@ -91,7 +96,7 @@ format files
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
- - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM 
+ - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
@@ -119,4 +124,6 @@ girara user interface library and several document libraries
  - [Zrythm](https://git.zrythm.org/cgit/zrythm), a cross-platform digital audio workstation using GTK+ 3
  - [ZStandard](https://github.com/facebook/zstd/commit/4dca56ed832c6a88108a2484a8f8ff63d8d76d91), a compression algorithm developed at Facebook (not used by default)
 
-Note that a more up-to-date list of GNOME projects that use Meson can be found [here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
+Note that a more up-to-date list of GNOME projects that use Meson can
+be found
+[here](https://wiki.gnome.org/Initiatives/GnomeGoals/MesonPorting).
