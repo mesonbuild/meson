@@ -18,6 +18,7 @@ import urllib.request
 import urllib.error
 import urllib.parse
 import os
+import platform
 import hashlib
 import shutil
 import tempfile
@@ -53,6 +54,11 @@ def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProc
                         # Redirect stdin to DEVNULL otherwise git messes up the
                         # console and ANSI colors stop working on Windows.
                         stdin=subprocess.DEVNULL, **kwargs)
+    # Sometimes git calls git recursively, such as `git submodule update
+    # --recursive` which will be without the above workaround, so set the
+    # console mode again just in case.
+    if platform.system().lower() == 'windows':
+        mlog._windows_ansi()
     return pc
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
