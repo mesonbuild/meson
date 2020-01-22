@@ -39,7 +39,7 @@ def update_file(wrap, repo_dir, options):
         mlog.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.\n' +
                  '     In that case, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure'))
 
-def git(cmd, workingdir):
+def git_output(cmd, workingdir):
     return subprocess.check_output(['git', '-C', workingdir] + cmd,
                                    # Redirect stdin to DEVNULL otherwise git
                                    # messes up the console and ANSI colors stop
@@ -48,7 +48,7 @@ def git(cmd, workingdir):
                                    stderr=subprocess.STDOUT).decode()
 
 def git_show(repo_dir):
-    commit_message = git(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
+    commit_message = git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
     parts = [s.strip() for s in commit_message.split('\n')]
     mlog.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
 
@@ -57,12 +57,12 @@ def update_git(wrap, repo_dir, options):
         mlog.log('  -> Not used.')
         return
     revision = wrap.get('revision')
-    ret = git(['rev-parse', '--abbrev-ref', 'HEAD'], repo_dir).strip()
+    ret = git_output(['rev-parse', '--abbrev-ref', 'HEAD'], repo_dir).strip()
     if ret == 'HEAD':
         try:
             # We are currently in detached mode, just checkout the new revision
-            git(['fetch'], repo_dir)
-            git(['checkout', revision], repo_dir)
+            git_output(['fetch'], repo_dir)
+            git_output(['checkout', revision], repo_dir)
         except subprocess.CalledProcessError as e:
             out = e.output.decode().strip()
             mlog.log('  -> Could not checkout revision', mlog.cyan(revision))
@@ -72,7 +72,7 @@ def update_git(wrap, repo_dir, options):
     elif ret == revision:
         try:
             # We are in the same branch, pull latest commits
-            git(['-c', 'rebase.autoStash=true', 'pull', '--rebase'], repo_dir)
+            git_output(['-c', 'rebase.autoStash=true', 'pull', '--rebase'], repo_dir)
         except subprocess.CalledProcessError as e:
             out = e.output.decode().strip()
             mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
@@ -84,8 +84,8 @@ def update_git(wrap, repo_dir, options):
         # we should rebase it on top of wrap's branch.
         if options.rebase:
             try:
-                git(['fetch'], repo_dir)
-                git(['-c', 'rebase.autoStash=true', 'rebase', revision], repo_dir)
+                git_output(['fetch'], repo_dir)
+                git_output(['-c', 'rebase.autoStash=true', 'rebase', revision], repo_dir)
             except subprocess.CalledProcessError as e:
                 out = e.output.decode().strip()
                 mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
@@ -97,7 +97,7 @@ def update_git(wrap, repo_dir, options):
                      '     To rebase your branch on top of', mlog.bold(revision), 'use', mlog.bold('--rebase'), 'option.')
             return
 
-    git(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
+    git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
     git_show(repo_dir)
 
 def update_hg(wrap, repo_dir, options):
@@ -154,7 +154,7 @@ def checkout(wrap, repo_dir, options):
         cmd.insert(1, '-b')
     mlog.log('Checkout %s in %s...' % (branch_name, wrap.name))
     try:
-        git(cmd, repo_dir)
+        git_output(cmd, repo_dir)
         git_show(repo_dir)
     except subprocess.CalledProcessError as e:
         out = e.output.decode().strip()
