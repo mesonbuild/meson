@@ -56,6 +56,20 @@ else:
     python_command = [sys.executable]
 meson_command = None
 
+GIT = shutil.which('git')
+def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProcess:
+    pc = subprocess.run([GIT, '-C', workingdir] + cmd,
+                        # Redirect stdin to DEVNULL otherwise git messes up the
+                        # console and ANSI colors stop working on Windows.
+                        stdin=subprocess.DEVNULL, **kwargs)
+    # Sometimes git calls git recursively, such as `git submodule update
+    # --recursive` which will be without the above workaround, so set the
+    # console mode again just in case.
+    if platform.system().lower() == 'windows':
+        mlog._windows_ansi()
+    return pc
+
+
 def set_meson_command(mainfile):
     global python_command
     global meson_command
