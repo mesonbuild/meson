@@ -693,7 +693,7 @@ class PkgConfigDependency(ExternalDependency):
         sysroot = self.env.properties[self.for_machine].get_sys_root()
         if sysroot:
             env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
-        new_pkg_config_path = os.pathsep.join(extra_paths)
+        new_pkg_config_path = ':'.join([p for p in extra_paths])
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path
 
