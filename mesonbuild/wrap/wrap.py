@@ -43,9 +43,9 @@ except ImportError:
     has_ssl = False
     API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
-req_timeout = 600.0
-ssl_warning_printed = False
-whitelist_subdomain = 'wrapdb.mesonbuild.com'
+REQ_TIMEOUT = 600.0
+SSL_WARNING_PRINTED = False
+WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
 
 def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
@@ -63,29 +63,29 @@ def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     url = urllib.parse.urlparse(urlstr)
     if not url.hostname:
         raise WrapException('{} is not a valid URL'.format(urlstr))
-    if not url.hostname.endswith(whitelist_subdomain):
+    if not url.hostname.endswith(WHITELIST_SUBDOMAIN):
         raise WrapException('{} is not a whitelisted WrapDB URL'.format(urlstr))
     if has_ssl and not url.scheme == 'https':
         raise WrapException('WrapDB did not have expected SSL https url, instead got {}'.format(urlstr))
     return url
 
 def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
-    global ssl_warning_printed
+    global SSL_WARNING_PRINTED
 
     url = whitelist_wrapdb(urlstring)
     if has_ssl:
         try:
-            return urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=req_timeout)
+            return urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT)
         except urllib.error.URLError as excp:
             raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
     # following code is only for those without Python SSL
     nossl_url = url._replace(scheme='http')
-    if not ssl_warning_printed:
+    if not SSL_WARNING_PRINTED:
         mlog.warning('SSL module not available in {}: WrapDB traffic not authenticated.'.format(sys.executable))
-        ssl_warning_printed = True
+        SSL_WARNING_PRINTED = True
     try:
-        return urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=req_timeout)
+        return urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT)
     except urllib.error.URLError as excp:
         raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
@@ -335,13 +335,13 @@ class Resolver:
         h = hashlib.sha256()
         tmpfile = tempfile.NamedTemporaryFile(mode='wb', dir=self.cachedir, delete=False)
         url = urllib.parse.urlparse(urlstring)
-        if url.hostname and url.hostname.endswith(whitelist_subdomain):
+        if url.hostname and url.hostname.endswith(WHITELIST_SUBDOMAIN):
             resp = open_wrapdburl(urlstring)
-        elif whitelist_subdomain in urlstring:
+        elif WHITELIST_SUBDOMAIN in urlstring:
             raise WrapException('{} may be a WrapDB-impersonating URL'.format(urlstring))
         else:
             try:
-                resp = urllib.request.urlopen(urlstring, timeout=req_timeout)
+                resp = urllib.request.urlopen(urlstring, timeout=REQ_TIMEOUT)
             except urllib.error.URLError:
                 raise WrapException('could not get {} is the internet available?'.format(urlstring))
         with contextlib.closing(resp) as resp:
