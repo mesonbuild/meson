@@ -1321,7 +1321,7 @@ class Environment:
                 linker = self._guess_win_linker(['link'], cls, for_machine)
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
-                    target, linker=linker)
+                    target, full_version=cl_signature, linker=linker)
             if 'PGI Compilers' in out:
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
