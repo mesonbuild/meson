@@ -1,7 +1,7 @@
 # a sort-of realistic example that combines the sourceset and kconfig
 # modules, inspired by QEMU's build system
 
-project('sourceset-example', 'cpp')
+project('sourceset-example', 'cpp', default_options: ['cpp_std=c++11'])
 
 cppid = meson.get_compiler('cpp').get_id()
 if cppid == 'pgi'
