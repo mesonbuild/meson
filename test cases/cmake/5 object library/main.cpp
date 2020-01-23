@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <iostream>
 #include "libA.hpp"
 #include "libB.hpp"
