@@ -15,6 +15,9 @@ int main(int argc, char * argv[]) {
     strcat(fullname, argv[1]);
 
     FILE * fp = fopen(fullname, "w");
+    if (!fp)
+        return 1;
+
     fputs("Some text\n", fp);
     fclose(fp);
 

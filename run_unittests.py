@@ -6928,7 +6928,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that we produce the correct dependencies when a program is overridden with an executable.
         '''
-        testdir = os.path.join(self.common_test_dir, '201 override with exe')
+        testdir = os.path.join(self.src_root, 'test cases', 'native', '201 override with exe')
         self.init(testdir)
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:

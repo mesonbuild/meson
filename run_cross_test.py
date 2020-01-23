@@ -26,7 +26,7 @@ from mesonbuild.coredata import version as meson_version
 
 
 def runtests(cross_file, failfast):
-    tests = ['--only', 'common']
+    tests = ['--only', 'common', 'native']
     cmd = mesonlib.python_command + ['run_project_tests.py', '--backend', 'ninja'] + (['--failfast'] if failfast else []) + tests + ['--cross-file', cross_file]
     return subprocess.call(cmd)
 
