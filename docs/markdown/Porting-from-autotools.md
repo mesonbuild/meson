@@ -386,8 +386,8 @@ sources = [
 
 deps = [glib, gdkpixbuf, libarchive, soup, yaml]
 
-mapfile = 'appstream-glib.map'
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), mapfile)
+verfile = 'appstream-glib.ver'
+vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), verfile)
 asglib = shared_library(
   'appstream-glib', sources,
   soversion : lt_current,
@@ -395,11 +395,11 @@ asglib = shared_library(
   dependencies : deps,
   include_directories : include_directories('@0@/..'.format(meson.current_build_dir())),
   link_args : ['-Wl,--no-undefined', vflag],
-  link_depends : mapfile,
+  link_depends : verfile,
   install : true)
 ```
 
-`appstream-glib.map`:
+`appstream-glib.ver`:
 
 ```
 {
