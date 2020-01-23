@@ -218,7 +218,6 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
         self.module_details = []
         if not self.is_found:
             return
-        self.static = kwargs.get('static', False)
 
         self.provided_modules = self.get_config_value(['--components'], 'modules')
         modules = stringlistify(extract_as_list(kwargs, 'modules'))
