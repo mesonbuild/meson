@@ -1106,7 +1106,10 @@ int dummy;
 
         if build.rulename != 'phony':
             # reference rule
-            build.rule = self.ruledict[build.rulename]
+            if build.rulename in self.ruledict:
+                build.rule = self.ruledict[build.rulename]
+            else:
+                mlog.warning("build statement for {} references non-existent rule {}".format(build.outfilenames, build.rulename))
 
     def write_rules(self, outfile):
         for b in self.build_elements:
@@ -1751,7 +1754,7 @@ int dummy;
         for for_machine in MachineChoice:
             static_linker = self.build.static_linker[for_machine]
             if static_linker is None:
-                return
+                continue
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
             cmdlist = []
             args = ['$in']
