@@ -355,22 +355,22 @@ a hard error in the future.''' % name)
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() < other.get_id()
 
-    def __le__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __le__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() <= other.get_id()
 
-    def __gt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __gt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() > other.get_id()
 
-    def __ge__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __ge__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() >= other.get_id()
