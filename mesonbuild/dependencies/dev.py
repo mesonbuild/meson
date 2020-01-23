@@ -391,6 +391,12 @@ class LLVMDependencyCMake(CMakeDependency):
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
         super().__init__(name, env, kwargs, language='cpp')
 
+        # Cmake will always create a statically linked binary, so don't use
+        # cmake if dynamic is required
+        if not self.static:
+            self.is_found = False
+            return
+
         if self.traceparser is None:
             return
 
