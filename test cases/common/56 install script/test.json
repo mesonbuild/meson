@@ -9,9 +9,6 @@
     {"type": "file", "file": "usr/dir/conf.txt"},
     {"type": "file", "file": "usr/customtarget/1.txt"},
     {"type": "file", "file": "usr/customtarget/2.txt"},
-    {"type": "file", "file": "usr/customtargetindex/1.txt"},
-    {"type": "file", "file": "usr/generated.txt"},
-    {"type": "file", "file": "usr/wrapped.txt"},
-    {"type": "file", "file": "usr/wrapped2.txt"}
+    {"type": "file", "file": "usr/customtargetindex/1.txt"}
   ]
 }
