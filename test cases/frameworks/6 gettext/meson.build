@@ -5,6 +5,11 @@ if not gettext.found()
   error('MESON_SKIP_TEST gettext not found.')
 endif
 
+xgettext = find_program('xgettext', required: false)
+if not xgettext.found()
+  error('MESON_SKIP_TEST xgettext not found.')
+endif
+
 if not meson.get_compiler('c').has_header('libintl.h')
   error('MESON_SKIP_TEST libintl.h not found.')
 endif
