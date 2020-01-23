@@ -572,6 +572,17 @@ that it is not possible to obtain the shaderc version using this method.
 
 `method` may be `auto`, `pkg-config` or `system`.
 
+## Zlib
+
+Zlib ships with pkg-config and cmake support, but on some operating systems
+(windows, macOs, FreeBSD, dragonflybsd), it is provided as part of the base
+operating system without pkg-config support. The new System finder can be used
+on these OSes to link with the bundled version.
+
+`method` may be `auto`, `pkg-config`, `cmake`, or `system`.
+
+*New in 0.54.0* the `system` method.
+
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
     underlying file system happens to be case-insensitive.
