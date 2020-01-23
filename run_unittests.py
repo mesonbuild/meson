@@ -4219,13 +4219,20 @@ recommended as it is not supported on some platforms''')
                        A number: 1
                             yes: YES
                              no: NO
+
+              Subprojects
+                            sub: YES
+                           sub2: NO
             ''')
-        # Dict ordering is not guaranteed and an exact string comparison randomly
-        # fails on the CI because lines are reordered.
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
         out_lines = out[out_start:].split('\n')[:len(expected_lines)]
-        self.assertEqual(sorted(expected_lines), sorted(out_lines))
+        if sys.version_info < (3, 7, 0):
+            # Dictionary order is not stable in Python <3.7, so sort the lines
+            # while comparing
+            self.assertEqual(sorted(expected_lines), sorted(out_lines))
+        else:
+            self.assertEqual(expected_lines, out_lines)
 
 
 class FailureTests(BasePlatformTests):
