@@ -948,16 +948,10 @@ class Environment:
 
                 linker = self._guess_nix_linker(compiler, cls, for_machine)
 
-                if lang == 'c':  # There's no 'defines' anymore in C Compiler classes.
-                    return cls(
-                        ccache + compiler, version, for_machine, is_cross,
-                        info, exe_wrap, full_version=full_version,
-                        linker=linker)
-                else:
-                    return cls(
-                        ccache + compiler, version, for_machine, is_cross,
-                        info, exe_wrap, defines, full_version=full_version,
-                        linker=linker)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross,
+                    info, exe_wrap, defines, full_version=full_version,
+                    linker=linker)
 
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
