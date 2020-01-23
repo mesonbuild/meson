@@ -82,7 +82,7 @@ test('Boost extralib test', extralibexe)
 python2interpreter = find_program(python2.path(), required: false, disabler: true)
 test('Boost Python2', python2interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python2module)
 python3interpreter = find_program(python3.path(), required: false, disabler: true)
-test('Boost Python3', python3interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python2module)
+test('Boost Python3', python3interpreter, args: ['./test_python_module.py', meson.current_build_dir()], workdir: meson.current_source_dir(), depends: python3module)
 
 subdir('partial_dep')
 
