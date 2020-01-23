@@ -386,7 +386,7 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
-class CompilerArgs(T.MutableSequence[str]):
+class CompilerArgs(collections.abc.MutableSequence):
     '''
     List-like class that manages a list of compiler arguments. Should be used
     while constructing compiler arguments from various sources. Can be
