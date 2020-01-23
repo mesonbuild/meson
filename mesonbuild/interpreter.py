@@ -2093,7 +2093,7 @@ class MesonMain(InterpreterObject):
         clist = self.interpreter.coredata.compilers[for_machine]
         if cname in clist:
             return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
-        raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
+        raise InterpreterException('Tried to access compiler for language "%s", not specified for %s machine.' % (cname, for_machine.get_lower_case_name()))
 
     @noPosargs
     @permittedKwargs({})
