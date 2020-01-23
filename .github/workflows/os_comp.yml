@@ -1,0 +1,24 @@
+name: OS Compatibility Tests
+
+on: [push, pull_request]
+
+jobs:
+  xenial:
+    name: Ubuntu 16.04 (xenial)
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install Dependencies
+      run: |
+        sudo apt update -yq
+        sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++ zlib1g-dev
+    - name: Install ninja-build tool
+      uses: seanmiddleditch/gha-setup-ninja@v1
+    - name: Python version
+      run: python3 --version
+    - name: Ninja version
+      run: ninja --version
+    - name: Run tests
+      run: python3 run_tests.py
+      env:
+        CI: '1'
