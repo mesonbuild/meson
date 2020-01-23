@@ -1374,6 +1374,7 @@ class DataTests(unittest.TestCase):
 class BasePlatformTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
+        self.maxDiff = None
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
@@ -4164,9 +4165,6 @@ recommended as it is not supported on some platforms''')
         self.init(testdir)
         self._run(self.mconf_command + [self.builddir])
 
-    # FIXME: The test is failing on Windows CI even if the print looks good.
-    # Maybe encoding issue?
-    @unittest.skipIf(is_windows(), 'This test fails on Windows CI')
     def test_summary(self):
         testdir = os.path.join(self.unit_test_dir, '74 summary')
         out = self.init(testdir)
