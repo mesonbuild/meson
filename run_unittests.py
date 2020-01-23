@@ -1231,7 +1231,7 @@ class DataTests(unittest.TestCase):
         platform on the CI.
         '''
         md = None
-        with open('docs/markdown/Builtin-options.md') as f:
+        with open('docs/markdown/Builtin-options.md', encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
         env = get_fake_env()
@@ -1251,7 +1251,7 @@ class DataTests(unittest.TestCase):
         Builtin-Options.md.
         '''
         md = None
-        with open('docs/markdown/Builtin-options.md') as f:
+        with open('docs/markdown/Builtin-options.md', encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
 
@@ -1285,7 +1285,7 @@ class DataTests(unittest.TestCase):
         ]))
 
     def test_cpu_families_documented(self):
-        with open("docs/markdown/Reference-tables.md") as f:
+        with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
 
@@ -1304,7 +1304,7 @@ class DataTests(unittest.TestCase):
         '''
         Test that each markdown files in docs/markdown is referenced in sitemap.txt
         '''
-        with open("docs/sitemap.txt") as f:
+        with open("docs/sitemap.txt", encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
         toc = list(m.group(1) for m in re.finditer(r"^\s*(\w.*)$", md, re.MULTILINE))
@@ -5982,8 +5982,8 @@ c = ['{0}']
         self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
 
     def compute_sha256(self, filename):
-        with open(filename,"rb") as f:
-            return hashlib.sha256(f.read()).hexdigest();
+        with open(filename, 'rb') as f:
+            return hashlib.sha256(f.read()).hexdigest()
 
     def test_wrap_with_file_url(self):
         testdir = os.path.join(self.unit_test_dir, '73 wrap file url')
