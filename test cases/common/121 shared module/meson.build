@@ -1,6 +1,24 @@
 project('shared module', 'c')
 
-dl = meson.get_compiler('c').find_library('dl', required : false)
+c = meson.get_compiler('c')
+
+# Windows UWP doesn't support the ToolHelp API we use in this test to emulate
+# runtime symbol resolution.
+if host_machine.system() == 'windows'
+   if not c.compiles('''
+#include <windows.h>
+#include <tlhelp32.h>
+
+HANDLE func(void)
+{
+ return CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, 0);
+}
+''')
+     error('MESON_SKIP_TEST Windows UWP does not support this test.')
+   endif
+endif
+
+dl = c.find_library('dl', required : false)
 l = shared_library('runtime', 'runtime.c')
 # Do NOT link the module with the runtime library. This
 # is a common approach for plugins that are only used
