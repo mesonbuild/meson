@@ -108,7 +108,6 @@ index.md
 		Pkg-config-files.md
 		Playground.md
 		Porting-from-autotools.md
-		Trial-conversions.md
 		Use-of-Python.md
 		Users.md
 		Using-multiple-build-directories.md
