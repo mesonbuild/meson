@@ -4524,6 +4524,11 @@ class FailureTests(BasePlatformTests):
                                "}['a'] == 2)\n",
                                r"Assert failed: {k1 : 1}\['a'\] == 2")
 
+    def test_wrap_nofallback(self):
+        self.assertMesonRaises("dependency('notfound', fallback : ['foo', 'foo_dep'])",
+                               r"Dependency \'notfound\' not found and fallback is disabled",
+                               extra_args=['--wrap-mode=nofallback'])
+
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''

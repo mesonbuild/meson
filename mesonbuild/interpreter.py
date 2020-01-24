@@ -3326,10 +3326,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         return fbinfo
 
     def dependency_fallback(self, display_name, kwargs):
+        required = kwargs.get('required', True)
         if self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback '
                      'dependencies is disabled.')
+            if required:
+                m = 'Dependency {!r} not found and fallback is disabled'
+                raise DependencyException(m.format(display_name))
             return self.notfound_dependency()
         elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
@@ -3340,7 +3344,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname, varname = self.get_subproject_infos(kwargs)
         sp_kwargs = {
             'default_options': kwargs.get('default_options', []),
-            'required': kwargs.get('required', True),
+            'required': required,
         }
         self.do_subproject(dirname, 'meson', sp_kwargs)
         return self.get_subproject_dep(display_name, dirname, varname, kwargs)
