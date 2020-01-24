@@ -2216,7 +2216,9 @@ class Interpreter(InterpreterBase):
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
         if not mock:
             self.parse_project()
+        self._redetect_machines()
 
+    def _redetect_machines(self):
         # Re-initialize machine descriptions. We can do a better job now because we
         # have the compilers needed to gain more knowledge, so wipe out old
         # inference and start over.
@@ -3014,6 +3016,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         success &= self.add_languages_for(args, required, MachineChoice.HOST)
         if not self.coredata.is_cross_build():
             self.coredata.copy_build_options_from_regular_ones()
+        self._redetect_machines()
         return success
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
