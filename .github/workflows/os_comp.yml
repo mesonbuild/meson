@@ -1,10 +1,10 @@
-name: OS Compatibility Tests
+name: OS Comp Tests
 
 on: [push, pull_request]
 
 jobs:
   xenial:
-    name: Ubuntu 16.04 (xenial)
+    name: Ubuntu 16.04
     runs-on: ubuntu-16.04
     steps:
     - uses: actions/checkout@v1
@@ -25,3 +25,14 @@ jobs:
       env:
         CI: '1'
         XENIAL: '1'
+
+  arch:
+    name: Arch Linux
+    runs-on: ubuntu-latest
+    container: mensinda/arch:latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run tests
+      run: ./run_tests.py
+      env:
+        CI: '1'
