@@ -349,6 +349,25 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                         raise DependencyException(m.format(self.name, not_found, self.version))
                     return
 
+    # Create an iterator of options
+    def search_tool(self, name, display_name, default_names):
+        # Lookup in cross or machine file.
+        potential_path = self.env.binaries[self.for_machine].lookup_entry(name)
+        if potential_path is not None:
+            mlog.debug('{} binary for {} specified from cross file, native file, '
+                       'or env var as {}'.format(display_name, self.for_machine, potential_path))
+            yield ExternalProgram.from_entry(name, potential_path)
+            # We never fallback if the user-specified option is no good, so
+            # stop returning options.
+            return
+        mlog.debug('{} binary missing from cross or native file, or env var undefined.'.format(display_name))
+        # Fallback on hard-coded defaults.
+        # TODO prefix this for the cross case instead of ignoring thing.
+        if self.env.machines.matches_build_machine(self.for_machine):
+            for potential_path in default_names:
+                mlog.debug('Trying a default {} fallback at'.format(display_name), potential_path)
+                yield ExternalProgram(potential_path, silent=True)
+
 
 class NotFoundDependency(Dependency):
     def __init__(self, environment):
@@ -535,25 +554,6 @@ class PkgConfigDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.pkgbin = None
 
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_pkgpath = environment.binaries[self.for_machine].lookup_entry('pkgconfig')
-            if potential_pkgpath is not None:
-                mlog.debug('Pkg-config binary for {} specified from cross file, native file, '
-                           'or env var as {}'.format(self.for_machine, potential_pkgpath))
-                yield ExternalProgram.from_entry('pkgconfig', potential_pkgpath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('Pkg-config binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(self.for_machine):
-                for potential_pkgpath in environment.default_pkgconfig:
-                    mlog.debug('Trying a default pkg-config fallback at', potential_pkgpath)
-                    yield ExternalProgram(potential_pkgpath, silent=True)
-
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
         if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
@@ -563,7 +563,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
             mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
-            for potential_pkgbin in search():
+            for potential_pkgbin in self.search_tool('pkgconfig', 'Pkg-config', environment.default_pkgconfig):
                 mlog.debug('Trying pkg-config binary {} for machine {} at {}'
                            .format(potential_pkgbin.name, self.for_machine, potential_pkgbin.command))
                 version_if_ok = self.check_pkgconfig(potential_pkgbin)

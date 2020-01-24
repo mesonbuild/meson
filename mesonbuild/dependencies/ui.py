@@ -28,7 +28,7 @@ from ..mesonlib import (
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, ExternalProgram, NonExistingExternalProgram
+from .base import ExternalDependency, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
 
@@ -321,28 +321,24 @@ class QtBaseDependency(ExternalDependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def _qmake_detect(self, mods, kwargs):
+    def search_qmake(self):
         for qmake in ('qmake-' + self.name, 'qmake'):
-            self.qmake = ExternalProgram.from_bin_list(
-                self.env.binaries.host, qmake)
-            if not self.qmake.found():
-                # Even when cross-compiling, if a cross-info qmake is not
-                # specified, we fallback to using the qmake in PATH because
-                # that's what we used to do
-                self.qmake = ExternalProgram.from_bin_list(
-                    self.env.binaries.build, qmake)
-            if not self.qmake.found():
-                self.qmake = ExternalProgram(qmake, silent=True)
-            if not self.qmake.found():
+            for potential_qmake in self.search_tool(qmake, 'QMake', [qmake]):
+                yield potential_qmake
+
+    def _qmake_detect(self, mods, kwargs):
+        for qmake in self.search_qmake():
+            if not qmake.found():
                 continue
             # Check that the qmake is for qt5
-            pc, stdo = Popen_safe(self.qmake.get_command() + ['-v'])[0:2]
+            pc, stdo = Popen_safe(qmake.get_command() + ['-v'])[0:2]
             if pc.returncode != 0:
                 continue
             if not 'Qt version ' + self.qtver in stdo:
                 mlog.log('QMake is not for ' + self.qtname)
                 continue
             # Found qmake for Qt5!
+            self.qmake = qmake
             break
         else:
             # Didn't find qmake :(
@@ -364,7 +360,7 @@ class QtBaseDependency(ExternalDependency):
         if self.env.machines.host.is_darwin() and not any(s in xspec for s in ['ios', 'tvos']):
             mlog.debug("Building for macOS, looking for framework")
             self._framework_detect(qvars, mods, kwargs)
-            return qmake
+            return self.qmake.name
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
@@ -405,7 +401,7 @@ class QtBaseDependency(ExternalDependency):
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
 
-        return qmake
+        return self.qmake.name
 
     def _get_modules_lib_suffix(self, is_debug):
         suffix = ''
