@@ -281,7 +281,7 @@ class Resolver:
             if not is_shallow:
                 verbose_git(['clone', self.wrap.get('url'), self.directory], self.subdir_root, check=True)
                 if revno.lower() != 'head':
-                    if verbose_git(['checkout', revno], self.dirname):
+                    if not verbose_git(['checkout', revno], self.dirname):
                         verbose_git(['fetch', self.wrap.get('url'), revno], self.dirname, check=True)
                         verbose_git(['checkout', revno], self.dirname, check=True)
             else:
