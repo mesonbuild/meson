@@ -1046,7 +1046,8 @@ int dummy;
             cmd += ['--no-stdsplit']
         if self.environment.coredata.get_builtin_option('errorlogs'):
             cmd += ['--print-errorlogs']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'tests', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-test',
+                                 'CUSTOM_COMMAND', ['meson-build-tests', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running all tests.')
         elem.add_item('pool', 'console')
@@ -1058,7 +1059,8 @@ int dummy;
         cmd = self.environment.get_build_command(True) + [
             'test', '--benchmark', '--logbase',
             'benchmarklog', '--num-processes=1', '--no-rebuild']
-        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark', 'CUSTOM_COMMAND', ['all', 'tests', 'PHONY'])
+        elem = NinjaBuildElement(self.all_outputs, 'meson-benchmark',
+                                 'CUSTOM_COMMAND', ['meson-build-benchmarks', 'PHONY'])
         elem.add_item('COMMAND', cmd)
         elem.add_item('DESC', 'Running benchmark suite.')
         elem.add_item('pool', 'console')
@@ -2978,12 +2980,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         test_targetlist = []
         for t in self.get_test_targets().values():
-            # Add the first output of each target to the 'all' target so that
-            # they are all built
             test_targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
 
-        test_elem = NinjaBuildElement(self.all_outputs, 'tests', 'phony', test_targetlist)
+        test_elem = NinjaBuildElement(self.all_outputs, 'meson-build-tests', 'phony', test_targetlist)
         self.add_build(test_elem)
+
+        benchmark_targetlist = []
+        for t in self.get_benchmark_targets().values():
+            benchmark_targetlist.append(os.path.join(self.get_target_dir(t), t.get_outputs()[0]))
+
+        benchmark_elem = NinjaBuildElement(self.all_outputs, 'meson-build-benchmarks', 'phony', benchmark_targetlist)
+        self.add_build(benchmark_elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', self.ninja_command + ['-t', 'clean'])

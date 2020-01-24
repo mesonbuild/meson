@@ -1002,6 +1002,20 @@ class Backend:
                 result[dep.get_id()] = dep
         return result
 
+    def get_benchmark_targets(self):
+        result = OrderedDict()
+        # Get all targets used as test executables and arguments.
+        for t in self.build.get_benchmarks():
+            for arg in [t.exe] + t.cmd_args:
+                if hasattr(arg, 'held_object'):
+                    arg = arg.held_object
+                if isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    result[arg.get_id()] = arg
+            for dep in t.depends:
+                assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
+                result[dep.get_id()] = dep
+        return result
+
     @lru_cache(maxsize=None)
     def get_custom_target_provided_by_generated_source(self, generated_source):
         libs = []
