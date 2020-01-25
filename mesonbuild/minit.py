@@ -31,6 +31,11 @@ from mesonbuild.templates.javatemplates import (create_exe_java_sample, create_l
 from mesonbuild.templates.fortrantemplates import (create_exe_fortran_sample, create_lib_fortran_sample)
 from mesonbuild.templates.rusttemplates import (create_exe_rust_sample, create_lib_rust_sample)
 
+'''
+there is currently only one meson template at this time.
+'''
+from mesonbuild.templates.mesontemplates import create_meson_build
+
 FORTRAN_SUFFIXES = ['.f', '.for', '.F', '.f90', '.F90']
 
 UNREACHABLE_CODE = 'Unreachable code'
@@ -45,7 +50,7 @@ ninja -C builddir
 def create_sample(options):
     '''
     Based on what arguments are passed we check for a match in language
-    then check for project type and generate new Meson samples project.
+    then check for project type and create new Meson samples project.
     '''
     if options.language == 'c':
         if options.type == 'executable':
@@ -187,45 +192,6 @@ def autodetect_options(options, sample: bool = False):
             raise SystemExit("Can't autodetect language, please specify it with -l.")
         print("Detected language: " + options.language)
 
-
-meson_executable_template = '''project('{project_name}', '{language}',
-  version : '{version}',
-  default_options : [{default_options}])
-
-executable('{executable}',
-           {sourcespec},{depspec}
-           install : true)
-'''
-
-def create_meson_build(options):
-    if options.type != 'executable':
-        raise SystemExit('\nGenerating a meson.build file from existing sources is\n'
-                         'supported only for project type "executable".\n'
-                         'Run meson init in an empty directory to create a sample project.')
-    default_options = ['warning_level=3']
-    if options.language == 'cpp':
-        # This shows how to set this very common option.
-        default_options += ['cpp_std=c++14']
-    # If we get a meson.build autoformatter one day, this code could
-    # be simplified quite a bit.
-    formatted_default_options = ', '.join("'{}'".format(x) for x in default_options)
-    sourcespec = ',\n           '.join("'{}'".format(x) for x in options.srcfiles)
-    depspec = ''
-    if options.deps:
-        depspec = '\n           dependencies : [\n              '
-        depspec += ',\n              '.join("dependency('{}')".format(x)
-                                            for x in options.deps.split(','))
-        depspec += '],'
-    content = meson_executable_template.format(project_name=options.name,
-                                               language=options.language,
-                                               version=options.version,
-                                               executable=options.executable,
-                                               sourcespec=sourcespec,
-                                               depspec=depspec,
-                                               default_options=formatted_default_options)
-    open('meson.build', 'w').write(content)
-    print('Generated meson.build file:\n\n' + content)
-
 def add_arguments(parser):
     '''
     Here we add args for that the user can passed when making a new
@@ -240,10 +206,8 @@ def add_arguments(parser):
                         help="project language. default: autodetected based on source files")
     parser.add_argument("-b", "--build", help="build after generation", action='store_true')
     parser.add_argument("--builddir", help="directory for build", default='build')
-    parser.add_argument("-f", "--force", action="store_true",
-                        help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default='executable',
-                        choices=['executable', 'library'])
+    parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
+    parser.add_argument('--type', default='executable', choices=['executable', 'library'])
     parser.add_argument('--version', default='0.1')
 
 def run(options) -> int:
