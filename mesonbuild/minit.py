@@ -148,7 +148,7 @@ def autodetect_options(options, sample: bool = False):
     if not options.srcfiles:
         srcfiles = []
         for f in (f for f in Path().iterdir() if f.is_file()):
-            if f.suffix in (['.cc', '.cpp', '.cu', 'cs', '.d', '.m', '.mm', '.swift', '.rs', 'java'] + FORTRAN_SUFFIXES):
+            if f.suffix in (['.c', '.cc', '.cpp', '.cu', '.d', '.m', '.mm', '.swift', '.rs', 'java'] + FORTRAN_SUFFIXES):
                 srcfiles.append(f)
         if not srcfiles:
             raise SystemExit('No recognizable source files found.\n'
