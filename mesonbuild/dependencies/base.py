@@ -1084,6 +1084,7 @@ class CMakeDependency(ExternalDependency):
             cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
 
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
+            mlog.debug('Preliminary CMake check failed. Aborting.')
             return
         self._detect_dep(name, modules, cm_args)
 
@@ -1191,9 +1192,12 @@ class CMakeDependency(ExternalDependency):
                 if not self._cached_isdir(i):
                     continue
 
-                for j in ['Find{}.cmake', '{}Config.cmake', '{}-config.cmake']:
-                    if os.path.isfile(os.path.join(i, j.format(name))):
-                        return True
+                # Check the directory case insensitve
+                content = self._cached_listdir(i)
+                candidates = ['Find{}.cmake', '{}Config.cmake', '{}-config.cmake']
+                candidates = [x.format(name).lower() for x in candidates]
+                if any([x[1] in candidates for x in content]):
+                    return True
             return False
 
         # Search in <path>/(lib/<arch>|lib*|share) for cmake files
