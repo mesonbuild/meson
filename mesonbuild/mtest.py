@@ -578,14 +578,27 @@ class SingleTestRunner:
             if is_windows():
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
+
+                def _send_signal_to_process_group(pgid : int, signum : int):
+                    """ sends a signal to a process group """
+                    try:
+                        os.killpg(pgid, signum) # type: ignore
+                    except ProcessLookupError:
+                        # Sometimes (e.g. with Wine) this happens.
+                        # There's nothing we can do (maybe the process
+                        # already died) so carry on.
+                        pass
+
+                # Send a termination signal to the process group that setsid()
+                # created - giving it a chance to perform any cleanup.
+                _send_signal_to_process_group(p.pid, signal.SIGTERM)
+
+                # Make sure the termination signal actually kills the process
+                # group, otherwise retry with a SIGKILL.
                 try:
-                    # Kill the process group that setsid() created.
-                    os.killpg(p.pid, signal.SIGKILL)  # type: ignore
-                except ProcessLookupError:
-                    # Sometimes (e.g. with Wine) this happens.
-                    # There's nothing we can do (maybe the process
-                    # already died) so carry on.
-                    pass
+                    p.communicate(timeout=0.5)
+                except subprocess.TimeoutExpired:
+                    _send_signal_to_process_group(p.pid, signal.SIGKILL)
             try:
                 p.communicate(timeout=1)
             except subprocess.TimeoutExpired:
