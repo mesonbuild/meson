@@ -1,6 +1,6 @@
 #include<stdio.h>
 
-const char *vcstag;
+extern const char *vcstag;
 
 int main(void) {
     printf("Version is %s\n", vcstag);

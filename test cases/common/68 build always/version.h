@@ -1,3 +1,3 @@
 #pragma once
 
-const char *version_string;
+extern const char *version_string;
