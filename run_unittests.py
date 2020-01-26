@@ -3081,8 +3081,23 @@ int main(int argc, char **argv) {
         except EnvironmentException:
             pass
         try:
+            env.detect_cs_compiler(MachineChoice.HOST)
+            langs.append('cs')
+        except EnvironmentException:
+            pass
+        try:
             env.detect_d_compiler(MachineChoice.HOST)
             langs.append('d')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_java_compiler(MachineChoice.HOST)
+            langs.append('java')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_cuda_compiler(MachineChoice.HOST)
+            langs.append('cuda')
         except EnvironmentException:
             pass
         try:
@@ -3093,6 +3108,11 @@ int main(int argc, char **argv) {
         try:
             env.detect_objc_compiler(MachineChoice.HOST)
             langs.append('objc')
+        except EnvironmentException:
+            pass
+        try:
+            env.detect_objcpp_compiler(MachineChoice.HOST)
+            langs.append('objcpp')
         except EnvironmentException:
             pass
         # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
