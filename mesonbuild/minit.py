@@ -22,6 +22,7 @@ from mesonbuild.environment import detect_ninja
 
 from mesonbuild.templates.ctemplates import (create_exe_c_sample, create_lib_c_sample)
 from mesonbuild.templates.cpptemplates import (create_exe_cpp_sample, create_lib_cpp_sample)
+from mesonbuild.templates.cstemplates import (create_exe_cs_sample, create_lib_cs_sample)
 from mesonbuild.templates.cudatemplates import (create_exe_cuda_sample, create_lib_cuda_sample)
 from mesonbuild.templates.objctemplates import (create_exe_objc_sample, create_lib_objc_sample)
 from mesonbuild.templates.objcpptemplates import (create_exe_objcpp_sample, create_lib_objcpp_sample)
@@ -64,6 +65,13 @@ def create_sample(options):
             create_exe_cpp_sample(options.name, options.version)
         elif options.type == 'library':
             create_lib_cpp_sample(options.name, options.version)
+        else:
+            raise RuntimeError(UNREACHABLE_CODE)
+    elif options.language == 'cs':
+        if options.type == 'executable':
+            create_exe_cs_sample(options.name, options.version)
+        elif options.type == 'library':
+            create_lib_cs_sample(options.name, options.version)
         else:
             raise RuntimeError(UNREACHABLE_CODE)
     elif options.language == 'cuda':
@@ -148,7 +156,7 @@ def autodetect_options(options, sample: bool = False):
     if not options.srcfiles:
         srcfiles = []
         for f in (f for f in Path().iterdir() if f.is_file()):
-            if f.suffix in (['.c', '.cc', '.cpp', '.cu', '.d', '.m', '.mm', '.swift', '.rs', 'java'] + FORTRAN_SUFFIXES):
+            if f.suffix in (['.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.swift', '.rs', '.java'] + FORTRAN_SUFFIXES):
                 srcfiles.append(f)
         if not srcfiles:
             raise SystemExit('No recognizable source files found.\n'
@@ -163,6 +171,9 @@ def autodetect_options(options, sample: bool = False):
                 break
             if f.suffix in ('.cc', '.cpp'):
                 options.language = 'cpp'
+                break
+            if f.suffix in '.cs':
+                options.language = 'cs'
                 break
             if f.suffix == '.cu':
                 options.language = 'cuda'
@@ -197,12 +208,11 @@ def add_arguments(parser):
     Here we add args for that the user can passed when making a new
     Meson project.
     '''
-    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*",
-                        help="source files. default: all recognized files in current directory")
+    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
-    parser.add_argument("-l", "--language", choices=['c', 'cpp', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'swift'],
+    parser.add_argument("-l", "--language", choices=['c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'swift'],
                         help="project language. default: autodetected based on source files")
     parser.add_argument("-b", "--build", help="build after generation", action='store_true')
     parser.add_argument("--builddir", help="directory for build", default='build')
