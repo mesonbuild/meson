@@ -47,7 +47,7 @@ files - should be also provided.
 
 ### Request a new repository or branch
 
-Create an issue on the [wrapweb bug tracker](https://github.com/mesonbuild/wrapweb/issues)
+Create an issue on the [wrapdb bug tracker](https://github.com/mesonbuild/wrapdb/issues)
 using *Title* and *Description* below as a template.
 
 *Title:* `new wrap: <project_name>`
@@ -131,8 +131,8 @@ system has native support for Git subprojects.
 
 ## Creator script
 
-The WrapDB repository has a 
-[helper script](https://github.com/mesonbuild/wrapweb/blob/master/mesonwrap.py)
+The WrapDB repository has a
+[helper script](https://github.com/mesonbuild/mesonwrap/blob/master/mesonwrap.py)
 to generate new repositories, verify them and update them.
 
 ## Reviewing wraps
