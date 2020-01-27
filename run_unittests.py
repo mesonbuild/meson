@@ -3246,6 +3246,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdirbase)
         self.build()
         self.assertTrue(os.path.exists(os.path.join(test_cwddir, 'test_file.txt')))
+        os.remove(os.path.join(test_cwddir, 'test_file.txt'))
 
     def test_guessed_linker_dependencies(self):
         '''
