@@ -187,6 +187,11 @@ class RunProcess(InterpreterObject):
         else:
             if cwd is None:
                 cwd = os.path.join(source_dir, subdir)
+            else:
+                if not os.path.exists(cwd):
+                    raise InterpreterException('Working directory does not exist "%s"' % cwd)
+                
+
         child_env = os.environ.copy()
         child_env.update(menv)
         child_env = env.get_env(child_env)
@@ -2449,7 +2454,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @FeatureNewKwargs('run_command', '0.50.0', ['env', 'cwd'])
+    @FeatureNewKwargs('run_command', '0.54.0', ['cwd'])
+    @FeatureNewKwargs('run_command', '0.50.0', ['env'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
     @permittedKwargs(permitted_kwargs['run_command'])
     def func_run_command(self, node, args, kwargs):

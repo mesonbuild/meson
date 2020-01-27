@@ -3240,6 +3240,16 @@ recommended as it is not supported on some platforms''')
         exe = os.path.join(self.builddir, 'main')
         self.assertEqual(b'NDEBUG=0', subprocess.check_output(exe).strip())
 
+    def test_run_cmd_with_cwd(self):
+        testdirbase = os.path.join(self.unit_test_dir, '210 run command with cwd')
+        test_cwddir = os.path.join(testdirbase, 'test_cwddir')
+        self.init(testdirbase)
+        self.build()
+        self.assertTrue(os.path.exists(os.path.join(test_cwddir, 'touch1.txt')))
+        self.assertTrue(os.path.exists(os.path.join(test_cwddir, 'touch2.txt')))
+        self.assertTrue(os.path.exists(os.path.join(test_cwddir, 'touch3.txt')))
+        self.assertTrue(os.path.exists(os.path.join(test_cwddir, 'test_w_meson.txt')))
+
     def test_guessed_linker_dependencies(self):
         '''
         Test that meson adds dependencies for libraries based on the final

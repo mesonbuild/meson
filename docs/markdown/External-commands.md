@@ -31,6 +31,14 @@ env.set('FOO', 'bar')
 run_command('command', 'arg1', 'arg2', env: env)
 ```
 
+Since 0.54.0
+You can also pass a path to the working directory for a given command
+
+```meson
+results = run_command('command', 'arg1', 'arg2', cwd: 'path/to/wd')
+```
+
+
 The `run_command` function returns an object that can be queried for
 return value and text written to stdout and stderr. The `strip` method
 call is used to strip trailing and leading whitespace from
