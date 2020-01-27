@@ -15,8 +15,9 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-import subprocess
+import subprocess as S
 from pathlib import Path
+from threading import Thread
 import typing as T
 import re
 import os
@@ -30,19 +31,22 @@ from ..environment import Environment
 if T.TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
 
+TYPE_result = T.Tuple[int, T.Optional[str], T.Optional[str]]
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
     class_cmakebin = PerMachine(None, None)
     class_cmakevers = PerMachine(None, None)
-    class_cmake_cache = {}
+    class_cmake_cache = {}  # type: T.Dict[T.Any, TYPE_result]
 
     def __init__(self, environment: Environment, version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
         self.environment = environment
         self.for_machine = for_machine
         self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
+        self.always_capture_stderr = True
+        self.print_cmout = False
         if self.cmakebin is False:
             self.cmakebin = None
             return
@@ -130,17 +134,77 @@ class CMakeExecutor:
         cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
         return cmvers
 
+    def set_exec_mode(self, print_cmout: T.Optional[bool] = None, always_capture_stderr: T.Optional[bool] = None) -> None:
+        if print_cmout is not None:
+            self.print_cmout = print_cmout
+        if always_capture_stderr is not None:
+            self.always_capture_stderr = always_capture_stderr
+
     def _cache_key(self, args: T.List[str], build_dir: str, env):
         fenv = frozenset(env.items()) if env is not None else None
         targs = tuple(args)
         return (self.cmakebin, targs, build_dir, fenv)
 
-    def _call_real(self, args: T.List[str], build_dir: str, env) -> T.Tuple[int, str, str]:
+    def _call_cmout_stderr(self, args: T.List[str], build_dir: str, env) -> TYPE_result:
+        cmd = self.cmakebin.get_command() + args
+        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.PIPE, cwd=build_dir, env=env)
+
+        # stdout and stderr MUST be read at the same time to avoid pipe
+        # blocking issues. The easiest way to do this is with a separate
+        # thread for one of the pipes.
+        def print_stdout():
+            while True:
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                mlog.log(line.decode(errors='ignore').strip('\n'))
+            proc.stdout.close()
+
+        t = Thread(target=print_stdout)
+        t.start()
+
+        try:
+            # Read stderr line by line and log non trace lines
+            raw_trace = ''
+            tline_start_reg = re.compile(r'^\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(.*$')
+            inside_multiline_trace = False
+            while True:
+                line = proc.stderr.readline()
+                if not line:
+                    break
+                line = line.decode(errors='ignore')
+                if tline_start_reg.match(line):
+                    raw_trace += line
+                    inside_multiline_trace = not line.endswith(' )\n')
+                elif inside_multiline_trace:
+                    raw_trace += line
+                else:
+                    mlog.warning(line.strip('\n'))
+
+        finally:
+            proc.stderr.close()
+            t.join()
+            proc.wait()
+
+        return proc.returncode, None, raw_trace
+
+    def _call_cmout(self, args: T.List[str], build_dir: str, env) -> TYPE_result:
+        cmd = self.cmakebin.get_command() + args
+        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.STDOUT, cwd=build_dir, env=env)
+        while True:
+            line = proc.stdout.readline()
+            if not line:
+                break
+            mlog.log(line.decode(errors='ignore').strip('\n'))
+        proc.stdout.close()
+        proc.wait()
+        return proc.returncode, None, None
+
+    def _call_quiet(self, args: T.List[str], build_dir: str, env) -> TYPE_result:
         os.makedirs(build_dir, exist_ok=True)
         cmd = self.cmakebin.get_command() + args
-        ret = subprocess.run(cmd, env=env, cwd=build_dir, close_fds=False,
-                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             universal_newlines=False)
+        ret = S.run(cmd, env=env, cwd=build_dir, close_fds=False,
+                    stdout=S.PIPE, stderr=S.PIPE, universal_newlines=False)
         rc = ret.returncode
         out = ret.stdout.decode(errors='ignore')
         err = ret.stderr.decode(errors='ignore')
@@ -148,21 +212,30 @@ class CMakeExecutor:
         mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
         return rc, out, err
 
-    def call(self, args: T.List[str], build_dir: str, env=None, disable_cache: bool = False):
+    def _call_impl(self, args: T.List[str], build_dir: str, env) -> TYPE_result:
+        if not self.print_cmout:
+            return self._call_quiet(args, build_dir, env)
+        else:
+            if self.always_capture_stderr:
+                return self._call_cmout_stderr(args, build_dir, env)
+            else:
+                return self._call_cmout(args, build_dir, env)
+
+    def call(self, args: T.List[str], build_dir: str, env=None, disable_cache: bool = False) -> TYPE_result:
         if env is None:
             env = os.environ
 
         if disable_cache:
-            return self._call_real(args, build_dir, env)
+            return self._call_impl(args, build_dir, env)
 
         # First check if cached, if not call the real cmake function
         cache = CMakeExecutor.class_cmake_cache
         key = self._cache_key(args, build_dir, env)
         if key not in cache:
-            cache[key] = self._call_real(args, build_dir, env)
+            cache[key] = self._call_impl(args, build_dir, env)
         return cache[key]
 
-    def call_with_fake_build(self, args: T.List[str], build_dir: str, env=None):
+    def call_with_fake_build(self, args: T.List[str], build_dir: str, env=None) -> TYPE_result:
         # First check the cache
         cache = CMakeExecutor.class_cmake_cache
         key = self._cache_key(args, build_dir, env)
@@ -282,7 +355,7 @@ set(CMAKE_SIZEOF_VOID_P "{}")
     def executable_path(self) -> str:
         return self.cmakebin.get_path()
 
-    def get_command(self):
+    def get_command(self) -> T.List[str]:
         return self.cmakebin.get_command()
 
     def machine_choice(self) -> MachineChoice:

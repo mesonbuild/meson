@@ -856,6 +856,8 @@ def check_format():
             continue
         if 'meson-logs' in root or 'meson-private' in root:
             continue
+        if '__CMake_build' in root:
+            continue
         if '.eggs' in root or '_cache' in root:  # e.g. .mypy_cache
             continue
         for fname in filenames:
@@ -919,7 +921,7 @@ def print_tool_versions():
         {
             'tool': 'cmake',
             'args': ['--version'],
-            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*)$'),
+            'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
             'match_group': 1,
         },
     ]

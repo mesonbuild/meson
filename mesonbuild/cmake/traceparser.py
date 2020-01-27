@@ -18,8 +18,10 @@
 from .common import CMakeException
 from .generator import parse_generator_expressions
 from .. import mlog
+from ..mesonlib import version_compare
 
 import typing as T
+from pathlib import Path
 import re
 import os
 
@@ -60,7 +62,7 @@ class CMakeGeneratorTarget(CMakeTarget):
         self.working_dir = None  # type: T.Optional[str]
 
 class CMakeTraceParser:
-    def __init__(self, permissive: bool = False):
+    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = False):
         # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
         self.vars = {}
 
@@ -71,10 +73,40 @@ class CMakeTraceParser:
         self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
 
         self.permissive = permissive  # type: bool
+        self.cmake_version = cmake_version  # type: str
+        self.trace_file = 'cmake_trace.txt'
+        self.trace_file_path = Path(build_dir) / self.trace_file
+        self.trace_format = 'human'
 
-    def parse(self, trace: str) -> None:
-        # First parse the trace
-        lexer1 = self._lex_trace(trace)
+    def trace_args(self) -> T.List[str]:
+        arg_map = {
+            'human': ['--trace', '--trace-expand'],
+        }
+
+        base_args = ['--no-warn-unused-cli']
+        if not self.requires_stderr():
+            base_args += ['--trace-redirect={}'.format(self.trace_file)]
+
+        return arg_map[self.trace_format] + base_args
+
+    def requires_stderr(self) -> bool:
+        return version_compare(self.cmake_version, '<3.16')
+
+    def parse(self, trace: T.Optional[str] = None) -> None:
+        # First load the trace (if required)
+        if not self.requires_stderr():
+            if not self.trace_file_path.exists and not self.trace_file_path.is_file():
+                raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
+            trace = self.trace_file_path.read_text()
+        if not trace:
+            raise CMakeException('CMake: The CMake trace was not provided or is empty')
+
+        # Second parse the trace
+        lexer1 = None
+        if self.trace_format == 'human':
+            lexer1 = self._lex_trace_human(trace)
+        else:
+            raise CMakeException('CMake: Internal error: Invalid trace format {}. Expected [human]'.format(self.trace_format))
 
         # All supported functions
         functions = {
@@ -481,7 +513,7 @@ class CMakeTraceParser:
 
             self.targets[target].properties[i[0]] += i[1]
 
-    def _lex_trace(self, trace):
+    def _lex_trace_human(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
         reg_other = re.compile(r'[^\n]*\n')
@@ -510,7 +542,7 @@ class CMakeTraceParser:
             yield CMakeTraceLine(file, line, func, args)
 
     def _guess_files(self, broken_list: T.List[str]) -> T.List[str]:
-        #Try joining file paths that contain spaces
+        # Try joining file paths that contain spaces
 
         reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')

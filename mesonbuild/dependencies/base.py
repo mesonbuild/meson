@@ -1104,13 +1104,16 @@ class CMakeDependency(ExternalDependency):
         # stored in the pickled coredata and recovered.
         self.cmakebin = None
         self.cmakeinfo = None
-        self.traceparser = CMakeTraceParser()
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
 
         # T.List of successfully found modules
         self.found_modules = []
+
+        # Initialize with None before the first return to avoid
+        # AttributeError exceptions in derived classes
+        self.traceparser = None  # type: CMakeTraceParser
 
         self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
         if not self.cmakebin.found():
@@ -1120,6 +1123,9 @@ class CMakeDependency(ExternalDependency):
                 raise DependencyException(msg)
             mlog.debug(msg)
             return
+
+        # Setup the trace parser
+        self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
 
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info()
@@ -1166,11 +1172,13 @@ class CMakeDependency(ExternalDependency):
             gen_list += [CMakeDependency.class_working_generator]
         gen_list += CMakeDependency.class_cmake_generators
 
+        temp_parser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
+
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['--trace-expand', '.']
+            cmake_opts = temp_parser.trace_args() + ['.']
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
@@ -1190,7 +1198,6 @@ class CMakeDependency(ExternalDependency):
             return None
 
         try:
-            temp_parser = CMakeTraceParser()
             temp_parser.parse(err1)
         except MesonException:
             return None
@@ -1343,7 +1350,8 @@ class CMakeDependency(ExternalDependency):
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['--trace-expand', '-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts = ['-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts += self.traceparser.trace_args()
             cmake_opts += self._extra_cmake_opts()
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
@@ -1514,10 +1522,14 @@ class CMakeDependency(ExternalDependency):
         self.compile_args = compileOptions + compileDefinitions + ['-I{}'.format(x) for x in incDirs]
         self.link_args = libraries
 
-    def _setup_cmake_dir(self, cmake_file: str) -> str:
-        # Setup the CMake build environment and return the "build" directory
+    def _get_build_dir(self) -> str:
         build_dir = Path(self.cmake_root_dir) / 'cmake_{}'.format(self.name)
         build_dir.mkdir(parents=True, exist_ok=True)
+        return str(build_dir)
+
+    def _setup_cmake_dir(self, cmake_file: str) -> str:
+        # Setup the CMake build environment and return the "build" directory
+        build_dir = self._get_build_dir()
 
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
         src_cmake = Path(__file__).parent / 'data' / cmake_file
@@ -1540,11 +1552,11 @@ cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
 project(MesonTemp LANGUAGES {})
 """.format(' '.join(cmake_language)) + cmake_txt
 
-        cm_file = build_dir / 'CMakeLists.txt'
+        cm_file = Path(build_dir) / 'CMakeLists.txt'
         cm_file.write_text(cmake_txt)
         mlog.cmd_ci_include(cm_file.absolute().as_posix())
 
-        return str(build_dir)
+        return build_dir
 
     def _call_cmake(self, args, cmake_file: str, env=None):
         build_dir = self._setup_cmake_dir(cmake_file)
@@ -1568,7 +1580,7 @@ project(MesonTemp LANGUAGES {})
                      configtool: T.Optional[str] = None, internal: T.Optional[str] = None,
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
-        if cmake:
+        if cmake and self.traceparser is not None:
             try:
                 v = self.traceparser.vars[cmake]
             except KeyError:
