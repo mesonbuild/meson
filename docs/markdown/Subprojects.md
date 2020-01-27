@@ -55,6 +55,28 @@ should be named as `<project_name>_dep` (e.g. `gtest_dep`), and others can have
 
 There may be exceptions to these rules where common sense should be applied.
 
+### Adding variables to the dependency
+
+*New in 0.54.0*
+
+In some cases a project may define special variables via pkg-config or cmake
+that a caller needs to know about. Meson provides a `dependency.get_variable`
+method to hide what kind of dependency is provided, and this is available to
+subprojects as well. Use the `variables` keyword to add a dict of strings:
+
+```meson
+my_dep = declare_dependency(..., variables : {'var': 'value', 'number': '3'})
+```
+
+Which another project can access via:
+
+```meson
+var = my_dep.get_variable(internal : 'var', cmake : 'CMAKE_VAR')
+```
+
+The values of the dict must be strings, as pkg-config and cmake will return
+variables as strings.
+
 ### Build options in subproject
 
 All Meson features of the subproject, such as project options keep

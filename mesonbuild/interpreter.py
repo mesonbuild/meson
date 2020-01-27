@@ -483,7 +483,8 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
 
     @FeatureNew('dep.get_variable', '0.51.0')
     @noPosargs
-    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'default_value', 'pkgconfig_define'})
+    @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'internal', 'default_value', 'pkgconfig_define'})
+    @FeatureNewKwargs('dep.get_variable', '0.54.0', ['internal'])
     def variable_method(self, args, kwargs):
         return self.held_object.get_variable(**kwargs)
 
@@ -2087,6 +2088,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                            'link_args',
                                            'link_whole',
                                            'version',
+                                           'variables',
                                            },
                     'executable': build.known_exe_kwargs,
                     'find_program': {'required', 'native', 'version', 'dirs'},
@@ -2385,6 +2387,7 @@ class Interpreter(InterpreterBase):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
+    @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
@@ -2399,6 +2402,12 @@ class Interpreter(InterpreterBase):
         deps = extract_as_list(kwargs, 'dependencies', unholder=True)
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
+        variables = kwargs.get('variables', {})
+        if not isinstance(variables, dict):
+            raise InterpreterException('variables must be a dict.')
+        if not all(isinstance(v, str) for v in variables.values()):
+            # Because that is how they will come from pkg-config and cmake
+            raise InterpreterException('variables values be strings.')
         final_deps = []
         for d in deps:
             try:
@@ -2413,7 +2422,8 @@ class Interpreter(InterpreterBase):
                 raise InterpreterException('''Entries in "link_with" may only be self-built targets,
 external dependencies (including libraries) must go to "dependencies".''')
         dep = dependencies.InternalDependency(version, incs, compile_args,
-                                              link_args, libs, libs_whole, sources, final_deps)
+                                              link_args, libs, libs_whole, sources, final_deps,
+                                              variables)
         return DependencyHolder(dep, self.subproject)
 
     @noKwargs
