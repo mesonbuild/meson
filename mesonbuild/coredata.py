@@ -1078,8 +1078,8 @@ builtin_options = OrderedDict([
 ])
 
 builtin_options_per_machine = OrderedDict([
-    ('pkg_config_path', BuiltinOption(UserArrayOption, 'T.List of additional paths for pkg-config to search', [])),
-    ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'T.List of additional prefixes for cmake to search', [])),
+    ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
+    ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
 
 # Special prefix-dependent defaults for installation directories that reside in
