@@ -20,8 +20,8 @@ public class {class_name} {{
     const String PROJECT_NAME = "{project_name}";
 
     static int Main(String[] args) {{
-      if (args.Length == 0) {{
-          System.Console.WriteLine(String.Format("{{0}} takes no arguments..", args[0]));
+      if (args.Length > 0) {{
+          System.Console.WriteLine(String.Format("{project_name} takes no arguments.."));
           return 1;
       }}
       Console.WriteLine(String.Format("This is project {{0}}.", PROJECT_NAME));
@@ -56,8 +56,8 @@ lib_cs_test_template = '''using System;
 
 public class {class_test} {{
     static int Main(String[] args) {{
-      if (args.Length == 0) {{
-          System.Console.WriteLine(String.Format("{{0}} takes no arguments..", args[0]));
+      if (args.Length > 0) {{
+          System.Console.WriteLine("{project_name} takes no arguments..");
           return 1;
       }}
       {class_name} c = new {class_name}();
@@ -72,7 +72,7 @@ lib_cs_meson_template = '''project('{project_name}', 'cs',
   version : '{version}',
   default_options : ['warning_level=3'])
 
-stlib = shared_library('{class_name}', '{source_file}',
+stlib = shared_library('{lib_name}', '{source_file}',
   install : true,
 )
 
@@ -96,7 +96,7 @@ def create_exe_cs_sample(project_name, project_version):
     open(source_name, 'w').write(hello_cs_template.format(project_name=project_name,
                                                           class_name=class_name))
     open('meson.build', 'w').write(hello_cs_meson_template.format(project_name=project_name,
-                                                                  exe_name=class_name,
+                                                                  exe_name=project_name,
                                                                   source_name=source_name,
                                                                   version=project_version))
 
@@ -106,6 +106,7 @@ def create_lib_cs_sample(project_name, version):
     uppercase_token = lowercase_token.upper()
     class_name = uppercase_token[0] + lowercase_token[1:]
     class_test = uppercase_token[0] + lowercase_token[1:] + '_test'
+    project_test = lowercase_token + '_test'
     lib_cs_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
     test_cs_name = uppercase_token[0] + lowercase_token[1:] + '_test.cs'
     kwargs = {'utoken': uppercase_token,
@@ -114,7 +115,7 @@ def create_lib_cs_sample(project_name, version):
               'class_name': class_name,
               'source_file': lib_cs_name,
               'test_source_file': test_cs_name,
-              'test_exe_name': lowercase_token,
+              'test_exe_name': project_test,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,
