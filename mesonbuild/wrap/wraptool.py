@@ -105,7 +105,7 @@ def parse_patch_url(patch_url):
     return arr[-3], int(arr[-2])
 
 def get_current_version(wrapfile):
-    cp = configparser.ConfigParser()
+    cp = configparser.ConfigParser(interpolation=None)
     cp.read(wrapfile)
     cp = cp['wrap-file']
     patch_url = cp['patch_url']
