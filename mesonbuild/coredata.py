@@ -228,7 +228,7 @@ class UserFeatureOption(UserComboOption):
 
 def load_configs(filenames: T.List[str]) -> configparser.ConfigParser:
     """Load configuration files from a named subdirectory."""
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation=None)
     config.read(filenames)
     return config
 

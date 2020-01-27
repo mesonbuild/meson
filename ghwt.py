@@ -43,7 +43,7 @@ def unpack(sproj, branch, outdir):
     subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), outdir])
     usfile = os.path.join(outdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
-    config = configparser.ConfigParser()
+    config = configparser.ConfigParser(interpolation=None)
     config.read(usfile)
     us_url = config['wrap-file']['source_url']
     us = urllib.request.urlopen(us_url, timeout=req_timeout).read()
