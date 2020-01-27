@@ -28,7 +28,9 @@ native-files and the latter via the cross file only.
 
 ## Set dynamic linker
 
-Like the compiler, the linker is selected via the <compiler variable>_LD
+*New in 0.53.0*
+
+Like the compiler, the linker is selected via the `<compiler variable>_LD`
 environment variable, or through the `<compiler entry>ld` entry in a native
 or cross file. You must be aware of whether you're using a compiler that
 invokes the linker itself (most compilers including GCC and Clang) or a
@@ -38,8 +40,8 @@ to pass to the compiler's special argument (such as `-fuse-ld` with clang and
 gcc), with the latter it should be an executable, such as `lld-link.exe`.
 
 *NOTE* In meson 0.53.0 the `ld` entry in the cross/native file and the `LD`
-environment variable was used, this resulted in a large number of regressions
-and was changed.
+environment variable were used, this resulted in a large number of regressions
+and was changed in 0.53.1 to `<lang>_ld` and `<comp variable>_LD`.
 
 ```console
 $ CC=clang CC_LD=lld meson <options>
