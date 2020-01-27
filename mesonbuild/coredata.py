@@ -19,7 +19,7 @@ from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
-    MesonException, MachineChoice, PerMachine,
+    MesonException, MachineChoice, PerMachine, OrderedSet,
     default_libdir, default_libexecdir, default_prefix, split_args
 )
 from .wrap import WrapMode
@@ -746,16 +746,20 @@ class CoreData:
         # Some options default to environment variables if they are
         # unset, set those now. These will either be overwritten
         # below, or they won't. These should only be set on the first run.
-        if env.first_invocation:
-            p_env = os.environ.get('PKG_CONFIG_PATH')
-            if p_env:
-                # PKG_CONFIG_PATH may contain duplicates, which must be
-                # removed, else a duplicates-in-array-option warning arises.
-                pkg_config_paths = []
-                for k in p_env.split(':'):
-                    if k not in pkg_config_paths:
-                        pkg_config_paths.append(k)
-                options['pkg_config_path'] = pkg_config_paths
+        p_env = os.environ.get('PKG_CONFIG_PATH')
+        if p_env:
+            # PKG_CONFIG_PATH may contain duplicates, which must be
+            # removed, else a duplicates-in-array-option warning arises.
+            p_list = list(OrderedSet(p_env.split(':')))
+            if env.first_invocation:
+                options['pkg_config_path'] = p_list
+            elif options.get('pkg_config_path', []) != p_list:
+                mlog.warning(
+                    'PKG_CONFIG_PATH environment variable has changed '
+                    'between configurations, meson ignores this. '
+                    'Use -Dpkg_config_path to change pkg-config search '
+                    'path instead.'
+                )
 
         for k, v in env.cmd_line_options.items():
             if subproject:
