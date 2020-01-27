@@ -163,19 +163,19 @@ class TryRunResultHolder(InterpreterObject):
 
 class RunProcess(InterpreterObject):
 
-    def __init__(self, cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False, check=False, capture=True):
+    def __init__(self, cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir=False, check=False, capture=True, cwd=None):
         super().__init__()
         if not isinstance(cmd, ExternalProgram):
             raise AssertionError('BUG: RunProcess must be passed an ExternalProgram')
         self.capture = capture
-        pc, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check)
+        pc, self.stdout, self.stderr = self.run_command(cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check, cwd=cwd)
         self.returncode = pc.returncode
         self.methods.update({'returncode': self.returncode_method,
                              'stdout': self.stdout_method,
                              'stderr': self.stderr_method,
                              })
 
-    def run_command(self, cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check=False):
+    def run_command(self, cmd, args, env, source_dir, build_dir, subdir, mesonintrospect, in_builddir, check=False, cwd=None):
         command_array = cmd.get_command() + args
         menv = {'MESON_SOURCE_ROOT': source_dir,
                 'MESON_BUILD_ROOT': build_dir,
@@ -185,7 +185,8 @@ class RunProcess(InterpreterObject):
         if in_builddir:
             cwd = os.path.join(build_dir, subdir)
         else:
-            cwd = os.path.join(source_dir, subdir)
+            if cwd is None:
+                cwd = os.path.join(source_dir, subdir)
         child_env = os.environ.copy()
         child_env.update(menv)
         child_env = env.get_env(child_env)
@@ -2103,7 +2104,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
-                    'run_command': {'check', 'capture', 'env'},
+                    'run_command': {'check', 'capture', 'env', 'cwd'},
                     'run_target': {'command', 'depends'},
                     'shared_library': build.known_shlib_kwargs,
                     'shared_module': build.known_shmod_kwargs,
@@ -2448,7 +2449,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @FeatureNewKwargs('run_command', '0.50.0', ['env'])
+    @FeatureNewKwargs('run_command', '0.50.0', ['env', 'cwd'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
     @permittedKwargs(permitted_kwargs['run_command'])
     def func_run_command(self, node, args, kwargs):
@@ -2461,6 +2462,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         capture = kwargs.get('capture', True)
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
+        cwd = kwargs.get('cwd', None)
 
         check = kwargs.get('check', False)
         if not isinstance(check, bool):
@@ -2519,7 +2521,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.add_build_def_file(a)
         return RunProcess(cmd, expanded_args, env, srcdir, builddir, self.subdir,
                           self.environment.get_build_command() + ['introspect'],
-                          in_builddir=in_builddir, check=check, capture=capture)
+                          in_builddir=in_builddir, check=check, capture=capture, cwd=cwd)
 
     @stringArgs
     def func_gettext(self, nodes, args, kwargs):
