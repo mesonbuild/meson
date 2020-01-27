@@ -6,15 +6,53 @@ c = 'ccrx'
 cpp = 'ccrx'
 ar = 'rlink'
 strip = 'rlink'
+pkgconfig = 'pkg-config'
+
+[host_machine]
+system = 'bare metal'
+cpu_family = 'rx'
+cpu = 'rx600'
+endian = 'little'
 
 [properties]
 # The '--cpu' option with the appropriate target type should be mentioned
 # to cross compile c/c++ code with ccrx,.
-c_args      = ['--cpu=rx600']
-cpp_args    = ['--cpu=rx600']
-
-[host_machine]
-system = 'bare metal'      # Update with your system name - bare metal/OS.
-cpu_family = 'rx'
-cpu = 'rx600'
-endian = 'little'
+needs_exe_wrapper = true
+c_args = [
+  '-cpu=rx600',
+  '-goptimize',
+  '-nostuff',
+  '-define=_REENTRANT,_FEVAL=0,_HAS_C9X_FAST_FMA=0,RX63_BOARD=CUSTOM631,__DBL8,DEVICE_PACKAGE_100_PIN,GHW_SINGLE_CHIP'
+  ]
+c_link_args = [
+  '-show=ALL',
+  '-list=device.map',
+  '-form=absolute',
+  '-nologo',
+  '-optimize',
+  '-msg_unused',
+  '-debug',
+  '-noprelink',
+  '-stack',
+  '-total_size',
+  '-padding',
+  ]
+cpp_args = [
+  '-cpu=rx600',
+  '-goptimize',
+  '-nostuff',
+  '-define=_REENTRANT,_FEVAL=0,_HAS_C9X_FAST_FMA=0'
+  ]
+cpp_link_args = [
+  '-show=ALL',
+  '-list=device.map',
+  '-form=absolute',
+  '-nologo',
+  '-optimize',
+  '-msg_unused',
+  '-debug',
+  '-noprelink',
+  '-stack',
+  '-total_size',
+  '-padding',
+  ]

@@ -1,3 +1,5 @@
 ## Added `cpp_std` option for the Visual Studio C++ compiler
 Allows the use of C++17 features and experimental not-yet-standardized
 features. Valid options are `c++11`, `c++14`, `c++17`, and `c++latest`.
+
+## Fixed Renesas RX Family compiler to work with latest meson, added working cross file, fixed assembly file bug
