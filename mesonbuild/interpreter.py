@@ -190,7 +190,6 @@ class RunProcess(InterpreterObject):
             else:
                 if not os.path.exists(cwd):
                     raise InterpreterException('Working directory does not exist "%s"' % cwd)
-                
 
         child_env = os.environ.copy()
         child_env.update(menv)
