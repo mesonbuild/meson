@@ -1330,53 +1330,6 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
     return passing_tests, failing_tests, skipped_tests
 
-def check_file(file: Path) -> None:
-    lines = file.read_bytes().split(b'\n')
-    tabdetector = re.compile(br' *\t')
-    for i, line in enumerate(lines):
-        if re.match(tabdetector, line):
-            raise SystemExit("File {} contains a tab indent on line {:d}. Only spaces are permitted.".format(file, i + 1))
-        if line.endswith(b'\r'):
-            raise SystemExit("File {} contains DOS line ending on line {:d}. Only unix-style line endings are permitted.".format(file, i + 1))
-
-def check_format() -> None:
-    check_suffixes = {'.c',
-                      '.cpp',
-                      '.cxx',
-                      '.cc',
-                      '.rs',
-                      '.f90',
-                      '.vala',
-                      '.d',
-                      '.s',
-                      '.m',
-                      '.mm',
-                      '.asm',
-                      '.java',
-                      '.txt',
-                      '.py',
-                      '.swift',
-                      '.build',
-                      '.md',
-                      }
-    skip_dirs = {
-        '.dub',                         # external deps are here
-        '.pytest_cache',
-        'meson-logs', 'meson-private',
-        'work area',
-        '.eggs', '_cache',              # e.g. .mypy_cache
-        'venv',                         # virtualenvs have DOS line endings
-    }
-    for (root, _, filenames) in os.walk('.'):
-        if any([x in root for x in skip_dirs]):
-            continue
-        for fname in filenames:
-            file = Path(fname)
-            if file.suffix.lower() in check_suffixes:
-                if file.name in ('sitemap.txt', 'meson-test-run.txt'):
-                    continue
-                check_file(root / file)
-
 def check_meson_commands_work(use_tmpdir: bool, extra_args: T.List[str]) -> None:
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
@@ -1567,7 +1520,6 @@ if __name__ == '__main__':
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
-    check_format()
     check_meson_commands_work(options.use_tmpdir, options.extra_args)
     only = collections.defaultdict(list)
     for i in options.only:
