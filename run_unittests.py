@@ -76,6 +76,13 @@ from run_tests import (
 
 URLOPEN_TIMEOUT = 5
 
+@contextmanager
+def chdir(path: str):
+    curdir = os.getcwd()
+    os.chdir(path)
+    yield
+    os.chdir(curdir)
+
 
 def get_dynamic_section_entry(fname, entry):
     if is_cygwin() or is_osx():
@@ -5861,24 +5868,23 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, testdir)
         subdir = os.path.join(testdir, subdir_path)
         curdir = os.getcwd()
-        os.chdir(subdir)
-        # Can't distribute broken symlinks in the source tree because it breaks
-        # the creation of zipapps. Create it dynamically and run the test by
-        # hand.
-        src = '../../nonexistent.txt'
-        os.symlink(src, 'invalid-symlink.txt')
-        try:
-            self.init(testdir)
-            self.build()
-            self.install()
-            install_path = subdir_path.split(os.path.sep)[-1]
-            link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
-            self.assertTrue(os.path.islink(link), msg=link)
-            self.assertEqual(src, os.readlink(link))
-            self.assertFalse(os.path.isfile(link), msg=link)
-        finally:
-            os.remove(os.path.join(subdir, 'invalid-symlink.txt'))
-            os.chdir(curdir)
+        with chdir(subdir):
+            # Can't distribute broken symlinks in the source tree because it breaks
+            # the creation of zipapps. Create it dynamically and run the test by
+            # hand.
+            src = '../../nonexistent.txt'
+            os.symlink(src, 'invalid-symlink.txt')
+            try:
+                self.init(testdir)
+                self.build()
+                self.install()
+                install_path = subdir_path.split(os.path.sep)[-1]
+                link = os.path.join(self.installdir, 'usr', 'share', install_path, 'invalid-symlink.txt')
+                self.assertTrue(os.path.islink(link), msg=link)
+                self.assertEqual(src, os.readlink(link))
+                self.assertFalse(os.path.isfile(link), msg=link)
+            finally:
+                os.remove(os.path.join(subdir, 'invalid-symlink.txt'))
 
     def test_install_subdir_symlinks(self):
         self.install_subdir_invalid_symlinks('62 install subdir', os.path.join('sub', 'sub1'))
