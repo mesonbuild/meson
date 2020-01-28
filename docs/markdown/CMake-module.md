@@ -12,6 +12,11 @@ following functions will then be available as methods on the object
 with the name `cmake`. You can, of course, replace the name `cmake`
 with anything else.
 
+It is generally recommended to use the latest Meson version and
+CMake >=3.17 for best compatibility. CMake subprojects will
+usually also work with older CMake versions. However, this can
+lead to unexpected issues in rare cases.
+
 ## CMake subprojects
 
 Using CMake subprojects is similar to using the "normal" meson
