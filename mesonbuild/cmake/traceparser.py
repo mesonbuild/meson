@@ -24,6 +24,7 @@ import typing as T
 from pathlib import Path
 import re
 import os
+import json
 
 class CMakeTraceLine:
     def __init__(self, file, line, func, args):
@@ -76,11 +77,12 @@ class CMakeTraceParser:
         self.cmake_version = cmake_version  # type: str
         self.trace_file = 'cmake_trace.txt'
         self.trace_file_path = Path(build_dir) / self.trace_file
-        self.trace_format = 'human'
+        self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
 
     def trace_args(self) -> T.List[str]:
         arg_map = {
             'human': ['--trace', '--trace-expand'],
+            'json-v1': ['--trace-expand', '--trace-format=json-v1'],
         }
 
         base_args = ['--no-warn-unused-cli']
@@ -105,8 +107,10 @@ class CMakeTraceParser:
         lexer1 = None
         if self.trace_format == 'human':
             lexer1 = self._lex_trace_human(trace)
+        elif self.trace_format == 'json-v1':
+            lexer1 = self._lex_trace_json(trace)
         else:
-            raise CMakeException('CMake: Internal error: Invalid trace format {}. Expected [human]'.format(self.trace_format))
+            raise CMakeException('CMake: Internal error: Invalid trace format {}. Expected [human, json-v1]'.format(self.trace_format))
 
         # All supported functions
         functions = {
@@ -413,21 +417,27 @@ class CMakeTraceParser:
         # Neither of these is awesome for obvious reasons. I'm going to try
         # option 1 first and fall back to 2, as 1 requires less code and less
         # synchroniztion for cmake changes.
+        #
+        # With the JSON output format, introduced in CMake 3.17, spaces are
+        # handled properly and we don't have to do either options
 
         arglist = []  # type: T.List[T.Tuple[str, T.List[str]]]
-        name = args.pop(0)
-        values = []
-        prop_regex = re.compile(r'^[A-Z_]+$')
-        for a in args:
-            if prop_regex.match(a):
-                if values:
-                    arglist.append((name, ' '.join(values).split(';')))
-                name = a
-                values = []
-            else:
-                values.append(a)
-        if values:
-            arglist.append((name, ' '.join(values).split(';')))
+        if self.trace_format == 'human':
+            name = args.pop(0)
+            values = []
+            prop_regex = re.compile(r'^[A-Z_]+$')
+            for a in args:
+                if prop_regex.match(a):
+                    if values:
+                        arglist.append((name, ' '.join(values).split(';')))
+                    name = a
+                    values = []
+                else:
+                    values.append(a)
+            if values:
+                arglist.append((name, ' '.join(values).split(';')))
+        else:
+            arglist = [(x[0], x[1].split(';')) for x in zip(args[::2], args[1::2])]
 
         for name, value in arglist:
             for i in targets:
@@ -541,7 +551,20 @@ class CMakeTraceParser:
 
             yield CMakeTraceLine(file, line, func, args)
 
+    def _lex_trace_json(self, trace: str):
+        lines = trace.splitlines(keepends=False)
+        lines.pop(0)  # The first line is the version
+        for i in lines:
+            data = json.loads(i)
+            args = data['args']
+            args = [parse_generator_expressions(x) for x in args]
+            yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
+
     def _guess_files(self, broken_list: T.List[str]) -> T.List[str]:
+        # Nothing has to be done for newer formats
+        if self.trace_format != 'human':
+            return broken_list
+
         # Try joining file paths that contain spaces
 
         reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
