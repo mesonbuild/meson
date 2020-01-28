@@ -24,6 +24,7 @@ import configparser, hashlib
 
 req_timeout = 600.0
 private_repos = {'meson', 'wrapweb', 'meson-ci'}
+spdir = 'subprojects'
 
 def gh_get(url):
     r = urllib.request.urlopen(url, timeout=req_timeout)
@@ -39,12 +40,21 @@ def list_projects():
         print(i)
     return 0
 
-def unpack(sproj, branch, outdir):
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), outdir])
-    usfile = os.path.join(outdir, 'upstream.wrap')
+def unpack(sproj, branch):
+    tmpdir = os.path.join(spdir, sproj + '_ghwt')
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), tmpdir])
+    usfile = os.path.join(tmpdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser(interpolation=None)
     config.read(usfile)
+    outdir = os.path.join(spdir, sproj)
+    if 'directory' in config['wrap-file']:
+        outdir = os.path.join(spdir, config['wrap-file']['directory'])
+    if os.path.isdir(outdir):
+        print('Subproject is already there. To update, nuke the {} dir and reinstall.'.format(outdir))
+        shutil.rmtree(tmpdir)
+        return 1
     us_url = config['wrap-file']['source_url']
     us = urllib.request.urlopen(us_url, timeout=req_timeout).read()
     h = hashlib.sha256()
@@ -56,7 +66,6 @@ def unpack(sproj, branch, outdir):
         print(' expected:', should)
         print(' obtained:', dig)
         return 1
-    spdir = os.path.dirname(outdir)
     ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
     with open(ofilename, 'wb') as ofile:
         ofile.write(us)
@@ -65,22 +74,16 @@ def unpack(sproj, branch, outdir):
         shutil.unpack_archive(ofilename, outdir)
     else:
         shutil.unpack_archive(ofilename, spdir)
-        extdir = os.path.join(spdir, config['wrap-file']['directory'])
-        assert(os.path.isdir(extdir))
-        shutil.move(os.path.join(outdir, '.git'), extdir)
-        subprocess.check_call(['git', 'reset', '--hard'], cwd=extdir)
-        shutil.rmtree(outdir)
-        shutil.move(extdir, outdir)
+        assert(os.path.isdir(outdir))
+    shutil.move(os.path.join(tmpdir, '.git'), outdir)
+    subprocess.check_call(['git', 'reset', '--hard'], cwd=outdir)
+    shutil.rmtree(tmpdir)
     shutil.rmtree(os.path.join(outdir, '.git'))
     os.unlink(ofilename)
 
 def install(sproj):
-    sproj_dir = os.path.join('subprojects', sproj)
-    if not os.path.isdir('subprojects'):
+    if not os.path.isdir(spdir):
         print('Run this in your source root and make sure there is a subprojects directory in it.')
-        return 1
-    if os.path.isdir(sproj_dir):
-        print('Subproject is already there. To update, nuke the dir and reinstall.')
         return 1
     blist = gh_get('https://api.github.com/repos/mesonbuild/{}/branches'.format(sproj))
     blist = [b['name'] for b in blist]
@@ -88,7 +91,7 @@ def install(sproj):
     blist.sort()
     branch = blist[-1]
     print('Using branch', branch)
-    return unpack(sproj, branch, sproj_dir)
+    return unpack(sproj, branch)
 
 def run(args):
     if not args or args[0] == '-h' or args[0] == '--help':
