@@ -43,6 +43,7 @@ from distutils.dir_util import copy_tree
 
 import mesonbuild.mlog
 import mesonbuild.depfile
+import mesonbuild.dependencies.base
 import mesonbuild.compilers
 import mesonbuild.envconfig
 import mesonbuild.environment
@@ -1200,6 +1201,26 @@ class InternalTests(unittest.TestCase):
             ['/usr/lib', '/usr/local/lib', '/home/mesonuser/.local/lib'],
             ['/home/mesonuser/.local/lib/pkgconfig', '/usr/local/libdata/pkgconfig']),
             ['/home/mesonuser/.local/lib', '/usr/local/lib', '/usr/lib'])
+
+    def test_dependency_factory_order(self):
+        b = mesonbuild.dependencies.base
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with chdir(tmpdir):
+                env = get_fake_env()
+
+                f = b.DependencyFactory(
+                    'test_dep',
+                    methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
+                )
+                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+                self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
+
+                f = b.DependencyFactory(
+                    'test_dep',
+                    methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
+                )
+                actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
+                self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
 
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
