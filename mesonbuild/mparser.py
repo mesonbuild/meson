@@ -20,6 +20,30 @@ from . import mlog
 
 # This is the regex for the supported escape sequences of a regular string
 # literal, like 'abc\x00'
+
+# Backslash escaping happens in several levels/places in Python and
+# works differently in each place. Survival skills:
+#
+# - By design, a backslash in a _raw_ string NEVER gets combined with
+#   the next character. Always use raw strings for regular
+#   expressions. Note even when never combined, it still has a bit of
+#   "escape power" as seen in: r'a\'b'
+#
+# - A regular expression ALWAYS combines a backslash with the next
+#   character. So finding a literal backslash requires doubling
+#   it. Starting with 3.6, sequences with an unknown letter (e.g: r'\z')
+#   fail to compile. Other unknown sequences discard the backslash as
+#   no-op, e.g: r'\=' matches exactly like r'='.
+#
+# - A backslash is treated the SAME inside vs outside a regex set [ ].
+#   However '\+' makes a difference outside [ ]\+, whereas the same
+#   backslash is discarded as a no-op inside [\+] because + is not
+#   special inside.
+#
+# - Regular, not-raw strings combine backslashes with the next character
+#   SOMETIMES and sometimes not; check the relevant documentation. In
+#   doubt try to use a raw string.
+
 ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
     ( \\U[A-Fa-f0-9]{8}   # 8-digit hex escapes
     | \\u[A-Fa-f0-9]{4}   # 4-digit hex escapes

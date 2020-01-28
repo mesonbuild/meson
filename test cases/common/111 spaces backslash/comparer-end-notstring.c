@@ -4,7 +4,7 @@
 #error "comparer.h not included"
 #endif
 
-/* This converts foo\\\\bar\\\\ to "foo\\bar\\" (string literal) */
+/* This converts foo\\bar\\ to "foo\\bar\\" (string literal) */
 #define Q(x) #x
 #define QUOTE(x) Q(x)
 

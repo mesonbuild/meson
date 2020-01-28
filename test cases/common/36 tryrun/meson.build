@@ -14,10 +14,7 @@ endif
 ok_code = '''#include<stdio.h>
 int main(void) {
   printf("%s\n", "stdout");
-  fprintf(stderr, "%s\n", "stderr");
-  return 0;
-}
-'''
+''' + 'fprintf(stderr, "%s\\n", "stderr"); return 0; }'
 
 error_code = '''int main(void) {
   return 1;
@@ -66,13 +63,13 @@ foreach cc : compilers
     if ok.stdout().strip() == 'stdout'
       message(type + ' stdout ok.')
     else
-      message(type + ' bad stdout.')
+      error(type + ' bad stdout.')
     endif
 
     if ok.stderr().strip() == 'stderr'
       message(type + ' stderr ok.')
     else
-      message(type + ' bad stderr.')
+      error(type + ' bad stderr.')
     endif
   endforeach
 endforeach

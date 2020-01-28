@@ -186,7 +186,6 @@ class NinjaBuildElement:
                     quoter = ninja_quote
                 else:
                     quoter = lambda x: ninja_quote(quote_func(x))
-                i = i.replace('\\', '\\\\')
                 if quote_func('') == '""':
                     i = i.replace('"', '\\"')
                 newelems.append(quoter(i))
