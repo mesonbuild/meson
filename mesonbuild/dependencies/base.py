@@ -2501,3 +2501,30 @@ def process_method_kw(possible: T.List[DependencyMethods], kwargs) -> T.List[Dep
                 mlog.format_list([x.value for x in [DependencyMethods.AUTO] + possible])))
 
     return methods
+
+
+if T.TYPE_CHECKING:
+    FactoryType = T.Callable[[Environment, MachineChoice, T.Dict[str, T.Any]],
+                             T.List['DependencyType']]
+    FullFactoryType = T.Callable[[Environment, MachineChoice, T.Dict[str, T.Any], T.Set[DependencyMethods]],
+                                 T.List['DependencyType']]
+
+
+def factory_methods(methods: T.Set[DependencyMethods]) -> 'FactoryType':
+    """Decorator for handling methods for dependency factory functions.
+
+    This helps to make factory functions self documenting
+    >>> @factory_methods([DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE])
+    >>> def factory(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any], methods: T.Set[DependencyMethods]) -> T.List[DependencyType]:
+    >>>     pass
+    """
+
+    def inner(func: 'FullFactoryType') -> 'FactoryType':
+
+        @functools.wraps(func)
+        def wrapped(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
+            return func(env, for_machine, kwargs, process_method_kw(methods, kwargs))
+
+        return wrapped
+
+    return inner
