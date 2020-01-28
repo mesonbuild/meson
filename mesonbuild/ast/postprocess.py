@@ -20,7 +20,7 @@ from .. import mparser
 import typing as T
 
 class AstIndentationGenerator(AstVisitor):
-    def __init__(self) -> None:
+    def __init__(self):
         self.level = 0
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
@@ -76,7 +76,7 @@ class AstIndentationGenerator(AstVisitor):
         self.level -= 1
 
 class AstIDGenerator(AstVisitor):
-    def __init__(self) -> None:
+    def __init__(self):
         self.counter = {}  # type: T.Dict[str, int]
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:
@@ -87,7 +87,7 @@ class AstIDGenerator(AstVisitor):
         self.counter[name] += 1
 
 class AstConditionLevel(AstVisitor):
-    def __init__(self) -> None:
+    def __init__(self):
         self.condition_level = 0
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:

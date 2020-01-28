@@ -67,7 +67,7 @@ ADD_SOURCE = 0
 REMOVE_SOURCE = 1
 
 class AstInterpreter(interpreterbase.InterpreterBase):
-    def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None) -> None:
+    def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
         self.visited_subdirs = {}     # type: T.Dict[str, bool]

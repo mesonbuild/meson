@@ -28,7 +28,7 @@ arithmic_map = {
 }
 
 class AstPrinter(AstVisitor):
-    def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5) -> None:
+    def __init__(self, indent: int = 2, arg_newline_cutoff: int = 5):
         self.result = ''
         self.indent = indent
         self.arg_newline_cutoff = arg_newline_cutoff

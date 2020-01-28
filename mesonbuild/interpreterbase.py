@@ -185,7 +185,7 @@ def disablerIfNotFound(f):
 
 class permittedKwargs:
 
-    def __init__(self, permitted: T.Set[str]) -> None:
+    def __init__(self, permitted: T.Set[str]):
         self.permitted = permitted  # type: T.Set[str]
 
     def __call__(self, f):
@@ -208,7 +208,7 @@ class FeatureCheckBase:
     # Format: {subproject: {feature_version: set(feature_names)}}
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
-    def __init__(self, feature_name: str, version: str) -> None:
+    def __init__(self, feature_name: str, version: str):
         self.feature_name = feature_name  # type: str
         self.feature_version = version    # type: str
 
@@ -293,7 +293,7 @@ class FeatureDeprecated(FeatureCheckBase):
 
 
 class FeatureCheckKwargsBase:
-    def __init__(self, feature_name: str, feature_version: str, kwargs: T.List[str]) -> None:
+    def __init__(self, feature_name: str, feature_version: str, kwargs: T.List[str]):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.kwargs = kwargs
@@ -375,7 +375,7 @@ def is_disabled(args, kwargs) -> bool:
 class InterpreterBase:
     elementary_types = (int, float, str, bool, list)
 
-    def __init__(self, source_root: str, subdir: str, subproject: str) -> None:
+    def __init__(self, source_root: str, subdir: str, subproject: str):
         self.source_root = source_root
         self.funcs = {}    # type: T.Dict[str, T.Callable[[mparser.BaseNode, T.List[TYPE_nvar], T.Dict[str, TYPE_nvar]], TYPE_var]]
         self.builtin = {}  # type: T.Dict[str, InterpreterObject]

@@ -400,7 +400,7 @@ class PerThreeMachine(PerMachine[_T]):
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__(None, None)
 
     def default_missing(self) -> "PerMachine[T.Optional[_T]]":
@@ -418,7 +418,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
 class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
-    def __init__(self) -> None:
+    def __init__(self):
         PerThreeMachine.__init__(self, None, None, None)
 
     def default_missing(self) -> "PerThreeMachine[T.Optional[_T]]":

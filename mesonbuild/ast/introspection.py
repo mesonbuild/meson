@@ -30,7 +30,7 @@ build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'sha
 
 class IntrospectionHelper:
     # mimic an argparse namespace
-    def __init__(self, cross_file: str) -> None:
+    def __init__(self, cross_file: str):
         self.cross_file = cross_file  # type: str
         self.native_file = None       # type: str
         self.cmd_line_options = {}    # type: T.Dict[str, str]
@@ -46,7 +46,7 @@ class IntrospectionInterpreter(AstInterpreter):
                  cross_file: T.Optional[str] = None,
                  subproject: str = '',
                  subproject_dir: str = 'subprojects',
-                 env: T.Optional[environment.Environment] = None) -> None:
+                 env: T.Optional[environment.Environment] = None):
         visitors = visitors if visitors is not None else []
         super().__init__(source_root, subdir, subproject, visitors=visitors)
 
