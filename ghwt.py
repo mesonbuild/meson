@@ -81,7 +81,7 @@ def unpack(sproj, branch):
     shutil.rmtree(os.path.join(outdir, '.git'))
     os.unlink(ofilename)
 
-def install(sproj):
+def install(sproj, requested_branch=None):
     if not os.path.isdir(spdir):
         print('Run this in your source root and make sure there is a subprojects directory in it.')
         return 1
@@ -90,12 +90,25 @@ def install(sproj):
     blist = [b for b in blist if b != 'master']
     blist.sort()
     branch = blist[-1]
+    if requested_branch is not None:
+        if requested_branch in blist:
+            branch = requested_branch
+        else:
+            print('Could not find user-requested branch', requested_branch)
+            print('Available branches for', sproj, ':')
+            print(blist)
+            return 1
     print('Using branch', branch)
     return unpack(sproj, branch)
 
+def print_help():
+    print('Usage:')
+    print(sys.argv[0], 'list')
+    print(sys.argv[0], 'install', 'package_name', '[branch_name]')
+
 def run(args):
     if not args or args[0] == '-h' or args[0] == '--help':
-        print(sys.argv[0], 'list/install', 'package_name')
+        print_help()
         return 1
     command = args[0]
     args = args[1:]
@@ -103,10 +116,13 @@ def run(args):
         list_projects()
         return 0
     elif command == 'install':
-        if len(args) != 1:
-            print('Install requires exactly one argument.')
+        if len(args) == 1:
+            return install(args[0])
+        elif len(args) == 2:
+            return install(args[0], args[1])
+        else:
+            print_help()
             return 1
-        return install(args[0])
     else:
         print('Unknown command')
         return 1

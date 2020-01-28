@@ -17,10 +17,14 @@ To list all available wraps:
 To install a wrap, go to your source root, make sure that the
 `subprojects` directory exists and run this command:
 
-    ghwt.py install <projectname>
+    ghwt.py install <projectname> [<branchname>]
 
 This will stage the subproject ready to use. If you have multiple
 subprojects you need to download them all manually.
+
+Specifying branch name is optional. If not specified, the list
+of potential branches is sorted alphabetically and the last branch is 
+used.
 
 *Note* The tool was added in 0.32.0, for versions older than that you
 need to delete the `foo.wrap` file to work around this issue.
