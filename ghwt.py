@@ -53,8 +53,8 @@ def unpack(sproj, branch, outdir):
     should = config['wrap-file']['source_hash']
     if dig != should:
         print('Incorrect hash on download.')
-        print(' expected:', dig)
-        print(' obtained:', should)
+        print(' expected:', should)
+        print(' obtained:', dig)
         return 1
     spdir = os.path.dirname(outdir)
     ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
