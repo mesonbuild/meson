@@ -325,7 +325,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
         GnuCPPCompiler.__init__(self, exelist, version, for_machine,
                                 is_cross, info, exe_wrapper, defines,
                                 **kwargs)
-        ElbrusCompiler.__init__(self, defines)
+        ElbrusCompiler.__init__(self)
 
     # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
@@ -350,6 +350,19 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
                                         dependencies=dependencies)
+
+    # Elbrus C++ compiler does not support RTTI, so don't check for it.
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['cpp_std']
+        if std.value != 'none':
+            args.append(self._find_best_cpp_std(std.value))
+
+        non_msvc_eh_options(options['cpp_eh'].value, args)
+
+        if options['cpp_debugstl'].value:
+            args.append('-D_GLIBCXX_DEBUG=1')
+        return args
 
 
 class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):

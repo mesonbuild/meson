@@ -20,6 +20,7 @@ import subprocess
 import re
 
 from .gnu import GnuLikeCompiler
+from .gnu import gnu_optimization_args
 from ...mesonlib import Popen_safe
 
 if T.TYPE_CHECKING:
@@ -29,7 +30,7 @@ if T.TYPE_CHECKING:
 class ElbrusCompiler(GnuLikeCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self, defines: T.Dict[str, str]):
+    def __init__(self):
         super().__init__()
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',
@@ -70,3 +71,13 @@ class ElbrusCompiler(GnuLikeCompiler):
             if line.lstrip().startswith('--sys_include'):
                 includes.append(re.sub(r'\s*\\$', '', re.sub(r'^\s*--sys_include\s*', '', line)))
         return includes
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return gnu_optimization_args[optimization_level]
+
+    def get_pch_suffix(self) -> str:
+        # Actually it's not supported for now, but probably will be supported in future
+        return 'pch'
+
+    def openmp_flags(self) -> T.List[str]:
+        return ['-fopenmp']

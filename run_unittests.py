@@ -2290,7 +2290,7 @@ class AllPlatformTests(BasePlatformTests):
         ar = mesonbuild.linkers.ArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
-        if not is_windows():
+        if not is_windows() and platform.machine().lower() != 'e2k':
             langs += [('objc', 'OBJC'), ('objcpp', 'OBJCXX')]
         testdir = os.path.join(self.unit_test_dir, '5 compiler detection')
         env = get_fake_env(testdir, self.builddir, self.prefix)
@@ -3087,7 +3087,9 @@ int main(int argc, char **argv) {
             pass
         try:
             env.detect_fortran_compiler(MachineChoice.HOST)
-            langs.append('fortran')
+            if is_windows() or platform.machine().lower() != 'e2k':
+                # Elbrus Fortran compiler can't generate debug information
+                langs.append('fortran')
         except EnvironmentException:
             pass
         try:

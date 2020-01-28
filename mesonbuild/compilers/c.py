@@ -231,10 +231,11 @@ class PGICCompiler(PGICompiler, CCompiler):
 
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, defines=None, **kwargs):
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines=None, **kwargs):
         GnuCCompiler.__init__(self, exelist, version, for_machine, is_cross,
                               info, exe_wrapper, defines, **kwargs)
-        ElbrusCompiler.__init__(self, defines)
+        ElbrusCompiler.__init__(self)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
     def get_options(self):
