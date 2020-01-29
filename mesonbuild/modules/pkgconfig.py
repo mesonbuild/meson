@@ -123,8 +123,15 @@ class DependenciesHelper:
                 processed_reqs.append(obj.generated_pc)
             elif isinstance(obj, dependencies.PkgConfigDependency):
                 if obj.found():
-                    processed_reqs.append(obj.name)
-                    self.add_version_reqs(obj.name, obj.version_reqs)
+                    if obj.static:
+                        # in case of embedded static dependency
+                        for arg in obj.link_args:
+                            if not os.sep in arg:
+                                # pull external dependencies
+                                processed_reqs.append(arg)
+                    else:
+                        processed_reqs.append(obj.name)
+                        self.add_version_reqs(obj.name, obj.version_reqs)
             elif isinstance(obj, dependencies.ThreadDependency):
                 processed_libs += obj.get_compiler().thread_link_flags(obj.env)
                 processed_cflags += obj.get_compiler().thread_flags(obj.env)
