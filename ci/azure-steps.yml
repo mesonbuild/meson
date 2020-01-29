@@ -102,6 +102,10 @@ steps:
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      }
 
+     ## A multiline commit message containing "=" can interact badly with this
+     ## hack to extract the environment from vcvarsall.bat
+     Remove-Item env:BUILD_SOURCEVERSIONMESSAGE
+
      ## ask cmd.exe to output the environment table after the batch file completes
      $tempFile = [IO.Path]::GetTempFileName()
      cmd /c " `"$vcvars`" $env:arch && set > `"$tempFile`" "
