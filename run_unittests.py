@@ -5986,6 +5986,7 @@ c = ['{0}']
     def test_ld_environment_variable_lld(self):
         self._check_ld('ld.lld', 'lld', 'c', 'lld')
 
+    @skipIfNoExecutable('rustc')
     def test_ld_environment_variable_rust(self):
         self._check_ld('ld.gold', 'gold', 'rust', 'GNU ld.gold')
 
@@ -5998,6 +5999,7 @@ c = ['{0}']
     def test_ld_environment_variable_objcpp(self):
         self._check_ld('ld.gold', 'gold', 'objcpp', 'GNU ld.gold')
 
+    @skipIfNoExecutable('gfortran')
     def test_ld_environment_variable_fortran(self):
         self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
 
