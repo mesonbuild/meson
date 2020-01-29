@@ -52,7 +52,7 @@ class CcrxCompiler:
             raise EnvironmentException('ccrx supports only cross-compilation.')
         self.id = 'ccrx'
         # Assembly
-        self.can_compile_suffixes.update('s')
+        self.can_compile_suffixes.add('src')
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -81,6 +81,12 @@ class CcrxCompiler:
         return []
 
     def get_coverage_args(self) -> T.List[str]:
+        return []
+
+    def get_no_stdinc_args(self) -> T.List[str]:
+        return []
+
+    def get_no_stdlib_link_args(self) -> T.List[str]:
         return []
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
