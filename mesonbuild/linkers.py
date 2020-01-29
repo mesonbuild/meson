@@ -668,7 +668,7 @@ class CcrxDynamicLinker(DynamicLinker):
 
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__(['rlink.exe'], for_machine, 'rlink', '',
+        super().__init__(['rlink.exe'], for_machine, 'rlink', '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -768,6 +768,7 @@ class PGIStaticLinker(StaticLinker):
 
     def get_output_args(self, target: str) -> T.List[str]:
         return [target]
+
 
 class VisualStudioLikeLinkerMixin:
 
