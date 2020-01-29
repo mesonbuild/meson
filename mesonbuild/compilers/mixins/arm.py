@@ -157,7 +157,7 @@ class ArmclangCompiler:
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_colorout']
         # Assembly
-        self.can_compile_suffixes.update('s')
+        self.can_compile_suffixes.add('s')
 
     def get_pic_args(self) -> T.List[str]:
         # PIC support is not enabled by default for ARM,

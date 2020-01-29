@@ -390,6 +390,9 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
                                                        'none')})
         return opts
 
+    def get_no_stdinc_args(self):
+        return []
+
     def get_option_compile_args(self, options):
         args = []
         std = options['c_std']
