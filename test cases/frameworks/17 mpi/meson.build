@@ -1,7 +1,9 @@
 project('mpi', 'c', 'cpp', default_options: ['b_asneeded=false'])
 
+method = get_option('method')
+
 cc = meson.get_compiler('c')
-mpic = dependency('mpi', language : 'c', required : false)
+mpic = dependency('mpi', language : 'c', required : false, method : method)
 if not mpic.found()
   error('MESON_SKIP_TEST: MPI not found, skipping.')
 endif
@@ -14,7 +16,7 @@ test('MPI C', exec, timeout: 10)
 
 # C++ MPI not supported by MS-MPI
 cpp = meson.get_compiler('cpp')
-mpicpp = dependency('mpi', language : 'cpp', required: false)
+mpicpp = dependency('mpi', language : 'cpp', required: false, method : method)
 if not cpp.links('''
 #include <mpi.h>
 #include <stdio.h>
@@ -31,7 +33,7 @@ test('MPI C++', execpp, timeout: 10)
 
 if add_languages('fortran', required : false)
   fc = meson.get_compiler('fortran')
-  mpif = dependency('mpi', language : 'fortran', required: false)
+  mpif = dependency('mpi', language : 'fortran', required: false, method : method)
   if not fc.links('use mpi; end', dependencies: mpif, name: 'Fortran MPI')
     mpif = disabler()
   endif
@@ -46,5 +48,5 @@ endif
 
 # Check we can apply a version constraint
 if mpic.version() != 'unknown'
-  dependency('mpi', version: '>=@0@'.format(mpic.version()))
+  dependency('mpi', version: '>=@0@'.format(mpic.version()), method : method)
 endif
