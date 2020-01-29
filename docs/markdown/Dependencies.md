@@ -411,7 +411,13 @@ not provide them, it will search for the standard wrapper executables,
 `mpic`, `mpicxx`, `mpic++`, `mpifort`, `mpif90`, `mpif77`. If these
 are not in your path, they can be specified by setting the standard
 environment variables `MPICC`, `MPICXX`, `MPIFC`, `MPIF90`, or
-`MPIF77`, during configuration.
+`MPIF77`, during configuration. It will also try to use the Microsoft
+implementation on windows via the `system` method.
+
+`method` may be `auto`, `config-tool`, `pkg-config` or `system`.
+
+*New in 0.54.0* The `config-tool` and `system` method values. Previous
+versions would always try `pkg-config`, then `config-tool`, then `system`.
 
 ## NetCDF
 
