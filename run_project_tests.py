@@ -381,7 +381,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     setup_env = None
     # Configure in-process
     if pass_prefix_to_test(testdir):
-        gen_args = ['--prefix', '/usr']
+        gen_args = ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
     else:
         gen_args = []
     if pass_libdir_to_test(testdir):
@@ -545,6 +545,10 @@ def skippable(suite, test):
         return True
 
     if not suite.endswith('frameworks'):
+        return True
+
+    # this test assumptions aren't valid for Windows paths
+    if test.endswith('38 libdir must be inside prefix'):
         return True
 
     # gtk-doc test may be skipped, pending upstream fixes for spaces in
