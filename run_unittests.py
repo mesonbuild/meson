@@ -1857,8 +1857,14 @@ class AllPlatformTests(BasePlatformTests):
             # N.B. We don't check 'libdir' as it's platform dependent, see
             # default_libdir():
         }
+
+        if mesonbuild.mesonlib.default_prefix() == '/usr/local':
+            expected[None] = expected['/usr/local']
+
         for prefix in expected:
-            args = ['--prefix', prefix]
+            args = []
+            if prefix:
+                args += ['--prefix', prefix]
             self.init(testdir, extra_args=args, default_args=False)
             opts = self.introspect('--buildoptions')
             for opt in opts:
