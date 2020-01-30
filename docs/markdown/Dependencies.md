@@ -225,10 +225,11 @@ wmf_dep = dependency('libwmf', method : 'config-tool')
 ## Dependencies using config tools
 
 [CUPS](#cups), [LLVM](#llvm), [pcap](#pcap), [WxWidgets](#wxwidgets),
-[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either do not provide pkg-config
-modules or additionally can be detected via a config tool
-(cups-config, llvm-config, libgcrypt-config, etc). Meson has native support for these
-tools, and they can be found like other dependencies:
+[libwmf](#libwmf), [GCrypt](#libgcrypt), [GPGME](#gpgme), and GnuStep either
+do not provide pkg-config modules or additionally can be detected via a
+config tool (cups-config, llvm-config, libgcrypt-config, etc). Meson has
+native support for these tools, and they can be found like other
+dependencies:
 
 ```meson
 pcap_dep = dependency('pcap', version : '>=1.0')
@@ -237,6 +238,10 @@ llvm_dep = dependency('llvm', version : '>=4.0')
 libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
 ```
+
+*Changed in 0.54.0* Before 0.54.0 meson would search $PATH for a config tool
+binary when cross compiling if the config tool did not have an entry in the
+cross file.
 
 ## AppleFrameworks
 
