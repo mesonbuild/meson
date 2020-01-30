@@ -45,12 +45,12 @@ def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
     candidates = []  # type: T.List['DependencyType']
 
     if DependencyMethods.PKGCONFIG in methods:
-        pkgconfig_files = ['netcdf']
         if language == 'fortran':
-            pkgconfig_files.append('netcdf-fortran')
+            pkg = 'netcdf-fortran'
+        else:
+            pkg = 'netcdf'
 
-        for pkg in pkgconfig_files:
-            candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
+        candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs, language=language))
 
     if DependencyMethods.CMAKE in methods:
         candidates.append(functools.partial(CMakeDependency, 'NetCDF', env, kwargs, language=language))
