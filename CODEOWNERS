@@ -1,0 +1,4 @@
+* @jpakkane
+/mesonbuild/modules/pkgconfig.py @xclaesse
+/mesonbuild/modules/cmake.py @mensinda
+/mesonbuild/cmake/* @mensinda
