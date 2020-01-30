@@ -871,13 +871,13 @@ def check_format():
                     continue
                 check_file(root / file)
 
-def check_meson_commands_work():
+def check_meson_commands_work(options):
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         print('Checking that configuring works...')
-        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags
+        gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
@@ -897,11 +897,14 @@ def check_meson_commands_work():
                 raise RuntimeError('Failed to install {!r}:\n{}\n{}'.format(testdir, e, o))
 
 
-def detect_system_compiler():
+def detect_system_compiler(options):
     global system_compiler
 
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
-        env = environment.Environment(None, build_dir, get_fake_options('/'))
+        fake_opts = get_fake_options('/')
+        if options.cross_file:
+            fake_opts.cross_file = [options.cross_file]
+        env = environment.Environment(None, build_dir, fake_opts)
         print()
         for lang in sorted(compilers.all_languages):
             try:
@@ -962,16 +965,19 @@ if __name__ == '__main__':
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
+    parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
     options = parser.parse_args()
-    setup_commands(options.backend)
+    if options.cross_file:
+        options.extra_args += ['--cross-file', options.cross_file]
 
-    detect_system_compiler()
+    setup_commands(options.backend)
+    detect_system_compiler(options)
     print_tool_versions()
     script_dir = os.path.split(__file__)[0]
     if script_dir != '':
         os.chdir(script_dir)
     check_format()
-    check_meson_commands_work()
+    check_meson_commands_work(options)
     try:
         all_tests = detect_tests_to_run(options.only)
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args)
