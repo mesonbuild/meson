@@ -206,8 +206,8 @@ def add_arguments(parser):
     parser.add_argument("-b", "--build", help="build after generation", action='store_true')
     parser.add_argument("--builddir", help="directory for build", default='build')
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default='executable', choices=['executable', 'library'])
-    parser.add_argument('--version', default='0.1')
+    parser.add_argument('--type', default='executable', choices=['executable', 'library'], help="project type. default: executable based project")
+    parser.add_argument('--version', default='0.1', help="project version. default: 0.1")
 
 def run(options) -> int:
     '''
