@@ -38,11 +38,8 @@ steps:
      DownloadFile -Source 'https://github.com/mesonbuild/cidata/raw/master/win32/pkg-config.exe' -Destination $(System.WorkFolder)\pkg-config.exe
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/msmpisdk.msi' -Destination msmpisdk.msi
      DownloadFile -Source 'https://download.microsoft.com/download/D/B/B/DBB64BA1-7B51-43DB-8BF1-D1FB45EACF7A/MSMpiSetup.exe' -Destination MSMpiSetup.exe
-     if ($env:compiler -ne 'msvc2015') {
-       Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
-       # installer fails "requires an interactive window station" with vs2015 image
-       Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
-     }
+     Start-Process msiexec.exe -ArgumentList '/i msmpisdk.msi /quiet' -Wait
+     Start-Process .\MSMpiSetup.exe -ArgumentList '-unattend -full' -Wait
 
      # import ms-mpi env vars (set by installer)
      foreach ($p in "MSMPI_INC", "MSMPI_LIB32", "MSMPI_LIB64") {
@@ -50,16 +47,9 @@ steps:
        Set-Content "env:$p" "$v"
      }
 
-     if ($env:compiler -eq 'msvc2015') {
-       # add JDK installed in vs2015 image to PATH
-       $env:Path = "C:\java\jdk\jdk1.8.0_102\bin\;$env:Path"
-     }
-
      # install boost (except for clang-cl)
      if ($env:arch -eq 'x86') { $boost_bitness = '32' } else { $boost_bitness = '64' }
-     if ($env:compiler -eq 'msvc2015') {
-       $boost_version = '1.60.0' ; $boost_abi_tag = '14.0'
-     } elseif ($env:compiler -eq 'msvc2017') {
+     if ($env:compiler -eq 'msvc2017') {
        $boost_version = '1.64.0' ; $boost_abi_tag = '14.1'
      }
      if ($boost_version) {
@@ -94,11 +84,10 @@ steps:
 
      $origPath = $env:Path
      # import visual studio variables
-     if ($env:compiler -eq 'msvc2015') {
-       $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat"
-     } elseif($env:compiler -eq 'msvc2019') {
+     if ($env:compiler -eq 'msvc2019') {
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      } else {
+       # Note: this is also for clangcl
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      }
 
