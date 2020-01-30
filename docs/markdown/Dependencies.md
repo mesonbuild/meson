@@ -370,6 +370,8 @@ As of 0.44.0 Meson supports the `static` keyword argument for
 LLVM. Before this LLVM >= 3.9 would always dynamically link, while
 older versions would statically link, due to a quirk in `llvm-config`.
 
+`method` may be `auto`, `config-tool`, or `cmake`.
+
 ### Modules, a.k.a. Components
 
 Meson wraps LLVM's concept of components in it's own modules concept.
