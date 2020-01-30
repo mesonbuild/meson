@@ -24,6 +24,7 @@ import configparser, hashlib
 
 req_timeout = 600.0
 private_repos = {'meson', 'wrapweb', 'meson-ci'}
+spdir = 'subprojects'
 
 def gh_get(url):
     r = urllib.request.urlopen(url, timeout=req_timeout)
@@ -39,12 +40,21 @@ def list_projects():
         print(i)
     return 0
 
-def unpack(sproj, branch, outdir):
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), outdir])
-    usfile = os.path.join(outdir, 'upstream.wrap')
+def unpack(sproj, branch):
+    tmpdir = os.path.join(spdir, sproj + '_ghwt')
+    shutil.rmtree(tmpdir, ignore_errors=True)
+    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), tmpdir])
+    usfile = os.path.join(tmpdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser(interpolation=None)
     config.read(usfile)
+    outdir = os.path.join(spdir, sproj)
+    if 'directory' in config['wrap-file']:
+        outdir = os.path.join(spdir, config['wrap-file']['directory'])
+    if os.path.isdir(outdir):
+        print('Subproject is already there. To update, nuke the {} dir and reinstall.'.format(outdir))
+        shutil.rmtree(tmpdir)
+        return 1
     us_url = config['wrap-file']['source_url']
     us = urllib.request.urlopen(us_url, timeout=req_timeout).read()
     h = hashlib.sha256()
@@ -53,10 +63,9 @@ def unpack(sproj, branch, outdir):
     should = config['wrap-file']['source_hash']
     if dig != should:
         print('Incorrect hash on download.')
-        print(' expected:', dig)
-        print(' obtained:', should)
+        print(' expected:', should)
+        print(' obtained:', dig)
         return 1
-    spdir = os.path.dirname(outdir)
     ofilename = os.path.join(spdir, config['wrap-file']['source_filename'])
     with open(ofilename, 'wb') as ofile:
         ofile.write(us)
@@ -65,34 +74,41 @@ def unpack(sproj, branch, outdir):
         shutil.unpack_archive(ofilename, outdir)
     else:
         shutil.unpack_archive(ofilename, spdir)
-        extdir = os.path.join(spdir, config['wrap-file']['directory'])
-        assert(os.path.isdir(extdir))
-        shutil.move(os.path.join(outdir, '.git'), extdir)
-        subprocess.check_call(['git', 'reset', '--hard'], cwd=extdir)
-        shutil.rmtree(outdir)
-        shutil.move(extdir, outdir)
+        assert(os.path.isdir(outdir))
+    shutil.move(os.path.join(tmpdir, '.git'), outdir)
+    subprocess.check_call(['git', 'reset', '--hard'], cwd=outdir)
+    shutil.rmtree(tmpdir)
     shutil.rmtree(os.path.join(outdir, '.git'))
     os.unlink(ofilename)
 
-def install(sproj):
-    sproj_dir = os.path.join('subprojects', sproj)
-    if not os.path.isdir('subprojects'):
+def install(sproj, requested_branch=None):
+    if not os.path.isdir(spdir):
         print('Run this in your source root and make sure there is a subprojects directory in it.')
-        return 1
-    if os.path.isdir(sproj_dir):
-        print('Subproject is already there. To update, nuke the dir and reinstall.')
         return 1
     blist = gh_get('https://api.github.com/repos/mesonbuild/{}/branches'.format(sproj))
     blist = [b['name'] for b in blist]
     blist = [b for b in blist if b != 'master']
     blist.sort()
     branch = blist[-1]
+    if requested_branch is not None:
+        if requested_branch in blist:
+            branch = requested_branch
+        else:
+            print('Could not find user-requested branch', requested_branch)
+            print('Available branches for', sproj, ':')
+            print(blist)
+            return 1
     print('Using branch', branch)
-    return unpack(sproj, branch, sproj_dir)
+    return unpack(sproj, branch)
+
+def print_help():
+    print('Usage:')
+    print(sys.argv[0], 'list')
+    print(sys.argv[0], 'install', 'package_name', '[branch_name]')
 
 def run(args):
     if not args or args[0] == '-h' or args[0] == '--help':
-        print(sys.argv[0], 'list/install', 'package_name')
+        print_help()
         return 1
     command = args[0]
     args = args[1:]
@@ -100,10 +116,13 @@ def run(args):
         list_projects()
         return 0
     elif command == 'install':
-        if len(args) != 1:
-            print('Install requires exactly one argument.')
+        if len(args) == 1:
+            return install(args[0])
+        elif len(args) == 2:
+            return install(args[0], args[1])
+        else:
+            print_help()
             return 1
-        return install(args[0])
     else:
         print('Unknown command')
         return 1
