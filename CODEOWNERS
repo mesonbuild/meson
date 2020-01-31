@@ -1,4 +1,5 @@
 * @jpakkane
 /mesonbuild/modules/pkgconfig.py @xclaesse
 /mesonbuild/modules/cmake.py @mensinda
+/mesonbuild/ast/* @mensinda
 /mesonbuild/cmake/* @mensinda
