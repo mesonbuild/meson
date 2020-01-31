@@ -127,9 +127,12 @@ blacklist_link_libs = [
     'advapi32.lib'
 ]
 
-generated_target_name_prefix = 'cm_'
-
 transfer_dependencies_from = ['header_only']
+
+_cmake_name_regex = re.compile(r'[^_a-zA-Z0-9]')
+def _sanitize_cmake_name(name: str) -> str:
+    name = _cmake_name_regex.sub('_', name)
+    return 'cm_' + name
 
 class OutputTargetMap:
     rm_so_version = re.compile(r'(\.[0-9]+)+$')
@@ -236,8 +239,7 @@ class ConverterTarget:
         self.override_options = []
 
         # Convert the target name to a valid meson target name
-        self.name = self.name.replace('-', '_')
-        self.name = generated_target_name_prefix + self.name
+        self.name = _sanitize_cmake_name(self.name)
 
         for i in target.files:
             # Determine the meson language
@@ -595,8 +597,7 @@ class ConverterCustomTarget:
         self.depends = []
 
         # Convert the target name to a valid meson target name
-        self.name = self.name.replace('-', '_')
-        self.name = generated_target_name_prefix + self.name
+        self.name = _sanitize_cmake_name(self.name)
 
     def __repr__(self) -> str:
         return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
@@ -1225,6 +1226,7 @@ class CMakeInterpreter:
 
             root_cb.lines += [assign(tgt_var, function('custom_target', [tgt.name], tgt_kwargs))]
             processed[tgt.name] = {'inc': None, 'src': None, 'dep': None, 'tgt': tgt_var, 'func': 'custom_target'}
+            name_map[tgt.cmake_name] = tgt.name
 
         # Now generate the target function calls
         for i in self.custom_targets:
@@ -1241,7 +1243,7 @@ class CMakeInterpreter:
     def target_info(self, target: str) -> T.Optional[T.Dict[str, str]]:
         # Try resolving the target name
         # start by checking if there is a 100% match (excluding the name prefix)
-        prx_tgt = generated_target_name_prefix + target
+        prx_tgt = _sanitize_cmake_name(target)
         if prx_tgt in self.generated_targets:
             return self.generated_targets[prx_tgt]
         # check if there exists a name mapping
@@ -1252,11 +1254,7 @@ class CMakeInterpreter:
         return None
 
     def target_list(self) -> T.List[str]:
-        prx_str = generated_target_name_prefix
-        prx_len = len(prx_str)
-        res = [x for x in self.generated_targets.keys()]
-        res = [x[prx_len:] if x.startswith(prx_str) else x for x in res]
-        return res
+        return list(self.internal_name_map.keys())
 
     def _object_lib_workaround(self) -> bool:
         return 'link' in self.linkers and self.backend_name.startswith('vs')

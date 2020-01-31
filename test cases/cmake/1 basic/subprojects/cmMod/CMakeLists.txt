@@ -7,6 +7,6 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 add_definitions("-DDO_NOTHING_JUST_A_FLAG=1")
 
-add_library(cmModLib SHARED cmMod.cpp)
+add_library(cmModLib++ SHARED cmMod.cpp)
 include(GenerateExportHeader)
-generate_export_header(cmModLib)
+generate_export_header(cmModLib++)
