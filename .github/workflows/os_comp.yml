@@ -36,3 +36,27 @@ jobs:
       run: ./run_tests.py
       env:
         CI: '1'
+
+  fedora:
+    name: Fedora
+    runs-on: ubuntu-latest
+    container: mensinda/fedora:latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run tests
+      run: ./run_tests.py
+      env:
+        CI: '1'
+        SKIP_SCIENTIFIC: '1'
+
+  opensuse:
+    name: OpenSUSE
+    runs-on: ubuntu-latest
+    container: mensinda/opensuse:latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run tests
+      run: ./run_tests.py
+      env:
+        CI: '1'
+        SKIP_SCIENTIFIC: '1'

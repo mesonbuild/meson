@@ -118,6 +118,7 @@ failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
 under_xenial_ci = under_ci and ('XENIAL' in os.environ)
+skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
@@ -631,6 +632,11 @@ def skippable(suite, test):
 
     # Blocks are not supported on all compilers
     if test.endswith('29 blocks'):
+        return True
+
+    # Scientific libraries are skippable on certain systems
+    # See the discussion here: https://github.com/mesonbuild/meson/pull/6562
+    if any([test.endswith(x) for x in ['17 mpi', '25 hdf5', '30 scalapack']]) and skip_scientific:
         return True
 
     # No frameworks test should be skipped on linux CI, as we expect all
