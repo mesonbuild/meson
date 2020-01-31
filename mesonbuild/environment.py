@@ -909,7 +909,7 @@ class Environment:
                 arg = '--vsn'
             elif 'ccrx' in compiler_name:
                 arg = '-v'
-            elif 'icl' in compiler_name:
+            elif compiler_name in {'icl', 'icl.exe'}:
                 # if you pass anything to icl you get stuck in a pager
                 arg = ''
             else:
