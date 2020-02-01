@@ -42,6 +42,7 @@ import collections
 from itertools import chain
 import functools
 import typing as T
+import concurrent.futures as conc
 
 import importlib
 
@@ -1615,10 +1616,15 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        supported_args = []
-        for arg in args:
-            if self.has_argument_method(arg, kwargs):
-                supported_args.append(arg)
+        with conc.ThreadPoolExecutor() as executor:
+            futures = []
+            for arg in args:
+                f = executor.submit(self.has_argument_method, arg, kwargs)
+                futures.append((f, arg))
+            supported_args = []
+            for f, arg in futures:
+                if f.result():
+                    supported_args.append(arg)
         return supported_args
 
     @permittedKwargs({})
