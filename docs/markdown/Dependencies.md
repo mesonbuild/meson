@@ -173,6 +173,10 @@ it automatically.
     cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
+Support for adding additional `COMPONENTS` for the CMake `find_package` lookup
+is provided with the `components` kwarg (*introduced in 0.54.0*). All specified
+componets will be passed directly to `find_package(COMPONENTS)`.
+
 It is also possible to reuse existing `Find<name>.cmake` files with the
 `cmake_module_path` property. Using this property is equivalent to setting the
 `CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `cmake_module_path`

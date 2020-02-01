@@ -38,6 +38,10 @@ if(NOT C_CODE_RAN)
   message(FATAL_ERROR "Running C source code failed")
 endif()
 
+if(NOT SomethingLikeZLIB_FIND_COMPONENTS STREQUAL "required_comp")
+  message(FATAL_ERROR "Component 'required_comp' was not specified")
+endif()
+
 find_dependency(Threads)
 
 if(ZLIB_FOUND OR ZLIB_Found)

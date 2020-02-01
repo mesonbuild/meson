@@ -44,9 +44,9 @@ depPrefEnv = dependency('cmMesonTestDep', required : true, method : 'cmake')
 
 # Try to find a dependency with a custom CMake module
 
-depm1 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : 'cmake')
-depm2 = dependency('SomethingLikeZLIB', required : true, method : 'cmake', cmake_module_path : ['cmake'])
-depm3 = dependency('SomethingLikeZLIB', required : true, cmake_module_path : 'cmake')
+depm1 = dependency('SomethingLikeZLIB', required : true, components : 'required_comp',   method : 'cmake', cmake_module_path : 'cmake')
+depm2 = dependency('SomethingLikeZLIB', required : true, components : 'required_comp',   method : 'cmake', cmake_module_path : ['cmake'])
+depm3 = dependency('SomethingLikeZLIB', required : true, components : ['required_comp'], cmake_module_path : 'cmake')
 
 # Test some edge cases with spaces, etc.
 

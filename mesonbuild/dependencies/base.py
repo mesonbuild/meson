@@ -995,12 +995,22 @@ class CMakeDependency(ExternalDependency):
     def _extra_cmake_opts(self) -> T.List[str]:
         return []
 
-    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
         # Map the input module list to something else
         # This function will only be executed AFTER the initial CMake
         # interpreter pass has completed. Thus variables defined in the
         # CMakeLists.txt can be accessed here.
+        #
+        # Both the modules and components inputs contain the original lists.
         return modules
+
+    def _map_component_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+        # Map the input components list to something else. This
+        # function will be executed BEFORE the initial CMake interpreter
+        # pass. Thus variables from the CMakeLists.txt can NOT be accessed.
+        #
+        # Both the modules and components inputs contain the original lists.
+        return components
 
     def _original_module_name(self, module: str) -> str:
         # Reverse the module mapping done by _map_module_list for
@@ -1065,6 +1075,7 @@ class CMakeDependency(ExternalDependency):
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
+        components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
@@ -1086,7 +1097,7 @@ class CMakeDependency(ExternalDependency):
         if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
             mlog.debug('Preliminary CMake check failed. Aborting.')
             return
-        self._detect_dep(name, modules, cm_args)
+        self._detect_dep(name, modules, components, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1264,7 +1275,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], args: T.List[str]):
+    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1282,13 +1293,21 @@ class CMakeDependency(ExternalDependency):
             gen_list += [CMakeDependency.class_working_generator]
         gen_list += CMakeDependency.class_cmake_generators
 
+        # Map the components
+        comp_mapped = self._map_component_list(modules, components)
+
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = ['-DNAME={}'.format(name), '-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))] + args + ['.']
+            cmake_opts = []
+            cmake_opts += ['-DNAME={}'.format(name)]
+            cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
+            cmake_opts += args
             cmake_opts += self.traceparser.trace_args()
             cmake_opts += self._extra_cmake_opts()
+            cmake_opts += ['.']
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
@@ -1334,7 +1353,7 @@ class CMakeDependency(ExternalDependency):
 
         # Post-process module list. Used in derived classes to modify the
         # module list (append prepend a string, etc.).
-        modules = self._map_module_list(modules)
+        modules = self._map_module_list(modules, components)
         autodetected_module_list = False
 
         # Try guessing a CMake target if none is provided
