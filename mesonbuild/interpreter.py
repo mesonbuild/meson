@@ -1783,6 +1783,8 @@ class Summary:
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 else:
                     formatted_values.append(i)
+            if not formatted_values:
+                formatted_values = ['']
             self.sections[section][k] = formatted_values
             self.max_key_len = max(self.max_key_len, len(k))
 
