@@ -7,6 +7,7 @@ summary({'Some boolean': false,
          'Another boolean': true,
          'Some string': 'Hello World',
          'A list': ['string', 1, true],
+         'empty list': [],
         }, section: 'Configuration')
 summary('A number', 1, section: 'Configuration')
 summary('yes', true, bool_yn : true, section: 'Configuration')
