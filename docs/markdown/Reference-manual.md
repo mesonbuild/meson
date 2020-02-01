@@ -479,7 +479,8 @@ arguments:
 - other
 [library-specific](Dependencies.md#dependencies-with-custom-lookup-functionality)
 keywords may also be accepted (e.g. `modules` specifies submodules to use for
-dependencies such as Qt5 or Boost. )
+dependencies such as Qt5 or Boost. `components` allows the user to manually
+add CMake `COMPONENTS` for the `find_package` lookup)
 - `disabler` if `true` and the dependency couldn't be found, return a
   [disabler object](#disabler-object) instead of a not-found dependency.
   *Since 0.49.0*
