@@ -4254,6 +4254,7 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
+                     empty list: 
                        A number: 1
                             yes: YES
                              no: NO
