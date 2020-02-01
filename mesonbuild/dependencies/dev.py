@@ -418,7 +418,7 @@ class LLVMDependencyCMake(CMakeDependency):
     def _extra_cmake_opts(self) -> T.List[str]:
         return ['-DLLVM_MESON_MODULES={}'.format(';'.join(self.llvm_modules + self.llvm_opt_modules))]
 
-    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
         res = []
         for mod, required in modules:
             cm_targets = self.traceparser.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
