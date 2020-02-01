@@ -210,7 +210,7 @@ class MesonApp:
             if self.options.profile:
                 fname = 'profile-{}-backend.log'.format(intr.backend.name)
                 fname = os.path.join(self.build_dir, 'meson-private', fname)
-                profile.runctx('intr.backend.generate(intr)', globals(), locals(), filename=fname)
+                profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
                 intr.backend.generate()
             build.save(b, dumpfile)
