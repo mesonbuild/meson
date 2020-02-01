@@ -21,7 +21,7 @@ endif
 # within one project. The need to be independent of each other.
 # Use one without a library dependency and one with it.
 
-linkdep = dependency('boost', modules : ['thread', 'system', 'test'])
+linkdep = dependency('boost', modules : ['thread', 'system'])
 staticdep = dependency('boost', modules : ['thread', 'system'], static : true)
 testdep = dependency('boost', modules : ['unit_test_framework'])
 nomoddep = dependency('boost')

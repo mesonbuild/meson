@@ -427,9 +427,8 @@ class CMakeTraceParser:
         values = []
         prop_regex = re.compile(r'^[A-Z_]+$')
         for a in args:
-            if prop_regex.match(a):
-                if values:
-                    arglist.append((name, ' '.join(values).split(';')))
+            if prop_regex.match(a) and values:
+                arglist.append((name, ' '.join(values).split(';')))
                 name = a
                 values = []
             else:

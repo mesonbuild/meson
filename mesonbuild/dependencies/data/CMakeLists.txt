@@ -9,7 +9,11 @@ set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
 
 while(TRUE)
-  find_package("${NAME}" QUIET COMPONENTS ${COMPS})
+  if(MESON_REQUIRED)
+    find_package("${NAME}" COMPONENTS ${COMPS} REQUIRED)
+  else()
+    find_package("${NAME}" COMPONENTS ${COMPS})
+  endif()
 
   # ARCHS has to be set via the CMD interface
   if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${ARCHS}" STREQUAL "")

@@ -1067,7 +1067,8 @@ class CMakeDependency(ExternalDependency):
             return
 
         # Setup the trace parser
-        self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
+        self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir(), permissive=True)
+        self.cmakebin.set_exec_mode(always_capture_stderr=self.traceparser.requires_stderr())
 
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info()
@@ -1276,8 +1277,8 @@ class CMakeDependency(ExternalDependency):
         return False
 
     def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]):
-        # Detect a dependency with CMake using the '--find-package' mode
-        # and the trace output (stderr)
+        # Detect a dependency with CMake using a custom CMakeLists.txt project
+        # and the resulting trace output (either stderr or a trace file)
         #
         # When the trace output is enabled CMake prints all functions with
         # parameters to stderr as they are executed. Since CMake 3.4.0
@@ -1320,7 +1321,13 @@ class CMakeDependency(ExternalDependency):
                 break
 
             mlog.debug('CMake failed for generator {} and package {} with error code {}'.format(i, name, ret1))
-            mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
+            mlog.debug('CMake OUT:\n{}\n\n'.format(out1))
+
+            if 'MESON_CMAKE_FILE_PROCESS_BEGIN_MAGIC_STRING' in out1:
+                mlog.debug('Generator succeeded. No need to test the remaining generators')
+                return
+
+        mlog.debug('CMake OUT:\n{}\n\n'.format(out1))
 
         # Check if any generator succeeded
         if ret1 != 0:
@@ -1342,6 +1349,7 @@ class CMakeDependency(ExternalDependency):
         # Whether the package is found or not is always stored in PACKAGE_FOUND
         self.is_found = self.traceparser.var_to_bool('PACKAGE_FOUND')
         if not self.is_found:
+            mlog.debug('Dependency {} not found via CMake (PACKAGE_FOUND not set)'.format(name))
             return
 
         # Try to detect the version
@@ -1502,14 +1510,19 @@ class CMakeDependency(ExternalDependency):
         if not cmake_language:
             cmake_language += ['NONE']
 
-        cmake_txt = """
-cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
-project(MesonTemp LANGUAGES {})
-""".format(' '.join(cmake_language)) + cmake_txt
+        cmake_prepend = textwrap.dedent('''\
+            cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
+            project(MesonTemp LANGUAGES {})
+
+            message(STATUS "MESON_CMAKE_FILE_PROCESS_BEGIN_MAGIC_STRING")
+        ''').format(' '.join(cmake_language))
+
+        cmake_txt = cmake_prepend + cmake_txt
 
         cm_file = Path(build_dir) / 'CMakeLists.txt'
         cm_file.write_text(cmake_txt)
-        mlog.cmd_ci_include(cm_file.absolute().as_posix())
+        mlog.debug('CMake lists file: {}'.format(cm_file.as_posix()))
+        mlog.debug('CMake prepend text:\n{}'.format(cmake_prepend))
 
         return build_dir
 
@@ -2332,6 +2345,7 @@ def find_external_dependency(name, env, kwargs):
 
     # otherwise, the dependency could not be found
     tried_methods = [d.log_tried() for d in pkgdep if d.log_tried()]
+    tried_methods = list(OrderedSet(tried_methods))
     if tried_methods:
         tried = '{}'.format(mlog.format_list(tried_methods))
     else:

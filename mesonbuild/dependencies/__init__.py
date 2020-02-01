@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .boost import BoostDependency
+from .boost import boost_factory
 from .cuda import CudaDependency
 from .hdf5 import HDF5Dependency
 from .base import (  # noqa: F401
@@ -45,7 +45,7 @@ packages.update({
     'llvm': llvm_factory,
     'valgrind': ValgrindDependency,
 
-    'boost': BoostDependency,
+    'boost': boost_factory,
     'cuda': CudaDependency,
 
     # per-file

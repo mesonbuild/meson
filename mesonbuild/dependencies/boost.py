@@ -16,13 +16,19 @@
 
 import glob
 import os
+import functools
+import typing as T
 
 from .. import mlog
 from .. import mesonlib
-from ..environment import detect_cpu_family
+from ..environment import detect_cpu_family, Environment
 
-from .base import (DependencyException, ExternalDependency)
+from .base import (DependencyException, ExternalDependency, DependencyMethods, CMakeDependency, factory_methods)
 from .misc import threads_factory
+
+if T.TYPE_CHECKING:
+    from ..environment import MachineChoice
+    from .base import DependencyType  # noqa: F401
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -95,8 +101,8 @@ from .misc import threads_factory
 # TODO: Unix: Don't assume we know where the boost dir is, rely on -Idir and -Ldir being set.
 # TODO: Allow user to specify suffix in BOOST_SUFFIX, or add specific options like BOOST_DEBUG for 'd' for debug.
 
-class BoostDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
+class BoostSystemDependency(ExternalDependency):
+    def __init__(self, _, environment, kwargs):
         super().__init__('boost', environment, kwargs, language='cpp')
         self.need_static_link = ['boost_exception', 'boost_test_exec_monitor']
         self.is_debug = environment.coredata.get_builtin_option('buildtype').startswith('debug')
@@ -158,6 +164,10 @@ class BoostDependency(ExternalDependency):
 
         # 4. final check whether or not we find all requested and valid modules
         self.check_find_requested_modules()
+
+    @staticmethod
+    def get_methods():
+        return [DependencyMethods.AUTO, DependencyMethods.SYSTEM]
 
     def check_invalid_modules(self):
         invalid_modules = [c for c in self.requested_modules if 'boost_' + c not in self.lib_modules and 'boost_' + c not in BOOST_LIBS]
@@ -503,6 +513,179 @@ class BoostDependency(ExternalDependency):
     def get_sources(self):
         return []
 
+TYPE_Settings = T.Dict[str, T.Union[bool, str, None]]
+
+class BoostCMakeDependency(CMakeDependency):
+    def __init__(self, settings: TYPE_Settings, environment: Environment, kwargs, language: T.Optional[str] = None):
+        self.boost_settings = settings
+        super().__init__('Boost', environment, kwargs, language)
+
+    def _extra_cmake_opts(self) -> T.List[str]:
+        args = ['-DBoost_VERBOSE=ON', '-DBoost_DEBUG=ON', '-DMESON_REQUIRED=ON']
+        for key, val in self.boost_settings.items():
+            if val is None:
+                continue
+            if isinstance(val, bool):
+                val = 'ON' if val else 'OFF'
+            args += ['-DBoost_{}={}'.format(key, val)]
+        return args
+
+    def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+        new_mods = []    # type: T.List[T.Tuple[str, bool]]
+        mod_set = set()  # type: T.Set[str]
+        for name, required in modules:
+            name = 'Boost::{}'.format(name)
+            mod_set.add(name)
+            new_mods += [(name, required)]
+
+        # Add base modules (if not present)
+        if 'Boost::boost' not in mod_set:
+            new_mods += [('Boost::boost', True)]
+
+        return new_mods
+
+    def _map_component_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
+        for name, required in modules:
+            components += [(name, required)]
+        return components
+
+    def _original_module_name(self, module: str) -> str:
+        if module.startswith('Boost::'):
+            module = module[7:]
+        return module
+
+@factory_methods({DependencyMethods.SYSTEM, DependencyMethods.CMAKE})
+def boost_factory(env: Environment, for_machine: 'MachineChoice',
+                  kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    candidates = []  # type: T.List['DependencyType']
+
+    if DependencyMethods.CMAKE in methods:
+        # Detect configuration
+        threading = kwargs.get("threading", "multi")
+        static = kwargs.get('static', False)
+        if not isinstance(static, bool):
+            raise DependencyException('Static keyword must be boolean')
+
+        # Try figuring out the architecture tag
+        arch = env.machines[for_machine].cpu_family
+        arch = BOOST_ARCH_MAP.get(arch, None)
+
+        # Build the settings matrix
+        settings_opts = [{
+            'USE_DEBUG_LIBS': False,
+            'USE_RELEASE_LIBS': True,
+            'USE_MULTITHREADED': threading == 'multi',
+            'USE_STATIC_LIBS': static,
+            'USE_STATIC_RUNTIME': static,
+            'USE_DEBUG_RUNTIME': False,
+            'USE_DEBUG_PYTHON': False,
+            'ARCHITECTURE': arch,
+            'COMPILER': _guess_compiler_tags(env, for_machine),
+        }]  # type: T.List[TYPE_Settings]
+
+        def add_to_matrix(new_entry: TYPE_Settings):
+            nonlocal settings_opts
+            tmp = []  # type: T.List[TYPE_Settings]
+            for orig in settings_opts:
+                work = orig.copy()
+                work.update(new_entry)
+                tmp += [work]
+            settings_opts += tmp
+
+        if static:
+            add_to_matrix({'USE_STATIC_RUNTIME': False})
+
+        # If this fails try all debug configurations
+        add_to_matrix({'USE_DEBUG_LIBS': True, 'USE_DEBUG_RUNTIME': None, 'USE_DEBUG_PYTHON': None})
+
+        # Construct the actual dependencies
+        for s in settings_opts:
+            candidates.append(functools.partial(BoostCMakeDependency, s, env, kwargs))
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(BoostSystemDependency, 'boost', env, kwargs))
+
+    return candidates
+
+# See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
+# See https://mesonbuild.com/Reference-tables.html#cpu-families
+BOOST_ARCH_MAP = {
+    'aarch64': '-a64',
+    'arc': '-a32',
+    'arm': '-a32',
+    'ia64': '-i64',
+    'mips': '-m32',
+    'mips64': '-m64',
+    'ppc': '-p32',
+    'ppc64': '-p64',
+    'sparc': '-s32',
+    'sparc64': '-s64',
+    'x86': '-x32',
+    'x86_64': '-x64',
+}
+
+BOOST_COMPILER_MAP = {
+    'gcc': ['gcc', 'mgw', 'xgc'],
+    'intel': ['iw', 'il'],
+    'intel-cl': ['iw', 'il'],
+    'msvc': ['vc'],
+    'clang': ['clang'],
+    'sun': ['sw'],
+}
+
+def _guess_compiler_tags(env: Environment, for_machine: 'MachineChoice') -> str:
+    tags = []
+
+    # Get the compiler
+    if 'cpp' not in env.coredata.compilers[for_machine]:
+        raise DependencyException('Boost dependencies requires a C++ compiler')
+
+    cpp = env.coredata.compilers[for_machine]['cpp']
+    cppid = cpp.get_id()
+
+    # Generate versions ('9.2.0' --> ['920', '92', '9', ''])
+    vers_str = ''
+    if cppid == 'msvc':
+        vers_str = cpp.get_toolset_version() or '14'
+    else:
+        vers_str = cpp.version
+
+    vers = []  # type: T.List[str]
+    vers_raw = vers_str.split('.')
+    for i in range(len(vers_raw), 0, -1):
+        temp_vers = ''
+        for j in range(0, i):
+            temp_vers += vers_raw[j]
+        vers += [temp_vers]
+    vers += ['']
+
+    # Generate compiler tags
+    def add_tag(ids: T.List[str]) -> None:
+        nonlocal tags
+        for i in ids:
+            for j in vers:
+                tags += [i + j]
+
+    if cppid == 'gcc':
+        add_tag(['gcc', 'mgw', 'xgc'])
+    elif cppid == 'clang':
+        add_tag(['clang'])
+    elif cppid in ['intel', 'intel-cl']:
+        add_tag(['iw', 'il'])
+    elif cppid == 'sun':
+        add_tag(['sw'])
+    elif cppid == 'msvc':
+        # MSVC is special......
+        if vers and vers[0] == '14':
+            for i in ['9', '8', '7', '6', '5', '4', '3', '2', '1', '0']:
+                tags += ['vc14{}'.format(i)]
+        else:
+            add_tag(['vc'])
+
+    tags = ['-{}'.format(x) for x in tags]
+    tags += ['']
+    return ';'.join(tags)
+
 # Generated with boost_names.py
 BOOST_LIBS = [
     'boost_atomic',
@@ -638,7 +821,6 @@ BOOST_DIRS = [
     'variant',
     'type_erasure',
     'mpi',
-    'test',
     'fusion',
     'log',
     'sort',
