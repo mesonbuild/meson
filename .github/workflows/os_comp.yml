@@ -35,7 +35,7 @@ jobs:
     - name: Install Dependencies
       run: |
         apt-get update -yq
-        apt-get install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev libboost-all-dev
+        apt-get install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev libncurses5-dev libncursesw5-dev libboost-all-dev
     - name: Remove GitHub boost version
       run: rm -rf /usr/local/share/boost
     - name: Install ninja-build tool
