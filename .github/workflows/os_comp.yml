@@ -34,10 +34,10 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install Dependencies
       run: |
-        sudo apt update -yq
-        sudo apt install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev libboost-all-dev
+        apt-get update -yq
+        apt-get install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev libboost-all-dev
     - name: Remove GitHub boost version
-      run: sudo rm -rf /usr/local/share/boost
+      run: rm -rf /usr/local/share/boost
     - name: Install ninja-build tool
       uses: seanmiddleditch/gha-setup-ninja@v1
     - name: Python version
