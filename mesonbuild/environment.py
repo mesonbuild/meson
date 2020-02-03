@@ -1336,6 +1336,8 @@ class Environment:
                 cls = MonoCompiler
             elif "Visual C#" in out:
                 cls = VisualStudioCsCompiler
+            else:
+                continue
             self.coredata.add_lang_args(cls.language, cls, for_machine, self)
             return cls(comp, version, for_machine, info)
 
