@@ -74,7 +74,7 @@ or by typing `meson --help`.
 #### Contributing
 
 We love code contributions. See the [contribution
-page](https://mesonbuild.com/Contributing.html) on the web site for
+page](https://mesonbuild.com/Contributing.html) on the website for
 details.
 
 
