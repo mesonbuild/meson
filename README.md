@@ -27,7 +27,7 @@ the Python 3 version of `pip`.
 
 If you wish you can install it locally with the standard Python command:
 
-```sh
+```console
 python3 -m pip install meson
 ```
 
@@ -35,7 +35,7 @@ For builds using Ninja, Ninja can be downloaded directly from Ninja
 [GitHub release page](https://github.com/ninja-build/ninja/releases)
 or via [PyPi](https://pypi.python.org/pypi/ninja)
 
-```sh
+```console
 python3 -m pip install ninja
 ```
 
@@ -59,7 +59,7 @@ You can omit either of the two directories, and Meson will substitute
 the current directory and autodetect what you mean. This allows you to
 do things like this:
 
-```zsh
+```console
 cd <source root>
 meson builddir
 ```
