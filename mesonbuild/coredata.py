@@ -501,7 +501,7 @@ class CoreData:
         # Create builtin options with default values
         self.builtins = {}
         for key, opt in builtin_options.items():
-            self.builtins[key] = opt.init_option()
+            self.builtins[key] = opt.init_option(key, default_prefix())
         self.builtins_per_machine = PerMachine({}, {})
         for for_machine in iter(MachineChoice):
             for key, opt in builtin_options_per_machine.items():
@@ -959,9 +959,9 @@ class BuiltinOption(T.Generic[_T, _U]):
         self.choices = choices
         self.yielding = yielding
 
-    def init_option(self) -> _U:
+    def init_option(self, name: str = 'prefix', prefix: str = '') -> _U:
         """Create an instance of opt_type and return it."""
-        keywords = {'yielding': self.yielding, 'value': self.default}
+        keywords = {'yielding': self.yielding, 'value': self.prefixed_default(name, prefix)}
         if self.choices:
             keywords['choices'] = self.choices
         return self.opt_type(self.description, **keywords)
