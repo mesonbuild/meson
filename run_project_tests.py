@@ -76,6 +76,21 @@ class TestResult:
         self.testtime = testtime
 
 
+class TestDef:
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
+        self.path = path
+        self.name = name
+        self.args = args
+        self.skip = skip
+
+    def __repr__(self) -> str:
+        return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
+
+    def display_name(self) -> str:
+        if self.name:
+            return '{}   ({})'.format(self.path.as_posix(), self.name)
+        return self.path.as_posix()
+
 class AutoDeletedDir:
     def __init__(self, d):
         self.dir = d
@@ -343,17 +358,19 @@ def parse_test_args(testdir):
 
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
-def create_deterministic_builddir(src_dir):
+def create_deterministic_builddir(src_dir, name):
     import hashlib
+    if name:
+        src_dir += name
     rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
     os.mkdir(rel_dirname)
     abs_pathname = os.path.join(os.getcwd(), rel_dirname)
     return abs_pathname
 
-def run_test(skipped, testdir, extra_args, compiler, backend, flags, commands, should_fail):
+def run_test(skipped, testdir, name, extra_args, compiler, backend, flags, commands, should_fail):
     if skipped:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(testdir)) as build_dir:
+    with AutoDeletedDir(create_deterministic_builddir(testdir, name)) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
                 return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
@@ -475,13 +492,56 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path) -> T.List[Path]:
-    test_names = [t.name for t in testdir.glob('*') if t.is_dir()]
-    test_names = [t for t in test_names if not t.startswith('.')] # Filter non-tests files (dot files, etc)
-    test_nums = [(int(t.split()[0]), t) for t in test_names]
-    test_nums.sort()
-    tests = [testdir / t[1] for t in test_nums]
-    return tests
+def gather_tests(testdir: Path) -> T.List[TestDef]:
+    tests = [t.name for t in testdir.glob('*') if t.is_dir()]
+    tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
+    tests = [TestDef(testdir / t, None, []) for t in tests]
+    all_tests = []
+    for t in tests:
+        matrix_file = t.path / 'test_matrix.json'
+        if not matrix_file.is_file():
+            all_tests += [t]
+            continue
+
+        # Build multiple tests from matrix definition
+        opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+        matrix = json.loads(matrix_file.read_text())
+        assert "options" in matrix
+        for key, val in matrix["options"].items():
+            assert isinstance(val, list)
+            tmp_opts = []  # type: T.List[T.Tuple[str, bool]]
+            for i in val:
+                assert isinstance(i, dict)
+                assert "val" in i
+                skip = False
+
+                # Skip the matrix entry if environment variable is present
+                if 'skip_on_env' in i:
+                    for env in i['skip_on_env']:
+                        if env in os.environ:
+                            skip = True
+
+                tmp_opts += [('{}={}'.format(key, i['val']), skip)]
+
+            if opt_list:
+                new_opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+                for i in opt_list:
+                    for j in tmp_opts:
+                        new_opt_list += [[*i, j]]
+                opt_list = new_opt_list
+            else:
+                opt_list = [[x] for x in tmp_opts]
+
+        for i in opt_list:
+            name = ' '.join([x[0] for x in i])
+            opts = ['-D' + x[0] for x in i]
+            skip = any([x[1] for x in i])
+            all_tests += [TestDef(t.path, name, opts, skip)]
+
+    all_tests = [(int(t.path.name.split()[0]), t.name or '', t) for t in all_tests]
+    all_tests.sort()
+    all_tests = [t[2] for t in all_tests]
+    return all_tests
 
 def have_d_compiler():
     if shutil.which("ldc2"):
@@ -632,7 +692,7 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[Path], bool]]:
+def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -641,7 +701,7 @@ def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[Path], 
 
     Returns
     -------
-    gathered_tests: list of tuple of str, list of pathlib.Path, bool
+    gathered_tests: list of tuple of str, list of TestDef, bool
         tests to run
     """
 
@@ -691,7 +751,7 @@ def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[Path], 
     gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
-def run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
+def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
               log_name_base: str, failfast: bool,
               extra_args: T.List[str]) -> T.Tuple[int, int, int]:
     global logfile
@@ -700,7 +760,7 @@ def run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
         logfile = lf
         return _run_tests(all_tests, log_name_base, failfast, extra_args)
 
-def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
+def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str, failfast: bool,
                extra_args: T.List[str]) -> T.Tuple[int, int, int]:
     global stop, executor, futures, system_compiler
@@ -742,8 +802,10 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
-            (testnum, testbase) = t.name.split(' ', 1)
+            (testnum, testbase) = t.path.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
+            if t.name:
+                testname += ' ({})'.format(t.name)
             should_fail = False
             suite_args = []
             if name.startswith('failing'):
@@ -752,7 +814,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
 
-            result = executor.submit(run_test, skipped, t.as_posix(), extra_args + suite_args,
+            result = executor.submit(run_test, skipped or t.skip, t.path.as_posix(), t.name, extra_args + suite_args + t.args,
                                      system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
@@ -761,8 +823,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
                 result = result.result()
             except CancelledError:
                 continue
-            if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.as_posix()))):
-                print(yellow('Skipping:'), t.as_posix())
+            if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.path.as_posix()))):
+                print(yellow('Skipping:'), t.display_name())
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name})
                 ET.SubElement(current_test, 'skipped', {})
@@ -770,7 +832,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
                 if result.msg != '':
-                    print(red('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t.as_posix())))
+                    print(red('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t.display_name())))
                     print('Reason:', result.msg)
                     failing_tests += 1
                     if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
@@ -794,13 +856,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[Path], bool]],
                         for (_, _, res) in futures:
                             res.cancel()
                 else:
-                    print('Succeeded test%s: %s' % (without_install, t.as_posix()))
+                    print('Succeeded test%s: %s' % (without_install, t.display_name()))
                     passing_tests += 1
                 conf_time += result.conftime
                 build_time += result.buildtime
                 test_time += result.testtime
                 total_time = conf_time + build_time + test_time
-                log_text_file(logfile, t, result.stdo, result.stde)
+                log_text_file(logfile, t.path, result.stdo, result.stde)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name,
                                                                          'time': '%.3f' % total_time})
@@ -982,7 +1044,7 @@ if __name__ == '__main__':
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
     for name, dirs, _ in all_tests:
-        dir_names = (x.name for x in dirs)
+        dir_names = list(set(x.path.name for x in dirs))
         for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
             tests = list(g)
             if len(tests) != 1:
