@@ -1,4 +1,4 @@
-# Copyright 2013-2019 The Meson development team
+# Copyright 2013-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,108 +13,137 @@
 # limitations under the License.
 
 from pathlib import Path
+import functools
 import os
+import typing as T
 
-from .. import mesonlib
-from .base import CMakeDependency, DependencyMethods, ExternalDependency, PkgConfigDependency
+from .base import CMakeDependency, DependencyMethods, PkgConfigDependency
+from .base import factory_methods, DependencyException
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment, MachineChoice
+    from .base import DependencyType
 
 
-class ScalapackDependency(ExternalDependency):
-    def __init__(self, environment, kwargs: dict):
-        super().__init__('scalapack', environment, kwargs)
-        kwargs['required'] = False
-        kwargs['silent'] = True
-        self.is_found = False
-        self.static = kwargs.get('static', False)
-        methods = mesonlib.listify(self.methods)
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
+def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
+                      kwargs: T.Dict[str, T.Any],
+                      methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    candidates = []
 
-        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
-            pkgconfig_files = []
-            mklroot = None
-            is_gcc = self.clib_compiler.get_id() == 'gcc'
-            # Intel MKL works with non-Intel compilers too -- but not gcc on windows
-            if 'MKLROOT' in os.environ and not (mesonlib.is_windows() and is_gcc):
+    if DependencyMethods.PKGCONFIG in methods:
+        mkl = 'mkl-static-lp64-iomp' if kwargs.get('static', False) else 'mkl-dynamic-lp64-iomp'
+        candidates.append(functools.partial(
+            MKLPkgConfigDependency, mkl, env, kwargs))
+
+        for pkg in ['scalapack-openmpi', 'scalapack']:
+            candidates.append(functools.partial(
+                PkgConfigDependency, pkg, env, kwargs))
+
+    if DependencyMethods.CMAKE in methods:
+        candidates.append(functools.partial(
+            CMakeDependency, 'Scalapack', env, kwargs))
+
+    return candidates
+
+
+class MKLPkgConfigDependency(PkgConfigDependency):
+
+    """PkgConfigDependency for Intel MKL.
+
+    MKL's pkg-config is pretty much borked in every way. We need to apply a
+    bunch of fixups to make it work correctly.
+    """
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        _m = os.environ.get('MKLROOT')
+        self.__mklroot = Path(_m).resolve() if _m else None
+
+        # We need to call down into the normal super() method even if we don't
+        # find mklroot, otherwise we won't have all of the instance variables
+        # initialized that meson expects.
+        super().__init__(name, env, kwargs, language=language)
+
+        # Doesn't work with gcc on windows, but does on Linux
+        if (not self.__mklroot or (env.machines[self.for_machine].is_windows()
+                                   and self.clib_compiler.id == 'gcc')):
+            self.is_found = False
+
+        # This can happen either because we're using GCC, we couldn't find the
+        # mklroot, or the pkg-config couldn't find it.
+        if not self.is_found:
+            return
+
+        assert self.version != '', 'This should not happen if we didn\'t return above'
+
+        if self.version == 'unknown':
+            # At least by 2020 the version is in the pkg-config, just not with
+            # the correct name
+            v = self.get_variable(pkgconfig='Version', default_value='')
+
+            if not v and self.__mklroot:
                 try:
-                    mklroot = Path(os.environ['MKLROOT']).resolve()
-                except Exception:
+                    v = (
+                        self.__mklroot.as_posix()
+                        .split('compilers_and_libraries_')[1]
+                        .split('/', 1)[0]
+                    )
+                except IndexError:
                     pass
-            if mklroot is not None:
-                # MKL pkg-config is a start, but you have to add / change stuff
-                # https://software.intel.com/en-us/articles/intel-math-kernel-library-intel-mkl-and-pkg-config-tool
-                pkgconfig_files = (
-                    ['mkl-static-lp64-iomp'] if self.static else ['mkl-dynamic-lp64-iomp']
-                )
-                if mesonlib.is_windows():
-                    suffix = '.lib'
-                elif self.static:
-                    suffix = '.a'
-                else:
-                    suffix = ''
-                libdir = mklroot / 'lib/intel64'
-            # Intel compiler might not have Parallel Suite
-            pkgconfig_files += ['scalapack-openmpi', 'scalapack']
 
-            for pkg in pkgconfig_files:
-                pkgdep = PkgConfigDependency(
-                    pkg, environment, kwargs, language=self.language
-                )
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    if mklroot:
-                        link_args = pkgdep.get_link_args()
-                        if is_gcc:
-                            for i, a in enumerate(link_args):
-                                if 'mkl_intel_lp64' in a:
-                                    link_args[i] = a.replace('intel', 'gf')
-                                    break
-                        # MKL pkg-config omits scalapack
-                        # be sure "-L" and "-Wl" are first if present
-                        i = 0
-                        for j, a in enumerate(link_args):
-                            if a.startswith(('-L', '-Wl')):
-                                i = j + 1
-                            elif j > 3:
-                                break
-                        if mesonlib.is_windows() or self.static:
-                            link_args.insert(
-                                i, str(libdir / ('mkl_scalapack_lp64' + suffix))
-                            )
-                            link_args.insert(
-                                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix))
-                            )
-                        else:
-                            link_args.insert(i, '-lmkl_scalapack_lp64')
-                            link_args.insert(i + 1, '-lmkl_blacs_intelmpi_lp64')
-                    else:
-                        link_args = pkgdep.get_link_args()
-                    self.link_args = link_args
+            if v:
+                self.version = v
 
-                    self.version = pkgdep.get_version()
-                    if self.version == 'unknown' and mklroot:
-                        try:
-                            v = (
-                                mklroot.as_posix()
-                                .split('compilers_and_libraries_')[1]
-                                .split('/', 1)[0]
-                            )
-                            if v:
-                                self.version = v
-                        except IndexError:
-                            pass
+    def _set_libs(self):
+        super()._set_libs()
 
-                    self.is_found = True
-                    self.pcdep = pkgdep
-                    return
+        if self.env.machines[self.for_machine].is_windows():
+            suffix = '.lib'
+        elif self.static:
+            suffix = '.a'
+        else:
+            suffix = ''
+        libdir = self.__mklroot / 'lib/intel64'
 
-        if set([DependencyMethods.AUTO, DependencyMethods.CMAKE]).intersection(methods):
-            cmakedep = CMakeDependency('Scalapack', environment, kwargs, language=self.language)
-            if cmakedep.found():
-                self.compile_args = cmakedep.get_compile_args()
-                self.link_args = cmakedep.get_link_args()
-                self.version = cmakedep.get_version()
-                self.is_found = True
-                return
+        if self.clib_compiler.id == 'gcc':
+            for i, a in enumerate(self.link_args):
+                # only replace in filename, not in directory names
+                parts = list(os.path.split(a))
+                if 'mkl_intel_lp64' in parts[-1]:
+                    parts[-1] = parts[-1].replace('intel', 'gf')
+                    self.link_args[i] = '/' + os.path.join(*parts)
+        # MKL pkg-config omits scalapack
+        # be sure "-L" and "-Wl" are first if present
+        i = 0
+        for j, a in enumerate(self.link_args):
+            if a.startswith(('-L', '-Wl')):
+                i = j + 1
+            elif j > 3:
+                break
+        if self.env.machines[self.for_machine].is_windows() or self.static:
+            self.link_args.insert(
+                i, str(libdir / ('mkl_scalapack_lp64' + suffix))
+            )
+            self.link_args.insert(
+                i + 1, str(libdir / ('mkl_blacs_intelmpi_lp64' + suffix))
+            )
+        else:
+            self.link_args.insert(i, '-lmkl_scalapack_lp64')
+            self.link_args.insert(i + 1, '-lmkl_blacs_intelmpi_lp64')
 
-    @staticmethod
-    def get_methods():
-        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE]
+    def _set_cargs(self):
+        env = None
+        if self.language == 'fortran':
+            # gfortran doesn't appear to look in system paths for INCLUDE files,
+            # so don't allow pkg-config to suppress -I flags for system paths
+            env = os.environ.copy()
+            env['PKG_CONFIG_ALLOW_SYSTEM_CFLAGS'] = '1'
+        ret, out, err = self._call_pkgbin([
+            '--cflags', self.name,
+            '--define-variable=prefix=' + self.__mklroot.as_posix()],
+            env=env)
+        if ret != 0:
+            raise DependencyException('Could not generate cargs for %s:\n%s\n' %
+                                      (self.name, err))
+        self.compile_args = self._convert_mingw_paths(self._split_args(out))
