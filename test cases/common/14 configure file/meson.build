@@ -185,6 +185,12 @@ ret = run_command(check_file, inf, outf)
 if ret.returncode() != 0
   error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
 endif
+# Now the same, but using a File object as an argument.
+inf2 = files('invalid-utf8.bin.in')[0]
+ret = run_command(check_file, inf2, outf)
+if ret.returncode() != 0
+  error('Error running command: @0@\n@1@'.format(ret.stdout(), ret.stderr()))
+endif
 
 # Test copy of a binary file
 outf = configure_file(input : inf,
