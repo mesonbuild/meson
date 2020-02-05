@@ -20,6 +20,7 @@ from .. import mlog
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import MesonException
+from ..interpreterbase import FeatureNew
 
 from ..interpreterbase import stringArgs, noKwargs
 if T.TYPE_CHECKING:
@@ -62,6 +63,7 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
+    @FeatureNew('fs.expanduser', '0.54.0')
     def expanduser(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
             raise MesonException('fs.expanduser takes exactly one argument.')
@@ -69,6 +71,7 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
+    @FeatureNew('fs.is_absolute', '0.54.0')
     def is_absolute(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
             raise MesonException('fs.is_absolute takes exactly one argument.')
@@ -76,6 +79,7 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
+    @FeatureNew('fs.as_posix', '0.54.0')
     def as_posix(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         """
         this function assumes you are passing a Windows path, even if on a Unix-like system
@@ -181,6 +185,7 @@ class FSModule(ExtensionModule):
 
     @stringArgs
     @noKwargs
+    @FeatureNew('fs.stem', '0.54.0')
     def stem(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         if len(args) != 1:
             raise MesonException('fs.stem takes exactly one argument.')
