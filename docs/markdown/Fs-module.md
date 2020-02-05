@@ -42,6 +42,8 @@ by the string is a symbolic link.
 
 ### is_absolute
 
+*since 0.54.0*
+
 Return a boolean indicating if the path string specified is absolute, WITHOUT expanding `~`.
 
 Examples:
@@ -104,17 +106,21 @@ The files need not actually exist yet for these path string manipulation methods
 
 ### expanduser
 
+*since 0.54.0*
+
 A path string with a leading `~` is expanded to the user home directory
 
 Examples:
 
 ```meson
-fs.expanduser('~')  # home directory
+fs.expanduser('~')  # user home directory
 
 fs.expanduser('~/foo')  # <homedir>/foo
 ```
 
 ### as_posix
+
+*since 0.54.0*
 
 `fs.as_posix(path)` assumes a Windows path, even if on a Unix-like system.
 Thus, all `'\'` or `'\\'` are turned to '/', even if you meant to escape a character.
@@ -179,6 +185,8 @@ fs.name('foo/bar/baz.dll.a')  # baz.dll.a
 ```
 
 ### stem
+
+*since 0.54.0*
 
 Returns the last component of the path, dropping the last part of the suffix
 
