@@ -8,5 +8,8 @@
       { "val": "true"  },
       { "val": "false" }
     ]
-  }
+  },
+  "exclude": [
+    { "method": "system", "static": "true" }
+  ]
 }

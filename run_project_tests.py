@@ -86,6 +86,12 @@ class TestDef:
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
 
+    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+        if self.name and other.name:
+            return (str(self.path) + self.name) < (str(other.path) + other.name)
+        else:
+            return str(self.path) < str(other.path)
+
     def display_name(self) -> str:
         if self.name:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
@@ -532,15 +538,33 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             else:
                 opt_list = [[x] for x in tmp_opts]
 
+        # Exclude specific configurations
+        if 'exclude' in matrix:
+            assert isinstance(matrix['exclude'], list)
+            new_opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+            for i in opt_list:
+                exclude = False
+                opt_names = [x[0] for x in i]
+                for j in matrix['exclude']:
+                    ex_list = ['{}={}'.format(k, v) for k, v in j.items()]
+                    if all([x in opt_names for x in ex_list]):
+                        exclude = True
+                        break
+
+                if not exclude:
+                    new_opt_list += [i]
+
+            opt_list = new_opt_list
+
         for i in opt_list:
             name = ' '.join([x[0] for x in i])
             opts = ['-D' + x[0] for x in i]
             skip = any([x[1] for x in i])
             all_tests += [TestDef(t.path, name, opts, skip)]
 
-    all_tests = [(int(t.path.name.split()[0]), t.name or '', t) for t in all_tests]
+    all_tests = [(int(t.path.name.split()[0]), t) for t in all_tests]
     all_tests.sort()
-    all_tests = [t[2] for t in all_tests]
+    all_tests = [t[1] for t in all_tests]
     return all_tests
 
 def have_d_compiler():
