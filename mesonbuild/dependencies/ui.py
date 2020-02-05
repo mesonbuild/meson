@@ -531,7 +531,7 @@ class WxDependency(ConfigToolDependency):
     tool_name = 'wx-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('WxWidgets', environment, kwargs)
+        super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
         self.requested_modules = self.get_requested(kwargs)
