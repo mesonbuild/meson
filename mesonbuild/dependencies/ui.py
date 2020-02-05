@@ -32,6 +32,9 @@ from .base import ExternalDependency, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
 
+if T.TYPE_CHECKING:
+    from ..environment import Environment
+
 
 class GLDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
@@ -530,17 +533,30 @@ class WxDependency(ConfigToolDependency):
     tools = ['wx-config-3.0', 'wx-config', 'wx-config-gtk3']
     tool_name = 'wx-config'
 
-    def __init__(self, environment, kwargs):
-        super().__init__('WxWidgets', environment, kwargs)
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__('WxWidgets', environment, kwargs, language='cpp')
         if not self.is_found:
             return
         self.requested_modules = self.get_requested(kwargs)
+
+        extra_args = []
+        if self.static:
+            extra_args.append('--static=yes')
+
+            # Check to make sure static is going to work
+            err = Popen_safe(self.config + extra_args)[2]
+            if 'No config found to match' in err:
+                mlog.debug('WxWidgets is missing static libraries.')
+                self.is_found = False
+                return
+
         # wx-config seems to have a cflags as well but since it requires C++,
         # this should be good, at least for now.
-        self.compile_args = self.get_config_value(['--cxxflags'] + self.requested_modules, 'compile_args')
-        self.link_args = self.get_config_value(['--libs'] + self.requested_modules, 'link_args')
+        self.compile_args = self.get_config_value(['--cxxflags'] + extra_args + self.requested_modules, 'compile_args')
+        self.link_args = self.get_config_value(['--libs'] + extra_args + self.requested_modules, 'link_args')
 
-    def get_requested(self, kwargs):
+    @staticmethod
+    def get_requested(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
         if 'modules' not in kwargs:
             return []
         candidates = extract_as_list(kwargs, 'modules')
