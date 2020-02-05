@@ -1646,6 +1646,7 @@ class DubDependency(ExternalDependency):
                     if lib_path:
                         self.link_args.append(lib_path)
                     else:
+                        mlog.warning('Library not found: {}'.format(file))
                         self.is_found = False
 
     def get_compiler(self):
