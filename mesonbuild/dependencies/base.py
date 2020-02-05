@@ -1661,6 +1661,14 @@ class DubDependency(ExternalDependency):
             lib_file_name = os.path.basename(default_path)
         module_build_path = os.path.join(module_path, '.dub', 'build')
 
+        # If default_path is a path to lib file and 
+        # directory of lib don't have subdir '.dub/build' 
+        if not os.path.isdir(module_build_path) and os.path.isfile(default_path):
+            if folder_only:
+                return module_path
+            else:
+                return default_path
+
         # Get D version implemented in the compiler
         # gdc doesn't support this
         ret, res = self._call_dubbin(['--version'])
