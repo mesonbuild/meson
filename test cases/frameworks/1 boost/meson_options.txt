@@ -1,0 +1,2 @@
+option('method', type: 'combo', choices: ['auto', 'cmake', 'system'], value: 'cmake')
+option('static', type: 'boolean', value: false)

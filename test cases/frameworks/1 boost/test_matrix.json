@@ -1,0 +1,12 @@
+{
+  "options": {
+    "method": [
+      { "val": "cmake"                             },
+      { "val": "system", "skip_on_env": ["XENIAL"] }
+    ],
+    "static": [
+      { "val": "true"  },
+      { "val": "false" }
+    ]
+  }
+}
