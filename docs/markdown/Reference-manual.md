@@ -1788,7 +1788,7 @@ the following methods.
   if not cross compiling or the given property is not found.
 
 - `get_external_property(propname, fallback_value, native: true/false)`
-  *(added 0.53.0)* returns the given property from a native or cross file.
+  *(added 0.54.0)* returns the given property from a native or cross file.
   The optional fallback_value is returned if the given property is not found.
   The optional `native: true` forces retrieving a variable from the
   native file, even when cross-compiling.

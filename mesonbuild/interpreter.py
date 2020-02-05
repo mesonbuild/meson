@@ -2037,8 +2037,8 @@ class MesonMain(InterpreterObject):
 
     @noArgsFlattening
     @permittedKwargs({'native'})
-    @FeatureNew('meson.get_external_property', '0.53.0')
-    def get_external_property_method(self, args: Sequence[str], kwargs: dict) -> str:
+    @FeatureNew('meson.get_external_property', '0.54.0')
+    def get_external_property_method(self, args: T.Sequence[str], kwargs: dict) -> str:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Must have one or two positional arguments.')
         propname = args[0]
