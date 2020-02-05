@@ -1773,10 +1773,6 @@ the following methods.
   refer to files in the current or any other source directory instead
   of constructing paths manually with `meson.current_source_dir()`.
 
-- `get_cross_property(propname, fallback_value)` returns the given
-  property from a cross file, the optional second argument is returned
-  if not cross compiling or the given property is not found.
-
 - `get_compiler(language)` returns [an object describing a
   compiler](#compiler-object), takes one positional argument which is
   the language to use. It also accepts one keyword argument, `native`
@@ -1785,6 +1781,19 @@ the following methods.
   compiler (the "cross" compiler). If `native` is omitted, Meson
   returns the "cross" compiler if we're currently cross-compiling and
   the "native" compiler if we're not.
+
+- `get_cross_property(propname, fallback_value)`
+  *Consider get_external_property() instead*. Returns the given
+  property from a cross file, the optional fallback_value is returned
+  if not cross compiling or the given property is not found.
+
+- `get_external_property(propname, fallback_value, native: true/false)`
+  *(added 0.54.0)* returns the given property from a native or cross file.
+  The optional fallback_value is returned if the given property is not found.
+  The optional `native: true` forces retrieving a variable from the
+  native file, even when cross-compiling.
+  If `native: false` or not specified, variable is retrieved from the
+  cross-file if cross-compiling, and from the native-file when not cross-compiling.
 
 - `has_exe_wrapper()` returns true when doing a cross build if there
   is a wrapper command that can be used to execute cross built
