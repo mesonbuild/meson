@@ -54,6 +54,13 @@ class CMakeTarget:
             propSTR += "      '{}': {}\n".format(i, self.properties[i])
         return s.format(self.name, self.type, self.imported, propSTR, self.tline)
 
+    def strip_properties(self) -> None:
+        # Strip the strings in the properties
+        if not self.properties:
+            return
+        for key, val in self.properties.items():
+            self.properties[key] = [x.strip() for x in val]
+
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name):
         super().__init__(name, 'CUSTOM', {})
@@ -63,11 +70,8 @@ class CMakeGeneratorTarget(CMakeTarget):
 
 class CMakeTraceParser:
     def __init__(self, cmake_version: str, build_dir: str, permissive: bool = False):
-        # Dict of CMake variables: '<var_name>': ['list', 'of', 'values']
-        self.vars = {}
-
-        # Dict of CMakeTarget
-        self.targets = {}
+        self.vars = {}     # type: T.Dict[str, T.List[str]]
+        self.targets = {}  # type: T.Dict[str, CMakeTarget]
 
         # T.List of targes that were added with add_custom_command to generate files
         self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
@@ -132,6 +136,10 @@ class CMakeTraceParser:
             fn = functions.get(l.func, None)
             if(fn):
                 fn(l)
+
+        # Postprocess
+        for tgt in self.targets.values():
+            tgt.strip_properties()
 
     def get_first_cmake_var_of(self, var_list: T.List[str]) -> T.List[str]:
         # Return the first found CMake variable in list var_list
