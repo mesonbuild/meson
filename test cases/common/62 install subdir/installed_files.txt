@@ -10,3 +10,5 @@ usr/share/sub1/third.dat
 usr/share/sub1/sub2/data2.dat
 usr/share/sub2/one.dat
 usr/share/sub2/dircheck/excluded-three.dat
+usr/share/sub3/data/data.dat
+usr/share/sub3/data.dat

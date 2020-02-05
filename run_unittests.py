@@ -2012,6 +2012,7 @@ class AllPlatformTests(BasePlatformTests):
         intro = self.introspect('--installed')
         expected = {
             'sub2': 'share/sub2',
+            'sub3': 'share/sub3',
             'subdir/sub1': 'share/sub1',
             'subdir/sub_elided': 'share',
             'sub1': 'share/sub1',

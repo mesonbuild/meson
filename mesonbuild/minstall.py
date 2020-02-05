@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sys, pickle, os, shutil, subprocess, errno
-import shlex
+import shlex, fnmatch, re
 from glob import glob
 from .scripts import depfixer
 from .scripts import destdir_join
@@ -225,6 +225,17 @@ class Installer:
         to_time = os.stat(to_file).st_mtime
         return from_time <= to_time
 
+    @staticmethod
+    def should_exclude_path(path, patterns):
+        if not patterns:
+            return False
+
+        reobj = re.compile('|'.join(fnmatch.translate(p) for p in patterns))
+        if reobj.match(path):
+            return True
+        else:
+            return False
+
     def do_copyfile(self, from_file, to_file):
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
@@ -298,7 +309,7 @@ class Installer:
                 filepart = os.path.relpath(abs_src, start=src_dir)
                 abs_dst = os.path.join(dst_dir, filepart)
                 # Remove these so they aren't visited by os.walk at all.
-                if filepart in exclude_dirs:
+                if self.should_exclude_path(filepart, exclude_dirs):
                     dirs.remove(d)
                     continue
                 if os.path.isdir(abs_dst):
@@ -312,7 +323,7 @@ class Installer:
             for f in files:
                 abs_src = os.path.join(root, f)
                 filepart = os.path.relpath(abs_src, start=src_dir)
-                if filepart in exclude_files:
+                if self.should_exclude_path(filepart, exclude_files):
                     continue
                 abs_dst = os.path.join(dst_dir, filepart)
                 if os.path.isdir(abs_dst):
