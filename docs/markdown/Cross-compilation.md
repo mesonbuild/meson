@@ -89,40 +89,32 @@ get the hang of it eventually.
 
 Meson requires you to write a cross build definition file. It defines
 various properties of the cross build environment. The cross file
-consists of different sections. The first one is the list of
-executables that we are going to use. A sample snippet might look like
-this:
+consists of different sections.
+
+There are a number of options shared by cross and native files,
+[here](Machine-files.md). It is assumed that you have read that section already,
+as this documentation will only call out options specific to cross files.
+
+### Binaries
 
 ```ini
 [binaries]
-c = '/usr/bin/i586-mingw32msvc-gcc'
-cpp = '/usr/bin/i586-mingw32msvc-g++'
-c_ld = 'gold'
-cpp_ld = 'gold'
-ar = '/usr/i586-mingw32msvc/bin/ar'
-strip = '/usr/i586-mingw32msvc/bin/strip'
-pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
 exe_wrapper = 'wine' # A command used to run generated executables.
 ```
 
-The entries are pretty self explanatory but the last line is
-special. It defines a *wrapper command* that can be used to run
-executables for this host. In this case we can use Wine, which runs
-Windows applications on Linux. Other choices include running the
-application with qemu or a hardware simulator. If you have this kind
-of a wrapper, these lines are all you need to write. Meson will
-automatically use the given wrapper when it needs to run host
-binaries. This happens e.g. when running the project's test suite.
+The `exe_wrapper` option defines a *wrapper command* that can be used to run
+executables for this host. In this case we can use Wine, which runs Windows
+applications on Linux. Other choices include running the application with
+qemu or a hardware simulator. If you have this kind of a wrapper, these lines
+are all you need to write. Meson will automatically use the given wrapper
+when it needs to run host binaries. This happens e.g. when running the
+project's test suite.
 
-ld is special because it is compiler specific. For compilers like gcc and
-clang which are used to invoke the linker this is a value to pass to their
-"choose the linker" argument (-fuse-ld= in this case). For compilers like
-MSVC and Clang-Cl, this is the path to a linker for meson to invoke, such as
-`link.exe` or `lld-link.exe`. Support for ls is *new in 0.53.0*
+### Properties
 
-The next section lists properties of the cross compiler and its target
-system, and thus properties of host system of what we're building. It
-looks like this:
+In addition to the properites allowed in [all machine
+files](Machine-files.md#properties), the cross file may contain specific
+information about the cross compiler or the host machine. It looks like this:
 
 ```ini
 [properties]
@@ -136,8 +128,6 @@ alignment_double = 4
 
 has_function_printf = true
 
-c_args = ['-DCROSS=1', '-DSOMETHING=3']
-c_link_args = ['-some_link_arg']
 sys_root = '/some/path'
 pkg_config_libdir = '/some/path/lib/pkgconfig'
 ```
@@ -180,6 +170,8 @@ binaries are not actually compatible. In such cases you may use the
 needs_exe_wrapper = true
 ```
 
+### Machine Entries
+
 The next bit is the definition of host and target machines. Every
 cross build definition must have one or both of them. If it had
 neither, the build would not be a cross build but a native build. You
@@ -215,24 +207,6 @@ but with different operating systems.
 If you do not define your host machine, it is assumed to be the build
 machine. Similarly if you do not specify target machine, it is assumed
 to be the host machine.
-
-Additionally, you can define the paths that you want to install to in your
-cross file. This may be especially useful when cross compiling an entire
-operating system, or for operating systems to use internally for consistency.
-
-```ini
-[paths]
-prefix = '/my/prefix'
-libdir = 'lib/i386-linux-gnu'
-bindir = 'bin'
-```
-
-This will be overwritten by any options passed on the command line.
-
-Since meson 0.52.0 it is possible to layer cross files together. This
-works like native file layering: the purpose is to compose cross files
-together, and values from the second cross file will replace those
-from the first.
 
 
 ## Starting a cross build

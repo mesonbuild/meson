@@ -9,6 +9,7 @@ index.md
 		Using-with-Visual-Studio.md
 		Meson-sample.md
 		Syntax.md
+		Machine-files.md
 		Native-environments.md
 		Build-targets.md
 		Include-directories.md
