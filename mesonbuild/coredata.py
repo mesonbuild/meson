@@ -364,12 +364,11 @@ class CoreData:
         self.install_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.builtins = {} # : OptionDictType
-        self.builtins_per_machine = PerMachine({}, {})
-        self.backend_options = {} # : OptionDictType
-        self.user_options = {} # : OptionDictType
+        self.init_builtins()
+        self.backend_options = {} # : T.Dict[str, UserOption]
+        self.user_options = {} # : T.Dict[str, UserOption]
         self.compiler_options = PerMachine({}, {})
-        self.base_options = {} # : OptionDictType
+        self.base_options = {} # : T.Dict[str, UserOption]
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
 
@@ -379,7 +378,6 @@ class CoreData:
         self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
-        self.init_builtins('')
         self.libdir_cross_fixup()
 
     @staticmethod
@@ -499,25 +497,15 @@ class CoreData:
                 raise MesonException(msg.format(option, value, prefix))
         return value.as_posix()
 
-    def init_builtins(self, subproject: str):
+    def init_builtins(self):
         # Create builtin options with default values
+        self.builtins = {}
         for key, opt in builtin_options.items():
-            self.add_builtin_option(self.builtins, key, opt, subproject)
+            self.builtins[key] = opt.init_option(key, default_prefix())
+        self.builtins_per_machine = PerMachine({}, {})
         for for_machine in iter(MachineChoice):
             for key, opt in builtin_options_per_machine.items():
-                self.add_builtin_option(self.builtins_per_machine[for_machine], key, opt, subproject)
-
-    def add_builtin_option(self, opts_map, key, opt, subproject):
-        if subproject:
-            if opt.yielding:
-                # This option is global and not per-subproject
-                return
-            optname = subproject + ':' + key
-            value = opts_map[key].value
-        else:
-            optname = key
-            value = None
-        opts_map[optname] = opt.init_option(key, value, default_prefix())
+                self.builtins_per_machine[for_machine][key] = opt.init_option()
 
     def init_backend_options(self, backend_name):
         if backend_name == 'ninja':
@@ -532,20 +520,15 @@ class CoreData:
                     'Default project to execute in Visual Studio',
                     '')
 
-    def get_builtin_option(self, optname, subproject=''):
-        raw_optname = optname
-        if subproject:
-            optname = subproject + ':' + optname
+    def get_builtin_option(self, optname):
         for opts in self._get_all_builtin_options():
             v = opts.get(optname)
-            if v is None or v.yielding:
-                v = opts.get(raw_optname)
             if v is None:
                 continue
-            if raw_optname == 'wrap_mode':
+            if optname == 'wrap_mode':
                 return WrapMode.from_string(v.value)
             return v.value
-        raise RuntimeError('Tried to get unknown builtin option %s.' % raw_optname)
+        raise RuntimeError('Tried to get unknown builtin option %s.' % optname)
 
     def _try_set_builtin_option(self, optname, value):
         for opts in self._get_all_builtin_options():
@@ -724,13 +707,11 @@ class CoreData:
                 env.cmd_line_options.setdefault(k, v)
 
         # Set default options as if they were passed to the command line.
-        # Subprojects can only define default for user options and not yielding
-        # builtin option.
+        # Subprojects can only define default for user options.
         from . import optinterpreter
         for k, v in default_options.items():
             if subproject:
-                if (k not in builtin_options or builtin_options[k].yielding) \
-                        and optinterpreter.is_invalid_name(k, log=False):
+                if optinterpreter.is_invalid_name(k, log=False):
                     continue
                 k = subproject + ':' + k
             env.cmd_line_options.setdefault(k, v)
@@ -970,7 +951,7 @@ class BuiltinOption(T.Generic[_T, _U]):
     Currently doesn't support UserIntegerOption, or a few other cases.
     """
 
-    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: bool = True, *,
+    def __init__(self, opt_type: T.Type[_U], description: str, default: T.Any, yielding: T.Optional[bool] = None, *,
                  choices: T.Any = None):
         self.opt_type = opt_type
         self.description = description
@@ -978,11 +959,9 @@ class BuiltinOption(T.Generic[_T, _U]):
         self.choices = choices
         self.yielding = yielding
 
-    def init_option(self, name: str, value: T.Optional[T.Any], prefix: str) -> _U:
+    def init_option(self, name: str = 'prefix', prefix: str = '') -> _U:
         """Create an instance of opt_type and return it."""
-        if value is None:
-            value = self.prefixed_default(name, prefix)
-        keywords = {'yielding': self.yielding, 'value': value}
+        keywords = {'yielding': self.yielding, 'value': self.prefixed_default(name, prefix)}
         if self.choices:
             keywords['choices'] = self.choices
         return self.opt_type(self.description, **keywords)
@@ -1057,8 +1036,7 @@ builtin_options = OrderedDict([
     ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
                                       choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
     ('debug',           BuiltinOption(UserBooleanOption, 'Debug', True)),
-    ('default_library', BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                      yielding=False)),
+    ('default_library', BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'])),
     ('errorlogs',       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
     ('install_umask',   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
     ('layout',          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),

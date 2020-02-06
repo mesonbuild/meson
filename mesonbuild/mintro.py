@@ -180,10 +180,9 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
     return tlist
 
 def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
-    subprojects = [i['name'] for i in intr.project_data['subprojects']]
-    return list_buildoptions(intr.coredata, subprojects)
+    return list_buildoptions(intr.coredata)
 
-def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
+def list_buildoptions(coredata: cdata.CoreData) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     optlist = []  # type: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]
 
     dir_option_names = ['bindir',
@@ -206,16 +205,6 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     dir_options = {k: o for k, o in coredata.builtins.items() if k in dir_option_names}
     test_options = {k: o for k, o in coredata.builtins.items() if k in test_option_names}
     core_options = {k: o for k, o in coredata.builtins.items() if k in core_option_names}
-
-    if subprojects:
-        # Add per subproject built-in options
-        sub_core_options = {}
-        for sub in subprojects:
-            for k, o in core_options.items():
-                if o.yielding:
-                    continue
-                sub_core_options[sub + ':' + k] = o
-        core_options.update(sub_core_options)
 
     def add_keys(options: T.Dict[str, cdata.UserOption], section: str, machine: str = 'any') -> None:
         for key in sorted(options.keys()):
