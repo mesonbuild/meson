@@ -7,7 +7,7 @@ cpp = 'armcc'
 ar = 'armar'
 strip = 'armar'
 
-[properties]
+[built-in options]
 # The '--cpu' option with the appropriate target type should be mentioned
 # to cross compile c/c++ code with armcc,.
 c_args      = ['--cpu=Cortex-M0plus']

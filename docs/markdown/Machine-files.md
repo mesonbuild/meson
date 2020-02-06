@@ -13,6 +13,7 @@ The following sections are allowed:
 - paths
 - properties
 - project options
+- built-in options
 
 ### constants
 
@@ -158,17 +159,23 @@ command line will override any options in the native file. For example, passing
 
 In addition to special data that may be specified in cross files, this
 section may contain random key value pairs accessed using the
-`meson.get_external_property`, or `meson.get_cross_property`.
+`meson.get_external_property()`, or `meson.get_cross_property()`.
+
+*Changed in 0.55.0* putting `<lang>_args` and `<lang>_link_args` in the
+properties section has been deprecated, and should be put in the built-in
+options section.
 
 ### Project specific options
 
-*New in 0.54.0*
+*New in 0.55.0*
 
-Being able to set project specific options in a native or cross files can be
+Path options are not allowed, those must be set in the `[paths]` section.
+
+Being able to set project specific options in a cross or native file can be
 done using the `[project options]` section of the specific file (if doing a
 cross build the options from the native file will be ignored)
 
-For setting options in supbprojects use the `<subproject>:project options`
+For setting options in subprojects use the `[<subproject>:project options]`
 section instead.
 
 ```ini
@@ -178,6 +185,47 @@ build-tests = true
 [zlib:project options]
 build-tests = false
 ```
+
+
+### Meson built-in options
+
+Meson built-in options can be set the same way:
+
+```ini
+[built-in options]
+c_std = 'c99'
+```
+
+You can set some meson built-in options on a per-subproject basis, such as
+`default_library` and `werror`. The order of precedence is:
+1) Command line
+2) Machine file
+3) Build system definitions
+
+```ini
+[zlib:built-in options]
+default_library = 'static'
+werror = false
+```
+
+Options set on a per-subproject basis will inherit the
+option from the parent if the parent has a setting but the subproject
+doesn't, even when there is a default set meson language.
+
+```ini
+[built-in options]
+default_library = 'static'
+```
+
+will make subprojects use default_library as static.
+
+Some options can be set on a per-machine basis (in other words, the value of
+the build machine can be different than the host machine in a cross compile).
+In these cases the values from both a cross file and a native file are used.
+
+An incomplete list of options is:
+- pkg_config_path
+- cmake_prefix_path
 
 ## Loading multiple machine files
 

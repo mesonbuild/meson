@@ -7672,8 +7672,10 @@ class NativeFileTests(BasePlatformTests):
             for section, entries in values.items():
                 f.write('[{}]\n'.format(section))
                 for k, v in entries.items():
-                    if isinstance(v, bool):
+                    if isinstance(v, (bool, int, float)):
                         f.write("{}={}\n".format(k, v))
+                    elif isinstance(v, list):
+                        f.write("{}=[{}]\n".format(k, ', '.join(["'{}'".format(w) for w in v])))
                     else:
                         f.write("{}='{}'\n".format(k, v))
         return filename
@@ -8047,6 +8049,108 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find werror in build options?')
 
+    def test_option_integer(self):
+        # Bools are allowed to be unquoted
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({'built-in options': {'unity_size': 100}})
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            # Test that no-per subproject options are inherited from the parent
+            if 'unity_size' in each['name']:
+                self.assertEqual(each['value'], 100)
+                break
+        else:
+            self.fail('Did not find unity_size in build options?')
+
+    def test_builtin_options(self):
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        config = self.helper_create_native_file({'built-in options': {'cpp_std': 'c++14'}})
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'cpp_std':
+                self.assertEqual(each['value'], 'c++14')
+                break
+        else:
+            self.fail('Did not find werror in build options?')
+
+    def test_builtin_options_subprojects(self):
+        testcase = os.path.join(self.common_test_dir, '102 subproject subdir')
+        config = self.helper_create_native_file({'built-in options': {'default_library': 'both', 'c_args': ['-Dfoo']}, 'sub:built-in options': {'default_library': 'static'}})
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        found = 0
+        for each in configuration:
+            # Test that no-per subproject options are inherited from the parent
+            if 'c_args' in each['name']:
+                # This path will be hit twice, once for build and once for host,
+                self.assertEqual(each['value'], ['-Dfoo'])
+                found += 1
+            elif each['name'] == 'default_library':
+                self.assertEqual(each['value'], 'both')
+                found += 1
+            elif each['name'] == 'sub:default_library':
+                self.assertEqual(each['value'], 'static')
+                found += 1
+        self.assertEqual(found, 4, 'Did not find all three sections')
+
+    def test_builtin_options_subprojects_overrides_buildfiles(self):
+        # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
+        testcase = os.path.join(self.common_test_dir, '230 persubproject options')
+        config = self.helper_create_native_file({'sub2:built-in options': {'default_library': 'shared'}})
+
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testcase, extra_args=['--native-file', config])
+            self.assertIn(cm.exception.stdout, 'Parent should override default_library')
+
+    def test_builtin_options_subprojects_inherits_parent_override(self):
+        # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
+        testcase = os.path.join(self.common_test_dir, '230 persubproject options')
+        config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
+
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testcase, extra_args=['--native-file', config])
+            self.assertIn(cm.exception.stdout, 'Parent should override default_library')
+
+    def test_builtin_options_compiler_properties(self):
+        # the properties section can have lang_args, and those need to be
+        # overwritten by the built-in options
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({
+            'built-in options': {'c_args': ['-DFOO']},
+            'properties': {'c_args': ['-DBAR']},
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'c_args':
+                self.assertEqual(each['value'], ['-DFOO'])
+                break
+        else:
+            self.fail('Did not find c_args in build options?')
+
+    def test_builtin_options_compiler_properties_legacy(self):
+        # The legacy placement in properties is still valid if a 'built-in
+        # options' setting is present, but doesn't have the lang_args
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({
+            'built-in options': {'default_library': 'static'},
+            'properties': {'c_args': ['-DBAR']},
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'c_args':
+                self.assertEqual(each['value'], ['-DBAR'])
+                break
+        else:
+            self.fail('Did not find c_args in build options?')
+
 
 class CrossFileTests(BasePlatformTests):
 
@@ -8266,8 +8370,53 @@ class CrossFileTests(BasePlatformTests):
         testcase = os.path.join(self.common_test_dir, '43 options')
         config = self.helper_create_cross_file({'project options': {'testoption': 'some other value'}})
         with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testcase, extra_args=['--native-file', config])
+            self.init(testcase, extra_args=['--cross-file', config])
             self.assertRegex(cm.exception.stdout, r'Incorrect value to [a-z]+ option')
+
+    def test_builtin_options(self):
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        config = self.helper_create_cross_file({'built-in options': {'cpp_std': 'c++14'}})
+
+        self.init(testcase, extra_args=['--cross-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'cpp_std':
+                self.assertEqual(each['value'], 'c++14')
+                break
+        else:
+            self.fail('No c++ standard set?')
+
+    def test_builtin_options_per_machine(self):
+        """Test options that are allowed to be set on a per-machine basis.
+
+        Such options could be passed twice, once for the build machine, and
+        once for the host machine. I've picked pkg-config path, but any would
+        do that can be set for both.
+        """
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/cross/path', 'cpp_std': 'c++17'}})
+        native = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/native/path', 'cpp_std': 'c++14'}})
+
+        self.init(testcase, extra_args=['--cross-file', cross, '--native-file', native])
+        configuration = self.introspect('--buildoptions')
+        found = 0
+        for each in configuration:
+            if each['name'] == 'pkg_config_path':
+                self.assertEqual(each['value'], ['/cross/path'])
+                found += 1
+            elif each['name'] == 'cpp_std':
+                self.assertEqual(each['value'], 'c++17')
+                found += 1
+            elif each['name'] == 'build.pkg_config_path':
+                self.assertEqual(each['value'], ['/native/path'])
+                found += 1
+            elif each['name'] == 'build.cpp_std':
+                self.assertEqual(each['value'], 'c++14')
+                found += 1
+
+            if found == 4:
+                break
+        self.assertEqual(found, 4, 'Did not find all sections.')
 
 
 class TAPParserTests(unittest.TestCase):

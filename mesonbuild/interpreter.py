@@ -2791,6 +2791,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
+
         if dirname == '':
             raise InterpreterException('Subproject dir name must not be empty.')
         if dirname[0] == '.':

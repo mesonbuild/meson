@@ -556,6 +556,9 @@ class Environment:
         # We only need one of these as project options are not per machine
         user_options = {}
 
+        # meson builtin options, as passed through cross or native files
+        meson_options = PerMachineDefaultable()
+
         ## Setup build machine defaults
 
         # Will be fully initialized later using compilers later.
@@ -568,14 +571,15 @@ class Environment:
 
         ## Read in native file(s) to override build machine configuration
 
-        def load_user_options():
+        def load_options(tag: str, store: T.Dict[str, T.Any]) -> None:
             for section in config.keys():
-                if section.endswith('project options'):
+                if section.endswith(tag):
                     if ':' in section:
                         project = section.split(':')[0]
                     else:
                         project = ''
-                    user_options[project] = config.get(section, {})
+                    store[project] = config.get(section, {})
+
 
         if self.coredata.config_files is not None:
             config = coredata.parse_machine_files(self.coredata.config_files)
@@ -586,7 +590,9 @@ class Environment:
             # Don't run this if there are any cross files, we don't want to use
             # the native values if we're doing a cross build
             if not self.coredata.cross_files:
-                load_user_options()
+                load_options('project options', user_options)
+            meson_options.build = {}
+            load_options('built-in options', meson_options.build)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -599,7 +605,9 @@ class Environment:
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
             paths.host = Directories(**config.get('paths', {}))
-            load_user_options()
+            load_options('project options', user_options)
+            meson_options.host = {}
+            load_options('built-in options', meson_options.host)
 
         ## "freeze" now initialized configuration, and "save" to the class.
 
@@ -608,6 +616,16 @@ class Environment:
         self.properties = properties.default_missing()
         self.paths = paths.default_missing()
         self.user_options = user_options
+        self.meson_options = meson_options.default_missing()
+
+        # Ensure that no paths are passed via built-in options:
+        if '' in self.meson_options.host:
+            for each in coredata.BUILTIN_DIR_OPTIONS.keys():
+                # These are not per-subdirectory and probably never will be
+                if each in self.meson_options.host['']:
+                    raise EnvironmentException(
+                        'Invalid entry {} in [built-in options] section. '
+                        'Use the [paths] section instead.'.format(each))
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:

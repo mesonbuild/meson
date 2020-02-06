@@ -361,15 +361,15 @@ class CoreData:
         self.install_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.builtins = {} # : OptionDictType
+        self.builtins = {} # type: OptionDictType
         self.builtins_per_machine = PerMachine({}, {})
-        self.backend_options = {} # : OptionDictType
-        self.user_options = {} # : OptionDictType
+        self.backend_options = {} # type: OptionDictType
+        self.user_options = {} # type: OptionDictType
         self.compiler_options = PerMachine(
             defaultdict(dict),
             defaultdict(dict),
         ) # : PerMachine[T.defaultdict[str, OptionDictType]]
-        self.base_options = {} # : OptionDictType
+        self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
 
@@ -743,18 +743,27 @@ class CoreData:
             mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
                          'Using both is redundant since they override each other. '
                          'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
+
         cmd_line_options = OrderedDict()
-        # Set project default_options as if they were passed to the cmdline.
+        # Set default options as if they were passed to the command line.
         # Subprojects can only define default for user options and not yielding
         # builtin option.
         from . import optinterpreter
-        for k, v in default_options.items():
+        for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items()):
             if subproject:
                 if (k not in builtin_options or builtin_options[k].yielding) \
                         and optinterpreter.is_invalid_name(k, log=False):
                     continue
-                k = subproject + ':' + k
             cmd_line_options[k] = v
+
+        # IF the subproject options comes from a machine file, then we need to
+        # set the option as subproject:option
+        if subproject:
+            for k, v in env.meson_options.host.get(subproject, {}).items():
+                if (k not in builtin_options or builtin_options[k].yielding) \
+                        and optinterpreter.is_invalid_name(k, log=False):
+                    continue
+                cmd_line_options['{}:{}'.format(subproject, k)] = v
 
         # load the values for user options out of the appropriate machine file,
         # then overload the command line
@@ -768,8 +777,32 @@ class CoreData:
             if v is not None:
                 cmd_line_options[k] = v
 
+        from .compilers import all_languages
+        # Report that [properties]c_args
+        for lang in all_languages:
+            for args in ['{}_args'.format(lang), '{}_link_args'.format(lang)]:
+                msg = ('{} in the [properties] section of the machine file is deprecated, '
+                       'use the [built-in options] section.')
+                if args in env.properties.host or args in env.properties.build:
+                    mlog.deprecation(msg.format(args))
+
+        # Currently we don't support any options that are both per-subproject
+        # and per-machine, but when we do this will need to account for that.
+        # For cross builds we need to get the build specifc options
+        if env.meson_options.host != env.meson_options.build and subproject in env.meson_options.build:
+            for k in builtin_options_per_machine.keys():
+                if k in env.meson_options.build[subproject]:
+                    cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
+
+            # compiler options are always per-machine
+            for lang in all_languages:
+                prefix = '{}_'.format(lang)
+                for k in env.meson_options.build[subproject]:
+                    if k.startswith(prefix):
+                        cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
+
         # Override all the above defaults using the command-line arguments
-        # actually passed to us
+        # actually passed to use
         cmd_line_options.update(env.cmd_line_options)
         env.cmd_line_options = cmd_line_options
 
