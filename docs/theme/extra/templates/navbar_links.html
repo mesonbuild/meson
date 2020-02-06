@@ -1,22 +1,28 @@
 @require(page)
 
 <li class="dropdown">
-	<a class="dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-		Modules <span class="caret"></span>
-	</a>
-	<ul class="dropdown-menu" id="modules-menu">
-		@for tup in (("Fs-module.html","Filesystem"), \
-		       ("Gnome-module.html","GNOME"), \
-			     ("i18n-module.html","i18n"), \
-			     ("Pkgconfig-module.html","Pkgconfig"), \
-			     ("Python-module.html","Python"), \
-			     ("Python-3-module.html","Python 3"), \
-			     ("Qt4-module.html","Qt4"), \
-			     ("Qt5-module.html","Qt5"), \
-			     ("RPM-module.html","RPM"), \
-			     ("SourceSet-module.html","SourceSet"), \
-			     ("Windows-module.html","Windows"), \
-			     ("Hotdoc-module.html","Hotdoc")):
+  <a class="dropdown-toggle" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    Modules <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" id="modules-menu">
+    @for tup in ( \
+					 ("CMake-module.html","CMake"), \
+					 ("Cuda-module.html","CUDA"), \
+           ("Dlang-module.html","Dlang"), \
+           ("Fs-module.html","Filesystem"), \
+					 ("Gnome-module.html","GNOME"), \
+					 ("Hotdoc-module.html","Hotdoc"), \
+					 ("i18n-module.html","i18n"), \
+					 ("Icestorm-module.html","Icestorm"), \
+					 ("Kconfig-module.html","kconfig"), \
+           ("Pkgconfig-module.html","Pkgconfig"), \
+           ("Python-module.html","Python"), \
+           ("Python-3-module.html","Python 3"), \
+           ("Qt4-module.html","Qt4"), \
+           ("Qt5-module.html","Qt5"), \
+           ("RPM-module.html","RPM"), \
+           ("SourceSet-module.html","SourceSet"), \
+           ("Windows-module.html","Windows")):
 			<li>
 				<a href="@tup[0]">@tup[1]</a>
 			</li>
@@ -30,11 +36,11 @@
 	</a>
 	<ul class="dropdown-menu" id="quick-refs-menu">
 		@for tup in (("Reference-manual.html", "Functions"), \
-			     ("Build-options.html", "Options"), \
-			     ("Configuration.html", "Configuration"), \
-			     ("Dependencies.html", "Dependencies"), \
-			     ("Unit-tests.html", "Tests"), \
-			     ("Syntax.html", "Syntax")):
+           ("Build-options.html", "Options"), \
+           ("Configuration.html", "Configuration"), \
+           ("Dependencies.html", "Dependencies"), \
+           ("Unit-tests.html", "Tests"), \
+           ("Syntax.html", "Syntax")):
 			<li>
 				<a href="@tup[0]">@tup[1]</a>
 			</li>
