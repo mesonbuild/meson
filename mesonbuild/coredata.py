@@ -377,6 +377,7 @@ class CoreData:
         host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()
+
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
@@ -734,7 +735,7 @@ class CoreData:
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
-    def set_default_options(self, default_options, subproject, env):
+    def set_default_options(self, default_options: T.Mapping[str, str], subproject: str, env: 'Environment') -> None:
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
         if 'buildtype' in env.cmd_line_options and \
@@ -753,6 +754,13 @@ class CoreData:
                         and optinterpreter.is_invalid_name(k, log=False):
                     continue
                 k = subproject + ':' + k
+            cmd_line_options[k] = v
+
+        # load the values for user options out of the appropriate machine file,
+        # then overload the command line
+        for k, v in env.user_options.get(subproject, {}).items():
+            if subproject:
+                k = '{}:{}'.format(subproject, k)
             cmd_line_options[k] = v
 
         # Override project default_options using conf files (cross or native)

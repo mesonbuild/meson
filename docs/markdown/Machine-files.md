@@ -12,6 +12,7 @@ The following sections are allowed:
 - binaries
 - paths
 - properties
+- project options
 
 ### constants
 
@@ -165,6 +166,25 @@ section may contain random key value pairs accessed using the
 
 The properties section can contain any variable you like, and is accessed via
 `meson.get_external_property`, or `meson.get_cross_property`.
+
+### Project specific options
+
+*New in 0.54.0*
+
+Being able to set project specific options in a native or cross files can be
+done using the `[project options]` section of the specific file (if doing a
+cross build the options from the native file will be ignored)
+
+For setting options in supbprojects use the `<subproject>:project options`
+section instead.
+
+```ini
+[project options]
+build-tests = true
+
+[zlib:project options]
+build-tests = false
+```
 
 ## Loading multiple machine files
 

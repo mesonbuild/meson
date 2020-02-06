@@ -553,6 +553,9 @@ class Environment:
         # architecture, just the build and host architectures
         paths = PerMachineDefaultable()
 
+        # We only need one of these as project options are not per machine
+        user_options = {}
+
         ## Setup build machine defaults
 
         # Will be fully initialized later using compilers later.
@@ -565,11 +568,25 @@ class Environment:
 
         ## Read in native file(s) to override build machine configuration
 
+        def load_user_options():
+            for section in config.keys():
+                if section.endswith('project options'):
+                    if ':' in section:
+                        project = section.split(':')[0]
+                    else:
+                        project = ''
+                    user_options[project] = config.get(section, {})
+
         if self.coredata.config_files is not None:
             config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
             paths.build = Directories(**config.get('paths', {}))
             properties.build = Properties(config.get('properties', {}))
+
+            # Don't run this if there are any cross files, we don't want to use
+            # the native values if we're doing a cross build
+            if not self.coredata.cross_files:
+                load_user_options()
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -582,6 +599,7 @@ class Environment:
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
             paths.host = Directories(**config.get('paths', {}))
+            load_user_options()
 
         ## "freeze" now initialized configuration, and "save" to the class.
 
@@ -589,6 +607,7 @@ class Environment:
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.paths = paths.default_missing()
+        self.user_options = user_options
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:

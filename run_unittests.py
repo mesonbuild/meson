@@ -7672,7 +7672,10 @@ class NativeFileTests(BasePlatformTests):
             for section, entries in values.items():
                 f.write('[{}]\n'.format(section))
                 for k, v in entries.items():
-                    f.write("{}='{}'\n".format(k, v))
+                    if isinstance(v, bool):
+                        f.write("{}={}\n".format(k, v))
+                    else:
+                        f.write("{}='{}'\n".format(k, v))
         return filename
 
     def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
@@ -7996,6 +7999,54 @@ class NativeFileTests(BasePlatformTests):
         self.init(testcase, extra_args=['--native-file', config])
         self.build()
 
+    def test_user_options(self):
+        testcase = os.path.join(self.common_test_dir, '43 options')
+        for opt, value in [('testoption', 'some other val'), ('other_one', True),
+                           ('combo_opt', 'one'), ('array_opt', ['two']),
+                           ('integer_opt', 0)]:
+            config = self.helper_create_native_file({'project options': {opt: value}})
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testcase, extra_args=['--native-file', config])
+                self.assertRegex(cm.exception.stdout, r'Incorrect value to [a-z]+ option')
+
+    def test_user_options_command_line_overrides(self):
+        testcase = os.path.join(self.common_test_dir, '43 options')
+        config = self.helper_create_native_file({'project options': {'other_one': True}})
+        self.init(testcase, extra_args=['--native-file', config, '-Dother_one=false'])
+
+    def test_user_options_subproject(self):
+        testcase = os.path.join(self.unit_test_dir, '75 user options for subproject')
+
+        s = os.path.join(testcase, 'subprojects')
+        if not os.path.exists(s):
+            os.mkdir(s)
+        s = os.path.join(s, 'sub')
+        if not os.path.exists(s):
+            sub = os.path.join(self.common_test_dir, '43 options')
+            shutil.copytree(sub, s)
+
+        for opt, value in [('testoption', 'some other val'), ('other_one', True),
+                           ('combo_opt', 'one'), ('array_opt', ['two']),
+                           ('integer_opt', 0)]:
+            config = self.helper_create_native_file({'project options': {'sub:{}'.format(opt): value}})
+            with self.assertRaises(subprocess.CalledProcessError) as cm:
+                self.init(testcase, extra_args=['--native-file', config])
+                self.assertRegex(cm.exception.stdout, r'Incorrect value to [a-z]+ option')
+
+    def test_option_bool(self):
+        # Bools are allowed to be unquoted
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({'built-in options': {'werror': True}})
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            # Test that no-per subproject options are inherited from the parent
+            if 'werror' in each['name']:
+                self.assertEqual(each['value'], True)
+                break
+        else:
+            self.fail('Did not find werror in build options?')
+
 
 class CrossFileTests(BasePlatformTests):
 
@@ -8004,6 +8055,11 @@ class CrossFileTests(BasePlatformTests):
 
     This is mainly aimed to testing overrides from cross files.
     """
+
+    def setUp(self):
+        super().setUp()
+        self.current_config = 0
+        self.current_wrapper = 0
 
     def _cross_file_generator(self, *, needs_exe_wrapper: bool = False,
                               exe_wrapper: T.Optional[T.List[str]] = None) -> str:
@@ -8133,6 +8189,21 @@ class CrossFileTests(BasePlatformTests):
                     self.init(testdir, extra_args=['--cross-file=' + name], inprocess=True)
                     self.wipe()
 
+    def helper_create_cross_file(self, values):
+        """Create a config file as a temporary file.
+
+        values should be a nested dictionary structure of {section: {key:
+        value}}
+        """
+        filename = os.path.join(self.builddir, 'generated{}.config'.format(self.current_config))
+        self.current_config += 1
+        with open(filename, 'wt') as f:
+            for section, entries in values.items():
+                f.write('[{}]\n'.format(section))
+                for k, v in entries.items():
+                    f.write("{}='{}'\n".format(k, v))
+        return filename
+
     def test_cross_file_dirs(self):
         testcase = os.path.join(self.unit_test_dir, '60 native file override')
         self.init(testcase, default_args=False,
@@ -8188,6 +8259,16 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sbindir=sbinbar',
                               '-Ddef_sharedstatedir=sharedstatebar',
                               '-Ddef_sysconfdir=sysconfbar'])
+
+    def test_user_options(self):
+        # This is just a touch test for cross file, since the implementation
+        # shares code after loading from the files
+        testcase = os.path.join(self.common_test_dir, '43 options')
+        config = self.helper_create_cross_file({'project options': {'testoption': 'some other value'}})
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testcase, extra_args=['--native-file', config])
+            self.assertRegex(cm.exception.stdout, r'Incorrect value to [a-z]+ option')
+
 
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):
