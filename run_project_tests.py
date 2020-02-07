@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import typing as T
+import functools
 import itertools
 import os
 import subprocess
@@ -76,6 +77,7 @@ class TestResult:
         self.testtime = testtime
 
 
+@functools.total_ordering
 class TestDef:
     def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
         self.path = path
@@ -90,6 +92,12 @@ class TestDef:
         if self.name:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
         return self.path.as_posix()
+
+    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+        if isinstance(other, TestDef):
+            # None is not sortable, so replace it with an empty string
+            return (self.path, self.name or '') < (other.path, other.name or '')
+        return NotImplemented
 
 class AutoDeletedDir:
     def __init__(self, d):
@@ -492,7 +500,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
                       BuildStep.validate, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
 
-def gather_tests(testdir: Path) -> T.List[TestDef]:
+def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
     tests = [t.name for t in testdir.glob('*') if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
     tests = [TestDef(testdir / t, None, []) for t in tests]
@@ -538,10 +546,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             skip = any([x[1] for x in i])
             all_tests += [TestDef(t.path, name, opts, skip)]
 
-    all_tests = [(int(t.path.name.split()[0]), t.name or '', t) for t in all_tests]
-    all_tests.sort()
-    all_tests = [t[2] for t in all_tests]
-    return all_tests
+    return sorted(all_tests)
 
 def have_d_compiler():
     if shutil.which("ldc2"):
