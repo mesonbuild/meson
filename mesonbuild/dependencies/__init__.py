@@ -20,7 +20,7 @@ from .base import (  # noqa: F401
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
     PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language,
     DependencyFactory)
-from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory
+from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory, zlib_factory
 from .coarrays import coarray_factory
 from .mpi import MPIDependency
 from .scalapack import ScalapackDependency
@@ -44,6 +44,7 @@ packages.update({
     'gmock': gmock_factory,
     'llvm': llvm_factory,
     'valgrind': ValgrindDependency,
+    'zlib': zlib_factory,
 
     'boost': BoostDependency,
     'cuda': CudaDependency,
