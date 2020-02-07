@@ -1,4 +1,4 @@
-# a sort-of realistic example that combines the sourceset and kconfig
+# a sort-of realistic example that combines the sourceset and keyval
 # modules, inspired by QEMU's build system
 
 project('sourceset-example', 'cpp', default_options: ['cpp_std=c++11'])
@@ -9,7 +9,7 @@ if cppid == 'pgi'
 endif
 
 ss = import('sourceset')
-kconfig = import('unstable-kconfig')
+keyval = import('unstable-keyval')
 
 zlib = declare_dependency(compile_args: '-DZLIB=1')
 another = declare_dependency(compile_args: '-DANOTHER=1')
@@ -39,7 +39,7 @@ targets = [ 'arm', 'aarch64', 'x86' ]
 target_dirs = { 'arm' : 'arm', 'aarch64' : 'arm', 'x86': 'x86' }
 
 foreach x : targets
-  config = kconfig.load('config' / x)
+  config = keyval.load('config' / x)
   target_specific = specific.apply(config, strict: false)
   target_common = common.apply(config, strict: false)
   target_deps = target_specific.dependencies() + target_common.dependencies()

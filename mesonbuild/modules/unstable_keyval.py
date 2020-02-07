@@ -21,9 +21,9 @@ from ..interpreter import InvalidCode
 
 import os
 
-class KconfigModule(ExtensionModule):
+class KeyvalModule(ExtensionModule):
 
-    @FeatureNew('Kconfig Module', '0.51.0')
+    @FeatureNew('Keyval Module', '0.55.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.snippets.add('load')
@@ -56,9 +56,7 @@ class KconfigModule(ExtensionModule):
         s = sources[0]
         is_built = False
         if isinstance(s, mesonlib.File):
-            if s.is_built:
-                FeatureNew('kconfig.load() of built files', '0.52.0').use(state.subproject)
-                is_built = True
+            is_built = is_built or s.is_built
             s = s.absolute_path(interpreter.environment.source_dir, interpreter.environment.build_dir)
         else:
             s = os.path.join(interpreter.environment.source_dir, s)
@@ -70,4 +68,4 @@ class KconfigModule(ExtensionModule):
 
 
 def initialize(*args, **kwargs):
-    return KconfigModule(*args, **kwargs)
+    return KeyvalModule(*args, **kwargs)
