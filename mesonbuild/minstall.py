@@ -214,6 +214,7 @@ class Installer:
         self.did_install_something = False
         self.options = options
         self.lf = lf
+        self.preserved_file_count = 0
 
     def should_preserve_existing_file(self, from_file, to_file):
         if not self.options.only_changed:
@@ -239,7 +240,7 @@ class Installer:
                                    'a file'.format(to_file))
             if self.should_preserve_existing_file(from_file, to_file):
                 append_to_log(self.lf, '# Preserving old file %s\n' % to_file)
-                print('Preserving existing file %s' % to_file)
+                self.preserved_file_count += 1
                 return False
             os.remove(to_file)
         print('Installing %s to %s' % (from_file, outdir))
@@ -347,6 +348,9 @@ class Installer:
                 self.run_install_script(d)
                 if not self.did_install_something:
                     print('Nothing to install.')
+                if self.preserved_file_count > 0:
+                    print('Preserved {} unchanged files, see {} for the full list'
+                          .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
             if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ:
                 print('Installation failed due to insufficient permissions.')
