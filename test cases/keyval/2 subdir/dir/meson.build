@@ -1,7 +1,7 @@
 
-k = import('unstable-kconfig')
+k = import('unstable-keyval')
 
-conf = k.load(files('config'))
+conf = k.load(meson.source_root() / '.config')
 
 if not conf.has_key('CONFIG_IS_SET')
   error('Expected CONFIG_IS_SET to be set, but it wasn\'t')

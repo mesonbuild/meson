@@ -1,6 +1,6 @@
-project('kconfig basic test')
+project('keyval basic test')
 
-k = import('unstable-kconfig')
+k = import('unstable-keyval')
 conf = k.load('.config')
 
 if not conf.has_key('CONFIG_VAL1')

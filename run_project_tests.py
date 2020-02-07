@@ -50,7 +50,7 @@ from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
 ALL_TESTS = ['cmake', 'common', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
-             'kconfig', 'platform-osx', 'platform-windows', 'platform-linux',
+             'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala',  'rust', 'd', 'objective c', 'objective c++',
              'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm'
              ]
@@ -845,7 +845,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
         ('failing-meson', 'failing', False),
         ('failing-build', 'failing build', False),
         ('failing-test',  'failing test', False),
-        ('kconfig', 'kconfig', False),
+        ('keyval', 'keyval', False),
 
         ('platform-osx', 'osx', not mesonlib.is_osx()),
         ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),

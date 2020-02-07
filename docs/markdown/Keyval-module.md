@@ -1,15 +1,15 @@
 ---
-short-description: Unstable kconfig module
+short-description: Unstable keyval module
 authors:
     - name: Mark Schulte, Paolo Bonzini
       years: [2017, 2019]
       has-copyright: false
 ...
 
-# Unstable kconfig module
+# keyval module
 
-This module parses Kconfig output files to allow use of kconfig
-configurations in meson projects.
+This module parses files consisting of a series of `key=value` lines.  One use
+of this module is to load kconfig configurations in meson projects.
 
 **Note**: this does not provide kconfig frontend tooling to generate a
 configuration. You still need something such as kconfig frontends (see
@@ -23,20 +23,23 @@ chosen the configuration options), output a ".config" file.
 The module may be imported as follows:
 
 ``` meson
-kconfig = import('unstable-kconfig')
+keyval = import('unstable-keyval')
 ```
 
 The following functions will then be available as methods on the object
-with the name `kconfig`. You can, of course, replace the name
-`kconfig` with anything else.
+with the name `keyval`. You can, of course, replace the name
+`keyval` with anything else.
 
-### kconfig.load()
+### keyval.load()
 
-This function loads a kconfig output file and returns a dictionary object.
+This function loads a file consisting of a series of `key=value` lines
+and returns a dictionary object.
 
-`kconfig.load()` makes no attempt at parsing the values in the
-file.  Therefore, true boolean values will be represented as the string "y"
-and integer values will have to be converted with `.to_int()`.
+`keyval.load()` makes no attempt at parsing the values in the file.
+In particular boolean and integer values will be represented as strings,
+and strings will keep any quoting that is present in the input file.  It
+can be useful to create a [`configuration_data()`](#configuration_data)
+object from the dictionary and use methods such as `get_unquoted()`.
 
 Kconfig frontends usually have ".config" as the default name for the
 configuration file.  However, placing the configuration file in the source
