@@ -167,12 +167,14 @@ class Vs2010Backend(backends.Backend):
 
     def generate(self):
         target_machine = self.interpreter.builtin['target_machine'].cpu_family_method(None, None)
-        if target_machine.endswith('64'):
+        if target_machine == '64' or target_machine == 'x86_64':
             # amd64 or x86_64
             self.platform = 'x64'
         elif target_machine == 'x86':
             # x86
             self.platform = 'Win32'
+        elif target_machine == 'aarch64' or target_machine == 'arm64':
+            self.platform = 'arm64'
         elif 'arm' in target_machine.lower():
             self.platform = 'ARM'
         else:
@@ -1185,6 +1187,8 @@ class Vs2010Backend(backends.Backend):
             targetmachine.text = 'MachineX64'
         elif targetplatform == 'arm':
             targetmachine.text = 'MachineARM'
+        elif targetplatform == 'arm64':
+            targetmachine.text = 'MachineARM64'
         else:
             raise MesonException('Unsupported Visual Studio target machine: ' + targetplatform)
         # /nologo
