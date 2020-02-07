@@ -355,7 +355,8 @@ class CLikeCompiler:
         return args
 
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
-        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+        ctx = self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache)
+        with ctx.wait() as p:
             return p.returncode == 0, p.cached
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False, temp_dir=None):
@@ -371,7 +372,8 @@ class CLikeCompiler:
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+        ctx = self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True)
+        with ctx.wait() as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
@@ -569,7 +571,8 @@ class CLikeCompiler:
         func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
             func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
-        with func() as p:
+        ctx = func()
+        with ctx.wait() as p:
             cached = p.cached
             if p.returncode != 0:
                 raise mesonlib.EnvironmentException('Could not get define {!r}'.format(dname))
@@ -791,7 +794,8 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
+        ctx = self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir)
+        with ctx.wait() as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))

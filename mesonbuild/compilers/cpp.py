@@ -112,7 +112,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
         # 2. even if it did have an env object, that might contain another more
         #    recent -std= argument, which might lead to a cascaded failure.
         CPP_TEST = 'int i = static_cast<int>(0);'
-        with self.compile(CPP_TEST, extra_args=[cpp_std_value], mode='compile') as p:
+        ctx = self.compile(CPP_TEST, extra_args=[cpp_std_value], mode='compile')
+        with ctx.wait() as p:
             if p.returncode == 0:
                 mlog.debug('Compiler accepts {}:'.format(cpp_std_value), 'YES')
                 return True
