@@ -75,11 +75,15 @@ specified is not found, Meson will halt. Since *0.47.0* the value of a
 [`feature`](Build-options.md#features) option can also be passed.
 
 - `native` if set to `true`, the language will be used to compile for the build
-  machine, if `false`, for the host machine. If omitted, the language may be
-  used for either. Since *0.54.0*. The default may change to `false` in a future
-  meson version.
+  machine, if `false`, for the host machine. Since *0.54.0*.
 
 Returns `true` if all languages specified were found and `false` otherwise.
+
+If `native` is omitted, the languages may be used for either build or host
+machine, but are never required for the build machine.  (i.e. it is equivalent
+to `add_languages(*langs*, native: false, required: *required*) and
+add_languages(*langs*, native: true, required: false)`. This default behaviour
+may change to `native: false` in a future meson version.
 
 ### add_project_arguments()
 
