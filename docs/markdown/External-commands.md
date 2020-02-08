@@ -35,11 +35,13 @@ Since 0.54.0
 You can also pass a path to the working directory for a given command
 
 ```meson
-results = run_command('command', 'arg1', 'arg2', cwd: 'path/to/wd')
+results = run_command('command', 'arg1', 'arg2', workdir: 'path/to/working_directory')
+# can be combined with meson directives
+results = run_command('command', 'arg1', 'arg2', workdir: meson.source_root() + '/path/in/source')
 ```
 
 
-The `run_command` function returns an object that can be queried for
+The `run_command` function returns an object that can be  for
 return value and text written to stdout and stderr. The `strip` method
 call is used to strip trailing and leading whitespace from
 strings. Usually output from command line programs ends in a newline,

@@ -1340,11 +1340,11 @@ a string, or the output of [`find_program()`](#find_program),
 [`files()`](#files) or [`configure_file()`](#configure_file), or [a
 compiler object](#compiler-object).
 
-Returns [an opaque object](#run-result-object) containing the result
-of the invocation. The command is run from an *unspecified* directory,
-and Meson will set three environment variables `MESON_SOURCE_ROOT`,
-`MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the source
-directory, build directory and subdirectory the target was defined in,
+Returns [an opaque object](#run-result-object) containing the result of the
+invocation. The command is run from an *unspecified* directory unless the
+`workdir` kwarg is set, and Meson will set three environment variables
+`MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_SUBDIR` that specify the
+source directory, build directory and subdirectory the target was defined in,
 respectively.
 
 This function supports the following keyword arguments:
@@ -1358,6 +1358,10 @@ This function supports the following keyword arguments:
    object](#environment-object) which allows more sophisticated
    environment juggling. *Since 0.52.0* a dictionary is also accepted.
    Since 0.50.0
+ - `workdir` allows to specify a working directory for a given command. Can be
+   combined with other path directives. eg: 
+   `workdir: meson.source_root() + /path/in/source`
+   Since 0.54.0
 
 See also [External commands](External-commands.md).
 

@@ -2108,7 +2108,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
-                    'run_command': {'check', 'capture', 'env', 'cwd'},
+                    'run_command': {'check', 'capture', 'env', 'workdir'},
                     'run_target': {'command', 'depends'},
                     'shared_library': build.known_shlib_kwargs,
                     'shared_module': build.known_shmod_kwargs,
@@ -2453,7 +2453,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not isinstance(actual, wanted):
                     raise InvalidArguments('Incorrect argument type.')
 
-    @FeatureNewKwargs('run_command', '0.54.0', ['cwd'])
+    @FeatureNewKwargs('run_command', '0.54.0', ['workdir'])
     @FeatureNewKwargs('run_command', '0.50.0', ['env'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
     @permittedKwargs(permitted_kwargs['run_command'])
@@ -2467,7 +2467,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         capture = kwargs.get('capture', True)
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
-        cwd = kwargs.get('cwd', None)
+        cwd = kwargs.get('workdir', None)
 
         check = kwargs.get('check', False)
         if not isinstance(check, bool):
