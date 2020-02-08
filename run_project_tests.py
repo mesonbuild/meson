@@ -136,6 +136,7 @@ do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
 system_compiler = None
+compiler_id_map = {}  # type: T.Dict[str, str]
 
 class StopException(Exception):
     def __init__(self):
@@ -544,11 +545,23 @@ def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
                 assert "val" in i
                 skip = False
 
+                # Add an empty matrix entry
+                if i['val'] is None:
+                    tmp_opts += [(None, False)]
+                    continue
+
                 # Skip the matrix entry if environment variable is present
                 if 'skip_on_env' in i:
                     for env in i['skip_on_env']:
                         if env in os.environ:
                             skip = True
+
+                # Only run the test if all compiler ID's match
+                if 'compilers' in i:
+                    for lang, id_list in i['compilers'].items():
+                        if lang not in compiler_id_map or compiler_id_map[lang] not in id_list:
+                            skip = True
+                            break
 
                 tmp_opts += [('{}={}'.format(key, i['val']), skip)]
 
@@ -561,9 +574,27 @@ def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
             else:
                 opt_list = [[x] for x in tmp_opts]
 
+        # Exclude specific configurations
+        if 'exclude' in matrix:
+            assert isinstance(matrix['exclude'], list)
+            new_opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+            for i in opt_list:
+                exclude = False
+                opt_names = [x[0] for x in i]
+                for j in matrix['exclude']:
+                    ex_list = ['{}={}'.format(k, v) for k, v in j.items()]
+                    if all([x in opt_names for x in ex_list]):
+                        exclude = True
+                        break
+
+                if not exclude:
+                    new_opt_list += [i]
+
+            opt_list = new_opt_list
+
         for i in opt_list:
-            name = ' '.join([x[0] for x in i])
-            opts = ['-D' + x[0] for x in i]
+            name = ' '.join([x[0] for x in i if x[0] is not None])
+            opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
             all_tests += [TestDef(t.path, name, opts, skip)]
 
@@ -991,7 +1022,7 @@ def check_meson_commands_work(options):
 
 
 def detect_system_compiler(options):
-    global system_compiler
+    global system_compiler, compiler_id_map
 
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
         fake_opts = get_fake_options('/')
@@ -1002,7 +1033,8 @@ def detect_system_compiler(options):
         for lang in sorted(compilers.all_languages):
             try:
                 comp = env.compiler_from_language(lang, MachineChoice.HOST)
-                details = '%s %s' % (' '.join(comp.get_exelist()), comp.get_version_string())
+                details = '{} {} [{}]'.format(' '.join(comp.get_exelist()), comp.get_version_string(), comp.get_id())
+                compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
                 comp = None
                 details = 'not found'
