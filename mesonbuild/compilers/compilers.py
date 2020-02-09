@@ -14,6 +14,7 @@
 
 import contextlib, os.path, re, tempfile
 import collections.abc
+import itertools
 import typing as T
 
 from ..linkers import StaticLinker, GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
@@ -72,6 +73,7 @@ clink_suffixes = ()
 for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
+all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))
 
 # Languages that should use LDFLAGS arguments when linking.
 languages_using_ldflags = ('objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda')
@@ -143,6 +145,13 @@ def is_library(fname):
 
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
+
+def is_known_suffix(fname):
+    if hasattr(fname, 'fname'):
+        fname = fname.fname
+    suffix = fname.split('.')[-1]
+
+    return suffix in all_suffixes
 
 cuda_buildtype_args = {'plain': [],
                        'debug': [],

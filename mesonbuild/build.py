@@ -28,7 +28,7 @@ from .mesonlib import (
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep,
 )
-from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes
+from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes, is_known_suffix
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
@@ -652,14 +652,24 @@ class BuildTarget(Target):
                     sources.append(s)
         if sources:
             # For each source, try to add one compiler that can compile it.
-            # It's ok if no compilers can do so, because users are expected to
-            # be able to add arbitrary non-source files to the sources list.
+            #
+            # If it has a suffix that belongs to a known language, we must have
+            # a compiler for that language.
+            #
+            # Otherwise, it's ok if no compilers can compile it, because users
+            # are expected to be able to add arbitrary non-source files to the
+            # sources list
             for s in sources:
                 for lang, compiler in compilers.items():
                     if compiler.can_compile(s):
                         if lang not in self.compilers:
                             self.compilers[lang] = compiler
                         break
+                else:
+                    if is_known_suffix(s):
+                        raise MesonException('No {} machine compiler for "{}"'.
+                                             format(self.for_machine.get_lower_case_name(), s))
+
             # Re-sort according to clink_langs
             self.compilers = OrderedDict(sorted(self.compilers.items(),
                                                 key=lambda t: sort_clink(t[0])))

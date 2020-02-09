@@ -30,6 +30,7 @@ __all__ = [
     'is_llvm_ir',
     'is_object',
     'is_source',
+    'is_known_suffix',
     'lang_suffixes',
     'sort_clink',
 
@@ -115,6 +116,7 @@ from .compilers import (
     is_llvm_ir,
     is_object,
     is_library,
+    is_known_suffix,
     lang_suffixes,
     sort_clink,
     CompilerArgs,
