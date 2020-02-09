@@ -1,5 +1,8 @@
 # CMake module
 
+**Note**: the functionality of this module is governed by [Meson's
+  rules on mixing build systems](Mixing-build-systems.md].
+
 This module provides helper tools for generating cmake package files.
 It also supports the usage of CMake based subprojects, similar to
 the normal [meson subprojects](Subprojects.md).
