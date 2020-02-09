@@ -1,5 +1,8 @@
 ## Uninstalled pkg-config files
 
+**Note**: the functionality of this module is governed by [Meson's
+  rules on mixing build systems](Mixing-build-systems.md].
+
 The `pkgconfig` module now generates uninstalled pc files as well. For any generated
 `foo.pc` file, an extra `foo-uninstalled.pc` file is placed into
 `<builddir>/meson-uninstalled`. They can be used to build applications against

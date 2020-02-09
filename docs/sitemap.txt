@@ -105,6 +105,7 @@ index.md
 		Design-rationale.md
 		IndepthTutorial.md
 		In-the-press.md
+		Mixing-build-systems.md
 		Pkg-config-files.md
 		Playground.md
 		Porting-from-autotools.md
