@@ -151,7 +151,16 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
     xzname = tarname + '.xz'
     gzname = tarname + '.gz'
     zipname = os.path.join(dist_sub, dist_name + '.zip')
-    subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar', tarname])
+    # Note that -X interprets relative paths using the current working
+    # directory, not the repository root, so this must be an absolute path:
+    # https://bz.mercurial-scm.org/show_bug.cgi?id=6267
+    #
+    # .hg[a-z]* is used instead of .hg* to keep .hg_archival.txt, which may
+    # be useful to link the tarball to the Mercurial revision for either
+    # manual inspection or in case any code interprets it for a --version or
+    # similar.
+    subprocess.check_call(['hg', 'archive', '-R', src_root, '-S', '-t', 'tar',
+                           '-X', src_root + '/.hg[a-z]*', tarname])
     output_names = []
     if 'xztar' in archives:
         import lzma
