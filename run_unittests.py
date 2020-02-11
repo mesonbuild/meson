@@ -3418,8 +3418,9 @@ recommended as it is not supported on some platforms''')
     def test_command_line(self):
         testdir = os.path.join(self.unit_test_dir, '34 command line')
 
-        # Verify default values when passing no args
-        self.init(testdir)
+        # Verify default values when passing no args that affect the
+        # configuration, and as a bonus, test that --profile-self works.
+        self.init(testdir, extra_args=['--profile-self'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'static')
         self.assertEqual(obj.builtins['warning_level'].value, '1')
