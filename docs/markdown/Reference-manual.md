@@ -1047,9 +1047,9 @@ source tree to the location specified by the keyword argument
 
 The following keyword arguments are supported:
 
-- `exclude_files`: a list of file names that should not be installed.
+- `exclude_files`: a list of file names or unix style glob patterns that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
-- `exclude_directories`: a list of directory names that should not be installed.
+- `exclude_directories`: a list of directory names or unix style glob patterns that should not be installed.
   Names are interpreted as paths relative to the `subdir_name` location.
 - `install_dir`: the location to place the installed subdirectory.
 - `install_mode`: the file mode in symbolic format and optionally

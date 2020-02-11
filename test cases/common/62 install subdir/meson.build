@@ -7,6 +7,12 @@ install_subdir('sub2',
   exclude_directories : ['excluded'],
   install_dir : 'share')
 
+# A subdir with glob excludsion:
+install_subdir('sub3',
+  exclude_files : ['**/ignore.dat', '*ignore.dat', 'ignore?.dat'],
+  exclude_directories : ['*ignore', 'ignore*'],
+  install_dir : 'share')
+
 subdir('subdir')
 # A subdir with write perms only for the owner
 # and read-list perms for owner and group
