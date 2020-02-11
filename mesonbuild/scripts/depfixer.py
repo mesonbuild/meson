@@ -26,6 +26,9 @@ DT_STRTAB = 5
 DT_SONAME = 14
 DT_MIPS_RLD_MAP_REL = 1879048245
 
+# Global cache for tools
+INSTALL_NAME_TOOL = False
+
 class DataSizes:
     def __init__(self, ptrsize, is_le):
         if is_le:
@@ -428,6 +431,7 @@ def fix_jar(fname):
     subprocess.check_call(['jar', 'ufm', fname, 'META-INF/MANIFEST.MF'])
 
 def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True):
+    global INSTALL_NAME_TOOL
     # Static libraries never have rpaths
     if fname.endswith('.a'):
         return
@@ -445,5 +449,11 @@ def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True)
             pass
         else:
             raise
-    if shutil.which('install_name_tool'):
+    # We don't look for this on import because it will do a useless PATH lookup
+    # on non-mac platforms. That can be expensive on some Windows machines
+    # (upto 30ms), which is significant with --only-changed. For details, see:
+    # https://github.com/mesonbuild/meson/pull/6612#discussion_r378581401
+    if INSTALL_NAME_TOOL is False:
+        INSTALL_NAME_TOOL = shutil.which('install_name_tool')
+    if INSTALL_NAME_TOOL:
         fix_darwin(fname, new_rpath, final_path, install_name_mappings)
