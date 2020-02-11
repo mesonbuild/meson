@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import sys, pickle, os, shutil, subprocess, errno
+import argparse
 import shlex
 from glob import glob
 from .scripts import depfixer
@@ -35,6 +36,8 @@ selinux_updates = []
 def add_arguments(parser):
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
+    parser.add_argument('--profile-self', action='store_true', dest='profile',
+                        help=argparse.SUPPRESS)
     parser.add_argument('--no-rebuild', default=False, action='store_true',
                         help='Do not rebuild before installing.')
     parser.add_argument('--only-changed', default=False, action='store_true',
@@ -515,5 +518,10 @@ def run(opts):
         installer = Installer(opts, lf)
         append_to_log(lf, '# List of files installed by Meson')
         append_to_log(lf, '# Does not contain files installed by custom scripts.')
-        installer.do_install(datafilename)
+        if opts.profile:
+            import cProfile as profile
+            fname = os.path.join(private_dir, 'profile-installer.log')
+            profile.runctx('installer.do_install(datafilename)', globals(), locals(), filename=fname)
+        else:
+            installer.do_install(datafilename)
     return 0
