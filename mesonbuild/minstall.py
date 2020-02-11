@@ -229,7 +229,7 @@ class Installer:
         to_time = os.stat(to_file).st_mtime
         return from_time <= to_time
 
-    def do_copyfile(self, from_file, to_file):
+    def do_copyfile(self, from_file, to_file, makedirs=None):
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise RuntimeError('Tried to install something that isn\'t a file:'
@@ -246,6 +246,11 @@ class Installer:
                 self.preserved_file_count += 1
                 return False
             os.remove(to_file)
+        elif makedirs:
+            # Unpack tuple
+            dirmaker, outdir = makedirs
+            # Create dirs if needed
+            dirmaker.makedirs(outdir, exist_ok=True)
         print('Installing %s to %s' % (from_file, outdir))
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
@@ -378,8 +383,7 @@ class Installer:
             outfilename = get_destdir_path(d, i[1])
             mode = i[2]
             outdir = os.path.dirname(outfilename)
-            d.dirmaker.makedirs(outdir, exist_ok=True)
-            if self.do_copyfile(fullfilename, outfilename):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, mode, d.install_umask)
 
@@ -388,9 +392,8 @@ class Installer:
             full_source_filename = m[0]
             outfilename = get_destdir_path(d, m[1])
             outdir = os.path.dirname(outfilename)
-            d.dirmaker.makedirs(outdir, exist_ok=True)
             install_mode = m[2]
-            if self.do_copyfile(full_source_filename, outfilename):
+            if self.do_copyfile(full_source_filename, outfilename, makedirs=(d.dirmaker, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
@@ -401,8 +404,7 @@ class Installer:
             outdir = get_destdir_path(d, t[1])
             outfilename = os.path.join(outdir, fname)
             install_mode = t[2]
-            d.dirmaker.makedirs(outdir, exist_ok=True)
-            if self.do_copyfile(fullfilename, outfilename):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
@@ -450,11 +452,10 @@ class Installer:
             install_rpath = t.install_rpath
             install_name_mappings = t.install_name_mappings
             install_mode = t.install_mode
-            d.dirmaker.makedirs(outdir, exist_ok=True)
             if not os.path.exists(fname):
                 raise RuntimeError('File {!r} could not be found'.format(fname))
             elif os.path.isfile(fname):
-                file_copied = self.do_copyfile(fname, outname)
+                file_copied = self.do_copyfile(fname, outname, makedirs=(d.dirmaker, outdir))
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
@@ -477,6 +478,7 @@ class Installer:
             elif os.path.isdir(fname):
                 fname = os.path.join(d.build_dir, fname.rstrip('/'))
                 outname = os.path.join(outdir, os.path.basename(fname))
+                d.dirmaker.makedirs(outdir, exist_ok=True)
                 self.do_copydir(d, fname, outname, None, install_mode)
             else:
                 raise RuntimeError('Unknown file type for {!r}'.format(fname))
