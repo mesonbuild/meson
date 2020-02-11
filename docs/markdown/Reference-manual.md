@@ -1718,8 +1718,11 @@ the following methods.
   given as an argument to be run during the install step, this script
   will have the environment variables `MESON_SOURCE_ROOT`,
   `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`,
-  `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set. All
-  additional arguments are passed as parameters.
+  `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set.
+  All positional arguments are passed as parameters.
+
+  *(added 0.54)* If `meson install` is called with the `--quiet` option, the
+  environment variable `MESON_INSTALL_QUIET` will be set.
 
   Meson uses the `DESTDIR` environment variable as set by the
   inherited environment to determine the (temporary) installation

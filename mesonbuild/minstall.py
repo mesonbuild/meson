@@ -42,6 +42,8 @@ def add_arguments(parser):
                         help='Do not rebuild before installing.')
     parser.add_argument('--only-changed', default=False, action='store_true',
                         help='Only overwrite files that are older than the copied file.')
+    parser.add_argument('--quiet', default=False, action='store_true',
+                        help='Do not print every file that was installed.')
 
 class DirMaker:
     def __init__(self, lf):
@@ -219,6 +221,10 @@ class Installer:
         self.lf = lf
         self.preserved_file_count = 0
 
+    def log(self, msg):
+        if not self.options.quiet:
+            print(msg)
+
     def should_preserve_existing_file(self, from_file, to_file):
         if not self.options.only_changed:
             return False
@@ -251,7 +257,7 @@ class Installer:
             dirmaker, outdir = makedirs
             # Create dirs if needed
             dirmaker.makedirs(outdir, exist_ok=True)
-        print('Installing %s to %s' % (from_file, outdir))
+        self.log('Installing %s to %s' % (from_file, outdir))
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
@@ -356,10 +362,10 @@ class Installer:
                 restore_selinux_contexts()
                 self.run_install_script(d)
                 if not self.did_install_something:
-                    print('Nothing to install.')
-                if self.preserved_file_count > 0:
-                    print('Preserved {} unchanged files, see {} for the full list'
-                          .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
+                    self.log('Nothing to install.')
+                if not self.options.quiet and self.preserved_file_count > 0:
+                    self.log('Preserved {} unchanged files, see {} for the full list'
+                             .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
             if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ:
                 print('Installation failed due to insufficient permissions.')
@@ -373,7 +379,7 @@ class Installer:
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
             self.did_install_something = True
             full_dst_dir = get_destdir_path(d, dst_dir)
-            print('Installing subdir %s to %s' % (src_dir, full_dst_dir))
+            self.log('Installing subdir %s to %s' % (src_dir, full_dst_dir))
             d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
             self.do_copydir(d, src_dir, full_dst_dir, exclude, mode)
 
@@ -415,6 +421,8 @@ class Installer:
                'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
                }
+        if self.options.quiet:
+            env['MESON_INSTALL_QUIET'] = '1'
 
         child_env = os.environ.copy()
         child_env.update(env)
@@ -424,7 +432,7 @@ class Installer:
             script = i['exe']
             args = i['args']
             name = ' '.join(script + args)
-            print('Running custom install script {!r}'.format(name))
+            self.log('Running custom install script {!r}'.format(name))
             try:
                 rc = subprocess.call(script + args, env=child_env)
                 if rc != 0:
@@ -438,7 +446,7 @@ class Installer:
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
                 if t.optional:
-                    print('File {!r} not found, skipping'.format(t.fname))
+                    self.log('File {!r} not found, skipping'.format(t.fname))
                     continue
                 else:
                     raise RuntimeError('File {!r} could not be found'.format(t.fname))
@@ -459,9 +467,9 @@ class Installer:
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
-                        print('Not stripping jar target:', os.path.basename(fname))
+                        self.log('Not stripping jar target:', os.path.basename(fname))
                         continue
-                    print('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
+                    self.log('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
                     ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
                     if ps.returncode != 0:
                         print('Could not strip file.\n')
