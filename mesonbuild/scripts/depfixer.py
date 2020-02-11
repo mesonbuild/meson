@@ -432,11 +432,10 @@ def fix_jar(fname):
 
 def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True):
     global INSTALL_NAME_TOOL
-    # Static libraries never have rpaths
-    if fname.endswith('.a'):
-        return
-    # DLLs and EXE never have rpaths
-    if fname.endswith('.dll') or fname.endswith('.exe'):
+    # Static libraries, import libraries, debug information, headers, etc
+    # never have rpaths
+    # DLLs and EXE currently do not need runtime path fixing
+    if fname.endswith(('.a', '.lib', '.pdb', '.h', '.hpp', '.dll', '.exe')):
         return
     try:
         if fname.endswith('.jar'):
