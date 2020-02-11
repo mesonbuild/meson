@@ -65,17 +65,30 @@ class BuildStep(Enum):
 
 
 class TestResult:
-    def __init__(self, msg, step, stdo, stde, mlog, cicmds, conftime=0, buildtime=0, testtime=0):
-        self.msg = msg
-        self.step = step
-        self.stdo = stdo
-        self.stde = stde
-        self.mlog = mlog
+    def __init__(self, cicmds):
+        self.msg = ''  # empty msg indicates test success
+        self.stdo = ''
+        self.stde = ''
+        self.mlog = ''
         self.cicmds = cicmds
-        self.conftime = conftime
-        self.buildtime = buildtime
-        self.testtime = testtime
+        self.conftime = 0
+        self.buildtime = 0
+        self.testtime = 0
 
+    def add_step(self, step, stdo, stde, mlog='', time=0):
+        self.step = step
+        self.stdo += stdo
+        self.stde += stde
+        self.mlog += mlog
+        if step == BuildStep.configure:
+            self.conftime = time
+        elif step == BuildStep.build:
+            self.buildtime = time
+        elif step == BuildStep.test:
+            self.testtime = time
+
+    def fail(self, msg):
+        self.msg = msg
 
 @functools.total_ordering
 class TestDef:
@@ -434,16 +447,20 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     except Exception:
         mesonlog = no_meson_log_msg
     cicmds = run_ci_commands(mesonlog)
-    gen_time = time.time() - gen_start
+    testresult = TestResult(cicmds)
+    testresult.add_step(BuildStep.configure, stdo, stde, mesonlog, time.time() - gen_start)
     if should_fail == 'meson':
         if returncode == 1:
-            return TestResult('', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
+            return testresult
         elif returncode != 0:
-            return TestResult('Test exited with unexpected status {}'.format(returncode), BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
+            testresult.fail('Test exited with unexpected status {}.'.format(returncode))
+            return testresult
         else:
-            return TestResult('Test that should have failed succeeded', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
+            testresult.fail('Test that should have failed succeeded.')
+            return testresult
     if returncode != 0:
-        return TestResult('Generating the build system failed.', BuildStep.configure, stdo, stde, mesonlog, cicmds, gen_time)
+        testresult.fail('Generating the build system failed.')
+        return testresult
     builddata = build.load(test_build_dir)
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works before a build is run.
@@ -453,15 +470,15 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
     pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
-    build_time = time.time() - build_start
-    stdo += o
-    stde += e
+    testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
     if should_fail == 'build':
         if pc.returncode != 0:
-            return TestResult('', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time)
-        return TestResult('Test that should have failed to build succeeded', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time)
+            return testresult
+        testresult.fail('Test that should have failed to build succeeded.')
+        return testresult
     if pc.returncode != 0:
-        return TestResult('Compiling source code failed.', BuildStep.build, stdo, stde, mesonlog, cicmds, gen_time, build_time)
+        testresult.fail('Compiling source code failed.')
+        return testresult
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
@@ -469,37 +486,44 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     test_start = time.time()
     # Test in-process
     (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
-    test_time = time.time() - test_start
-    stdo += tstdo
-    stde += tstde
-    mesonlog += test_log
+    testresult.add_step(BuildStep.test, tstdo, tstde, test_log, time.time() - test_start)
     if should_fail == 'test':
         if returncode != 0:
-            return TestResult('', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time)
-        return TestResult('Test that should have failed to run unit tests succeeded', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time)
+            return testresult
+        testresult.fail('Test that should have failed to run unit tests succeeded.')
+        return testresult
     if returncode != 0:
-        return TestResult('Running unit tests failed.', BuildStep.test, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
+        testresult.fail('Running unit tests failed.')
+        return testresult
     # Do installation, if the backend supports it
     if install_commands:
         env = os.environ.copy()
         env['DESTDIR'] = install_dir
         # Install with subprocess
         pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
-        stdo += o
-        stde += e
+        testresult.add_step(BuildStep.install, o, e)
         if pi.returncode != 0:
-            return TestResult('Running install failed.', BuildStep.install, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
+            testresult.fail('Running install failed.')
+            return testresult
+
     # Clean with subprocess
     env = os.environ.copy()
     pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
-    stdo += o
-    stde += e
+    testresult.add_step(BuildStep.clean, o, e)
     if pi.returncode != 0:
-        return TestResult('Running clean failed.', BuildStep.clean, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
+        testresult.fail('Running clean failed.')
+        return testresult
+
+    # Validate installed files
+    testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
-        return TestResult('', BuildStep.install, '', '', mesonlog, cicmds, gen_time, build_time, test_time)
-    return TestResult(validate_install(testdir, install_dir, compiler, builddata.environment),
-                      BuildStep.validate, stdo, stde, mesonlog, cicmds, gen_time, build_time, test_time)
+        return testresult
+    install_msg = validate_install(testdir, install_dir, compiler, builddata.environment)
+    if install_msg:
+        testresult.fail(install_msg)
+        return testresult
+
+    return testresult
 
 def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
     tests = [t.name for t in testdir.glob('*') if t.is_dir()]
