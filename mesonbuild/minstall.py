@@ -373,36 +373,36 @@ class Installer:
 
     def install_data(self, d):
         for i in d.data:
-            self.did_install_something = True
             fullfilename = i[0]
             outfilename = get_destdir_path(d, i[1])
             mode = i[2]
             outdir = os.path.dirname(outfilename)
             d.dirmaker.makedirs(outdir, exist_ok=True)
-            self.do_copyfile(fullfilename, outfilename)
+            if self.do_copyfile(fullfilename, outfilename):
+                self.did_install_something = True
             set_mode(outfilename, mode, d.install_umask)
 
     def install_man(self, d):
         for m in d.man:
-            self.did_install_something = True
             full_source_filename = m[0]
             outfilename = get_destdir_path(d, m[1])
             outdir = os.path.dirname(outfilename)
             d.dirmaker.makedirs(outdir, exist_ok=True)
             install_mode = m[2]
-            self.do_copyfile(full_source_filename, outfilename)
+            if self.do_copyfile(full_source_filename, outfilename):
+                self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
     def install_headers(self, d):
         for t in d.headers:
-            self.did_install_something = True
             fullfilename = t[0]
             fname = os.path.basename(fullfilename)
             outdir = get_destdir_path(d, t[1])
             outfilename = os.path.join(outdir, fname)
             install_mode = t[2]
             d.dirmaker.makedirs(outdir, exist_ok=True)
-            self.do_copyfile(fullfilename, outfilename)
+            if self.do_copyfile(fullfilename, outfilename):
+                self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
     def run_install_script(self, d):
@@ -432,7 +432,6 @@ class Installer:
 
     def install_targets(self, d):
         for t in d.targets:
-            self.did_install_something = True
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
                 if t.optional:
@@ -440,6 +439,7 @@ class Installer:
                     continue
                 else:
                     raise RuntimeError('File {!r} could not be found'.format(t.fname))
+            file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(d, t.outdir)
             outname = os.path.join(outdir, os.path.basename(fname))
@@ -453,7 +453,7 @@ class Installer:
             if not os.path.exists(fname):
                 raise RuntimeError('File {!r} could not be found'.format(fname))
             elif os.path.isfile(fname):
-                self.do_copyfile(fname, outname)
+                file_copied = self.do_copyfile(fname, outname)
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
@@ -472,7 +472,7 @@ class Installer:
                     wasm_source = os.path.splitext(fname)[0] + '.wasm'
                     if os.path.exists(wasm_source):
                         wasm_output = os.path.splitext(outname)[0] + '.wasm'
-                        self.do_copyfile(wasm_source, wasm_output)
+                        file_copied = self.do_copyfile(wasm_source, wasm_output)
             elif os.path.isdir(fname):
                 fname = os.path.join(d.build_dir, fname.rstrip('/'))
                 outname = os.path.join(outdir, os.path.basename(fname))
@@ -494,7 +494,8 @@ class Installer:
                         print("Symlink creation does not work on this platform. "
                               "Skipping all symlinking.")
                         printed_symlink_error = True
-            if os.path.isfile(outname):
+            if file_copied:
+                self.did_install_something = True
                 try:
                     depfixer.fix_rpath(outname, install_rpath, final_path,
                                        install_name_mappings, verbose=False)
