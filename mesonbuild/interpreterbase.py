@@ -432,7 +432,7 @@ class InterpreterBase:
                 if not hasattr(e, 'lineno'):
                     e.lineno = cur.lineno
                     e.colno = cur.colno
-                    e.file = os.path.join(self.subdir, 'meson.build')
+                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 

@@ -3750,7 +3750,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         try:
             codeblock = mparser.Parser(code, self.subdir).parse()
         except mesonlib.MesonException as me:
-            me.file = buildfilename
+            me.file = absname
             raise me
         try:
             self.evaluate_codeblock(codeblock)

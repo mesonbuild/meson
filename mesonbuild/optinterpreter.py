@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re
+import re
 import functools
 import typing as T
 
@@ -147,6 +147,7 @@ class OptionInterpreter:
         if not isinstance(ast, mparser.CodeBlockNode):
             e = OptionException('Option file is malformed.')
             e.lineno = ast.lineno()
+            e.file = option_file
             raise e
         for cur in ast.lines:
             try:
@@ -154,7 +155,7 @@ class OptionInterpreter:
             except Exception as e:
                 e.lineno = cur.lineno
                 e.colno = cur.colno
-                e.file = os.path.join('meson_options.txt')
+                e.file = option_file
                 raise e
 
     def reduce_single(self, arg):
