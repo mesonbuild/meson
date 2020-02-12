@@ -3897,7 +3897,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException('Non-existent build file {!r}'.format(buildfilename))
+            raise InterpreterException("Non-existent build file '{!s}'".format(buildfilename))
         with open(absname, encoding='utf8') as f:
             code = f.read()
         assert(isinstance(code, str))
@@ -3945,7 +3945,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             elif isinstance(s, str):
                 source_strings.append(s)
             else:
-                raise InvalidArguments('Argument {!r} must be string or file.'.format(s))
+                raise InvalidArguments('Argument must be string or file.')
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
         if not isinstance(install_dir, (str, type(None))):

@@ -531,6 +531,9 @@ class BuildTarget(Target):
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.filename)
 
+    def __str__(self):
+        return "{}".format(self.name)
+
     def validate_install(self, environment):
         if self.for_machine is MachineChoice.BUILD and self.need_install:
             if environment.is_cross_build():
@@ -1104,7 +1107,7 @@ You probably should put it in link_with instead.''')
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
-                raise InvalidArguments('Link target {!r} is not linkable.'.format(t))
+                raise InvalidArguments("Link target '{!s}' is not linkable.".format(t))
             if isinstance(self, SharedLibrary) and isinstance(t, StaticLibrary) and not t.pic:
                 msg = "Can't link non-PIC static library {!r} into shared library {!r}. ".format(t.name, self.name)
                 msg += "Use the 'pic' option to static_library to build with PIC."

@@ -490,7 +490,7 @@ class CoreData:
             # commonpath will always return a path in the native format, so we
             # must use pathlib.PurePath to do the same conversion before
             # comparing.
-            msg = ('The value of the {!r} option is {!r} which must be a '
+            msg = ('The value of the {!r} option is \'{!s}\' which must be a '
                    'subdir of the prefix {!r}.\nNote that if you pass a '
                    'relative path, it is assumed to be a subdir of prefix.')
             # os.path.commonpath doesn't understand case-insensitive filesystems,
