@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/26 output subdir/meson.build:3:0: ERROR: Output file name must not contain a subdirectory."
+    }
+  ]
+}

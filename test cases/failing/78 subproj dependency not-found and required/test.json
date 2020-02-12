@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/78 subproj dependency not-found and required/meson.build:2:0: ERROR: Subproject directory not found and missing.wrap file not found"
+    }
+  ]
+}

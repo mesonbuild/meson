@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/88 subproj not-found dep/meson.build:2:0: ERROR: Could not find dependency notfound_dep in subproject somesubproj"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/57 kwarg in module/meson.build:3:0: ERROR: Function does not take keyword arguments."
+    }
+  ]
+}

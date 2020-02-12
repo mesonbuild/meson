@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/99 no native prop/meson.build:3:0: ERROR: Unknown native property: nonexisting."
+    }
+  ]
+}

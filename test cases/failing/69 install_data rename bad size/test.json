@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/69 install_data rename bad size/meson.build:3:0: ERROR: Size of rename argument is different from number of sources"
+    }
+  ]
+}

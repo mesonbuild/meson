@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/95 custom target install data/meson.build:11:0: ERROR: Argument must be string or file."
+    }
+  ]
+}

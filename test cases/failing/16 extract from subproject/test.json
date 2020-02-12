@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/16 extract from subproject/meson.build:6:0: ERROR: Tried to extract objects from a subproject target."
+    }
+  ]
+}

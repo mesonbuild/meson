@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/49 pkgconfig variables not key value/meson.build:8:5: ERROR: Invalid variable \"this_should_be_key_value\". Variables must be in 'name=value' format"
+    }
+  ]
+}

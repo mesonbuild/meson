@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/47 pkgconfig variables zero length/meson.build:8:5: ERROR: Invalid variable \"=value\". Variables must be in 'name=value' format"
+    }
+  ]
+}

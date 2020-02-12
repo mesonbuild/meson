@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/52 slashname/meson.build:11:0: ERROR: Problem encountered: Re-enable me once slash in name is finally prohibited."
+    }
+  ]
+}
