@@ -3,7 +3,7 @@ project('outputs not matching install_dirs', 'c')
 gen = find_program('generator.py')
 
 if meson.backend() != 'ninja'
-  error('Failing manually, test is only for the ninja backend')
+  error('MESON_SKIP_TEST test is only for the ninja backend')
 endif
 
 custom_target('too-few-install-dirs',

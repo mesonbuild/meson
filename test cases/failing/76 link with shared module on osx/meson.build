@@ -1,7 +1,7 @@
 project('link with shared module', 'c')
 
 if host_machine.system() != 'darwin'
-  error('Test only fails on OSX')
+  error('MESON_SKIP_TEST test only fails on OSX')
 endif
 
 m = shared_module('mymodule', 'module.c')

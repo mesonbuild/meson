@@ -1,4 +1,8 @@
 project('framework dependency with version', 'c')
+
+if host_machine.system() != 'darwin'
+  error('MESON_SKIP_TEST test only applicable on darwin')
+endif
+
 # do individual frameworks have a meaningful version to test?  And multiple frameworks might be listed...
-# otherwise we're not on OSX and this will definitely fail
 dep = dependency('appleframeworks', modules: 'foundation', version: '>0')

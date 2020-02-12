@@ -2,7 +2,7 @@ project('statchain', 'c')
 
 host_system = host_machine.system()
 if host_system == 'windows' or host_system == 'darwin'
-  error('Test only fails on Linux and BSD')
+  error('MESON_SKIP_TEST test only fails on Linux and BSD')
 endif
 
 statlib = static_library('stat', 'stat.c', pic : false)
