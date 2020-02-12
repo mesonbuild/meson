@@ -12,111 +12,90 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import typing as T
 import os
 import re
-import subprocess
 
-from .. import mlog
-from .. import mesonlib
-from ..mesonlib import split_args, listify
+from .base import (DependencyMethods, PkgConfigDependency, factory_methods,
+                   ConfigToolDependency, detect_compiler, ExternalDependency)
 from ..environment import detect_cpu_family
-from .base import (DependencyException, DependencyMethods, ExternalDependency, ExternalProgram,
-                   PkgConfigDependency)
+
+if T.TYPE_CHECKING:
+    from .base import DependencyType
+    from ..compilers import Compiler
+    from ..environment import Environment, MachineChoice
 
 
-class MPIDependency(ExternalDependency):
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
+def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
+                kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+    language = kwargs.get('language', 'c')
+    if language not in {'c', 'cpp', 'fortran'}:
+        # OpenMPI doesn't work without any other languages
+        return []
 
-    def __init__(self, environment, kwargs: dict):
-        language = kwargs.get('language', 'c')
-        super().__init__('mpi', environment, kwargs, language=language)
-        kwargs['required'] = False
-        kwargs['silent'] = True
-        self.is_found = False
-        methods = listify(self.methods)
+    candidates = []
+    compiler = detect_compiler('mpi', env, for_machine, language)
+    compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
-        env_vars = []
-        default_wrappers = []
-        pkgconfig_files = []
+    # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
+    if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
+        pkg_name = None
         if language == 'c':
-            cid = environment.detect_c_compiler(self.for_machine).get_id()
-            if cid in ('intel', 'intel-cl'):
-                env_vars.append('I_MPI_CC')
-                # IntelMPI doesn't have .pc files
-                default_wrappers.append('mpiicc')
-            else:
-                env_vars.append('MPICC')
-                pkgconfig_files.append('ompi-c')
-            default_wrappers.append('mpicc')
+            pkg_name = 'ompi-c'
         elif language == 'cpp':
-            cid = environment.detect_cpp_compiler(self.for_machine).get_id()
-            if cid in ('intel', 'intel-cl'):
-                env_vars.append('I_MPI_CXX')
-                # IntelMPI doesn't have .pc files
-                default_wrappers.append('mpiicpc')
-            else:
-                env_vars.append('MPICXX')
-                pkgconfig_files.append('ompi-cxx')
-                default_wrappers += ['mpic++', 'mpicxx', 'mpiCC']  # these are not for intelmpi
+            pkg_name = 'ompi-cxx'
         elif language == 'fortran':
-            cid = environment.detect_fortran_compiler(self.for_machine).get_id()
-            if cid in ('intel', 'intel-cl'):
-                env_vars.append('I_MPI_F90')
-                # IntelMPI doesn't have .pc files
-                default_wrappers.append('mpiifort')
-            else:
-                env_vars += ['MPIFC', 'MPIF90', 'MPIF77']
-                pkgconfig_files.append('ompi-fort')
-            default_wrappers += ['mpifort', 'mpif90', 'mpif77']
-        else:
-            raise DependencyException('Language {} is not supported with MPI.'.format(language))
+            pkg_name = 'ompi-fort'
+        candidates.append(functools.partial(
+            PkgConfigDependency, pkg_name, env, kwargs, language=language))
 
-        if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
-            for pkg in pkgconfig_files:
-                pkgdep = PkgConfigDependency(pkg, environment, kwargs, language=self.language)
-                if pkgdep.found():
-                    self.compile_args = pkgdep.get_compile_args()
-                    self.link_args = pkgdep.get_link_args()
-                    self.version = pkgdep.get_version()
-                    self.is_found = True
-                    self.pcdep = pkgdep
-                    return
+    if DependencyMethods.CONFIG_TOOL in methods:
+        nwargs = kwargs.copy()
 
-        if DependencyMethods.AUTO in methods:
-            for var in env_vars:
-                if var in os.environ:
-                    wrappers = [os.environ[var]]
-                    break
-            else:
-                # Or search for default wrappers.
-                wrappers = default_wrappers
+        if compiler_is_intel:
+            if env.machines[for_machine].is_windows():
+                nwargs['version_arg'] = '-v'
+                nwargs['returncode_value'] = 3
 
-            for prog in wrappers:
-                # Note: Some use OpenMPI with Intel compilers on Linux
-                result = self._try_openmpi_wrapper(prog, cid)
-                if result is not None:
-                    self.is_found = True
-                    self.version = result[0]
-                    self.compile_args = self._filter_compile_args(result[1])
-                    self.link_args = self._filter_link_args(result[2], cid)
-                    break
-                result = self._try_other_wrapper(prog, cid)
-                if result is not None:
-                    self.is_found = True
-                    self.version = result[0]
-                    self.compile_args = self._filter_compile_args(result[1])
-                    self.link_args = self._filter_link_args(result[2], cid)
-                    break
+            if language == 'c':
+                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+            elif language == 'cpp':
+                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+            elif language == 'fortran':
+                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
-            if not self.is_found and mesonlib.is_windows():
-                # only Intel Fortran compiler is compatible with Microsoft MPI at this time.
-                if language == 'fortran' and cid != 'intel-cl':
-                    return
-                result = self._try_msmpi()
-                if result is not None:
-                    self.is_found = True
-                    self.version, self.compile_args, self.link_args = result
-            return
+            cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
+        else: # OpenMPI, which doesn't work with intel
+            #
+            # We try the environment variables for the tools first, but then
+            # fall back to the hardcoded names
+            if language == 'c':
+                tool_names = [os.environ.get('MPICC'), 'mpicc']
+            elif language == 'cpp':
+                tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
+            elif language == 'fortran':
+                tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
+                tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
+
+            cls = OpenMPIConfigToolDependency
+
+        tool_names = [t for t in tool_names if t]  # remove empty environment variables
+        assert tool_names
+
+        nwargs['tools'] = tool_names
+        candidates.append(functools.partial(
+            cls, tool_names[0], env, nwargs, language=language))
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(
+            MSMPIDependency, 'msmpi', env, kwargs, language=language))
+
+    return candidates
+
+
+class _MPIConfigToolDependency(ConfigToolDependency):
 
     def _filter_compile_args(self, args: T.Sequence[str]) -> T.List[str]:
         """
@@ -142,7 +121,7 @@ class MPIDependency(ExternalDependency):
                 result.append(f)
         return result
 
-    def _filter_link_args(self, args: T.Sequence[str], cid: str) -> T.List[str]:
+    def _filter_link_args(self, args: T.Sequence[str]) -> T.List[str]:
         """
         MPI wrappers return a bunch of garbage args.
         Drop -O2 and everything that is not needed.
@@ -150,7 +129,7 @@ class MPIDependency(ExternalDependency):
         result = []
         include_next = False
         for f in args:
-            if self._is_link_arg(f, cid):
+            if self._is_link_arg(f):
                 result.append(f)
                 if f in ('-L', '-Xlinker'):
                     include_next = True
@@ -159,121 +138,94 @@ class MPIDependency(ExternalDependency):
                 result.append(f)
         return result
 
-    @staticmethod
-    def _is_link_arg(f: str, cid: str) -> bool:
-        if cid == 'intel-cl':
+    def _is_link_arg(self, f: str) -> bool:
+        if self.clib_compiler.id == 'intel-cl':
             return f == '/link' or f.startswith('/LIBPATH') or f.endswith('.lib')   # always .lib whether static or dynamic
         else:
             return (f.startswith(('-L', '-l', '-Xlinker')) or
                     f == '-pthread' or
                     (f.startswith('-W') and f != '-Wall' and not f.startswith('-Werror')))
 
-    def _try_openmpi_wrapper(self, prog, cid: str):
-        # https://www.open-mpi.org/doc/v4.0/man1/mpifort.1.php
-        if cid == 'intel-cl':  # IntelCl doesn't support OpenMPI
-            return None
-        prog = ExternalProgram(prog, silent=True)
-        if not prog.found():
-            return None
 
-        # compiler args
-        cmd = prog.get_command() + ['--showme:compile']
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
-        if p.returncode != 0:
-            mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
-            mlog.debug(mlog.bold('Standard output\n'), p.stdout)
-            mlog.debug(mlog.bold('Standard error\n'), p.stderr)
-            return None
-        cargs = split_args(p.stdout)
-        # link args
-        cmd = prog.get_command() + ['--showme:link']
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
-        if p.returncode != 0:
-            mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
-            mlog.debug(mlog.bold('Standard output\n'), p.stdout)
-            mlog.debug(mlog.bold('Standard error\n'), p.stderr)
-            return None
-        libs = split_args(p.stdout)
-        # version
-        cmd = prog.get_command() + ['--showme:version']
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
-        if p.returncode != 0:
-            mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
-            mlog.debug(mlog.bold('Standard output\n'), p.stdout)
-            mlog.debug(mlog.bold('Standard error\n'), p.stderr)
-            return None
-        v = re.search(r'\d+.\d+.\d+', p.stdout)
+class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
+
+    """Wrapper around Intel's mpiicc and friends."""
+
+    version_arg = '-v'  # --version is not the same as -v
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
+
+        args = self.get_config_value(['-show'], 'link and compile args')
+        self.compile_args = self._filter_compile_args(args)
+        self.link_args = self._filter_link_args(args)
+
+    def _sanitize_version(self, out: str) -> str:
+        v = re.search(r'(\d{4}) Update (\d)', out)
         if v:
-            version = v.group(0)
-        else:
-            version = None
+            return '{}.{}'.format(v.group(1), v.group(2))
+        return out
 
-        return version, cargs, libs
 
-    def _try_other_wrapper(self, prog, cid: str) -> T.Tuple[str, T.List[str], T.List[str]]:
-        prog = ExternalProgram(prog, silent=True)
-        if not prog.found():
-            return None
+class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
 
-        cmd = prog.get_command()
-        if cid == 'intel-cl':
-            cmd.append('/show')
-        else:
-            cmd.append('-show')
-        p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
-        if p.returncode != 0:
-            mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
-            mlog.debug(mlog.bold('Standard output\n'), p.stdout)
-            mlog.debug(mlog.bold('Standard error\n'), p.stderr)
-            return None
+    """Wrapper around OpenMPI mpicc and friends."""
 
-        version = None
-        stdout = p.stdout
-        if 'Intel(R) MPI Library' in p.stdout:  # intel-cl: remove messy compiler logo
-            out = stdout.split('\n', 2)
-            version = out[0]
-            stdout = out[2]
+    version_arg = '--showme:version'
 
-        if version is None:
-            p = subprocess.run(cmd + ['-v'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
-            if p.returncode == 0:
-                version = p.stdout.split('\n', 1)[0]
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
 
-        args = split_args(stdout)
+        c_args = self.get_config_value(['--showme:compile'], 'compile_args')
+        self.compile_args = self._filter_compile_args(c_args)
 
-        return version, args, args
+        l_args = self.get_config_value(['--showme:link'], 'link_args')
+        self.link_args = self._filter_link_args(l_args)
 
-    def _try_msmpi(self) -> T.Tuple[str, T.List[str], T.List[str]]:
-        if self.language == 'cpp':
-            # MS-MPI does not support the C++ version of MPI, only the standard C API.
-            return None
-        if 'MSMPI_INC' not in os.environ:
-            return None
+    def _sanitize_version(self, out: str) -> str:
+        v = re.search(r'\d+.\d+.\d+', out)
+        if v:
+            return v.group(0)
+        return out
 
-        incdir = os.environ['MSMPI_INC']
+
+class MSMPIDependency(ExternalDependency):
+
+    """The Microsoft MPI."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        # MSMPI only supports the C API
+        if language not in {'c', 'fortran', None}:
+            self.is_found = False
+            return
+        # MSMPI is only for windows, obviously
+        if not self.env.machines[self.for_machine].is_windows():
+            return
+
+        incdir = os.environ.get('MSMPI_INC')
         arch = detect_cpu_family(self.env.coredata.compilers.host)
+        libdir = None
         if arch == 'x86':
-            if 'MSMPI_LIB32' not in os.environ:
-                return None
-            libdir = os.environ['MSMPI_LIB32']
+            libdir = os.environ.get('MSMPI_LIB32')
             post = 'x86'
         elif arch == 'x86_64':
-            if 'MSMPI_LIB64' not in os.environ:
-                return None
-            libdir = os.environ['MSMPI_LIB64']
+            libdir = os.environ.get('MSMPI_LIB64')
             post = 'x64'
-        else:
-            return None
 
+        if libdir is None or incdir is None:
+            self.is_found = False
+            return
+
+        self.is_found = True
+        self.link_args = ['-l' + os.path.join(libdir, 'msmpi')]
+        self.compile_args = ['-I' + incdir, '-I' + os.path.join(incdir, post)]
         if self.language == 'fortran':
-            return (None,
-                    ['-I' + incdir, '-I' + os.path.join(incdir, post)],
-                    [os.path.join(libdir, 'msmpi.lib'), os.path.join(libdir, 'msmpifec.lib')])
-        else:
-            return (None,
-                    ['-I' + incdir, '-I' + os.path.join(incdir, post)],
-                    [os.path.join(libdir, 'msmpi.lib')])
-
-    @staticmethod
-    def get_methods():
-        return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]
+            self.link_args.append('-l' + os.path.join(libdir, 'msmpifec'))
