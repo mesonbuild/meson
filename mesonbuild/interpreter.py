@@ -4220,8 +4220,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         for a in incdir_strings:
             if a.startswith(src_root):
-                raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
-relative paths instead.
+                raise InvalidArguments('Tried to form an absolute path to a source dir. '
+                                       'You should not do that but use relative paths instead.'
+                                       '''
 
 To get include path to any directory relative to the current dir do
 
