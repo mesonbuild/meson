@@ -341,19 +341,19 @@ def log_text_file(logfile, testdir, stdo, stde):
 
 
 def bold(text):
-    return mlog.bold(text).get_text(mlog.colorize_console)
+    return mlog.bold(text).get_text(mlog.colorize_console())
 
 
 def green(text):
-    return mlog.green(text).get_text(mlog.colorize_console)
+    return mlog.green(text).get_text(mlog.colorize_console())
 
 
 def red(text):
-    return mlog.red(text).get_text(mlog.colorize_console)
+    return mlog.red(text).get_text(mlog.colorize_console())
 
 
 def yellow(text):
-    return mlog.yellow(text).get_text(mlog.colorize_console)
+    return mlog.yellow(text).get_text(mlog.colorize_console())
 
 
 def _run_ci_include(args: T.List[str]) -> str:
