@@ -3117,6 +3117,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         return should
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
+        langs = set(self.coredata.compilers[for_machine].keys())
+        langs.update(args)
+        if 'vala' in langs:
+            if 'c' not in langs:
+                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
+
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
@@ -3153,11 +3159,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-
-        langs = self.coredata.compilers[for_machine].keys()
-        if 'vala' in langs:
-            if 'c' not in langs:
-                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
         return success
 
