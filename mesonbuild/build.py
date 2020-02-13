@@ -2009,10 +2009,10 @@ class CustomTarget(Target):
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
-        self.process_kwargs(kwargs, backend)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
+        self.process_kwargs(kwargs, backend)
         unknowns = []
         for k in kwargs:
             if k not in CustomTarget.known_kwargs:
@@ -2130,6 +2130,10 @@ class CustomTarget(Target):
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
         self.command = self.flatten_command(kwargs['command'])
+        if backend:
+            inputs = backend.get_custom_target_sources(self)
+            values = get_filenames_templates_dict(inputs, self.outputs)
+            self.command = substitute_values(self.command, values)
         if self.capture:
             for c in self.command:
                 if isinstance(c, str) and '@OUTPUT@' in c:
