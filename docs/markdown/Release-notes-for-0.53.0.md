@@ -74,13 +74,31 @@ flags passed via language flags and hoped things worked out. In meson 0.52.0
 meson started detecting the linker and making intelligent decisions about
 using it. Unfortunately this broke choosing a non-default linker.
 
-Now there is a generic mechanism for doing this, you may use the LD
-environment variable (with normal meson environment variable rules), or add
-the following to a cross or native file:
+Now there is a generic mechanism for doing this. In 0.53.0, you can use the `LD`
+environment variable. **In 0.53.1** this was changed to `<compiler_variable>_LD`,
+such as `CC_LD`, `CXX_LD`, `D_LD`, etc due to regressions. The usual meson
+[environment variable rules](https://mesonbuild.com/Running-Meson.html#environment-variables)
+apply. Alternatively, you can add the following to a cross or native file:
+
+In 0.53.0:
 
 ```ini
 [binaries]
 ld = 'gold'
+```
+
+**In 0.53.1 or newer**:
+
+```ini
+[binaries]
+c = 'gcc'
+c_ld = 'gold'
+```
+
+```ini
+[binaries]
+c = 'clang'
+c_ld = 'lld'
 ```
 
 And meson will select the linker if possible.
