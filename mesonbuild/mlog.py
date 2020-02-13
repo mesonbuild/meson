@@ -221,9 +221,18 @@ def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
     _logged_once.add(t)
     log(*args, is_error=is_error, **kwargs)
 
+# This isn't strictly correct. What we really want here is something like:
+# class StringProtocol(typing_extensions.Protocol):
+#
+#      def __str__(self) -> str: ...
+#
+# This would more accurately embody what this funcitonc an handle, but we
+# don't have that yet, so instead we'll do some casting to work around it
+def get_error_location_string(fname: str, lineno: str) -> str:
+    return '{}:{}:'.format(fname, lineno)
+
 def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
                once: bool = False, **kwargs: T.Any) -> None:
-    from .mesonlib import get_error_location_string
     from .environment import build_filename
     from .mesonlib import MesonException
 
