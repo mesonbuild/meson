@@ -53,6 +53,7 @@ These are return values of the `get_linker_id` (Linker family) method in a compi
 | MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
 | MESON_SOURCE_ROOT   | Absolute path to the source dir |
 | MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
+| NINJA               | Absolute path to ninja executable |
 
 ## CPU families
 
