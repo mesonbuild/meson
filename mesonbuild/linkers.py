@@ -330,6 +330,12 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def get_lto_args(self) -> T.List[str]:
         return []
 
+    def get_interposable_args(self, value: bool) -> T.List[str]:
+        if value:
+            m = "Linker {} does not support interposition".format(self.id)
+            raise mesonlib.EnvironmentException(m)
+        return []
+
     def sanitizer_args(self, value: str) -> T.List[str]:
         return []
 
@@ -464,6 +470,11 @@ class GnuLikeDynamicLinkerMixin:
     def get_lto_args(self) -> T.List[str]:
         return ['-flto']
 
+    def get_interposable_args(self, value: bool) -> T.List[str]:
+        if value:
+            return []
+        return self._apply_prefix('-Bsymbolic')
+
     def sanitizer_args(self, value: str) -> T.List[str]:
         if value == 'none':
             return []
@@ -591,6 +602,11 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_interposable_args(self, value: bool) -> T.List[str]:
+        if value:
+            return ['-interposable']
+        return []
 
     def sanitizer_args(self, value: str) -> T.List[str]:
         if value == 'none':

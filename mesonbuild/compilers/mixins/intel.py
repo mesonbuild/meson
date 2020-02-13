@@ -77,7 +77,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         # there is an unfortunate rule for using IPO (you can't control the
         # name of the output file) which break assumptions meson makes
         self.base_options = ['b_pch', 'b_lundef', 'b_asneeded', 'b_pgo',
-                             'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie']
+                             'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie',
+                             'b_interposable']
         self.id = 'intel'
         self.lang_header = 'none'
 

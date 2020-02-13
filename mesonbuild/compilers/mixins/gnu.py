@@ -145,7 +145,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.append('b_lundef')
         if not self.info.is_windows() or self.info.is_cygwin():
-            self.base_options.append('b_asneeded')
+            self.base_options.extend(['b_asneeded', 'b_interposable'])
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
@@ -342,6 +342,11 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return gnu_optimization_args[optimization_level]
+
+    def get_interposable_compile_args(self, value: bool) -> T.List[str]:
+        if value:
+            return []
+        return ['-fno-semantic-interposition']
 
     def get_pch_suffix(self) -> str:
         return 'gch'

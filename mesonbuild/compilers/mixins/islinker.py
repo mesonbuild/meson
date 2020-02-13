@@ -56,6 +56,12 @@ class BasicLinkerIsCompilerMixin:
     def get_lto_link_args(self) -> T.List[str]:
         return []
 
+    def get_interposable_link_args(self, value: bool) -> T.List[str]:
+        if value:
+            m = "Linker {} does not support interposition".format(self.id)
+            raise mesonlib.EnvironmentException(m)
+        return []
+
     def can_linker_accept_rsp(self) -> bool:
         return mesonlib.is_windows()
 
