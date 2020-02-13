@@ -31,11 +31,11 @@ native-files and the latter via the cross file only.
 *New in 0.53.0*
 
 Like the compiler, the linker is selected via the `<compiler variable>_LD`
-environment variable, or through the `<compiler entry>ld` entry in a native
+environment variable, or through the `<compiler entry>_ld` entry in a native
 or cross file. You must be aware of whether you're using a compiler that
 invokes the linker itself (most compilers including GCC and Clang) or a
 linker that is invoked directly (when using MSVC or compilers that act like
-it, including Clang-Cl). With the former `cld` or `CC_LD` should be the value
+it, including Clang-Cl). With the former `c_ld` or `CC_LD` should be the value
 to pass to the compiler's special argument (such as `-fuse-ld` with clang and
 gcc), with the latter it should be an executable, such as `lld-link.exe`.
 
