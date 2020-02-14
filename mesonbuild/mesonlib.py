@@ -1074,12 +1074,24 @@ def partition(pred, iterable):
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
 
+def expanduser_in_envpath(path=None) -> str:
+    if path is None:
+        path = os.environ.get("PATH")
+    if path is not None and '~' in path :
+        olddirs = path.split(":")
+        newdirs = []
+        for d in olddirs:
+            newdirs.append(os.path.expanduser(d))
+        return ":".join(newdirs)
+    return path
+
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
                stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
                stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
                **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
     import locale
     encoding = locale.getpreferredencoding()
+    os.environ["PATH"] = expanduser_in_envpath()
     if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
         return Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
     p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
