@@ -388,7 +388,7 @@ class ConfigToolDependency(ExternalDependency):
 
     tools = None
     tool_name = None
-    __strip_version = re.compile(r'^[0-9.]*')
+    __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
         super().__init__('config-tool', environment, kwargs, language=language)
