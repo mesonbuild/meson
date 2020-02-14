@@ -651,7 +651,7 @@ class Rewriter:
                     mlog.log('  -- Source', mlog.green(i), 'is already defined for the target --> skipping')
                     continue
                 mlog.log('  -- Adding source', mlog.green(i), 'at',
-                         mlog.yellow('{}:{}'.format(os.path.join(node.subdir, environment.build_filename), node.lineno)))
+                         mlog.yellow('{}:{}'.format(node.subdir, node.lineno)))
                 token = Token('string', node.subdir, 0, 0, 0, None, i)
                 to_append += [StringNode(token)]
 
@@ -695,7 +695,7 @@ class Rewriter:
                     arg_node = root
                 assert(arg_node is not None)
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
-                         mlog.yellow('{}:{}'.format(os.path.join(string_node.subdir, environment.build_filename), string_node.lineno)))
+                         mlog.yellow('{}:{}'.format(string_node.subdir, string_node.lineno)))
                 arg_node.arguments.remove(string_node)
 
                 # Mark the node as modified
@@ -712,23 +712,24 @@ class Rewriter:
             id_base = re.sub(r'[- ]', '_', cmd['target'])
             target_id = id_base + '_exe' if cmd['target_type'] == 'executable' else '_lib'
             source_id = id_base + '_sources'
+            subdir = os.path.join(cmd['subdir'], environment.build_filename)
 
             # Build src list
-            src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
+            src_arg_node = ArgumentNode(Token('string', subdir, 0, 0, 0, None, ''))
             src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
-            src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, source_id, src_fun_node)
-            src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
+            src_far_node = ArgumentNode(Token('string', subdir, 0, 0, 0, None, ''))
+            src_fun_node = FunctionNode(subdir, 0, 0, 0, 0, 'files', src_far_node)
+            src_ass_node = AssignmentNode(subdir, 0, 0, source_id, src_fun_node)
+            src_arg_node.arguments = [StringNode(Token('string', subdir, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
-            tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, target_id, tgt_fun_node)
+            tgt_arg_node = ArgumentNode(Token('string', subdir, 0, 0, 0, None, ''))
+            tgt_fun_node = FunctionNode(subdir, 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
+            tgt_ass_node = AssignmentNode(subdir, 0, 0, target_id, tgt_fun_node)
             tgt_arg_node.arguments = [
-                StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
-                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, source_id))
+                StringNode(Token('string', subdir, 0, 0, 0, None, cmd['target'])),
+                IdNode(Token('string', subdir, 0, 0, 0, None, source_id))
             ]
 
             src_ass_node.accept(AstIndentationGenerator())
@@ -741,7 +742,7 @@ class Rewriter:
                 to_remove = target['node']
             self.to_remove_nodes += [to_remove]
             mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
-                     mlog.yellow('{}:{}'.format(os.path.join(to_remove.subdir, environment.build_filename), to_remove.lineno)))
+                     mlog.yellow('{}:{}'.format(to_remove.subdir, to_remove.lineno)))
 
         elif cmd['operation'] == 'info':
             # T.List all sources in the target
@@ -796,7 +797,7 @@ class Rewriter:
                 printer.post_process()
                 new_data = printer.result.strip()
             data = {
-                'file': os.path.join(i['node'].subdir, environment.build_filename),
+                'file': i['node'].subdir,
                 'str': new_data,
                 'node': i['node'],
                 'action': i['action']
