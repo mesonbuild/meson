@@ -547,7 +547,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
             output = res.stdout.strip()
             if not output:
                 output = res.stderr.strip()
-            match = re.search(r'([0-9\.]+)', output)
+            match = re.search(r'([0-9][0-9\.]+)', output)
             if not match:
                 m = 'Could not find a version number in output of {!r}'
                 raise InterpreterException(m.format(raw_cmd))
