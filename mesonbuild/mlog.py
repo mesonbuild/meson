@@ -226,7 +226,7 @@ def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
 #
 #      def __str__(self) -> str: ...
 #
-# This would more accurately embody what this funcitonc an handle, but we
+# This would more accurately embody what this function can handle, but we
 # don't have that yet, so instead we'll do some casting to work around it
 def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
@@ -236,7 +236,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     from .environment import build_filename
     from .mesonlib import MesonException
 
-    # The tping requirements here are non-obvious. Lists are invariant,
+    # The typing requirements here are non-obvious. Lists are invariant,
     # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
     if severity == 'warning':
         label = [yellow('WARNING:')]  # type: T.List[T.Union[str, AnsiDecorator]]
