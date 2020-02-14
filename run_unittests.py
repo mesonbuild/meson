@@ -56,7 +56,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg
+    quote_arg, relpath
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -1512,7 +1512,8 @@ class BasePlatformTests(unittest.TestCase):
              extra_args=None,
              default_args=True,
              inprocess=False,
-             override_envvars=None):
+             override_envvars=None,
+             workdir=None):
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -1553,7 +1554,7 @@ class BasePlatformTests(unittest.TestCase):
                 mesonbuild.mlog.log_file = None
         else:
             try:
-                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars)
+                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
@@ -3170,6 +3171,36 @@ int main(int argc, char **argv) {
             r'meson.build:1: WARNING: Passed invalid keyword argument "invalid".',
         ]:
             self.assertRegex(out, re.escape(expected))
+
+    def test_error_location_path(self):
+        '''Test locations in meson errors contain correct paths'''
+        # this list contains errors from all the different steps in the
+        # lexer/parser/interpreter we have tests for.
+        for (t, f) in [
+            ('10 out of bounds', 'meson.build'),
+            ('18 wrong plusassign', 'meson.build'),
+            ('61 bad option argument', 'meson_options.txt'),
+            ('100 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('101 invalid option file', 'meson_options.txt'),
+        ]:
+            tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
+
+            for wd in [
+                self.src_root,
+                self.builddir,
+                os.getcwd(),
+            ]:
+                try:
+                    self.init(tdir, workdir=wd)
+                except subprocess.CalledProcessError as e:
+                    expected = os.path.join('test cases', 'failing', t, f)
+                    relwd = relpath(self.src_root, wd)
+                    if relwd != '.':
+                        expected = os.path.join(relwd, expected)
+                    expected = '\n' + expected + ':'
+                    self.assertIn(expected, e.output)
+                else:
+                    self.fail('configure unexpectedly succeeded')
 
     def test_permitted_method_kwargs(self):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
