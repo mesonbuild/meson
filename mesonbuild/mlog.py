@@ -251,7 +251,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
 
     location = kwargs.pop('location', None)
     if location is not None:
-        location_file = os.path.join(location.subdir, build_filename)
+        location_file = location.subdir
         location_str = get_error_location_string(location_file, location.lineno)
         # Unions are frankly awful, and we have to T.cast here to get mypy
         # to understand that the list concatenation is safe
