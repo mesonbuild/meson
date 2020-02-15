@@ -92,10 +92,12 @@ def osx_syms(libfilename, outfilename):
             match = i
             break
     result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
-    pnm, output = Popen_safe(['nm', '-g', '-P', libfilename])[0:2]
+    pnm, output = Popen_safe(['nm', '--extern-only',
+                              '--defined-only', '--format=posix',
+                              libfilename])[0:2]
     if pnm.returncode != 0:
         raise RuntimeError('nm does not work.')
-    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if x and not x.endswith('U')]
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def gen_symbols(libfilename, outfilename, cross_host):
