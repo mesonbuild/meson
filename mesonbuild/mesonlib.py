@@ -65,8 +65,7 @@ def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProc
     # Sometimes git calls git recursively, such as `git submodule update
     # --recursive` which will be without the above workaround, so set the
     # console mode again just in case.
-    if platform.system().lower() == 'windows':
-        mlog._windows_ansi()
+    mlog.setup_console()
     return pc
 
 
