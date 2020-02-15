@@ -51,27 +51,47 @@ def write_if_changed(text, outfilename):
     with open(outfilename, 'w') as f:
         f.write(text)
 
-def linux_syms(libfilename, outfilename):
-    evar = 'READELF'
+def print_tool_warning(tool, msg, stderr=None):
+    global TOOL_WARNING_FILE
+    if os.path.exists(TOOL_WARNING_FILE):
+        return
+    m = '{!r} {}. {}'.format(tool, msg, RELINKING_WARNING)
+    if stderr:
+        m += '\n' + stderr
+    mlog.warning(m)
+    # Write it out so we don't warn again
+    with open(TOOL_WARNING_FILE, 'w'):
+        pass
+
+def call_tool(name, args):
+    evar = name.upper()
     if evar in os.environ:
-        readelfbin = os.environ[evar].strip()
-    else:
-        readelfbin = 'readelf'
-    evar = 'NM'
-    if evar in os.environ:
-        nmbin = os.environ[evar].strip()
-    else:
-        nmbin = 'nm'
-    pe, output = Popen_safe([readelfbin, '-d', libfilename])[0:2]
-    if pe.returncode != 0:
-        raise RuntimeError('Readelf does not work')
+        name = os.environ[evar].strip()
+    # Run it
+    try:
+        p, output, e = Popen_safe([name] + args)
+    except FileNotFoundError:
+        print_tool_warning(tool, 'not found')
+        return None
+    if p.returncode != 0:
+        print_tool_warning(name, 'does not work', e)
+        return None
+    return output
+
+def linux_syms(libfilename: str, outfilename: str):
+    # Get the name of the library
+    output = call_tool(['readelf', '-d', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
     result = [x for x in output.split('\n') if 'SONAME' in x]
     assert(len(result) <= 1)
-    pnm, output = Popen_safe([nmbin, '--dynamic', '--extern-only',
-                              '--defined-only', '--format=posix',
-                              libfilename])[0:2]
-    if pnm.returncode != 0:
-        raise RuntimeError('nm does not work.')
+    # Get a list of all symbols exported
+    output = call_tool(['nm', '--dynamic', '--extern-only', '--defined-only',
+                        '--format=posix', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
     for line in output.split('\n'):
         if not line:
             continue
@@ -83,20 +103,23 @@ def linux_syms(libfilename, outfilename):
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def osx_syms(libfilename, outfilename):
-    pe, output = Popen_safe(['otool', '-l', libfilename])[0:2]
-    if pe.returncode != 0:
-        raise RuntimeError('Otool does not work.')
+    # Get the name of the library
+    output = call_tool(['otool', '-l', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
     arr = output.split('\n')
     for (i, val) in enumerate(arr):
         if 'LC_ID_DYLIB' in val:
             match = i
             break
     result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
-    pnm, output = Popen_safe(['nm', '--extern-only',
-                              '--defined-only', '--format=posix',
-                              libfilename])[0:2]
-    if pnm.returncode != 0:
-        raise RuntimeError('nm does not work.')
+    # Get a list of all symbols exported
+    output = call_tool(['nm', '--extern-only', '--defined-only',
+                        '--format=posix', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
