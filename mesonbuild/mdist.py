@@ -177,6 +177,22 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
         output_names.append(zipname)
     return output_names
 
+def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin):
+    if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
+        print('Running Meson on distribution package failed')
+        return 1
+    if subprocess.call([ninja_bin], cwd=builddir) != 0:
+        print('Compiling the distribution package failed')
+        return 1
+    if subprocess.call([ninja_bin, 'test'], cwd=builddir) != 0:
+        print('Running unit tests on the distribution package failed')
+        return 1
+    myenv = os.environ.copy()
+    myenv['DESTDIR'] = installdir
+    if subprocess.call([ninja_bin, 'install'], cwd=builddir, env=myenv) != 0:
+        print('Installing the distribution package failed')
+        return 1
+    return 0
 
 def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     print('Testing distribution package %s' % packagename)
@@ -188,35 +204,24 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
             shutil.rmtree(p)
         os.mkdir(p)
     ninja_bin = detect_ninja()
-    try:
-        shutil.unpack_archive(packagename, unpackdir)
-        unpacked_files = glob(os.path.join(unpackdir, '*'))
-        assert(len(unpacked_files) == 1)
-        unpacked_src_dir = unpacked_files[0]
-        with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json')) as boptions:
-            meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
-                              if o['name'] not in ['backend', 'install_umask']]
-        meson_command += extra_meson_args
-        if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
-            print('Running Meson on distribution package failed')
-            return 1
-        if subprocess.call([ninja_bin], cwd=builddir) != 0:
-            print('Compiling the distribution package failed')
-            return 1
-        if subprocess.call([ninja_bin, 'test'], cwd=builddir) != 0:
-            print('Running unit tests on the distribution package failed')
-            return 1
-        myenv = os.environ.copy()
-        myenv['DESTDIR'] = installdir
-        if subprocess.call([ninja_bin, 'install'], cwd=builddir, env=myenv) != 0:
-            print('Installing the distribution package failed')
-            return 1
-    finally:
+    shutil.unpack_archive(packagename, unpackdir)
+    unpacked_files = glob(os.path.join(unpackdir, '*'))
+    assert(len(unpacked_files) == 1)
+    unpacked_src_dir = unpacked_files[0]
+    with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json')) as boptions:
+        meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
+                          if o['name'] not in ['backend', 'install_umask']]
+    meson_command += extra_meson_args
+
+    ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin)
+    if ret > 0:
+        print('Dist check build directory was {}'.format(builddir))
+    else:
         shutil.rmtree(unpackdir)
         shutil.rmtree(builddir)
         shutil.rmtree(installdir)
-    print('Distribution package %s tested' % packagename)
-    return 0
+        print('Distribution package %s tested' % packagename)
+    return ret
 
 def determine_archives_to_generate(options):
     result = []
