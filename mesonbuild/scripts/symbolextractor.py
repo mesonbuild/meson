@@ -22,6 +22,7 @@
 
 import os, sys
 from .. import mesonlib
+from .. import mlog
 from ..mesonlib import Popen_safe
 import argparse
 
@@ -30,6 +31,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--cross-host', default=None, dest='cross_host',
                     help='cross compilation host platform')
 parser.add_argument('args', nargs='+')
+
+TOOL_WARNING_FILE = None
+RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
 def dummy_syms(outfilename):
     """Just touch it so relinking happens always."""
@@ -96,25 +100,33 @@ def osx_syms(libfilename, outfilename):
 
 def gen_symbols(libfilename, outfilename, cross_host):
     if cross_host is not None:
-        # In case of cross builds just always relink.
-        # In theory we could determine the correct
-        # toolset but there are more important things
-        # to do.
+        # In case of cross builds just always relink. In theory we could
+        # determine the correct toolset, but we would need to use the correct
+        # `nm`, `readelf`, etc, from the cross info which requires refactoring.
         dummy_syms(outfilename)
     elif mesonlib.is_linux():
         linux_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
     else:
+        if not os.path.exists(TOOL_WARNING_FILE):
+            mlog.warning('Symbol extracting has not been implemented for this '
+                         'platform. ' + RELINKING_WARNING)
+            # Write it out so we don't warn again
+            with open(TOOL_WARNING_FILE, 'w'):
+                pass
         dummy_syms(outfilename)
 
 def run(args):
+    global TOOL_WARNING_FILE
     options = parser.parse_args(args)
-    if len(options.args) != 2:
+    if len(options.args) != 3:
         print('symbolextractor.py <shared library file> <output file>')
         sys.exit(1)
-    libfile = options.args[0]
-    outfile = options.args[1]
+    privdir = os.path.join(options.args[0], 'meson-private')
+    TOOL_WARNING_FILE = os.path.join(privdir, 'symbolextractor_tool_warning_printed')
+    libfile = options.args[1]
+    outfile = options.args[2]
     gen_symbols(libfile, outfile, options.cross_host)
     return 0
 

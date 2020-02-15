@@ -1584,6 +1584,7 @@ int dummy;
         args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
             ['--internal',
              'symbolextractor',
+             ninja_quote(quote_func(self.environment.get_build_dir())),
              '$in',
              '$out']
         symrule = 'SHSYM'
