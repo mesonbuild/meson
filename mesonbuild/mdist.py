@@ -201,7 +201,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     installdir = os.path.join(privdir, 'dist-install')
     for p in (unpackdir, builddir, installdir):
         if os.path.exists(p):
-            shutil.rmtree(p)
+            windows_proof_rmtree(p)
         os.mkdir(p)
     ninja_bin = detect_ninja()
     shutil.unpack_archive(packagename, unpackdir)
@@ -217,9 +217,9 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     if ret > 0:
         print('Dist check build directory was {}'.format(builddir))
     else:
-        shutil.rmtree(unpackdir)
-        shutil.rmtree(builddir)
-        shutil.rmtree(installdir)
+        windows_proof_rmtree(unpackdir)
+        windows_proof_rmtree(builddir)
+        windows_proof_rmtree(installdir)
         print('Distribution package %s tested' % packagename)
     return ret
 
