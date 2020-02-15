@@ -840,7 +840,8 @@ class PkgConfigDependency(ExternalDependency):
     def _set_libs(self):
         env = None
         libcmd = [self.name, '--libs']
-        if self.static:
+        if self.static or \
+           (self.env.properties[self.for_machine].get('pkg_config_static', None) == 'true'):
             libcmd.append('--static')
         # Force pkg-config to output -L fields even if they are system
         # paths so we can do manual searching with cc.find_library() later.
