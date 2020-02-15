@@ -348,10 +348,14 @@ class PythonInstallation(ExternalProgramHolder):
 
         return self.interpreter.func_shared_module(None, args, kwargs)
 
-    @noPosargs
     @permittedKwargs(permitted_kwargs['dependency'])
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     def dependency_method(self, args, kwargs):
+        if args:
+            mlog.warning('python_installation.dependency() does not take any '
+                         'positional arguments. It always returns a Python '
+                         'dependency. This will become an error in the future.',
+                         location=self.interpreter.current_node)
         dep = PythonDependency(self, self.interpreter.environment, kwargs)
         return self.interpreter.holderify(dep)
 
