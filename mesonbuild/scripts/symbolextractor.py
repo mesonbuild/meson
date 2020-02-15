@@ -55,6 +55,8 @@ def print_tool_warning(tool, msg, stderr=None):
     global TOOL_WARNING_FILE
     if os.path.exists(TOOL_WARNING_FILE):
         return
+    if len(tool) == 1:
+        tool = tool[0]
     m = '{!r} {}. {}'.format(tool, msg, RELINKING_WARNING)
     if stderr:
         m += '\n' + stderr
@@ -66,10 +68,13 @@ def print_tool_warning(tool, msg, stderr=None):
 def call_tool(name, args):
     evar = name.upper()
     if evar in os.environ:
-        name = os.environ[evar].strip()
+        import shlex
+        name = shlex.split(os.environ[evar])
+    else:
+        name = [name]
     # Run it
     try:
-        p, output, e = Popen_safe([name] + args)
+        p, output, e = Popen_safe(name + args)
     except FileNotFoundError:
         print_tool_warning(tool, 'not found')
         return None
@@ -80,15 +85,15 @@ def call_tool(name, args):
 
 def linux_syms(libfilename: str, outfilename: str):
     # Get the name of the library
-    output = call_tool(['readelf', '-d', libfilename])
+    output = call_tool('readelf', ['-d', libfilename])
     if not output:
         dummy_syms(outfilename)
         return
     result = [x for x in output.split('\n') if 'SONAME' in x]
     assert(len(result) <= 1)
     # Get a list of all symbols exported
-    output = call_tool(['nm', '--dynamic', '--extern-only', '--defined-only',
-                        '--format=posix', libfilename])
+    output = call_tool('nm', ['--dynamic', '--extern-only', '--defined-only',
+                              '--format=posix', libfilename])
     if not output:
         dummy_syms(outfilename)
         return
@@ -104,7 +109,7 @@ def linux_syms(libfilename: str, outfilename: str):
 
 def osx_syms(libfilename, outfilename):
     # Get the name of the library
-    output = call_tool(['otool', '-l', libfilename])
+    output = call_tool('otool', ['-l', libfilename])
     if not output:
         dummy_syms(outfilename)
         return
@@ -115,8 +120,8 @@ def osx_syms(libfilename, outfilename):
             break
     result = [arr[match + 2], arr[match + 5]] # Libreoffice stores all 5 lines but the others seem irrelevant.
     # Get a list of all symbols exported
-    output = call_tool(['nm', '--extern-only', '--defined-only',
-                        '--format=posix', libfilename])
+    output = call_tool('nm', ['--extern-only', '--defined-only',
+                              '--format=posix', libfilename])
     if not output:
         dummy_syms(outfilename)
         return
