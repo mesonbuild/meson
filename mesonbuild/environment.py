@@ -140,11 +140,11 @@ def find_coverage_tools():
 
     return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
 
-def detect_ninja(version: str = '1.5', log: bool = False) -> str:
+def detect_ninja(version: str = '1.7', log: bool = False) -> str:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
-def detect_ninja_command_and_version(version: str = '1.5', log: bool = False) -> (str, str):
+def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) -> (str, str):
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         try:

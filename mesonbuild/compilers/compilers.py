@@ -976,6 +976,9 @@ class Compiler:
     def get_compile_debugfile_args(self, rel_obj, **kwargs):
         return []
 
+    def get_link_debugfile_name(self, targetfile: str) -> str:
+        return self.linker.get_debugfile_name(targetfile)
+
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
         return self.linker.get_debugfile_args(targetfile)
 

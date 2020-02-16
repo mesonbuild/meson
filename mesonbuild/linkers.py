@@ -75,6 +75,9 @@ class StaticLinker:
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         return args[:]
 
+    def get_link_debugfile_name(self, targetfile: str) -> str:
+        return None
+
     def get_link_debugfile_args(self, targetfile: str) -> T.List[str]:
         # Static libraries do not have PDB files
         return []
@@ -304,6 +307,10 @@ class DynamicLinker(metaclass=abc.ABCMeta):
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         m = 'Language {} does not support has_multi_link_arguments.'
         raise mesonlib.EnvironmentException(m.format(self.id))
+
+    def get_debugfile_name(self, targetfile: str) -> str:
+        '''Name of debug file written out (see below)'''
+        return None
 
     def get_debugfile_args(self, targetfile: str) -> T.List[str]:
         """Some compilers (MSVC) write debug into a separate file.
@@ -812,10 +819,12 @@ class VisualStudioLikeLinkerMixin:
     def get_std_shared_lib_args(self) -> T.List[str]:
         return self._apply_prefix('/DLL')
 
+    def get_debugfile_name(self, targetfile: str) -> str:
+        basename = targetfile.rsplit('.', maxsplit=1)[0]
+        return basename + '.pdb'
+
     def get_debugfile_args(self, targetfile: str) -> T.List[str]:
-        pdbarr = targetfile.split('.')[:-1]
-        pdbarr += ['pdb']
-        return self._apply_prefix(['/DEBUG', '/PDB:' + '.'.join(pdbarr)])
+        return self._apply_prefix(['/DEBUG', '/PDB:' + self.get_debugfile_name(targetfile)])
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         # Only since VS2015

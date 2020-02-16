@@ -120,7 +120,8 @@ class NinjaRule:
         outfile.write('\n')
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames):
+    def __init__(self, all_outputs, outfilenames, rule, infilenames, implicit_outs=None):
+        self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
@@ -155,9 +156,12 @@ class NinjaBuildElement:
 
     def write(self, outfile):
         self.check_outputs()
-        line = 'build %s: %s %s' % (' '.join([ninja_quote(i, True) for i in self.outfilenames]),
-                                    self.rule,
-                                    ' '.join([ninja_quote(i, True) for i in self.infilenames]))
+        ins = ' '.join([ninja_quote(i, True) for i in self.infilenames])
+        outs = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
+        implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
+        if implicit_outs:
+            implicit_outs = ' | ' + implicit_outs
+        line = 'build {}{}: {} {}'.format(outs, implicit_outs, self.rule, ins)
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -1947,6 +1951,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             return compiler.get_compile_debugfile_args(objfile, pch=False)
 
+    def get_link_debugfile_name(self, linker, target, outname):
+        return linker.get_link_debugfile_name(outname)
+
     def get_link_debugfile_args(self, linker, target, outname):
         return linker.get_link_debugfile_args(outname)
 
@@ -2449,6 +2456,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
+        implicit_outs = []
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
@@ -2484,6 +2492,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add /DEBUG and the pdb filename when using MSVC
         if self.get_option_for_target('debug', target):
             commands += self.get_link_debugfile_args(linker, target, outname)
+            debugfile = self.get_link_debugfile_name(linker, target, outname)
+            if debugfile is not None:
+                implicit_outs += [debugfile]
         # Add link args specific to this BuildTarget type, such as soname args,
         # PIC, import library generation, etc.
         commands += self.get_target_type_link_args(target, linker)
@@ -2572,7 +2583,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
         return elem
