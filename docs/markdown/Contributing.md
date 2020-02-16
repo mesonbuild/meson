@@ -127,6 +127,8 @@ project tests. To run all tests, execute `./run_tests.py`. Unit tests
 can be run with `./run_unittests.py` and project tests with
 `./run_project_tests.py`.
 
+### Project tests
+
 Subsets of project tests can be selected with
 `./run_project_tests.py --only` option. This can save a great deal of
 time when only a certain part of Meson is being tested.
@@ -139,7 +141,7 @@ For example, all the CUDA project tests run and pass on Windows via
 `./run_project_tests.py --only cuda --backend ninja`
 
 Each project test is a standalone project that can be compiled on its
-own. They are all in `test cases` subdirectory. The simplest way to
+own. They are all in the `test cases` subdirectory. The simplest way to
 run a single project test is to do something like `./meson.py test\
 cases/common/1\ trivial builddir`. The one exception to this is `test
 cases/unit` directory discussed below.
@@ -153,13 +155,32 @@ should be implemented as a Python script. The goal of test projects is
 also to provide sample projects that end users can use as a base for
 their own projects.
 
-All project tests follow the same pattern: they are compiled, tests
-are run and finally install is run. Passing means that building and
-tests succeed and installed files match the `installed_files.txt` file
-in the test's source root. Any tests that require more thorough
-analysis, such as checking that certain compiler arguments can be
-found in the command line or that the generated pkg-config files
-actually work should be done with a unit test.
+All project tests follow the same pattern: they are configured, compiled, tests
+are run and finally install is run. Passing means that configuring, building and
+tests succeed and that installed files match those expected.
+
+Any tests that require more thorough analysis, such as checking that certain
+compiler arguments can be found in the command line or that the generated
+pkg-config files actually work should be done with a unit test.
+
+The following files in the test's source root are consulted, if they exist:
+
+* `installed_files.txt` lists the files which are expected to be installed.
+Various constructs containing `?` are used to indicate platform specific
+filename variations (e.g. `?so` represents the platform appropriate suffix for a
+shared library)
+
+* `setup_env.json` contains a dictionary which specifies additional
+environment variables to be set during the configure step of the test. `@ROOT@`
+is replaced with the absolute path of the source directory.
+
+* `crossfile.ini` and `nativefile.ini` are passed to the configure step with
+`--cross-file` and `--native-file` options, respectively.
+
+Additionally:
+
+* `mlog.cmd_ci_include()` can be called from anywhere inside meson to capture the
+contents of an additional file into the CI log on failure.
 
 Projects needed by unit tests are in the `test cases/unit`
 subdirectory. They are not run as part of `./run_project_tests.py`.
