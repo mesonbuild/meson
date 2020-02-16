@@ -264,7 +264,7 @@ class CMakeTraceParser:
         target = CMakeGeneratorTarget(name)
 
         def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
-            target.outputs += [key]
+            target.outputs += key.split(';')
 
         def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
             if key == 'ARGS':
@@ -272,7 +272,7 @@ class CMakeTraceParser:
             target.command[-1] += key.split(';')
 
         def handle_depends(key: str, target: CMakeGeneratorTarget) -> None:
-            target.depends += [key]
+            target.depends += key.split(';')
 
         def handle_working_dir(key: str, target: CMakeGeneratorTarget) -> None:
             if target.working_dir is None:
@@ -423,7 +423,8 @@ class CMakeTraceParser:
         if not target:
             return self._gen_exception('add_dependencies', 'target not found', tline)
 
-        target.depends += args[1:]
+        for i in args[1:]:
+            target.depends += i.split(';')
 
     def _cmake_target_compile_definitions(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/target_compile_definitions.html

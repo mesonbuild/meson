@@ -22,7 +22,7 @@ add_custom_command(
   COMMAND mycpy cpyBase.cpp.in                               cpyBase.cpp.something
   COMMAND mycpy cpyBase.cpp.something                        cpyBase.cpp.IAmRunningOutOfIdeas
   COMMAND mycpy cpyBase.cpp.IAmRunningOutOfIdeas             cpyBase.cpp
-  DEPENDS cpyBase.cpp.am gen
+  DEPENDS cpyBase.cpp.am;gen
 )
 
 add_custom_command(
@@ -124,4 +124,4 @@ add_custom_target(args_test_cmd
 add_custom_target(macro_name_cmd COMMAND macro_name)
 
 add_dependencies(cmModLib args_test_cmd)
-add_dependencies(args_test_cmd macro_name_cmd)
+add_dependencies(args_test_cmd macro_name_cmd;gen;mycpy)
