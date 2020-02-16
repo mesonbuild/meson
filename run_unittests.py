@@ -1756,6 +1756,33 @@ class BasePlatformTests(unittest.TestCase):
         else:
             raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
 
+    @staticmethod
+    def get_target_from_filename(filename):
+        base = os.path.splitext(filename)[0]
+        if base.startswith('lib'):
+            return base[3:]
+        return base
+
+    def assertBuildRelinkedOnlyTarget(self, target):
+        ret = self.build()
+        if self.backend is Backend.ninja:
+            linked_targets = []
+            for line in ret.split('\n'):
+                if 'Linking target' in line:
+                    fname = line.rsplit('target ')[-1]
+                    linked_targets.append(self.get_target_from_filename(fname))
+            self.assertEqual(linked_targets, [target])
+        elif self.backend is Backend.vs:
+            # Ensure that this target was rebuilt
+            linkre = re.compile(r'Link:\n  [^\n]*link.exe[^\n]*/OUT:".\\([^"]*)"', flags=re.IGNORECASE)
+            matches = linkre.findall(ret)
+            self.assertEqual(len(matches), 1, msg=matches)
+            self.assertEqual(self.get_target_from_filename(matches[0]), target)
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+
     def assertPathExists(self, path):
         m = 'Path {!r} should exist'.format(path)
         self.assertTrue(os.path.exists(path), msg=m)
@@ -2572,6 +2599,9 @@ class AllPlatformTests(BasePlatformTests):
         # Changing mtime of meson.build should not rebuild anything
         self.utime(os.path.join(testdir, 'meson.build'))
         self.assertReconfiguredBuildIsNoop()
+        # Changing mtime of libefile.c should rebuild the library, but not relink the executable
+        self.utime(os.path.join(testdir, 'libfile.c'))
+        self.assertBuildRelinkedOnlyTarget('mylib')
 
     def test_source_changes_cause_rebuild(self):
         '''
@@ -2586,7 +2616,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertBuildIsNoop()
         # Changing mtime of header.h should rebuild everything
         self.utime(os.path.join(testdir, 'header.h'))
-        self.assertRebuiltTarget('prog')
+        self.assertBuildRelinkedOnlyTarget('prog')
 
     def test_custom_target_changes_cause_rebuild(self):
         '''
@@ -2602,7 +2632,7 @@ class AllPlatformTests(BasePlatformTests):
         # Changing mtime of these should rebuild everything
         for f in ('input.def', 'makeheader.py', 'somefile.txt'):
             self.utime(os.path.join(testdir, f))
-            self.assertRebuiltTarget('prog')
+            self.assertBuildRelinkedOnlyTarget('prog')
 
     def test_source_generator_program_cause_rebuild(self):
         '''
