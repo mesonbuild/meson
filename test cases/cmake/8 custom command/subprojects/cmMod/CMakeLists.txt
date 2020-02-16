@@ -89,7 +89,27 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/s2_a_cpp"
 )
 
-add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp)
+# cpyTest (copy file without renaming)
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyTest.hpp"
+  COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest.hpp" "${CMAKE_CURRENT_BINARY_DIR}/cpyTest.hpp"
+  DEPENDS "cpyTest/cpyTest.hpp"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyTest2.hpp"
+  COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest2.hpp" "${CMAKE_CURRENT_BINARY_DIR}/cpyTest2.hpp"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest2.hpp"
+)
+
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyTest3.hpp"
+  COMMAND mycpy cpyTest3.hpp "${CMAKE_CURRENT_BINARY_DIR}/cpyTest3.hpp"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest3.hpp"
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest"
+)
+
+add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
@@ -99,7 +119,7 @@ set(ARGS_TEST ${ARGS_TEST} arg2)
 add_executable(macro_name macro_name.cpp)
 add_executable(args_test args_test.cpp)
 add_custom_target(args_test_cmd
-  COMMAND args_test ARGS ${ARGS_TEST}
+  COMMAND args_test ${ARGS_TEST}
 )
 add_custom_target(macro_name_cmd COMMAND macro_name)
 
