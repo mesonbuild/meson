@@ -1263,6 +1263,8 @@ You probably should put it in link_with instead.''')
                     if dl != linker.language:
                         stdlib_args += all_compilers[dl].language_stdlib_only_link_flags()
                         added_languages.add(dl)
+                # Type of var 'linker' is Compiler. 
+                # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
         m = 'Could not get a dynamic linker for build target {!r}'
@@ -1290,9 +1292,9 @@ You probably should put it in link_with instead.''')
         2. If the target contains only objects, process_compilers guesses and
            picks the first compiler that smells right.
         '''
-        linker, _ = self.get_clink_dynamic_linker_and_stdlibs()
+        compiler, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
-        if linker and linker.get_id() in {'msvc', 'clang-cl', 'intel-cl', 'llvm', 'dmd', 'nvcc'}:
+        if compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}:
             return True
         return False
 
