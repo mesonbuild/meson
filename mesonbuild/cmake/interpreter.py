@@ -28,6 +28,7 @@ from subprocess import Popen, PIPE
 from threading import Thread
 from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 import typing as T
 import os, re
 
@@ -673,23 +674,35 @@ class ConverterCustomTarget:
             self.outputs = [self.name + '.h']
 
         # Check dependencies and input files
+        root = Path(root_src_dir)
         for i in self.depends_raw:
             if not i:
                 continue
+            raw = Path(i)
             art = output_target_map.artifact(i)
             tgt = output_target_map.target(i)
             gen = output_target_map.generated(i)
 
-            if art:
+            rel_to_root = None
+            try:
+                rel_to_root = raw.relative_to(root)
+            except ValueError:
+                rel_to_root = None
+
+            # First check for existing files. Only then check for existing
+            # targets, etc. This reduces the chance of misdetecting input files
+            # as outputs from other targets.
+            # See https://github.com/mesonbuild/meson/issues/6632
+            if not raw.is_absolute() and (root / raw).exists():
+                self.inputs += [raw.as_posix()]
+            elif raw.is_absolute() and raw.exists() and rel_to_root is not None:
+                self.inputs += [rel_to_root.as_posix()]
+            elif art:
                 self.depends += [art]
             elif tgt:
                 self.depends += [tgt]
             elif gen:
                 self.inputs += [gen.get_ref(i)]
-            elif not os.path.isabs(i) and os.path.exists(os.path.join(root_src_dir, i)):
-                self.inputs += [i]
-            elif os.path.isabs(i) and os.path.exists(i) and os.path.commonpath([i, root_src_dir]) == root_src_dir:
-                self.inputs += [os.path.relpath(i, root_src_dir)]
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
