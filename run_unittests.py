@@ -1701,6 +1701,29 @@ class BasePlatformTests(unittest.TestCase):
         path_basename = PurePath(path).parts[-1]
         self.assertEqual(PurePath(path_basename), PurePath(basename), msg)
 
+    def assertReconfiguredBuildIsNoop(self):
+        'Assert that we reconfigured and then there was nothing to do'
+        ret = self.build()
+        self.assertIn('The Meson build system', ret)
+        if self.backend is Backend.ninja:
+            for line in ret.split('\n'):
+                if line in self.no_rebuild_stdout:
+                    break
+            else:
+                raise AssertionError('build was reconfigured, but was not no-op')
+        elif self.backend is Backend.vs:
+            # Ensure that some target said that no rebuild was done
+            # XXX: Note CustomBuild did indeed rebuild, because of the regen checker!
+            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
+            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            # Ensure that no targets were built
+            self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
@@ -2535,6 +2558,20 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
         self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
+
+    def test_noop_changes_cause_no_rebuilds(self):
+        '''
+        Test that no-op changes to the build files such as mtime do not cause
+        a rebuild of anything.
+        '''
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of meson.build should not rebuild anything
+        self.utime(os.path.join(testdir, 'meson.build'))
+        self.assertReconfiguredBuildIsNoop()
 
     def test_source_changes_cause_rebuild(self):
         '''
