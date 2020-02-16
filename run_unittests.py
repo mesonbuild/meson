@@ -809,6 +809,7 @@ class InternalTests(unittest.TestCase):
             env.machines.host.system = 'windows'
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
+    @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):
         '''
         Unit test for parsing of pkg-config output to search for libraries
