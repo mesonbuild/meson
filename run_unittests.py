@@ -1706,15 +1706,15 @@ class BasePlatformTests(unittest.TestCase):
         if self.backend is Backend.ninja:
             self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
-            # Ensure that some target said that no rebuild was done
+            # Ensure that some target of each type said that no rebuild was done
+            # We always have at least one CustomBuild target for the regen checker
             self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
             self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
             self.assertIn('Link:\n  All outputs are up-to-date.', ret)
             # Ensure that no targets were built
-            clre = re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE)
-            linkre = re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE)
-            self.assertNotRegex(ret, clre)
-            self.assertNotRegex(ret, linkre)
+            self.assertNotRegex(ret, re.compile('CustomBuild:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
