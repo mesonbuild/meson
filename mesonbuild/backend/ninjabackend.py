@@ -2326,6 +2326,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return []
         return linker.get_no_stdlib_link_args()
 
+    def get_import_filename(self, target):
+        return os.path.join(self.get_target_dir(target), target.import_filename)
+
     def get_target_type_link_args(self, target, linker):
         commands = []
         if isinstance(target, build.Executable):
@@ -2336,7 +2339,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.gen_export_dynamic_link_args(self.environment)
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.get_import_filename(target))
             if target.pie:
                 commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
@@ -2357,7 +2360,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:
