@@ -134,6 +134,7 @@ def create_lib_objc_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
     uppercase_token = lowercase_token.upper()
     function_name = lowercase_token[0:3] + '_func'
+    test_exe_name = lowercase_token + '_test'
     lib_h_name = lowercase_token + '.h'
     lib_objc_name = lowercase_token + '.m'
     test_objc_name = lowercase_token + '_test.m'
@@ -144,7 +145,7 @@ def create_lib_objc_sample(project_name, version):
               'header_file': lib_h_name,
               'source_file': lib_objc_name,
               'test_source_file': test_objc_name,
-              'test_exe_name': lowercase_token,
+              'test_exe_name': test_exe_name,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,

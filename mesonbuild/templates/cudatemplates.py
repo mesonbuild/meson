@@ -153,6 +153,7 @@ def create_lib_cuda_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
     uppercase_token = lowercase_token.upper()
     class_name = uppercase_token[0] + lowercase_token[1:]
+    test_exe_name = lowercase_token + '_test'
     namespace = lowercase_token
     lib_h_name = lowercase_token + '.h'
     lib_cuda_name = lowercase_token + '.cu'
@@ -165,7 +166,7 @@ def create_lib_cuda_sample(project_name, version):
               'header_file': lib_h_name,
               'source_file': lib_cuda_name,
               'test_source_file': test_cuda_name,
-              'test_exe_name': lowercase_token,
+              'test_exe_name': test_exe_name,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,

@@ -118,7 +118,6 @@ def create_lib_java_sample(project_name, version):
               'class_name': class_name,
               'source_file': lib_java_name,
               'test_source_file': test_java_name,
-              'test_exe_name': lowercase_token,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,

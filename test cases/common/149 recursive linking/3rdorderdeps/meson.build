@@ -41,7 +41,7 @@ foreach dep2 : ['sh', 'st']
       main_c = configure_file(input : 'main.c.in',
                               output : name + '-main.c',
                               configuration : cdata)
-      dep3_bin = executable(name, main_c, link_with : dep3_lib,
+      dep3_bin = executable(name + '_test', main_c, link_with : dep3_lib,
                             c_args : build_args)
       test(name + 'test', dep3_bin)
     endforeach

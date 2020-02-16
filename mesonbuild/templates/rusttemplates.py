@@ -82,6 +82,7 @@ def create_lib_rust_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
     uppercase_token = lowercase_token.upper()
     function_name = lowercase_token[0:3] + '_func'
+    test_exe_name = lowercase_token + '_test'
     lib_crate_name = lowercase_token
     lib_rs_name = lowercase_token + '.rs'
     test_rs_name = lowercase_token + '_test.rs'
@@ -92,7 +93,7 @@ def create_lib_rust_sample(project_name, version):
               'crate_file': lib_crate_name,
               'source_file': lib_rs_name,
               'test_source_file': test_rs_name,
-              'test_exe_name': lowercase_token,
+              'test_exe_name': test_exe_name,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,
