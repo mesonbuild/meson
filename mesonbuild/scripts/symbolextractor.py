@@ -20,6 +20,7 @@
 # This file is basically a reimplementation of
 # http://cgit.freedesktop.org/libreoffice/core/commit/?id=3213cd54b76bc80a6f0516aac75a48ff3b2ad67c
 
+import typing as T
 import os, sys
 from .. import mesonlib
 from .. import mlog
@@ -35,12 +36,12 @@ parser.add_argument('args', nargs='+')
 TOOL_WARNING_FILE = None
 RELINKING_WARNING = 'Relinking will always happen on source changes.'
 
-def dummy_syms(outfilename):
+def dummy_syms(outfilename: str):
     """Just touch it so relinking happens always."""
     with open(outfilename, 'w'):
         pass
 
-def write_if_changed(text, outfilename):
+def write_if_changed(text: str, outfilename: str):
     try:
         with open(outfilename, 'r') as f:
             oldtext = f.read()
@@ -51,7 +52,7 @@ def write_if_changed(text, outfilename):
     with open(outfilename, 'w') as f:
         f.write(text)
 
-def print_tool_warning(tool, msg, stderr=None):
+def print_tool_warning(tool: list, msg: str, stderr: str = None):
     global TOOL_WARNING_FILE
     if os.path.exists(TOOL_WARNING_FILE):
         return
@@ -65,7 +66,7 @@ def print_tool_warning(tool, msg, stderr=None):
     with open(TOOL_WARNING_FILE, 'w'):
         pass
 
-def call_tool(name, args):
+def call_tool(name: str, args: T.List[str]) -> str:
     evar = name.upper()
     if evar in os.environ:
         import shlex
@@ -107,7 +108,7 @@ def linux_syms(libfilename: str, outfilename: str):
         result += [' '.join(entry)]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def osx_syms(libfilename, outfilename):
+def osx_syms(libfilename: str, outfilename: str):
     # Get the name of the library
     output = call_tool('otool', ['-l', libfilename])
     if not output:
@@ -128,7 +129,7 @@ def osx_syms(libfilename, outfilename):
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def gen_symbols(libfilename, outfilename, cross_host):
+def gen_symbols(libfilename: str, outfilename: str, cross_host: str):
     if cross_host is not None:
         # In case of cross builds just always relink. In theory we could
         # determine the correct toolset, but we would need to use the correct
