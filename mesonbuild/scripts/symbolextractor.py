@@ -66,23 +66,33 @@ def print_tool_warning(tool: list, msg: str, stderr: str = None):
     with open(TOOL_WARNING_FILE, 'w'):
         pass
 
-def call_tool(name: str, args: T.List[str]) -> str:
+def get_tool(name: str) -> T.List[str]:
     evar = name.upper()
     if evar in os.environ:
         import shlex
-        name = shlex.split(os.environ[evar])
-    else:
-        name = [name]
-    # Run it
+        return shlex.split(os.environ[evar])
+    return [name]
+
+def call_tool(name: str, args: T.List[str], **kwargs) -> str:
+    tool = get_tool(name)
     try:
-        p, output, e = Popen_safe(name + args)
+        p, output, e = Popen_safe(tool + args, **kwargs)
     except FileNotFoundError:
         print_tool_warning(tool, 'not found')
         return None
     if p.returncode != 0:
-        print_tool_warning(name, 'does not work', e)
+        print_tool_warning(tool, 'does not work', e)
         return None
     return output
+
+def call_tool_nowarn(tool: T.List[str], **kwargs) -> T.Tuple[str, str]:
+    try:
+        p, output, e = Popen_safe(tool, **kwargs)
+    except FileNotFoundError:
+        return None, '{!r} not found\n'.format(tool[0])
+    if p.returncode != 0:
+        return None, e
+    return output, None
 
 def linux_syms(libfilename: str, outfilename: str):
     # Get the name of the library
@@ -129,6 +139,62 @@ def osx_syms(libfilename: str, outfilename: str):
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
+def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
+    # First try lib.exe, which is provided by MSVC.
+    # Do not allow overriding by setting the LIB env var, because that is
+    # already used for something else: it's the list of library paths MSVC
+    # will search for import libraries while linking.
+    output, e1 = call_tool_nowarn(['lib', '-list', impfilename])
+    if output:
+        # The output is a list of DLLs that each symbol exported by the import
+        # library is available in. We only build import libraries that point to
+        # a single DLL, so we can pick any of these. Pick the last one for
+        # simplicity. Also skip the last line, which is empty.
+        return output.split('\n')[-2:-1], None
+    # Next, try dlltool.exe which is provided by MinGW
+    output, e2 = call_tool_nowarn(get_tool('dlltool') + ['-I', impfilename])
+    if output:
+        return [output], None
+    return ([], (e1 + e2))
+
+def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
+    # Force dumpbin.exe to use en-US so we can parse its output
+    env = os.environ.copy()
+    env['VSLANG'] = '1033'
+    output, e1 = call_tool_nowarn(get_tool('dumpbin') + ['-exports', impfilename], env=env)
+    if output:
+        lines = output.split('\n')
+        start = lines.index('File Type: LIBRARY')
+        end = lines.index('  Summary')
+        return lines[start:end], None
+    # Next, try nm.exe which is provided by MinGW
+    output, e2 = call_tool_nowarn(get_tool('nm') + ['--extern-only', '--defined-only',
+                                                    '--format=posix', impfilename])
+    if output:
+        result = []
+        for line in output.split('\n'):
+            if ' T ' not in line or line.startswith('.text'):
+                continue
+            result.append(line.split(maxsplit=1)[0])
+        return result, None
+    return ([], (e1 + e2))
+
+def windows_syms(impfilename: str, outfilename: str):
+    # Get the name of the library
+    result, e = _get_implib_dllname(impfilename)
+    if not result:
+        print_tool_warning('Both lib.exe and dlltool.exe', 'do not work', e)
+        dummy_syms(outfilename)
+        return
+    # Get a list of all symbols exported
+    symbols, e = _get_implib_exports(impfilename)
+    if not symbols:
+        print_tool_warning('Both dumpbin.exe and nm.exe', 'do not work', e)
+        dummy_syms(outfilename)
+        return
+    result += symbols
+    write_if_changed('\n'.join(result) + '\n', outfilename)
+
 def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host: str):
     if cross_host is not None:
         # In case of cross builds just always relink. In theory we could
@@ -139,6 +205,13 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         linux_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
+    elif mesonlib.is_windows():
+        if os.path.isfile(impfilename):
+            windows_syms(impfilename, outfilename)
+        else:
+            # No import library. Not sure how the DLL is being used, so just
+            # rebuild everything that links to it every time.
+            dummy_syms(outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '
