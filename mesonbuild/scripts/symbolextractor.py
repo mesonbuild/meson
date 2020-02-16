@@ -129,7 +129,7 @@ def osx_syms(libfilename: str, outfilename: str):
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
-def gen_symbols(libfilename: str, outfilename: str, cross_host: str):
+def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host: str):
     if cross_host is not None:
         # In case of cross builds just always relink. In theory we could
         # determine the correct toolset, but we would need to use the correct
@@ -151,14 +151,15 @@ def gen_symbols(libfilename: str, outfilename: str, cross_host: str):
 def run(args):
     global TOOL_WARNING_FILE
     options = parser.parse_args(args)
-    if len(options.args) != 3:
-        print('symbolextractor.py <shared library file> <output file>')
+    if len(options.args) != 4:
+        print('symbolextractor.py <shared library file> <import library> <output file>')
         sys.exit(1)
     privdir = os.path.join(options.args[0], 'meson-private')
     TOOL_WARNING_FILE = os.path.join(privdir, 'symbolextractor_tool_warning_printed')
     libfile = options.args[1]
-    outfile = options.args[2]
-    gen_symbols(libfile, outfile, options.cross_host)
+    impfile = options.args[2] # Only used on Windows
+    outfile = options.args[3]
+    gen_symbols(libfile, impfile, outfile, options.cross_host)
     return 0
 
 if __name__ == '__main__':

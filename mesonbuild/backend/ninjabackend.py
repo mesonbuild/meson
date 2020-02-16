@@ -1590,6 +1590,7 @@ int dummy;
              'symbolextractor',
              ninja_quote(quote_func(self.environment.get_build_dir())),
              '$in',
+             '$IMPLIB',
              '$out']
         symrule = 'SHSYM'
         symcmd = args + ['$CROSS']
@@ -2308,12 +2309,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.add_build(elem)
         return pch_objects
 
-    def generate_shsym(self, target):
-        target_name = target.get_filename()
-        target_file = self.get_target_filename(target)
+    def get_target_shsym_filename(self, target):
+        # Always name the .symbols file after the primary build output because it always exists
         targetdir = self.get_target_private_dir(target)
-        symname = os.path.join(targetdir, target_name + '.symbols')
+        return os.path.join(targetdir, target.get_filename() + '.symbols')
+
+    def generate_shsym(self, target):
+        target_file = self.get_target_filename(target)
+        symname = self.get_target_shsym_filename(target)
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
+        # The library we will actually link to, which is an import library on Windows (not the DLL)
+        elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
         if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
@@ -2593,7 +2599,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
-            return os.path.join(self.get_target_private_dir(t), t.get_filename() + '.symbols')
+            return self.get_target_shsym_filename(t)
         elif isinstance(t, mesonlib.File):
             if t.is_built:
                 return t.relative_name()
