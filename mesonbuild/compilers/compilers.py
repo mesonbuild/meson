@@ -261,8 +261,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
                                                     'from_buildtype'),
-                'b_interposable': coredata.UserBooleanOption('Make exported dynamic symbols interposable',
-                                                             False),
+                'b_symbolic': coredata.UserBooleanOption('Use -Wl,-Bsymbolic-functions when linking', False),
                 }
 
 def option_enabled(boptions, options, option):
@@ -281,8 +280,8 @@ def get_base_compile_args(options, compiler):
     except KeyError:
         pass
     try:
-        interposable = options['b_interposable'].value
-        args += compiler.get_interposable_compile_args(interposable)
+        if options['b_symbolic'].value:
+            args.extend(compiler.get_symbolic_compile_args())
     except KeyError:
         pass
     try:
@@ -335,8 +334,8 @@ def get_base_link_args(options, linker, is_shared_module):
     except KeyError:
         pass
     try:
-        interposable = options['b_interposable'].value
-        args += linker.get_interposable_link_args(interposable)
+        if options['b_symbolic'].value:
+            args.extend(linker.get_symbolic_link_args())
     except KeyError:
         pass
     try:
@@ -1079,11 +1078,11 @@ class Compiler:
     def get_lto_link_args(self) -> T.List[str]:
         return self.linker.get_lto_args()
 
-    def get_interposable_compile_args(self, value: bool) -> T.List[str]:
+    def get_symbolic_compile_args(self) -> T.List[str]:
         return []
 
-    def get_interposable_link_args(self, value: bool) -> T.List[str]:
-        return self.linker.get_interposable_args(value)
+    def get_symbolic_link_args(self) -> T.List[str]:
+        return self.linker.get_symbolic_args()
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
         return []

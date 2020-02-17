@@ -112,7 +112,7 @@ platforms or with all compilers:
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
 | b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
 | b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype | VS runtime library to use (since 0.48.0) |
-| b_interposable | false      | true, false             | Make exported dynamic symbols interposable |
+| b_symbolic  | false         | true, false             | Use -Wl,-Bsymbolic-functions when linking |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
