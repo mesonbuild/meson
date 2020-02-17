@@ -139,6 +139,25 @@ def osx_syms(libfilename: str, outfilename: str):
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
+def cygwin_syms(impfilename: str, outfilename: str):
+    # Get the name of the library
+    output = call_tool('dlltool', ['-I', impfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    result = [output]
+    # Get the list of all symbols exported
+    output = call_tool('nm', ['--extern-only', '--defined-only',
+                              '--format=posix', impfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    for line in output.split('\n'):
+        if ' T ' not in line:
+            continue
+        result.append(line.split(maxsplit=1)[0])
+    write_if_changed('\n'.join(result) + '\n', outfilename)
+
 def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
     all_stderr = ''
     # First try lib.exe, which is provided by MSVC. Then llvm-lib.exe, by LLVM
@@ -218,6 +237,13 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
     elif mesonlib.is_windows():
         if os.path.isfile(impfilename):
             windows_syms(impfilename, outfilename)
+        else:
+            # No import library. Not sure how the DLL is being used, so just
+            # rebuild everything that links to it every time.
+            dummy_syms(outfilename)
+    elif mesonlib.is_cygwin():
+        if os.path.isfile(impfilename):
+            cygwin_syms(impfilename, outfilename)
         else:
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.

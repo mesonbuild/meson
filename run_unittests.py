@@ -1759,7 +1759,7 @@ class BasePlatformTests(unittest.TestCase):
     @staticmethod
     def get_target_from_filename(filename):
         base = os.path.splitext(filename)[0]
-        if base.startswith('lib'):
+        if base.startswith(('lib', 'cyg')):
             return base[3:]
         return base
 
@@ -2591,8 +2591,6 @@ class AllPlatformTests(BasePlatformTests):
         Test that no-op changes to the build files such as mtime do not cause
         a rebuild of anything.
         '''
-        if is_cygwin():
-            raise unittest.SkipTest('symbolextractor has not been implemented for Cygwin yet')
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
         self.init(testdir)
         self.build()
