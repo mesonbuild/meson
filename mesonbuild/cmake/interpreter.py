@@ -401,7 +401,19 @@ class ConverterTarget:
             if not os.path.isabs(x):
                 x = os.path.normpath(os.path.join(self.src_dir, x))
             if not os.path.exists(x) and not any([x.endswith(y) for y in obj_suffixes]) and not is_generated:
-                mlog.warning('CMake: path', mlog.bold(x), 'does not exist. Ignoring. This can lead to build errors')
+                mlog.warning('CMake: path', mlog.bold(x), 'does not exist.')
+                mlog.warning(' --> Ignoring. This can lead to build errors.')
+                return None
+            if (
+                os.path.isabs(x)
+                    and os.path.commonpath([x, self.env.get_source_dir()]) == self.env.get_source_dir()
+                    and not (
+                        os.path.commonpath([x, root_src_dir]) == root_src_dir or
+                        os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir()
+                    )
+                ):
+                mlog.warning('CMake: path', mlog.bold(x), 'is inside the root project but', mlog.bold('not'), 'inside the subproject.')
+                mlog.warning(' --> Ignoring. This can lead to build errors.')
                 return None
             if os.path.isabs(x) and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir():
                 if is_header:
