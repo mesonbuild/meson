@@ -140,56 +140,66 @@ def osx_syms(libfilename: str, outfilename: str):
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def _get_implib_dllname(impfilename: str) -> T.Tuple[T.List[str], str]:
-    # First try lib.exe, which is provided by MSVC.
-    # Do not allow overriding by setting the LIB env var, because that is
-    # already used for something else: it's the list of library paths MSVC
-    # will search for import libraries while linking.
-    output, e1 = call_tool_nowarn(['lib', '-list', impfilename])
-    if output:
-        # The output is a list of DLLs that each symbol exported by the import
-        # library is available in. We only build import libraries that point to
-        # a single DLL, so we can pick any of these. Pick the last one for
-        # simplicity. Also skip the last line, which is empty.
-        return output.split('\n')[-2:-1], None
+    all_stderr = ''
+    # First try lib.exe, which is provided by MSVC. Then llvm-lib.exe, by LLVM
+    # for clang-cl.
+    #
+    # We cannot call get_tool on `lib` because it will look at the `LIB` env
+    # var which is the list of library paths MSVC will search for import
+    # libraries while linking.
+    for lib in (['lib'], get_tool('llvm-lib')):
+        output, e = call_tool_nowarn(lib + ['-list', impfilename])
+        if output:
+            # The output is a list of DLLs that each symbol exported by the import
+            # library is available in. We only build import libraries that point to
+            # a single DLL, so we can pick any of these. Pick the last one for
+            # simplicity. Also skip the last line, which is empty.
+            return output.split('\n')[-2:-1], None
+        all_stderr += e
     # Next, try dlltool.exe which is provided by MinGW
-    output, e2 = call_tool_nowarn(get_tool('dlltool') + ['-I', impfilename])
+    output, e = call_tool_nowarn(get_tool('dlltool') + ['-I', impfilename])
     if output:
         return [output], None
-    return ([], (e1 + e2))
+    all_stderr += e
+    return ([], all_stderr)
 
 def _get_implib_exports(impfilename: str) -> T.Tuple[T.List[str], str]:
+    all_stderr = ''
     # Force dumpbin.exe to use en-US so we can parse its output
     env = os.environ.copy()
     env['VSLANG'] = '1033'
-    output, e1 = call_tool_nowarn(get_tool('dumpbin') + ['-exports', impfilename], env=env)
+    output, e = call_tool_nowarn(get_tool('dumpbin') + ['-exports', impfilename], env=env)
     if output:
         lines = output.split('\n')
         start = lines.index('File Type: LIBRARY')
         end = lines.index('  Summary')
         return lines[start:end], None
-    # Next, try nm.exe which is provided by MinGW
-    output, e2 = call_tool_nowarn(get_tool('nm') + ['--extern-only', '--defined-only',
-                                                    '--format=posix', impfilename])
-    if output:
-        result = []
-        for line in output.split('\n'):
-            if ' T ' not in line or line.startswith('.text'):
-                continue
-            result.append(line.split(maxsplit=1)[0])
-        return result, None
-    return ([], (e1 + e2))
+    all_stderr += e
+    # Next, try llvm-nm.exe provided by LLVM, then nm.exe provided by MinGW
+    for nm in ('llvm-nm', 'nm'):
+        output, e = call_tool_nowarn(get_tool(nm) + ['--extern-only', '--defined-only',
+                                                     '--format=posix', impfilename])
+        if output:
+            result = []
+            for line in output.split('\n'):
+                if ' T ' not in line or line.startswith('.text'):
+                    continue
+                result.append(line.split(maxsplit=1)[0])
+            return result, None
+        all_stderr += e
+    return ([], all_stderr)
 
 def windows_syms(impfilename: str, outfilename: str):
     # Get the name of the library
     result, e = _get_implib_dllname(impfilename)
     if not result:
-        print_tool_warning('Both lib.exe and dlltool.exe', 'do not work', e)
+        print_tool_warning('lib, llvm-lib, dlltool', 'do not work or were not found', e)
         dummy_syms(outfilename)
         return
     # Get a list of all symbols exported
     symbols, e = _get_implib_exports(impfilename)
     if not symbols:
-        print_tool_warning('Both dumpbin.exe and nm.exe', 'do not work', e)
+        print_tool_warning('dumpbin, llvm-nm, nm', 'do not work or were not found', e)
         dummy_syms(outfilename)
         return
     result += symbols

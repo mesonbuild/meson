@@ -114,8 +114,8 @@ steps:
        $env:Path = $origPath
 
        # install llvm for clang-cl builds
-       DownloadFile -Source 'http://releases.llvm.org/7.0.0/LLVM-7.0.0-win64.exe' -Destination LLVM-7.0.0-win64.exe
-       Start-Process .\LLVM-7.0.0-win64.exe -ArgumentList '/S' -Wait
+       DownloadFile -Source 'http://releases.llvm.org/9.0.0/LLVM-9.0.0-win64.exe' -Destination LLVM-9.0.0-win64.exe
+       Start-Process .\LLVM-9.0.0-win64.exe -ArgumentList '/S' -Wait
        $env:Path = "C:\Program Files\LLVM\bin;$env:Path"
        $env:CC = "clang-cl"
        $env:CXX = "clang-cl"
