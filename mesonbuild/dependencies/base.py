@@ -1767,8 +1767,12 @@ class ExternalProgram:
             # ignore the warning because derived classes never call this __init__
             # method, and thus only the found() method of this class is ever executed
             if self.found():  # lgtm [py/init-calls-subclass]
-                mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                         '(%s)' % ' '.join(self.command))
+                # if the program is found where it was expected, do not log it
+                if search_dir and self.path.startswith(search_dir):
+                    pass
+                else:
+                    mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
+                             '(%s)' % ' '.join(self.command))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
 
