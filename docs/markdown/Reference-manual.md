@@ -1285,7 +1285,7 @@ My Project 1.0
 The first argument to this function must be a string defining the name
 of this project. It is followed by programming languages that the
 project uses. Supported values for languages are `c`, `cpp` (for
-`C++`), `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
+`C++`), `cuda`, `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
 `vala` and `rust`. Since version `0.40.0` the list of languages
 is optional.
 
