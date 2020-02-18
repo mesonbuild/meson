@@ -99,6 +99,8 @@ and supports the following methods:
  - `get_variable(name)` fetches the specified variable from inside
    the subproject. Usually `dependency()` or `target()` should be
    preferred to extract build targets.
+ - `found` returns true if the subproject is available, otherwise false
+   *new in in 0.53.2*
 
 ## CMake configuration files
 
