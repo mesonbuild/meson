@@ -6784,7 +6784,7 @@ class NativeFileTests(BasePlatformTests):
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
-        if os.path.exists('/etc/debian_version'):
+        if os.path.exists('/etc/os-release') or os.path.exists('/etc/debian_version'):
             rc = subprocess.call(['pkg-config', '--cflags', 'python2'],
                                  stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL)
