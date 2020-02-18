@@ -1226,7 +1226,7 @@ This function is used to summarize build configuration at the end of the build
 process. This function provides a way for projects (and subprojects) to report
 this information in a clear way.
 
-The content is a serie of key/value pairs grouped into sections. If the section
+The content is a series of key/value pairs grouped into sections. If the section
 keyword argument is omitted, those key/value pairs are implicitly grouped into a section
 with no title. key/value pairs can optionally be grouped into a dictionary,
 but keep in mind that dictionaries does not guarantee ordering. `key` must be string,
