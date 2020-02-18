@@ -846,8 +846,10 @@ configuration as-is, which may be absolute, or relative to `prefix`.
 if you need the absolute path to one of these e.g. to use in a define
 etc., you should use `get_option('prefix') / get_option('localstatedir')`
 
-For options of type `feature` a special object is returned instead of
-a string.  See [`feature` options](Build-options.md#features)
+For options of type `feature` a
+[feature option object](#feature-option-object)
+is returned instead of a string.
+See [`feature` options](Build-options.md#features)
 documentation for more details.
 
 ### get_variable()
@@ -2471,6 +2473,16 @@ library. This object has the following methods:
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
    controlled by keyword arguments.
+
+### Feature option object
+
+The following methods are defined for all [`feature` options](Build-options.md#features):
+
+- `enabled()` returns whether the feature was set to `'enabled'`
+- `disabled()` returns whether the feature was set to `'disabled'`
+- `auto()` returns whether the feature was set to `'auto'`
+
+Feature options are available since 0.47.0.
 
 ### `generator` object
 

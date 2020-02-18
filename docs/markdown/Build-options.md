@@ -83,14 +83,29 @@ Currently supported in
 - `disabled` do not look for the dependency and always return 'not-found'.
 
 When getting the value of this type of option using `get_option()`, a special
-object is returned instead of the string representation of the option's value.
-That object has three methods returning boolean and taking no argument:
-`enabled()`, `disabled()`, and `auto()`.
+[feature option object](Reference-manual.md#feature-option-object)
+is returned instead of the string representation of the option's value.
+This object can be passed to `required`:
 
 ```meson
 d = dependency('foo', required : get_option('myfeature'))
 if d.found()
   app = executable('myapp', 'main.c', dependencies : [d])
+endif
+```
+
+To check the value of the feature, the object has three methods
+returning a boolean and taking no argument:
+
+- `.enabled()`
+- `.disabled()`
+- `.auto()`
+
+This is useful for custom code depending on the feature:
+
+```meson
+if get_option('myfeature').enabled()
+  # ...
 endif
 ```
 
