@@ -666,7 +666,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         _, _, e = mesonlib.Popen_safe(self.exelist + self._apply_prefix('--allow-shlib-undefined'))
         self.has_allow_shlib_undefined = not ('unknown argument: --allow-shlib-undefined' in e)
 
-    def get_allow_undefined_args(self) -> typing.List[str]:
+    def get_allow_undefined_args(self) -> T.List[str]:
         if self.has_allow_shlib_undefined:
             return self._apply_prefix('--allow-shlib-undefined')
         return []
