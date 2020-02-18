@@ -819,6 +819,9 @@ def read_cmd_line_file(build_dir, options):
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
+def cmd_line_options_to_string(options):
+    return {k: str(v) for k, v in options.cmd_line_options.items()}
+
 def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
@@ -829,7 +832,7 @@ def write_cmd_line_file(build_dir, options):
     if options.native_file:
         properties['native_file'] = options.native_file
 
-    config['options'] = options.cmd_line_options
+    config['options'] = cmd_line_options_to_string(options)
     config['properties'] = properties
     with open(filename, 'w') as f:
         config.write(f)
@@ -838,7 +841,7 @@ def update_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
-    config['options'].update(options.cmd_line_options)
+    config['options'].update(cmd_line_options_to_string(options))
     with open(filename, 'w') as f:
         config.write(f)
 
