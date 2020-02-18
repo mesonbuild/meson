@@ -66,6 +66,7 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
                              'target': self.target,
                              'target_type': self.target_type,
                              'target_list': self.target_list,
+                             'found': self.found_method,
                              })
 
     def _args_to_info(self, args):
@@ -109,6 +110,13 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
     @permittedKwargs({})
     def target_list(self, args, kwargs):
         return self.held_object.cm_interpreter.target_list()
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('CMakeSubproject.found()', '0.53.2')
+    def found_method(self, args, kwargs):
+        return self.held_object is not None
+
 
 class CmakeModule(ExtensionModule):
     cmake_detected = False
