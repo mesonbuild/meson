@@ -724,7 +724,13 @@ class Compiler:
         return self.id
 
     def get_linker_id(self) -> str:
-        return self.linker.id
+        # There is not guarantee that we have a dynamic linker instance, as
+        # some languages don't have separate linkers and compilers. In those
+        # cases return the compiler id
+        try:
+            return self.linker.id
+        except AttributeError:
+            return self.id
 
     def get_version_string(self) -> str:
         details = [self.id, self.version]
