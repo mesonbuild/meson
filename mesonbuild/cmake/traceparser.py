@@ -47,6 +47,8 @@ class CMakeTarget:
         self.imported = imported
         self.tline = tline
         self.depends = []
+        self.current_bin_dir = None
+        self.current_src_dir = None
 
     def __repr__(self):
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
@@ -83,6 +85,36 @@ class CMakeTraceParser:
         self.trace_file_path = Path(build_dir) / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
 
+        # State for delayed command execution. Delayed command execution is realised
+        # with a custom CMake file that overrides some functions and adds some
+        # introspection information to the trace.
+        self.delayed_commands = []  # type: T.List[str]
+        self.stored_commands = []   # type: T.List[CMakeTraceLine]
+
+        # All supported functions
+        self.functions = {
+            'set': self._cmake_set,
+            'unset': self._cmake_unset,
+            'add_executable': self._cmake_add_executable,
+            'add_library': self._cmake_add_library,
+            'add_custom_command': self._cmake_add_custom_command,
+            'add_custom_target': self._cmake_add_custom_target,
+            'set_property': self._cmake_set_property,
+            'set_target_properties': self._cmake_set_target_properties,
+            'target_compile_definitions': self._cmake_target_compile_definitions,
+            'target_compile_options': self._cmake_target_compile_options,
+            'target_include_directories': self._cmake_target_include_directories,
+            'target_link_libraries': self._cmake_target_link_libraries,
+            'target_link_options': self._cmake_target_link_options,
+            'add_dependencies': self._cmake_add_dependencies,
+
+            # Special functions defined in the preload script.
+            # These functions do nothing in the CMake code, but have special
+            # meaning here in the trace parser.
+            'meson_ps_execute_delayed_calls': self._meson_ps_execute_delayed_calls,
+            'meson_ps_reload_vars': self._meson_ps_reload_vars,
+        }
+
     def trace_args(self) -> T.List[str]:
         arg_map = {
             'human': ['--trace', '--trace-expand'],
@@ -116,28 +148,15 @@ class CMakeTraceParser:
         else:
             raise CMakeException('CMake: Internal error: Invalid trace format {}. Expected [human, json-v1]'.format(self.trace_format))
 
-        # All supported functions
-        functions = {
-            'set': self._cmake_set,
-            'unset': self._cmake_unset,
-            'add_executable': self._cmake_add_executable,
-            'add_library': self._cmake_add_library,
-            'add_custom_command': self._cmake_add_custom_command,
-            'add_custom_target': self._cmake_add_custom_target,
-            'set_property': self._cmake_set_property,
-            'set_target_properties': self._cmake_set_target_properties,
-            'target_compile_definitions': self._cmake_target_compile_definitions,
-            'target_compile_options': self._cmake_target_compile_options,
-            'target_include_directories': self._cmake_target_include_directories,
-            'target_link_libraries': self._cmake_target_link_libraries,
-            'target_link_options': self._cmake_target_link_options,
-            'add_dependencies': self._cmake_add_dependencies,
-        }
-
         # Primary pass -- parse everything
         for l in lexer1:
+            # store the function if its execution should be delayed
+            if l.func in self.delayed_commands:
+                self.stored_commands += [l]
+                continue
+
             # "Execute" the CMake function if supported
-            fn = functions.get(l.func, None)
+            fn = self.functions.get(l.func, None)
             if(fn):
                 fn(l)
 
@@ -159,6 +178,12 @@ class CMakeTraceParser:
             return self.vars[var]
 
         return []
+
+    def var_to_str(self, var: str) -> T.Optional[str]:
+        if var in self.vars and self.vars[var]:
+            return self.vars[var][0]
+
+        return None
 
     def var_to_bool(self, var):
         if var not in self.vars:
@@ -337,6 +362,8 @@ class CMakeTraceParser:
             if fn is not None:
                 fn(i, target)
 
+        target.current_bin_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_BINARY_DIR')
+        target.current_src_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_SOURCE_DIR')
         target.outputs = self._guess_files(target.outputs)
         target.depends = self._guess_files(target.depends)
         target.command = [self._guess_files(x) for x in target.command]
@@ -531,6 +558,18 @@ class CMakeTraceParser:
                 self.targets[target].properties[i[0]] = []
 
             self.targets[target].properties[i[0]] += i[1]
+
+    def _meson_ps_execute_delayed_calls(self, tline: CMakeTraceLine) -> None:
+        for l in self.stored_commands:
+            fn = self.functions.get(l.func, None)
+            if(fn):
+                fn(l)
+
+        # clear the stored commands
+        self.stored_commands = []
+
+    def _meson_ps_reload_vars(self, tline: CMakeTraceLine) -> None:
+        self.delayed_commands = self.get_cmake_var('MESON_PS_DELAYED_CALLS')
 
     def _lex_trace_human(self, trace):
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
