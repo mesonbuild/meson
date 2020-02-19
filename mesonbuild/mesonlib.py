@@ -1066,48 +1066,60 @@ def partition(pred, iterable):
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
 
+class MesonPopen:
+    def __init__(self, args: T.List[str],
+               stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
+               stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
+               **kwargs: T.Any):
+        import locale
+        encoding = locale.getpreferredencoding()
+        self.legacy = sys.version_info < (3, 6) or \
+                      not sys.stdout.encoding or \
+                      encoding.upper() != 'UTF-8'
+        universal_newlines = not self.legacy
+        # Redirect stdin to DEVNULL otherwise the command run by us here might mess
+        # up the console and ANSI colors will stop working on Windows.
+        if 'stdin' not in kwargs:
+            kwargs['stdin'] = subprocess.DEVNULL
+        self.p = subprocess.Popen(args, universal_newlines=universal_newlines,
+                                  close_fds=False, stdout=stdout, stderr=stderr,
+                                  **kwargs)
+
+    def communicate(self, write: T.Optional[str] = None):
+        if self.legacy:
+            o, e = self._communicate_legacy(write)
+        else:
+            o, e = self.p.communicate(write)
+        self.returncode = self.p.returncode
+        # Sometimes the command that we run will call another command which will be
+        # without the above stdin workaround, so set the console mode again just in
+        # case.
+        mlog.setup_console()
+        return o, e
+
+    def _communicate_legacy(self) -> T.Tuple[str, str]:
+        input_ = None  # type: T.Optional[bytes]
+        if write is not None:
+            input_ = write.encode('utf-8')
+        o, e = self.p.communicate(input_)
+        if o is not None:
+            if sys.stdout.encoding:
+                o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
+            else:
+                o = o.decode(errors='replace').replace('\r\n', '\n')
+        if e is not None:
+            if sys.stderr.encoding:
+                e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
+            else:
+                e = e.decode(errors='replace').replace('\r\n', '\n')
+        return o, e
+
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
                stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
                stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
                **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
-    import locale
-    encoding = locale.getpreferredencoding()
-    # Redirect stdin to DEVNULL otherwise the command run by us here might mess
-    # up the console and ANSI colors will stop working on Windows.
-    if 'stdin' not in kwargs:
-        kwargs['stdin'] = subprocess.DEVNULL
-    if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
-        p, o, e = Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
-    else:
-        p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
-                             stdout=stdout, stderr=stderr, **kwargs)
-        o, e = p.communicate(write)
-    # Sometimes the command that we run will call another command which will be
-    # without the above stdin workaround, so set the console mode again just in
-    # case.
-    mlog.setup_console()
-    return p, o, e
-
-def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
-                      stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-                      stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-                      **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
-    p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
-                         stdout=stdout, stderr=stderr, **kwargs)
-    input_ = None  # type: T.Optional[bytes]
-    if write is not None:
-        input_ = write.encode('utf-8')
-    o, e = p.communicate(input_)
-    if o is not None:
-        if sys.stdout.encoding:
-            o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
-        else:
-            o = o.decode(errors='replace').replace('\r\n', '\n')
-    if e is not None:
-        if sys.stderr.encoding:
-            e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
-        else:
-            e = e.decode(errors='replace').replace('\r\n', '\n')
+    p = MesonPopen(args, stdout, stderr, **kwargs)
+    o, e = p.communicate(write)
     return p, o, e
 
 def iter_regexin_iter(regexiter, initer):
