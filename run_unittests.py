@@ -6056,30 +6056,30 @@ c = ['{0}']
             self.assertEqual(comp.linker.id, expected)
 
     def test_ld_environment_variable_bfd(self):
-        self._check_ld('ld.bfd', 'bfd', 'c', 'GNU ld.bfd')
+        self._check_ld('ld.bfd', 'bfd', 'c', 'ld.bfd')
 
     def test_ld_environment_variable_gold(self):
-        self._check_ld('ld.gold', 'gold', 'c', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'c', 'ld.gold')
 
     def test_ld_environment_variable_lld(self):
-        self._check_ld('ld.lld', 'lld', 'c', 'lld')
+        self._check_ld('ld.lld', 'lld', 'c', 'ld.lld')
 
     @skipIfNoExecutable('rustc')
     def test_ld_environment_variable_rust(self):
-        self._check_ld('ld.gold', 'gold', 'rust', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'rust', 'ld.gold')
 
     def test_ld_environment_variable_cpp(self):
-        self._check_ld('ld.gold', 'gold', 'cpp', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'cpp', 'ld.gold')
 
     def test_ld_environment_variable_objc(self):
-        self._check_ld('ld.gold', 'gold', 'objc', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'objc', 'ld.gold')
 
     def test_ld_environment_variable_objcpp(self):
-        self._check_ld('ld.gold', 'gold', 'objcpp', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'objcpp', 'ld.gold')
 
     @skipIfNoExecutable('gfortran')
     def test_ld_environment_variable_fortran(self):
-        self._check_ld('ld.gold', 'gold', 'fortran', 'GNU ld.gold')
+        self._check_ld('ld.gold', 'gold', 'fortran', 'ld.gold')
 
     def compute_sha256(self, filename):
         with open(filename, 'rb') as f:
