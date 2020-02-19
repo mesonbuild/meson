@@ -109,6 +109,8 @@ add_custom_command(
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest"
 )
 
+add_subdirectory(cpyTest ccppyyTTeesstt)
+
 add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
@@ -123,5 +125,5 @@ add_custom_target(args_test_cmd
 )
 add_custom_target(macro_name_cmd COMMAND macro_name)
 
-add_dependencies(cmModLib args_test_cmd)
+add_dependencies(cmModLib args_test_cmd tgtCpyTest4)
 add_dependencies(args_test_cmd macro_name_cmd;gen;mycpy)
