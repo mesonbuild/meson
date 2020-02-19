@@ -35,24 +35,24 @@ These are return values of the `get_id` (Compiler family) and
 
 These are return values of the `get_linker_id` method in a compiler object.
 
-| Value     | Linker family                               |
-| -----     | ---------------                             |
-| ld.bfd    | The GNU linker                              |
-| ld.gold   | The GNU linker                              |
-| lld       | The LLVM linker, with the GNU interface     |
-| link      | MSVC linker                                 |
-| pgi       | Portland/Nvidia PGI                         |
-| lld-link  | The LLVM linker, with the MSVC interface    |
-| xilink    | Used with Intel-cl only, MSVC like          |
-| rlink     | The Renesas linker, used with CCrx only     |
-| armlink   | The ARM linker (arm and armclang compilers) |
-| optlink   | optlink                                     |
-| APPLE ld  | Apple ld64                                  |
-| solaris   | Solaris and illumos                         |
+| Value      | Linker family                               |
+| -----      | ---------------                             |
+| ld.bfd     | The GNU linker                              |
+| ld.gold    | The GNU gold linker                         |
+| ld.lld     | The LLVM linker, with the GNU interface     |
+| ld.solaris | Solaris and illumos                         |
+| ld64       | Apple ld64                                  |
+| link       | MSVC linker                                 |
+| lld-link   | The LLVM linker, with the MSVC interface    |
+| xilink     | Used with Intel-cl only, MSVC like          |
+| optlink    | optlink (used with DMD)                     |
+| rlink      | The Renesas linker, used with CCrx only     |
+| armlink    | The ARM linker (arm and armclang compilers) |
+| pgi        | Portland/Nvidia PGI                         |
+| nvlink     | Nvidia Linker used with cuda                |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
-
 
 ## Script environment variables
 
