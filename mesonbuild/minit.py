@@ -155,7 +155,7 @@ def autodetect_options(options, sample: bool = False) -> None:
     if not options.srcfiles:
         srcfiles = []
         for f in (f for f in Path().iterdir() if f.is_file()):
-            if f.suffix in (LANG_SUFFIXES):
+            if f.suffix in LANG_SUFFIXES:
                 srcfiles.append(f)
         if not srcfiles:
             raise SystemExit('No recognizable source files found.\n'
