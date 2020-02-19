@@ -181,7 +181,7 @@ should only be used if the CMake files are not stored in the project itself.
 
 Additional CMake parameters can be specified with the `cmake_args` property.
 
-### Some notes on Dub
+## Dub
 
 Please understand that meson is only able to find dependencies that
 exist in the local Dub repository. You need to manually fetch and
