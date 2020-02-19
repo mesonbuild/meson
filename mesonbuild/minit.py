@@ -38,8 +38,8 @@ we currently have one meson template at this time.
 '''
 from mesonbuild.templates.mesontemplates import create_meson_build
 
-FORTRAN_SUFFIXES = ['.f', '.for', '.F', '.f90', '.F90']
-LANG_SUFFIXES = ['.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'] + FORTRAN_SUFFIXES
+FORTRAN_SUFFIXES = ('.f', '.for', '.F', '.f90', '.F90')
+LANG_SUFFIXES = ('.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java') + FORTRAN_SUFFIXES
 LANG_SUPPORTED = ('c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp')
 TYPE_EXE = 'executable'
 TYPE_LIB = 'library'
@@ -212,7 +212,7 @@ def add_arguments(parser):
     parser.add_argument("-b", "--build", action='store_true', help="build after generation")
     parser.add_argument("--builddir", default='build', help="directory for build")
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default='executable', choices=['executable', 'library'], help="project type. default: executable based project")
+    parser.add_argument('--type', default='executable', choices=('executable', 'library'), help="project type. default: executable based project")
     parser.add_argument('--version', default='0.1', help="project version. default: 0.1")
 
 def run(options) -> int:
