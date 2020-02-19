@@ -47,7 +47,8 @@ from .linkers import (
     CcrxDynamicLinker,
     ClangClDynamicLinker,
     DynamicLinker,
-    GnuDynamicLinker,
+    GnuBFDDynamicLinker,
+    GnuGoldDynamicLinker,
     LLVMDynamicLinker,
     MSVCDynamicLinker,
     OptlinkDynamicLinker,
@@ -767,7 +768,7 @@ class Environment:
         if o.startswith('LLD'):
             if '(compatible with GNU linkers)' in o:
                 return LLVMDynamicLinker(
-                    compiler, for_machine, 'lld', comp_class.LINKER_PREFIX,
+                    compiler, for_machine, comp_class.LINKER_PREFIX,
                     override, version=search_version(o))
 
         if value is not None:
@@ -830,7 +831,7 @@ class Environment:
         v = search_version(o)
         if o.startswith('LLD'):
             linker = LLVMDynamicLinker(
-                compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
+                compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
             # Toolchain wrapper got in the way; this happens with e.g. https://github.com/mstorsjo/llvm-mingw
             # Let's try to extract the linker invocation command to grab the version.
@@ -846,30 +847,29 @@ class Environment:
                 _, o, e = Popen_safe([linker_cmd, '--version'])
                 v = search_version(o)
 
-            linker = LLVMDynamicLinker(compiler, for_machine, 'lld', comp_class.LINKER_PREFIX, override, version=v)
+            linker = LLVMDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         # first is for apple clang, second is for real gcc, the third is icc
         elif e.endswith('(use -v to see invocation)\n') or 'macosx_version' in e or 'ld: unknown option:' in e:
             if isinstance(comp_class.LINKER_PREFIX, str):
                 _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-v'] + extra_args)
             else:
                 _, _, e = Popen_safe(compiler + comp_class.LINKER_PREFIX + ['-v'] + extra_args)
-            i = 'APPLE ld'
             for line in e.split('\n'):
                 if 'PROJECT:ld' in line:
                     v = line.split('-')[1]
                     break
             else:
                 v = 'unknown version'
-            linker = AppleDynamicLinker(compiler, for_machine, i, comp_class.LINKER_PREFIX, override, version=v)
+            linker = AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         elif 'GNU' in o:
             if 'gold' in o:
-                i = 'GNU ld.gold'
+                cls = GnuGoldDynamicLinker
             else:
-                i = 'GNU ld.bfd'
-            linker = GnuDynamicLinker(compiler, for_machine, i, comp_class.LINKER_PREFIX, override, version=v)
+                cls = GnuBFDDynamicLinker
+            linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         elif 'Solaris' in e or 'Solaris' in o:
             linker = SolarisDynamicLinker(
-                compiler, for_machine, 'solaris', comp_class.LINKER_PREFIX, override,
+                compiler, for_machine, comp_class.LINKER_PREFIX, override,
                 version=search_version(e))
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
@@ -1061,7 +1061,7 @@ class Environment:
             if 'PGI Compilers' in out:
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-                linker = PGIDynamicLinker(compiler, for_machine, 'pgi', cls.LINKER_PREFIX, [], version=version)
+                linker = PGIDynamicLinker(compiler, for_machine, cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, linker=linker)
@@ -1214,7 +1214,7 @@ class Environment:
                 if 'PGI Compilers' in out:
                     cls = PGIFortranCompiler
                     self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-                    linker = PGIDynamicLinker(compiler, for_machine, 'pgi',
+                    linker = PGIDynamicLinker(compiler, for_machine,
                                               cls.LINKER_PREFIX, [], version=version)
                     return cls(
                         compiler, version, for_machine, is_cross, info, exe_wrap,
@@ -1413,7 +1413,7 @@ class Environment:
                         linker = type(cc.linker)(for_machine, always_args, exelist=cc.linker.exelist,
                                                  version=cc.linker.version, **extra_args)
                     else:
-                        linker = type(cc.linker)(compiler, for_machine, cc.linker.id, cc.LINKER_PREFIX,
+                        linker = type(cc.linker)(compiler, for_machine, cc.LINKER_PREFIX,
                                                  always_args=always_args, version=cc.linker.version,
                                                  **extra_args)
                 elif 'link' in override[0]:
