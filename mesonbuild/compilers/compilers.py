@@ -1065,7 +1065,25 @@ class Compiler:
         return self.linker.get_undefined_link_args()
 
     def remove_linkerlike_args(self, args):
-        return [x for x in args if not x.startswith('-Wl')]
+        rm_exact = ('-headerpad_max_install_names',)
+        rm_prefixes = ('-Wl,', '-L',)
+        rm_next = ('-L',)
+        ret = []
+        iargs = iter(args)
+        for arg in iargs:
+            # Remove this argument
+            if arg in rm_exact:
+                continue
+            # If the argument starts with this, but is not *exactly* this
+            # f.ex., '-L' should match ['-Lfoo'] but not ['-L', 'foo']
+            if arg.startswith(rm_prefixes) and arg not in rm_prefixes:
+                continue
+            # Ignore this argument and the one after it
+            if arg in rm_next:
+                next(iargs)
+                continue
+            ret.append(arg)
+        return ret
 
     def get_lto_compile_args(self) -> T.List[str]:
         return []
