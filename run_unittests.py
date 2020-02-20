@@ -4896,6 +4896,11 @@ class DarwinTests(BasePlatformTests):
         self.build()
         self.install()
 
+    def test_removing_unused_linker_args(self):
+        testdir = os.path.join(self.common_test_dir, '108 has arg')
+        env = {'CFLAGS': '-L/tmp -L /var/tmp -headerpad_max_install_names -Wl,-export_dynamic'}
+        self.init(testdir, override_envvars=env)
+
 
 @unittest.skipUnless(not is_windows(), "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
