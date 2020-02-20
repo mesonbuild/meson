@@ -106,10 +106,12 @@ class TestDef:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
         return self.path.as_posix()
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __lt__(self, other: T.Any) -> bool:
         if isinstance(other, TestDef):
             # None is not sortable, so replace it with an empty string
-            return (self.path, self.name or '') < (other.path, other.name or '')
+            s_id = int(self.path.name.split(' ')[0])
+            o_id = int(other.path.name.split(' ')[0])
+            return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
 class AutoDeletedDir:
@@ -240,10 +242,9 @@ def platform_fix_name(fname: str, compiler, env) -> str:
 
     return fname
 
-def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
+def validate_install(srcdir: Path, installdir: Path, compiler, env) -> str:
     # List of installed files
-    info_file = Path(srcdir) / 'installed_files.txt'
-    installdir = Path(installdir)
+    info_file = srcdir / 'installed_files.txt'
     expected = {}  # type: T.Dict[Path, bool]
     ret_msg = ''
     # Generate list of expected files
@@ -377,58 +378,59 @@ def parse_test_args(testdir):
 
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
-def create_deterministic_builddir(src_dir, name):
+def create_deterministic_builddir(test: TestDef) -> str:
     import hashlib
-    if name:
-        src_dir += name
+    src_dir = test.path.as_posix()
+    if test.name:
+        src_dir += test.name
     rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
     os.mkdir(rel_dirname)
     abs_pathname = os.path.join(os.getcwd(), rel_dirname)
     return abs_pathname
 
-def run_test(skipped, testdir, name, extra_args, compiler, backend, flags, commands, should_fail):
-    if skipped:
+def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail):
+    if test.skip:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(testdir, name)) as build_dir:
+    with AutoDeletedDir(create_deterministic_builddir(test)) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
+                return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def pass_prefix_to_test(dirname):
-    if '39 prefix absolute' in dirname:
+def pass_prefix_to_test(dirname: Path):
+    if '39 prefix absolute' in dirname.name:
         return False
     return True
 
-def pass_libdir_to_test(dirname):
-    if '8 install' in dirname:
+def pass_libdir_to_test(dirname: Path):
+    if '8 install' in dirname.name:
         return False
-    if '38 libdir must be inside prefix' in dirname:
+    if '38 libdir must be inside prefix' in dirname.name:
         return False
-    if '195 install_mode' in dirname:
+    if '195 install_mode' in dirname.name:
         return False
     return True
 
-def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
+def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
     setup_env = None
     # Configure in-process
-    if pass_prefix_to_test(testdir):
+    if pass_prefix_to_test(test.path):
         gen_args = ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
     else:
         gen_args = []
-    if pass_libdir_to_test(testdir):
+    if pass_libdir_to_test(test.path):
         gen_args += ['--libdir', 'lib']
-    gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
-    nativefile = os.path.join(testdir, 'nativefile.ini')
-    if os.path.exists(nativefile):
-        gen_args.extend(['--native-file', nativefile])
-    crossfile = os.path.join(testdir, 'crossfile.ini')
-    if os.path.exists(crossfile):
-        gen_args.extend(['--cross-file', crossfile])
+    gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
+    nativefile = test.path / 'nativefile.ini'
+    crossfile = test.path / 'crossfile.ini'
+    if nativefile.exists():
+        gen_args.extend(['--native-file', nativefile.as_posix()])
+    if crossfile.exists():
+        gen_args.extend(['--cross-file', crossfile.as_posix()])
     setup_env_file = os.path.join(testdir, 'setup_env.json')
     if os.path.exists(setup_env_file):
         setup_env = os.environ.copy()
@@ -462,7 +464,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works before a build is run.
     ensure_backend_detects_changes(backend)
-    os.utime(os.path.join(testdir, 'meson.build'))
+    os.utime(str(test.path / 'meson.build'))
     # Build with subprocess
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
@@ -479,7 +481,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
-    os.utime(os.path.join(testdir, 'meson.build'))
+    os.utime(str(test.path / 'meson.build'))
     test_start = time.time()
     # Test in-process
     (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
@@ -515,19 +517,19 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(testdir, install_dir, compiler, builddata.environment)
+    install_msg = validate_install(test.path, Path(install_dir), compiler, builddata.environment)
     if install_msg:
         testresult.fail(install_msg)
         return testresult
 
     return testresult
 
-def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
-    tests = [t.name for t in testdir.glob('*') if t.is_dir()]
+def gather_tests(testdir: Path) -> T.List[TestDef]:
+    tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
-    tests = [TestDef(testdir / t, None, []) for t in tests]
-    all_tests = []
-    for t in tests:
+    test_defs = [TestDef(testdir / t, None, []) for t in tests]
+    all_tests = []  # type: T.List[TestDef]
+    for t in test_defs:
         matrix_file = t.path / 'test_matrix.json'
         if not matrix_file.is_file():
             all_tests += [t]
@@ -552,8 +554,8 @@ def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
 
                 # Skip the matrix entry if environment variable is present
                 if 'skip_on_env' in i:
-                    for env in i['skip_on_env']:
-                        if env in os.environ:
+                    for skip_env_var in i['skip_on_env']:
+                        if skip_env_var in os.environ:
                             skip = True
 
                 # Only run the test if all compiler ID's match
@@ -880,7 +882,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
 
-            result = executor.submit(run_test, skipped or t.skip, t.path.as_posix(), t.name, extra_args + suite_args + t.args,
+            t.skip = skipped or t.skip
+            result = executor.submit(run_test, t, extra_args + suite_args + t.args,
                                      system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
@@ -1033,11 +1036,11 @@ def detect_system_compiler(options):
         for lang in sorted(compilers.all_languages):
             try:
                 comp = env.compiler_from_language(lang, MachineChoice.HOST)
-                details = '{} {} [{}]'.format(' '.join(comp.get_exelist()), comp.get_version_string(), comp.get_id())
+                details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
                 compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
                 comp = None
-                details = 'not found'
+                details = '[not found]'
             print('%-7s: %s' % (lang, details))
 
             # note C compiler for later use by platform_fix_name()
