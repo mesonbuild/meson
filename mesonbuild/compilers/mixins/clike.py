@@ -715,14 +715,14 @@ class CLikeCompiler:
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
-                                 dependencies=dependencies)
-        if res:
-            return True, cached
+        contexts = []
+        contexts.append(self._build_wrapper(templ.format(**fargs), env, extra_args=extra_args,
+                                            dependencies=dependencies, mode='link'))
 
         # MSVC does not have compiler __builtin_-s.
         if self.get_id() in {'msvc', 'intel-cl'}:
-            return False, False
+            contexts.append(compilers.CompileContextBase(False, False))
+            return compilers.CompileContextList(contexts)
 
         # Detect function as a built-in
         #
@@ -751,8 +751,9 @@ class CLikeCompiler:
         #endif
         return 0;
         }}'''
-        return self.links(t.format(**fargs), env, extra_args=extra_args,
-                          dependencies=dependencies)
+        contexts.append(self._build_wrapper(t.format(**fargs), env, extra_args=extra_args,
+                                            dependencies=dependencies, mode='link'))
+        return compilers.CompileContextList(contexts)
 
     def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile
+import contextlib, os.path, re, tempfile, types
 import collections.abc
 import typing as T
 from functools import lru_cache
@@ -691,7 +691,33 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __repr__(self) -> str:
         return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
 
-class CompileContext:
+class CompileContextBase:
+    def __init__(self, returncode: int, cached: bool):
+        self.returncode = returncode
+        self.cached = cached
+
+    @contextlib.contextmanager
+    def wait(self):
+        yield types.SimpleNamespace(returncode=self.returncode, cached=self.cached)
+
+class CompileContextList(CompileContextBase):
+    def __init__(self, contexts):
+        self.contexts = contexts
+
+    @contextlib.contextmanager
+    def wait(self):
+        last = self.contexts.pop()
+        for ctx in self.contexts:
+            with ctx.wait() as p:
+                if p.returncode != 0:
+                    continue
+                yield p
+                return
+        with last.wait() as p:
+            yield p
+
+
+class CompileContext(CompileContextBase):
     def __init__(self, compiler, code, extra_args, mode, temp_dir, cdata=None):
         self.cdata = cdata
 
@@ -923,7 +949,7 @@ class Compiler:
     def check_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> CompileContext:
+    def has_header(self, *args, **kwargs) -> CompileContextBase:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header_symbol(self, *args, **kwargs) -> T.Tuple[bool, bool]:
@@ -944,7 +970,7 @@ class Compiler:
     def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_function(self, *args, **kwargs) -> CompileContextBase:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod

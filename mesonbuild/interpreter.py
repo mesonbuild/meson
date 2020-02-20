@@ -1005,6 +1005,14 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
 
         raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
 
+function_permitted_kwargs = set([
+    'prefix',
+    'no_builtin_args',
+    'include_directories',
+    'args',
+    'dependencies',
+])
+
 header_permitted_kwargs = set([
     'required',
     'prefix',
@@ -1042,6 +1050,7 @@ class CompilerHolder(InterpreterObject):
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
                              'has_function': self.has_function_method,
+                             'get_supported_functions': self.get_supported_functions_method,
                              'has_member': self.has_member_method,
                              'has_members': self.has_members_method,
                              'has_type': self.has_type_method,
@@ -1276,16 +1285,7 @@ class CompilerHolder(InterpreterObject):
                  'has members', members, msg, hadtxt, cached)
         return had
 
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
-    def has_function_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Has_function takes exactly one argument.')
+    def _has_functions(self, args, kwargs):
         check_stringlist(args)
         funcname = args[0]
         prefix = kwargs.get('prefix', '')
@@ -1293,9 +1293,17 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had, cached = self.compiler.has_function(funcname, prefix, self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        contexts = []
+        for funcname in args:
+            contexts.append(self.compiler.has_function(funcname, prefix, self.environment,
+                                                       extra_args=extra_args,
+                                                       dependencies=deps))
+        for funcname, ctx in zip(args, contexts):
+            yield self._has_functions_finish(ctx, funcname, msg)
+
+    def _has_functions_finish(self, ctx, funcname, msg):
+        with ctx.wait() as p:
+            had, cached = p.returncode == 0, p.cached
         cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
@@ -1303,6 +1311,21 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.red('NO')
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached)
         return had
+
+    @permittedKwargs(function_permitted_kwargs)
+    def has_function_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Has_function takes exactly one argument.')
+        return list(self._has_functions(args, kwargs))[0]
+
+    @permittedKwargs(function_permitted_kwargs)
+    def get_supported_functions_method(self, args, kwargs):
+        supported = []
+        for funcname, had in zip(args, self._has_functions(args, kwargs)):
+            if had:
+                supported.append(funcname)
+        return supported
+
 
     @permittedKwargs({
         'prefix',

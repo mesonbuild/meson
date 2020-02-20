@@ -33,6 +33,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileContextBase,
 )
 
 if T.TYPE_CHECKING:
@@ -251,7 +252,7 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
     # So we should explicitly fail at this case.
     def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
         if funcname == 'lchmod':
-            return False, False
+            return CompileContextBase(False, False)
         else:
             return super().has_function(funcname, prefix, env,
                                         extra_args=extra_args,
