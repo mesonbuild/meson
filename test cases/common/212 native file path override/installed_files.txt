@@ -1,2 +1,0 @@
-usr/custom_bindir/main?exe
-?msvc:usr/custom_bindir/main.pdb

@@ -1,8 +1,0 @@
-usr/lib/girepository-1.0/Meson-1.0.typelib
-usr/lib/girepository-1.0/MesonSub-1.0.typelib
-usr/share/gir-1.0/Meson-1.0.gir
-usr/share/gir-1.0/MesonSub-1.0.gir
-usr/lib/?libgirsubproject.so
-?cygwin:usr/lib/libgirlib.dll.a
-usr/lib/?libgirlib.so
-?cygwin:usr/lib/libgirsubproject.dll.a

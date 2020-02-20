@@ -1,2 +1,0 @@
-usr/lib/cmake/cmakeModule/cmakeModuleConfig.cmake
-usr/lib/cmake/cmakeModule/cmakeModuleConfigVersion.cmake

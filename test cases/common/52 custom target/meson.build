@@ -9,7 +9,7 @@ endif
 # Code will not be rebuilt if it changes.
 comp = '@0@/@1@'.format(meson.current_source_dir(), 'my_compiler.py')
 # Test that files() in command: works. The compiler just discards it.
-useless = files('installed_files.txt')
+useless = files('test.json')
 
 mytarget = custom_target('bindat',
 output : 'data.dat',

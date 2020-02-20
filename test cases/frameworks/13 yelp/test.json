@@ -1,0 +1,22 @@
+{
+  "installed": [
+    {"type": "file", "file": "usr/share/help/C/meson/index.page"},
+    {"type": "file", "file": "usr/share/help/C/meson/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/es/meson/index.page"},
+    {"type": "file", "file": "usr/share/help/es/meson/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/de/meson/index.page"},
+    {"type": "file", "file": "usr/share/help/de/meson/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/C/meson-symlink/index.page"},
+    {"type": "file", "file": "usr/share/help/C/meson-symlink/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/es/meson-symlink/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/es/meson-symlink/index.page"},
+    {"type": "file", "file": "usr/share/help/de/meson-symlink/index.page"},
+    {"type": "file", "file": "usr/share/help/de/meson-symlink/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/C/meson-linguas/index.page"},
+    {"type": "file", "file": "usr/share/help/C/meson-linguas/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/es/meson-linguas/media/test.txt"},
+    {"type": "file", "file": "usr/share/help/es/meson-linguas/index.page"},
+    {"type": "file", "file": "usr/share/help/de/meson-linguas/index.page"},
+    {"type": "file", "file": "usr/share/help/de/meson-linguas/media/test.txt"}
+  ]
+}

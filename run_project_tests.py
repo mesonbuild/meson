@@ -89,16 +89,62 @@ class TestResult:
     def fail(self, msg):
         self.msg = msg
 
+class InstalledFile:
+    def __init__(self, raw: T.Dict[str, str]):
+        self.path = raw['file']
+        self.typ = raw['type']
+        self.platform = raw.get('platform', None)
+
+    def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
+        p = Path(self.path)
+        canonical_compiler = compiler
+        if (compiler in ['clang-cl', 'intel-cl']) or (env.machines.host.is_windows() and compiler == 'pgi'):
+            canonical_compiler = 'msvc'
+
+        # Abort if the platform does not match
+        matches = {
+            'msvc': canonical_compiler == 'msvc',
+            'gcc': canonical_compiler != 'msvc',
+            'cygwin': env.machines.host.is_cygwin(),
+            '!cygwin': not env.machines.host.is_cygwin(),
+        }.get(self.platform or '', True)
+        if not matches:
+            return None
+
+        # Handle the different types
+        if self.typ == 'file':
+            return p
+        elif self.typ == 'exe':
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                return p.with_suffix('.exe')
+        elif self.typ == 'pdb':
+            return p.with_suffix('.pdb') if canonical_compiler == 'msvc' else None
+        elif self.typ == 'implib' or self.typ == 'implibempty':
+            if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                # only MSVC doesn't generate empty implibs
+                if self.typ == 'implibempty' and compiler == 'msvc':
+                    return None
+                return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
+            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                return p.with_suffix('.dll.a')
+            else:
+                return None
+        elif self.typ == 'expr':
+            return Path(platform_fix_name(p.as_posix(), canonical_compiler, env))
+        else:
+            raise RuntimeError('Invalid installed file type {}'.format(self.typ))
+
+        return p
+
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False, env_update: T.Optional[T.Dict[str, str]] = None):
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
         self.path = path
         self.name = name
         self.args = args
         self.skip = skip
         self.env = os.environ.copy()
-        if env_update is not None:
-            self.env.update(env_update)
+        self.installed_files = []  # type: T.List[InstalledFile]
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -160,17 +206,8 @@ def setup_commands(optbackend):
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
-def get_relative_files_list_from_dir(fromdir: Path) -> T.List[Path]:
-    return [file.relative_to(fromdir) for file in fromdir.rglob('*') if file.is_file()]
-
-def platform_fix_name(fname: str, compiler, env) -> str:
-    # canonicalize compiler
-    if (compiler in {'clang-cl', 'intel-cl'} or
-       (env.machines.host.is_windows() and compiler == 'pgi')):
-        canonical_compiler = 'msvc'
-    else:
-        canonical_compiler = compiler
-
+# TODO try to eliminate or at least reduce this function
+def platform_fix_name(fname: str, canonical_compiler: str, env: environment.EnvironmentException) -> str:
     if '?lib' in fname:
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
@@ -186,31 +223,6 @@ def platform_fix_name(fname: str, compiler, env) -> str:
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
-
-    if fname.endswith('?exe'):
-        fname = fname[:-4]
-        if env.machines.host.is_windows() or env.machines.host.is_cygwin():
-            return fname + '.exe'
-
-    if fname.startswith('?msvc:'):
-        fname = fname[6:]
-        if canonical_compiler != 'msvc':
-            return None
-
-    if fname.startswith('?gcc:'):
-        fname = fname[5:]
-        if canonical_compiler == 'msvc':
-            return None
-
-    if fname.startswith('?cygwin:'):
-        fname = fname[8:]
-        if not env.machines.host.is_cygwin():
-            return None
-
-    if fname.startswith('?!cygwin:'):
-        fname = fname[9:]
-        if env.machines.host.is_cygwin():
-            return None
 
     if fname.endswith('?so'):
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
@@ -231,48 +243,28 @@ def platform_fix_name(fname: str, compiler, env) -> str:
         else:
             return fname[:-3] + '.so'
 
-    if fname.endswith('?implib') or fname.endswith('?implibempty'):
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
-            # only MSVC doesn't generate empty implibs
-            if fname.endswith('?implibempty') and compiler == 'msvc':
-                return None
-            return re.sub(r'/(?:lib|)([^/]*?)\?implib(?:empty|)$', r'/\1.lib', fname)
-        elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
-            return re.sub(r'\?implib(?:empty|)$', r'.dll.a', fname)
-        else:
-            return None
-
     return fname
 
-def validate_install(srcdir: Path, installdir: Path, compiler, env) -> str:
-    # List of installed files
-    info_file = srcdir / 'installed_files.txt'
-    expected = {}  # type: T.Dict[Path, bool]
+def validate_install(test: TestDef, installdir: Path, compiler: str, env: environment.Environment) -> str:
+    expected_raw = [x.get_path(compiler, env) for x in test.installed_files]
+    expected = {Path(x): False for x in expected_raw if x}
+    found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     ret_msg = ''
-    # Generate list of expected files
-    if info_file.is_file():
-        with info_file.open() as f:
-            for line in f:
-                line = platform_fix_name(line.strip(), compiler, env)
-                if line:
-                    expected[Path(line)] = False
-    # Check if expected files were found
-    for fname in expected:
-        file_path = installdir / fname
-        if file_path.is_file() or file_path.is_symlink():
-            expected[fname] = True
-    for (fname, found) in expected.items():
-        if not found:
-            ret_msg += 'Expected file {} missing.\n'.format(fname)
-    # Check if there are any unexpected files
-    found = get_relative_files_list_from_dir(installdir)
+    # Mark all found files as found and detect unexpected files
     for fname in found:
         if fname not in expected:
             ret_msg += 'Extra file {} found.\n'.format(fname)
+            continue
+        expected[fname] = True
+    # Check if expected files were found
+    for p, f in expected.items():
+        if not f:
+            ret_msg += 'Expected file {} missing.\n'.format(p)
+    # List dir content on error
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
         for i in found:
-            ret_msg += '  - {}'.format(i)
+            ret_msg += '  - {}\n'.format(i)
     return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):
@@ -495,9 +487,9 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(test.path, Path(install_dir), compiler, builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), compiler, builddata.environment)
     if install_msg:
-        testresult.fail(install_msg)
+        testresult.fail('\n' + install_msg)
         return testresult
 
     return testresult
@@ -516,7 +508,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
         test_def = json.loads(test_def_file.read_text())
 
         # Handle additional environment variables
-        env = None  # type: T.Dict[str, str]
+        env = {}  # type: T.Dict[str, str]
         if 'env' in test_def:
             assert isinstance(test_def['env'], dict)
             env = test_def['env']
@@ -524,9 +516,15 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
                 val = val.replace('@ROOT@', t.path.resolve().as_posix())
                 env[key] = val
 
+        # Handle installed files
+        installed = []  # type: T.List[InstalledFile]
+        if 'installed' in test_def:
+            installed = [InstalledFile(x) for x in test_def['installed']]
+
         # Skip the matrix code and just update the existing test
         if 'matrix' not in test_def:
             t.env.update(env)
+            t.installed_files = installed
             all_tests += [t]
             continue
 
@@ -593,7 +591,10 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             name = ' '.join([x[0] for x in i if x[0] is not None])
             opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
-            all_tests += [TestDef(t.path, name, opts, skip, env_update=env)]
+            test = TestDef(t.path, name, opts, skip)
+            test.env.update(env)
+            test.installed_files = installed
+            all_tests += [test]
 
     return sorted(all_tests)
 
