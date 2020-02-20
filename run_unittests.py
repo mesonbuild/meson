@@ -5939,7 +5939,6 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, testdir)
         subdir = os.path.join(testdir, subdir_path)
-        curdir = os.getcwd()
         with chdir(subdir):
             # Can't distribute broken symlinks in the source tree because it breaks
             # the creation of zipapps. Create it dynamically and run the test by
