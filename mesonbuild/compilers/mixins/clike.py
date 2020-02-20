@@ -1077,9 +1077,6 @@ class CLikeCompiler:
     def linker_to_compiler_args(self, args):
         return args
 
-    def has_arguments(self, args, env, code, mode):
-        return self.compiles(code, env, extra_args=args, mode=mode)
-
     def has_multi_arguments(self, args, env):
         for arg in args[:]:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -1097,7 +1094,7 @@ class CLikeCompiler:
                              'other similar method can be used instead.'
                              .format(arg))
         code = 'int i;\n'
-        return self.has_arguments(args, env, code, mode='compile')
+        return self._build_wrapper(code, env, args, mode='compile')
 
     def has_multi_link_arguments(self, args, env):
         # First time we check for link flags we need to first check if we have
@@ -1106,7 +1103,7 @@ class CLikeCompiler:
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
         code = 'int main(void) { return 0; }'
-        return self.has_arguments(args, env, code, mode='link')
+        return self.compiles(code, env, extra_args=args, mode='link')
 
     @staticmethod
     def concatenate_string_literals(s):

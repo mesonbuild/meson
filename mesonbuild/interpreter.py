@@ -1613,35 +1613,42 @@ class CompilerHolder(InterpreterObject):
                                            self.compiler.language)
         return ExternalLibraryHolder(lib, self.subproject)
 
-    @permittedKwargs({})
-    def has_argument_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        if len(args) != 1:
-            raise InterpreterException('has_argument takes exactly one argument.')
-        return self.has_multi_arguments_method(args, kwargs)
-
-    @permittedKwargs({})
-    def has_multi_arguments_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        result, cached = self.compiler.has_multi_arguments(args, self.environment)
+    def has_multi_arguments_internal(self, ctx, args):
+        result, cached = self.compiler.has_arguments(ctx)
         if result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         cached = mlog.blue('(cached)') if cached else ''
-        mlog.log(
-            'Compiler for {} supports arguments {}:'.format(
-                self.compiler.get_display_language(), ' '.join(args)),
-            h, cached)
+        mlog.log('Compiler for {} supports arguments {}:'.format(
+                 self.compiler.get_display_language(), ' '.join(args)),
+                 h, cached)
         return result
+
+    @permittedKwargs({})
+    def has_argument_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        if len(args) != 1:
+            raise InterpreterException('has_argument takes exactly one argument.')
+        ctx = self.compiler.has_multi_arguments(args, self.environment)
+        return self.has_multi_arguments_internal(ctx, args)
+
+    @permittedKwargs({})
+    def has_multi_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        ctx = self.compiler.has_multi_arguments(args, self.environment)
+        return self.has_multi_arguments_internal(ctx, args)
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        supported_args = []
+        contexts = []
         for arg in args:
-            if self.has_argument_method(arg, kwargs):
+            contexts.append(self.compiler.has_multi_arguments([arg], self.environment))
+        supported_args = []
+        for ctx, arg in zip(contexts, args):
+            if self.has_multi_arguments_internal(ctx, [arg]):
                 supported_args.append(arg)
         return supported_args
 

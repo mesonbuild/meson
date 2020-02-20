@@ -966,6 +966,10 @@ class Compiler:
     def get_program_dirs(self, *args, **kwargs):
         return []
 
+    def has_arguments(self, ctx):
+        with ctx.wait() as p:
+            return p.returncode == 0, p.cached
+
     def has_multi_arguments(self, args, env) -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(

@@ -288,9 +288,8 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, ctx) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
-        ctx = self._build_wrapper(code, env, extra_args=args, mode=mode)
         with ctx.wait() as p:
             if p.returncode != 0:
                 return False, p.cached
@@ -422,7 +421,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'clang-cl'
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, ctx) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument']
         return super().has_arguments(args, env, code, mode)
