@@ -60,7 +60,7 @@ def update_git(wrap, repo_dir, options):
             git_output(['fetch'], repo_dir)
             git_output(['checkout', revision], repo_dir)
         except subprocess.CalledProcessError as e:
-            out = e.output.decode().strip()
+            out = e.output.strip()
             mlog.log('  -> Could not checkout revision', mlog.cyan(revision))
             mlog.log(mlog.red(out))
             mlog.log(mlog.red(str(e)))
@@ -70,7 +70,7 @@ def update_git(wrap, repo_dir, options):
             # We are in the same branch, pull latest commits
             git_output(['-c', 'rebase.autoStash=true', 'pull', '--rebase'], repo_dir)
         except subprocess.CalledProcessError as e:
-            out = e.output.decode().strip()
+            out = e.output.strip()
             mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
             mlog.log(mlog.red(out))
             mlog.log(mlog.red(str(e)))
@@ -83,7 +83,7 @@ def update_git(wrap, repo_dir, options):
                 git_output(['fetch'], repo_dir)
                 git_output(['-c', 'rebase.autoStash=true', 'rebase', revision], repo_dir)
             except subprocess.CalledProcessError as e:
-                out = e.output.decode().strip()
+                out = e.output.strip()
                 mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
                 mlog.log(mlog.red(out))
                 mlog.log(mlog.red(str(e)))
@@ -153,7 +153,7 @@ def checkout(wrap, repo_dir, options):
         git_output(cmd, repo_dir)
         git_show(repo_dir)
     except subprocess.CalledProcessError as e:
-        out = e.output.decode().strip()
+        out = e.output.strip()
         mlog.log('  -> ', mlog.red(out))
 
 def download(wrap, repo_dir, options):
