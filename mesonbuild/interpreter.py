@@ -1038,6 +1038,7 @@ class CompilerHolder(InterpreterObject):
                              'get_define': self.get_define_method,
                              'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
+                             'get_supported_headers': self.get_supported_headers_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
                              'has_function': self.has_function_method,
@@ -1509,24 +1510,23 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h, cached)
         return haz
 
-    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
-    @permittedKwargs(header_permitted_kwargs)
-    def has_header_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('has_header method takes exactly one argument.')
+    def _has_headers(self, args, kwargs, required=False):
         check_stringlist(args)
-        hname = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        haz, cached = self.compiler.has_header(hname, prefix, self.environment,
-                                               extra_args=extra_args, dependencies=deps)
+        contexts = []
+        for hname in args:
+            contexts.append(self.compiler.has_header(hname, prefix, self.environment,
+                                                     extra_args=extra_args, dependencies=deps))
+        for hname, ctx in zip(args, contexts):
+            yield self._has_headers_finish(ctx, hname, required, msg)
+
+    def _has_headers_finish(self, ctx, hname, required, msg):
+        with ctx.wait() as p:
+            haz, cached = p.returncode == 0, p.cached
         cached = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
@@ -1536,6 +1536,26 @@ class CompilerHolder(InterpreterObject):
             h = mlog.red('NO')
         mlog.log('Has header', mlog.bold(hname, True), msg, h, cached)
         return haz
+
+    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
+    @permittedKwargs(header_permitted_kwargs)
+    def has_header_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('has_header method takes exactly one argument.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        return list(self._has_headers(args, kwargs, required))[0]
+
+    @FeatureNew('compiler.get_supported_headers', '0.54.0')
+    @permittedKwargs(header_permitted_kwargs - {'required'})
+    def get_supported_headers_method(self, args, kwargs):
+        supported = []
+        for hname, haz in zip(args, self._has_headers(args, kwargs)):
+            if haz:
+                supported.append(hname)
+        return supported
 
     @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)

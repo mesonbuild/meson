@@ -923,7 +923,7 @@ class Compiler:
     def check_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_header(self, *args, **kwargs) -> CompileContext:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header_symbol(self, *args, **kwargs) -> T.Tuple[bool, bool]:

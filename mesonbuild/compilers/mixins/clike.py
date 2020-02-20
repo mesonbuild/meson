@@ -277,8 +277,9 @@ class CLikeCompiler:
         #else
          #include <{header}>
         #endif'''
-        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
+        return self._build_wrapper(code.format(**fargs), env, extra_args=extra_args,
+                                   dependencies=dependencies, mode='preprocess',
+                                   disable_cache=disable_cache)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
