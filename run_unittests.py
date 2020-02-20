@@ -3172,6 +3172,20 @@ int main(int argc, char **argv) {
         ]:
             self.assertRegex(out, re.escape(expected))
 
+        for wd in [
+            self.src_root,
+            self.builddir,
+            os.getcwd(),
+        ]:
+            self.new_builddir()
+            out = self.init(tdir, workdir=wd)
+            expected = os.path.join(relpath(tdir, self.src_root), 'meson.build')
+            relwd = relpath(self.src_root, wd)
+            if relwd != '.':
+                expected = os.path.join(relwd, expected)
+                expected = '\n' + expected + ':'
+            self.assertIn(expected, out)
+
     def test_error_location_path(self):
         '''Test locations in meson errors contain correct paths'''
         # this list contains errors from all the different steps in the
