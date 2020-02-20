@@ -72,9 +72,9 @@ class BlockParseException(MesonException):
         self.colno = colno
 
 class Token:
-    def __init__(self, tid, subdir, line_start, lineno, colno, bytespan, value):
+    def __init__(self, tid, filename, line_start, lineno, colno, bytespan, value):
         self.tid = tid
-        self.subdir = subdir
+        self.filename = filename
         self.line_start = line_start
         self.lineno = lineno
         self.colno = colno
@@ -132,7 +132,7 @@ class Lexer:
     def getline(self, line_start):
         return self.code[line_start:self.code.find('\n', line_start)]
 
-    def lex(self, subdir):
+    def lex(self, filename):
         line_start = 0
         lineno = 1
         loc = 0
@@ -205,9 +205,9 @@ This will become a hard error in a future Meson release.""", self.getline(line_s
                         else:
                             if match_text in self.future_keywords:
                                 mlog.warning("Identifier '{}' will become a reserved keyword in a future release. Please rename it.".format(match_text),
-                                             location=types.SimpleNamespace(subdir=subdir, lineno=lineno))
+                                             location=types.SimpleNamespace(filename=filename, lineno=lineno))
                             value = match_text
-                    yield Token(tid, subdir, curline_start, curline, col, bytespan, value)
+                    yield Token(tid, filename, curline_start, curline, col, bytespan, value)
                     break
             if not matched:
                 raise ParseException('lexer', self.getline(line_start), lineno, col)
@@ -223,7 +223,7 @@ class BaseNode:
 class ElementaryNode(BaseNode):
     def __init__(self, token):
         self.lineno = token.lineno
-        self.subdir = token.subdir
+        self.filename = token.filename
         self.colno = token.colno
         self.value = token.value
         self.bytespan = token.bytespan
@@ -263,7 +263,7 @@ class BreakNode(ElementaryNode):
 
 class ArrayNode(BaseNode):
     def __init__(self, args, lineno, colno, end_lineno, end_colno):
-        self.subdir = args.subdir
+        self.filename = args.filename
         self.lineno = lineno
         self.colno = colno
         self.end_lineno = end_lineno
@@ -272,7 +272,7 @@ class ArrayNode(BaseNode):
 
 class DictNode(BaseNode):
     def __init__(self, args, lineno, colno, end_lineno, end_colno):
-        self.subdir = args.subdir
+        self.filename = args.filename
         self.lineno = lineno
         self.colno = colno
         self.end_lineno = end_lineno
@@ -281,14 +281,14 @@ class DictNode(BaseNode):
 
 class EmptyNode(BaseNode):
     def __init__(self, lineno, colno):
-        self.subdir = ''
+        self.filename = ''
         self.lineno = lineno
         self.colno = colno
         self.value = None
 
 class OrNode(BaseNode):
     def __init__(self, left, right):
-        self.subdir = left.subdir
+        self.filename = left.filename
         self.lineno = left.lineno
         self.colno = left.colno
         self.left = left
@@ -296,7 +296,7 @@ class OrNode(BaseNode):
 
 class AndNode(BaseNode):
     def __init__(self, left, right):
-        self.subdir = left.subdir
+        self.filename = left.filename
         self.lineno = left.lineno
         self.colno = left.colno
         self.left = left
@@ -306,14 +306,14 @@ class ComparisonNode(BaseNode):
     def __init__(self, ctype, left, right):
         self.lineno = left.lineno
         self.colno = left.colno
-        self.subdir = left.subdir
+        self.filename = left.filename
         self.left = left
         self.right = right
         self.ctype = ctype
 
 class ArithmeticNode(BaseNode):
     def __init__(self, operation, left, right):
-        self.subdir = left.subdir
+        self.filename = left.filename
         self.lineno = left.lineno
         self.colno = left.colno
         self.left = left
@@ -322,14 +322,14 @@ class ArithmeticNode(BaseNode):
 
 class NotNode(BaseNode):
     def __init__(self, location_node, value):
-        self.subdir = location_node.subdir
+        self.filename = location_node.filename
         self.lineno = location_node.lineno
         self.colno = location_node.colno
         self.value = value
 
 class CodeBlockNode(BaseNode):
     def __init__(self, location_node):
-        self.subdir = location_node.subdir
+        self.filename = location_node.filename
         self.lineno = location_node.lineno
         self.colno = location_node.colno
         self.lines = []
@@ -338,13 +338,13 @@ class IndexNode(BaseNode):
     def __init__(self, iobject, index):
         self.iobject = iobject
         self.index = index
-        self.subdir = iobject.subdir
+        self.filename = iobject.filename
         self.lineno = iobject.lineno
         self.colno = iobject.colno
 
 class MethodNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, source_object, name, args):
-        self.subdir = subdir
+    def __init__(self, filename, lineno, colno, source_object, name, args):
+        self.filename = filename
         self.lineno = lineno
         self.colno = colno
         self.source_object = source_object
@@ -353,8 +353,8 @@ class MethodNode(BaseNode):
         self.args = args
 
 class FunctionNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, end_lineno, end_colno, func_name, args):
-        self.subdir = subdir
+    def __init__(self, filename, lineno, colno, end_lineno, end_colno, func_name, args):
+        self.filename = filename
         self.lineno = lineno
         self.colno = colno
         self.end_lineno = end_lineno
@@ -364,8 +364,8 @@ class FunctionNode(BaseNode):
         self.args = args
 
 class AssignmentNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, var_name, value):
-        self.subdir = subdir
+    def __init__(self, filename, lineno, colno, var_name, value):
+        self.filename = filename
         self.lineno = lineno
         self.colno = colno
         self.var_name = var_name
@@ -373,8 +373,8 @@ class AssignmentNode(BaseNode):
         self.value = value
 
 class PlusAssignmentNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, var_name, value):
-        self.subdir = subdir
+    def __init__(self, filename, lineno, colno, var_name, value):
+        self.filename = filename
         self.lineno = lineno
         self.colno = colno
         self.var_name = var_name
@@ -398,7 +398,7 @@ class IfClauseNode(BaseNode):
 
 class UMinusNode(BaseNode):
     def __init__(self, current_location, value):
-        self.subdir = current_location.subdir
+        self.filename = current_location.filename
         self.lineno = current_location.lineno
         self.colno = current_location.colno
         self.value = value
@@ -411,8 +411,8 @@ class IfNode(BaseNode):
         self.block = block
 
 class TernaryNode(BaseNode):
-    def __init__(self, subdir, lineno, colno, condition, trueblock, falseblock):
-        self.subdir = subdir
+    def __init__(self, filename, lineno, colno, condition, trueblock, falseblock):
+        self.filename = filename
         self.lineno = lineno
         self.colno = colno
         self.condition = condition
@@ -423,7 +423,7 @@ class ArgumentNode(BaseNode):
     def __init__(self, token):
         self.lineno = token.lineno
         self.colno = token.colno
-        self.subdir = token.subdir
+        self.filename = token.filename
         self.arguments = []
         self.commas = []
         self.kwargs = {}
@@ -485,9 +485,9 @@ comparison_map = {'equal': '==',
 # 9 plain token
 
 class Parser:
-    def __init__(self, code, subdir):
+    def __init__(self, code, filename):
         self.lexer = Lexer(code)
-        self.stream = self.lexer.lex(subdir)
+        self.stream = self.lexer.lex(filename)
         self.current = Token('eof', '', 0, 0, 0, (0, 0), None)
         self.getsym()
         self.in_ternary = False
@@ -531,13 +531,13 @@ class Parser:
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Plusassignment target must be an id.', self.getline(), left.lineno, left.colno)
-            return PlusAssignmentNode(left.subdir, left.lineno, left.colno, left.value, value)
+            return PlusAssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('assign'):
             value = self.e1()
             if not isinstance(left, IdNode):
                 raise ParseException('Assignment target must be an id.',
                                      self.getline(), left.lineno, left.colno)
-            return AssignmentNode(left.subdir, left.lineno, left.colno, left.value, value)
+            return AssignmentNode(left.filename, left.lineno, left.colno, left.value, value)
         elif self.accept('questionmark'):
             if self.in_ternary:
                 raise ParseException('Nested ternary operators are not allowed.',
@@ -547,7 +547,7 @@ class Parser:
             self.expect('colon')
             falseblock = self.e1()
             self.in_ternary = False
-            return TernaryNode(left.subdir, left.lineno, left.colno, left, trueblock, falseblock)
+            return TernaryNode(left.filename, left.lineno, left.colno, left, trueblock, falseblock)
         return left
 
     def e2(self):
@@ -626,7 +626,7 @@ class Parser:
             if not isinstance(left, IdNode):
                 raise ParseException('Function call must be applied to plain id',
                                      self.getline(), left.lineno, left.colno)
-            left = FunctionNode(left.subdir, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
+            left = FunctionNode(left.filename, left.lineno, left.colno, self.current.lineno, self.current.colno, left.value, args)
         go_again = True
         while go_again:
             go_again = False
@@ -718,7 +718,7 @@ class Parser:
         self.expect('lparen')
         args = self.args()
         self.expect('rparen')
-        method = MethodNode(methodname.subdir, methodname.lineno, methodname.colno, source_object, methodname.value, args)
+        method = MethodNode(methodname.filename, methodname.lineno, methodname.colno, source_object, methodname.value, args)
         if self.accept('dot'):
             return self.method_call(method)
         return method
