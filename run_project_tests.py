@@ -24,7 +24,6 @@ import sys
 import signal
 import shlex
 from io import StringIO
-from ast import literal_eval
 from enum import Enum
 import tempfile
 from pathlib import Path, PurePath
@@ -34,7 +33,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
 import json
@@ -365,20 +364,6 @@ def run_test_inprocess(testdir):
         os.chdir(old_cwd)
     return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
 
-def parse_test_args(testdir):
-    args = []
-    try:
-        with open(os.path.join(testdir, 'test_args.txt'), 'r') as f:
-            content = f.read()
-            try:
-                args = literal_eval(content)
-            except Exception:
-                raise Exception('Malformed test_args file.')
-            args = stringlistify(args)
-    except FileNotFoundError:
-        pass
-    return args
-
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
 def create_deterministic_builddir(test: TestDef) -> str:
@@ -417,7 +402,6 @@ def pass_libdir_to_test(dirname: Path):
 
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
-    test_args = parse_test_args(testdir)
     gen_start = time.time()
     # Configure in-process
     if pass_prefix_to_test(test.path):
