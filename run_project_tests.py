@@ -92,11 +92,14 @@ class TestResult:
 
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False, env_update: T.Optional[T.Dict[str, str]] = None):
         self.path = path
         self.name = name
         self.args = args
         self.skip = skip
+        self.env = os.environ.copy()
+        if env_update is not None:
+            self.env.update(env_update)
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -416,7 +419,6 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     test_args = parse_test_args(testdir)
     gen_start = time.time()
-    setup_env = None
     # Configure in-process
     if pass_prefix_to_test(test.path):
         gen_args = ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
@@ -431,15 +433,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
         gen_args.extend(['--cross-file', crossfile.as_posix()])
-    setup_env_file = os.path.join(testdir, 'setup_env.json')
-    if os.path.exists(setup_env_file):
-        setup_env = os.environ.copy()
-        with open(setup_env_file, 'r') as fp:
-            data = json.load(fp)
-            for key, val in data.items():
-                val = val.replace('@ROOT@', os.path.abspath(testdir))
-                setup_env[key] = val
-    (returncode, stdo, stde) = run_configure(gen_args, env=setup_env)
+    (returncode, stdo, stde) = run_configure(gen_args, env=test.env)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
@@ -530,14 +524,31 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
     test_defs = [TestDef(testdir / t, None, []) for t in tests]
     all_tests = []  # type: T.List[TestDef]
     for t in test_defs:
-        matrix_file = t.path / 'test_matrix.json'
-        if not matrix_file.is_file():
+        test_def_file = t.path / 'test.json'
+        if not test_def_file.is_file():
             all_tests += [t]
             continue
 
-        # Build multiple tests from matrix definition
+        test_def = json.loads(test_def_file.read_text())
+
+        # Handle additional environment variables
+        env = None  # type: T.Dict[str, str]
+        if 'env' in test_def:
+            assert isinstance(test_def['env'], dict)
+            env = test_def['env']
+            for key, val in env.items():
+                val = val.replace('@ROOT@', t.path.resolve().as_posix())
+                env[key] = val
+
+        # Skip the matrix code and just update the existing test
+        if 'matrix' not in test_def:
+            t.env.update(env)
+            all_tests += [t]
+            continue
+
+        # 'matrix; entry is present, so build multiple tests from matrix definition
         opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
-        matrix = json.loads(matrix_file.read_text())
+        matrix = test_def['matrix']
         assert "options" in matrix
         for key, val in matrix["options"].items():
             assert isinstance(val, list)
@@ -598,7 +609,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             name = ' '.join([x[0] for x in i if x[0] is not None])
             opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
-            all_tests += [TestDef(t.path, name, opts, skip)]
+            all_tests += [TestDef(t.path, name, opts, skip, env_update=env)]
 
     return sorted(all_tests)
 
