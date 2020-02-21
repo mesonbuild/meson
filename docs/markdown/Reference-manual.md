@@ -311,7 +311,8 @@ following.
 
 - `build_by_default` *(added 0.38)* causes, when set to true, to
   have this target be built by default, that is, when invoking plain
-  `ninja`; the default value is false
+  `ninja` or `ninja test` or anything that depends on the default target.
+   The default value is false
   *(changed in 0.50)* if `build_by_default` is explicitly set to false, `install`
   will no longer override it. If `build_by_default` is not set, `install` will
   still determine its default.
