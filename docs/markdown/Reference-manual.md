@@ -320,8 +320,12 @@ is the name of this target and the keyword arguments are the
 following.
 
 - `build_by_default` *(added 0.38)* causes, when set to true, to
-  have this target be built by default, that is, when invoking plain
-  `ninja`; the default value is false
+  have this target be built by default. This means it will be built when
+  `ninja` is called without any arguments or asked to build a target
+  like `ninja test` that depends on ninja's [default
+  target](https://ninja-build.org/manual.html#_default_target_statements)
+  set to `all` by meson. The same behavior applies for backends other
+  than `ninja`.  The default value is `false`.
   *(changed in 0.50)* if `build_by_default` is explicitly set to false, `install`
   will no longer override it. If `build_by_default` is not set, `install` will
   still determine its default.
