@@ -16,8 +16,8 @@ infile = 'source_code.txt'
 outfile = 'output.bin'
 
 mytarget = custom_target('targetname',
-  output : 'output.bin',
-  input : 'source_code.txt',
+  output : outfile,
+  input : infile,
   command : [comp, '@INPUT@', '@OUTPUT@'],
   install : true,
   install_dir : 'subdir')
