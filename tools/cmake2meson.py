@@ -139,6 +139,16 @@ class Parser:
         while not self.accept('eof'):
             yield(self.statement())
 
+def token_or_group(arg):
+    if isinstance(arg, Token):
+        return ' ' + arg.value
+    elif isinstance(arg, list):
+        line = ' ('
+        for a in arg:
+            line += ' ' + a.value
+        line += ' )'
+        return line
+
 class Converter:
     ignored_funcs = {'cmake_minimum_required': True,
                      'enable_testing': True,
@@ -237,13 +247,7 @@ class Converter:
             except AttributeError:  # complex if statements
                 line = t.name
                 for arg in t.args:
-                    if isinstance(arg, Token):
-                        line += ' ' + arg.value
-                    elif isinstance(arg, list):
-                        line += ' ('
-                        for a in arg:
-                            line += ' ' + a.value
-                        line += ' )'
+                    line += token_or_group(arg)
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
