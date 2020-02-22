@@ -145,7 +145,7 @@ def token_or_group(arg):
     elif isinstance(arg, list):
         line = ' ('
         for a in arg:
-            line += ' ' + a.value
+            line += ' ' + token_or_group(a)
         line += ' )'
         return line
 
