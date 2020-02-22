@@ -251,7 +251,12 @@ class Converter:
         elif t.name == 'elseif':
             preincrement = -1
             postincrement = 1
-            line = 'elif %s' % self.convert_args(t.args, False)
+            try:
+                line = 'elif %s' % self.convert_args(t.args, False)
+            except AttributeError:  # complex if statements
+                line = t.name
+                for arg in t.args:
+                    line += token_or_group(arg)
         elif t.name == 'else':
             preincrement = -1
             postincrement = 1
