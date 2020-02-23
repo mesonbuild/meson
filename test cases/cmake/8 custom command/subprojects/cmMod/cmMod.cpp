@@ -2,6 +2,7 @@
 #include "genTest.hpp"
 #include "cpyBase.hpp"
 #include "cpyNext.hpp"
+#include "cpyTest.hpp"
 #include "cmModLib.hpp"
 
 #ifndef FOO
@@ -19,5 +20,5 @@ string cmModClass::getStr() const {
 }
 
 string cmModClass::getOther() const {
-  return "Srings:\n - " + getStrCpy() + "\n - " + getStrNext();
+  return "Srings:\n - " + getStrCpy() + "\n - " + getStrNext() + "\n - " + getStrCpyTest();
 }

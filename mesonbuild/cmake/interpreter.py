@@ -26,6 +26,7 @@ from ..mesonlib import MachineChoice, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
+from pathlib import Path
 import typing as T
 import os, re
 
@@ -592,6 +593,8 @@ class ConverterCustomTarget:
     out_counter = 0  # type: int
 
     def __init__(self, target: CMakeGeneratorTarget):
+        assert(target.current_bin_dir is not None)
+        assert(target.current_src_dir is not None)
         self.name = target.name
         if not self.name:
             self.name = 'custom_tgt_{}'.format(ConverterCustomTarget.tgt_counter)
@@ -605,6 +608,8 @@ class ConverterCustomTarget:
         self.depends_raw = target.depends
         self.inputs = []
         self.depends = []
+        self.current_bin_dir = Path(target.current_bin_dir)
+        self.current_src_dir = Path(target.current_src_dir)
 
         # Convert the target name to a valid meson target name
         self.name = _sanitize_cmake_name(self.name)
@@ -612,29 +617,24 @@ class ConverterCustomTarget:
     def __repr__(self) -> str:
         return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
 
-    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, build_dir: str, all_outputs: T.List[str]) -> None:
-        # Default the working directory to the CMake build dir. This
-        # is not 100% correct, since it should be the value of
-        # ${CMAKE_CURRENT_BINARY_DIR} when add_custom_command is
-        # called. However, keeping track of this variable is not
-        # trivial and the current solution should work in most cases.
+    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, all_outputs: T.List[str]) -> None:
+        # Default the working directory to ${CMAKE_CURRENT_BINARY_DIR}
         if not self.working_dir:
-            self.working_dir = build_dir
+            self.working_dir = self.current_bin_dir.as_posix()
 
         # relative paths in the working directory are always relative
-        # to ${CMAKE_CURRENT_BINARY_DIR} (see note above)
+        # to ${CMAKE_CURRENT_BINARY_DIR}
         if not os.path.isabs(self.working_dir):
-            self.working_dir = os.path.normpath(os.path.join(build_dir, self.working_dir))
+            self.working_dir = (self.current_bin_dir / self.working_dir).as_posix()
 
         # Modify the original outputs if they are relative. Again,
         # relative paths are relative to ${CMAKE_CURRENT_BINARY_DIR}
-        # and the first disclaimer is still in effect
-        def ensure_absolute(x: str):
-            if os.path.isabs(x):
+        def ensure_absolute(x: Path) -> Path:
+            if x.is_absolute():
                 return x
             else:
-                return os.path.normpath(os.path.join(build_dir, x))
-        self.original_outputs = [ensure_absolute(x) for x in self.original_outputs]
+                return self.current_bin_dir / x
+        self.original_outputs = [ensure_absolute(Path(x)).as_posix() for x in self.original_outputs]
 
         # Ensure that there is no duplicate output in the project so
         # that meson can handle cases where the same filename is
@@ -671,23 +671,35 @@ class ConverterCustomTarget:
             self.outputs = [self.name + '.h']
 
         # Check dependencies and input files
+        root = Path(root_src_dir)
         for i in self.depends_raw:
             if not i:
                 continue
+            raw = Path(i)
             art = output_target_map.artifact(i)
             tgt = output_target_map.target(i)
             gen = output_target_map.generated(i)
 
-            if art:
+            rel_to_root = None
+            try:
+                rel_to_root = raw.relative_to(root)
+            except ValueError:
+                rel_to_root = None
+
+            # First check for existing files. Only then check for existing
+            # targets, etc. This reduces the chance of misdetecting input files
+            # as outputs from other targets.
+            # See https://github.com/mesonbuild/meson/issues/6632
+            if not raw.is_absolute() and (self.current_src_dir / raw).exists():
+                self.inputs += [(self.current_src_dir / raw).relative_to(root).as_posix()]
+            elif raw.is_absolute() and raw.exists() and rel_to_root is not None:
+                self.inputs += [rel_to_root.as_posix()]
+            elif art:
                 self.depends += [art]
             elif tgt:
                 self.depends += [tgt]
             elif gen:
                 self.inputs += [gen.get_ref(i)]
-            elif not os.path.isabs(i) and os.path.exists(os.path.join(root_src_dir, i)):
-                self.inputs += [i]
-            elif os.path.isabs(i) and os.path.exists(i) and os.path.commonpath([i, root_src_dir]) == root_src_dir:
-                self.inputs += [os.path.relpath(i, root_src_dir)]
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
@@ -767,10 +779,19 @@ class CMakeInterpreter:
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
+        preload_file = Path(__file__).resolve().parent / 'data' / 'preload.cmake'
+
+        # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
+        # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
+        preload_var = 'CMAKE_PROJECT_INCLUDE'
+        if version_compare(cmake_exe.version(), '<3.15'):
+            preload_var = 'CMAKE_TOOLCHAIN_FILE'
+
         generator = backend_generator_map[self.backend_name]
         cmake_args = []
         trace_args = self.trace.trace_args()
         cmcmp_args = ['-DCMAKE_POLICY_WARNING_{}=OFF'.format(x) for x in disable_policy_warnings]
+        pload_args = ['-D{}={}'.format(preload_var, str(preload_file))]
 
         if version_compare(cmake_exe.version(), '>=3.14'):
             self.cmake_api = CMakeAPI.FILE
@@ -802,12 +823,13 @@ class CMakeInterpreter:
             mlog.log(mlog.bold('  - build directory:         '), self.build_dir)
             mlog.log(mlog.bold('  - source directory:        '), self.src_dir)
             mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
+            mlog.log(mlog.bold('  - preload file:            '), str(preload_file))
             mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
             mlog.log()
             os.makedirs(self.build_dir, exist_ok=True)
             os_env = os.environ.copy()
             os_env['LC_ALL'] = 'C'
-            final_args = cmake_args + trace_args + cmcmp_args + [self.src_dir]
+            final_args = cmake_args + trace_args + cmcmp_args + pload_args + [self.src_dir]
 
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
             rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
@@ -913,7 +935,7 @@ class CMakeInterpreter:
         object_libs = []
         custom_target_outputs = []  # type: T.List[str]
         for i in self.custom_targets:
-            i.postprocess(self.output_target_map, self.src_dir, self.subdir, self.build_dir, custom_target_outputs)
+            i.postprocess(self.output_target_map, self.src_dir, self.subdir, custom_target_outputs)
         for i in self.targets:
             i.postprocess(self.output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
             if i.type == 'OBJECT_LIBRARY':
