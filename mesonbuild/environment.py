@@ -957,9 +957,10 @@ class Environment:
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                linker = LLVMDynamicLinker(compiler, for_machine, 'lld', '', '')
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
-                    exe_wrap, full_version=full_version)
+                    exe_wrap, full_version=full_version, linker=linker)
 
             if 'armclang' in out:
                 # The compiler version is not present in the first line of output,
