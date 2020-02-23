@@ -120,7 +120,8 @@ class NinjaRule:
         outfile.write('\n')
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames):
+    def __init__(self, all_outputs, outfilenames, rule, infilenames, implicit_outs=None):
+        self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
@@ -155,9 +156,12 @@ class NinjaBuildElement:
 
     def write(self, outfile):
         self.check_outputs()
-        line = 'build %s: %s %s' % (' '.join([ninja_quote(i, True) for i in self.outfilenames]),
-                                    self.rule,
-                                    ' '.join([ninja_quote(i, True) for i in self.infilenames]))
+        ins = ' '.join([ninja_quote(i, True) for i in self.infilenames])
+        outs = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
+        implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
+        if implicit_outs:
+            implicit_outs = ' | ' + implicit_outs
+        line = 'build {}{}: {} {}'.format(outs, implicit_outs, self.rule, ins)
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -664,7 +668,7 @@ int dummy;
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
-        desc = 'Generating {0} with a {1} command.'
+        desc = 'Generating {0} with a {1} command'
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
@@ -760,7 +764,7 @@ int dummy;
             target_name = 'meson-{}'.format(self.build_run_target_name(target))
             elem = NinjaBuildElement(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
             elem.add_item('COMMAND', cmd)
-            elem.add_item('description', 'Running external command %s.' % target.name)
+            elem.add_item('description', 'Running external command %s' % target.name)
             elem.add_item('pool', 'console')
             # Alias that runs the target defined above with the name the user specified
             self.create_target_alias(target_name)
@@ -785,7 +789,7 @@ int dummy;
     def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, [])
-        e.add_item('description', 'Generates coverage reports.')
+        e.add_item('description', 'Generates coverage reports')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage')
@@ -794,21 +798,21 @@ int dummy;
     def generate_coverage_legacy_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-xml', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--xml'])
-        e.add_item('description', 'Generates XML coverage report.')
+        e.add_item('description', 'Generates XML coverage report')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-xml')
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-text', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--text'])
-        e.add_item('description', 'Generates text coverage report.')
+        e.add_item('description', 'Generates text coverage report')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-text')
 
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage-html', 'CUSTOM_COMMAND', 'PHONY')
         self.generate_coverage_command(e, ['--html'])
-        e.add_item('description', 'Generates HTML coverage report.')
+        e.add_item('description', 'Generates HTML coverage report')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-coverage-html')
@@ -975,7 +979,7 @@ int dummy;
                 ofilename = os.path.join(self.get_target_private_dir(target), ofilebase)
                 elem = NinjaBuildElement(self.all_outputs, ofilename, "CUSTOM_COMMAND", rel_sourcefile)
                 elem.add_item('COMMAND', ['resgen', rel_sourcefile, ofilename])
-                elem.add_item('DESC', 'Compiling resource %s.' % rel_sourcefile)
+                elem.add_item('DESC', 'Compiling resource %s' % rel_sourcefile)
                 self.add_build(elem)
                 deps.append(ofilename)
                 a = '-resource:' + ofilename
@@ -1069,7 +1073,7 @@ int dummy;
     def generate_java_link(self):
         rule = 'java_LINKER'
         command = ['jar', '$ARGS']
-        description = 'Creating JAR $out.'
+        description = 'Creating JAR $out'
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def determine_dep_vapis(self, target):
@@ -1550,7 +1554,7 @@ int dummy;
             cmdlist += static_linker.get_exelist()
             cmdlist += ['$LINK_ARGS']
             cmdlist += static_linker.get_output_args('$out')
-            description = 'Linking static target $out.'
+            description = 'Linking static target $out'
             if num_pools > 0:
                 pool = 'pool = link_pool'
             else:
@@ -1572,7 +1576,7 @@ int dummy;
                 rule = '%s_LINKER%s' % (langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
                 args = ['$ARGS'] + compiler.get_linker_output_args('$out') + ['$in', '$LINK_ARGS']
-                description = 'Linking target $out.'
+                description = 'Linking target $out'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
                 else:
@@ -1584,11 +1588,13 @@ int dummy;
         args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
             ['--internal',
              'symbolextractor',
+             ninja_quote(quote_func(self.environment.get_build_dir())),
              '$in',
+             '$IMPLIB',
              '$out']
         symrule = 'SHSYM'
         symcmd = args + ['$CROSS']
-        syndesc = 'Generating symbol file $out.'
+        syndesc = 'Generating symbol file $out'
         synstat = 'restat = 1'
         self.add_rule(NinjaRule(symrule, symcmd, [], syndesc, extra=synstat))
 
@@ -1596,7 +1602,7 @@ int dummy;
         rule = self.compiler_to_rule_name(compiler)
         invoc = [ninja_quote(i) for i in compiler.get_exelist()]
         command = invoc + ['$ARGS', '$in']
-        description = 'Compiling Java object $in.'
+        description = 'Compiling Java object $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_cs_compile_rule(self, compiler):
@@ -1604,7 +1610,7 @@ int dummy;
         invoc = [ninja_quote(i) for i in compiler.get_exelist()]
         command = invoc
         args = ['$ARGS', '$in']
-        description = 'Compiling C Sharp target $out.'
+        description = 'Compiling C Sharp target $out'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=mesonlib.is_windows()))
 
@@ -1612,14 +1618,14 @@ int dummy;
         rule = self.compiler_to_rule_name(compiler)
         invoc = [ninja_quote(i) for i in compiler.get_exelist()]
         command = invoc + ['$ARGS', '$in']
-        description = 'Compiling Vala source $in.'
+        description = 'Compiling Vala source $in'
         self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
     def generate_rust_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
         invoc = [ninja_quote(i) for i in compiler.get_exelist()]
         command = invoc + ['$ARGS', '$in']
-        description = 'Compiling Rust source $in.'
+        description = 'Compiling Rust source $in'
         depfile = '$targetdep'
         depstyle = 'gcc'
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
@@ -1634,7 +1640,7 @@ int dummy;
         ]
         invoc = full_exe + [ninja_quote(i) for i in compiler.get_exelist()]
         command = invoc + ['$ARGS', '$in']
-        description = 'Compiling Swift source $in.'
+        description = 'Compiling Swift source $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_fortran_dep_hack(self, crstr):
@@ -1654,7 +1660,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rule = self.get_compiler_rule_name('llvm_ir', compiler.for_machine)
         command = [ninja_quote(i) for i in compiler.get_exelist()]
         args = ['$ARGS'] + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
-        description = 'Compiling LLVM IR object $in.'
+        description = 'Compiling LLVM IR object $in'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp()))
         self.created_llvm_ir_rule[compiler.for_machine] = True
@@ -1691,7 +1697,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         command = [ninja_quote(i) for i in compiler.get_exelist()]
         args = ['$ARGS'] + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
-        description = 'Compiling %s object $out.' % compiler.get_display_language()
+        description = 'Compiling %s object $out' % compiler.get_display_language()
         if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
             depfile = None
@@ -1718,7 +1724,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             output = compiler.get_output_args('$out')
         command = compiler.get_exelist() + ['$ARGS'] + quoted_depargs + output + compiler.get_compile_only_args() + ['$in']
-        description = 'Precompiling header $in.'
+        description = 'Precompiling header $in'
         if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
             depfile = None
@@ -1945,6 +1951,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return compiler.get_compile_debugfile_args(tfilename, pch=True)
         else:
             return compiler.get_compile_debugfile_args(objfile, pch=False)
+
+    def get_link_debugfile_name(self, linker, target, outname):
+        return linker.get_link_debugfile_name(outname)
 
     def get_link_debugfile_args(self, linker, target, outname):
         return linker.get_link_debugfile_args(outname)
@@ -2300,12 +2309,17 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.add_build(elem)
         return pch_objects
 
-    def generate_shsym(self, target):
-        target_name = target.get_filename()
-        target_file = self.get_target_filename(target)
+    def get_target_shsym_filename(self, target):
+        # Always name the .symbols file after the primary build output because it always exists
         targetdir = self.get_target_private_dir(target)
-        symname = os.path.join(targetdir, target_name + '.symbols')
+        return os.path.join(targetdir, target.get_filename() + '.symbols')
+
+    def generate_shsym(self, target):
+        target_file = self.get_target_filename(target)
+        symname = self.get_target_shsym_filename(target)
         elem = NinjaBuildElement(self.all_outputs, symname, 'SHSYM', target_file)
+        # The library we will actually link to, which is an import library on Windows (not the DLL)
+        elem.add_item('IMPLIB', self.get_target_filename_for_linking(target))
         if self.environment.is_cross_build():
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
@@ -2318,6 +2332,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return []
         return linker.get_no_stdlib_link_args()
 
+    def get_import_filename(self, target):
+        return os.path.join(self.get_target_dir(target), target.import_filename)
+
     def get_target_type_link_args(self, target, linker):
         commands = []
         if isinstance(target, build.Executable):
@@ -2328,7 +2345,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.gen_export_dynamic_link_args(self.environment)
             # If implib, and that's significant on this platform (i.e. Windows using either GCC or Visual Studio)
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.get_import_filename(target))
             if target.pie:
                 commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
@@ -2349,7 +2366,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.gen_vs_module_defs_args(target.vs_module_defs.rel_to_builddir(self.build_to_src))
             # This is only visited when building for Windows using either GCC or Visual Studio
             if target.import_filename:
-                commands += linker.gen_import_library_args(os.path.join(self.get_target_dir(target), target.import_filename))
+                commands += linker.gen_import_library_args(self.get_import_filename(target))
         elif isinstance(target, build.StaticLibrary):
             commands += linker.get_std_link_args()
         else:
@@ -2448,6 +2465,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
+        implicit_outs = []
         if isinstance(target, build.StaticLibrary):
             linker_base = 'STATIC'
         else:
@@ -2483,6 +2501,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add /DEBUG and the pdb filename when using MSVC
         if self.get_option_for_target('debug', target):
             commands += self.get_link_debugfile_args(linker, target, outname)
+            debugfile = self.get_link_debugfile_name(linker, target, outname)
+            if debugfile is not None:
+                implicit_outs += [debugfile]
         # Add link args specific to this BuildTarget type, such as soname args,
         # PIC, import library generation, etc.
         commands += self.get_target_type_link_args(target, linker)
@@ -2571,14 +2592,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list)
+        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
         return elem
 
     def get_dependency_filename(self, t):
         if isinstance(t, build.SharedLibrary):
-            return os.path.join(self.get_target_private_dir(t), t.get_filename() + '.symbols')
+            return self.get_target_shsym_filename(t)
         elif isinstance(t, mesonlib.File):
             if t.is_built:
                 return t.relative_name()
@@ -2607,7 +2628,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         d = CleanTrees(self.environment.get_build_dir(), trees)
         d_file = os.path.join(self.environment.get_scratch_dir(), 'cleantrees.dat')
         e.add_item('COMMAND', self.environment.get_build_command() + ['--internal', 'cleantrees', d_file])
-        e.add_item('description', 'Cleaning custom target directories.')
+        e.add_item('description', 'Cleaning custom target directories')
         self.add_build(e)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-ctlist')
@@ -2621,7 +2642,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
         gcno_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcno'])
-        gcno_elem.add_item('description', 'Deleting gcno files.')
+        gcno_elem.add_item('description', 'Deleting gcno files')
         self.add_build(gcno_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcno')
@@ -2630,7 +2651,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         script_root = self.environment.get_script_dir()
         clean_script = os.path.join(script_root, 'delwithsuffix.py')
         gcda_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcda'])
-        gcda_elem.add_item('description', 'Deleting gcda files.')
+        gcda_elem.add_item('description', 'Deleting gcda files')
         self.add_build(gcda_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcda')
@@ -2741,7 +2762,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
-        elem.add_item('description', 'Cleaning.')
+        elem.add_item('description', 'Cleaning')
         # Alias that runs the above-defined meson-clean target
         self.create_target_alias('meson-clean')
 

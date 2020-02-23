@@ -809,6 +809,7 @@ class InternalTests(unittest.TestCase):
             env.machines.host.system = 'windows'
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
+    @skipIfNoPkgconfig
     def test_pkgconfig_parse_libs(self):
         '''
         Unit test for parsing of pkg-config output to search for libraries
@@ -1700,20 +1701,43 @@ class BasePlatformTests(unittest.TestCase):
         path_basename = PurePath(path).parts[-1]
         self.assertEqual(PurePath(path_basename), PurePath(basename), msg)
 
+    def assertReconfiguredBuildIsNoop(self):
+        'Assert that we reconfigured and then there was nothing to do'
+        ret = self.build()
+        self.assertIn('The Meson build system', ret)
+        if self.backend is Backend.ninja:
+            for line in ret.split('\n'):
+                if line in self.no_rebuild_stdout:
+                    break
+            else:
+                raise AssertionError('build was reconfigured, but was not no-op')
+        elif self.backend is Backend.vs:
+            # Ensure that some target said that no rebuild was done
+            # XXX: Note CustomBuild did indeed rebuild, because of the regen checker!
+            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
+            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            # Ensure that no targets were built
+            self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
             self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
-            # Ensure that some target said that no rebuild was done
+            # Ensure that some target of each type said that no rebuild was done
+            # We always have at least one CustomBuild target for the regen checker
             self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
             self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
             self.assertIn('Link:\n  All outputs are up-to-date.', ret)
             # Ensure that no targets were built
-            clre = re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE)
-            linkre = re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE)
-            self.assertNotRegex(ret, clre)
-            self.assertNotRegex(ret, linkre)
+            self.assertNotRegex(ret, re.compile('CustomBuild:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
+            self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
@@ -1727,6 +1751,33 @@ class BasePlatformTests(unittest.TestCase):
             # Ensure that this target was rebuilt
             linkre = re.compile('Link:\n [^\n]*link[^\n]*' + target, flags=re.IGNORECASE)
             self.assertRegex(ret, linkre)
+        elif self.backend is Backend.xcode:
+            raise unittest.SkipTest('Please help us fix this test on the xcode backend')
+        else:
+            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+
+    @staticmethod
+    def get_target_from_filename(filename):
+        base = os.path.splitext(filename)[0]
+        if base.startswith(('lib', 'cyg')):
+            return base[3:]
+        return base
+
+    def assertBuildRelinkedOnlyTarget(self, target):
+        ret = self.build()
+        if self.backend is Backend.ninja:
+            linked_targets = []
+            for line in ret.split('\n'):
+                if 'Linking target' in line:
+                    fname = line.rsplit('target ')[-1]
+                    linked_targets.append(self.get_target_from_filename(fname))
+            self.assertEqual(linked_targets, [target])
+        elif self.backend is Backend.vs:
+            # Ensure that this target was rebuilt
+            linkre = re.compile(r'Link:\n  [^\n]*link.exe[^\n]*/OUT:".\\([^"]*)"', flags=re.IGNORECASE)
+            matches = linkre.findall(ret)
+            self.assertEqual(len(matches), 1, msg=matches)
+            self.assertEqual(self.get_target_from_filename(matches[0]), target)
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
@@ -2535,6 +2586,23 @@ class AllPlatformTests(BasePlatformTests):
         meson_exe_dat2 = glob(os.path.join(self.privatedir, 'meson_exe*.dat'))
         self.assertListEqual(meson_exe_dat1, meson_exe_dat2)
 
+    def test_noop_changes_cause_no_rebuilds(self):
+        '''
+        Test that no-op changes to the build files such as mtime do not cause
+        a rebuild of anything.
+        '''
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir)
+        self.build()
+        # Immediately rebuilding should not do anything
+        self.assertBuildIsNoop()
+        # Changing mtime of meson.build should not rebuild anything
+        self.utime(os.path.join(testdir, 'meson.build'))
+        self.assertReconfiguredBuildIsNoop()
+        # Changing mtime of libefile.c should rebuild the library, but not relink the executable
+        self.utime(os.path.join(testdir, 'libfile.c'))
+        self.assertBuildRelinkedOnlyTarget('mylib')
+
     def test_source_changes_cause_rebuild(self):
         '''
         Test that changes to sources and headers cause rebuilds, but not
@@ -2548,7 +2616,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertBuildIsNoop()
         # Changing mtime of header.h should rebuild everything
         self.utime(os.path.join(testdir, 'header.h'))
-        self.assertRebuiltTarget('prog')
+        self.assertBuildRelinkedOnlyTarget('prog')
 
     def test_custom_target_changes_cause_rebuild(self):
         '''
@@ -2564,7 +2632,7 @@ class AllPlatformTests(BasePlatformTests):
         # Changing mtime of these should rebuild everything
         for f in ('input.def', 'makeheader.py', 'somefile.txt'):
             self.utime(os.path.join(testdir, f))
-            self.assertRebuiltTarget('prog')
+            self.assertBuildRelinkedOnlyTarget('prog')
 
     def test_source_generator_program_cause_rebuild(self):
         '''

@@ -45,17 +45,15 @@ if 'CI' in os.environ:
     NINJA_CMD = 'ninja'
 else:
     # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
-    # is fixed, else require 1.6 for -w dupbuild=err
-    for v in ('1.9', '1.6'):
-        NINJA_CMD = detect_ninja(v)
-        if NINJA_CMD is not None:
-            if mesonlib.version_compare(v, '>=1.9'):
-                NINJA_1_9_OR_NEWER = True
-            else:
-                mlog.warning('Found ninja <1.9, tests will run slower', once=True)
-            break
+    # is fixed
+    NINJA_CMD = detect_ninja('1.9')
+    if NINJA_CMD is not None:
+        NINJA_1_9_OR_NEWER = True
+    else:
+        mlog.warning('Found ninja <1.9, tests will run slower', once=True)
+        NINJA_CMD = detect_ninja()
 if NINJA_CMD is None:
-    raise RuntimeError('Could not find Ninja v1.6 or newer')
+    raise RuntimeError('Could not find Ninja v1.7 or newer')
 
 def guess_backend(backend, msbuild_exe: str):
     # Auto-detect backend if unspecified

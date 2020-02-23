@@ -113,6 +113,7 @@ def create_lib_d_sample(project_name, version):
     lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
     uppercase_token = lowercase_token.upper()
     function_name = lowercase_token[0:3] + '_func'
+    test_exe_name = lowercase_token + '_test'
     lib_m_name = lowercase_token
     lib_d_name = lowercase_token + '.d'
     test_d_name = lowercase_token + '_test.d'
@@ -123,7 +124,7 @@ def create_lib_d_sample(project_name, version):
               'module_file': lib_m_name,
               'source_file': lib_d_name,
               'test_source_file': test_d_name,
-              'test_exe_name': lowercase_token,
+              'test_exe_name': test_exe_name,
               'project_name': project_name,
               'lib_name': lowercase_token,
               'test_name': lowercase_token,
