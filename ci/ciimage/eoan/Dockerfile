@@ -24,7 +24,7 @@ RUN sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list" \
 && eatmydata apt-get -y install libgcrypt20-dev \
 && eatmydata apt-get -y install libgpgme-dev \
 && eatmydata apt-get -y install libhdf5-dev \
-&& eatmydata apt-get -y install libboost-python-dev \
+&& eatmydata apt-get -y install libboost-python-dev libboost-regex-dev \
 && eatmydata apt-get -y install libblocksruntime-dev \
 && eatmydata apt-get -y install libperl-dev \
 && eatmydata apt-get -y install liblapack-dev libscalapack-mpi-dev \

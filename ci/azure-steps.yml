@@ -49,8 +49,8 @@ steps:
 
      # install boost (except for clang-cl)
      if ($env:arch -eq 'x86') { $boost_bitness = '32' } else { $boost_bitness = '64' }
-     if ($env:compiler -eq 'msvc2017') {
-       $boost_version = '1.64.0' ; $boost_abi_tag = '14.1'
+     if ($env:compiler -eq 'msvc2017' -Or $env:compiler -eq 'msvc2019' -Or $env:compiler -eq 'clang-cl') {
+       $boost_version = '1.72.0' ; $boost_abi_tag = '14.1'
      }
      if ($boost_version) {
        $boost_filename = $boost_version.Replace('.', '_')

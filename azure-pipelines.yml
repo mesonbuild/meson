@@ -105,7 +105,10 @@ jobs:
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
+        set SKIP_STATIC_BOOST=1
         env.exe -- python3 run_tests.py --backend=ninja
+      # Cygwin's static boost installation is broken (some static library
+      # variants such as boost_thread are not present)
       displayName: Run Tests
     - task: CopyFiles@2
       condition: not(canceled())
