@@ -44,6 +44,7 @@ jobs:
     - run: python run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
       env:
         CI: "1"
+        OLD_OS_CI: "1"
         CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
         CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
         FFLAGS: "-fimplicit-none"

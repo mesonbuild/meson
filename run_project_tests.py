@@ -109,7 +109,7 @@ class AutoDeletedDir:
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
-under_xenial_ci = under_ci and ('XENIAL' in os.environ)
+under_old_os_ci = 'OLD_OS_CI' in os.environ
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
@@ -601,7 +601,7 @@ def have_java():
 
 def skippable(suite, test):
     # Everything is optional when not running on CI, or on Ubuntu 16.04 CI
-    if not under_ci or under_xenial_ci:
+    if not under_ci or under_old_os_ci:
         return True
 
     if not suite.endswith('frameworks'):

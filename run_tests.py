@@ -212,7 +212,7 @@ def get_backend_commands(backend, debug=False):
                     NINJA_1_9_OR_NEWER = True
                 else:
                     mlog.warning('Found ninja <1.9, tests will run slower', once=True)
-                    if 'CI' in os.environ:
+                    if 'CI' in os.environ and 'OLD_OS_CI' not in os.environ:
                         raise RuntimeError('Require ninja >= 1.9 when running on Meson CI')
                 break
         cmd = [ninja_cmd, '-w', 'dupbuild=err', '-d', 'explain']

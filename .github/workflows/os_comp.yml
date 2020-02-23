@@ -24,7 +24,7 @@ jobs:
       run: python3 run_tests.py
       env:
         CI: '1'
-        XENIAL: '1'
+        OLD_OS_CI: '1'
 
   arch:
     name: Arch Linux
