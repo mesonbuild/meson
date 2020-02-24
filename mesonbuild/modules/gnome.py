@@ -736,15 +736,30 @@ class GnomeModule(ExtensionModule):
         if kwargs.get('install_dir'):
             raise MesonException('install_dir is not supported with generate_gir(), see "install_dir_gir" and "install_dir_typelib"')
 
-        giscanner = self.interpreter.find_program_impl('g-ir-scanner')
-        gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
-
         girtargets = [self._unwrap_gir_target(arg, state) for arg in args]
 
         if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
         self.gir_dep, pkgargs = self._get_gir_dep(state)
+        # find_program is needed in the case g-i is built as subproject.
+        # In that case it uses override_find_program so the gobject utilities
+        # can be used from the build dir instead of from the system.
+        # However, GObject-introspection provides the appropriate paths to
+        # these utilities via pkg-config, so it would be best to use the
+        # results from pkg-config when possible.
+        gi_util_dirs_check = [state.environment.get_build_dir(), state.environment.get_source_dir()]
+        giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+        if giscanner.found():
+            giscanner_path = giscanner.get_command()[0]
+            if not any(x in giscanner_path for x in gi_util_dirs_check):
+                giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
+
+        gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
+        if gicompiler.found():
+            gicompiler_path = gicompiler.get_command()[0]
+            if not any(x in gicompiler_path for x in gi_util_dirs_check):
+                gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
 
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
