@@ -1858,7 +1858,7 @@ class BasePlatformTests(unittest.TestCase):
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
-            self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
+            self.assertIn(ret.split('\n')[-2].rstrip(), self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
             # Ensure that some target of each type said that no rebuild was done
             # We always have at least one CustomBuild target for the regen checker
