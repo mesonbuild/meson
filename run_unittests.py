@@ -1563,11 +1563,11 @@ class BasePlatformTests(unittest.TestCase):
         # Misc stuff
         self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
-            self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+            self.no_rebuild_stdout = {'ninja: no work to do.', 'samu: nothing to do'}
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = ['UNKNOWN BACKEND {!r}'.format(self.backend.name)]
+            self.no_rebuild_stdout = {'UNKNOWN BACKEND {!r}'.format(self.backend.name)}
 
         self.builddirs = []
         self.new_builddir()
