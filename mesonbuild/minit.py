@@ -39,9 +39,8 @@ we currently have one meson template at this time.
 '''
 from mesonbuild.templates.mesontemplates import create_meson_build
 
-FORTRAN_SUFFIXES = ('.f', '.for', '.F', '.f90', '.F90')
-LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'}
-LANG_SUFFIXES.add(FORTRAN_SUFFIXES)
+FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
+LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'} | FORTRAN_SUFFIXES
 LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp'}
 
 DEFAULT_PROJECT = 'executable'
