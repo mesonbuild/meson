@@ -22,7 +22,7 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata
+from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -62,6 +62,8 @@ class CommandLineParser:
                          help_msg='Print help of a subcommand')
         self.add_command('rewrite', lambda parser: rewriter.add_arguments(parser, self.formatter), rewriter.run,
                          help_msg='Modify the project definition')
+        self.add_command('compile', mcompile.add_arguments, mcompile.run,
+                         help_msg='Build the project')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,
