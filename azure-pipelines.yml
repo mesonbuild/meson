@@ -18,8 +18,8 @@ jobs:
 
   strategy:
     matrix:
-        vc2017x64ninja:
-          arch: x64
+        vc2017x86ninja:
+          arch: x86
           compiler: msvc2017
           backend: ninja
         vc2017x64vs:
