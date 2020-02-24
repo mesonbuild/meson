@@ -4412,6 +4412,21 @@ recommended as it is not supported on some platforms''')
         else:
             self.assertEqual(expected_lines, out_lines)
 
+    def test_meson_compile(self):
+        """Test the meson compile command."""
+        prog = 'trivialprog'
+        if is_windows():
+            prog = '{}.exe'.format(prog)
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        self._run([*self.meson_command, 'compile', '-C', self.builddir])
+        # If compile worked then we should get a program
+        self.assertPathExists(os.path.join(self.builddir, prog))
+
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
+        self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+
 
 class FailureTests(BasePlatformTests):
     '''
