@@ -338,6 +338,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'x86_64'
     elif trial in {'sun4u', 'sun4v'}:
         trial = 'sparc64'
+    elif trial in {'mipsel', 'mips64el'}:
+        trial = trial.rstrip('el')
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
@@ -369,6 +371,7 @@ def detect_cpu(compilers: CompilersDict):
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
+
     if trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
     if trial == 'x86_64':
@@ -384,6 +387,9 @@ def detect_cpu(compilers: CompilersDict):
     elif trial == 'e2k':
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
+    elif trial.startswith('mips'):
+        trial = trial.rstrip('el')
+
     # Add more quirks here as bugs are reported. Keep in sync with
     # detect_cpu_family() above.
     return trial
