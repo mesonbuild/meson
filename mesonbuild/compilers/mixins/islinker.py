@@ -130,3 +130,6 @@ class BasicLinkerIsCompilerMixin:
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return []
+
+    def get_link_debugfile_name(self, target: str) -> str:
+        return ''
