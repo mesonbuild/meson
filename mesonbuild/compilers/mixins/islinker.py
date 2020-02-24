@@ -133,3 +133,9 @@ class BasicLinkerIsCompilerMixin:
 
     def get_link_debugfile_name(self, target: str) -> str:
         return ''
+
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
+        return []
+
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        return []
