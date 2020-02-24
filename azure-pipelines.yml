@@ -12,38 +12,14 @@ variables:
 
 jobs:
 
-- job: vs2015
-  pool:
-    vmImage: vs2015-win2012r2
-
-  strategy:
-    matrix:
-        vc2015x86ninja:
-          arch: x86
-          compiler: msvc2015
-          backend: ninja
-        vc2015x86vs:
-          arch: x86
-          compiler: msvc2015
-          backend: vs2015
-
-  steps:
-  - powershell: 'Invoke-WebRequest https://www.python.org/ftp/python/3.7.4/python-3.7.4.exe -OutFile c:\py3-setup.exe'
-  - script: |
-      c:\py3-setup.exe /quiet PrependPath=1 InstallAllUsers=1 Include_doc=0 Include_dev=0 Include_debug=0 TargetDir=c:\Python3
-  - script: |
-      @echo ##vso[task.prependpath]C:\Python3
-      @echo ##vso[task.prependpath]C:\Python3\Scripts
-  - template: ci/azure-steps.yml
-
 - job: vs2017
   pool:
     vmImage: VS2017-Win2016
 
   strategy:
     matrix:
-        vc2017x64ninja:
-          arch: x64
+        vc2017x86ninja:
+          arch: x86
           compiler: msvc2017
           backend: ninja
         vc2017x64vs:
