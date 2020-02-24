@@ -20,6 +20,7 @@ import typing as T
 from ...mesonlib import MesonException
 
 class EmscriptenMixin:
+
     def get_option_link_args(self, options):
         return []
 

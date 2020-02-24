@@ -201,7 +201,7 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
     pass
 
 
-class EmscriptenCPPCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
+class EmscriptenCPPCompiler(BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin, EmscriptenMixin, ClangCPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:

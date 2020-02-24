@@ -133,7 +133,7 @@ class AppleClangCCompiler(ClangCCompiler):
     _C18_VERSION = '>=11.0.0'
 
 
-class EmscriptenCCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
+class EmscriptenCCompiler(BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin, EmscriptenMixin, ClangCCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:
