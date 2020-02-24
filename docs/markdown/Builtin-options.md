@@ -134,20 +134,22 @@ The following options are available. Note that both the options themselves and
 the possible values they can take will depend on the target platform or
 compiler being used:
 
-| Option       | Default value | Possible values                          | Description |
-| ------       | ------------- | ---------------                          | ----------- |
-| c_args       |               | free-form comma-separated list           | C compile arguments to use |
-| c_link_args  |               | free-form comma-separated list           | C link arguments to use |
-| c_std        | none          | none, c89, c99, c11, c17, c18, gnu89, gnu99, gnu11, gnu17, gnu18 | C language standard to use |
-| c_winlibs    | see below     | free-form comma-separated list           | Standard Windows libs to link against |
-| cpp_args     |               | free-form comma-separated list           | C++ compile arguments to use |
-| cpp_link_args|               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std      | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
-| cpp_debugstl | false         | true, false                              | C++ STL debug mode |
-| cpp_eh       | default       | none, default, a, s, sc                  | C++ exception handling type |
-| cpp_rtti     | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
-| cpp_winlibs  | see below     | free-form comma-separated list           | Standard Windows libs to link against |
-| fortran_std  | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
+| Option           | Default value | Possible values                          | Description |
+| ------           | ------------- | ---------------                          | ----------- |
+| c_args           |               | free-form comma-separated list           | C compile arguments to use |
+| c_link_args      |               | free-form comma-separated list           | C link arguments to use |
+| c_std            | none          | none, c89, c99, c11, c17, c18, gnu89, gnu99, gnu11, gnu17, gnu18 | C language standard to use |
+| c_winlibs        | see below     | free-form comma-separated list           | Standard Windows libs to link against |
+| c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
+| cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
+| cpp_link_args    |               | free-form comma-separated list           | C++ link arguments to use |
+| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
+| cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
+| cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
+| cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |
+| cpp_thread_count | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
+| cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
+| fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
@@ -162,3 +164,7 @@ while the `cpp_eh=[value]` will result in `/EH[value]`.
 Since *0.51.0* `cpp_eh=default` will result in `/EHsc` on MSVC. When using
 gcc-style compilers, nothing is passed (allowing exceptions to work), while
 `cpp_eh=none` passes `-fno-exceptions`.
+
+Since *0.54.0* The `<lang>_thread_count` option can be used to control the
+value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other c/c++
+compiler supports this option.
