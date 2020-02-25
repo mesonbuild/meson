@@ -963,10 +963,14 @@ class Test(InterpreterObject):
 
 class SubprojectHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, subinterpreter, subproject_dir, name):
+    def __init__(self, subinterpreter, subproject_dir, name, warnings=0, disabled_feature=None,
+                 exception=None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, subinterpreter)
         self.name = name
+        self.warnings = warnings
+        self.disabled_feature = disabled_feature
+        self.exception = exception
         self.subproject_dir = subproject_dir
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
@@ -2602,10 +2606,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname = args[0]
         return self.do_subproject(dirname, 'meson', kwargs)
 
-    def disabled_subproject(self, dirname, feature=None):
-        sub = SubprojectHolder(None, self.subproject_dir, dirname)
-        if feature:
-            sub.disabled_feature = feature
+    def disabled_subproject(self, dirname, disabled_feature=None, exception=None):
+        sub = SubprojectHolder(None, self.subproject_dir, dirname,
+                               disabled_feature=disabled_feature, exception=exception)
         self.subprojects[dirname] = sub
         return sub
 
@@ -2613,7 +2616,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(dirname, feature)
+            return self.disabled_subproject(dirname, disabled_feature=feature)
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
@@ -2654,7 +2657,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not required:
                 mlog.log(e)
                 mlog.log('Subproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)')
-                return self.disabled_subproject(dirname)
+                return self.disabled_subproject(dirname, exception=e)
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
@@ -2682,7 +2685,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
-                return self.disabled_subproject(dirname)
+                return self.disabled_subproject(dirname, exception=e)
             raise e
 
     def _do_subproject_meson(self, dirname, subdir, default_options, kwargs, ast=None, build_def_files=None):
@@ -2694,7 +2697,12 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             subi.subproject_stack = self.subproject_stack + [dirname]
             current_active = self.active_projectname
+            current_warnings_counter = mlog.log_warnings_counter
+            mlog.log_warnings_counter = 0
             subi.run()
+            subi_warnings = mlog.log_warnings_counter
+            mlog.log_warnings_counter = current_warnings_counter
+
             mlog.log('Subproject', mlog.bold(dirname), 'finished.')
 
         mlog.log()
@@ -2706,7 +2714,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         self.subprojects.update(subi.subprojects)
-        self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
+        self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname,
+                                                     warnings=subi_warnings)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files = list(set(self.build_def_files + build_def_files))
@@ -2982,11 +2991,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
             value = subp.found()
-            if not value and hasattr(subp, 'disabled_feature'):
-                value = 'Feature {!r} disabled'.format(subp.disabled_feature)
+            if subp.disabled_feature:
+                value = [value, 'Feature {!r} disabled'.format(subp.disabled_feature)]
+            elif subp.exception:
+                value = [value, str(subp.exception)]
+            elif subp.warnings > 0:
+                value = [value, '{} warnings'.format(subp.warnings)]
             all_subprojects[name] = value
         if all_subprojects:
-            self.summary_impl('Subprojects', all_subprojects, {'bool_yn': True})
+            self.summary_impl('Subprojects', all_subprojects,
+                              {'bool_yn': True,
+                               'list_sep': ' ',
+                              })
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)

@@ -4355,7 +4355,7 @@ recommended as it is not supported on some platforms''')
 
               Subprojects
                             sub: YES
-                           sub2: NO
+                           sub2: NO Problem encountered: This subproject failed
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
