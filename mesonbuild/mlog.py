@@ -227,7 +227,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     from .environment import build_filename
     from .mesonlib import MesonException
 
-    # The tping requirements here are non-obvious. Lists are invariant,
+    # The typing requirements here are non-obvious. Lists are invariant,
     # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
     if severity == 'warning':
         label = [yellow('WARNING:')]  # type: T.List[T.Union[str, AnsiDecorator]]
@@ -257,14 +257,14 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     if log_fatal_warnings:
         raise MesonException("Fatal warnings enabled, aborting")
 
-def error(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('error', *args, **kwargs, is_error=True, once=once)
+def error(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('error', *args, **kwargs, is_error=True)
 
-def warning(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('warning', *args, **kwargs, is_error=True, once=once)
+def warning(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('warning', *args, **kwargs, is_error=True)
 
-def deprecation(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('deprecation', *args, **kwargs, is_error=True, once=once)
+def deprecation(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('deprecation', *args, **kwargs, is_error=True)
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""
@@ -287,9 +287,9 @@ def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
     log()
     args = []  # type: T.List[T.Union[AnsiDecorator, str]]
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-        # Mypy can't figure this out, and it's pretty easy to vidual inspect
+        # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
         # that this is correct, so we'll just ignore it.
-        path = get_relative_path(Path(e.file), Path(os.getcwd()))
+        path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
         args.append('%s:%d:%d:' % (path, e.lineno, e.colno))  # type: ignore
     if prefix:
         args.append(prefix)
