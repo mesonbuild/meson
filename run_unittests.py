@@ -4347,10 +4347,11 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
-                     empty list: 
+                     empty list:
                        A number: 1
                             yes: YES
                              no: NO
+                      coma list: a, b, c
 
               Subprojects
                             sub: YES

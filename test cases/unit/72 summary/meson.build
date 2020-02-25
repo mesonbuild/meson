@@ -12,3 +12,4 @@ summary({'Some boolean': false,
 summary('A number', 1, section: 'Configuration')
 summary('yes', true, bool_yn : true, section: 'Configuration')
 summary('no', false, bool_yn : true, section: 'Configuration')
+summary('coma list', ['a', 'b', 'c'], list_sep: ', ', section: 'Configuration')

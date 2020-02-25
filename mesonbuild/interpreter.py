@@ -1791,6 +1791,9 @@ class Summary:
         bool_yn = kwargs.get('bool_yn', False)
         if not isinstance(bool_yn, bool):
             raise InterpreterException('bool_yn keyword argument must be boolean')
+        list_sep = kwargs.get('list_sep')
+        if list_sep is not None and not isinstance(list_sep, str):
+            raise InterpreterException('list_sep keyword argument must be string')
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException('Summary section {!r} already have key {!r}'.format(section, k))
@@ -1803,9 +1806,7 @@ class Summary:
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 else:
                     formatted_values.append(i)
-            if not formatted_values:
-                formatted_values = ['']
-            self.sections[section][k] = formatted_values
+            self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
 
     def dump(self):
@@ -1815,11 +1816,14 @@ class Summary:
             if section:
                 mlog.log(' ', mlog.bold(section))
             for k, v in values.items():
+                v, list_sep = v
                 indent = self.max_key_len - len(k) + 3
-                mlog.log(' ' * indent, k + ':', v[0])
-                indent = self.max_key_len + 5
-                for i in v[1:]:
-                    mlog.log(' ' * indent, i)
+                end = ' ' if v else ''
+                mlog.log(' ' * indent, k + ':', end=end)
+                if list_sep is None:
+                    indent = self.max_key_len + 6
+                    list_sep = '\n' + ' ' * indent
+                mlog.log(*v, sep=list_sep)
         mlog.log('')  # newline
 
 
@@ -2949,7 +2953,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
-    @permittedKwargs({'section', 'bool_yn'})
+    @FeatureNewKwargs('summary', '0.54.0', ['list_sep'])
+    @permittedKwargs({'section', 'bool_yn', 'list_sep'})
     @FeatureNew('summary', '0.53.0')
     def func_summary(self, node, args, kwargs):
         if len(args) == 1:
