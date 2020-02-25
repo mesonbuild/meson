@@ -693,6 +693,35 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         return []
 
 
+class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Emscripten's wasm-ld."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__('ld.wasm', *args, **kwargs)
+
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        args = ['-s', 'USE_PTHREADS=1']
+        count = env.coredata.compiler_options[self.for_machine]['{}_thread_count'.format(self.language)].value  # type: int
+        if count:
+            args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
+        return args
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
+
+    def no_undefined_args(self) -> T.List[str]:
+        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=1']
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
+                        is_shared_module: bool) -> T.List[str]:
+        raise mesonlib.MesonException('{} does not support shared libraries.'.format(self.id))
+
+    def get_asneeded_args(self) -> T.List[str]:
+        return []
+
+
 class CcrxDynamicLinker(DynamicLinker):
 
     """Linker for Renesis CCrx compiler."""

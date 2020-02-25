@@ -37,10 +37,11 @@ These are return values of the `get_linker_id` method in a compiler object.
 
 | Value      | Linker family                               |
 | -----      | ---------------                             |
-| ld.bfd     | The GNU linker                              | 
+| ld.bfd     | The GNU linker                              |
 | ld.gold    | The GNU gold linker                         |
 | ld.lld     | The LLVM linker, with the GNU interface     |
 | ld.solaris | Solaris and illumos                         |
+| ld.wasm    | emscripten's wasm-ld linker                 |
 | ld64       | Apple ld64                                  |
 | link       | MSVC linker                                 |
 | lld-link   | The LLVM linker, with the MSVC interface    |
