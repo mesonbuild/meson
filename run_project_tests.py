@@ -145,6 +145,7 @@ class TestDef:
         self.skip = skip
         self.env = os.environ.copy()
         self.installed_files = []  # type: T.List[InstalledFile]
+        self.do_not_set_opts = []      # type: T.List[str]
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -378,29 +379,14 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def pass_prefix_to_test(dirname: Path):
-    if '39 prefix absolute' in dirname.name:
-        return False
-    return True
-
-def pass_libdir_to_test(dirname: Path):
-    if '8 install' in dirname.name:
-        return False
-    if '38 libdir must be inside prefix' in dirname.name:
-        return False
-    if '195 install_mode' in dirname.name:
-        return False
-    return True
-
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     gen_start = time.time()
     # Configure in-process
-    if pass_prefix_to_test(test.path):
-        gen_args = ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
-    else:
-        gen_args = []
-    if pass_libdir_to_test(test.path):
+    gen_args = []  # type: T.List[str]
+    if 'prefix' not in test.do_not_set_opts:
+        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+    if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
     nativefile = test.path / 'nativefile.ini'
@@ -521,10 +507,14 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
         if 'installed' in test_def:
             installed = [InstalledFile(x) for x in test_def['installed']]
 
+        # Handle the do_not_set_opts list
+        do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
+
         # Skip the matrix code and just update the existing test
         if 'matrix' not in test_def:
             t.env.update(env)
             t.installed_files = installed
+            t.do_not_set_opts = do_not_set_opts
             all_tests += [t]
             continue
 
@@ -594,6 +584,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             test = TestDef(t.path, name, opts, skip)
             test.env.update(env)
             test.installed_files = installed
+            test.do_not_set_opts = do_not_set_opts
             all_tests += [test]
 
     return sorted(all_tests)
