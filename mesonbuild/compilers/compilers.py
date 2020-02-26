@@ -283,10 +283,6 @@ def get_base_compile_args(options, compiler):
     except KeyError:
         pass
     try:
-        args += compiler.sanitizer_compile_args(options['b_sanitize'].value)
-    except KeyError:
-        pass
-    try:
         pgo_val = options['b_pgo'].value
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
@@ -318,6 +314,14 @@ def get_base_compile_args(options, compiler):
             pass
     except KeyError:
         pass
+
+    # For clang-cl, which currently (2019.08.27) doesn't support linking
+    # sanitizers with debug CRTs.
+    if {'/MDd', '/MTd'}.isdisjoint(set(args)):
+        try:
+            args += compiler.sanitizer_compile_args(options['b_sanitize'].value)
+        except KeyError:
+            pass
     return args
 
 def get_base_link_args(options, linker, is_shared_module):

@@ -24,6 +24,7 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
+from .misc import SanitizerMixin
 
 if T.TYPE_CHECKING:
     from ...coredata import UserOption  # noqa: F401
@@ -129,7 +130,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[st
     return paths
 
 
-class GnuLikeCompiler(metaclass=abc.ABCMeta):
+class GnuLikeCompiler(SanitizerMixin, metaclass=abc.ABCMeta):
     """
     GnuLikeCompiler is a common interface to all compilers implementing
     the GNU-style commandline interface. This includes GCC, Clang
@@ -140,7 +141,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     LINKER_PREFIX = '-Wl,'
 
     def __init__(self):
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.append('b_lundef')
@@ -148,6 +149,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
             self.base_options.append('b_asneeded')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
+        super().__init__()
 
     def get_pic_args(self) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
@@ -279,9 +281,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         return ['-flto']
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
-        if value == 'none':
-            return []
-        args = ['-fsanitize=' + value]
+        args = super().sanitizer_compile_args(value)
         if 'address' in value:  # for -fsanitize=address,undefined
             args.append('-fno-omit-frame-pointer')
         return args

@@ -38,6 +38,7 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
+from .mixins.misc import SanitizerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -545,12 +546,13 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
             del args[i]
         return args
 
-class ClangClCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
+class ClangClCPPCompiler(SanitizerMixin, CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixin, ClangClCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrap, **kwargs)
         ClangClCompiler.__init__(self, target)
+        SanitizerMixin.__init__(self)
         self.id = 'clang-cl'
 
     def get_options(self):

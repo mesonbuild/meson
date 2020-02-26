@@ -4317,9 +4317,8 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '66 alias target')
         self.init(testdir)
         self.build()
+
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'prog' + exe_suffix))
-        self.assertPathDoesNotExist(os.path.join(self.builddir, 'hello.txt'))
-        self.run_target('build-all')
         self.assertPathExists(os.path.join(self.builddir, 'prog' + exe_suffix))
         self.assertPathExists(os.path.join(self.builddir, 'hello.txt'))
 
@@ -4347,7 +4346,7 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
-                     empty list: 
+                     empty list:
                        A number: 1
                             yes: YES
                              no: NO
@@ -4365,6 +4364,23 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(sorted(expected_lines), sorted(out_lines))
         else:
             self.assertEqual(expected_lines, out_lines)
+
+    @skip_if_not_base_option('b_sanitize')
+    def test_pch_with_address_sanitizer(self):
+        if is_cygwin():
+            raise unittest.SkipTest('asan not available on Cygwin')
+        if is_openbsd():
+            raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
+
+        testdir = os.path.join(self.common_test_dir, '13 pch')
+        extra_args = ['-Db_sanitize=address', '-Db_lundef=false']
+        if is_windows():
+            extra_args += ['-Dbuildtype=release']
+        self.init(testdir, extra_args=extra_args)
+        self.build()
+        compdb = self.get_compdb()
+        for i in compdb:
+            self.assertIn("-fsanitize=address", i["command"])
 
 
 class FailureTests(BasePlatformTests):
@@ -5675,20 +5691,6 @@ class LinuxlikeTests(BasePlatformTests):
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
-
-    @skip_if_not_base_option('b_sanitize')
-    def test_pch_with_address_sanitizer(self):
-        if is_cygwin():
-            raise unittest.SkipTest('asan not available on Cygwin')
-        if is_openbsd():
-            raise unittest.SkipTest('-fsanitize=address is not supported on OpenBSD')
-
-        testdir = os.path.join(self.common_test_dir, '13 pch')
-        self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
-        self.build()
-        compdb = self.get_compdb()
-        for i in compdb:
-            self.assertIn("-fsanitize=address", i["command"])
 
     def test_coverage(self):
         gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
