@@ -754,12 +754,16 @@ class GnomeModule(ExtensionModule):
             giscanner_path = giscanner.get_command()[0]
             if not any(x in giscanner_path for x in gi_util_dirs_check):
                 giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
+        else:
+            giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
 
         gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
         if gicompiler.found():
             gicompiler_path = gicompiler.get_command()[0]
             if not any(x in gicompiler_path for x in gi_util_dirs_check):
                 gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
+        else:
+            gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
 
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
