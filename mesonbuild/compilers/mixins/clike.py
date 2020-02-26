@@ -857,6 +857,9 @@ class CLikeCompiler:
         elif env.machines[self.for_machine].is_cygwin():
             shlibext = ['dll', 'dll.a']
             prefixes = ['cyg'] + prefixes
+        elif env.coredata.get_builtin_option('default_library') == 'static':
+            # Linux/BSDs
+            shlibext = ['a']
         else:
             # Linux/BSDs
             shlibext = ['so']
