@@ -6870,7 +6870,7 @@ class NativeFileTests(BasePlatformTests):
                 # remove the build dependency on python2-dev. Keep the tests
                 # but only run them if dev packages are available.
                 raise unittest.SkipTest('Not running Python 2 tests because dev packages not installed.')
-        self._simple_test('python', 'python')
+        self._simple_test('python', 'python2')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')
