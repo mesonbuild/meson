@@ -6836,9 +6836,9 @@ class NativeFileTests(BasePlatformTests):
             '--native-file', config, '--native-file', config2,
             '-Dcase=find_program'])
 
-    def _simple_test(self, case, binary):
+    def _simple_test(self, case, binary, entry=None):
         wrapper = self.helper_create_binary_wrapper(binary, version='12345')
-        config = self.helper_create_native_file({'binaries': {binary: wrapper}})
+        config = self.helper_create_native_file({'binaries': {entry or binary: wrapper}})
         self.init(self.testcase, extra_args=['--native-file', config, '-Dcase={}'.format(case)])
 
     def test_find_program(self):
@@ -6870,7 +6870,7 @@ class NativeFileTests(BasePlatformTests):
                 # remove the build dependency on python2-dev. Keep the tests
                 # but only run them if dev packages are available.
                 raise unittest.SkipTest('Not running Python 2 tests because dev packages not installed.')
-        self._simple_test('python', 'python')
+        self._simple_test('python', 'python2', entry='python')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')
