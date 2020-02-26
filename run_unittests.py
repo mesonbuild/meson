@@ -6861,7 +6861,11 @@ class NativeFileTests(BasePlatformTests):
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
+        elif is_osx():
+            binary = 'python'
         else:
+            binary = 'python2'
+
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
                 rc = subprocess.call(['pkg-config', '--cflags', 'python{}'.format(v)],
@@ -6871,7 +6875,7 @@ class NativeFileTests(BasePlatformTests):
                     break
             else:
                 raise unittest.SkipTest('Not running Python 2 tests because dev packages not installed.')
-        self._simple_test('python', 'python2', entry='python')
+        self._simple_test('python', binary, entry='python')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')
