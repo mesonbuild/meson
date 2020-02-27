@@ -23,7 +23,7 @@ run_command('command', 'arg1', 'arg2', env: {'FOO': 'bar'})
 ```
 
 Since 0.50.0, you can also pass the command
-[`environment`](Reference-manual.html#environment-object) object:
+[`environment`](Reference-manual.md#environment-object) object:
 
 ```meson
 env = environment()

@@ -197,8 +197,8 @@ dependency tracking does not work.
 
 ## `run_command()` accepts `env` kwarg
 
-You can pass [`environment`](Reference-manual.html#environment-object)
-object to [`run_command`](Reference-manual.html#run-command), just
+You can pass [`environment`](Reference-manual.md#environment-object)
+object to [`run_command`](Reference-manual.md#run-command), just
 like to `test`:
 
 ```meson
