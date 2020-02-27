@@ -13,7 +13,7 @@ def handle_common(path):
 def handle_cygwin(path):
     """Handle the Cygwin case."""
     output = subprocess.check_output(['nm', path]).decode('utf-8')
-    if 'I __imp_zlibVersion' in output:
+    if (('I __imp_zlibVersion' in output) or ('D __imp_zlibVersion' in output)):
         return 1
     return 0
 
