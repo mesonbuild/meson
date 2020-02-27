@@ -1129,7 +1129,7 @@ class Environment:
             cpp_compiler = self.detect_cpp_compiler(for_machine)
             cls = CudaCompiler
             self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-            linker = CudaLinker(compiler, for_machine, 'nvlink', CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
+            linker = CudaLinker(compiler, for_machine, CudaCompiler.LINKER_PREFIX, [], version=CudaLinker.parse_version())
             return cls(ccache + compiler, version, for_machine, is_cross, exe_wrap, host_compiler=cpp_compiler, info=info, linker=linker)
         raise EnvironmentException('Could not find suitable CUDA compiler: "' + ' '.join(compilers) + '"')
 
