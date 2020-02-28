@@ -464,8 +464,13 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         # When used in cross compilation, the path separator is a
-        # forward slash rather than a backslash so handle both.
-        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|\/).*stdio.h$")
+        # forward slash rather than a backslash so handle both; i.e.
+        # the path is /MyDir/include/stdio.h.
+        # With certain cross compilation wrappings of MSVC, the paths
+        # use backslashes, but without the leading drive name, so
+        # allow the path to start with any path separator, i.e.
+        # \MyDir\include\stdio.h.
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|[\\\/]).*stdio.h$")
 
         def detect_prefix(out):
             for line in re.split(rb'\r?\n', out):
