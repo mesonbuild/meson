@@ -24,7 +24,6 @@ import sys
 import signal
 import shlex
 from io import StringIO
-from ast import literal_eval
 from enum import Enum
 import tempfile
 from pathlib import Path, PurePath
@@ -34,7 +33,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
-from mesonbuild.mesonlib import MachineChoice, stringlistify, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist
 import argparse
 import json
@@ -90,6 +89,53 @@ class TestResult:
     def fail(self, msg):
         self.msg = msg
 
+class InstalledFile:
+    def __init__(self, raw: T.Dict[str, str]):
+        self.path = raw['file']
+        self.typ = raw['type']
+        self.platform = raw.get('platform', None)
+
+    def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
+        p = Path(self.path)
+        canonical_compiler = compiler
+        if (compiler in ['clang-cl', 'intel-cl']) or (env.machines.host.is_windows() and compiler == 'pgi'):
+            canonical_compiler = 'msvc'
+
+        # Abort if the platform does not match
+        matches = {
+            'msvc': canonical_compiler == 'msvc',
+            'gcc': canonical_compiler != 'msvc',
+            'cygwin': env.machines.host.is_cygwin(),
+            '!cygwin': not env.machines.host.is_cygwin(),
+        }.get(self.platform or '', True)
+        if not matches:
+            return None
+
+        # Handle the different types
+        if self.typ == 'file':
+            return p
+        elif self.typ == 'exe':
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                return p.with_suffix('.exe')
+        elif self.typ == 'pdb':
+            return p.with_suffix('.pdb') if canonical_compiler == 'msvc' else None
+        elif self.typ == 'implib' or self.typ == 'implibempty':
+            if env.machines.host.is_windows() and canonical_compiler == 'msvc':
+                # only MSVC doesn't generate empty implibs
+                if self.typ == 'implibempty' and compiler == 'msvc':
+                    return None
+                return p.parent / (re.sub(r'^lib', '', p.name) + '.lib')
+            elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                return p.with_suffix('.dll.a')
+            else:
+                return None
+        elif self.typ == 'expr':
+            return Path(platform_fix_name(p.as_posix(), canonical_compiler, env))
+        else:
+            raise RuntimeError('Invalid installed file type {}'.format(self.typ))
+
+        return p
+
 @functools.total_ordering
 class TestDef:
     def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
@@ -97,6 +143,9 @@ class TestDef:
         self.name = name
         self.args = args
         self.skip = skip
+        self.env = os.environ.copy()
+        self.installed_files = []  # type: T.List[InstalledFile]
+        self.do_not_set_opts = []      # type: T.List[str]
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -106,10 +155,12 @@ class TestDef:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
         return self.path.as_posix()
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __lt__(self, other: T.Any) -> bool:
         if isinstance(other, TestDef):
             # None is not sortable, so replace it with an empty string
-            return (self.path, self.name or '') < (other.path, other.name or '')
+            s_id = int(self.path.name.split(' ')[0])
+            o_id = int(other.path.name.split(' ')[0])
+            return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
 class AutoDeletedDir:
@@ -156,17 +207,8 @@ def setup_commands(optbackend):
     compile_commands, clean_commands, test_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
-def get_relative_files_list_from_dir(fromdir: Path) -> T.List[Path]:
-    return [file.relative_to(fromdir) for file in fromdir.rglob('*') if file.is_file()]
-
-def platform_fix_name(fname: str, compiler, env) -> str:
-    # canonicalize compiler
-    if (compiler in {'clang-cl', 'intel-cl'} or
-       (env.machines.host.is_windows() and compiler == 'pgi')):
-        canonical_compiler = 'msvc'
-    else:
-        canonical_compiler = compiler
-
+# TODO try to eliminate or at least reduce this function
+def platform_fix_name(fname: str, canonical_compiler: str, env: environment.EnvironmentException) -> str:
     if '?lib' in fname:
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
@@ -182,31 +224,6 @@ def platform_fix_name(fname: str, compiler, env) -> str:
             fname = re.sub(r'/\?lib/', r'/bin/', fname)
         else:
             fname = re.sub(r'\?lib', 'lib', fname)
-
-    if fname.endswith('?exe'):
-        fname = fname[:-4]
-        if env.machines.host.is_windows() or env.machines.host.is_cygwin():
-            return fname + '.exe'
-
-    if fname.startswith('?msvc:'):
-        fname = fname[6:]
-        if canonical_compiler != 'msvc':
-            return None
-
-    if fname.startswith('?gcc:'):
-        fname = fname[5:]
-        if canonical_compiler == 'msvc':
-            return None
-
-    if fname.startswith('?cygwin:'):
-        fname = fname[8:]
-        if not env.machines.host.is_cygwin():
-            return None
-
-    if fname.startswith('?!cygwin:'):
-        fname = fname[9:]
-        if env.machines.host.is_cygwin():
-            return None
 
     if fname.endswith('?so'):
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
@@ -227,49 +244,28 @@ def platform_fix_name(fname: str, compiler, env) -> str:
         else:
             return fname[:-3] + '.so'
 
-    if fname.endswith('?implib') or fname.endswith('?implibempty'):
-        if env.machines.host.is_windows() and canonical_compiler == 'msvc':
-            # only MSVC doesn't generate empty implibs
-            if fname.endswith('?implibempty') and compiler == 'msvc':
-                return None
-            return re.sub(r'/(?:lib|)([^/]*?)\?implib(?:empty|)$', r'/\1.lib', fname)
-        elif env.machines.host.is_windows() or env.machines.host.is_cygwin():
-            return re.sub(r'\?implib(?:empty|)$', r'.dll.a', fname)
-        else:
-            return None
-
     return fname
 
-def validate_install(srcdir: str, installdir: Path, compiler, env) -> str:
-    # List of installed files
-    info_file = Path(srcdir) / 'installed_files.txt'
-    installdir = Path(installdir)
-    expected = {}  # type: T.Dict[Path, bool]
+def validate_install(test: TestDef, installdir: Path, compiler: str, env: environment.Environment) -> str:
+    expected_raw = [x.get_path(compiler, env) for x in test.installed_files]
+    expected = {Path(x): False for x in expected_raw if x}
+    found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     ret_msg = ''
-    # Generate list of expected files
-    if info_file.is_file():
-        with info_file.open() as f:
-            for line in f:
-                line = platform_fix_name(line.strip(), compiler, env)
-                if line:
-                    expected[Path(line)] = False
-    # Check if expected files were found
-    for fname in expected:
-        file_path = installdir / fname
-        if file_path.is_file() or file_path.is_symlink():
-            expected[fname] = True
-    for (fname, found) in expected.items():
-        if not found:
-            ret_msg += 'Expected file {} missing.\n'.format(fname)
-    # Check if there are any unexpected files
-    found = get_relative_files_list_from_dir(installdir)
+    # Mark all found files as found and detect unexpected files
     for fname in found:
         if fname not in expected:
             ret_msg += 'Extra file {} found.\n'.format(fname)
+            continue
+        expected[fname] = True
+    # Check if expected files were found
+    for p, f in expected.items():
+        if not f:
+            ret_msg += 'Expected file {} missing.\n'.format(p)
+    # List dir content on error
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
         for i in found:
-            ret_msg += '  - {}'.format(i)
+            ret_msg += '  - {}\n'.format(i)
     return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):
@@ -361,83 +357,45 @@ def run_test_inprocess(testdir):
         os.chdir(old_cwd)
     return max(returncode_test, returncode_benchmark), mystdout.getvalue(), mystderr.getvalue(), test_log
 
-def parse_test_args(testdir):
-    args = []
-    try:
-        with open(os.path.join(testdir, 'test_args.txt'), 'r') as f:
-            content = f.read()
-            try:
-                args = literal_eval(content)
-            except Exception:
-                raise Exception('Malformed test_args file.')
-            args = stringlistify(args)
-    except FileNotFoundError:
-        pass
-    return args
-
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
-def create_deterministic_builddir(src_dir, name):
+def create_deterministic_builddir(test: TestDef) -> str:
     import hashlib
-    if name:
-        src_dir += name
+    src_dir = test.path.as_posix()
+    if test.name:
+        src_dir += test.name
     rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
     os.mkdir(rel_dirname)
     abs_pathname = os.path.join(os.getcwd(), rel_dirname)
     return abs_pathname
 
-def run_test(skipped, testdir, name, extra_args, compiler, backend, flags, commands, should_fail):
-    if skipped:
+def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail):
+    if test.skip:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(testdir, name)) as build_dir:
+    with AutoDeletedDir(create_deterministic_builddir(test)) as build_dir:
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
-                return _run_test(testdir, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
+                return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
-def pass_prefix_to_test(dirname):
-    if '39 prefix absolute' in dirname:
-        return False
-    return True
-
-def pass_libdir_to_test(dirname):
-    if '8 install' in dirname:
-        return False
-    if '38 libdir must be inside prefix' in dirname:
-        return False
-    if '195 install_mode' in dirname:
-        return False
-    return True
-
-def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail):
+def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
-    test_args = parse_test_args(testdir)
     gen_start = time.time()
-    setup_env = None
     # Configure in-process
-    if pass_prefix_to_test(testdir):
-        gen_args = ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
-    else:
-        gen_args = []
-    if pass_libdir_to_test(testdir):
+    gen_args = []  # type: T.List[str]
+    if 'prefix' not in test.do_not_set_opts:
+        gen_args += ['--prefix', 'x:/usr'] if mesonlib.is_windows() else ['--prefix', '/usr']
+    if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
-    gen_args += [testdir, test_build_dir] + flags + test_args + extra_args
-    nativefile = os.path.join(testdir, 'nativefile.ini')
-    if os.path.exists(nativefile):
-        gen_args.extend(['--native-file', nativefile])
-    crossfile = os.path.join(testdir, 'crossfile.ini')
-    if os.path.exists(crossfile):
-        gen_args.extend(['--cross-file', crossfile])
-    setup_env_file = os.path.join(testdir, 'setup_env.json')
-    if os.path.exists(setup_env_file):
-        setup_env = os.environ.copy()
-        with open(setup_env_file, 'r') as fp:
-            data = json.load(fp)
-            for key, val in data.items():
-                val = val.replace('@ROOT@', os.path.abspath(testdir))
-                setup_env[key] = val
-    (returncode, stdo, stde) = run_configure(gen_args, env=setup_env)
+    gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
+    nativefile = test.path / 'nativefile.ini'
+    crossfile = test.path / 'crossfile.ini'
+    if nativefile.exists():
+        gen_args.extend(['--native-file', nativefile.as_posix()])
+    if crossfile.exists():
+        gen_args.extend(['--cross-file', crossfile.as_posix()])
+    (returncode, stdo, stde) = run_configure(gen_args, env=test.env)
     try:
         logfile = Path(test_build_dir, 'meson-logs', 'meson-log.txt')
         mesonlog = logfile.open(errors='ignore', encoding='utf-8').read()
@@ -462,7 +420,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works before a build is run.
     ensure_backend_detects_changes(backend)
-    os.utime(os.path.join(testdir, 'meson.build'))
+    os.utime(str(test.path / 'meson.build'))
     # Build with subprocess
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
     build_start = time.time()
@@ -479,7 +437,7 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     # Touch the meson.build file to force a regenerate so we can test that
     # regeneration works after a build is complete.
     ensure_backend_detects_changes(backend)
-    os.utime(os.path.join(testdir, 'meson.build'))
+    os.utime(str(test.path / 'meson.build'))
     test_start = time.time()
     # Test in-process
     (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
@@ -515,27 +473,54 @@ def _run_test(testdir, test_build_dir, install_dir, extra_args, compiler, backen
     testresult.add_step(BuildStep.install, '', '')
     if not install_commands:
         return testresult
-    install_msg = validate_install(testdir, install_dir, compiler, builddata.environment)
+    install_msg = validate_install(test, Path(install_dir), compiler, builddata.environment)
     if install_msg:
-        testresult.fail(install_msg)
+        testresult.fail('\n' + install_msg)
         return testresult
 
     return testresult
 
-def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
-    tests = [t.name for t in testdir.glob('*') if t.is_dir()]
+def gather_tests(testdir: Path) -> T.List[TestDef]:
+    tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
-    tests = [TestDef(testdir / t, None, []) for t in tests]
-    all_tests = []
-    for t in tests:
-        matrix_file = t.path / 'test_matrix.json'
-        if not matrix_file.is_file():
+    test_defs = [TestDef(testdir / t, None, []) for t in tests]
+    all_tests = []  # type: T.List[TestDef]
+    for t in test_defs:
+        test_def_file = t.path / 'test.json'
+        if not test_def_file.is_file():
             all_tests += [t]
             continue
 
-        # Build multiple tests from matrix definition
+        test_def = json.loads(test_def_file.read_text())
+
+        # Handle additional environment variables
+        env = {}  # type: T.Dict[str, str]
+        if 'env' in test_def:
+            assert isinstance(test_def['env'], dict)
+            env = test_def['env']
+            for key, val in env.items():
+                val = val.replace('@ROOT@', t.path.resolve().as_posix())
+                env[key] = val
+
+        # Handle installed files
+        installed = []  # type: T.List[InstalledFile]
+        if 'installed' in test_def:
+            installed = [InstalledFile(x) for x in test_def['installed']]
+
+        # Handle the do_not_set_opts list
+        do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
+
+        # Skip the matrix code and just update the existing test
+        if 'matrix' not in test_def:
+            t.env.update(env)
+            t.installed_files = installed
+            t.do_not_set_opts = do_not_set_opts
+            all_tests += [t]
+            continue
+
+        # 'matrix; entry is present, so build multiple tests from matrix definition
         opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
-        matrix = json.loads(matrix_file.read_text())
+        matrix = test_def['matrix']
         assert "options" in matrix
         for key, val in matrix["options"].items():
             assert isinstance(val, list)
@@ -552,8 +537,8 @@ def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
 
                 # Skip the matrix entry if environment variable is present
                 if 'skip_on_env' in i:
-                    for env in i['skip_on_env']:
-                        if env in os.environ:
+                    for skip_env_var in i['skip_on_env']:
+                        if skip_env_var in os.environ:
                             skip = True
 
                 # Only run the test if all compiler ID's match
@@ -596,7 +581,11 @@ def gather_tests(testdir: Path) -> T.Iterator[TestDef]:
             name = ' '.join([x[0] for x in i if x[0] is not None])
             opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
-            all_tests += [TestDef(t.path, name, opts, skip)]
+            test = TestDef(t.path, name, opts, skip)
+            test.env.update(env)
+            test.installed_files = installed
+            test.do_not_set_opts = do_not_set_opts
+            all_tests += [test]
 
     return sorted(all_tests)
 
@@ -880,7 +869,8 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 suite_args = ['--fatal-meson-warnings']
                 should_fail = name.split('warning-')[1]
 
-            result = executor.submit(run_test, skipped or t.skip, t.path.as_posix(), t.name, extra_args + suite_args + t.args,
+            t.skip = skipped or t.skip
+            result = executor.submit(run_test, t, extra_args + suite_args + t.args,
                                      system_compiler, backend, backend_flags, commands, should_fail)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
@@ -1033,11 +1023,11 @@ def detect_system_compiler(options):
         for lang in sorted(compilers.all_languages):
             try:
                 comp = env.compiler_from_language(lang, MachineChoice.HOST)
-                details = '{} {} [{}]'.format(' '.join(comp.get_exelist()), comp.get_version_string(), comp.get_id())
+                details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
                 compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
                 comp = None
-                details = 'not found'
+                details = '[not found]'
             print('%-7s: %s' % (lang, details))
 
             # note C compiler for later use by platform_fix_name()

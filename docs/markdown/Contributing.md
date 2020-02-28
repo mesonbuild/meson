@@ -163,27 +163,135 @@ Any tests that require more thorough analysis, such as checking that certain
 compiler arguments can be found in the command line or that the generated
 pkg-config files actually work should be done with a unit test.
 
-The following files in the test's source root are consulted, if they exist:
-
-* `installed_files.txt` lists the files which are expected to be installed.
-Various constructs containing `?` are used to indicate platform specific
-filename variations (e.g. `?so` represents the platform appropriate suffix for a
-shared library)
-
-* `setup_env.json` contains a dictionary which specifies additional
-environment variables to be set during the configure step of the test. `@ROOT@`
-is replaced with the absolute path of the source directory.
+Additionally:
 
 * `crossfile.ini` and `nativefile.ini` are passed to the configure step with
 `--cross-file` and `--native-file` options, respectively.
-
-Additionally:
 
 * `mlog.cmd_ci_include()` can be called from anywhere inside meson to capture the
 contents of an additional file into the CI log on failure.
 
 Projects needed by unit tests are in the `test cases/unit`
 subdirectory. They are not run as part of `./run_project_tests.py`.
+
+#### Configuring project tests
+
+The (optional) `test.json` file, in the root of a test case, is used
+for configuring the test. All of the following root entries in the `test.json`
+are independent of each other and can be combined as needed.
+
+Exanple `test.json`:
+
+```json
+{
+  "env": {
+    "VAR": "VAL"
+  },
+  "installed": [
+    { "type": "exe", "file": "usr/bin/testexe" },
+    { "type": "pdb", "file": "usr/bin/testexe" },
+  ],
+  "matrix": {
+    "options": {
+      "opt1": [
+        { "val": "abc"   },
+        { "val": "qwert" },
+        { "val": "bad"   }
+      ],
+      "opt2": [
+        { "val": null    },
+        { "val": "true"  },
+        { "val": "false" },
+      ]
+    },
+    "exclude": [
+      { "opt1": "qwert", "opt2": "false" },
+      { "opt1": "bad"                    }
+    ]
+  }
+}
+```
+
+##### env
+
+The `env` key contains a dictionary which specifies additional
+environment variables to be set during the configure step of the test. `@ROOT@`
+is replaced with the absolute path of the source directory.
+
+##### installed
+
+The `installed` dict contains a list of dicts, describing which files are expected
+to be installed. Each dict contains the following keys:
+
+- `file`
+- `type`
+- `platform` (optional)
+
+The `file` entry contains the relative path (from the install root) to the
+actually installed file.
+
+The `type` entry specifies how the `file` path should be interpreted based on the
+current platform. The following values are currently supported:
+
+| `type`        | Description                                                                      |
+| :-----------: | -------------------------------------------------------------------------------- |
+| `file`        | No postprocessing, just use the provided path                                    |
+| `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`     |
+| `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms          |
+| `implib`      | For Windows import libraries. These entries are ignored on non Windows platforms |
+| `implibempty` | Like `implib`, but no symbols are exported in the library                        |
+| `expr`        | `file` is an expression. This type should be avoided and removed if possible     |
+
+Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
+
+If the `platform` key is present, the installed file entry is only considered if
+the platform matches. The following values for `platform` are currently supported:
+
+| `platform` | Description                                                          |
+| :--------: | -------------------------------------------------------------------- |
+| `msvc`     | Matches when a msvc like compiler is used (`msvc`, `clang-cl`, etc.) |
+| `gcc`      | Not `msvc`                                                           |
+| `cygwin`   | Matches when the platform is cygwin                                  |
+| `!cygwin`  | Not `cygwin`                                                         |
+
+##### matrix
+
+The `matrix` section can be used to define a test matrix to run project tests
+with different meson options.
+
+In the `options` dict, all possible options and their values are specified. Each
+key in the `options` dict is a meson option. It stores a list of all potential
+values in a dict format, which allows to skip specific values based on the current
+environment.
+
+Each value must contain the `val` key for the value of the option. `null` can be
+used for adding matrix entries without the current option.
+
+Additionally, the `skip_on_env` key can be used to specify a list of environment
+variables. If at least one environment variable in `skip_on_env` is present, all
+matrix entries containing this value are skipped.
+
+Similarly, the `compilers` key can be used to define a set of compilers required
+for this value.
+
+
+Specific option combinations can be excluded with the `exclude` section. It should
+be noted that `exclude` does not require exact matches. Instead, any matrix entry
+containing all option value combinations in `exclude` will be excluded. Thus
+an empty dict (`{}`) to will match **all** elements in the test matrix.
+
+The above example will produce the following matrix entries:
+- `opt1=abc`
+- `opt1=abc opt2=true`
+- `opt1=abc opt2=false`
+- `opt1=qwert`
+- `opt1=qwert opt2=true`
+
+##### do_not_set_opts
+
+Currently supported values are:
+- `prefix`
+- `libdir`
 
 ### Skipping integration tests
 

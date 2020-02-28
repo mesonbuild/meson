@@ -1,8 +1,0 @@
-usr/bin/prog.exe
-?msvc:usr/bin/prog.pdb
-usr/bin/prog2.exe
-?msvc:usr/bin/prog2.pdb
-?gcc:usr/lib/libprog.exe.a
-?gcc:usr/lib/libburble.a
-?msvc:usr/lib/prog.exe.lib
-?msvc:usr/lib/burble.lib

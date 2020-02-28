@@ -1,7 +1,0 @@
-usr/bin/prog?exe
-?msvc:usr/bin/prog.pdb
-?gcc:usr/lib/libstuff.so
-?msvc:usr/bin/stuff.dll
-?msvc:usr/lib/stuff.dll.lib
-?msvc:usr/bin/stuff.pdb
-

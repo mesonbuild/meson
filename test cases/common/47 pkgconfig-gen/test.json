@@ -1,0 +1,9 @@
+{
+  "installed": [
+    {"type": "file", "file": "usr/include/simple.h"},
+    {"type": "file", "file": "usr/lib/pkgconfig/simple.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libfoo.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libhello.pc"},
+    {"type": "file", "file": "usr/lib/pkgconfig/libhello_nolib.pc"}
+  ]
+}

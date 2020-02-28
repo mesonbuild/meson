@@ -1,0 +1,8 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/program"},
+    {"type": "pdb", "file": "usr/bin/program"},
+    {"type": "exe", "file": "usr/bin/program2"},
+    {"type": "pdb", "file": "usr/bin/program2"}
+  ]
+}

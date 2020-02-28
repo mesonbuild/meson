@@ -1,5 +1,0 @@
-usr/bin/prog?exe
-?msvc:usr/bin/prog.pdb
-usr/diiba/daaba/file.dat
-usr/this/should/also-work.dat
-usr/this/does/something-different.dat.in
