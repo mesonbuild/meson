@@ -12,4 +12,4 @@ if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
 endif
 
 executable('clash', 'clash.c')
-run_target('clash', 'echo', 'clash 1')
+run_target('clash', command: ['echo', 'clash 1'])

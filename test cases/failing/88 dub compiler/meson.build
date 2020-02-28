@@ -1,4 +1,4 @@
-project('dub', 'd', meson_version: '0.48.0')
+project('dub', 'd')
 
 if meson.get_compiler('d').get_id() == 'dmd'
   if host_machine.system() == 'windows' or host_machine.system() == 'cygwin'
