@@ -24,9 +24,9 @@ from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import SampleFactory
 
-'''
+"""
 we currently have one meson template at this time.
-'''
+"""
 from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
@@ -48,10 +48,9 @@ ninja -C builddir
 
 
 def create_sample(options) -> None:
-    '''
-    Based on what arguments are passed we check for a match in language
+    """Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
-    '''
+    """
     generator = SampleFactory()
     sample_gen = generator.sameple_generator(options)
     if options.type == DEFAULT_TYPES['EXE'].value:
@@ -63,10 +62,9 @@ def create_sample(options) -> None:
     print(INFO_MESSAGE)
 
 def autodetect_options(options, sample: bool = False) -> None:
-    '''
-    Here we autodetect options for args not passed in so don't have to
+    """Autodetect options for args not passed in so don't have to
     think about it.
-    '''
+    """
     if not options.name:
         options.name = Path().resolve().stem
         if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:
@@ -129,10 +127,9 @@ def autodetect_options(options, sample: bool = False) -> None:
         print("Detected language: " + options.language)
 
 def add_arguments(parser):
-    '''
-    Here we add args for that the user can passed when making a new
+    """Here we add args for that the user can passed when making a new
     Meson project.
-    '''
+    """
     parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
@@ -145,9 +142,13 @@ def add_arguments(parser):
     parser.add_argument('--version', default=DEFAULT_VERSION, help="project version. default: {}".format(DEFAULT_VERSION))
 
 def run(options) -> int:
-    '''
-    Here we generate the new Meson sample project.
-    '''
+    """Generate the new Meson sample project.
+
+    First case we determine what language to use for the sample
+    generator and if the user did not spiffy, we use the default
+    value of 'c'.  Second case we generate a Meson build script
+    for your project. 
+    """
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
