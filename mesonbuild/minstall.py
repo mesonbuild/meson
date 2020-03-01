@@ -76,7 +76,9 @@ class DirMaker:
             append_to_log(self.lf, d)
 
 def is_executable(path, follow_symlinks=False):
-    '''Checks whether any of the "x" bits are set in the source file mode.'''
+    '''
+    Here checks whether any of the "x" bits are set in the source file mode.
+    '''
     return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
 
 def append_to_log(lf, line):
@@ -181,6 +183,9 @@ def restore_selinux_contexts():
 
 
 def get_destdir_path(d, path):
+    '''
+    here we dist directory path
+    '''
     if os.path.isabs(path):
         output = destdir_join(d.destdir, path)
     else:
@@ -189,10 +194,12 @@ def get_destdir_path(d, path):
 
 
 def check_for_stampfile(fname):
-    '''Some languages e.g. Rust have output files
+    '''
+    Some languages e.g. Rust have output files
     whose names are not known at configure time.
     Check if this is the case and return the real
-    file instead.'''
+    file instead.
+    '''
     if fname.endswith('.so') or fname.endswith('.dll'):
         if os.stat(fname).st_size == 0:
             (base, suffix) = os.path.splitext(fname)
