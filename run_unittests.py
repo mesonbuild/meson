@@ -3228,6 +3228,12 @@ int main(int argc, char **argv) {
         except EnvironmentException:
             pass
         # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
+        if not is_windows():
+            try:
+                env.detect_rust_compiler(MachineChoice.HOST)
+                langs.append('rust')
+            except EnvironmentException:
+                pass
 
         for lang in langs:
             for target_type in ('executable', 'library'):
