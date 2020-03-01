@@ -139,40 +139,45 @@ pkg_mod.generate(
 '''
 
 
-def create_exe_cuda_sample(project_name, project_version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    source_name = lowercase_token + '.cu'
-    open(source_name, 'w').write(hello_cuda_template.format(project_name=project_name))
-    open('meson.build', 'w').write(hello_cuda_meson_template.format(project_name=project_name,
-                                                                    exe_name=lowercase_token,
-                                                                    source_name=source_name,
-                                                                    version=project_version))
+class CudaProject(object):
+    def __init__(self, options):
+        super().__init__()
+        self.name = options.name
+        self.version = options.version
 
+    def create_executable(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        source_name = lowercase_token + '.cu'
+        open(source_name, 'w').write(hello_cuda_template.format(project_name=self.name))
+        open('meson.build', 'w').write(hello_cuda_meson_template.format(project_name=self.name,
+                                                                        exe_name=lowercase_token,
+                                                                        source_name=source_name,
+                                                                        version=self.version))
 
-def create_lib_cuda_sample(project_name, version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
-    class_name = uppercase_token[0] + lowercase_token[1:]
-    test_exe_name = lowercase_token + '_test'
-    namespace = lowercase_token
-    lib_h_name = lowercase_token + '.h'
-    lib_cuda_name = lowercase_token + '.cu'
-    test_cuda_name = lowercase_token + '_test.cu'
-    kwargs = {'utoken': uppercase_token,
-              'ltoken': lowercase_token,
-              'header_dir': lowercase_token,
-              'class_name': class_name,
-              'namespace': namespace,
-              'header_file': lib_h_name,
-              'source_file': lib_cuda_name,
-              'test_source_file': test_cuda_name,
-              'test_exe_name': test_exe_name,
-              'project_name': project_name,
-              'lib_name': lowercase_token,
-              'test_name': lowercase_token,
-              'version': version,
-              }
-    open(lib_h_name, 'w').write(lib_h_template.format(**kwargs))
-    open(lib_cuda_name, 'w').write(lib_cuda_template.format(**kwargs))
-    open(test_cuda_name, 'w').write(lib_cuda_test_template.format(**kwargs))
-    open('meson.build', 'w').write(lib_cuda_meson_template.format(**kwargs))
+    def create_library(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        uppercase_token = lowercase_token.upper()
+        class_name = uppercase_token[0] + lowercase_token[1:]
+        test_exe_name = lowercase_token + '_test'
+        namespace = lowercase_token
+        lib_h_name = lowercase_token + '.h'
+        lib_cuda_name = lowercase_token + '.cu'
+        test_cuda_name = lowercase_token + '_test.cu'
+        kwargs = {'utoken': uppercase_token,
+                  'ltoken': lowercase_token,
+                  'header_dir': lowercase_token,
+                  'class_name': class_name,
+                  'namespace': namespace,
+                  'header_file': lib_h_name,
+                  'source_file': lib_cuda_name,
+                  'test_source_file': test_cuda_name,
+                  'test_exe_name': test_exe_name,
+                  'project_name': self.name,
+                  'lib_name': lowercase_token,
+                  'test_name': lowercase_token,
+                  'version': self.version,
+                  }
+        open(lib_h_name, 'w').write(lib_h_template.format(**kwargs))
+        open(lib_cuda_name, 'w').write(lib_cuda_template.format(**kwargs))
+        open(test_cuda_name, 'w').write(lib_cuda_test_template.format(**kwargs))
+        open('meson.build', 'w').write(lib_cuda_meson_template.format(**kwargs))
