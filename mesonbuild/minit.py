@@ -24,9 +24,7 @@ from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import SampleFactory
 
-"""
-we currently have one meson template at this time.
-"""
+"""we currently have one meson template at this time."""
 from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
