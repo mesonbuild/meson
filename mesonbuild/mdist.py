@@ -34,8 +34,8 @@ archive_extension = {'gztar': '.tar.gz',
 
 def add_arguments(parser):
     '''
-      here we are adding arguments that can be used with
-      the 'meson dist' command.
+      Adding arguments that can be used with the
+      'meson dist' command.
     '''
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
@@ -46,9 +46,6 @@ def add_arguments(parser):
 
 
 def create_hash(fname):
-    '''
-    here we are creating a sha256sum hash file
-    '''
     hashname = fname + '.sha256sum'
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
@@ -57,9 +54,6 @@ def create_hash(fname):
 
 
 def del_gitfiles(dirname):
-    '''
-    here we remove '.git' directory files.
-    '''
     for f in glob(os.path.join(dirname, '.git*')):
         if os.path.isdir(f) and not os.path.islink(f):
             windows_proof_rmtree(f)
@@ -69,7 +63,8 @@ def del_gitfiles(dirname):
 
 def process_submodules(dirname):
     '''
-    here Git submodules are processed.
+    Git submodules will be processed.  First check to see
+    if there is a '.gitmodules', if so we run a process.
     '''
     module_file = os.path.join(dirname, '.gitmodules')
     if not os.path.exists(module_file):
@@ -88,9 +83,6 @@ def process_submodules(dirname):
 
 
 def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
-    '''
-    here we run dist command scripts.
-    '''
     assert(os.path.isabs(dist_root))
     env = os.environ.copy()
     env['MESON_DIST_ROOT'] = dist_root
@@ -111,24 +103,18 @@ def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
 
 def is_git(src_root):
     '''
-    here we check to see if we are in a Git project
+    Check to see if we are in a 'git' project
     '''
     _git = os.path.join(src_root, '.git')
     return os.path.isdir(_git) or os.path.isfile(_git)
 
 
 def git_have_dirty_index(src_root):
-    '''
-    Here we check whether there are uncommitted changes in git
-    '''
     ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
     return ret == 1
 
 
 def git_clone(src_root, distdir):
-    '''
-    here we clone are GitHub repo into dist dir.
-    '''
     if git_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
     if os.path.exists(distdir):
@@ -141,7 +127,7 @@ def git_clone(src_root, distdir):
 
 def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
     '''
-    here we create a Meson dist release using Git
+    Create a Meson dist release using Git
     '''
     distdir = os.path.join(dist_sub, dist_name)
     git_clone(src_root, distdir)
@@ -166,14 +152,14 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
 
 def is_hg(src_root):
     '''
-    here we check to see if its
+    Check to see if its a 'hg' project.
     '''
     return os.path.isdir(os.path.join(src_root, '.hg'))
 
 
 def hg_have_dirty_index(src_root):
     '''
-    check whether there are uncommitted changes in hg or
+    Check whether there are uncommitted changes in hg
     '''
     out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
     return b'commit: (clean)' not in out
@@ -218,10 +204,6 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
 
 
 def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin):
-    '''
-    here we run are dist generator steps for creating
-    your release project
-    '''
     if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
         print('Running Meson on distribution package failed')
         return 1
@@ -240,9 +222,6 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
 
 
 def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
-    '''
-    here we check the generated release
-    '''
     print('Testing distribution package {}'.format(packagename))
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
@@ -273,9 +252,6 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
 
 
 def determine_archives_to_generate(options):
-    '''
-    here we determine what archives to generate
-    '''
     result = []
     for i in options.formats.split(','):
         if i not in archive_choices:
@@ -287,9 +263,6 @@ def determine_archives_to_generate(options):
 
 
 def run(options):
-    '''
-    this is a runner function for 'meson dist'
-    '''
     options.wd = os.path.abspath(options.wd)
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
