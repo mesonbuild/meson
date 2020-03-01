@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from mesonbuild.templates.sampleimpl import SampleImpl
 import re
 
 
@@ -88,7 +89,7 @@ test('{test_name}', test_exe)
 '''
 
 
-class CSharpProject(object):
+class CSharpProject(SampleImpl):
     def __init__(self, options):
         super().__init__()
         self.name = options.name
