@@ -381,7 +381,7 @@ class InterpreterBase:
             raise InvalidCode('Builder file is empty.')
         assert(isinstance(code, str))
         try:
-            self.ast = mparser.Parser(code, self.subdir).parse()
+            self.ast = mparser.Parser(code, mesonfile).parse()
         except mesonlib.MesonException as me:
             me.file = mesonfile
             raise me
@@ -432,7 +432,7 @@ class InterpreterBase:
                 if not hasattr(e, 'lineno'):
                     e.lineno = cur.lineno
                     e.colno = cur.colno
-                    e.file = os.path.join(self.subdir, 'meson.build')
+                    e.file = os.path.join(self.source_root, self.subdir, environment.build_filename)
                 raise e
             i += 1 # In THE FUTURE jump over blocks and stuff.
 

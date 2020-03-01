@@ -154,9 +154,9 @@ class AstInterpreter(interpreterbase.InterpreterBase):
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code, subdir).parse()
+            codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:
-            me.file = buildfilename
+            me.file = absname
             raise me
 
         self.subdir = subdir

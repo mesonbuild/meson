@@ -122,13 +122,6 @@ an_unpicklable_object = threading.Lock()
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
-    def get_msg_with_context(self):
-        s = ''
-        if hasattr(self, 'lineno') and hasattr(self, 'file'):
-            s = get_error_location_string(self.file, self.lineno) + ' '
-        s += str(self)
-        return s
-
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
 
@@ -1338,16 +1331,6 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
             else:
                 result[basename] = [trial]
     return result
-
-# This isn't strictly correct. What we really want here is something like:
-# class StringProtocol(typing_extensions.Protocol):
-#
-#      def __str__(self) -> str: ...
-#
-# This would more accurately embody what this funcitonc an handle, but we
-# don't have that yet, so instead we'll do some casting to work around it
-def get_error_location_string(fname: str, lineno: str) -> str:
-    return '{}:{}:'.format(fname, lineno)
 
 def substring_is_in_list(substr: str, strlist: T.List[str]) -> bool:
     for s in strlist:

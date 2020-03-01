@@ -3748,9 +3748,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code, self.subdir).parse()
+            codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:
-            me.file = buildfilename
+            me.file = absname
             raise me
         try:
             self.evaluate_codeblock(codeblock)
