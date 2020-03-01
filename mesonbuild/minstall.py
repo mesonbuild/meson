@@ -77,7 +77,7 @@ class DirMaker:
 
 def is_executable(path, follow_symlinks=False):
     '''
-    Here checks whether any of the "x" bits are set in the source file mode.
+    Checks whether any of the "x" bits are set in the source file mode.
     '''
     return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
 
@@ -183,9 +183,6 @@ def restore_selinux_contexts():
 
 
 def get_destdir_path(d, path):
-    '''
-    here we dist directory path
-    '''
     if os.path.isabs(path):
         output = destdir_join(d.destdir, path)
     else:
