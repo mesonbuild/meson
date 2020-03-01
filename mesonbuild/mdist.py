@@ -102,9 +102,6 @@ def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
             sys.exit(1)
 
 def is_git(src_root):
-    '''
-    Check to see if we are in a 'git' project
-    '''
     _git = os.path.join(src_root, '.git')
     return os.path.isdir(_git) or os.path.isfile(_git)
 
@@ -126,9 +123,6 @@ def git_clone(src_root, distdir):
 
 
 def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
-    '''
-    Create a Meson dist release using Git
-    '''
     distdir = os.path.join(dist_sub, dist_name)
     git_clone(src_root, distdir)
     for path in subprojects:
@@ -151,16 +145,10 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
 
 
 def is_hg(src_root):
-    '''
-    Check to see if its a 'hg' project.
-    '''
     return os.path.isdir(os.path.join(src_root, '.hg'))
 
 
 def hg_have_dirty_index(src_root):
-    '''
-    Check whether there are uncommitted changes in hg
-    '''
     out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
     return b'commit: (clean)' not in out
 
