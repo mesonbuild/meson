@@ -59,6 +59,7 @@ log_disable_stdout = False   # type: bool
 log_errors_only = False      # type: bool
 _in_ci = 'CI' in os.environ  # type: bool
 _logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
+log_warnings_counter = 0     # type: int
 
 def disable() -> None:
     global log_disable_stdout
@@ -261,6 +262,9 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
         log_once(*args, **kwargs)
     else:
         log(*args, **kwargs)
+
+    global log_warnings_counter
+    log_warnings_counter += 1
 
     if log_fatal_warnings:
         raise MesonException("Fatal warnings enabled, aborting")

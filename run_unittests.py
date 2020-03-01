@@ -4392,14 +4392,15 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
-                     empty list: 
+                     empty list:
                        A number: 1
                             yes: YES
                              no: NO
+                      coma list: a, b, c
 
               Subprojects
                             sub: YES
-                           sub2: NO
+                           sub2: NO Problem encountered: This subproject failed
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
