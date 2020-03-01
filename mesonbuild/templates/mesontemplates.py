@@ -21,6 +21,17 @@ executable('{executable}',
            install : true)
 '''
 
+
+meson_jar_template = '''project('{project_name}', '{language}',
+  version : '{version}',
+  default_options : [{default_options}])
+
+jar('{executable}',
+    {sourcespec},{depspec}
+    install : true)
+'''
+
+
 def create_meson_build(options):
     if options.type != 'executable':
         raise SystemExit('\nGenerating a meson.build file from existing sources is\n'
@@ -40,12 +51,21 @@ def create_meson_build(options):
         depspec += ',\n              '.join("dependency('{}')".format(x)
                                             for x in options.deps.split(','))
         depspec += '],'
-    content = meson_executable_template.format(project_name=options.name,
-                                               language=options.language,
-                                               version=options.version,
-                                               executable=options.executable,
-                                               sourcespec=sourcespec,
-                                               depspec=depspec,
-                                               default_options=formatted_default_options)
+    if options.language != 'java':
+        content = meson_executable_template.format(project_name=options.name,
+                                                   language=options.language,
+                                                   version=options.version,
+                                                   executable=options.executable,
+                                                   sourcespec=sourcespec,
+                                                   depspec=depspec,
+                                                   default_options=formatted_default_options)
+    else:
+        content = meson_jar_template.format(project_name=options.name,
+                                            language=options.language,
+                                            version=options.version,
+                                            executable=options.executable,
+                                            sourcespec=sourcespec,
+                                            depspec=depspec,
+                                            default_options=formatted_default_options)
     open('meson.build', 'w').write(content)
     print('Generated meson.build file:\n\n' + content)
