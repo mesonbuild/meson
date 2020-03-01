@@ -33,8 +33,10 @@ FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'} | FORTRAN_SUFFIXES
 LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp'}
 
-DEFAULT_PROJECT = 'executable'
-DEFAULT_VERSION = '0.1'
+class DEFAULT_VALUES(Enum):
+    PROJECT = 'executable'
+    VERSION = '0.1'
+
 class DEFAULT_TYPES(Enum):
     EXE = 'executable'
     LIB = 'library'
@@ -130,29 +132,31 @@ def add_arguments(parser):
     """Here we add args for that the user can passed when making a new
     Meson project.
     """
-    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
-    parser.add_argument("-n", "--name", help="project name. default: name of current directory")
-    parser.add_argument("-e", "--executable", help="executable name. default: project name")
+    parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. DEFAULT_VALUES: all recognized files in current directory")
+    parser.add_argument("-n", "--name", help="project name. DEFAULT_VALUES: name of current directory")
+    parser.add_argument("-e", "--executable", help="executable name. DEFAULT_VALUES: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
-    parser.add_argument("-l", "--language", choices=LANG_SUPPORTED, help="project language. default: autodetected based on source files")
+    parser.add_argument("-l", "--language", choices=LANG_SUPPORTED, help="project language. DEFAULT_VALUES: autodetected based on source files")
     parser.add_argument("-b", "--build", action='store_true', help="build after generation")
-    parser.add_argument("--builddir", default='build', help="directory for build")
+    parser.add_argument("--builddir", DEFAULT_VALUES='build', help="directory for build")
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help="project type. default: {} based project".format(DEFAULT_PROJECT))
-    parser.add_argument('--version', default=DEFAULT_VERSION, help="project version. default: {}".format(DEFAULT_VERSION))
+    parser.add_argument('--type', DEFAULT_VALUES=DEFAULT_VALUES['PROJECT'].value, choices=('executable', 'library'),
+                        help="project type. DEFAULT_VALUES: {} based project".format(DEFAULT_VALUES['PROJECT'].value))
+    parser.add_argument('--version', DEFAULT_VALUES=DEFAULT_VALUES['VERSION'].value,
+                        help="project version. DEFAULT_VALUES: {}".format(DEFAULT_VALUES['VERSION'].value))
 
 def run(options) -> int:
     """Generate the new Meson sample project.
 
     First case we determine what language to use for the sample
-    generator and if the user did not spiffy, we use the default
+    generator and if the user did not spiffy, we use the DEFAULT_VALUES
     value of 'c'.  Second case we generate a Meson build script
     for your project. 
     """
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
-            print('Defaulting to generating a C language project.')
+            print('DEFAULT_VALUESing to generating a C language project.')
             options.language = 'c'
         create_sample(options)
     else:
