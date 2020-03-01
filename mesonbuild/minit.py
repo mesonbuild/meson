@@ -156,7 +156,7 @@ def run(options) -> int:
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
-            print('DEFAULT_VALUESing to generating a C language project.')
+            print('defaulting to generating a C language project.')
             options.language = 'c'
         create_sample(options)
     else:
