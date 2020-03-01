@@ -57,7 +57,6 @@ def create_meson_build(options):
                                                    version=options.version,
                                                    executable=options.executable,
                                                    sourcespec=sourcespec,
-                                                   main_class=options.name,
                                                    depspec=depspec,
                                                    default_options=formatted_default_options)
     else:
@@ -65,6 +64,7 @@ def create_meson_build(options):
                                             language=options.language,
                                             version=options.version,
                                             executable=options.executable,
+                                            main_class=options.name,
                                             sourcespec=sourcespec,
                                             depspec=depspec,
                                             default_options=formatted_default_options)
