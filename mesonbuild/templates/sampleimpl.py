@@ -15,7 +15,7 @@
 
 class SampleImpl(object):
     def create_executable(self):
-        NotImplementedError('Sample implementation for "executable" not implemented!')
+        raise NotImplementedError('Sample implementation for "executable" not implemented!')
 
     def create_library(self):
-        NotImplementedError('Sample implementation for "library" not implemented!')
+        raise NotImplementedError('Sample implementation for "library" not implemented!')
