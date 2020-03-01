@@ -731,6 +731,7 @@ class Compiler:
         return repr_str.format(self.__class__.__name__, self.version,
                                ' '.join(self.exelist))
 
+    @lru_cache(maxsize=None)
     def can_compile(self, src) -> bool:
         if hasattr(src, 'fname'):
             src = src.fname
