@@ -27,7 +27,7 @@ meson_jar_template = '''project('{project_name}', '{language}',
   default_options : [{default_options}])
 
 jar('{executable}',
-    {sourcespec},{depspec}
+    {sourcespec},{main_class},{depspec}
     install : true)
 '''
 
@@ -57,6 +57,7 @@ def create_meson_build(options):
                                                    version=options.version,
                                                    executable=options.executable,
                                                    sourcespec=sourcespec,
+                                                   main_class=options.name,
                                                    depspec=depspec,
                                                    default_options=formatted_default_options)
     else:
