@@ -228,7 +228,7 @@ def run(options) -> int:
     Here we generate the new Meson sample project.
     '''
     if not Path(options.wd).exists():
-        sys.exit('Project source root directory not found. Run this command in build directory root.')
+        sys.exit('Project source root directory not found. Run this command in source directory root.')
     os.chdir(options.wd)
 
     if not glob('*'):
