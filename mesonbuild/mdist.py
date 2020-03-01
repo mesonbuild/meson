@@ -66,6 +66,7 @@ def del_gitfiles(dirname):
         else:
             os.unlink(f)
 
+
 def process_submodules(dirname):
     '''
     here Git submodules are processed.
@@ -115,12 +116,14 @@ def is_git(src_root):
     _git = os.path.join(src_root, '.git')
     return os.path.isdir(_git) or os.path.isfile(_git)
 
+
 def git_have_dirty_index(src_root):
     '''
     Here we check whether there are uncommitted changes in git
     '''
     ret = subprocess.call(['git', '-C', src_root, 'diff-index', '--quiet', 'HEAD'])
     return ret == 1
+
 
 def git_clone(src_root, distdir):
     '''
@@ -134,6 +137,7 @@ def git_clone(src_root, distdir):
     subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
     process_submodules(distdir)
     del_gitfiles(distdir)
+
 
 def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
     '''
@@ -159,11 +163,13 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
     shutil.rmtree(distdir)
     return output_names
 
+
 def is_hg(src_root):
     '''
     here we check to see if its
     '''
     return os.path.isdir(os.path.join(src_root, '.hg'))
+
 
 def hg_have_dirty_index(src_root):
     '''
@@ -171,6 +177,7 @@ def hg_have_dirty_index(src_root):
     '''
     out = subprocess.check_output(['hg', '-R', src_root, 'summary'])
     return b'commit: (clean)' not in out
+
 
 def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts):
     if hg_have_dirty_index(src_root):
@@ -209,6 +216,7 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
         output_names.append(zipname)
     return output_names
 
+
 def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin):
     '''
     here we run are dist generator steps for creating
@@ -229,6 +237,7 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
         print('Installing the distribution package failed')
         return 1
     return 0
+
 
 def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     '''
@@ -262,6 +271,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         print('Distribution package {} tested'.format(packagename))
     return ret
 
+
 def determine_archives_to_generate(options):
     '''
     here we determine what archives to generate
@@ -274,6 +284,7 @@ def determine_archives_to_generate(options):
     if len(i) == 0:
         sys.exit('No archive types specified.')
     return result
+
 
 def run(options):
     '''
