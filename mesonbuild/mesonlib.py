@@ -1126,8 +1126,8 @@ def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
                 extended_args = f.read().split()
             expended_args += extended_args
         except Exception as e:
-            print('Error expanding command line arguments, %s not found' % args_file)
-            print(e)
+            mlog.error('Expanding command line arguments:',  args_file, 'not found')
+            mlog.exception(e)
             return None
     return expended_args
 
