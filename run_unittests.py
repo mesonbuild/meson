@@ -3309,6 +3309,12 @@ int main(int argc, char **argv) {
         except EnvironmentException:
             pass
         # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
+        if not is_windows():
+            try:
+                env.detect_rust_compiler(MachineChoice.HOST)
+                langs.append('rust')
+            except EnvironmentException:
+                pass
 
         for lang in langs:
             for target_type in ('executable', 'library'):
@@ -3321,7 +3327,7 @@ int main(int argc, char **argv) {
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
             # test directory with existing code file
-            if lang in ('c', 'cpp'):
+            if lang in ('c', 'cpp', 'd'):
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
                         f.write('int main(void) {}')
