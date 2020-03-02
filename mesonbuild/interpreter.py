@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep
+from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep, unholder
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -2460,11 +2460,11 @@ class Interpreter(InterpreterBase):
         if not isinstance(version, str):
             raise InterpreterException('Version must be a string.')
         incs = self.extract_incdirs(kwargs)
-        libs = extract_as_list(kwargs, 'link_with', unholder=True)
-        libs_whole = extract_as_list(kwargs, 'link_whole', unholder=True)
+        libs = unholder(extract_as_list(kwargs, 'link_with'))
+        libs_whole = unholder(extract_as_list(kwargs, 'link_whole'))
         sources = extract_as_list(kwargs, 'sources')
-        sources = listify(self.source_strings_to_files(sources), unholder=True)
-        deps = extract_as_list(kwargs, 'dependencies', unholder=True)
+        sources = unholder(listify(self.source_strings_to_files(sources)))
+        deps = unholder(extract_as_list(kwargs, 'dependencies'))
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         variables = kwargs.get('variables', {})
@@ -3581,12 +3581,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if 'command' not in kwargs:
                 raise InterpreterException('Missing "command" keyword argument')
             all_args = extract_as_list(kwargs, 'command')
-            deps = extract_as_list(kwargs, 'depends', unholder=True)
+            deps = unholder(extract_as_list(kwargs, 'depends'))
         else:
             raise InterpreterException('Run_target needs at least one positional argument.')
 
         cleaned_args = []
-        for i in listify(all_args, unholder=True):
+        for i in unholder(listify(all_args)):
             if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
@@ -3617,7 +3617,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         name = args[0]
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string.')
-        deps = listify(args[1:], unholder=True)
+        deps = unholder(listify(args[1:]))
         for d in deps:
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
                 raise InterpreterException('Depends items must be build targets.')
@@ -3675,7 +3675,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         par = kwargs.get('is_parallel', True)
         if not isinstance(par, bool):
             raise InterpreterException('Keyword argument is_parallel must be a boolean.')
-        cmd_args = extract_as_list(kwargs, 'args', unholder=True)
+        cmd_args = unholder(extract_as_list(kwargs, 'args'))
         for i in cmd_args:
             if not isinstance(i, (str, mesonlib.File, build.Target)):
                 raise InterpreterException('Command line arguments must be strings, files or targets.')
@@ -3703,7 +3703,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if len(s) > 0:
                 s = ':' + s
             suite.append(prj.replace(' ', '_').replace(':', '_') + s)
-        depends = extract_as_list(kwargs, 'depends', unholder=True)
+        depends = unholder(extract_as_list(kwargs, 'depends'))
         for dep in depends:
             if not isinstance(dep, (build.CustomTarget, build.BuildTarget)):
                 raise InterpreterException('Depends items must be build targets.')
@@ -4066,7 +4066,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, kwargs):
-        prospectives = listify(kwargs.get('include_directories', []), unholder=True)
+        prospectives = unholder(extract_as_list(kwargs, 'include_directories'))
         result = []
         for p in prospectives:
             if isinstance(p, build.IncludeDirs):
@@ -4127,7 +4127,7 @@ different subdirectory.
         if ":" not in setup_name:
             setup_name = (self.subproject if self.subproject else self.build.project_name) + ":" + setup_name
         try:
-            inp = extract_as_list(kwargs, 'exe_wrapper', unholder=True)
+            inp = unholder(extract_as_list(kwargs, 'exe_wrapper'))
             exe_wrapper = []
             for i in inp:
                 if isinstance(i, str):

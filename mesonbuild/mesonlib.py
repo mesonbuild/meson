@@ -1058,34 +1058,25 @@ def unholder(item):
     return item
 
 
-def listify(item: T.Any,
-            flatten: bool = True,
-            unholder: bool = False) -> T.List[T.Any]:
+def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
     '''
     Returns a list with all args embedded in a list if they are not a list.
     This function preserves order.
     @flatten: Convert lists of lists to a flat list
-    @unholder: Replace each item with the object it holds, if required
-
-    Note: unholding only works recursively when flattening
     '''
     if not isinstance(item, list):
-        if unholder and hasattr(item, 'held_object'):
-            item = item.held_object
         return [item]
     result = []  # type: T.List[T.Any]
     for i in item:
-        if unholder and hasattr(i, 'held_object'):
-            i = i.held_object
         if flatten and isinstance(i, list):
-            result += listify(i, flatten=True, unholder=unholder)
+            result += listify(i, flatten=True)
         else:
             result.append(i)
     return result
 
 
 def extract_as_list(dict_object: T.Dict[_T, _U], *keys: _T, pop: bool = False,
-                    **kwargs: T.Any) -> T.List[T.Union[_U, T.List[_U]]]:
+                    flatten: bool = True) -> T.List[T.Union[_U, T.List[_U]]]:
     '''
     Extracts all values from given dict_object and listifies them.
     '''
@@ -1095,10 +1086,10 @@ def extract_as_list(dict_object: T.Dict[_T, _U], *keys: _T, pop: bool = False,
         fetch = dict_object.pop
     # If there's only one key, we don't return a list with one element
     if len(keys) == 1:
-        return listify(fetch(keys[0], []), **kwargs)
+        return listify(fetch(keys[0], []), flatten=True)
     # Return a list of values corresponding to *keys
     for key in keys:
-        result.append(listify(fetch(key, []), **kwargs))
+        result.append(listify(fetch(key, []), flatten=True))
     return result
 
 

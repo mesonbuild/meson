@@ -316,7 +316,7 @@ class GnomeModule(ExtensionModule):
         # require two args in order, such as -framework AVFoundation
         external_ldflags_nodedup = []
         gi_includes = OrderedSet()
-        deps = mesonlib.listify(deps, unholder=True)
+        deps = mesonlib.unholder(mesonlib.listify(deps))
 
         for dep in deps:
             if isinstance(dep, InternalDependency):
@@ -776,7 +776,7 @@ class GnomeModule(ExtensionModule):
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
-        deps += extract_as_list(kwargs, 'dependencies', pop=True, unholder=True)
+        deps += mesonlib.unholder(extract_as_list(kwargs, 'dependencies', pop=True))
         typelib_includes = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
@@ -1057,7 +1057,7 @@ This will become a hard error in the future.''')
 
     def _get_build_args(self, kwargs, state, depends):
         args = []
-        deps = extract_as_list(kwargs, 'dependencies', unholder=True)
+        deps = mesonlib.unholder(extract_as_list(kwargs, 'dependencies'))
         cflags = []
         cflags.extend(mesonlib.stringlistify(kwargs.pop('c_args', [])))
         deps_cflags, internal_ldflags, external_ldflags, gi_includes = \

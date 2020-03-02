@@ -26,7 +26,7 @@ from . import mlog
 from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep,
+    get_filenames_templates_dict, substitute_values, has_path_sep, unholder
 )
 from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes
 from .linkers import StaticLinker
@@ -856,7 +856,7 @@ just like those detected with the dependency() function.''')
         if dfeature_debug:
             dfeatures['debug'] = dfeature_debug
         if 'd_import_dirs' in kwargs:
-            dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs', unholder=True)
+            dfeature_import_dirs = unholder(extract_as_list(kwargs, 'd_import_dirs'))
             for d in dfeature_import_dirs:
                 if not isinstance(d, IncludeDirs):
                     raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
@@ -1083,7 +1083,7 @@ You probably should put it in link_with instead.''')
         return isinstance(self, StaticLibrary) and not self.need_install
 
     def link(self, target):
-        for t in listify(target, unholder=True):
+        for t in unholder(listify(target)):
             if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
                 # When we're a static library and we link_with to an
                 # internal/convenience library, promote to link_whole.
@@ -1105,7 +1105,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        for t in listify(target, unholder=True):
+        for t in unholder(listify(target)):
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
@@ -1261,7 +1261,7 @@ You probably should put it in link_with instead.''')
                     if dl != linker.language:
                         stdlib_args += all_compilers[dl].language_stdlib_only_link_flags()
                         added_languages.add(dl)
-                # Type of var 'linker' is Compiler. 
+                # Type of var 'linker' is Compiler.
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
@@ -1372,7 +1372,7 @@ class Generator:
                 raise InvalidArguments('Capture must be boolean.')
             self.capture = capture
         if 'depends' in kwargs:
-            depends = listify(kwargs['depends'], unholder=True)
+            depends = unholder(listify(kwargs['depends']))
             for d in depends:
                 if not isinstance(d, BuildTarget):
                     raise InvalidArguments('Depends entries must be build targets.')
@@ -2054,7 +2054,7 @@ class CustomTarget(Target):
         return bdeps
 
     def flatten_command(self, cmd):
-        cmd = listify(cmd, unholder=True)
+        cmd = unholder(listify(cmd))
         final_cmd = []
         for c in cmd:
             if isinstance(c, str):
@@ -2082,7 +2082,7 @@ class CustomTarget(Target):
 
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
-        self.sources = extract_as_list(kwargs, 'input', unholder=True)
+        self.sources = unholder(extract_as_list(kwargs, 'input'))
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
@@ -2411,18 +2411,18 @@ class ConfigureFile:
 class ConfigurationData:
     def __init__(self) -> None:
         super().__init__()
-        self.values = {}
+        self.values = {}  # T.Dict[str, T.Union[str, int, bool]]
 
     def __repr__(self):
         return repr(self.values)
 
-    def __contains__(self, value):
+    def __contains__(self, value: str) -> bool:
         return value in self.values
 
-    def get(self, name):
+    def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
         return self.values[name] # (val, desc)
 
-    def keys(self):
+    def keys(self) -> T.Iterator[str]:
         return self.values.keys()
 
 # A bit poorly named, but this represents plain data files to copy

@@ -74,7 +74,7 @@ class DependenciesHelper:
     def _process_reqs(self, reqs):
         '''Returns string names of requirements'''
         processed_reqs = []
-        for obj in mesonlib.listify(reqs, unholder=True):
+        for obj in mesonlib.unholder(mesonlib.listify(reqs)):
             if not isinstance(obj, str):
                 FeatureNew('pkgconfig.generate requirement from non-string object', '0.46.0').use(self.state.subproject)
             if hasattr(obj, 'generated_pc'):
@@ -108,7 +108,7 @@ class DependenciesHelper:
         self.cflags += mesonlib.stringlistify(cflags)
 
     def _process_libs(self, libs, public):
-        libs = mesonlib.listify(libs, unholder=True)
+        libs = mesonlib.unholder(mesonlib.listify(libs))
         processed_libs = []
         processed_reqs = []
         processed_cflags = []
