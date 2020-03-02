@@ -248,7 +248,7 @@ class Installer:
                 raise RuntimeError('Destination {!r} already exists and is not '
                                    'a file'.format(to_file))
             if self.should_preserve_existing_file(from_file, to_file):
-                append_to_log(self.lf, '# Preserving old file %s\n' % to_file)
+                append_to_log(self.lf, '# Preserving old file {}\n'.format(to_file))
                 self.preserved_file_count += 1
                 return False
             os.remove(to_file)
@@ -257,7 +257,7 @@ class Installer:
             dirmaker, outdir = makedirs
             # Create dirs if needed
             dirmaker.makedirs(outdir, exist_ok=True)
-        self.log('Installing %s to %s' % (from_file, outdir))
+        self.log('Installing {} to {}'.format(from_file, outdir))
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
@@ -299,9 +299,9 @@ class Installer:
                      each element of the set is a path relative to src_dir.
         '''
         if not os.path.isabs(src_dir):
-            raise ValueError('src_dir must be absolute, got %s' % src_dir)
+            raise ValueError('src_dir must be absolute, got {}'.format(src_dir))
         if not os.path.isabs(dst_dir):
-            raise ValueError('dst_dir must be absolute, got %s' % dst_dir)
+            raise ValueError('dst_dir must be absolute, got {}'.format(dst_dir))
         if exclude is not None:
             exclude_files, exclude_dirs = exclude
         else:
@@ -319,7 +319,7 @@ class Installer:
                 if os.path.isdir(abs_dst):
                     continue
                 if os.path.exists(abs_dst):
-                    print('Tried to copy directory %s but a file of that name already exists.' % abs_dst)
+                    print('Tried to copy directory {} but a file of that name already exists.'.format(abs_dst))
                     sys.exit(1)
                 data.dirmaker.makedirs(abs_dst)
                 shutil.copystat(abs_src, abs_dst)
@@ -331,7 +331,7 @@ class Installer:
                     continue
                 abs_dst = os.path.join(dst_dir, filepart)
                 if os.path.isdir(abs_dst):
-                    print('Tried to copy file %s but a directory of that name already exists.' % abs_dst)
+                    print('Tried to copy file {} but a directory of that name already exists.'.format(abs_dst))
                     sys.exit(1)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
@@ -379,7 +379,7 @@ class Installer:
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
             self.did_install_something = True
             full_dst_dir = get_destdir_path(d, dst_dir)
-            self.log('Installing subdir %s to %s' % (src_dir, full_dst_dir))
+            self.log('Installing subdir {} to {}'.format(src_dir, full_dst_dir))
             d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
             self.do_copydir(d, src_dir, full_dst_dir, exclude, mode)
 
@@ -473,8 +473,8 @@ class Installer:
                     ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
                     if ps.returncode != 0:
                         print('Could not strip file.\n')
-                        print('Stdout:\n%s\n' % stdo)
-                        print('Stderr:\n%s\n' % stde)
+                        print('Stdout:\n{}\n'.format(stdo))
+                        print('Stderr:\n{}\n'.format(stde))
                         sys.exit(1)
                 if fname.endswith('.js'):
                     # Emscripten outputs js files and optionally a wasm file.
