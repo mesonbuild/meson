@@ -273,6 +273,8 @@ class File:
         return self.fname.split(s)
 
     def __eq__(self, other) -> bool:
+        if not isinstance(other, File):
+            return NotImplemented
         return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
 
     def __hash__(self) -> int:
