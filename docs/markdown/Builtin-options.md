@@ -87,6 +87,23 @@ Using the option as-is with no prefix affects all machines. For example:
 | werror                               | false         | Treat warnings as errors                                       | no             |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
 
+For setting optimization levels and toggling debug, you can either set the
+`buildtype` option, or you can set the `optimization` and `debug` options which
+give finer control over the same. Whichever you decide to use, the other will
+be deduced from it. For example, `-Dbuildtype=debugoptimized` is the same as
+`-Ddebug=true -Doptimization=2` and vice-versa. This table documents the
+two-way mapping:
+
+| buildtype      | debug | optimization |
+| ---------      | ----- | ------------ |
+| plain          | false | 0            |
+| debug          | true  | 0            |
+| debugoptimized | true  | 2            |
+| release        | false | 3            |
+| minsize        | true  | s            |
+
+All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+
 ## Base options
 
 These are set in the same way as universal options, but cannot be shown in the
