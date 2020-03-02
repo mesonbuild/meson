@@ -113,7 +113,7 @@ class MTypeBase:
 
     def _new_node(self):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_node of MTypeBase was called')
 
     def can_modify(self):
         return self.node_type is not None
@@ -159,7 +159,7 @@ class MTypeBool(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, False))
+        return BooleanNode(Token('', '', 0, 0, 0, None, False))
 
     def supported_nodes(self):
         return [BooleanNode]
@@ -172,7 +172,7 @@ class MTypeID(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, ''))
+        return IdNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
         return [IdNode]
@@ -189,7 +189,7 @@ class MTypeList(MTypeBase):
 
     def _new_element_node(self, value):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self):
         if not isinstance(self.node, ArrayNode):
@@ -414,10 +414,10 @@ class Rewriter:
         # Check the assignments
         tgt = None
         if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target][0]
+            node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
-                    tgt = self.interpreter.assign_vals[target][0]
+                    tgt = self.interpreter.assign_vals[target]
 
         return tgt
 
@@ -434,7 +434,7 @@ class Rewriter:
 
         # Check the assignments
         if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency][0]
+            node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['dependency']:
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -522,6 +522,8 @@ class Rewriter:
             mlog.error('Unable to find the function node')
         assert(isinstance(node, FunctionNode))
         assert(isinstance(arg_node, ArgumentNode))
+        # Transform the key nodes to plain strings
+        arg_node.kwargs = {k.value: v for k, v in arg_node.kwargs.items()}
 
         # Print kwargs info
         if cmd['operation'] == 'info':
@@ -585,11 +587,13 @@ class Rewriter:
             arg_node.kwargs[key] = modifyer.get_node()
             num_changed += 1
 
+        # Convert the keys back to IdNode's
+        arg_node.kwargs = {IdNode(Token('', '', 0, 0, 0, None, k)): v for k, v in arg_node.kwargs.items()}
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
+        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
 

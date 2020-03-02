@@ -176,10 +176,10 @@ class OptionInterpreter:
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
-            if not isinstance(key, str):
+            if not isinstance(key, mparser.IdNode):
                 raise OptionException('Keyword argument name is not a string.')
             a = args.kwargs[key]
-            reduced_kw[key] = self.reduce_single(a)
+            reduced_kw[key.value] = self.reduce_single(a)
         return reduced_pos, reduced_kw
 
     def evaluate_statement(self, node):
