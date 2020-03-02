@@ -22,34 +22,22 @@ import re
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
+from mesonbuild.templates.samplefactory import SampleFactory
 
-from mesonbuild.templates.fortrantemplates import (create_exe_fortran_sample, create_lib_fortran_sample)
-from mesonbuild.templates.objcpptemplates import (create_exe_objcpp_sample, create_lib_objcpp_sample)
-from mesonbuild.templates.dlangtemplates import (create_exe_d_sample, create_lib_d_sample)
-from mesonbuild.templates.rusttemplates import (create_exe_rust_sample, create_lib_rust_sample)
-from mesonbuild.templates.javatemplates import (create_exe_java_sample, create_lib_java_sample)
-from mesonbuild.templates.cudatemplates import (create_exe_cuda_sample, create_lib_cuda_sample)
-from mesonbuild.templates.objctemplates import (create_exe_objc_sample, create_lib_objc_sample)
-from mesonbuild.templates.cpptemplates import (create_exe_cpp_sample, create_lib_cpp_sample)
-from mesonbuild.templates.cstemplates import (create_exe_cs_sample, create_lib_cs_sample)
-from mesonbuild.templates.ctemplates import (create_exe_c_sample, create_lib_c_sample)
-
-'''
-we currently have one meson template at this time.
-'''
+"""we currently have one meson template at this time."""
 from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'} | FORTRAN_SUFFIXES
 LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp'}
 
-DEFAULT_PROJECT = 'executable'
-DEFAULT_VERSION = '0.1'
+class DEFAULT_VALUES(Enum):
+    PROJECT = 'executable'
+    VERSION = '0.1'
+
 class DEFAULT_TYPES(Enum):
     EXE = 'executable'
     LIB = 'library'
-
-UNREACHABLE_CODE_ERROR = 'Unreachable code'
 
 INFO_MESSAGE = '''Sample project created. To build it run the
 following commands:
@@ -60,89 +48,23 @@ ninja -C builddir
 
 
 def create_sample(options) -> None:
-    '''
-    Based on what arguments are passed we check for a match in language
+    """Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
-    '''
-    if options.language == 'c':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_c_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_c_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cpp':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cpp_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cpp_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cs':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cs_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cs_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cuda':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cuda_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cuda_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'd':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_d_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_d_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'fortran':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_fortran_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_fortran_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'rust':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_rust_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_rust_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'objc':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_objc_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_objc_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'objcpp':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_objcpp_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_objcpp_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'java':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_java_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_java_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
+    """
+    generator = SampleFactory()
+    sample_gen = generator.sameple_generator(options)
+    if options.type == DEFAULT_TYPES['EXE'].value:
+        sample_gen.create_executable()
+    elif options.type == DEFAULT_TYPES['LIB'].value:
+        sample_gen.create_library()
     else:
-        raise RuntimeError(UNREACHABLE_CODE_ERROR)
+        raise RuntimeError('Unreachable code')
     print(INFO_MESSAGE)
 
 def autodetect_options(options, sample: bool = False) -> None:
-    '''
-    Here we autodetect options for args not passed in so don't have to
+    """Autodetect options for args not passed in so don't have to
     think about it.
-    '''
+    """
     if not options.name:
         options.name = Path().resolve().stem
         if not re.match('[a-zA-Z_][a-zA-Z0-9]*', options.name) and sample:
@@ -205,10 +127,9 @@ def autodetect_options(options, sample: bool = False) -> None:
         print("Detected language: " + options.language)
 
 def add_arguments(parser):
-    '''
-    Here we add args for that the user can passed when making a new
+    """Here we add args for that the user can passed when making a new
     Meson project.
-    '''
+    """
     parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
@@ -217,17 +138,23 @@ def add_arguments(parser):
     parser.add_argument("-b", "--build", action='store_true', help="build after generation")
     parser.add_argument("--builddir", default='build', help="directory for build")
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help="project type. default: {} based project".format(DEFAULT_PROJECT))
-    parser.add_argument('--version', default=DEFAULT_VERSION, help="project version. default: {}".format(DEFAULT_VERSION))
+    parser.add_argument('--type', default=DEFAULT_VALUES['PROJECT'].value, choices=('executable', 'library'),
+                        help="project type. default: {} based project".format(DEFAULT_VALUES['PROJECT'].value))
+    parser.add_argument('--version', default=DEFAULT_VALUES['VERSION'].value,
+                        help="project version. default: {}".format(DEFAULT_VALUES['VERSION'].value))
 
 def run(options) -> int:
-    '''
-    Here we generate the new Meson sample project.
-    '''
+    """Generate the new Meson sample project.
+
+    First case we determine what language to use for the sample
+    generator and if the user did not spiffy, we use the default
+    value of 'c'.  Second case we generate a Meson build script
+    for your project.
+    """
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:
-            print('Defaulting to generating a C language project.')
+            print('defaulting to generating a C language project.')
             options.language = 'c'
         create_sample(options)
     else:
