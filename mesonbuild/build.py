@@ -963,8 +963,7 @@ This will become a hard error in a future Meson release.''')
         if self.gnu_symbol_visibility != '':
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
             if self.gnu_symbol_visibility not in permitted:
-                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}',
-                                       self.symbol_visibility, ', '.join(permitted))
+                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
 
     def _extract_pic_pie(self, kwargs, arg):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
