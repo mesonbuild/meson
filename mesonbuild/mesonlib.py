@@ -24,6 +24,7 @@ from functools import lru_cache, update_wrapper
 from itertools import tee, filterfalse
 import typing as T
 import uuid
+import textwrap
 
 from mesonbuild import mlog
 
@@ -109,10 +110,12 @@ def check_direntry_issues(direntry_array):
         for de in direntry_array:
             if is_ascii_string(de):
                 continue
-            mlog.warning('''You are using {!r} which is not a Unicode-compatible '
-locale but you are trying to access a file system entry called {!r} which is
-not pure ASCII. This may cause problems.
-'''.format(e, de), file=sys.stderr)
+            mlog.warning(textwrap.dedent('''
+                You are using {!r} which is not a Unicode-compatible
+                locale but you are trying to access a file system entry called {!r} which is
+                not pure ASCII. This may cause problems.
+                '''.format(e, de)), file=sys.stderr)
+
 
 # Put this in objects that should not get dumped to pickle files
 # by accident.
