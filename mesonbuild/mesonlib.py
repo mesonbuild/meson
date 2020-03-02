@@ -1,4 +1,4 @@
-# Copyright 2012-2019 The Meson development team
+# Copyright 2012-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
 from enum import Enum
-from functools import lru_cache, update_wrapper
+from functools import lru_cache, wraps
 from itertools import tee, filterfalse
 import typing as T
 import uuid
@@ -28,13 +28,19 @@ import textwrap
 
 from mesonbuild import mlog
 
+if T.TYPE_CHECKING:
+    from .build import ConfigurationData
+    from .coredata import OptionDictType, UserOption
+    from .compilers.compilers import CompilerType
+    from .interpreterbase import ObjectHolder
+
 _T = T.TypeVar('_T')
 _U = T.TypeVar('_U')
 
 have_fcntl = False
 have_msvcrt = False
 # {subproject: project_meson_version}
-project_meson_versions = {}
+project_meson_versions = {}  # type: T.Dict[str, str]
 
 try:
     import fcntl
@@ -58,7 +64,7 @@ else:
 meson_command = None
 
 GIT = shutil.which('git')
-def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProcess:
+def git(cmd: T.List[str], workingdir: str, **kwargs: T.Any) -> subprocess.CompletedProcess:
     pc = subprocess.run([GIT, '-C', workingdir] + cmd,
                         # Redirect stdin to DEVNULL otherwise git messes up the
                         # console and ANSI colors stop working on Windows.
@@ -70,7 +76,7 @@ def git(cmd: T.List[str], workingdir: str, **kwargs) -> subprocess.CompletedProc
     return pc
 
 
-def set_meson_command(mainfile):
+def set_meson_command(mainfile: str) -> None:
     global python_command
     global meson_command
     # On UNIX-like systems `meson` is a Python script
@@ -87,7 +93,8 @@ def set_meson_command(mainfile):
     if 'MESON_COMMAND_TESTS' in os.environ:
         mlog.log('meson_command is {!r}'.format(meson_command))
 
-def is_ascii_string(astring) -> bool:
+
+def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
     try:
         if isinstance(astring, str):
             astring.encode('ascii')
@@ -97,7 +104,8 @@ def is_ascii_string(astring) -> bool:
         return False
     return True
 
-def check_direntry_issues(direntry_array):
+
+def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], str, bytes]) -> None:
     import locale
     # Warn if the locale is not UTF-8. This can cause various unfixable issues
     # such as os.stat not being able to decode filenames with unicode in them.
@@ -122,11 +130,18 @@ def check_direntry_issues(direntry_array):
 import threading
 an_unpicklable_object = threading.Lock()
 
+
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
+    file = None    # type: T.Optional[str]
+    lineno = None  # type: T.Optional[int]
+    colno = None   # type: T.Optional[int]
+
+
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
+
 
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,
@@ -154,18 +169,19 @@ class FileMode:
                                       '[r-][w-][xsS-]' # Group perms
                                       '[r-][w-][xtT-]') # Others perms
 
-    def __init__(self, perms=None, owner=None, group=None):
+    def __init__(self, perms: T.Optional[str] = None, owner: T.Optional[str] = None,
+                 group: T.Optional[str] = None):
         self.perms_s = perms
         self.perms = self.perms_s_to_bits(perms)
         self.owner = owner
         self.group = group
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         ret = '<FileMode: {!r} owner={} group={}'
         return ret.format(self.perms_s, self.owner, self.group)
 
     @classmethod
-    def perms_s_to_bits(cls, perms_s):
+    def perms_s_to_bits(cls, perms_s: T.Optional[str]) -> int:
         '''
         Does the opposite of stat.filemode(), converts strings of the form
         'rwxr-xr-x' to st_mode enums which can be passed to os.chmod()
@@ -224,8 +240,6 @@ class File:
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
-        assert(isinstance(self.subdir, str))
-        assert(isinstance(self.fname, str))
 
     def __str__(self) -> str:
         return self.relative_name()
@@ -239,17 +253,17 @@ class File:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root: str, subdir: str, fname: str):
+    def from_source_file(source_root: str, subdir: str, fname: str) -> 'File':
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
         return File(False, subdir, fname)
 
     @staticmethod
-    def from_built_file(subdir: str, fname: str):
+    def from_built_file(subdir: str, fname: str) -> 'File':
         return File(True, subdir, fname)
 
     @staticmethod
-    def from_absolute_file(fname: str):
+    def from_absolute_file(fname: str) -> 'File':
         return File(False, '', fname)
 
     @lru_cache(maxsize=None)
@@ -285,14 +299,16 @@ class File:
         return os.path.join(self.subdir, self.fname)
 
 
-def get_compiler_for_source(compilers, src):
+def get_compiler_for_source(compilers: T.Iterable['CompilerType'], src: str) -> 'CompilerType':
+    """Given a set of compilers and a source, find the compiler for that source type."""
     for comp in compilers:
         if comp.can_compile(src):
             return comp
     raise MesonException('No specified compiler can handle file {!s}'.format(src))
 
-def classify_unity_sources(compilers, sources):
-    compsrclist = {}
+
+def classify_unity_sources(compilers: T.Iterable['CompilerType'], sources: T.Iterable[str]) -> T.Dict['CompilerType', T.List[str]]:
+    compsrclist = {}  # type: T.Dict[CompilerType, T.List[str]]
     for src in sources:
         comp = get_compiler_for_source(compilers, src)
         if comp not in compsrclist:
@@ -300,6 +316,7 @@ def classify_unity_sources(compilers, sources):
         else:
             compsrclist[comp].append(src)
     return compsrclist
+
 
 class OrderedEnum(Enum):
     """
@@ -335,10 +352,10 @@ class MachineChoice(OrderedEnum):
     BUILD = 0
     HOST = 1
 
-    def get_lower_case_name(self):
+    def get_lower_case_name(self) -> str:
         return PerMachine('build', 'host')[self]
 
-    def get_prefix(self):
+    def get_prefix(self) -> str:
         return PerMachine('build.', '')[self]
 
 
@@ -402,6 +419,7 @@ class PerThreeMachine(PerMachine[_T]):
     def matches_build_machine(self, machine: MachineChoice) -> bool:
         return self.build == self[machine]
 
+
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
@@ -444,39 +462,51 @@ class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Option
 def is_sunos() -> bool:
     return platform.system().lower() == 'sunos'
 
+
 def is_osx() -> bool:
     return platform.system().lower() == 'darwin'
+
 
 def is_linux() -> bool:
     return platform.system().lower() == 'linux'
 
+
 def is_android() -> bool:
     return platform.system().lower() == 'android'
+
 
 def is_haiku() -> bool:
     return platform.system().lower() == 'haiku'
 
+
 def is_openbsd() -> bool:
     return platform.system().lower() == 'openbsd'
+
 
 def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows' or 'mingw' in platname
 
+
 def is_cygwin() -> bool:
     return platform.system().lower().startswith('cygwin')
+
 
 def is_debianlike() -> bool:
     return os.path.isfile('/etc/debian_version')
 
+
 def is_dragonflybsd() -> bool:
     return platform.system().lower() == 'dragonfly'
+
 
 def is_netbsd() -> bool:
     return platform.system().lower() == 'netbsd'
 
+
 def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
+
 
 def exe_exists(arglist: T.List[str]) -> bool:
     try:
@@ -486,8 +516,9 @@ def exe_exists(arglist: T.List[str]) -> bool:
         pass
     return False
 
+
 @lru_cache(maxsize=None)
-def darwin_get_object_archs(objpath):
+def darwin_get_object_archs(objpath: str) -> T.List[str]:
     '''
     For a specific object (executable, static library, dylib, etc), run `lipo`
     to fetch the list of archs supported by it. Supports both thin objects and
@@ -506,7 +537,8 @@ def darwin_get_object_archs(objpath):
         stdo += ' arm'
     return stdo.split()
 
-def detect_vcs(source_dir):
+
+def detect_vcs(source_dir: str) -> T.Optional[T.Dict[str, str]]:
     vcs_systems = [
         dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
         dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -i',               rev_regex = '(.*)', dep = '.hg/dirstate'),
@@ -525,17 +557,19 @@ def detect_vcs(source_dir):
 
 # a helper class which implements the same version ordering as RPM
 class Version:
-    def __init__(self, s):
+    def __init__(self, s: str):
         self._s = s
 
         # split into numeric, alphabetic and non-alphanumeric sequences
-        sequences = re.finditer(r'(\d+|[a-zA-Z]+|[^a-zA-Z\d]+)', s)
-        # non-alphanumeric separators are discarded
-        sequences = [m for m in sequences if not re.match(r'[^a-zA-Z\d]+', m.group(1))]
-        # numeric sequences are converted from strings to ints
-        sequences = [int(m.group(1)) if m.group(1).isdigit() else m.group(1) for m in sequences]
+        sequences1 = re.finditer(r'(\d+|[a-zA-Z]+|[^a-zA-Z\d]+)', s)
 
-        self._v = sequences
+        # non-alphanumeric separators are discarded
+        sequences2 = [m for m in sequences1 if not re.match(r'[^a-zA-Z\d]+', m.group(1))]
+
+        # numeric sequences are converted from strings to ints
+        sequences3 = [int(m.group(1)) if m.group(1).isdigit() else m.group(1) for m in sequences2]
+
+        self._v = sequences3
 
     def __str__(self):
         return '%s (V=%s)' % (self._s, str(self._v))
@@ -573,7 +607,7 @@ class Version:
             return self._v != other._v
         return NotImplemented
 
-    def __cmp(self, other, comparator):
+    def __cmp(self, other: 'Version', comparator: T.Callable[[T.Any, T.Any], bool]) -> bool:
         # compare each sequence in order
         for ours, theirs in zip(self._v, other._v):
             # sort a non-digit sequence before a digit sequence
@@ -588,6 +622,7 @@ class Version:
         # if equal length, all components have matched, so equal
         # otherwise, the version with a suffix remaining is greater
         return comparator(len(self._v), len(other._v))
+
 
 def _version_extract_cmpop(vstr2: str) -> T.Tuple[T.Callable[[T.Any, T.Any], bool], str]:
     if vstr2.startswith('>='):
@@ -616,12 +651,14 @@ def _version_extract_cmpop(vstr2: str) -> T.Tuple[T.Callable[[T.Any, T.Any], boo
 
     return (cmpop, vstr2)
 
+
 def version_compare(vstr1: str, vstr2: str) -> bool:
     (cmpop, vstr2) = _version_extract_cmpop(vstr2)
     return cmpop(Version(vstr1), Version(vstr2))
 
-def version_compare_many(vstr1, conditions):
-    if not isinstance(conditions, (list, tuple, frozenset)):
+
+def version_compare_many(vstr1: str, conditions: T.Union[str, T.Iterable[str]]) -> T.Tuple[bool, T.List[str], T.List[str]]:
+    if isinstance(conditions, str):
         conditions = [conditions]
     found = []
     not_found = []
@@ -631,6 +668,7 @@ def version_compare_many(vstr1, conditions):
         else:
             found.append(req)
     return not_found == [], not_found, found
+
 
 # determine if the minimum version satisfying the condition |condition| exceeds
 # the minimum version for a feature |minimum|
@@ -672,7 +710,8 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
 
     return cmpop(Version(minimum), Version(condition))
 
-def default_libdir():
+
+def default_libdir() -> str:
     if is_debianlike():
         try:
             pc = subprocess.Popen(['dpkg-architecture', '-qDEB_HOST_MULTIARCH'],
@@ -690,12 +729,15 @@ def default_libdir():
         return 'lib64'
     return 'lib'
 
-def default_libexecdir():
+
+def default_libexecdir() -> str:
     # There is no way to auto-detect this, so it must be set at build time
     return 'libexec'
 
-def default_prefix():
+
+def default_prefix() -> str:
     return 'c:/' if is_windows() else '/usr/local'
+
 
 def get_library_dirs() -> T.List[str]:
     if is_windows():
@@ -742,7 +784,8 @@ def get_library_dirs() -> T.List[str]:
 
     return unixdirs
 
-def has_path_sep(name, sep='/\\'):
+
+def has_path_sep(name: str, sep: str = '/\\') -> bool:
     'Checks if any of the specified @sep path separators are in @name'
     for each in sep:
         if each in name:
@@ -759,7 +802,7 @@ if is_windows():
     _whitespace = ' \t\n\r'
     _find_unsafe_char = re.compile(r'[{}"]'.format(_whitespace)).search
 
-    def quote_arg(arg):
+    def quote_arg(arg: str) -> str:
         if arg and not _find_unsafe_char(arg):
             return arg
 
@@ -781,7 +824,7 @@ if is_windows():
         result += (num_backslashes * 2) * '\\' + '"'
         return result
 
-    def split_args(cmd: T.Sequence[str]) -> T.List[str]:
+    def split_args(cmd: str) -> T.List[str]:
         result = []
         arg = ''
         num_backslashes = 0
@@ -816,26 +859,29 @@ if is_windows():
 
         return result
 else:
-    def quote_arg(arg):
+    def quote_arg(arg: str) -> str:
         return shlex.quote(arg)
 
-    def split_args(cmd):
+    def split_args(cmd: str) -> T.List[str]:
         return shlex.split(cmd)
 
 
-def join_args(args):
+def join_args(args: T.Iterable[str]) -> str:
     return ' '.join([quote_arg(x) for x in args])
 
 
-def do_replacement(regex, line, variable_format, confdata):
-    missing_variables = set()
-    start_tag = '@'
-    backslash_tag = '\\@'
+def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
+                   confdata: 'ConfigurationData') -> T.Tuple[str, T.Set[str]]:
+    missing_variables = set()  # type: T.Set[str]
     if variable_format == 'cmake':
         start_tag = '${'
         backslash_tag = '\\${'
+    else:
+        assert variable_format == 'meson'
+        start_tag = '@'
+        backslash_tag = '\\@'
 
-    def variable_replace(match):
+    def variable_replace(match: T.Match[str]) -> str:
         # Pairs of escape characters before '@' or '\@'
         if match.group(0).endswith('\\'):
             num_escapes = match.end(0) - match.start(0)
@@ -862,7 +908,8 @@ def do_replacement(regex, line, variable_format, confdata):
             return var
     return re.sub(regex, variable_replace, line), missing_variables
 
-def do_mesondefine(line, confdata):
+
+def do_mesondefine(line: str, confdata: 'ConfigurationData') -> str:
     arr = line.split()
     if len(arr) != 2:
         raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
@@ -884,7 +931,8 @@ def do_mesondefine(line, confdata):
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
 
-def do_conf_file(src, dst, confdata, variable_format, encoding='utf-8'):
+def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
+                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
     try:
         with open(src, encoding=encoding, newline='') as f:
             data = f.readlines()
@@ -942,7 +990,7 @@ CONF_NASM_PRELUDE = '''; Autogenerated by the Meson build system.
 
 '''
 
-def dump_conf_header(ofilename, cdata, output_format):
+def dump_conf_header(ofilename: str, cdata: 'ConfigurationData', output_format: str) -> None:
     if output_format == 'c':
         prelude = CONF_C_PRELUDE
         prefix = '#'
@@ -972,7 +1020,8 @@ def dump_conf_header(ofilename, cdata, output_format):
                 raise MesonException('Unknown data type in configuration file entry: ' + k)
     replace_if_different(ofilename, ofilename_tmp)
 
-def replace_if_different(dst, dst_tmp):
+
+def replace_if_different(dst: str, dst_tmp: str) -> None:
     # If contents are identical, don't touch the file to prevent
     # unnecessary rebuilds.
     different = True
@@ -986,6 +1035,28 @@ def replace_if_different(dst, dst_tmp):
         os.replace(dst_tmp, dst)
     else:
         os.unlink(dst_tmp)
+
+
+@T.overload
+def unholder(item: 'ObjectHolder[_T]') -> _T: ...
+
+@T.overload
+def unholder(item: T.List['ObjectHolder[_T]']) -> T.List[_T]: ...
+
+@T.overload
+def unholder(item: T.List[_T]) -> T.List[_T]: ...
+
+@T.overload
+def unholder(item: T.List[T.Union[_T, 'ObjectHolder[_T]']]) -> T.List[_T]: ...
+
+def unholder(item):
+    """Get the held item of an object holder or list of object holders."""
+    if isinstance(item, list):
+        return [i.held_object if hasattr(i, 'held_object') else i for i in item]
+    if hasattr(item, 'held_object'):
+        return item.held_object
+    return item
+
 
 def listify(item: T.Any,
             flatten: bool = True,
@@ -1002,7 +1073,7 @@ def listify(item: T.Any,
         if unholder and hasattr(item, 'held_object'):
             item = item.held_object
         return [item]
-    result = []
+    result = []  # type: T.List[T.Any]
     for i in item:
         if unholder and hasattr(i, 'held_object'):
             i = i.held_object
@@ -1013,11 +1084,12 @@ def listify(item: T.Any,
     return result
 
 
-def extract_as_list(dict_object, *keys, pop=False, **kwargs):
+def extract_as_list(dict_object: T.Dict[_T, _U], *keys: _T, pop: bool = False,
+                    **kwargs: T.Any) -> T.List[T.Union[_U, T.List[_U]]]:
     '''
     Extracts all values from given dict_object and listifies them.
     '''
-    result = []
+    result = []  # type: T.List[T.Union[_U, T.List[_U]]]
     fetch = dict_object.get
     if pop:
         fetch = dict_object.pop
@@ -1029,7 +1101,8 @@ def extract_as_list(dict_object, *keys, pop=False, **kwargs):
         result.append(listify(fetch(key, []), **kwargs))
     return result
 
-def typeslistify(item: 'T.Union[_T, T.List[_T]]',
+
+def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',
                  types: 'T.Union[T.Type[_T], T.Tuple[T.Type[_T]]]') -> T.List[_T]:
     '''
     Ensure that type(@item) is one of @types or a
@@ -1044,11 +1117,13 @@ def typeslistify(item: 'T.Union[_T, T.List[_T]]',
             raise MesonException('List item must be one of {!r}'.format(types))
     return item
 
-def stringlistify(item: T.Union[str, T.List[str]]) -> T.List[str]:
+
+def stringlistify(item: T.Union[T.Any, T.Sequence[T.Any]]) -> T.List[str]:
     return typeslistify(item, str)
 
-def expand_arguments(args):
-    expended_args = []
+
+def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
+    expended_args = []  # type: T.List[str]
     for arg in args:
         if not arg.startswith('@'):
             expended_args.append(arg)
@@ -1065,11 +1140,18 @@ def expand_arguments(args):
             return None
     return expended_args
 
-def partition(pred, iterable):
-    'Use a predicate to partition entries into false entries and true entries'
-    # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+
+def partition(pred: T.Callable[[_T], object], iterable: T.Iterator[_T]) -> T.Tuple[T.Iterator[_T], T.Iterator[_T]]:
+    """Use a predicate to partition entries into false entries and true
+    entries.
+
+    >>> x, y = partition(is_odd, range(10))
+    >>> (list(x), list(y))
+    ([0, 2, 4, 6, 8], [1, 3, 5, 7, 9])
+    """
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
+
 
 def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
                stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
@@ -1093,6 +1175,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
     mlog.setup_console()
     return p, o, e
 
+
 def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
                       stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
                       stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
@@ -1115,7 +1198,8 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
             e = e.decode(errors='replace').replace('\r\n', '\n')
     return p, o, e
 
-def iter_regexin_iter(regexiter, initer):
+
+def iter_regexin_iter(regexiter: T.Iterable[str], initer: T.Iterable[str]) -> T.Optional[str]:
     '''
     Takes each regular expression in @regexiter and tries to search for it in
     every item in @initer. If there is a match, returns that match.
@@ -1128,12 +1212,13 @@ def iter_regexin_iter(regexiter, initer):
             match = re.search(regex, ii)
             if match:
                 return match.group()
-    return False
+    return None
 
-def _substitute_values_check_errors(command, values):
+
+def _substitute_values_check_errors(command: T.List[str], values: T.Dict[str, str]) -> None:
     # Error checking
-    inregex = ('@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@')
-    outregex = ('@OUTPUT([0-9]+)?@', '@OUTDIR@')
+    inregex = ['@INPUT([0-9]+)?@', '@PLAINNAME@', '@BASENAME@']  # type: T.List[str]
+    outregex = ['@OUTPUT([0-9]+)?@', '@OUTDIR@']                 # type: T.List[str]
     if '@INPUT@' not in values:
         # Error out if any input-derived templates are present in the command
         match = iter_regexin_iter(inregex, command)
@@ -1151,10 +1236,10 @@ def _substitute_values_check_errors(command, values):
         for each in command:
             if not isinstance(each, str):
                 continue
-            match = re.search(inregex[0], each)
-            if match and match.group() not in values:
+            match2 = re.search(inregex[0], each)
+            if match2 and match2.group() not in values:
                 m = 'Command cannot have {!r} since there are only {!r} inputs'
-                raise MesonException(m.format(match.group(), len(values['@INPUT@'])))
+                raise MesonException(m.format(match2.group(), len(values['@INPUT@'])))
     if '@OUTPUT@' not in values:
         # Error out if any output-derived templates are present in the command
         match = iter_regexin_iter(outregex, command)
@@ -1166,12 +1251,13 @@ def _substitute_values_check_errors(command, values):
         for each in command:
             if not isinstance(each, str):
                 continue
-            match = re.search(outregex[0], each)
-            if match and match.group() not in values:
+            match2 = re.search(outregex[0], each)
+            if match2 and match2.group() not in values:
                 m = 'Command cannot have {!r} since there are only {!r} outputs'
-                raise MesonException(m.format(match.group(), len(values['@OUTPUT@'])))
+                raise MesonException(m.format(match2.group(), len(values['@OUTPUT@'])))
 
-def substitute_values(command, values):
+
+def substitute_values(command: T.List[str], values: T.Dict[str, str]) -> T.List[str]:
     '''
     Substitute the template strings in the @values dict into the list of
     strings @command and return a new list. For a full list of the templates,
@@ -1184,7 +1270,7 @@ def substitute_values(command, values):
     # Error checking
     _substitute_values_check_errors(command, values)
     # Substitution
-    outcmd = []
+    outcmd = []  # type: T.List[str]
     rx_keys = [re.escape(key) for key in values if key not in ('@INPUT@', '@OUTPUT@')]
     value_rx = re.compile('|'.join(rx_keys)) if rx_keys else None
     for vv in command:
@@ -1219,7 +1305,8 @@ def substitute_values(command, values):
             outcmd.append(vv)
     return outcmd
 
-def get_filenames_templates_dict(inputs, outputs):
+
+def get_filenames_templates_dict(inputs: T.List[str], outputs: T.List[str]) -> T.Dict[str, T.Union[str, T.List[str]]]:
     '''
     Create a dictionary with template strings as keys and values as values for
     the following templates:
@@ -1241,7 +1328,7 @@ def get_filenames_templates_dict(inputs, outputs):
 
     @OUTPUT0@, @OUTPUT1@, ... one for each output file
     '''
-    values = {}
+    values = {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
     # Gather values derived from the input
     if inputs:
         # We want to substitute all the inputs.
@@ -1266,7 +1353,7 @@ def get_filenames_templates_dict(inputs, outputs):
     return values
 
 
-def _make_tree_writable(topdir):
+def _make_tree_writable(topdir: str) -> None:
     # Ensure all files and directories under topdir are writable
     # (and readable) by owner.
     for d, _, files in os.walk(topdir):
@@ -1277,7 +1364,7 @@ def _make_tree_writable(topdir):
                 os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
 
 
-def windows_proof_rmtree(f):
+def windows_proof_rmtree(f: str) -> None:
     # On Windows if anyone is holding a file open you can't
     # delete it. As an example an anti virus scanner might
     # be scanning files you are trying to delete. The only
@@ -1297,7 +1384,7 @@ def windows_proof_rmtree(f):
     shutil.rmtree(f)
 
 
-def windows_proof_rm(fpath):
+def windows_proof_rm(fpath: str) -> None:
     """Like windows_proof_rmtree, but for a single file."""
     if os.path.isfile(fpath):
         os.chmod(fpath, os.stat(fpath).st_mode | stat.S_IWRITE | stat.S_IREAD)
@@ -1313,7 +1400,8 @@ def windows_proof_rm(fpath):
     os.unlink(fpath)
 
 
-def detect_subprojects(spdir_name, current_dir='', result=None):
+def detect_subprojects(spdir_name: str, current_dir: str = '',
+                       result: T.Optional[T.Dict[str, T.List[str]]] = None) -> T.Optional[T.Dict[str, T.List[str]]]:
     if result is None:
         result = {}
     spdir = os.path.join(current_dir, spdir_name)
@@ -1337,57 +1425,63 @@ def detect_subprojects(spdir_name, current_dir='', result=None):
                 result[basename] = [trial]
     return result
 
+
 def substring_is_in_list(substr: str, strlist: T.List[str]) -> bool:
     for s in strlist:
         if substr in s:
             return True
     return False
 
-class OrderedSet(collections.abc.MutableSet):
+
+class OrderedSet(T.MutableSet[_T]):
     """A set that preserves the order in which items are added, by first
     insertion.
     """
-    def __init__(self, iterable=None):
-        self.__container = collections.OrderedDict()
+    def __init__(self, iterable: T.Optional[T.Iterable[_T]] = None):
+        # typing.OrderedDict is new in 3.7.2, so we can't use that, but we can
+        # use MutableMapping, which is fine in this case.
+        self.__container = collections.OrderedDict()  # type: T.MutableMapping[_T, None]
         if iterable:
             self.update(iterable)
 
-    def __contains__(self, value):
+    def __contains__(self, value: object) -> bool:
         return value in self.__container
 
-    def __iter__(self):
+    def __iter__(self) -> T.Iterator[_T]:
         return iter(self.__container.keys())
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.__container)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # Don't print 'OrderedSet("")' for an empty set.
         if self.__container:
             return 'OrderedSet("{}")'.format(
                 '", "'.join(repr(e) for e in self.__container.keys()))
         return 'OrderedSet()'
 
-    def __reversed__(self):
-        return reversed(self.__container)
+    def __reversed__(self) -> T.Iterator[_T]:
+        # Mypy is complaining that sets cant be reversed, which is true for
+        # unordered sets, but this is an ordered, set so reverse() makes sense.
+        return reversed(self.__container.keys())  # type: ignore
 
-    def add(self, value):
+    def add(self, value: _T) -> None:
         self.__container[value] = None
 
-    def discard(self, value):
+    def discard(self, value: _T) -> None:
         if value in self.__container:
             del self.__container[value]
 
-    def update(self, iterable):
+    def update(self, iterable: T.Iterable[_T]) -> None:
         for item in iterable:
             self.__container[item] = None
 
-    def difference(self, set_):
+    def difference(self, set_: T.Union[T.Set[_T], 'OrderedSet[_T]']) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
 
 class BuildDirLock:
 
-    def __init__(self, builddir):
+    def __init__(self, builddir: str):
         self.lockfilename = os.path.join(builddir, 'meson-private/meson.lock')
 
     def __enter__(self):
@@ -1436,7 +1530,8 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
     fallback, it is safe to ignore the 'Iterator does not return self from
     __iter__ method' warning.
     '''
-    def __init__(self, iterable=None, total=None, bar_type=None, desc=None):
+    def __init__(self, iterable: T.Optional[T.Iterable[str]] = None, total: T.Optional[int] = None,
+                 bar_type: T.Optional[str] = None, desc: T.Optional[str] = None):
         if iterable is not None:
             self.iterable = iter(iterable)
             return
@@ -1450,18 +1545,18 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
 
     # Pretend to be an iterator when called as one and don't print any
     # progress
-    def __iter__(self):
+    def __iter__(self) -> T.Iterator[str]:
         return self.iterable
 
-    def __next__(self):
+    def __next__(self) -> str:
         return next(self.iterable)
 
-    def print_dot(self):
+    def print_dot(self) -> None:
         print('.', end='')
         sys.stdout.flush()
         self.printed_dots += 1
 
-    def update(self, progress):
+    def update(self, progress: int) -> None:
         self.done += progress
         if not self.total:
             # Just print one dot per call if we don't have a total length
@@ -1471,32 +1566,33 @@ class ProgressBarFallback:  # lgtm [py/iter-returns-non-self]
         while self.printed_dots < ratio:
             self.print_dot()
 
-    def close(self):
+    def close(self) -> None:
         print('')
 
 try:
     from tqdm import tqdm
-
-    class ProgressBar(tqdm):
-        def __init__(self, *args, bar_type=None, **kwargs):
+except ImportError:
+    # ideally we would use a typing.Protocol here, but it's part of typing_extensions until 3.8
+    ProgressBar = ProgressBarFallback  # type: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]]
+else:
+    class ProgressBarTqdm(tqdm):
+        def __init__(self, *args, bar_type: T.Optional[str] = None, **kwargs):
             if bar_type == 'download':
                 kwargs.update({'unit': 'bytes', 'leave': True})
             else:
                 kwargs.update({'leave': False})
             kwargs['ncols'] = 100
             super().__init__(*args, **kwargs)
-except ImportError:
-    ProgressBar = ProgressBarFallback
+
+    ProgressBar = ProgressBarTqdm
 
 
-def get_wine_shortpath(winecmd, wine_paths):
-
-    """ Get A short version of @wine_paths to avoid
-    reaching WINEPATH number of char limit.
+def get_wine_shortpath(winecmd: T.List[str], wine_paths: T.Sequence[str]) -> str:
+    """Get A short version of @wine_paths to avoid reaching WINEPATH number
+    of char limit.
     """
 
-    seen = set()
-    wine_paths = [p for p in wine_paths if not (p in seen or seen.add(p))]
+    wine_paths = list(OrderedSet(wine_paths))
 
     getShortPathScript = '%s.bat' % str(uuid.uuid4()).lower()[:5]
     with open(getShortPathScript, mode='w') as f:
@@ -1521,10 +1617,12 @@ def get_wine_shortpath(winecmd, wine_paths):
 
     return wine_path.strip(';')
 
-def run_once(func):
-    ret = []
 
-    def wrapper(*args, **kwargs):
+def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
+    ret = []  # type: T.List[_T]
+
+    @wraps(func)
+    def wrapper(*args: T.Any, **kwargs: T.Any) -> _T:
         if ret:
             return ret[0]
 
@@ -1532,33 +1630,40 @@ def run_once(func):
         ret.append(val)
         return val
 
-    return update_wrapper(wrapper, func)
+    return wrapper
 
 
-class OptionProxy:
-    def __init__(self, value):
+class OptionProxy(T.Generic[_T]):
+    def __init__(self, value: _T):
         self.value = value
 
+
 class OptionOverrideProxy:
-    '''Mimic an option list but transparently override
-    selected option values.'''
-    def __init__(self, overrides, *options):
+
+    '''Mimic an option list but transparently override selected option
+    values.
+    '''
+
+    # TODO: the typing here could be made more explicit using a TypeDict from
+    # python 3.8 or typing_extensions
+
+    def __init__(self, overrides: T.Dict[str, T.Any], *options: 'OptionDictType'):
         self.overrides = overrides
         self.options = options
 
-    def __getitem__(self, option_name):
+    def __getitem__(self, option_name: str) -> T.Any:
         for opts in self.options:
             if option_name in opts:
                 return self._get_override(option_name, opts[option_name])
         raise KeyError('Option not found', option_name)
 
-    def _get_override(self, option_name, base_opt):
+    def _get_override(self, option_name: str, base_opt: 'UserOption[T.Any]') -> T.Union[OptionProxy[T.Any], 'UserOption[T.Any]']:
         if option_name in self.overrides:
             return OptionProxy(base_opt.validate_value(self.overrides[option_name]))
         return base_opt
 
-    def copy(self):
-        result = {}
+    def copy(self) -> T.Dict[str, T.Any]:
+        result = {}  # type: T.Dict[str, T.Any]
         for opts in self.options:
             for option_name in opts:
                 result[option_name] = self._get_override(option_name, opts[option_name])
