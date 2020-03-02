@@ -3332,6 +3332,11 @@ int main(int argc, char **argv) {
                     with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
                         f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
+            elif lang in ('java'):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    with open(os.path.join(tmpdir, 'Foo.' + lang), 'w') as f:
+                        f.write('public class Foo { public static void main() {} }')
+                    self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
 
     # The test uses mocking and thus requires that
     # the current process is the one to run the Meson steps.
