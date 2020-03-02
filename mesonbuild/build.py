@@ -530,8 +530,7 @@ class BuildTarget(Target):
             if k not in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.warning('Unknown keyword argument(s) in target {}: {}.' %
-                         (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
@@ -2016,8 +2015,7 @@ class CustomTarget(Target):
             if k not in CustomTarget.known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.warning('Unknown keyword arguments in target {}: {}' %
-                         (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
 
     def get_default_install_dir(self, environment):
         return None
