@@ -174,6 +174,10 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
                                                          ['none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z', 'c++2a',
                                                           'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a'],
                                                          'none')})
+        if self.info.is_windows() or self.info.is_cygwin():
+            opts.update({
+                'cpp_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
+                                                        gnu_winlibs), })
         return opts
 
     def get_option_compile_args(self, options):
@@ -190,6 +194,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         return args
 
     def get_option_link_args(self, options):
+        if self.info.is_windows() or self.info.is_cygwin():
+            return options['cpp_winlibs'].value[:]
         return []
 
     def language_stdlib_only_link_flags(self):
