@@ -1328,6 +1328,29 @@ class DataTests(unittest.TestCase):
             *mesonbuild.coredata.builtin_options_per_machine.keys()
         ]))
 
+        # Check that `buildtype` table inside `Core options` matches how
+        # setting of builtin options behaves
+        #
+        # Find all tables inside this subsection
+        tables = re.finditer(r"^\| (\w+) .* \|\n\| *[-|\s]+ *\|$", subcontent2, re.MULTILINE)
+        # Get the table we want using the header of the first column
+        table = self._get_section_content('buildtype', tables, subcontent2)
+        # Get table row data
+        rows = re.finditer(r"^\|(?: (\w+)\s+\| (\w+)\s+\| (\w+) .* | *-+ *)\|", table, re.MULTILINE)
+        env = get_fake_env()
+        for m in rows:
+            buildtype, debug, opt = m.groups()
+            if debug == 'true':
+                debug = True
+            elif debug == 'false':
+                debug = False
+            else:
+                raise RuntimeError('Invalid debug value {!r} in row:\n{}'.format(debug, m.group()))
+            env.coredata.set_builtin_option('buildtype', buildtype)
+            self.assertEqual(env.coredata.builtins['buildtype'].value, buildtype)
+            self.assertEqual(env.coredata.builtins['optimization'].value, opt)
+            self.assertEqual(env.coredata.builtins['debug'].value, debug)
+
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:
             md = f.read()
