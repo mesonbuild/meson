@@ -19,7 +19,8 @@ from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreter import extract_required_kwarg
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -32,6 +33,7 @@ class QtBaseModule(ExtensionModule):
 
     def __init__(self, interpreter, qt_version=5):
         ExtensionModule.__init__(self, interpreter)
+        self.snippets.add('has_tools')
         self.qt_version = qt_version
 
     def _detect_tools(self, env, method):
@@ -116,6 +118,23 @@ class QtBaseModule(ExtensionModule):
             return result
         except Exception:
             return []
+
+    @noPosargs
+    @permittedKwargs({'method', 'required'})
+    @FeatureNew('qt.has_tools', '0.54.0')
+    def has_tools(self, interpreter, state, args, kwargs):
+        method = kwargs.get('method', 'auto')
+        disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
+        if disabled:
+            mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        self._detect_tools(state.environment, method)
+        for tool in (self.moc, self.uic, self.rcc, self.lrelease):
+            if not tool.found():
+                if required:
+                    raise MesonException('Qt tools not found')
+                return False
+        return True
 
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
