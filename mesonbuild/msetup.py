@@ -118,18 +118,18 @@ class MesonApp:
         if not os.path.exists(ndir2):
             os.makedirs(ndir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
-            raise MesonException('%s is not a directory' % dir1)
+            raise MesonException('{} is not a directory'.format(dir1))
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
-            raise MesonException('%s is not a directory' % dir2)
+            raise MesonException('{} is not a directory'.format(dir2))
         if os.path.samefile(dir1, dir2):
             raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
-                raise MesonException('Both directories contain a build file %s.' % environment.build_filename)
+                raise MesonException('Both directories contain a build file {}.'.format(environment.build_filename))
             return ndir1, ndir2
         if self.has_build_file(ndir2):
             return ndir2, ndir1
-        raise MesonException('Neither directory contains a build file %s.' % environment.build_filename)
+        raise MesonException('Neither directory contains a build file {}.'.format(environment.build_filename))
 
     def validate_dirs(self, dir1: str, dir2: str, reconfigure: bool, wipe: bool) -> T.Tuple[str, str]:
         (src_dir, build_dir) = self.validate_core_dirs(dir1, dir2)

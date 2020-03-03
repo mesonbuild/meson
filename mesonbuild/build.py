@@ -341,9 +341,9 @@ class Target:
     def __init__(self, name, subdir, subproject, build_by_default, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
-            mlog.warning('''Target "%s" has a path separator in its name.
+            mlog.warning('''Target "{}" has a path separator in its name.
 This is not supported, it can cause unexpected failures and will become
-a hard error in the future.''' % name)
+a hard error in the future.'''.format(name))
         self.name = name
         self.subdir = subdir
         self.subproject = subproject
@@ -502,7 +502,7 @@ class BuildTarget(Target):
         self.check_unknown_kwargs(kwargs)
         self.process_compilers()
         if not any([self.sources, self.generated, self.objects, self.link_whole]):
-            raise InvalidArguments('Build target %s has no sources.' % name)
+            raise InvalidArguments('Build target {} has no sources.'.format(name))
         self.process_compilers_late()
         self.validate_sources()
         self.validate_install(environment)
@@ -530,8 +530,7 @@ class BuildTarget(Target):
             if k not in known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.warning('Unknown keyword argument(s) in target %s: %s.' %
-                         (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword argument(s) in target {}: {}.'.format(self.name, ', '.join(unknowns)))
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
@@ -756,7 +755,7 @@ class BuildTarget(Target):
                 raise MesonException('Object extraction arguments must be strings or Files.')
             # FIXME: It could be a generated source
             if src not in self.sources:
-                raise MesonException('Tried to extract unknown source %s.' % src)
+                raise MesonException('Tried to extract unknown source {}.'.format(src))
             obj_src.append(src)
         return ExtractedObjects(self, obj_src)
 
@@ -901,7 +900,7 @@ This will become a hard error in a future Meson release.''')
             assert(isinstance(i, File))
             trial = os.path.join(environment.get_source_dir(), i.subdir, i.fname)
             if not(os.path.isfile(trial)):
-                raise InvalidArguments('Tried to add non-existing extra file %s.' % i)
+                raise InvalidArguments('Tried to add non-existing extra file {}.'.format(i))
         self.extra_files = extra_files
         self.install_rpath = kwargs.get('install_rpath', '')
         if not isinstance(self.install_rpath, str):
@@ -915,7 +914,7 @@ This will become a hard error in a future Meson release.''')
                 raise InvalidArguments('Resource argument is not a string.')
             trial = os.path.join(environment.get_source_dir(), self.subdir, r)
             if not os.path.isfile(trial):
-                raise InvalidArguments('Tried to add non-existing resource %s.' % r)
+                raise InvalidArguments('Tried to add non-existing resource {}.'.format(r))
         self.resources = resources
         if 'name_prefix' in kwargs:
             name_prefix = kwargs['name_prefix']
@@ -964,8 +963,7 @@ This will become a hard error in a future Meson release.''')
         if self.gnu_symbol_visibility != '':
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
             if self.gnu_symbol_visibility not in permitted:
-                raise InvalidArguments('GNU symbol visibility arg %s not one of: %s',
-                                       self.symbol_visibility, ', '.join(permitted))
+                raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
 
     def _extract_pic_pie(self, kwargs, arg):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
@@ -1146,7 +1144,7 @@ You probably should put it in link_with instead.''')
             return
         elif len(pchlist) == 1:
             if not environment.is_header(pchlist[0]):
-                raise InvalidArguments('PCH argument %s is not a header.' % pchlist[0])
+                raise InvalidArguments('PCH argument {} is not a header.'.format(pchlist[0]))
         elif len(pchlist) == 2:
             if environment.is_header(pchlist[0]):
                 if not environment.is_source(pchlist[1]):
@@ -1156,7 +1154,7 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments('PCH definition must contain one header and at most one source.')
                 pchlist = [pchlist[1], pchlist[0]]
             else:
-                raise InvalidArguments('PCH argument %s is of unknown type.' % pchlist[0])
+                raise InvalidArguments('PCH argument {} is of unknown type.'.format(pchlist[0]))
 
             if (os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1])):
                 raise InvalidArguments('PCH files must be stored in the same folder.')
@@ -1168,7 +1166,7 @@ You probably should put it in link_with instead.''')
             if not isinstance(f, str):
                 raise MesonException('PCH arguments must be strings.')
             if not os.path.isfile(os.path.join(self.environment.source_dir, self.subdir, f)):
-                raise MesonException('File %s does not exist.' % f)
+                raise MesonException('File {} does not exist.'.format(f))
         self.pch[language] = pchlist
 
     def add_include_dirs(self, args, set_is_system: T.Optional[str] = None):
@@ -2018,8 +2016,7 @@ class CustomTarget(Target):
             if k not in CustomTarget.known_kwargs:
                 unknowns.append(k)
         if len(unknowns) > 0:
-            mlog.warning('Unknown keyword arguments in target %s: %s' %
-                         (self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
 
     def get_default_install_dir(self, environment):
         return None
@@ -2169,8 +2166,8 @@ class CustomTarget(Target):
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object
             if not isinstance(ed, (CustomTarget, BuildTarget)):
-                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: %s(%s)'
-                                       % (type(ed), ed))
+                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
+                                      .format(type(ed), ed))
             self.extra_depends.append(ed)
         for i in depend_files:
             if isinstance(i, (File, str)):
@@ -2310,10 +2307,10 @@ class Jar(BuildTarget):
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         for s in self.sources:
             if not s.endswith('.java'):
-                raise InvalidArguments('Jar source %s is not a java file.' % s)
+                raise InvalidArguments('Jar source {} is not a java file.'.format(s))
         for t in self.link_targets:
             if not isinstance(t, Jar):
-                raise InvalidArguments('Link target %s is not a jar target.' % t)
+                raise InvalidArguments('Link target {} is not a jar target.'.format(t))
         self.filename = self.name + '.jar'
         self.outputs = [self.filename]
         self.java_args = kwargs.get('java_args', [])
