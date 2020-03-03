@@ -42,6 +42,7 @@ foreach qt : ['qt4', 'qt5']
   qtdep = dependency(qt, modules : qt_modules, main : true, private_headers: true, required : required, method : get_option('method'))
   if qtdep.found()
     qtmodule = import(qt)
+    assert(qtmodule.has_tools())
 
     # The following has two resource files because having two in one target
     # requires you to do it properly or you get linker symbol clashes.

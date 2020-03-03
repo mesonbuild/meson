@@ -23,6 +23,28 @@ This method generates the necessary targets to build translation files with lrel
  - `install_dir` directory to install to (optional).
  - `build_by_default` when set to true, to have this target be built by default, that is, when invoking plain ninja; the default value is false (optional).
 
+## has_tools
+
+This method returns `true` if all tools used by this module are found, `false`
+otherwise.
+
+It should be used to compile optional Qt code:
+```meson
+qt5 = import('qt5')
+if qt5.has_tools(required: get_option('qt_feature'))
+  moc_files = qt5.preprocess(...)
+  ...
+endif
+```
+
+This method takes the following keyword arguments:
+- `required`: by default, `required` is set to `false`. If `required` is set to
+  `true` or an enabled [`feature`](Build-options.md#features) and some tools are
+  missing Meson will abort.
+- `method`: method used to find the Qt dependency (`auto` by default).
+
+*Since: 0.54.0*
+
 ## Dependencies
 
 See [Qt dependencies](Dependencies.md#qt4-qt5)
