@@ -20,7 +20,7 @@ if meson.is_cross_build()
 endif
 
 exe = executable('trivialprog', sources : sources)
-
+assert(exe.name() == 'trivialprog')
 test('runtest', exe) # This is a comment
 
 has_not_changed = false

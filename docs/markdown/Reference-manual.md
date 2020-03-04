@@ -2268,6 +2268,8 @@ A build target is either an [executable](#executable),
   target, usually only needed if an another target needs to access
   some generated internal headers of this target
 
+- `name()` *Since 0.54.0*, returns the target name.
+
 
 ### `configuration` data object
 
