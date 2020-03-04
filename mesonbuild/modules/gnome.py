@@ -83,11 +83,11 @@ class GnomeModule(ExtensionModule):
                          mlog.bold('https://bugzilla.gnome.org/show_bug.cgi?id=774368'))
 
     @staticmethod
-    @mesonlib.run_once
     def _print_gdbus_warning():
         mlog.warning('Code generated with gdbus_codegen() requires the root directory be added to\n'
                      '  include_directories of targets with GLib < 2.51.3:',
-                     mlog.bold('https://github.com/mesonbuild/meson/issues/1387'))
+                     mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
+                     once=True)
 
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
