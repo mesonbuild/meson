@@ -299,9 +299,9 @@ class BoostDependency(ExternalDependency):
             mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
 
             boost_inc_dir = None
-            for i in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
-                if i.is_file():
-                    boost_inc_dir = self._include_dir_from_version_header(i)
+            for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
+                if j.is_file():
+                    boost_inc_dir = self._include_dir_from_version_header(j)
                     break
             if not boost_inc_dir:
                 self.is_found = False
@@ -317,20 +317,20 @@ class BoostDependency(ExternalDependency):
         roots = list(mesonlib.OrderedSet(roots))
 
         # B) Foreach candidate
-        for i in roots:
+        for j in roots:
             #   1. Look for the boost headers (boost/version.pp)
-            mlog.debug('Checking potential boost root {}'.format(i.as_posix()))
-            inc_dirs = self.detect_inc_dirs(i)
+            mlog.debug('Checking potential boost root {}'.format(j.as_posix()))
+            inc_dirs = self.detect_inc_dirs(j)
             inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
 
             # Early abort when boost is not found
             if not inc_dirs:
                 continue
 
-            lib_dirs = self.detect_lib_dirs(i)
+            lib_dirs = self.detect_lib_dirs(j)
             self.is_found = self.run_check(inc_dirs, lib_dirs)
             if self.is_found:
-                self.boost_root = i
+                self.boost_root = j
                 break
 
     def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
