@@ -771,6 +771,7 @@ class BuildTargetHolder(TargetHolder):
         super().__init__(target, interp)
         self.methods.update({'extract_objects': self.extract_objects_method,
                              'extract_all_objects': self.extract_all_objects_method,
+                             'name': self.name_method,
                              'get_id': self.get_id_method,
                              'outdir': self.outdir_method,
                              'full_path': self.full_path_method,
@@ -824,6 +825,12 @@ class BuildTargetHolder(TargetHolder):
     @permittedKwargs({})
     def get_id_method(self, args, kwargs):
         return self.held_object.get_id()
+
+    @FeatureNew('name', '0.54.0')
+    @noPosargs
+    @permittedKwargs({})
+    def name_method(self, args, kwargs):
+        return self.held_object.name
 
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target, interp):
