@@ -706,17 +706,15 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(kwargs, {'sources': [1, 2, 3]})
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
         self.assertEqual(kwargs, {})
+
         # Test unholding
         holder3 = ObjectHolder(3)
         kwargs = {'sources': [1, 2, holder3]}
         self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
-        # Test listification
-        kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
-        self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
 
         # flatten nested lists
         kwargs = {'sources': [1, [2, [3]]]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', flatten=True))
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
 
     def test_pkgconfig_module(self):
 

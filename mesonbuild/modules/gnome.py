@@ -98,7 +98,7 @@ class GnomeModule(ExtensionModule):
 
         cmd = ['glib-compile-resources', '@INPUT@']
 
-        source_dirs, dependencies = mesonlib.extract_as_list(kwargs, 'source_dir', 'dependencies', pop=True)
+        source_dirs, dependencies = [mesonlib.extract_as_list(kwargs, c, pop=True) for c in  ['source_dir', 'dependencies']]
 
         if len(args) < 2:
             raise MesonException('Not enough arguments; the name of the resource '

@@ -123,7 +123,7 @@ class QtBaseModule(ExtensionModule):
     @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
+            = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -202,7 +202,7 @@ class QtBaseModule(ExtensionModule):
     @FeatureNew('qt.compile_translations', '0.44.0')
     @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
     def compile_translations(self, state, args, kwargs):
-        ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)
+        ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in  ['ts_files', 'install_dir']]
         self._detect_tools(state.environment, kwargs.get('method', 'auto'))
         translations = []
         for ts in ts_files:

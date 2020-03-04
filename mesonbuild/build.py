@@ -827,8 +827,7 @@ just like those detected with the dependency() function.''')
             self.link_whole(linktarget)
 
         c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args',
-                              'objcpp_args', 'fortran_args', 'rust_args')
+            = [extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args']]
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
@@ -2161,7 +2160,7 @@ class CustomTarget(Target):
             self.build_always_stale = kwargs['build_always_stale']
         if not isinstance(self.build_always_stale, bool):
             raise InvalidArguments('Argument build_always_stale must be a boolean.')
-        extra_deps, depend_files = extract_as_list(kwargs, 'depends', 'depend_files', pop = False)
+        extra_deps, depend_files = [extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files']]
         for ed in extra_deps:
             while hasattr(ed, 'held_object'):
                 ed = ed.held_object

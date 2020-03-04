@@ -1075,22 +1075,15 @@ def listify(item: T.Any, flatten: bool = True) -> T.List[T.Any]:
     return result
 
 
-def extract_as_list(dict_object: T.Dict[_T, _U], *keys: _T, pop: bool = False,
-                    flatten: bool = True) -> T.List[T.Union[_U, T.List[_U]]]:
+def extract_as_list(dict_object: T.Dict[_T, _U], key: _T, pop: bool = False) -> T.List[_U]:
     '''
     Extracts all values from given dict_object and listifies them.
     '''
-    result = []  # type: T.List[T.Union[_U, T.List[_U]]]
     fetch = dict_object.get
     if pop:
         fetch = dict_object.pop
     # If there's only one key, we don't return a list with one element
-    if len(keys) == 1:
-        return listify(fetch(keys[0], []), flatten=True)
-    # Return a list of values corresponding to *keys
-    for key in keys:
-        result.append(listify(fetch(key, []), flatten=True))
-    return result
+    return listify(fetch(key, []), flatten=True)
 
 
 def typeslistify(item: 'T.Union[_T, T.Sequence[_T]]',

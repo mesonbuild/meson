@@ -272,7 +272,7 @@ class BoostDependency(ExternalDependency):
         self.boost_root = None
 
         # Extract and validate modules
-        self.modules = mesonlib.extract_as_list(kwargs, 'modules')
+        self.modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
         for i in self.modules:
             if not isinstance(i, str):
                 raise DependencyException('Boost module argument is not a string.')
