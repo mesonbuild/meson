@@ -646,7 +646,7 @@ class CompilerArgs(collections.abc.MutableSequence):
                 # Argument already exists and adding a new instance is useless
                 if arg in self.__seen_args or arg in pre or arg in post:
                     continue
-            should_prepend = self._should_prepend(arg)
+            should_prepend = self._should_prepend(arg) and self.compiler.linker_to_compiler_args([]) != ['/link']
             if dedup == 2:
                 # Remove all previous occurrences of the arg and add it anew
                 if arg in self.__seen_args and arg not in this_round_added: #if __seen_args contains arg as well as this_round_added, then its not yet part in self.
