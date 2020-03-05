@@ -1124,7 +1124,7 @@ class CMakeInterpreter:
 
             # Generate target kwargs
             tgt_kwargs = {
-                'build_by_default': False,
+                'build_by_default': tgt.install,
                 'link_args': tgt.link_flags + tgt.link_libraries,
                 'link_with': link_with,
                 'include_directories': id_node(inc_var),
