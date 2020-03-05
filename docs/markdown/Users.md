@@ -23,6 +23,7 @@ topic](https://github.com/topics/meson).
  - [Cage](https://github.com/Hjdskes/cage), a Wayland kiosk
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
+ - [Cozy](https://github.com/geigi/cozy), a modern audio book player for Linux and macOS using GTK+ 3
  - [dav1d](https://code.videolan.org/videolan/dav1d), an AV1 decoder
  - [dbus-broker](https://github.com/bus1/dbus-broker), Linux D-Bus Message Broker
  - [DPDK](http://dpdk.org/browse/dpdk), Data Plane Development Kit, a set of libraries and drivers for fast packet processing
@@ -31,6 +32,8 @@ topic](https://github.com/topics/meson).
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson), sample project for using the ESP8266 Arduino port with Meson
  - [FeedReader](https://github.com/jangernert/FeedReader), a modern desktop application designed to complement existing web-based RSS accounts
+ - [Flecs](https://github.com/SanderMertens/flecs), a Fast and Lightweight ECS (Entity Component System) C library
+ - [Foliate](https://github.com/johnfactotum/foliate), a simple and modern GTK eBook reader, built with GJS and Epub.js
  - [Fractal](https://wiki.gnome.org/Apps/Fractal/), a Matrix messaging client for GNOME
  - [Frida](https://github.com/frida/frida-core), a dynamic binary instrumentation toolkit
  - [fwupd](https://github.com/hughsie/fwupd), a simple daemon to allow session software to update firmware
@@ -55,6 +58,7 @@ topic](https://github.com/topics/meson).
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite
+ - [inih](https://github.com/benhoyt/inih) (INI Not Invented Here), a small and simple .INI file parser written in C
  - [Irssi](https://github.com/irssi/irssi), a terminal chat client in C
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
  - [Janet](https://github.com/janet-lang/janet), a functional and imperative programming language and bytecode interpreter
@@ -87,6 +91,7 @@ format files
  - [mrsh](https://github.com/emersion/mrsh), a minimal POSIX shell
  - [Nautilus](https://gitlab.gnome.org/GNOME/nautilus), the GNOME file manager
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
+ - [OcherBook](https://github.com/ccoffing/OcherBook), an open source book reader for Kobo devices
  - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
@@ -106,6 +111,8 @@ format files
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
+ - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
+ - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
  - [Sysprof](https://git.gnome.org/browse/sysprof), a profiling tool
@@ -114,7 +121,10 @@ format files
  - [Taisei Project](https://taisei-project.org/), an open-source Touhou Project clone and fangame
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
+ - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
+ - [Venom](https://github.com/naxuroqa/Venom), a modern Tox client for the GNU/Linux desktop
+ - [VMAF](https://github.com/Netflix/vmaf) (by Netflix), a perceptual video quality assessment based on multi-method fusion
  - [Wayland](https://github.com/wayland-project/wayland) and [Weston](https://github.com/wayland-project/weston), a next generation display server
  - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
  - [wxFormBuilder](https://github.com/wxFormBuilder/wxFormBuilder), RAD tool for wxWidgets GUI design
