@@ -32,7 +32,8 @@ from ..compilers import (Compiler, CompilerArgs, CCompiler, FortranCompiler,
                          PGICCompiler, VisualStudioLikeCompiler)
 from ..linkers import ArLinker
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine, ProgressBar, quote_arg
+    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
+    ProgressBar, quote_arg, unholder,
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
@@ -648,9 +649,7 @@ int dummy;
                 self.generate_target(t)
 
     def custom_target_generator_inputs(self, target):
-        for s in target.sources:
-            if hasattr(s, 'held_object'):
-                s = s.held_object
+        for s in unholder(target.sources):
             if isinstance(s, build.GeneratedList):
                 self.generate_genlist_for_target(s, target)
 

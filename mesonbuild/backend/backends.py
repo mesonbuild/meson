@@ -21,7 +21,7 @@ from .. import mlog
 import json
 import subprocess
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, OptionOverrideProxy
-from ..mesonlib import classify_unity_sources
+from ..mesonlib import classify_unity_sources, unholder
 from ..mesonlib import File
 from ..compilers import CompilerArgs, VisualStudioLikeCompiler
 from ..interpreter import Interpreter
@@ -748,9 +748,7 @@ class Backend:
             else:
                 extra_paths = []
             cmd_args = []
-            for a in t.cmd_args:
-                if hasattr(a, 'held_object'):
-                    a = a.held_object
+            for a in unholder(t.cmd_args):
                 if isinstance(a, build.BuildTarget):
                     extra_paths += self.determine_windows_extra_paths(a, [])
                 if isinstance(a, mesonlib.File):
@@ -868,14 +866,10 @@ class Backend:
         # also be built by default. XXX: Sometime in the future these should be
         # built only before running tests.
         for t in self.build.get_tests():
-            exe = t.exe
-            if hasattr(exe, 'held_object'):
-                exe = exe.held_object
+            exe = unholder(t.exe)
             if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
                 result[exe.get_id()] = exe
-            for arg in t.cmd_args:
-                if hasattr(arg, 'held_object'):
-                    arg = arg.held_object
+            for arg in unholder(t.cmd_args):
                 if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
                     continue
                 result[arg.get_id()] = arg
@@ -915,9 +909,7 @@ class Backend:
         Returns the path to them relative to the build root directory.
         '''
         srcs = []
-        for i in target.get_sources():
-            if hasattr(i, 'held_object'):
-                i = i.held_object
+        for i in unholder(target.get_sources()):
             if isinstance(i, str):
                 fname = [os.path.join(self.build_to_src, target.subdir, i)]
             elif isinstance(i, build.BuildTarget):

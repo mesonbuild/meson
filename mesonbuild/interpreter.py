@@ -3087,9 +3087,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def program_from_file_for(self, for_machine, prognames, silent):
         bins = self.environment.binaries[for_machine]
-        for p in prognames:
-            if hasattr(p, 'held_object'):
-                p = p.held_object
+        for p in unholder(prognames):
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
             if not isinstance(p, str):

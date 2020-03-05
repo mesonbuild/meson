@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File, unholder
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
@@ -171,9 +171,7 @@ class QtBaseModule(ExtensionModule):
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         compile_args = []
-        for dep in dependencies:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
+        for dep in unholder(dependencies):
             if isinstance(dep, Dependency):
                 for arg in dep.get_compile_args():
                     if arg.startswith('-I') or arg.startswith('-D'):
