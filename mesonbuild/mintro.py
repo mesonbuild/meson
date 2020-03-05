@@ -95,6 +95,9 @@ def list_installed(installdata):
         for t in installdata.targets:
             res[os.path.join(installdata.build_dir, t.fname)] = \
                 os.path.join(installdata.prefix, t.outdir, os.path.basename(t.fname))
+            for alias in t.aliases.keys():
+                res[os.path.join(installdata.build_dir, alias)] = \
+                    os.path.join(installdata.prefix, t.outdir, os.path.basename(alias))
         for path, installpath, _ in installdata.data:
             res[path] = os.path.join(installdata.prefix, installpath)
         for path, installdir, _ in installdata.headers:
@@ -154,8 +157,9 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
     # Fast lookup table for installation files
     install_lookuptable = {}
     for i in installdata.targets:
-        outname = os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))
-        install_lookuptable[os.path.basename(i.fname)] = str(PurePath(outname))
+        out = [os.path.join(installdata.prefix, i.outdir, os.path.basename(i.fname))]
+        out += [os.path.join(installdata.prefix, i.outdir, os.path.basename(x)) for x in i.aliases]
+        install_lookuptable[os.path.basename(i.fname)] = [str(PurePath(x)) for x in out]
 
     for (idname, target) in builddata.get_targets().items():
         if not isinstance(target, build.Target):
@@ -174,7 +178,8 @@ def list_targets(builddata: build.Build, installdata, backend: backends.Backend)
 
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = [install_lookuptable.get(x, None) for x in target.get_outputs()]
+            t['install_filename'] = [install_lookuptable.get(x, [None]) for x in target.get_outputs()]
+            t['install_filename'] = [x for sublist in t['install_filename'] for x in sublist]  # flatten the list
         else:
             t['installed'] = False
         tlist.append(t)
