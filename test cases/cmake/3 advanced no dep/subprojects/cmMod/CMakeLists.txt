@@ -16,9 +16,11 @@ generate_export_header(cmModLib)
 set_target_properties(cmModLib PROPERTIES VERSION 1.0.1)
 
 add_executable(testEXE main.cpp)
+add_executable(testEXE2 main.cpp)
 
 target_link_libraries(testEXE cmModLib)
+target_link_libraries(testEXE2 cmModLib)
 
 target_compile_definitions(cmModLibStatic PUBLIC CMMODLIB_STATIC_DEFINE)
 
-install(TARGETS cmModLib testEXE LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
+install(TARGETS cmModLib testEXE testEXE2 LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
