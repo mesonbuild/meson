@@ -668,7 +668,7 @@ class CoreData:
         return len(self.cross_files) > 0
 
     def strip_build_option_names(self, options):
-        res = {}
+        res = OrderedDict()
         for k, v in options.items():
             if k.startswith('build.'):
                 k = k.split('.', 1)[1]
@@ -741,7 +741,7 @@ class CoreData:
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
-        options = {}
+        options = OrderedDict()
 
         # Some options default to environment variables if they are
         # unset, set those now. These will either be overwritten
@@ -861,7 +861,7 @@ def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
-    properties = {}
+    properties = OrderedDict()
     if options.cross_file:
         properties['cross_file'] = options.cross_file
     if options.native_file:
@@ -941,7 +941,7 @@ def register_builtin_arguments(parser):
                         help='Set the value of an option, can be used several times to set multiple options.')
 
 def create_options_dict(options):
-    result = {}
+    result = OrderedDict()
     for o in options:
         try:
             (key, value) = o.split('=', 1)
@@ -1026,7 +1026,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         return self.default
 
     def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, prefix: str, help_suffix: str) -> None:
-        kwargs = {}
+        kwargs = OrderedDict()
 
         c = self._argparse_choices()
         b = self._argparse_action()
