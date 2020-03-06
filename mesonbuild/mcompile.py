@@ -68,10 +68,10 @@ def run(options: 'argparse.Namespace')-> int:
             ret += single_run(options, pathlib.Path(b))
         return ret
     else:
-        return single_run(options, pathlib.Path(b))
+        return single_run(options, options.builddir)
             
     
-def single_run(options: 'argparse.Namespace', bdir: ' ') -> int:
+def single_run(options: 'argparse.Namespace', bdir: 'pathlib.Path') -> int:
     if not bdir.exists():
         raise MesonException('Path to builddir {} does not exist!'.format(str(bdir.resolve())))
     if not bdir.is_dir():
