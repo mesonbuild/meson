@@ -718,13 +718,8 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options, subproject, env):
-        # Set defaults first from conf files (cross or native), then
-        # override them as nec as necessary.
-        for k, v in env.paths.host:
-            if v is not None:
-                env.cmd_line_options.setdefault(k, v)
-
-        # Set default options as if they were passed to the command line.
+        cmd_line_options = OrderedDict()
+        # Set project default_options as if they were passed to the cmdline.
         # Subprojects can only define default for user options and not yielding
         # builtin option.
         from . import optinterpreter
@@ -734,7 +729,17 @@ class CoreData:
                         and optinterpreter.is_invalid_name(k, log=False):
                     continue
                 k = subproject + ':' + k
-            env.cmd_line_options.setdefault(k, v)
+            cmd_line_options[k] = v
+
+        # Override project default_options using conf files (cross or native)
+        for k, v in env.paths.host:
+            if v is not None:
+                cmd_line_options[k] = v
+
+        # Override all the above defaults using the command-line arguments
+        # actually passed to us
+        cmd_line_options.update(env.cmd_line_options)
+        env.cmd_line_options = cmd_line_options
 
         # Create a subset of cmd_line_options, keeping only options for this
         # subproject. Also take builtin options if it's the main project.
