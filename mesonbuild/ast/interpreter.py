@@ -35,6 +35,7 @@ from ..mparser import (
     IfClauseNode,
     IndexNode,
     MethodNode,
+    NotNode,
     OrNode,
     PlusAssignmentNode,
     StringNode,
@@ -233,6 +234,10 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def evaluate_orstatement(self, cur: OrNode) -> bool:
         self.evaluate_statement(cur.left)
         self.evaluate_statement(cur.right)
+        return False
+
+    def evaluate_notstatement(self, cur: NotNode) -> bool:
+        self.evaluate_statement(cur.value)
         return False
 
     def evaluate_foreach(self, node: ForeachClauseNode) -> None:
