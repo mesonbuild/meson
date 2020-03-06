@@ -209,7 +209,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         if isinstance(args, ArgumentNode):
             kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], TYPE_nvar]
             for key, val in args.kwargs.items():
-                if isinstance(key, (StringNode, IdNode)):
+                if resolve_key_nodes and isinstance(key, (StringNode, IdNode)):
                     assert isinstance(key.value, str)
                     kwargs[key.value] = val
                 else:
