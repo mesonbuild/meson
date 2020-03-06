@@ -190,7 +190,7 @@ Exanple `test.json`:
   "installed": [
     { "type": "exe", "file": "usr/bin/testexe" },
     { "type": "pdb", "file": "usr/bin/testexe" },
-    { "type": "shared_lib", "file": "usr/lib/z" },
+    { "type": "shared_lib", "file": "usr/lib/z", "version": "1.2.3" },
   ],
   "matrix": {
     "options": {
@@ -245,6 +245,18 @@ current platform. The following values are currently supported:
 | `expr`        | `file` is an expression. This type should be avoided and removed if possible                            |
 
 Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
+
+The `shared_lib` and `pdb` types takes an optional additional parameter, `version`, this is us a string in `X.Y.Z` format that will be applied to the library. Each version to be tested must have a single version. The harness will apply this correctly per platform:
+
+```json
+{
+  "type": "shared_lib", "file": "usr/lib/lib",
+  "type": "shared_lib", "file": "usr/lib/lib", "version": "1",
+  "type": "shared_lib", "file": "usr/lib/lib", "version": "1.2.3.",
+}
+```
+
+This will be applied appropraitly per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
 
 If the `platform` key is present, the installed file entry is only considered if
 the platform matches. The following values for `platform` are currently supported:

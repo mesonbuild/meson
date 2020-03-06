@@ -95,6 +95,13 @@ class InstalledFile:
         self.typ = raw['type']
         self.platform = raw.get('platform', None)
 
+        version = raw.get('version', '')  # type: str
+        if version:
+            self.version = version.split('.')  # type: T.List[str]
+        else:
+            # split on '' will return [''], we want an empty list though
+            self.version = []
+
     def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
         p = Path(self.path)
         canonical_compiler = compiler
@@ -116,17 +123,35 @@ class InstalledFile:
             return p
         elif self.typ == 'shared_lib':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                # Windows only has foo.dll and foo-X.dll
+                if len(self.version) > 1:
+                    return None
+                if self.version:
+                    p = p.with_name('{}-{}'.format(p.name, self.version[0]))
                 return p.with_suffix('.dll')
 
             p = p.with_name('lib{}'.format(p.name))
             if env.machines.host.is_darwin():
-                return p.with_suffix('.dylib')
+                # MacOS only has libfoo.dylib and libfoo.X.dylib
+                if len(self.version) > 1:
+                    return None
+
+                # pathlib.Path.with_suffix replaces, not appends
+                suffix = '.dylib'
+                if self.version:
+                    suffix = '.{}{}'.format(self.version[0], suffix)
             else:
-                return p.with_suffix('.so')
+                # pathlib.Path.with_suffix replaces, not appends
+                suffix = '.so'
+                if self.version:
+                    suffix = '{}.{}'.format(suffix, '.'.join(self.version))
+            return p.with_suffix(suffix)
         elif self.typ == 'exe':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
+            if self.version:
+                p = p.with_name('{}-{}'.format(p.name, self.version[0]))
             return p.with_suffix('.pdb') if canonical_compiler == 'msvc' else None
         elif self.typ == 'implib' or self.typ == 'implibempty':
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':

@@ -1,14 +1,14 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/bin/app_d"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay1.so"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay1.so.0"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay1.so.1.2.3"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay2.so"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay2.so.1"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libsay2.so.1.2.4"},
-    {"type": "file", "platform": "msvc", "file": "usr/bin/say1-0.dll"},
-    {"type": "file", "platform": "msvc", "file": "usr/bin/say2-1.dll"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say1"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say1", "version": "0"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say1", "version": "1.2.3"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say2"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say2", "version": "1"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/say2", "version": "1.2.4"},
+    {"type": "shared_lib", "platform": "msvc", "file": "usr/bin/say1", "version": "0"},
+    {"type": "shared_lib", "platform": "msvc", "file": "usr/bin/say2", "version": "1"},
     {"type": "file", "platform": "msvc", "file": "usr/lib/say1.lib"},
     {"type": "file", "platform": "msvc", "file": "usr/lib/say2.lib"}
   ]
