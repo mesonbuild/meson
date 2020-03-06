@@ -1001,9 +1001,10 @@ class BuiltinOption(T.Generic[_T, _U]):
         return self.opt_type(self.description, **keywords)
 
     def _argparse_action(self) -> T.Optional[str]:
-        if self.default is True:
-            return 'store_false'
-        elif self.default is False:
+        # If the type is a boolean, the presence of the argument in --foo form
+        # is to enable it. Disabling happens by using -Dfoo=false, which is
+        # parsed under `args.projectoptions` and does not hit this codepath.
+        if isinstance(self.default, bool):
             return 'store_true'
         return None
 
