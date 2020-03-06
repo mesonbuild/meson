@@ -222,9 +222,10 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
         stdo = None
-        with self._build_wrapper('', env, extra_args=extra_args,
-                                 dependencies=None, mode='compile',
-                                 want_output=True) as p:
+        ctx = self._build_wrapper('', env, extra_args=extra_args,
+                                  dependencies=None, mode='compile',
+                                  want_output=True)
+        with ctx.wait() as p:
             stdo = p.stdo
         return stdo
 
@@ -349,14 +350,14 @@ class GnuCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args, env, code, mode):
+    def has_arguments(self, ctx):
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        with self._build_wrapper(code, env, args, None, mode, disable_cache=False, want_output=True) as p:
+        with ctx.wait() as p:
             result = p.returncode == 0
             if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stde:
                 result = False
             if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stde:
                 result = False
-        return result, p.cached
+            return result, p.cached

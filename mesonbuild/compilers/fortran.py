@@ -161,7 +161,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
                              'other similar method can be used instead.'
                              .format(arg))
         code = 'stop; end program'
-        return self.has_arguments(args, env, code, mode='compile')
+        return self._build_wrapper(args, env, code, mode='compile')
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):

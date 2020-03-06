@@ -277,8 +277,9 @@ class CLikeCompiler:
         #else
          #include <{header}>
         #endif'''
-        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
-                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
+        return self._build_wrapper(code.format(**fargs), env, extra_args=extra_args,
+                                   dependencies=dependencies, mode='preprocess',
+                                   disable_cache=disable_cache)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
@@ -355,7 +356,8 @@ class CLikeCompiler:
         return args
 
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile', disable_cache=False):
-        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+        ctx = self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache)
+        with ctx.wait() as p:
             return p.returncode == 0, p.cached
 
     def _build_wrapper(self, code, env, extra_args, dependencies=None, mode='compile', want_output=False, disable_cache=False, temp_dir=None):
@@ -371,7 +373,8 @@ class CLikeCompiler:
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
         if self.is_cross and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
-        with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
+        ctx = self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True)
+        with ctx.wait() as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
@@ -569,7 +572,8 @@ class CLikeCompiler:
         func = lambda: self.cached_compile(code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
             func = lambda: self.compile(code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
-        with func() as p:
+        ctx = func()
+        with ctx.wait() as p:
             cached = p.cached
             if p.returncode != 0:
                 raise mesonlib.EnvironmentException('Could not get define {!r}'.format(dname))
@@ -711,14 +715,14 @@ class CLikeCompiler:
             head, main = self._no_prototype_templ()
         templ = head + stubs_fail + main
 
-        res, cached = self.links(templ.format(**fargs), env, extra_args=extra_args,
-                                 dependencies=dependencies)
-        if res:
-            return True, cached
+        contexts = []
+        contexts.append(self._build_wrapper(templ.format(**fargs), env, extra_args=extra_args,
+                                            dependencies=dependencies, mode='link'))
 
         # MSVC does not have compiler __builtin_-s.
         if self.get_id() in {'msvc', 'intel-cl'}:
-            return False, False
+            contexts.append(compilers.CompileContextBase(False, False))
+            return compilers.CompileContextList(contexts)
 
         # Detect function as a built-in
         #
@@ -747,8 +751,9 @@ class CLikeCompiler:
         #endif
         return 0;
         }}'''
-        return self.links(t.format(**fargs), env, extra_args=extra_args,
-                          dependencies=dependencies)
+        contexts.append(self._build_wrapper(t.format(**fargs), env, extra_args=extra_args,
+                                            dependencies=dependencies, mode='link'))
+        return compilers.CompileContextList(contexts)
 
     def has_members(self, typename, membernames, prefix, env, *, extra_args=None, dependencies=None):
         if extra_args is None:
@@ -791,7 +796,8 @@ class CLikeCompiler:
         '''
         args = self.get_compiler_check_args()
         n = 'symbols_have_underscore_prefix'
-        with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
+        ctx = self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir)
+        with ctx.wait() as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
                 raise RuntimeError(m.format(n, p.stdo))
@@ -1073,9 +1079,6 @@ class CLikeCompiler:
     def linker_to_compiler_args(self, args):
         return args
 
-    def has_arguments(self, args, env, code, mode):
-        return self.compiles(code, env, extra_args=args, mode=mode)
-
     def has_multi_arguments(self, args, env):
         for arg in args[:]:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -1093,7 +1096,7 @@ class CLikeCompiler:
                              'other similar method can be used instead.'
                              .format(arg))
         code = 'int i;\n'
-        return self.has_arguments(args, env, code, mode='compile')
+        return self._build_wrapper(code, env, args, mode='compile')
 
     def has_multi_link_arguments(self, args, env):
         # First time we check for link flags we need to first check if we have
@@ -1102,7 +1105,7 @@ class CLikeCompiler:
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
         code = 'int main(void) { return 0; }'
-        return self.has_arguments(args, env, code, mode='link')
+        return self.compiles(code, env, extra_args=args, mode='link')
 
     @staticmethod
     def concatenate_string_literals(s):

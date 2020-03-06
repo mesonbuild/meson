@@ -1012,6 +1012,14 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
 
         raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
 
+function_permitted_kwargs = set([
+    'prefix',
+    'no_builtin_args',
+    'include_directories',
+    'args',
+    'dependencies',
+])
+
 header_permitted_kwargs = set([
     'required',
     'prefix',
@@ -1045,9 +1053,11 @@ class CompilerHolder(InterpreterObject):
                              'get_define': self.get_define_method,
                              'check_header': self.check_header_method,
                              'has_header': self.has_header_method,
+                             'get_supported_headers': self.get_supported_headers_method,
                              'has_header_symbol': self.has_header_symbol_method,
                              'run': self.run_method,
                              'has_function': self.has_function_method,
+                             'get_supported_functions': self.get_supported_functions_method,
                              'has_member': self.has_member_method,
                              'has_members': self.has_members_method,
                              'has_type': self.has_type_method,
@@ -1282,16 +1292,7 @@ class CompilerHolder(InterpreterObject):
                  'has members', members, msg, hadtxt, cached)
         return had
 
-    @permittedKwargs({
-        'prefix',
-        'no_builtin_args',
-        'include_directories',
-        'args',
-        'dependencies',
-    })
-    def has_function_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Has_function takes exactly one argument.')
+    def _has_functions(self, args, kwargs):
         check_stringlist(args)
         funcname = args[0]
         prefix = kwargs.get('prefix', '')
@@ -1299,9 +1300,17 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_function must be a string.')
         extra_args = self.determine_args(kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        had, cached = self.compiler.has_function(funcname, prefix, self.environment,
-                                                 extra_args=extra_args,
-                                                 dependencies=deps)
+        contexts = []
+        for funcname in args:
+            contexts.append(self.compiler.has_function(funcname, prefix, self.environment,
+                                                       extra_args=extra_args,
+                                                       dependencies=deps))
+        for funcname, ctx in zip(args, contexts):
+            yield self._has_functions_finish(ctx, funcname, msg)
+
+    def _has_functions_finish(self, ctx, funcname, msg):
+        with ctx.wait() as p:
+            had, cached = p.returncode == 0, p.cached
         cached = mlog.blue('(cached)') if cached else ''
         if had:
             hadtxt = mlog.green('YES')
@@ -1309,6 +1318,21 @@ class CompilerHolder(InterpreterObject):
             hadtxt = mlog.red('NO')
         mlog.log('Checking for function', mlog.bold(funcname, True), msg, hadtxt, cached)
         return had
+
+    @permittedKwargs(function_permitted_kwargs)
+    def has_function_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('Has_function takes exactly one argument.')
+        return list(self._has_functions(args, kwargs))[0]
+
+    @permittedKwargs(function_permitted_kwargs)
+    def get_supported_functions_method(self, args, kwargs):
+        supported = []
+        for funcname, had in zip(args, self._has_functions(args, kwargs)):
+            if had:
+                supported.append(funcname)
+        return supported
+
 
     @permittedKwargs({
         'prefix',
@@ -1516,24 +1540,23 @@ class CompilerHolder(InterpreterObject):
         mlog.log('Check usable header', mlog.bold(hname, True), msg, h, cached)
         return haz
 
-    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
-    @permittedKwargs(header_permitted_kwargs)
-    def has_header_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('has_header method takes exactly one argument.')
+    def _has_headers(self, args, kwargs, required=False):
         check_stringlist(args)
-        hname = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_header must be a string.')
-        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
-        if disabled:
-            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
-        haz, cached = self.compiler.has_header(hname, prefix, self.environment,
-                                               extra_args=extra_args, dependencies=deps)
+        contexts = []
+        for hname in args:
+            contexts.append(self.compiler.has_header(hname, prefix, self.environment,
+                                                     extra_args=extra_args, dependencies=deps))
+        for hname, ctx in zip(args, contexts):
+            yield self._has_headers_finish(ctx, hname, required, msg)
+
+    def _has_headers_finish(self, ctx, hname, required, msg):
+        with ctx.wait() as p:
+            haz, cached = p.returncode == 0, p.cached
         cached = mlog.blue('(cached)') if cached else ''
         if required and not haz:
             raise InterpreterException('{} header {!r} not found'.format(self.compiler.get_display_language(), hname))
@@ -1543,6 +1566,26 @@ class CompilerHolder(InterpreterObject):
             h = mlog.red('NO')
         mlog.log('Has header', mlog.bold(hname, True), msg, h, cached)
         return haz
+
+    @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
+    @permittedKwargs(header_permitted_kwargs)
+    def has_header_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('has_header method takes exactly one argument.')
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
+        if disabled:
+            mlog.log('Has header', mlog.bold(hname, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return False
+        return list(self._has_headers(args, kwargs, required))[0]
+
+    @FeatureNew('compiler.get_supported_headers', '0.54.0')
+    @permittedKwargs(header_permitted_kwargs - {'required'})
+    def get_supported_headers_method(self, args, kwargs):
+        supported = []
+        for hname, haz in zip(args, self._has_headers(args, kwargs)):
+            if haz:
+                supported.append(hname)
+        return supported
 
     @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)
@@ -1620,35 +1663,42 @@ class CompilerHolder(InterpreterObject):
                                            self.compiler.language)
         return ExternalLibraryHolder(lib, self.subproject)
 
-    @permittedKwargs({})
-    def has_argument_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        if len(args) != 1:
-            raise InterpreterException('has_argument takes exactly one argument.')
-        return self.has_multi_arguments_method(args, kwargs)
-
-    @permittedKwargs({})
-    def has_multi_arguments_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        result, cached = self.compiler.has_multi_arguments(args, self.environment)
+    def has_multi_arguments_internal(self, ctx, args):
+        result, cached = self.compiler.has_arguments(ctx)
         if result:
             h = mlog.green('YES')
         else:
             h = mlog.red('NO')
         cached = mlog.blue('(cached)') if cached else ''
-        mlog.log(
-            'Compiler for {} supports arguments {}:'.format(
-                self.compiler.get_display_language(), ' '.join(args)),
-            h, cached)
+        mlog.log('Compiler for {} supports arguments {}:'.format(
+                 self.compiler.get_display_language(), ' '.join(args)),
+                 h, cached)
         return result
+
+    @permittedKwargs({})
+    def has_argument_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        if len(args) != 1:
+            raise InterpreterException('has_argument takes exactly one argument.')
+        ctx = self.compiler.has_multi_arguments(args, self.environment)
+        return self.has_multi_arguments_internal(ctx, args)
+
+    @permittedKwargs({})
+    def has_multi_arguments_method(self, args, kwargs):
+        args = mesonlib.stringlistify(args)
+        ctx = self.compiler.has_multi_arguments(args, self.environment)
+        return self.has_multi_arguments_internal(ctx, args)
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
     def get_supported_arguments_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        supported_args = []
+        contexts = []
         for arg in args:
-            if self.has_argument_method(arg, kwargs):
+            contexts.append(self.compiler.has_multi_arguments([arg], self.environment))
+        supported_args = []
+        for ctx, arg in zip(contexts, args):
+            if self.has_multi_arguments_internal(ctx, [arg]):
                 supported_args.append(arg)
         return supported_args
 

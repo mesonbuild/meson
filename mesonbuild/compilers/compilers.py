@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import contextlib, os.path, re, tempfile
+import contextlib, os.path, re, tempfile, types
 import collections.abc
 import typing as T
 from functools import lru_cache
@@ -23,7 +23,7 @@ from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args
+    Popen_safe, split_args, windows_proof_rmtree
 )
 from ..envconfig import (
     Properties,
@@ -691,6 +691,115 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __repr__(self) -> str:
         return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
 
+class CompileContextBase:
+    def __init__(self, returncode: int, cached: bool):
+        self.returncode = returncode
+        self.cached = cached
+
+    @contextlib.contextmanager
+    def wait(self):
+        yield types.SimpleNamespace(returncode=self.returncode, cached=self.cached)
+
+class CompileContextList(CompileContextBase):
+    def __init__(self, contexts):
+        self.contexts = contexts
+
+    @contextlib.contextmanager
+    def wait(self):
+        last = self.contexts.pop()
+        for ctx in self.contexts:
+            with ctx.wait() as p:
+                if p.returncode != 0:
+                    continue
+                yield p
+                return
+        with last.wait() as p:
+            yield p
+
+
+class CompileContext(CompileContextBase):
+    def __init__(self, compiler, code, extra_args, mode, temp_dir, cdata=None):
+        self.cdata = cdata
+
+        if self.cdata:
+            # Check the cache
+            textra_args = tuple(extra_args) if extra_args is not None else None
+            self.key = (tuple(compiler.exelist), compiler.version, code, textra_args, mode)
+            self.p = cdata.compiler_check_cache.get(self.key)
+            if self.p:
+                return
+
+        self.tmpdirname = tempfile.mkdtemp(dir=temp_dir)
+        if isinstance(code, str):
+            srcname = os.path.join(self.tmpdirname,
+                                   'testfile.' + compiler.default_suffix)
+            with open(srcname, 'w') as ofile:
+                ofile.write(code)
+        elif isinstance(code, mesonlib.File):
+            srcname = code.fname
+
+        # Construct the compiler command-line
+        commands = CompilerArgs(compiler)
+        commands.append(srcname)
+        # Preprocess mode outputs to stdout, so no output args
+        if mode != 'preprocess':
+            output = compiler._get_compile_output(self.tmpdirname, mode)
+            commands += compiler.get_output_args(output)
+        else:
+            output = None
+        commands.extend(compiler.get_compiler_args_for_mode(mode))
+        # extra_args must be last because it could contain '/link' to
+        # pass args to VisualStudio's linker. In that case everything
+        # in the command line after '/link' is given to the linker.
+        commands += extra_args if extra_args is not None else []
+
+        # Generate full command-line with the exelist
+        commands = compiler.get_exelist() + commands.to_native()
+
+        os_env = os.environ.copy()
+        os_env['LC_ALL'] = 'C'
+
+        self.p = mesonlib.MesonPopen(commands, cwd=self.tmpdirname, env=os_env)
+        self.p.code = code
+        self.p.commands = commands
+        self.p.input_name = srcname
+        self.p.output_name = output
+        self.p.cached = False
+
+    @contextlib.contextmanager
+    def wait(self):
+        if self.p.cached:
+            mlog.debug('Using cached compile:')
+            mlog.debug('Cached command line: ', ' '.join(self.p.commands), '\n')
+            mlog.debug('Code:\n', self.p.code)
+            mlog.debug('Cached compiler stdout:\n', self.p.stdo)
+            mlog.debug('Cached compiler stderr:\n', self.p.stde)
+            yield self.p
+            return
+
+        mlog.debug('Running compile:')
+        mlog.debug('Working directory: ', self.tmpdirname)
+        mlog.debug('Command line: ', ' '.join(self.p.commands), '\n')
+        mlog.debug('Code:\n', self.p.code)
+        self.p.stdo, self.p.stde = self.p.communicate()
+        mlog.debug('Compiler stdout:\n', self.p.stdo)
+        mlog.debug('Compiler stderr:\n', self.p.stde)
+        yield self.p
+
+        if self.cdata:
+            # Remove all attributes except the following
+            # This way the object can be serialized
+            tokeep = ['args', 'commands', 'input_name', 'output_name',
+                      'pid', 'returncode', 'stdo', 'stde', 'text_mode',
+                      'code']
+            todel = [x for x in vars(self.p).keys() if x not in tokeep]
+            for i in todel:
+                delattr(self.p, i)
+            self.p.cached = True
+            self.cdata.compiler_check_cache[self.key] = self.p
+
+        windows_proof_rmtree(self.tmpdirname)
+
 class Compiler:
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
@@ -840,7 +949,7 @@ class Compiler:
     def check_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_header(self, *args, **kwargs) -> CompileContextBase:
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
     def has_header_symbol(self, *args, **kwargs) -> T.Tuple[bool, bool]:
@@ -861,7 +970,7 @@ class Compiler:
     def alignment(self, *args, **kwargs) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_function(self, *args, **kwargs) -> CompileContextBase:
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
@@ -882,6 +991,10 @@ class Compiler:
 
     def get_program_dirs(self, *args, **kwargs):
         return []
+
+    def has_arguments(self, ctx):
+        with ctx.wait() as p:
+            return p.returncode == 0, p.cached
 
     def has_multi_arguments(self, args, env) -> T.Tuple[bool, bool]:
         raise EnvironmentException(
@@ -912,87 +1025,12 @@ class Compiler:
             args += self.get_preprocess_only_args()
         return args
 
-    @contextlib.contextmanager
     def compile(self, code, extra_args=None, *, mode='link', want_output=False, temp_dir=None):
-        if extra_args is None:
-            extra_args = []
-        try:
-            with tempfile.TemporaryDirectory(dir=temp_dir) as tmpdirname:
-                if isinstance(code, str):
-                    srcname = os.path.join(tmpdirname,
-                                           'testfile.' + self.default_suffix)
-                    with open(srcname, 'w') as ofile:
-                        ofile.write(code)
-                elif isinstance(code, mesonlib.File):
-                    srcname = code.fname
+        return CompileContext(self, code, extra_args, mode, temp_dir)
 
-                # Construct the compiler command-line
-                commands = CompilerArgs(self)
-                commands.append(srcname)
-                # Preprocess mode outputs to stdout, so no output args
-                if mode != 'preprocess':
-                    output = self._get_compile_output(tmpdirname, mode)
-                    commands += self.get_output_args(output)
-                commands.extend(self.get_compiler_args_for_mode(mode))
-                # extra_args must be last because it could contain '/link' to
-                # pass args to VisualStudio's linker. In that case everything
-                # in the command line after '/link' is given to the linker.
-                commands += extra_args
-                # Generate full command-line with the exelist
-                commands = self.get_exelist() + commands.to_native()
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
-                os_env = os.environ.copy()
-                os_env['LC_ALL'] = 'C'
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
-                p.commands = commands
-                p.input_name = srcname
-                if want_output:
-                    p.output_name = output
-                p.cached = False  # Make sure that the cached attribute always exists
-                yield p
-        except OSError:
-            # On Windows antivirus programs and the like hold on to files so
-            # they can't be deleted. There's not much to do in this case. Also,
-            # catch OSError because the directory is then no longer empty.
-            pass
-
-    @contextlib.contextmanager
     def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link', temp_dir=None):
         assert(isinstance(cdata, coredata.CoreData))
-
-        # Calculate the key
-        textra_args = tuple(extra_args) if extra_args is not None else None
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)
-
-        # Check if not cached
-        if key not in cdata.compiler_check_cache:
-            with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
-                # Remove all attributes except the following
-                # This way the object can be serialized
-                tokeep = ['args', 'commands', 'input_name', 'output_name',
-                          'pid', 'returncode', 'stdo', 'stde', 'text_mode']
-                todel = [x for x in vars(p).keys() if x not in tokeep]
-                for i in todel:
-                    delattr(p, i)
-                p.cached = False
-                cdata.compiler_check_cache[key] = p
-                yield p
-                return
-
-        # Return cached
-        p = cdata.compiler_check_cache[key]
-        p.cached = True
-        mlog.debug('Using cached compile:')
-        mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
-        mlog.debug('Code:\n', code)
-        mlog.debug('Cached compiler stdout:\n', p.stdo)
-        mlog.debug('Cached compiler stderr:\n', p.stde)
-        yield p
+        return CompileContext(self, code, extra_args, mode, temp_dir, cdata=cdata)
 
     def get_colorout_args(self, colortype):
         return []
