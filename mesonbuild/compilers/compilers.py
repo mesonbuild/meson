@@ -525,6 +525,15 @@ class CompilerArgs(collections.abc.MutableSequence):
         # both of which are invalid.
         if arg in cls.dedup2_prefixes:
             return 0
+        if arg.startswith('-L='):
+            # DMD and LDC proxy all linker arguments using -L=; in conjunction
+            # with ld64 on macOS this can lead to command line arguments such
+            # as: `-L=-compatibility_version -L=0 -L=current_version -L=0`.
+            # These cannot be combined, ld64 insists they must be passed with
+            # spaces and quoting does not work. if we deduplicate these then
+            # one of the -L=0 arguments will be removed and the version
+            # argument will consume the next argument instead.
+            return 0
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):
