@@ -1,2 +1,0 @@
-usr/subdir/data2.dat
-usr/subdir/data3.dat

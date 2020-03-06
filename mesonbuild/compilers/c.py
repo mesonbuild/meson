@@ -108,6 +108,10 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         opts.update({'c_std': coredata.UserComboOption('C language standard to use',
                                                        ['none'] + c_stds + g_stds,
                                                        'none')})
+        if self.info.is_windows() or self.info.is_cygwin():
+            opts.update({
+                'c_winlibs': coredata.UserArrayOption('Standard Win libraries to link against',
+                                                      gnu_winlibs), })
         return opts
 
     def get_option_compile_args(self, options):
@@ -118,6 +122,8 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         return args
 
     def get_option_link_args(self, options):
+        if self.info.is_windows() or self.info.is_cygwin():
+            return options['c_winlibs'].value[:]
         return []
 
 

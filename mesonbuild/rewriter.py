@@ -113,7 +113,7 @@ class MTypeBase:
 
     def _new_node(self):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_node of MTypeBase was called')
 
     def can_modify(self):
         return self.node_type is not None
@@ -159,7 +159,7 @@ class MTypeBool(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, False))
+        return BooleanNode(Token('', '', 0, 0, 0, None, False))
 
     def supported_nodes(self):
         return [BooleanNode]
@@ -172,7 +172,7 @@ class MTypeID(MTypeBase):
         super().__init__(node)
 
     def _new_node(self):
-        return StringNode(Token('', '', 0, 0, 0, None, ''))
+        return IdNode(Token('', '', 0, 0, 0, None, ''))
 
     def supported_nodes(self):
         return [IdNode]
@@ -189,7 +189,7 @@ class MTypeList(MTypeBase):
 
     def _new_element_node(self, value):
         # Overwrite in derived class
-        return BaseNode()
+        raise RewriterException('Internal error: _new_element_node of MTypeList was called')
 
     def _ensure_array_node(self):
         if not isinstance(self.node, ArrayNode):
@@ -414,10 +414,10 @@ class Rewriter:
         # Check the assignments
         tgt = None
         if target in self.interpreter.assignments:
-            node = self.interpreter.assignments[target][0]
+            node = self.interpreter.assignments[target]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']:
-                    tgt = self.interpreter.assign_vals[target][0]
+                    tgt = self.interpreter.assign_vals[target]
 
         return tgt
 
@@ -434,7 +434,7 @@ class Rewriter:
 
         # Check the assignments
         if dependency in self.interpreter.assignments:
-            node = self.interpreter.assignments[dependency][0]
+            node = self.interpreter.assignments[dependency]
             if isinstance(node, FunctionNode):
                 if node.func_name in ['dependency']:
                     name = self.interpreter.flatten_args(node.args)[0]
@@ -522,6 +522,8 @@ class Rewriter:
             mlog.error('Unable to find the function node')
         assert(isinstance(node, FunctionNode))
         assert(isinstance(arg_node, ArgumentNode))
+        # Transform the key nodes to plain strings
+        arg_node.kwargs = {k.value: v for k, v in arg_node.kwargs.items()}
 
         # Print kwargs info
         if cmd['operation'] == 'info':
@@ -585,11 +587,13 @@ class Rewriter:
             arg_node.kwargs[key] = modifyer.get_node()
             num_changed += 1
 
+        # Convert the keys back to IdNode's
+        arg_node.kwargs = {IdNode(Token('', '', 0, 0, 0, None, k)): v for k, v in arg_node.kwargs.items()}
         if num_changed > 0 and node not in self.modefied_nodes:
             self.modefied_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
-        if hasattr(node, 'ast_id') and node.ast_id in self.interpreter.reverse_assignment:
+        if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
             return self.interpreter.reverse_assignment[node.ast_id]
         return None
 
@@ -651,8 +655,8 @@ class Rewriter:
                     mlog.log('  -- Source', mlog.green(i), 'is already defined for the target --> skipping')
                     continue
                 mlog.log('  -- Adding source', mlog.green(i), 'at',
-                         mlog.yellow('{}:{}'.format(os.path.join(node.subdir, environment.build_filename), node.lineno)))
-                token = Token('string', node.subdir, 0, 0, 0, None, i)
+                         mlog.yellow('{}:{}'.format(node.filename, node.lineno)))
+                token = Token('string', node.filename, 0, 0, 0, None, i)
                 to_append += [StringNode(token)]
 
             # Append to the AST at the right place
@@ -695,7 +699,7 @@ class Rewriter:
                     arg_node = root
                 assert(arg_node is not None)
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
-                         mlog.yellow('{}:{}'.format(os.path.join(string_node.subdir, environment.build_filename), string_node.lineno)))
+                         mlog.yellow('{}:{}'.format(string_node.filename, string_node.lineno)))
                 arg_node.arguments.remove(string_node)
 
                 # Mark the node as modified
@@ -712,23 +716,24 @@ class Rewriter:
             id_base = re.sub(r'[- ]', '_', cmd['target'])
             target_id = id_base + '_exe' if cmd['target_type'] == 'executable' else '_lib'
             source_id = id_base + '_sources'
+            filename = os.path.join(cmd['subdir'], environment.build_filename)
 
             # Build src list
-            src_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
+            src_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
             src_arr_node = ArrayNode(src_arg_node, 0, 0, 0, 0)
-            src_far_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            src_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, 'files', src_far_node)
-            src_ass_node = AssignmentNode(cmd['subdir'], 0, 0, source_id, src_fun_node)
-            src_arg_node.arguments = [StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, x)) for x in cmd['sources']]
+            src_far_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
+            src_fun_node = FunctionNode(filename, 0, 0, 0, 0, 'files', src_far_node)
+            src_ass_node = AssignmentNode(filename, 0, 0, source_id, src_fun_node)
+            src_arg_node.arguments = [StringNode(Token('string', filename, 0, 0, 0, None, x)) for x in cmd['sources']]
             src_far_node.arguments = [src_arr_node]
 
             # Build target
-            tgt_arg_node = ArgumentNode(Token('string', cmd['subdir'], 0, 0, 0, None, ''))
-            tgt_fun_node = FunctionNode(cmd['subdir'], 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
-            tgt_ass_node = AssignmentNode(cmd['subdir'], 0, 0, target_id, tgt_fun_node)
+            tgt_arg_node = ArgumentNode(Token('string', filename, 0, 0, 0, None, ''))
+            tgt_fun_node = FunctionNode(filename, 0, 0, 0, 0, cmd['target_type'], tgt_arg_node)
+            tgt_ass_node = AssignmentNode(filename, 0, 0, target_id, tgt_fun_node)
             tgt_arg_node.arguments = [
-                StringNode(Token('string', cmd['subdir'], 0, 0, 0, None, cmd['target'])),
-                IdNode(Token('string', cmd['subdir'], 0, 0, 0, None, source_id))
+                StringNode(Token('string', filename, 0, 0, 0, None, cmd['target'])),
+                IdNode(Token('string', filename, 0, 0, 0, None, source_id))
             ]
 
             src_ass_node.accept(AstIndentationGenerator())
@@ -741,7 +746,7 @@ class Rewriter:
                 to_remove = target['node']
             self.to_remove_nodes += [to_remove]
             mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
-                     mlog.yellow('{}:{}'.format(os.path.join(to_remove.subdir, environment.build_filename), to_remove.lineno)))
+                     mlog.yellow('{}:{}'.format(to_remove.filename, to_remove.lineno)))
 
         elif cmd['operation'] == 'info':
             # T.List all sources in the target
@@ -776,8 +781,8 @@ class Rewriter:
         self.functions[cmd['type']](cmd)
 
     def apply_changes(self):
-        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.modefied_nodes))
-        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'subdir') for x in self.to_remove_nodes))
+        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modefied_nodes))
+        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.to_remove_nodes))
         assert(all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modefied_nodes))
         assert(all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes))
         # Sort based on line and column in reversed order
@@ -796,7 +801,7 @@ class Rewriter:
                 printer.post_process()
                 new_data = printer.result.strip()
             data = {
-                'file': os.path.join(i['node'].subdir, environment.build_filename),
+                'file': i['node'].filename,
                 'str': new_data,
                 'node': i['node'],
                 'action': i['action']

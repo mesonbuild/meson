@@ -1,0 +1,9 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/app_d"},
+    {"type": "file", "platform": "msvc", "file": "usr/bin/stuff.dll"},
+    {"type": "file", "platform": "msvc", "file": "usr/lib/stuff.lib"},
+    {"type": "file", "platform": "gcc", "file": "usr/lib/libstuff.so"},
+    {"type": "file", "file": "usr/lib/pkgconfig/test.pc"}
+  ]
+}

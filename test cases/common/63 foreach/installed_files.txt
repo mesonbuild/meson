@@ -1,6 +1,0 @@
-usr/bin/prog1?exe
-?msvc:usr/bin/prog1.pdb
-usr/bin/prog2?exe
-?msvc:usr/bin/prog2.pdb
-usr/bin/prog3?exe
-?msvc:usr/bin/prog3.pdb

@@ -56,7 +56,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg
+    quote_arg, relpath
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -1274,60 +1274,95 @@ class DataTests(unittest.TestCase):
                 self.assertIn(opt, md)
         self.assertNotIn('b_unknown', md)
 
+    @staticmethod
+    def _get_section_content(name, sections, md):
+        for section in sections:
+            if section and section.group(1) == name:
+                try:
+                    next_section = next(sections)
+                    end = next_section.start()
+                except StopIteration:
+                    end = len(md)
+                # Extract the content for this section
+                return md[section.end():end]
+        raise RuntimeError('Could not find "{}" heading'.format(name))
+
     def test_builtin_options_documented(self):
         '''
         Test that universal options and base options are documented in
         Builtin-Options.md.
         '''
+        from itertools import tee
         md = None
         with open('docs/markdown/Builtin-options.md', encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
 
         found_entries = set()
-        sections = list(re.finditer(r"^## (.+)$", md, re.MULTILINE)) + [None]
-
-        for s1, s2 in zip(sections[:], sections[1:]):
-            if s1.group(1) == "Universal options":
-                # Extract the content for this section
-                end = s2.start() if s2 is not None else len(md)
-                content = md[s1.end():end]
-                subsections = list(re.finditer(r"^### (.+)$", content, re.MULTILINE)) + [None]
-
-                for sub1, sub2 in zip(subsections[:], subsections[1:]):
-                    if sub1.group(1) == "Directories" or sub1.group(1) == "Core options":
-                        # Extract the content for this subsection
-                        sub_end = sub2.start() if sub2 is not None else len(content)
-                        subcontent = content[sub1.end():sub_end]
-                        # Find the list entries
-                        arches = [m.group(1) for m in re.finditer(r"^\| (\w+) .* \|", subcontent, re.MULTILINE)]
-                        # Drop the header
-                        arches = set(arches[1:])
-
-                        self.assertEqual(len(found_entries & arches), 0)
-                        found_entries |= arches
-            break
+        sections = re.finditer(r"^## (.+)$", md, re.MULTILINE)
+        # Extract the content for this section
+        content = self._get_section_content("Universal options", sections, md)
+        subsections = tee(re.finditer(r"^### (.+)$", content, re.MULTILINE))
+        subcontent1 = self._get_section_content("Directories", subsections[0], content)
+        subcontent2 = self._get_section_content("Core options", subsections[1], content)
+        for subcontent in (subcontent1, subcontent2):
+            # Find the option names
+            options = set()
+            # Match either a table row or a table heading separator: | ------ |
+            rows = re.finditer(r"^\|(?: (\w+) .* | *-+ *)\|", subcontent, re.MULTILINE)
+            # Skip the header of the first table
+            next(rows)
+            # Skip the heading separator of the first table
+            next(rows)
+            for m in rows:
+                value = m.group(1)
+                # End when the `buildtype` table starts
+                if value is None:
+                    break
+                options.add(value)
+            self.assertEqual(len(found_entries & options), 0)
+            found_entries |= options
 
         self.assertEqual(found_entries, set([
             *mesonbuild.coredata.builtin_options.keys(),
             *mesonbuild.coredata.builtin_options_per_machine.keys()
         ]))
 
+        # Check that `buildtype` table inside `Core options` matches how
+        # setting of builtin options behaves
+        #
+        # Find all tables inside this subsection
+        tables = re.finditer(r"^\| (\w+) .* \|\n\| *[-|\s]+ *\|$", subcontent2, re.MULTILINE)
+        # Get the table we want using the header of the first column
+        table = self._get_section_content('buildtype', tables, subcontent2)
+        # Get table row data
+        rows = re.finditer(r"^\|(?: (\w+)\s+\| (\w+)\s+\| (\w+) .* | *-+ *)\|", table, re.MULTILINE)
+        env = get_fake_env()
+        for m in rows:
+            buildtype, debug, opt = m.groups()
+            if debug == 'true':
+                debug = True
+            elif debug == 'false':
+                debug = False
+            else:
+                raise RuntimeError('Invalid debug value {!r} in row:\n{}'.format(debug, m.group()))
+            env.coredata.set_builtin_option('buildtype', buildtype)
+            self.assertEqual(env.coredata.builtins['buildtype'].value, buildtype)
+            self.assertEqual(env.coredata.builtins['optimization'].value, opt)
+            self.assertEqual(env.coredata.builtins['debug'].value, debug)
+
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
 
-        sections = list(re.finditer(r"^## (.+)$", md, re.MULTILINE))
-        for s1, s2 in zip(sections[::2], sections[1::2]):
-            if s1.group(1) == "CPU families":
-                # Extract the content for this section
-                content = md[s1.end():s2.start()]
-                # Find the list entries
-                arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
-                # Drop the header
-                arches = set(arches[1:])
-                self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
+        sections = re.finditer(r"^## (.+)$", md, re.MULTILINE)
+        content = self._get_section_content("CPU families", sections, md)
+        # Find the list entries
+        arches = [m.group(1) for m in re.finditer(r"^\| (\w+) +\|", content, re.MULTILINE)]
+        # Drop the header
+        arches = set(arches[1:])
+        self.assertEqual(arches, set(mesonbuild.environment.known_cpu_families))
 
     def test_markdown_files_in_sitemap(self):
         '''
@@ -1398,7 +1433,7 @@ class DataTests(unittest.TestCase):
         '''
         env = get_fake_env()
         interp = Interpreter(FakeBuild(env), mock=True)
-        astint = AstInterpreter('.', '')
+        astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
 
@@ -1512,7 +1547,8 @@ class BasePlatformTests(unittest.TestCase):
              extra_args=None,
              default_args=True,
              inprocess=False,
-             override_envvars=None):
+             override_envvars=None,
+             workdir=None):
         self.assertPathExists(srcdir)
         if extra_args is None:
             extra_args = []
@@ -1553,7 +1589,7 @@ class BasePlatformTests(unittest.TestCase):
                 mesonbuild.mlog.log_file = None
         else:
             try:
-                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars)
+                out = self._run(self.setup_command + args + extra_args, override_envvars=override_envvars, workdir=workdir)
             except unittest.SkipTest:
                 raise unittest.SkipTest('Project requested skipping: ' + srcdir)
             except Exception:
@@ -3171,6 +3207,50 @@ int main(int argc, char **argv) {
         ]:
             self.assertRegex(out, re.escape(expected))
 
+        for wd in [
+            self.src_root,
+            self.builddir,
+            os.getcwd(),
+        ]:
+            self.new_builddir()
+            out = self.init(tdir, workdir=wd)
+            expected = os.path.join(relpath(tdir, self.src_root), 'meson.build')
+            relwd = relpath(self.src_root, wd)
+            if relwd != '.':
+                expected = os.path.join(relwd, expected)
+                expected = '\n' + expected + ':'
+            self.assertIn(expected, out)
+
+    def test_error_location_path(self):
+        '''Test locations in meson errors contain correct paths'''
+        # this list contains errors from all the different steps in the
+        # lexer/parser/interpreter we have tests for.
+        for (t, f) in [
+            ('10 out of bounds', 'meson.build'),
+            ('18 wrong plusassign', 'meson.build'),
+            ('61 bad option argument', 'meson_options.txt'),
+            ('100 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('101 invalid option file', 'meson_options.txt'),
+        ]:
+            tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
+
+            for wd in [
+                self.src_root,
+                self.builddir,
+                os.getcwd(),
+            ]:
+                try:
+                    self.init(tdir, workdir=wd)
+                except subprocess.CalledProcessError as e:
+                    expected = os.path.join('test cases', 'failing', t, f)
+                    relwd = relpath(self.src_root, wd)
+                    if relwd != '.':
+                        expected = os.path.join(relwd, expected)
+                    expected = '\n' + expected + ':'
+                    self.assertIn(expected, e.output)
+                else:
+                    self.fail('configure unexpectedly succeeded')
+
     def test_permitted_method_kwargs(self):
         tdir = os.path.join(self.unit_test_dir, '25 non-permitted kwargs')
         out = self.init(tdir)
@@ -4347,14 +4427,15 @@ recommended as it is not supported on some platforms''')
                          A list: string
                                  1
                                  True
-                     empty list: 
+                     empty list:
                        A number: 1
                             yes: YES
                              no: NO
+                      coma list: a, b, c
 
               Subprojects
                             sub: YES
-                           sub2: NO
+                           sub2: NO Problem encountered: This subproject failed
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
@@ -4365,6 +4446,21 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(sorted(expected_lines), sorted(out_lines))
         else:
             self.assertEqual(expected_lines, out_lines)
+
+    def test_meson_compile(self):
+        """Test the meson compile command."""
+        prog = 'trivialprog'
+        if is_windows():
+            prog = '{}.exe'.format(prog)
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        self._run([*self.meson_command, 'compile', '-C', self.builddir])
+        # If compile worked then we should get a program
+        self.assertPathExists(os.path.join(self.builddir, prog))
+
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
+        self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
 
 
 class FailureTests(BasePlatformTests):
@@ -6836,9 +6932,9 @@ class NativeFileTests(BasePlatformTests):
             '--native-file', config, '--native-file', config2,
             '-Dcase=find_program'])
 
-    def _simple_test(self, case, binary):
+    def _simple_test(self, case, binary, entry=None):
         wrapper = self.helper_create_binary_wrapper(binary, version='12345')
-        config = self.helper_create_native_file({'binaries': {binary: wrapper}})
+        config = self.helper_create_native_file({'binaries': {entry or binary: wrapper}})
         self.init(self.testcase, extra_args=['--native-file', config, '-Dcase={}'.format(case)])
 
     def test_find_program(self):
@@ -6861,16 +6957,21 @@ class NativeFileTests(BasePlatformTests):
             # python module breaks. This is fine on other OSes because they
             # don't need the extra indirection.
             raise unittest.SkipTest('bat indirection breaks internal sanity checks.')
-        if os.path.exists('/etc/debian_version'):
-            rc = subprocess.call(['pkg-config', '--cflags', 'python2'],
-                                 stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
-            if rc != 0:
-                # Python 2 will be removed in Debian Bullseye, thus we must
-                # remove the build dependency on python2-dev. Keep the tests
-                # but only run them if dev packages are available.
+        elif is_osx():
+            binary = 'python'
+        else:
+            binary = 'python2'
+
+            # We not have python2, check for it
+            for v in ['2', '2.7', '-2.7']:
+                rc = subprocess.call(['pkg-config', '--cflags', 'python{}'.format(v)],
+                                     stdout=subprocess.DEVNULL,
+                                     stderr=subprocess.DEVNULL)
+                if rc == 0:
+                    break
+            else:
                 raise unittest.SkipTest('Not running Python 2 tests because dev packages not installed.')
-        self._simple_test('python', 'python')
+        self._simple_test('python', binary, entry='python')
 
     @unittest.skipIf(is_windows(), 'Setting up multiple compilers on windows is hard')
     @skip_if_env_set('CC')

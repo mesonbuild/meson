@@ -59,6 +59,7 @@ log_disable_stdout = False   # type: bool
 log_errors_only = False      # type: bool
 _in_ci = 'CI' in os.environ  # type: bool
 _logged_once = set()         # type: T.Set[T.Tuple[str, ...]]
+log_warnings_counter = 0     # type: int
 
 def disable() -> None:
     global log_disable_stdout
@@ -221,13 +222,21 @@ def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
     _logged_once.add(t)
     log(*args, is_error=is_error, **kwargs)
 
+# This isn't strictly correct. What we really want here is something like:
+# class StringProtocol(typing_extensions.Protocol):
+#
+#      def __str__(self) -> str: ...
+#
+# This would more accurately embody what this function can handle, but we
+# don't have that yet, so instead we'll do some casting to work around it
+def get_error_location_string(fname: str, lineno: str) -> str:
+    return '{}:{}:'.format(fname, lineno)
+
 def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
                once: bool = False, **kwargs: T.Any) -> None:
-    from .mesonlib import get_error_location_string
-    from .environment import build_filename
-    from .mesonlib import MesonException
+    from .mesonlib import MesonException, relpath
 
-    # The tping requirements here are non-obvious. Lists are invariant,
+    # The typing requirements here are non-obvious. Lists are invariant,
     # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
     if severity == 'warning':
         label = [yellow('WARNING:')]  # type: T.List[T.Union[str, AnsiDecorator]]
@@ -242,7 +251,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
 
     location = kwargs.pop('location', None)
     if location is not None:
-        location_file = os.path.join(location.subdir, build_filename)
+        location_file = relpath(location.filename, os.getcwd())
         location_str = get_error_location_string(location_file, location.lineno)
         # Unions are frankly awful, and we have to T.cast here to get mypy
         # to understand that the list concatenation is safe
@@ -254,17 +263,20 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     else:
         log(*args, **kwargs)
 
+    global log_warnings_counter
+    log_warnings_counter += 1
+
     if log_fatal_warnings:
         raise MesonException("Fatal warnings enabled, aborting")
 
-def error(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('error', *args, **kwargs, is_error=True, once=once)
+def error(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('error', *args, **kwargs, is_error=True)
 
-def warning(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('warning', *args, **kwargs, is_error=True, once=once)
+def warning(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('warning', *args, **kwargs, is_error=True)
 
-def deprecation(*args: T.Union[str, AnsiDecorator], once: bool = False, **kwargs: T.Any) -> None:
-    return _log_error('deprecation', *args, **kwargs, is_error=True, once=once)
+def deprecation(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('deprecation', *args, **kwargs, is_error=True)
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""
@@ -287,9 +299,9 @@ def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
     log()
     args = []  # type: T.List[T.Union[AnsiDecorator, str]]
     if hasattr(e, 'file') and hasattr(e, 'lineno') and hasattr(e, 'colno'):
-        # Mypy can't figure this out, and it's pretty easy to vidual inspect
+        # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
         # that this is correct, so we'll just ignore it.
-        path = get_relative_path(Path(e.file), Path(os.getcwd()))
+        path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
         args.append('%s:%d:%d:' % (path, e.lineno, e.colno))  # type: ignore
     if prefix:
         args.append(prefix)

@@ -129,7 +129,7 @@ def update_svn(wrap, repo_dir, options):
         subprocess.check_call(['svn', 'update', '-r', revno], cwd=repo_dir)
 
 def update(wrap, repo_dir, options):
-    mlog.log('Updating %s...' % wrap.name)
+    mlog.log('Updating {}...'.format(wrap.name))
     if wrap.type == 'file':
         update_file(wrap, repo_dir, options)
     elif wrap.type == 'git':
@@ -148,7 +148,7 @@ def checkout(wrap, repo_dir, options):
     cmd = ['checkout', branch_name, '--']
     if options.b:
         cmd.insert(1, '-b')
-    mlog.log('Checkout %s in %s...' % (branch_name, wrap.name))
+    mlog.log('Checkout {} in {}...'.format(branch_name, wrap.name))
     try:
         git_output(cmd, repo_dir)
         git_show(repo_dir)
@@ -157,7 +157,7 @@ def checkout(wrap, repo_dir, options):
         mlog.log('  -> ', mlog.red(out))
 
 def download(wrap, repo_dir, options):
-    mlog.log('Download %s...' % wrap.name)
+    mlog.log('Download {}...'.format(wrap.name))
     if os.path.isdir(repo_dir):
         mlog.log('  -> Already downloaded')
         return
@@ -169,7 +169,7 @@ def download(wrap, repo_dir, options):
         mlog.log('  ->', mlog.red(str(e)))
 
 def foreach(wrap, repo_dir, options):
-    mlog.log('Executing command in %s' % repo_dir)
+    mlog.log('Executing command in {}'.format(repo_dir))
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
         return
@@ -179,7 +179,7 @@ def foreach(wrap, repo_dir, options):
                                       cwd=repo_dir).decode()
         mlog.log(out, end='')
     except subprocess.CalledProcessError as e:
-        err_message = "Command '%s' returned non-zero exit status %d." % (" ".join(e.cmd), e.returncode)
+        err_message = "Command '{}' returned non-zero exit status {}.".format(" ".join(e.cmd), e.returncode)
         out = e.output.decode()
         mlog.log('  -> ', mlog.red(err_message))
         mlog.log(out, end='')

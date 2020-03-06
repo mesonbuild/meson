@@ -8,6 +8,7 @@ b1 = get_option('test_opt1')
 b2 = get_option('test_opt2')
 test_bool = b1 or b2
 test_bool = b1 and b2
+test_bool = not test_bool
 
 set_variable('list_test_plusassign', [])
 list_test_plusassign += ['bugs everywhere']

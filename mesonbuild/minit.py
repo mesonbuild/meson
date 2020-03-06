@@ -18,6 +18,8 @@ from pathlib import Path
 from enum import Enum
 import subprocess
 import shutil
+import sys
+import os
 import re
 from glob import glob
 from mesonbuild import mesonlib
@@ -131,6 +133,7 @@ def add_arguments(parser):
     Meson project.
     """
     parser.add_argument("srcfiles", metavar="sourcefile", nargs="*", help="source files. default: all recognized files in current directory")
+    parser.add_argument('-C', default='.', dest='wd', help='directory to cd into before running')
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
@@ -151,6 +154,10 @@ def run(options) -> int:
     value of 'c'.  Second case we generate a Meson build script
     for your project.
     """
+    if not Path(options.wd).exists():
+        sys.exit('Project source root directory not found. Run this command in source directory root.')
+    os.chdir(options.wd)
+
     if not glob('*'):
         autodetect_options(options, sample=True)
         if not options.language:

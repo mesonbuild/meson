@@ -1239,9 +1239,10 @@ pair doesn't appear twice. All sections will be collected and printed at
 the end of the configuration in the same order as they have been called.
 
 Keyword arguments:
+- `section` title to group a set of key/value pairs.
 - `bool_yn` if set to true, all boolean values will be replaced by green YES
   or red NO.
-- `section` title to group a set of key/value pairs.
+- `list_sep` *Since 0.54.0* string used to separate list values (e.g. `', '`).
 
 Example:
 ```meson
@@ -2266,6 +2267,8 @@ A build target is either an [executable](#executable),
   `include_directories` but points to the private directory of this
   target, usually only needed if an another target needs to access
   some generated internal headers of this target
+
+- `name()` *Since 0.54.0*, returns the target name.
 
 
 ### `configuration` data object

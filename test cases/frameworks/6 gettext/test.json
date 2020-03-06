@@ -1,0 +1,14 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/intlprog"},
+    {"type": "file", "file": "usr/share/locale/de/LC_MESSAGES/intltest.mo"},
+    {"type": "file", "file": "usr/share/locale/fi/LC_MESSAGES/intltest.mo"},
+    {"type": "file", "file": "usr/share/locale/ru/LC_MESSAGES/intltest.mo"},
+    {"type": "file", "file": "usr/share/applications/something.desktop"},
+    {"type": "file", "file": "usr/share/applications/test.desktop"},
+    {"type": "file", "file": "usr/share/applications/test.plugin"},
+    {"type": "file", "file": "usr/share/applications/test2.desktop"},
+    {"type": "file", "file": "usr/share/applications/test3.desktop"},
+    {"type": "file", "file": "usr/share/applications/test4.desktop"}
+  ]
+}

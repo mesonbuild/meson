@@ -269,7 +269,9 @@ int dummy;
         # 'Note: including file: d:\MyDir\include\stdio.h', however
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
-        matchre = re.compile(rb"^(.*\s)[a-zA-Z]:\\.*stdio.h$")
+        # When used in cross compilation, the path separator is a
+        # backslash rather than a forward slash so handle both.
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|\/).*stdio.h$")
 
         def detect_prefix(out):
             for line in re.split(rb'\r?\n', out):

@@ -526,8 +526,7 @@ class PkgConfigModule(ExtensionModule):
             for lib in deps.pub_libs:
                 if not isinstance(lib, str) and not hasattr(lib, 'generated_pc'):
                     lib.generated_pc = filebase
-                    location = types.SimpleNamespace(subdir=state.subdir,
-                                                     lineno=state.current_lineno)
+                    location = state.current_node
                     lib.generated_pc_warn = [name, location]
         return ModuleReturnValue(res, [res])
 

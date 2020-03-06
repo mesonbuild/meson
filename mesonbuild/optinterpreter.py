@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, re
+import re
 import functools
 import typing as T
 
@@ -140,13 +140,14 @@ class OptionInterpreter:
     def process(self, option_file):
         try:
             with open(option_file, 'r', encoding='utf8') as f:
-                ast = mparser.Parser(f.read(), '').parse()
+                ast = mparser.Parser(f.read(), option_file).parse()
         except mesonlib.MesonException as me:
             me.file = option_file
             raise me
         if not isinstance(ast, mparser.CodeBlockNode):
             e = OptionException('Option file is malformed.')
             e.lineno = ast.lineno()
+            e.file = option_file
             raise e
         for cur in ast.lines:
             try:
@@ -154,7 +155,7 @@ class OptionInterpreter:
             except Exception as e:
                 e.lineno = cur.lineno
                 e.colno = cur.colno
-                e.file = os.path.join('meson_options.txt')
+                e.file = option_file
                 raise e
 
     def reduce_single(self, arg):
@@ -175,10 +176,10 @@ class OptionInterpreter:
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
         reduced_kw = {}
         for key in args.kwargs.keys():
-            if not isinstance(key, str):
+            if not isinstance(key, mparser.IdNode):
                 raise OptionException('Keyword argument name is not a string.')
             a = args.kwargs[key]
-            reduced_kw[key] = self.reduce_single(a)
+            reduced_kw[key.value] = self.reduce_single(a)
         return reduced_pos, reduced_kw
 
     def evaluate_statement(self, node):

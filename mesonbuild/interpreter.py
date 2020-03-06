@@ -771,6 +771,7 @@ class BuildTargetHolder(TargetHolder):
         super().__init__(target, interp)
         self.methods.update({'extract_objects': self.extract_objects_method,
                              'extract_all_objects': self.extract_all_objects_method,
+                             'name': self.name_method,
                              'get_id': self.get_id_method,
                              'outdir': self.outdir_method,
                              'full_path': self.full_path_method,
@@ -824,6 +825,12 @@ class BuildTargetHolder(TargetHolder):
     @permittedKwargs({})
     def get_id_method(self, args, kwargs):
         return self.held_object.get_id()
+
+    @FeatureNew('name', '0.54.0')
+    @noPosargs
+    @permittedKwargs({})
+    def name_method(self, args, kwargs):
+        return self.held_object.name
 
 class ExecutableHolder(BuildTargetHolder):
     def __init__(self, target, interp):
@@ -963,10 +970,14 @@ class Test(InterpreterObject):
 
 class SubprojectHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, subinterpreter, subproject_dir, name):
+    def __init__(self, subinterpreter, subproject_dir, name, warnings=0, disabled_feature=None,
+                 exception=None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, subinterpreter)
         self.name = name
+        self.warnings = warnings
+        self.disabled_feature = disabled_feature
+        self.exception = exception
         self.subproject_dir = subproject_dir
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
@@ -1791,6 +1802,9 @@ class Summary:
         bool_yn = kwargs.get('bool_yn', False)
         if not isinstance(bool_yn, bool):
             raise InterpreterException('bool_yn keyword argument must be boolean')
+        list_sep = kwargs.get('list_sep')
+        if list_sep is not None and not isinstance(list_sep, str):
+            raise InterpreterException('list_sep keyword argument must be string')
         for k, v in values.items():
             if k in self.sections[section]:
                 raise InterpreterException('Summary section {!r} already have key {!r}'.format(section, k))
@@ -1803,9 +1817,7 @@ class Summary:
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 else:
                     formatted_values.append(i)
-            if not formatted_values:
-                formatted_values = ['']
-            self.sections[section][k] = formatted_values
+            self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
 
     def dump(self):
@@ -1815,11 +1827,14 @@ class Summary:
             if section:
                 mlog.log(' ', mlog.bold(section))
             for k, v in values.items():
+                v, list_sep = v
                 indent = self.max_key_len - len(k) + 3
-                mlog.log(' ' * indent, k + ':', v[0])
-                indent = self.max_key_len + 5
-                for i in v[1:]:
-                    mlog.log(' ' * indent, i)
+                end = ' ' if v else ''
+                mlog.log(' ' * indent, k + ':', end=end)
+                if list_sep is None:
+                    indent = self.max_key_len + 6
+                    list_sep = '\n' + ' ' * indent
+                mlog.log(*v, sep=list_sep)
         mlog.log('')  # newline
 
 
@@ -2174,13 +2189,12 @@ class Interpreter(InterpreterBase):
 
     def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
                  modules = None, default_project_options=None, mock=False, ast=None):
-        super().__init__(build.environment.get_source_dir(), subdir)
+        super().__init__(build.environment.get_source_dir(), subdir, subproject)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
         self.environment = build.environment
         self.coredata = self.environment.get_coredata()
         self.backend = backend
-        self.subproject = subproject
         self.summary = {}
         if modules is None:
             self.modules = {}
@@ -2598,10 +2612,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         dirname = args[0]
         return self.do_subproject(dirname, 'meson', kwargs)
 
-    def disabled_subproject(self, dirname, feature=None):
-        sub = SubprojectHolder(None, self.subproject_dir, dirname)
-        if feature:
-            sub.disabled_feature = feature
+    def disabled_subproject(self, dirname, disabled_feature=None, exception=None):
+        sub = SubprojectHolder(None, self.subproject_dir, dirname,
+                               disabled_feature=disabled_feature, exception=exception)
         self.subprojects[dirname] = sub
         return sub
 
@@ -2609,7 +2622,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.disabled_subproject(dirname, feature)
+            return self.disabled_subproject(dirname, disabled_feature=feature)
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         default_options = coredata.create_options_dict(default_options)
@@ -2650,7 +2663,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not required:
                 mlog.log(e)
                 mlog.log('Subproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)')
-                return self.disabled_subproject(dirname)
+                return self.disabled_subproject(dirname, exception=e)
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
@@ -2678,7 +2691,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
                 mlog.log('\nSubproject', mlog.bold(dirname), 'is buildable:', mlog.red('NO'), '(disabling)')
-                return self.disabled_subproject(dirname)
+                return self.disabled_subproject(dirname, exception=e)
             raise e
 
     def _do_subproject_meson(self, dirname, subdir, default_options, kwargs, ast=None, build_def_files=None):
@@ -2690,7 +2703,12 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             subi.subproject_stack = self.subproject_stack + [dirname]
             current_active = self.active_projectname
+            current_warnings_counter = mlog.log_warnings_counter
+            mlog.log_warnings_counter = 0
             subi.run()
+            subi_warnings = mlog.log_warnings_counter
+            mlog.log_warnings_counter = current_warnings_counter
+
             mlog.log('Subproject', mlog.bold(dirname), 'finished.')
 
         mlog.log()
@@ -2702,7 +2720,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (dirname, pv, wanted))
         self.active_projectname = current_active
         self.subprojects.update(subi.subprojects)
-        self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname)
+        self.subprojects[dirname] = SubprojectHolder(subi, self.subproject_dir, dirname,
+                                                     warnings=subi_warnings)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files = list(set(self.build_def_files + build_def_files))
@@ -2949,7 +2968,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log(mlog.bold('Message:'), *args)
 
     @noArgsFlattening
-    @permittedKwargs({'section', 'bool_yn'})
+    @FeatureNewKwargs('summary', '0.54.0', ['list_sep'])
+    @permittedKwargs({'section', 'bool_yn', 'list_sep'})
     @FeatureNew('summary', '0.53.0')
     def func_summary(self, node, args, kwargs):
         if len(args) == 1:
@@ -2977,11 +2997,18 @@ external dependencies (including libraries) must go to "dependencies".''')
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
             value = subp.found()
-            if not value and hasattr(subp, 'disabled_feature'):
-                value = 'Feature {!r} disabled'.format(subp.disabled_feature)
+            if subp.disabled_feature:
+                value = [value, 'Feature {!r} disabled'.format(subp.disabled_feature)]
+            elif subp.exception:
+                value = [value, str(subp.exception)]
+            elif subp.warnings > 0:
+                value = [value, '{} warnings'.format(subp.warnings)]
             all_subprojects[name] = value
         if all_subprojects:
-            self.summary_impl('Subprojects', all_subprojects, {'bool_yn': True})
+            self.summary_impl('Subprojects', all_subprojects,
+                              {'bool_yn': True,
+                               'list_sep': ' ',
+                              })
         # Print all summaries, main project last.
         mlog.log('')  # newline
         main_summary = self.summary.pop('', None)
@@ -3748,9 +3775,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             code = f.read()
         assert(isinstance(code, str))
         try:
-            codeblock = mparser.Parser(code, self.subdir).parse()
+            codeblock = mparser.Parser(code, absname).parse()
         except mesonlib.MesonException as me:
-            me.file = buildfilename
+            me.file = absname
             raise me
         try:
             self.evaluate_codeblock(codeblock)
@@ -4405,15 +4432,15 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             ef = extract_as_list(kwargs, 'extra_files')
             kwargs['extra_files'] = self.source_strings_to_files(ef)
         self.check_sources_exist(os.path.join(self.source_root, self.subdir), sources)
-        if targetholder is ExecutableHolder:
+        if targetholder == ExecutableHolder:
             targetclass = build.Executable
-        elif targetholder is SharedLibraryHolder:
+        elif targetholder == SharedLibraryHolder:
             targetclass = build.SharedLibrary
-        elif targetholder is SharedModuleHolder:
+        elif targetholder == SharedModuleHolder:
             targetclass = build.SharedModule
-        elif targetholder is StaticLibraryHolder:
+        elif targetholder == StaticLibraryHolder:
             targetclass = build.StaticLibrary
-        elif targetholder is JarHolder:
+        elif targetholder == JarHolder:
             targetclass = build.Jar
         else:
             mlog.debug('Unknown target type:', str(targetholder))
@@ -4479,7 +4506,7 @@ This will become a hard error in the future.''', location=self.current_node)
                 raise InterpreterException('Tried to add non-existing source file %s.' % s)
 
     # Only permit object extraction from the same subproject
-    def validate_extraction(self, buildtarget):
+    def validate_extraction(self, buildtarget: InterpreterObject) -> None:
         if not self.subdir.startswith(self.subproject_dir):
             if buildtarget.subdir.startswith(self.subproject_dir):
                 raise InterpreterException('Tried to extract objects from a subproject target.')
@@ -4488,19 +4515,6 @@ This will become a hard error in the future.''', location=self.current_node)
                 raise InterpreterException('Tried to extract objects from the main project from a subproject.')
             if self.subdir.split('/')[1] != buildtarget.subdir.split('/')[1]:
                 raise InterpreterException('Tried to extract objects from a different subproject.')
-
-    def check_contains(self, obj, args):
-        if len(args) != 1:
-            raise InterpreterException('Contains method takes exactly one argument.')
-        item = args[0]
-        for element in obj:
-            if isinstance(element, list):
-                found = self.check_contains(element, args)
-                if found:
-                    return True
-            if element == item:
-                return True
-        return False
 
     def is_subproject(self):
         return self.subproject != ''

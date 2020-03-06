@@ -46,7 +46,7 @@ def create_hash(fname):
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
     with open(hashname, 'w') as f:
-        f.write('%s %s\n' % (m.hexdigest(), os.path.basename(fname)))
+        f.write('{} {}\n'.format(m.hexdigest(), os.path.basename(fname)))
 
 
 def del_gitfiles(dirname):
@@ -195,7 +195,7 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
     return 0
 
 def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
-    print('Testing distribution package %s' % packagename)
+    print('Testing distribution package {}'.format(packagename))
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
     installdir = os.path.join(privdir, 'dist-install')
@@ -220,7 +220,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         windows_proof_rmtree(unpackdir)
         windows_proof_rmtree(builddir)
         windows_proof_rmtree(installdir)
-        print('Distribution package %s tested' % packagename)
+        print('Distribution package {} tested'.format(packagename))
     return ret
 
 def determine_archives_to_generate(options):
