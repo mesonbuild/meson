@@ -190,6 +190,7 @@ Exanple `test.json`:
   "installed": [
     { "type": "exe", "file": "usr/bin/testexe" },
     { "type": "pdb", "file": "usr/bin/testexe" },
+    { "type": "shared_lib", "file": "usr/lib/z" },
   ],
   "matrix": {
     "options": {
@@ -233,14 +234,15 @@ actually installed file.
 The `type` entry specifies how the `file` path should be interpreted based on the
 current platform. The following values are currently supported:
 
-| `type`        | Description                                                                      |
-| :-----------: | -------------------------------------------------------------------------------- |
-| `file`        | No postprocessing, just use the provided path                                    |
-| `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`     |
-| `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms          |
-| `implib`      | For Windows import libraries. These entries are ignored on non Windows platforms |
-| `implibempty` | Like `implib`, but no symbols are exported in the library                        |
-| `expr`        | `file` is an expression. This type should be avoided and removed if possible     |
+| `type`        | Description                                                                                             |
+| :-----------: | ------------------------------------------------------------------------------------------------------- |
+| `file`        | No postprocessing, just use the provided path                                                           |
+| `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`                            |
+| `shared_lib`  | For shared libraries, always written as `name`. The appropriate suffix and prefix are added by platform |
+| `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms                                 |
+| `implib`      | For Windows import libraries. These entries are ignored on non Windows platforms                        |
+| `implibempty` | Like `implib`, but no symbols are exported in the library                                               |
+| `expr`        | `file` is an expression. This type should be avoided and removed if possible                            |
 
 Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
 

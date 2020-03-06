@@ -114,6 +114,15 @@ class InstalledFile:
         # Handle the different types
         if self.typ == 'file':
             return p
+        elif self.typ == 'shared_lib':
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                return p.with_suffix('.dll')
+
+            p = p.with_name('lib{}'.format(p.name))
+            if env.machines.host.is_darwin():
+                return p.with_suffix('.dylib')
+            else:
+                return p.with_suffix('.so')
         elif self.typ == 'exe':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
