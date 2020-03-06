@@ -3842,10 +3842,11 @@ recommended as it is not supported on some platforms''')
         self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '2')
         self.assertEqual(opts['buildtype'], 'debugoptimized')
-        # Setting both buildtype and debug on the command-line should work
-        # Also test that --debug is parsed as -Ddebug=true
+        # Setting both buildtype and debug on the command-line should work, and
+        # should warn not to do that. Also test that --debug is parsed as -Ddebug=true
         self.new_builddir()
-        self.init(testdir, extra_args=['-Dbuildtype=debugoptimized', '--debug'])
+        out = self.init(testdir, extra_args=['-Dbuildtype=debugoptimized', '--debug'])
+        self.assertRegex(out, 'Recommend using either.*buildtype.*debug.*redundant')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '2')

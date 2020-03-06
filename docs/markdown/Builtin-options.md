@@ -87,6 +87,7 @@ Using the option as-is with no prefix affects all machines. For example:
 | werror                               | false         | Treat warnings as errors                                       | no             |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
 
+<a name="build-type-options"></a>
 For setting optimization levels and toggling debug, you can either set the
 `buildtype` option, or you can set the `optimization` and `debug` options which
 give finer control over the same. Whichever you decide to use, the other will

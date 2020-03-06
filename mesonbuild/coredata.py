@@ -718,6 +718,13 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options, subproject, env):
+        # Warn if the user is using two different ways of setting build-type
+        # options that override each other
+        if 'buildtype' in env.cmd_line_options and \
+           ('optimization' in env.cmd_line_options or 'debug' in env.cmd_line_options):
+            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
+                         'Using both is redundant since they override each other. '
+                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
         cmd_line_options = OrderedDict()
         # Set project default_options as if they were passed to the cmdline.
         # Subprojects can only define default for user options and not yielding
