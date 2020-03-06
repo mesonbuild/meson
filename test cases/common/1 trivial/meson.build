@@ -1,7 +1,7 @@
 # Comment on the first line
 project('trivial test',
   # Comment inside a function call + array for language list
-  ['c'],
+  ['c'], default_options: ['buildtype=debug'],
   meson_version : '>=0.52.0')
 #this is a comment
 sources = 'trivial.c'
