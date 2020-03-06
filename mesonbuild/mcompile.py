@@ -60,8 +60,18 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     )
 
 
-def run(options: 'argparse.Namespace') -> int:
-    bdir = options.builddir  # type: pathlib.Path
+def run(options: 'argparse.Namespace')-> int:
+    bdir = str(options.builddir).split(',')
+    if len(bdir) > 1:
+        ret = 0
+        for b in bdir:
+            ret += single_run(options, pathlib.Path(b))
+        return ret
+    else:
+        return single_run(options, pathlib.Path(b))
+            
+    
+def single_run(options: 'argparse.Namespace', bdir: ' ') -> int:
     if not bdir.exists():
         raise MesonException('Path to builddir {} does not exist!'.format(str(bdir.resolve())))
     if not bdir.is_dir():
