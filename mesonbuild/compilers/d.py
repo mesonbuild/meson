@@ -700,6 +700,10 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_optimization_args(self, optimization_level):
         return ldc_optimization_args[optimization_level]
 
+    @classmethod
+    def use_linker_args(cls, linker: str) -> T.List[str]:
+        return ['-linker={}'.format(linker)]
+
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
