@@ -2833,7 +2833,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @stringArgs
     @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
+    def func_get_option(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
@@ -2841,6 +2841,9 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
+        if optname == 'buildtype':
+            mlog.deprecation("Use get_option('debug') and/or get_option('optimization') "
+                             "instead of get_option('buildtype')", location=node)
         opt = self.get_option_internal(optname)
         if isinstance(opt, coredata.UserFeatureOption):
             return FeatureOptionHolder(self.environment, optname, opt)

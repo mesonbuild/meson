@@ -103,7 +103,10 @@ two-way mapping:
 | release        | false | 3            |
 | minsize        | true  | s            |
 
-All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+All other combinations of `debug` and `optimization` set `buildtype` to
+`'custom'`. Hence, inside your build files when using `get_option()`, you
+should always fetch `optimization` and/or `debug`. *Since 0.54*,
+`get_option('builtype')` is deprecated.
 
 ## Base options
 
