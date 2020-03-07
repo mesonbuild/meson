@@ -49,7 +49,7 @@ and that these two are different. In your source root must exist a
 file called `meson.build`. To generate the build system run this
 command:
 
-`meson <source directory> <build directory>`
+`meson setup <source directory> <build directory>`
 
 Depending on how you obtained Meson the command might also be called
 `meson.py` instead of plain `meson`. In the rest of this document we
@@ -61,7 +61,7 @@ do things like this:
 
 ```console
 cd <source root>
-meson builddir
+meson setup builddir
 ```
 
 To compile, cd into your build directory and type `ninja`. To run unit
