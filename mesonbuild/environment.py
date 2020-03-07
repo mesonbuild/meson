@@ -1526,20 +1526,30 @@ class Environment:
                     full_version=full_version, linker=linker)
             elif 'The D Language Foundation' in out or 'Digital Mars' in out:
                 # DMD seems to require a file
-                if info.is_windows() or info.is_cygwin():
-                    if is_msvc:
-                        linker_cmd = ['link']
-                    elif arch == 'x86':
-                        linker_cmd = ['optlink']
+                # We cannot use NamedTemproraryFile on windows, its documented
+                # to not work for our uses. So, just use mkstemp and only have
+                # one path for simplicity.
+                o, f = tempfile.mkstemp('.d')
+                os.close(o)
+
+                # DMD as different detection logic for x86 and x86_64
+                arch_arg = '-m64' if arch == 'x86_64' else '-m32'
+
+                try:
+                    if info.is_windows() or info.is_cygwin():
+                        objfile = os.path.basename(f)[:-1] + 'obj'
+                        linker = self._guess_win_linker(
+                            exelist, compilers.DmdDCompiler, for_machine,
+                            invoked_directly=False, extra_args=[f, arch_arg])
                     else:
-                        linker_cmd = ['lld-link']
-                    linker = self._guess_win_linker(linker_cmd, compilers.DmdDCompiler, for_machine,
-                                                    use_linker_prefix=False)
-                else:
-                    with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                        objfile = os.path.basename(f)[:-1] + 'o'
                         linker = self._guess_nix_linker(
                             exelist, compilers.DmdDCompiler, for_machine,
-                            extra_args=[f.name])
+                            extra_args=[f, arch_arg])
+                finally:
+                    mesonlib.windows_proof_rm(f)
+                    mesonlib.windows_proof_rm(objfile)
+
                 return compilers.DmdDCompiler(
                     exelist, version, for_machine, info, arch,
                     full_version=full_version, linker=linker)

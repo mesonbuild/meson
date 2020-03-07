@@ -765,3 +765,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def get_optimization_args(self, optimization_level):
         return dmd_optimization_args[optimization_level]
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
