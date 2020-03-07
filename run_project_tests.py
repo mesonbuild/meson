@@ -105,7 +105,8 @@ class InstalledFile:
     def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
         p = Path(self.path)
         canonical_compiler = compiler
-        if (compiler in ['clang-cl', 'intel-cl']) or (env.machines.host.is_windows() and compiler == 'pgi'):
+        if ((compiler in ['clang-cl', 'intel-cl']) or
+                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
 
         # Abort if the platform does not match
