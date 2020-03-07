@@ -38,32 +38,32 @@ somelibver = dependency('somelib',
   fallback : ['somelibnover', 'some_dep'])
 assert(somelibver.type_name() == 'internal', 'somelibver should be of type "internal", not ' + somelibver.type_name())
 # Find an internal dependency again with the same name and a specific version
-somelib = dependency('somelib',
+somelib = dependency('somelib2',
   version : '== 0.1',
   fallback : ['somelib', 'some_dep'])
 # Find an internal dependency again even if required = false
-somelib_reqfalse = dependency('somelib',
+somelib_reqfalse = dependency('somelib3',
   required: false,
   fallback : ['somelib', 'some_dep'])
 assert(somelib_reqfalse.found(), 'somelib should have been found')
 # Find an internal dependency again with the same name and incompatible version
-somelibver = dependency('somelib',
+somelibver = dependency('somelib4',
   version : '>= 0.3',
   fallback : ['somelibver', 'some_dep'])
 # Find an internal dependency again with impossible multi-version
-somelibver = dependency('somelib',
+somelibver = dependency('somelib5',
   version : ['>= 0.3', '<0.3'],
   required : false,
   fallback : ['somelibver', 'some_dep'])
 assert(not somelibver.found(), 'Dependency should not be found')
 # Find somelib again, but with a fallback that will fail because subproject does not exist
-somelibfail = dependency('somelib',
+somelibfail = dependency('somelib6',
   version : '>= 0.2',
   required : false,
   fallback : ['somelibfail', 'some_dep'])
 assert(somelibfail.found() == false, 'somelibfail found via wrong fallback')
 # Find somelib again, but with a fallback that will fail because dependency does not exist
-somefail_dep = dependency('somelib',
+somefail_dep = dependency('somelib7',
   version : '>= 0.2',
   required : false,
   fallback : ['somelib', 'somefail_dep'])
@@ -71,13 +71,20 @@ assert(somefail_dep.found() == false, 'somefail_dep found via wrong fallback')
 
 # Fallback should only be used if the primary was not found
 fallbackzlib_dep = dependency('zlib',
-  fallback : ['somelib', 'fakezlib_dep'])
+  fallback : ['fakezlib', 'fakezlib_dep'])
 assert(fallbackzlib_dep.type_name() == 'pkgconfig', 'fallbackzlib_dep should be of type "pkgconfig", not ' + fallbackzlib_dep.type_name())
 # Check that the above dependency was pkgconfig because the fallback wasn't
 # checked, not because the fallback didn't work
 fakezlib_dep = dependency('fakezlib',
-  fallback : ['somelib', 'fakezlib_dep'])
+  fallback : ['fakezlib', 'fakezlib_dep'])
 assert(fakezlib_dep.type_name() == 'internal', 'fakezlib_dep should be of type "internal", not ' + fakezlib_dep.type_name())
+
+# Verify that once we got a system dependency, we won't fallback if a newer
+# version is requested.
+d = dependency('zlib', version: '>= 999',
+  fallback : ['donotexist', 'fakezlib_dep'],
+  required: false)
+assert(not d.found(), 'version should not match and it should not fallback')
 
 # Check that you can find a dependency by not specifying a version after not
 # finding it by specifying a version. We add `static: true` here so that the

@@ -445,6 +445,10 @@ arguments:
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
   case the value of the `required:` kwarg will be obeyed.
+  *Since 0.54.0* `'subproj_dep'` argument can be omitted in the case the
+  subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
+  In that case, the `fallback` keyword argument can be a single string instead
+  of a list of 2 strings.
 - `language` *(added 0.42.0)* defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method` defines the way the dependency is detected, the default is
@@ -1825,11 +1829,20 @@ the following methods.
 - `override_find_program(progname, program)` [*(Added
   0.46.0)*](Release-notes-for-0.46.0.md#can-override-find_program)
   specifies that whenever `find_program` is used to find a program
-  named `progname`, Meson should not not look it up on the system but
+  named `progname`, Meson should not look it up on the system but
   instead return `program`, which may either be the result of
   `find_program`, `configure_file` or `executable`.
 
   If `program` is an `executable`, it cannot be used during configure.
+
+- `override_dependency(name, dep_object)` [*(Added
+  0.54.0)*](Release-notes-for-0.54.0.md#override-dependency)
+  specifies that whenever `dependency(name, ...)` is used, Meson should not
+  look it up on the system but instead return `dep_object`, which may either be
+  the result of `dependency()` or `declare_dependency()`. It takes optional
+  `native` keyword arguments. Doing this in a subproject allows the parent
+  project to retrieve the dependency without having to know the dependency
+  variable name: `dependency(name, fallback : subproject_name)`.
 
 - `project_version()` returns the version string specified in
   `project` function call.

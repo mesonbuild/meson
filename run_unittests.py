@@ -3980,11 +3980,17 @@ recommended as it is not supported on some platforms''')
                 {
                     'descriptive_name': 'sub',
                     'name': 'sub',
-                    'version': 'undefined'
-                }
+                    'version': '1.0'
+                },
+                {
+                    'descriptive_name': 'sub-novar',
+                    'name': 'sub_novar',
+                    'version': '1.0',
+                },
             ]
         }
-        self.assertDictEqual(res, expected)
+        res['subprojects'] = sorted(res['subprojects'], key=lambda i: i['name'])
+        self.assertDictEqual(expected, res)
 
     def test_introspection_target_subproject(self):
         testdir = os.path.join(self.common_test_dir, '45 subproject')
@@ -4555,7 +4561,7 @@ class FailureTests(BasePlatformTests):
             raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
-             ("dependency('zlib', version : 1)", "[Vv]ersion.*string or list"),
+             ("dependency('zlib', version : 1)", "Item must be a list or one of <class 'str'>"),
              ("dependency('zlib', required : 1)", "[Rr]equired.*boolean"),
              ("dependency('zlib', method : 1)", "[Mm]ethod.*string"),
              ("dependency('zlibfail')", self.dnf),)
@@ -4771,6 +4777,17 @@ class FailureTests(BasePlatformTests):
     def test_warning(self):
         self.assertMesonOutputs("warning('Array:', ['a', 'b'])",
                                 r"WARNING:.* Array: \['a', 'b'\]")
+
+    def test_override_dependency_twice(self):
+        self.assertMesonRaises("meson.override_dependency('foo', declare_dependency())\n" +
+                               "meson.override_dependency('foo', declare_dependency())",
+                               """Tried to override dependency 'foo' which has already been resolved or overridden""")
+
+    @unittest.skipIf(is_windows(), 'zlib is not available on Windows')
+    def test_override_resolved_dependency(self):
+        self.assertMesonRaises("dependency('zlib')\n" +
+                               "meson.override_dependency('zlib', declare_dependency())",
+                               """Tried to override dependency 'zlib' which has already been resolved or overridden""")
 
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):

@@ -106,6 +106,12 @@ def get_target_macos_dylib_install_name(ld) -> str:
 class InvalidArguments(MesonException):
     pass
 
+class DependencyOverride:
+    def __init__(self, dep, node, explicit=True):
+        self.dep = dep
+        self.node = node
+        self.explicit = explicit
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -141,6 +147,7 @@ class Build:
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
+        self.dependency_overrides = PerMachine({}, {})
 
     def copy(self):
         other = Build(self.environment)
