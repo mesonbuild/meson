@@ -17,20 +17,13 @@
 import os.path
 import typing as T
 
-from ...mesonlib import MesonException
+from ... import coredata
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
+
 
 class EmscriptenMixin:
-    def get_option_link_args(self, options):
-        return []
-
-    def get_soname_args(self, *args, **kwargs):
-        raise MesonException('Emscripten does not support shared libraries.')
-
-    def get_allow_undefined_link_args(self) -> T.List[str]:
-        return ['-s', 'ERROR_ON_UNDEFINED_SYMBOLS=0']
-
-    def get_linker_output_args(self, output: str) -> T.List[str]:
-        return ['-o', output]
 
     def _get_compile_output(self, dirname, mode):
         # In pre-processor mode, the output is sent to stdout and discarded
@@ -44,3 +37,17 @@ class EmscriptenMixin:
         else:
             suffix = 'wasm'
         return os.path.join(dirname, 'output.' + suffix)
+
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
+        return ['-s', 'USE_PTHREADS=1']
+
+    def get_options(self):
+        opts = super().get_options()
+        opts.update({
+            '{}_thread_count'.format(self.language): coredata.UserIntegerOption(
+                'Number of threads to use in web assembly, set to 0 to disable',
+                (0, None, 4),  # Default was picked at random
+            ),
+        })
+
+        return opts

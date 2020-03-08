@@ -58,6 +58,7 @@ from .linkers import (
     XilinkDynamicLinker,
     CudaLinker,
     VisualStudioLikeLinkerMixin,
+    WASMDynamicLinker,
 )
 from functools import lru_cache
 from .compilers import (
@@ -963,9 +964,18 @@ class Environment:
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                # emcc cannot be queried to get the version out of it (it
+                # ignores -Wl,--version and doesn't have an alternative).
+                # Further, wasm-id *is* lld and will return `LLD X.Y.Z` if you
+                # call `wasm-ld --version`, but a special version of lld that
+                # takes different options.
+                p, o, _ = Popen_safe(['wasm-ld', '--version'])
+                linker = WASMDynamicLinker(
+                    compiler, for_machine, cls.LINKER_PREFIX,
+                    [], version=search_version(o))
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
-                    exe_wrap, full_version=full_version)
+                    exe_wrap, linker=linker, full_version=full_version)
 
             if 'armclang' in out:
                 # The compiler version is not present in the first line of output,

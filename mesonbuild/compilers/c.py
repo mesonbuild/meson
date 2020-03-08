@@ -27,7 +27,7 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
-from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
+from .mixins.islinker import LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
 from .compilers import (
     gnu_winlibs,
@@ -139,7 +139,7 @@ class AppleClangCCompiler(ClangCCompiler):
     _C18_VERSION = '>=11.0.0'
 
 
-class EmscriptenCCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCCompiler):
+class EmscriptenCCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:

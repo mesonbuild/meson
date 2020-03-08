@@ -36,7 +36,7 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
-from .mixins.islinker import BasicLinkerIsCompilerMixin, LinkerEnvVarsMixin
+from .mixins.islinker import LinkerEnvVarsMixin
 from .mixins.emscripten import EmscriptenMixin
 
 if T.TYPE_CHECKING:
@@ -207,7 +207,7 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
     pass
 
 
-class EmscriptenCPPCompiler(LinkerEnvVarsMixin, EmscriptenMixin, BasicLinkerIsCompilerMixin, ClangCPPCompiler):
+class EmscriptenCPPCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:
