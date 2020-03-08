@@ -5792,24 +5792,44 @@ class LinuxlikeTests(BasePlatformTests):
 
         install = self.introspect('--installed')
         install = {os.path.basename(k): v for k, v in install.items()}
-        self.assertDictEqual(install, {
-            'libmodule.so': '/usr/lib/libmodule.so',
-            'libnoversion.so': '/usr/lib/libnoversion.so',
-            'libonlysoversion.so': '/usr/lib/libonlysoversion.so',
-            'libonlysoversion.so.5': '/usr/lib/libonlysoversion.so.5',
-            'libonlyversion.so': '/usr/lib/libonlyversion.so',
-            'libonlyversion.so.1': '/usr/lib/libonlyversion.so.1',
-            'libonlyversion.so.1.4.5': '/usr/lib/libonlyversion.so.1.4.5',
-            'libsome.so': '/usr/lib/libsome.so',
-            'libsome.so.0': '/usr/lib/libsome.so.0',
-            'libsome.so.1.2.3': '/usr/lib/libsome.so.1.2.3',
-        })
+        print(install)
+        if is_osx():
+            the_truth = {
+                'libmodule.dylib': '/usr/lib/libmodule.dylib',
+                'libnoversion.dylib': '/usr/lib/libnoversion.dylib',
+                'libonlysoversion.5.dylib': '/usr/lib/libonlysoversion.5.dylib',
+                'libonlysoversion.dylib': '/usr/lib/libonlysoversion.dylib',
+                'libonlyversion.1.dylib': '/usr/lib/libonlyversion.1.dylib',
+                'libonlyversion.dylib': '/usr/lib/libonlyversion.dylib',
+                'libsome.0.dylib': '/usr/lib/libsome.0.dylib',
+                'libsome.dylib': '/usr/lib/libsome.dylib',
+            }
+            the_truth_2 = {'/usr/lib/libsome.dylib',
+                           '/usr/lib/libsome.0.dylib',
+            }
+        else:
+            the_truth = {
+                'libmodule.so': '/usr/lib/libmodule.so',
+                'libnoversion.so': '/usr/lib/libnoversion.so',
+                'libonlysoversion.so': '/usr/lib/libonlysoversion.so',
+                'libonlysoversion.so.5': '/usr/lib/libonlysoversion.so.5',
+                'libonlyversion.so': '/usr/lib/libonlyversion.so',
+                'libonlyversion.so.1': '/usr/lib/libonlyversion.so.1',
+                'libonlyversion.so.1.4.5': '/usr/lib/libonlyversion.so.1.4.5',
+                'libsome.so': '/usr/lib/libsome.so',
+                'libsome.so.0': '/usr/lib/libsome.so.0',
+                'libsome.so.1.2.3': '/usr/lib/libsome.so.1.2.3',
+            }
+            the_truth_2 = {'/usr/lib/libsome.so',
+                           '/usr/lib/libsome.so.0',
+                           '/usr/lib/libsome.so.1.2.3'}
+        self.assertDictEqual(install, the_truth)
 
         targets = self.introspect('--targets')
         for t in targets:
             if t['name'] != 'some':
                 continue
-            self.assertSetEqual({'/usr/lib/libsome.so', '/usr/lib/libsome.so.0', '/usr/lib/libsome.so.1.2.3'}, set(t['install_filename']))
+            self.assertSetEqual(the_truth_2, set(t['install_filename']))
 
     def test_build_rpath(self):
         if is_cygwin():
