@@ -686,12 +686,17 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([holder1], listify([holder1]))
         self.assertEqual([holder1, 2], listify([holder1, 2]))
         self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
-        self.assertEqual([1], listify(holder1, unholder=True))
-        self.assertEqual([1], listify([holder1], unholder=True))
-        self.assertEqual([1, 2], listify([holder1, 2], unholder=True))
-        self.assertEqual([1, 2, 3], listify([holder1, 2, [holder3]], unholder=True))
-        # Unholding doesn't work recursively when not flattening
-        self.assertEqual([1, [2], [holder3]], listify([holder1, [2], [holder3]], unholder=True, flatten=False))
+
+    def test_unholder(self):
+        unholder = mesonbuild.mesonlib.unholder
+
+        holder1 = ObjectHolder(1)
+        holder3 = ObjectHolder(3)
+        holders = [holder1, holder3]
+
+        self.assertEqual(1, unholder(holder1))
+        self.assertEqual([1], unholder([holder1]))
+        self.assertEqual([1, 3], unholder(holders))
 
     def test_extract_as_list(self):
         extract = mesonbuild.mesonlib.extract_as_list
@@ -701,16 +706,15 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(kwargs, {'sources': [1, 2, 3]})
         self.assertEqual([1, 2, 3], extract(kwargs, 'sources', pop=True))
         self.assertEqual(kwargs, {})
+
         # Test unholding
         holder3 = ObjectHolder(3)
         kwargs = {'sources': [1, 2, holder3]}
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True))
         self.assertEqual(kwargs, {'sources': [1, 2, holder3]})
-        self.assertEqual([1, 2, 3], extract(kwargs, 'sources', unholder=True, pop=True))
-        self.assertEqual(kwargs, {})
-        # Test listification
-        kwargs = {'sources': [1, 2, 3], 'pch_sources': [4, 5, 6]}
-        self.assertEqual([[1, 2, 3], [4, 5, 6]], extract(kwargs, 'sources', 'pch_sources'))
+
+        # flatten nested lists
+        kwargs = {'sources': [1, [2, [3]]]}
+        self.assertEqual([1, 2, 3], extract(kwargs, 'sources'))
 
     def test_pkgconfig_module(self):
 

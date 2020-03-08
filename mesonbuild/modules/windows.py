@@ -18,7 +18,7 @@ import re
 
 from .. import mlog
 from .. import mesonlib, build
-from ..mesonlib import MachineChoice, MesonException, extract_as_list
+from ..mesonlib import MachineChoice, MesonException, extract_as_list, unholder
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
@@ -116,9 +116,7 @@ class WindowsModule(ExtensionModule):
                 for subsrc in src:
                     add_target(subsrc)
                 return
-
-            if hasattr(src, 'held_object'):
-                src = src.held_object
+            src = unholder(src)
 
             if isinstance(src, str):
                 name_format = 'file {!r}'

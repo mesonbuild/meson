@@ -26,7 +26,7 @@ from . import mlog
 from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep,
+    get_filenames_templates_dict, substitute_values, has_path_sep, unholder
 )
 from .compilers import Compiler, is_object, clink_langs, sort_clink, lang_suffixes
 from .linkers import StaticLinker
@@ -541,9 +541,7 @@ class BuildTarget(Target):
 
     def process_objectlist(self, objects):
         assert(isinstance(objects, list))
-        for s in objects:
-            if hasattr(s, 'held_object'):
-                s = s.held_object
+        for s in unholder(objects):
             if isinstance(s, (str, File, ExtractedObjects)):
                 self.objects.append(s)
             elif isinstance(s, (GeneratedList, CustomTarget)):
@@ -559,10 +557,7 @@ class BuildTarget(Target):
     def process_sourcelist(self, sources):
         sources = listify(sources)
         added_sources = {} # If the same source is defined multiple times, use it only once.
-        for s in sources:
-            # Holder unpacking. Ugly.
-            if hasattr(s, 'held_object'):
-                s = s.held_object
+        for s in unholder(sources):
             if isinstance(s, File):
                 if s not in added_sources:
                     self.sources.append(s)
@@ -639,9 +634,7 @@ class BuildTarget(Target):
                 # which is what we need.
                 if not is_object(s):
                     sources.append(s)
-        for d in self.external_deps:
-            if hasattr(d, 'held_object'):
-                d = d.held_object
+        for d in unholder(self.external_deps):
             for s in d.sources:
                 if isinstance(s, (str, File)):
                     sources.append(s)
@@ -703,10 +696,7 @@ class BuildTarget(Target):
         link_depends.
         """
         sources = listify(sources)
-        for s in sources:
-            if hasattr(s, 'held_object'):
-                s = s.held_object
-
+        for s in unholder(sources):
             if isinstance(s, File):
                 self.link_depends.append(s)
             elif isinstance(s, str):
@@ -817,11 +807,7 @@ class BuildTarget(Target):
         kwargs.get('modules', [])
         self.need_install = kwargs.get('install', self.need_install)
         llist = extract_as_list(kwargs, 'link_with')
-        for linktarget in llist:
-            # Sorry for this hack. Keyword targets are kept in holders
-            # in kwargs. Unpack here without looking at the exact type.
-            if hasattr(linktarget, "held_object"):
-                linktarget = linktarget.held_object
+        for linktarget in unholder(llist):
             if isinstance(linktarget, dependencies.ExternalLibrary):
                 raise MesonException('''An external library was used in link_with keyword argument, which
 is reserved for libraries built as part of this project. External
@@ -834,8 +820,7 @@ just like those detected with the dependency() function.''')
             self.link_whole(linktarget)
 
         c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
-            = extract_as_list(kwargs, 'c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args',
-                              'objcpp_args', 'fortran_args', 'rust_args')
+            = [extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args']]
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)
@@ -863,7 +848,7 @@ just like those detected with the dependency() function.''')
         if dfeature_debug:
             dfeatures['debug'] = dfeature_debug
         if 'd_import_dirs' in kwargs:
-            dfeature_import_dirs = extract_as_list(kwargs, 'd_import_dirs', unholder=True)
+            dfeature_import_dirs = unholder(extract_as_list(kwargs, 'd_import_dirs'))
             for d in dfeature_import_dirs:
                 if not isinstance(d, IncludeDirs):
                     raise InvalidArguments('Arguments to d_import_dirs must be include_directories.')
@@ -1041,9 +1026,7 @@ This will become a hard error in a future Meson release.''')
 
     def add_deps(self, deps):
         deps = listify(deps)
-        for dep in deps:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
+        for dep in unholder(deps):
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
@@ -1090,7 +1073,7 @@ You probably should put it in link_with instead.''')
         return isinstance(self, StaticLibrary) and not self.need_install
 
     def link(self, target):
-        for t in listify(target, unholder=True):
+        for t in unholder(listify(target)):
             if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
                 # When we're a static library and we link_with to an
                 # internal/convenience library, promote to link_whole.
@@ -1112,7 +1095,7 @@ You probably should put it in link_with instead.''')
             self.link_targets.append(t)
 
     def link_whole(self, target):
-        for t in listify(target, unholder=True):
+        for t in unholder(listify(target)):
             if isinstance(t, (CustomTarget, CustomTargetIndex)):
                 if not t.is_linkable_target():
                     raise InvalidArguments('Custom target {!r} is not linkable.'.format(t))
@@ -1178,10 +1161,7 @@ You probably should put it in link_with instead.''')
 
     def add_include_dirs(self, args, set_is_system: T.Optional[str] = None):
         ids = []
-        for a in args:
-            # FIXME same hack, forcibly unpack from holder.
-            if hasattr(a, 'held_object'):
-                a = a.held_object
+        for a in unholder(args):
             if not isinstance(a, IncludeDirs):
                 raise InvalidArguments('Include directory to be added is not an include directory object.')
             ids.append(a)
@@ -1268,7 +1248,7 @@ You probably should put it in link_with instead.''')
                     if dl != linker.language:
                         stdlib_args += all_compilers[dl].language_stdlib_only_link_flags()
                         added_languages.add(dl)
-                # Type of var 'linker' is Compiler. 
+                # Type of var 'linker' is Compiler.
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
@@ -1321,9 +1301,7 @@ class Generator:
     def __init__(self, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Generator requires exactly one positional argument: the executable')
-        exe = args[0]
-        if hasattr(exe, 'held_object'):
-            exe = exe.held_object
+        exe = unholder(args[0])
         if not isinstance(exe, (Executable, dependencies.ExternalProgram)):
             raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
@@ -1379,7 +1357,7 @@ class Generator:
                 raise InvalidArguments('Capture must be boolean.')
             self.capture = capture
         if 'depends' in kwargs:
-            depends = listify(kwargs['depends'], unholder=True)
+            depends = unholder(listify(kwargs['depends']))
             for d in depends:
                 if not isinstance(d, BuildTarget):
                     raise InvalidArguments('Depends entries must be build targets.')
@@ -1424,9 +1402,7 @@ class Generator:
 
 class GeneratedList:
     def __init__(self, generator, subdir, preserve_path_from=None, extra_args=None):
-        if hasattr(generator, 'held_object'):
-            generator = generator.held_object
-        self.generator = generator
+        self.generator = unholder(generator)
         self.name = self.generator.exe
         self.subdir = subdir
         self.infilelist = []
@@ -1436,10 +1412,10 @@ class GeneratedList:
         self.depend_files = []
         self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args if extra_args is not None else []
-        if isinstance(generator.exe, dependencies.ExternalProgram):
-            if not generator.exe.found():
+        if isinstance(self.generator.exe, dependencies.ExternalProgram):
+            if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
-            path = generator.exe.get_path()
+            path = self.generator.exe.get_path()
             if os.path.isabs(path):
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
@@ -1881,9 +1857,7 @@ class SharedLibrary(BuildTarget):
 
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
-            path = kwargs['vs_module_defs']
-            if hasattr(path, 'held_object'):
-                path = path.held_object
+            path = unholder(kwargs['vs_module_defs'])
             if isinstance(path, str):
                 if os.path.isabs(path):
                     self.vs_module_defs = File.from_absolute_file(path)
@@ -2035,9 +2009,7 @@ class CustomTarget(Target):
     def get_target_dependencies(self):
         deps = self.dependencies[:]
         deps += self.extra_depends
-        for c in self.sources:
-            if hasattr(c, 'held_object'):
-                c = c.held_object
+        for c in unholder(self.sources):
             if isinstance(c, (BuildTarget, CustomTarget)):
                 deps.append(c)
         return deps
@@ -2061,7 +2033,7 @@ class CustomTarget(Target):
         return bdeps
 
     def flatten_command(self, cmd):
-        cmd = listify(cmd, unholder=True)
+        cmd = unholder(listify(cmd))
         final_cmd = []
         for c in cmd:
             if isinstance(c, str):
@@ -2089,7 +2061,7 @@ class CustomTarget(Target):
 
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
-        self.sources = extract_as_list(kwargs, 'input', unholder=True)
+        self.sources = unholder(extract_as_list(kwargs, 'input'))
         if 'output' not in kwargs:
             raise InvalidArguments('Missing keyword argument "output".')
         self.outputs = listify(kwargs['output'])
@@ -2168,10 +2140,8 @@ class CustomTarget(Target):
             self.build_always_stale = kwargs['build_always_stale']
         if not isinstance(self.build_always_stale, bool):
             raise InvalidArguments('Argument build_always_stale must be a boolean.')
-        extra_deps, depend_files = extract_as_list(kwargs, 'depends', 'depend_files', pop = False)
-        for ed in extra_deps:
-            while hasattr(ed, 'held_object'):
-                ed = ed.held_object
+        extra_deps, depend_files = [extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files']]
+        for ed in unholder(extra_deps):
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
                                       .format(type(ed), ed))
@@ -2206,9 +2176,7 @@ class CustomTarget(Target):
 
     def get_generated_lists(self):
         genlists = []
-        for c in self.sources:
-            if hasattr(c, 'held_object'):
-                c = c.held_object
+        for c in unholder(self.sources):
             if isinstance(c, GeneratedList):
                 genlists.append(c)
         return genlists
@@ -2416,20 +2384,20 @@ class ConfigureFile:
         return self.targetname
 
 class ConfigurationData:
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.values = {}
+        self.values = {}  # T.Dict[str, T.Union[str, int, bool]]
 
     def __repr__(self):
         return repr(self.values)
 
-    def __contains__(self, value):
+    def __contains__(self, value: str) -> bool:
         return value in self.values
 
-    def get(self, name):
+    def get(self, name: str) -> T.Tuple[T.Union[str, int, bool], T.Optional[str]]:
         return self.values[name] # (val, desc)
 
-    def keys(self):
+    def keys(self) -> T.Iterator[str]:
         return self.values.keys()
 
 # A bit poorly named, but this represents plain data files to copy
@@ -2471,9 +2439,7 @@ def get_sources_string_names(sources, backend):
     get all the output basenames.
     '''
     names = []
-    for s in sources:
-        if hasattr(s, 'held_object'):
-            s = s.held_object
+    for s in unholder(sources):
         if isinstance(s, str):
             names.append(s)
         elif isinstance(s, (BuildTarget, CustomTarget, CustomTargetIndex, GeneratedList)):

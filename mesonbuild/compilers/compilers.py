@@ -35,6 +35,8 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
 
+    CompilerType = T.TypeVar('CompilerType', bound=Compiler)
+
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""

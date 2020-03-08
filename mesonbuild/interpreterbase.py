@@ -446,7 +446,7 @@ class InterpreterBase:
                 self.current_lineno = cur.lineno
                 self.evaluate_statement(cur)
             except Exception as e:
-                if not hasattr(e, 'lineno'):
+                if getattr(e, 'lineno') is None:
                     # We are doing the equivalent to setattr here and mypy does not like it
                     e.lineno = cur.lineno                                                             # type: ignore
                     e.colno = cur.colno                                                               # type: ignore

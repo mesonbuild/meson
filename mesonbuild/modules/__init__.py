@@ -18,6 +18,7 @@
 import os
 
 from .. import build
+from ..mesonlib import unholder
 
 
 class ExtensionModule:
@@ -38,12 +39,7 @@ def get_include_args(include_dirs, prefix='-I'):
         return []
 
     dirs_str = []
-    for incdirs in include_dirs:
-        if hasattr(incdirs, "held_object"):
-            dirs = incdirs.held_object
-        else:
-            dirs = incdirs
-
+    for dirs in unholder(include_dirs):
         if isinstance(dirs, str):
             dirs_str += ['%s%s' % (prefix, dirs)]
             continue

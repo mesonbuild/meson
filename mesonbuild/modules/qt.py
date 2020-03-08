@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list, File
+from ..mesonlib import MesonException, Popen_safe, extract_as_list, File, unholder
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
@@ -142,7 +142,7 @@ class QtBaseModule(ExtensionModule):
     @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
-            = extract_as_list(kwargs, 'qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies', pop = True)
+            = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
         sources += args[1:]
         method = kwargs.get('method', 'auto')
         self._detect_tools(state.environment, method)
@@ -190,9 +190,7 @@ class QtBaseModule(ExtensionModule):
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         compile_args = []
-        for dep in dependencies:
-            if hasattr(dep, 'held_object'):
-                dep = dep.held_object
+        for dep in unholder(dependencies):
             if isinstance(dep, Dependency):
                 for arg in dep.get_compile_args():
                     if arg.startswith('-I') or arg.startswith('-D'):
@@ -221,7 +219,7 @@ class QtBaseModule(ExtensionModule):
     @FeatureNew('qt.compile_translations', '0.44.0')
     @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
     def compile_translations(self, state, args, kwargs):
-        ts_files, install_dir = extract_as_list(kwargs, 'ts_files', 'install_dir', pop=True)
+        ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in  ['ts_files', 'install_dir']]
         self._detect_tools(state.environment, kwargs.get('method', 'auto'))
         translations = []
         for ts in ts_files:

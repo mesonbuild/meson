@@ -16,7 +16,7 @@ import shutil
 
 from os import path
 from .. import coredata, mesonlib, build, mlog
-from ..mesonlib import MesonException, run_once
+from ..mesonlib import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -59,9 +59,8 @@ PRESET_ARGS = {
 class I18nModule(ExtensionModule):
 
     @staticmethod
-    @run_once
     def nogettext_warning():
-        mlog.warning('Gettext not found, all translation targets will be ignored.')
+        mlog.warning('Gettext not found, all translation targets will be ignored.', once=True)
         return ModuleReturnValue(None, [])
 
     @staticmethod
