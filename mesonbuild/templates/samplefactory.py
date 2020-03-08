@@ -26,25 +26,15 @@ from mesonbuild.templates.ctemplates import CProject
 class SampleFactory(object):
     @staticmethod
     def sameple_generator(options):
-        if options.language == 'c':
-            return CProject(options)
-        elif options.language == 'cpp':
-            return CppProject(options)
-        elif options.language == 'cs':
-            return CSharpProject(options)
-        elif options.language == 'objc':
-            return ObjCProject(options)
-        elif options.language == 'objcpp':
-            return ObjCppProject(options)
-        elif options.language == 'java':
-            return JavaProject(options)
-        elif options.language == 'd':
-            return DlangProject(options)
-        elif options.language == 'rust':
-            return RustProject(options)
-        elif options.language == 'cuda':
-            return CudaProject(options)
-        elif options.language == 'fortran':
-            return FortranProject(options)
-        else:
-            raise RuntimeError('Unreachable code')
+        return {
+            'c': CProject,
+            'cpp': CppProject,
+            'cs': CSharpProject,
+            'cuda': CudaProject,
+            'objc': ObjCProject,
+            'objcpp': ObjCppProject,
+            'java': JavaProject,
+            'd': DlangProject,
+            'rust': RustProject,
+            'fortran': FortranProject
+        }[options.language](options)
