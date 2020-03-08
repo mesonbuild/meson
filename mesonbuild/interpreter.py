@@ -2119,7 +2119,7 @@ _base_test_args = {'args', 'depends', 'env', 'should_fail', 'timeout', 'workdir'
 
 permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'add_global_link_arguments': {'language', 'native'},
-                    'add_languages': {'required'},
+                    'add_languages': {'required', 'native'},
                     'add_project_link_arguments': {'language', 'native'},
                     'add_project_arguments': {'language', 'native'},
                     'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default'},
@@ -2951,11 +2951,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
         mlog.log('Project version:', mlog.bold(self.project_version))
-        self.add_languages(proj_langs, True)
+        self.add_languages(proj_langs, True, MachineChoice.BUILD)
+        self.add_languages(proj_langs, True, MachineChoice.HOST)
         self.set_backend()
         if not self.is_subproject():
             self.check_stdlibs()
 
+    @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
     @permittedKwargs(permitted_kwargs['add_languages'])
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
@@ -2964,7 +2966,15 @@ external dependencies (including libraries) must go to "dependencies".''')
             for lang in sorted(args, key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        return self.add_languages(args, required)
+        if 'native' in kwargs:
+            return self.add_languages(args, required, self.machine_from_native_kwarg(kwargs))
+        else:
+            # absent 'native' means 'both' for backwards compatibility
+            mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
+                         location=self.current_node)
+            success = self.add_languages(args, False, MachineChoice.BUILD)
+            success &= self.add_languages(args, required, MachineChoice.HOST)
+            return success
 
     def get_message_string_arg(self, arg):
         if isinstance(arg, list):
@@ -3060,9 +3070,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.validate_arguments(args, 0, [])
         raise Exception()
 
-    def add_languages(self, args: T.Sequence[str], required: bool) -> bool:
-        success = self.add_languages_for(args, required, MachineChoice.BUILD)
-        success &= self.add_languages_for(args, required, MachineChoice.HOST)
+    def add_languages(self, args: T.Sequence[str], required: bool, for_machine: MachineChoice) -> bool:
+        success = self.add_languages_for(args, required, for_machine)
         if not self.coredata.is_cross_build():
             self.coredata.copy_build_options_from_regular_ones()
         return success

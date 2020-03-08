@@ -54,9 +54,9 @@ Like `add_global_arguments` but the arguments are passed to the linker.
   bool add_languages(*langs*)
 ```
 
-Add support for new programming languages. Equivalent to having them
-in the `project` declaration. This function is usually used to add
-languages that are only used on some platforms like this:
+Add programming languages used by the project. Equivalent to having them in the
+`project` declaration. This function is usually used to add languages that are
+only used under some conditions, like this:
 
 ```meson
 project('foobar', 'c')
@@ -68,12 +68,22 @@ if add_languages('cpp', required : false)
 endif
 ```
 
-Takes one keyword argument, `required`. It defaults to `true`, which
-means that if any of the languages specified is not found, Meson will
-halt. Returns true if all languages specified were found and false
-otherwise. Since *0.47.0* the value of a
-[`feature`](Build-options.md#features) option can also be passed to
-the `required` keyword argument.
+Takes the following keyword arguments:
+
+- `required` defaults to `true`, which means that if any of the languages
+specified is not found, Meson will halt. Since *0.47.0* the value of a
+[`feature`](Build-options.md#features) option can also be passed.
+
+- `native` if set to `true`, the language will be used to compile for the build
+  machine, if `false`, for the host machine. Since *0.54.0*.
+
+Returns `true` if all languages specified were found and `false` otherwise.
+
+If `native` is omitted, the languages may be used for either build or host
+machine, but are never required for the build machine.  (i.e. it is equivalent
+to `add_languages(*langs*, native: false, required: *required*) and
+add_languages(*langs*, native: true, required: false)`. This default behaviour
+may change to `native: false` in a future meson version.
 
 ### add_project_arguments()
 
