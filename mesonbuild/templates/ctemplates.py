@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from mesonbuild.templates.sampleimpl import SampleImpl
 import re
 
 
@@ -121,37 +122,44 @@ exe = executable('{exe_name}', '{source_name}',
 test('basic', exe)
 '''
 
-def create_exe_c_sample(project_name, project_version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    source_name = lowercase_token + '.c'
-    open(source_name, 'w').write(hello_c_template.format(project_name=project_name))
-    open('meson.build', 'w').write(hello_c_meson_template.format(project_name=project_name,
-                                                                 exe_name=lowercase_token,
-                                                                 source_name=source_name,
-                                                                 version=project_version))
 
-def create_lib_c_sample(project_name, version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
-    function_name = lowercase_token[0:3] + '_func'
-    test_exe_name = lowercase_token + '_test'
-    lib_h_name = lowercase_token + '.h'
-    lib_c_name = lowercase_token + '.c'
-    test_c_name = lowercase_token + '_test.c'
-    kwargs = {'utoken': uppercase_token,
-              'ltoken': lowercase_token,
-              'header_dir': lowercase_token,
-              'function_name': function_name,
-              'header_file': lib_h_name,
-              'source_file': lib_c_name,
-              'test_source_file': test_c_name,
-              'test_exe_name': test_exe_name,
-              'project_name': project_name,
-              'lib_name': lowercase_token,
-              'test_name': lowercase_token,
-              'version': version,
-              }
-    open(lib_h_name, 'w').write(lib_h_template.format(**kwargs))
-    open(lib_c_name, 'w').write(lib_c_template.format(**kwargs))
-    open(test_c_name, 'w').write(lib_c_test_template.format(**kwargs))
-    open('meson.build', 'w').write(lib_c_meson_template.format(**kwargs))
+class CProject(SampleImpl):
+    def __init__(self, options):
+        super().__init__()
+        self.name = options.name
+        self.version = options.version
+
+    def create_executable(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        source_name = lowercase_token + '.c'
+        open(source_name, 'w').write(hello_c_template.format(project_name=self.name))
+        open('meson.build', 'w').write(hello_c_meson_template.format(project_name=self.name,
+                                                                     exe_name=lowercase_token,
+                                                                     source_name=source_name,
+                                                                     version=self.version))
+
+    def create_library(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        uppercase_token = lowercase_token.upper()
+        function_name = lowercase_token[0:3] + '_func'
+        test_exe_name = lowercase_token + '_test'
+        lib_h_name = lowercase_token + '.h'
+        lib_c_name = lowercase_token + '.c'
+        test_c_name = lowercase_token + '_test.c'
+        kwargs = {'utoken': uppercase_token,
+                  'ltoken': lowercase_token,
+                  'header_dir': lowercase_token,
+                  'function_name': function_name,
+                  'header_file': lib_h_name,
+                  'source_file': lib_c_name,
+                  'test_source_file': test_c_name,
+                  'test_exe_name': test_exe_name,
+                  'project_name': self.name,
+                  'lib_name': lowercase_token,
+                  'test_name': lowercase_token,
+                  'version': self.version,
+                  }
+        open(lib_h_name, 'w').write(lib_h_template.format(**kwargs))
+        open(lib_c_name, 'w').write(lib_c_template.format(**kwargs))
+        open(test_c_name, 'w').write(lib_c_test_template.format(**kwargs))
+        open('meson.build', 'w').write(lib_c_meson_template.format(**kwargs))

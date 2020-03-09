@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from mesonbuild.templates.sampleimpl import SampleImpl
 import re
 
 
@@ -88,39 +89,44 @@ test('{test_name}', test_exe)
 '''
 
 
-def create_exe_cs_sample(project_name, project_version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
-    class_name = uppercase_token[0] + lowercase_token[1:]
-    source_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
-    open(source_name, 'w').write(hello_cs_template.format(project_name=project_name,
-                                                          class_name=class_name))
-    open('meson.build', 'w').write(hello_cs_meson_template.format(project_name=project_name,
-                                                                  exe_name=project_name,
-                                                                  source_name=source_name,
-                                                                  version=project_version))
+class CSharpProject(SampleImpl):
+    def __init__(self, options):
+        super().__init__()
+        self.name = options.name
+        self.version = options.version
 
+    def create_executable(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        uppercase_token = lowercase_token.upper()
+        class_name = uppercase_token[0] + lowercase_token[1:]
+        source_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
+        open(source_name, 'w').write(hello_cs_template.format(project_name=self.name,
+                                                              class_name=class_name))
+        open('meson.build', 'w').write(hello_cs_meson_template.format(project_name=self.name,
+                                                                      exe_name=self.name,
+                                                                      source_name=source_name,
+                                                                      version=self.version))
 
-def create_lib_cs_sample(project_name, version):
-    lowercase_token = re.sub(r'[^a-z0-9]', '_', project_name.lower())
-    uppercase_token = lowercase_token.upper()
-    class_name = uppercase_token[0] + lowercase_token[1:]
-    class_test = uppercase_token[0] + lowercase_token[1:] + '_test'
-    project_test = lowercase_token + '_test'
-    lib_cs_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
-    test_cs_name = uppercase_token[0] + lowercase_token[1:] + '_test.cs'
-    kwargs = {'utoken': uppercase_token,
-              'ltoken': lowercase_token,
-              'class_test': class_test,
-              'class_name': class_name,
-              'source_file': lib_cs_name,
-              'test_source_file': test_cs_name,
-              'test_exe_name': project_test,
-              'project_name': project_name,
-              'lib_name': lowercase_token,
-              'test_name': lowercase_token,
-              'version': version,
-              }
-    open(lib_cs_name, 'w').write(lib_cs_template.format(**kwargs))
-    open(test_cs_name, 'w').write(lib_cs_test_template.format(**kwargs))
-    open('meson.build', 'w').write(lib_cs_meson_template.format(**kwargs))
+    def create_library(self):
+        lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
+        uppercase_token = lowercase_token.upper()
+        class_name = uppercase_token[0] + lowercase_token[1:]
+        class_test = uppercase_token[0] + lowercase_token[1:] + '_test'
+        project_test = lowercase_token + '_test'
+        lib_cs_name = uppercase_token[0] + lowercase_token[1:] + '.cs'
+        test_cs_name = uppercase_token[0] + lowercase_token[1:] + '_test.cs'
+        kwargs = {'utoken': uppercase_token,
+                  'ltoken': lowercase_token,
+                  'class_test': class_test,
+                  'class_name': class_name,
+                  'source_file': lib_cs_name,
+                  'test_source_file': test_cs_name,
+                  'test_exe_name': project_test,
+                  'project_name': self.name,
+                  'lib_name': lowercase_token,
+                  'test_name': lowercase_token,
+                  'version': self.version,
+                  }
+        open(lib_cs_name, 'w').write(lib_cs_template.format(**kwargs))
+        open(test_cs_name, 'w').write(lib_cs_test_template.format(**kwargs))
+        open('meson.build', 'w').write(lib_cs_meson_template.format(**kwargs))
