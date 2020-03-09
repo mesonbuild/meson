@@ -872,6 +872,10 @@ class VisualStudioLikeLinkerMixin:
                         is_shared_module: bool) -> T.List[str]:
         return []
 
+    def import_library_args(self, implibname: str) -> T.List[str]:
+        """The command to generate the import library."""
+        return self._apply_prefix(['/IMPLIB:' + implibname])
+
 
 class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
