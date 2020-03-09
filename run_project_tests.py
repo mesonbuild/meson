@@ -243,7 +243,7 @@ def setup_commands(optbackend):
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 # TODO try to eliminate or at least reduce this function
-def platform_fix_name(fname: str, canonical_compiler: str, env: environment.EnvironmentException) -> str:
+def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Environment) -> str:
     if '?lib' in fname:
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)
