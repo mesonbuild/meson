@@ -793,7 +793,7 @@ class Environment:
                 exelist=compiler, version=search_version(o), direct=invoked_directly)
         elif 'OPTLINK' in o:
             # Opltink's stdout *may* beging with a \r character.
-            return OptlinkDynamicLinker(for_machine, version=search_version(o))
+            return OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
         elif o.startswith('Microsoft') or e.startswith('Microsoft'):
             out = o or e
             match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)

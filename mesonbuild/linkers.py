@@ -968,13 +968,20 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Digital Mars dynamic linker for windows."""
 
-    def __init__(self, for_machine: mesonlib.MachineChoice,
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
         # Use optlink instead of link so we don't interfer with other link.exe
         # implementations.
-        super().__init__('optlink', ['optlink.exe'], for_machine, '', [], version=version)
+        super().__init__('optlink', exelist, for_machine, '', [], version=version)
 
     def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_debugfile_args(self, targetfile: str) -> T.List[str]:
+        # Optlink does not generate pdb files.
+        return []
+
+    def get_always_args(self) -> T.List[str]:
         return []
 
 
