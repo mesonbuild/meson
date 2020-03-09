@@ -392,7 +392,7 @@ class PkgConfigModule(ExtensionModule):
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
-                      'dataonly'})
+                      'dataonly', 'conflicts'})
     def generate(self, state, args, kwargs):
         if 'variables' in kwargs:
             FeatureNew('custom pkgconfig variables', '0.41.0').use(state.subproject)

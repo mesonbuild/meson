@@ -58,6 +58,7 @@ keyword arguments.
   generating the uninstalled pkg-config file. Since *0.54.0*
 - `dataonly` field. (*since 0.54.0*) this is used for architecture-independent
    pkg-config files in projects which also have architecture-dependent outputs.
+- `conflicts` (*since 0.36.0, incorrectly issued a warning prior to 0.54.0*) list of strings to be put in the `Conflicts` field.
 
 Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally be passed
 as first positional argument. If one is provided a default value will be
