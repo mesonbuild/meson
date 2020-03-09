@@ -24,17 +24,7 @@ import re
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
-
-from mesonbuild.templates.fortrantemplates import (create_exe_fortran_sample, create_lib_fortran_sample)
-from mesonbuild.templates.objcpptemplates import (create_exe_objcpp_sample, create_lib_objcpp_sample)
-from mesonbuild.templates.dlangtemplates import (create_exe_d_sample, create_lib_d_sample)
-from mesonbuild.templates.rusttemplates import (create_exe_rust_sample, create_lib_rust_sample)
-from mesonbuild.templates.javatemplates import (create_exe_java_sample, create_lib_java_sample)
-from mesonbuild.templates.cudatemplates import (create_exe_cuda_sample, create_lib_cuda_sample)
-from mesonbuild.templates.objctemplates import (create_exe_objc_sample, create_lib_objc_sample)
-from mesonbuild.templates.cpptemplates import (create_exe_cpp_sample, create_lib_cpp_sample)
-from mesonbuild.templates.cstemplates import (create_exe_cs_sample, create_lib_cs_sample)
-from mesonbuild.templates.ctemplates import (create_exe_c_sample, create_lib_c_sample)
+from mesonbuild.templates.samplefactory import sameple_generator
 
 '''
 we currently have one meson template at this time.
@@ -51,8 +41,6 @@ class DEFAULT_TYPES(Enum):
     EXE = 'executable'
     LIB = 'library'
 
-UNREACHABLE_CODE_ERROR = 'Unreachable code'
-
 INFO_MESSAGE = '''Sample project created. To build it run the
 following commands:
 
@@ -66,78 +54,13 @@ def create_sample(options) -> None:
     Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
     '''
-    if options.language == 'c':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_c_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_c_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cpp':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cpp_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cpp_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cs':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cs_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cs_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'cuda':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_cuda_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_cuda_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'd':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_d_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_d_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'fortran':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_fortran_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_fortran_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'rust':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_rust_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_rust_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'objc':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_objc_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_objc_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'objcpp':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_objcpp_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_objcpp_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
-    elif options.language == 'java':
-        if options.type == DEFAULT_TYPES['EXE'].value:
-            create_exe_java_sample(options.name, options.version)
-        elif options.type == DEFAULT_TYPES['LIB'].value:
-            create_lib_java_sample(options.name, options.version)
-        else:
-            raise RuntimeError(UNREACHABLE_CODE_ERROR)
+    sample_gen = sameple_generator(options)
+    if options.type == DEFAULT_TYPES['EXE'].value:
+        sample_gen.create_executable()
+    elif options.type == DEFAULT_TYPES['LIB'].value:
+        sample_gen.create_library()
     else:
-        raise RuntimeError(UNREACHABLE_CODE_ERROR)
+        raise RuntimeError('Unreachable code')
     print(INFO_MESSAGE)
 
 def autodetect_options(options, sample: bool = False) -> None:
