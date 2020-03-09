@@ -36,7 +36,17 @@ This feature can be disabled as discussed in [test()](Reference-manual.md#test).
 
 ## Coverage
 
-If you enable coverage measurements by giving Meson the command line flag `-Db_coverage=true`, you can generate coverage reports. Meson will autodetect what coverage generator tools you have installed and will generate the corresponding targets. These targets are `coverage-xml` and `coverage-text` which are both provided by [Gcovr](http://gcovr.com) (version 3.3 or higher) and `coverage-html`, which requires [Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and [GenHTML](https://linux.die.net/man/1/genhtml) or [Gcovr](http://gcovr.com). As a convenience, a high-level `coverage` target is also generated which will produce all 3 coverage report types, if possible.
+If you enable coverage measurements by giving Meson the command line flag
+`-Db_coverage=true`, you can generate coverage reports after running the tests
+(running the tests is required to gather the list of functions that get
+called). Meson will autodetect what coverage generator tools you have installed
+and will generate the corresponding targets. These targets are `coverage-xml`
+and `coverage-text` which are both provided by [Gcovr](http://gcovr.com)
+(version 3.3 or higher) and `coverage-html`, which requires
+[Lcov](https://ltp.sourceforge.io/coverage/lcov.php) and
+[GenHTML](https://linux.die.net/man/1/genhtml) or
+[Gcovr](http://gcovr.com). As a convenience, a high-level `coverage` target is
+also generated which will produce all 3 coverage report types, if possible.
 
 The output of these commands is written to the log directory `meson-logs` in your build directory.
 
