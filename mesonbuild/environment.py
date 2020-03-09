@@ -792,11 +792,12 @@ class Environment:
             return OptlinkDynamicLinker(for_machine, version=search_version(o))
         elif o.startswith('Microsoft') or e.startswith('Microsoft'):
             out = o or e
-            match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
+            match = re.search(r'.*(X86|X64|ARM|ARM64)( |$)', out)
             if match:
                 target = str(match.group(1))
             else:
-                target = 'x86'
+                m = 'Failed to detect linker target architecture:\n{}'
+                raise EnvironmentException(m.format(out))
 
             return MSVCDynamicLinker(
                 for_machine, [], machine=target, exelist=compiler,
