@@ -14,19 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing as T
+from concurrent.futures import ProcessPoolExecutor, CancelledError
+from enum import Enum
+from io import StringIO
+from pathlib import Path, PurePath
+import argparse
 import functools
 import itertools
+import json
+import multiprocessing
 import os
-import subprocess
-import shutil
-import sys
-import signal
+import re
 import shlex
-from io import StringIO
-from enum import Enum
+import shutil
+import signal
+import subprocess
+import sys
 import tempfile
-from pathlib import Path, PurePath
+import time
+import typing as T
+import xml.etree.ElementTree as ET
+
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild import compilers
@@ -35,13 +43,7 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist
-import argparse
-import json
-import xml.etree.ElementTree as ET
-import time
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, CancelledError
-import re
+
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
