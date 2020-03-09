@@ -96,6 +96,7 @@ class InstalledFile:
         self.path = raw['file']
         self.typ = raw['type']
         self.platform = raw.get('platform', None)
+        self.language = raw.get('language', 'c')  # type: str
 
         version = raw.get('version', '')  # type: str
         if version:
@@ -110,6 +111,13 @@ class InstalledFile:
         if ((compiler in ['clang-cl', 'intel-cl']) or
                 (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
+
+        has_pdb = False
+        if self.language in {'c', 'cpp'}:
+            has_pdb = canonical_compiler == 'msvc'
+        elif self.language == 'd':
+            # dmd's optlink does not genearte pdb iles
+            has_pdb = env.coredata.compilers.host['d'].linker.id in {'link', 'lld-link'}
 
         # Abort if the platform does not match
         matches = {
@@ -155,7 +163,7 @@ class InstalledFile:
         elif self.typ == 'pdb':
             if self.version:
                 p = p.with_name('{}-{}'.format(p.name, self.version[0]))
-            return p.with_suffix('.pdb') if canonical_compiler == 'msvc' else None
+            return p.with_suffix('.pdb') if has_pdb else None
         elif self.typ == 'implib' or self.typ == 'implibempty':
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs

@@ -227,6 +227,8 @@ to be installed. Each dict contains the following keys:
 - `file`
 - `type`
 - `platform` (optional)
+- `version` (optional)
+- `language` (optional)
 
 The `file` entry contains the relative path (from the install root) to the
 actually installed file.
@@ -246,7 +248,14 @@ current platform. The following values are currently supported:
 
 Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
 
+| Argument   | Applies to                 | Description                                                                   |
+| :---------:|----------------------------|-------------------------------------------------------------------------------|
+| `version`  | `shared_lib`, `pdb`        | Sets the version to look for appropriately per-platform                       |
+| `language` | `pdb`                      | Determines which compiler/linker determines the existence of this file        |
+
 The `shared_lib` and `pdb` types takes an optional additional parameter, `version`, this is us a string in `X.Y.Z` format that will be applied to the library. Each version to be tested must have a single version. The harness will apply this correctly per platform:
+
+`pdb` takes an optional `language` argument. This determines which compiler/linker should generate the pdb file. Because it's possible to mix compilers that do and don't generate pdb files (dmd's optlink doesn't). Currently this is only needed when mixing D and C code.
 
 ```json
 {
@@ -256,7 +265,7 @@ The `shared_lib` and `pdb` types takes an optional additional parameter, `versio
 }
 ```
 
-This will be applied appropraitly per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
+This will be applied appropriatly per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
 
 If the `platform` key is present, the installed file entry is only considered if
 the platform matches. The following values for `platform` are currently supported:
