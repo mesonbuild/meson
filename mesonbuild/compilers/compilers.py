@@ -569,7 +569,17 @@ class CompilerArgs(collections.abc.MutableSequence):
                 isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
             group_start = -1
             group_end = -1
+            is_soname = False
             for i, each in enumerate(new):
+                if is_soname:
+                    is_soname = False
+                    continue
+                elif '-soname' in each:
+                    # To proxy these arguments with D you need to split the
+                    # arguments, thus you get `-L=-soname -L=lib.so` we don't
+                    # want to put the lib in a link -roup
+                    is_soname = True
+                    continue
                 if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
                    not soregex.match(each):
                     continue
