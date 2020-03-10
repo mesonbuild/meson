@@ -31,7 +31,6 @@ from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
-from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
 
 from pathlib import Path, PurePath
@@ -1730,65 +1729,32 @@ class CompilerHolder(InterpreterObject):
         return self.compiler.get_argument_syntax()
 
 
-ModuleState = collections.namedtuple('ModuleState', [
-    'source_root', 'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
-    'project_name', 'project_version', 'backend', 'targets',
-    'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
-    'host_machine', 'target_machine', 'current_node'])
-
-class ModuleHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, modname, module, interpreter):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, module)
-        self.modname = modname
-        self.interpreter = interpreter
-
-    def method_call(self, method_name, args, kwargs):
-        try:
-            fn = getattr(self.held_object, method_name)
-        except AttributeError:
-            raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
-        if method_name.startswith('_'):
-            raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
-        if not getattr(fn, 'no-args-flattening', False):
-            args = flatten(args)
-        # This is not 100% reliable but we can't use hash()
-        # because the Build object contains dicts and lists.
-        num_targets = len(self.interpreter.build.targets)
-        state = ModuleState(
-            source_root = self.interpreter.environment.get_source_dir(),
-            build_to_src=mesonlib.relpath(self.interpreter.environment.get_source_dir(),
-                                          self.interpreter.environment.get_build_dir()),
-            subproject=self.interpreter.subproject,
-            subdir=self.interpreter.subdir,
-            current_lineno=self.interpreter.current_lineno,
-            environment=self.interpreter.environment,
-            project_name=self.interpreter.build.project_name,
-            project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
-            # The backend object is under-used right now, but we will need it:
-            # https://github.com/mesonbuild/meson/issues/1419
-            backend=self.interpreter.backend,
-            targets=self.interpreter.build.targets,
-            data=self.interpreter.build.data,
-            headers=self.interpreter.build.get_headers(),
-            man=self.interpreter.build.get_man(),
-            #global_args_for_build = self.interpreter.build.global_args.build,
-            global_args = self.interpreter.build.global_args.host,
-            #project_args_for_build = self.interpreter.build.projects_args.build.get(self.interpreter.subproject, {}),
-            project_args = self.interpreter.build.projects_args.host.get(self.interpreter.subproject, {}),
-            build_machine=self.interpreter.builtin['build_machine'].held_object,
-            host_machine=self.interpreter.builtin['host_machine'].held_object,
-            target_machine=self.interpreter.builtin['target_machine'].held_object,
-            current_node=self.current_node
-        )
-        if self.held_object.is_snippet(method_name):
-            value = fn(self.interpreter, state, args, kwargs)
-            return self.interpreter.holderify(value)
-        else:
-            value = fn(state, args, kwargs)
-            if num_targets != len(self.interpreter.build.targets):
-                raise InterpreterException('Extension module altered internal state illegally.')
-            return self.interpreter.module_method_callback(value)
+class ModuleState:
+    def __init__(self, interpreter):
+        self.source_root = interpreter.environment.get_source_dir()
+        self.build_to_src=mesonlib.relpath(interpreter.environment.get_source_dir(),
+                                          interpreter.environment.get_build_dir())
+        self.subproject=interpreter.subproject
+        self.subdir=interpreter.subdir
+        self.current_lineno=interpreter.current_lineno
+        self.environment=interpreter.environment
+        self.project_name=interpreter.build.project_name
+        self.project_version=interpreter.build.dep_manifest[interpreter.active_projectname]
+        # The backend object is under-used right now, but we will need it:
+        # https://github.com/mesonbuild/meson/issues/1419
+        self.backend=interpreter.backend
+        self.targets=interpreter.build.targets
+        self.data=interpreter.build.data
+        self.headers=interpreter.build.get_headers()
+        self.man=interpreter.build.get_man()
+        #self.global_args_for_build = interpreter.build.global_args.build
+        self.global_args = interpreter.build.global_args.host,
+        #self.project_args_for_build = interpreter.build.projects_args.build.get(interpreter.subproject, {})
+        self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
+        self.build_machine=interpreter.builtin['build_machine'].held_object
+        self.host_machine=interpreter.builtin['host_machine'].held_object
+        self.target_machine=interpreter.builtin['target_machine'].held_object
+        self.current_node=interpreter.current_node
 
 
 class Summary:
@@ -2379,7 +2345,7 @@ class Interpreter(InterpreterBase):
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
-                self.module_method_callback(v)
+                self.process_new_values(v)
             elif isinstance(v, build.GeneratedList):
                 pass
             elif isinstance(v, build.RunScript):
@@ -2387,7 +2353,7 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
             elif isinstance(v, dependencies.ExternalProgram):
-                return ExternalProgramHolder(v)
+                pass
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
@@ -2398,13 +2364,6 @@ class Interpreter(InterpreterBase):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
-
-    def module_method_callback(self, return_object):
-        if not isinstance(return_object, ModuleReturnValue):
-            raise InterpreterException('Bug in module, it returned an invalid object')
-        invalues = return_object.new_objects
-        self.process_new_values(invalues)
-        return self.holderify(return_object.return_value)
 
     def get_build_def_files(self):
         return self.build_def_files
@@ -2468,7 +2427,7 @@ class Interpreter(InterpreterBase):
             except ImportError:
                 raise InvalidArguments('Module "%s" does not exist' % (modname, ))
             self.modules[modname] = module.initialize(self)
-        return ModuleHolder(modname, self.modules[modname], self)
+        return self.modules[modname]
 
     @stringArgs
     @noKwargs

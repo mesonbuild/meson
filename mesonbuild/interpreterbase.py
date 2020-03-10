@@ -98,24 +98,17 @@ def _get_callee_args(wrapped_args, want_subproject: bool = False):
     elif n == 4:
         # Meson functions have 4 args: self, node, args, kwargs
         # Module functions have 4 args: self, state, args, kwargs
-        if isinstance(s, InterpreterBase):
-            node = wrapped_args[1]
+        if isinstance(s, ModuleObject):
+            state = wrapped_args[1]
+            node = state.current_node
+            subp = state.subproject
         else:
-            node = wrapped_args[1].current_node
+            node = wrapped_args[1]
+            subp = s.subproject
         args = wrapped_args[2]
         kwargs = wrapped_args[3]
         if want_subproject:
-            if isinstance(s, InterpreterBase):
-                subproject = s.subproject
-            else:
-                subproject = wrapped_args[1].subproject
-    elif n == 5:
-        # Module snippets have 5 args: self, interpreter, state, args, kwargs
-        node = wrapped_args[2].current_node
-        args = wrapped_args[3]
-        kwargs = wrapped_args[4]
-        if want_subproject:
-            subproject = wrapped_args[2].subproject
+            subproject = subp
     else:
         raise AssertionError('Unknown args: {!r}'.format(wrapped_args))
     # Sometimes interpreter methods are called internally with None instead of

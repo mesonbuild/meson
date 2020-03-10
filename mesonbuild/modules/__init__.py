@@ -15,20 +15,47 @@
 # This file contains the detection logic for external dependencies that
 # are UI-related.
 
+import typing as T
 import os
 
-from .. import build
-from ..mesonlib import unholder
+from .. import build, mparser
+from ..mesonlib import unholder, MesonException
+from ..interpreter import InterpreterObject, ModuleState
+from ..interpreterbase import flatten
 
 
-class ExtensionModule:
+class ModuleException(MesonException):
+    pass
+
+class ModuleObject(InterpreterObject):
     def __init__(self, interpreter):
+        super().__init__()
         self.interpreter = interpreter
-        self.snippets = set() # List of methods that operate only on the interpreter.
 
-    def is_snippet(self, funcname):
-        return funcname in self.snippets
+    def method_call(self, method_name: str,
+                    args: T.List[T.Union[mparser.BaseNode, str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']],
+                    kwargs: T.Dict[str, T.Union[mparser.BaseNode, str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']]):
+        method = self.methods.get(method_name)
+        if not method:
+            raise InvalidCode('Unknown method "%s" in object.' % method_name)
+        if not getattr(method, 'no-args-flattening', False):
+            args = flatten(args)
 
+        # This is not 100% reliable but we can't use hash()
+        # because the Build object contains dicts and lists.
+        num_targets = len(self.interpreter.build.targets)
+        state = ModuleState(self.interpreter)
+        ret = method(state, args, kwargs)
+        if num_targets != len(self.interpreter.build.targets):
+            raise ModuleException('Extension module altered internal state illegally.')
+
+        if isinstance(ret, ModuleReturnValue):
+            self.interpreter.process_new_values(ret.new_objects)
+            ret = ret.return_value
+        return self.interpreter.holderify(ret)
+
+class ExtensionModule(ModuleObject):
+    pass
 
 def get_include_args(include_dirs, prefix='-I'):
     '''
