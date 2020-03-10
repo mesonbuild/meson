@@ -219,20 +219,24 @@ class DmdLikeCompilerMixin:
         if self.info.is_windows():
             return []
 
-        # This method is to be used by LDC and DMD.
-        # GDC can deal with the verbatim flags.
-        if not rpath_paths and not install_rpath:
-            return []
-        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-        if build_rpath != '':
-            paths += ':' + build_rpath
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
-            if not paths:
-                paths = padding
-            else:
-                paths = paths + ':' + padding
-        return ['-Wl,-rpath,{}'.format(paths)]
+        # GNU ld, solaris ld, and lld acting like GNU ld
+        if self.linker.id.startswith('ld'):
+            # The way that dmd and ldc pass rpath to gcc is different than we would
+            # do directly, each argument -rpath and the value to rpath, need to be
+            # split into two separate arguments both prefaced with the -L=.
+            args = []
+            for r in super().build_rpath_args(
+                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+                if ',' in r:
+                    a, b = r.split(',', maxsplit=1)
+                    args.append(a)
+                    args.append(self.LINKER_PREFIX + b)
+                else:
+                    args.append(r)
+            return args
+
+        return super().build_rpath_args(
+            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def translate_args_to_nongnu(self, args):
         dcargs = []
