@@ -41,7 +41,7 @@ matrix:
 before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt llvm ninja; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install qt ldc llvm ninja; fi
     # # Run one macOS build without pkg-config available, and the other (unity=on) with pkg-config
   - if [[ "$TRAVIS_OS_NAME" == "osx" && "$MESON_ARGS" =~ .*unity=on.* ]]; then brew install pkg-config; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull jpakkane/mesonci:eoan; fi

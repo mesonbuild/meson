@@ -14,19 +14,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing as T
+from concurrent.futures import ProcessPoolExecutor, CancelledError
+from enum import Enum
+from io import StringIO
+from pathlib import Path, PurePath
+import argparse
 import functools
 import itertools
+import json
+import multiprocessing
 import os
-import subprocess
-import shutil
-import sys
-import signal
+import re
 import shlex
-from io import StringIO
-from enum import Enum
+import shutil
+import signal
+import subprocess
+import sys
 import tempfile
-from pathlib import Path, PurePath
+import time
+import typing as T
+import xml.etree.ElementTree as ET
+
 from mesonbuild import build
 from mesonbuild import environment
 from mesonbuild import compilers
@@ -35,13 +43,7 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist
-import argparse
-import json
-import xml.etree.ElementTree as ET
-import time
-import multiprocessing
-from concurrent.futures import ProcessPoolExecutor, CancelledError
-import re
+
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -94,12 +96,28 @@ class InstalledFile:
         self.path = raw['file']
         self.typ = raw['type']
         self.platform = raw.get('platform', None)
+        self.language = raw.get('language', 'c')  # type: str
+
+        version = raw.get('version', '')  # type: str
+        if version:
+            self.version = version.split('.')  # type: T.List[str]
+        else:
+            # split on '' will return [''], we want an empty list though
+            self.version = []
 
     def get_path(self, compiler: str, env: environment.Environment) -> T.Optional[Path]:
         p = Path(self.path)
         canonical_compiler = compiler
-        if (compiler in ['clang-cl', 'intel-cl']) or (env.machines.host.is_windows() and compiler == 'pgi'):
+        if ((compiler in ['clang-cl', 'intel-cl']) or
+                (env.machines.host.is_windows() and compiler in {'pgi', 'dmd', 'ldc'})):
             canonical_compiler = 'msvc'
+
+        has_pdb = False
+        if self.language in {'c', 'cpp'}:
+            has_pdb = canonical_compiler == 'msvc'
+        elif self.language == 'd':
+            # dmd's optlink does not genearte pdb iles
+            has_pdb = env.coredata.compilers.host['d'].linker.id in {'link', 'lld-link'}
 
         # Abort if the platform does not match
         matches = {
@@ -114,11 +132,38 @@ class InstalledFile:
         # Handle the different types
         if self.typ == 'file':
             return p
+        elif self.typ == 'shared_lib':
+            if env.machines.host.is_windows() or env.machines.host.is_cygwin():
+                # Windows only has foo.dll and foo-X.dll
+                if len(self.version) > 1:
+                    return None
+                if self.version:
+                    p = p.with_name('{}-{}'.format(p.name, self.version[0]))
+                return p.with_suffix('.dll')
+
+            p = p.with_name('lib{}'.format(p.name))
+            if env.machines.host.is_darwin():
+                # MacOS only has libfoo.dylib and libfoo.X.dylib
+                if len(self.version) > 1:
+                    return None
+
+                # pathlib.Path.with_suffix replaces, not appends
+                suffix = '.dylib'
+                if self.version:
+                    suffix = '.{}{}'.format(self.version[0], suffix)
+            else:
+                # pathlib.Path.with_suffix replaces, not appends
+                suffix = '.so'
+                if self.version:
+                    suffix = '{}.{}'.format(suffix, '.'.join(self.version))
+            return p.with_suffix(suffix)
         elif self.typ == 'exe':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
                 return p.with_suffix('.exe')
         elif self.typ == 'pdb':
-            return p.with_suffix('.pdb') if canonical_compiler == 'msvc' else None
+            if self.version:
+                p = p.with_name('{}-{}'.format(p.name, self.version[0]))
+            return p.with_suffix('.pdb') if has_pdb else None
         elif self.typ == 'implib' or self.typ == 'implibempty':
             if env.machines.host.is_windows() and canonical_compiler == 'msvc':
                 # only MSVC doesn't generate empty implibs
@@ -208,7 +253,7 @@ def setup_commands(optbackend):
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 # TODO try to eliminate or at least reduce this function
-def platform_fix_name(fname: str, canonical_compiler: str, env: environment.EnvironmentException) -> str:
+def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Environment) -> str:
     if '?lib' in fname:
         if env.machines.host.is_windows() and canonical_compiler == 'msvc':
             fname = re.sub(r'lib/\?lib(.*)\.', r'bin/\1.', fname)

@@ -190,6 +190,7 @@ Exanple `test.json`:
   "installed": [
     { "type": "exe", "file": "usr/bin/testexe" },
     { "type": "pdb", "file": "usr/bin/testexe" },
+    { "type": "shared_lib", "file": "usr/lib/z", "version": "1.2.3" },
   ],
   "matrix": {
     "options": {
@@ -226,6 +227,8 @@ to be installed. Each dict contains the following keys:
 - `file`
 - `type`
 - `platform` (optional)
+- `version` (optional)
+- `language` (optional)
 
 The `file` entry contains the relative path (from the install root) to the
 actually installed file.
@@ -233,16 +236,36 @@ actually installed file.
 The `type` entry specifies how the `file` path should be interpreted based on the
 current platform. The following values are currently supported:
 
-| `type`        | Description                                                                      |
-| :-----------: | -------------------------------------------------------------------------------- |
-| `file`        | No postprocessing, just use the provided path                                    |
-| `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`     |
-| `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms          |
-| `implib`      | For Windows import libraries. These entries are ignored on non Windows platforms |
-| `implibempty` | Like `implib`, but no symbols are exported in the library                        |
-| `expr`        | `file` is an expression. This type should be avoided and removed if possible     |
+| `type`        | Description                                                                                             |
+| :-----------: | ------------------------------------------------------------------------------------------------------- |
+| `file`        | No postprocessing, just use the provided path                                                           |
+| `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`                            |
+| `shared_lib`  | For shared libraries, always written as `name`. The appropriate suffix and prefix are added by platform |
+| `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms                                 |
+| `implib`      | For Windows import libraries. These entries are ignored on non Windows platforms                        |
+| `implibempty` | Like `implib`, but no symbols are exported in the library                                               |
+| `expr`        | `file` is an expression. This type should be avoided and removed if possible                            |
 
 Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
+
+| Argument   | Applies to                 | Description                                                                   |
+| :---------:|----------------------------|-------------------------------------------------------------------------------|
+| `version`  | `shared_lib`, `pdb`        | Sets the version to look for appropriately per-platform                       |
+| `language` | `pdb`                      | Determines which compiler/linker determines the existence of this file        |
+
+The `shared_lib` and `pdb` types takes an optional additional parameter, `version`, this is us a string in `X.Y.Z` format that will be applied to the library. Each version to be tested must have a single version. The harness will apply this correctly per platform:
+
+`pdb` takes an optional `language` argument. This determines which compiler/linker should generate the pdb file. Because it's possible to mix compilers that do and don't generate pdb files (dmd's optlink doesn't). Currently this is only needed when mixing D and C code.
+
+```json
+{
+  "type": "shared_lib", "file": "usr/lib/lib",
+  "type": "shared_lib", "file": "usr/lib/lib", "version": "1",
+  "type": "shared_lib", "file": "usr/lib/lib", "version": "1.2.3.",
+}
+```
+
+This will be applied appropriatly per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
 
 If the `platform` key is present, the installed file entry is only considered if
 the platform matches. The following values for `platform` are currently supported:

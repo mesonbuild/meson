@@ -536,6 +536,15 @@ class CompilerArgs(collections.abc.MutableSequence):
         # both of which are invalid.
         if arg in cls.dedup2_prefixes:
             return 0
+        if arg.startswith('-L='):
+            # DMD and LDC proxy all linker arguments using -L=; in conjunction
+            # with ld64 on macOS this can lead to command line arguments such
+            # as: `-L=-compatibility_version -L=0 -L=current_version -L=0`.
+            # These cannot be combined, ld64 insists they must be passed with
+            # spaces and quoting does not work. if we deduplicate these then
+            # one of the -L=0 arguments will be removed and the version
+            # argument will consume the next argument instead.
+            return 0
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):
@@ -571,7 +580,17 @@ class CompilerArgs(collections.abc.MutableSequence):
                 isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
             group_start = -1
             group_end = -1
+            is_soname = False
             for i, each in enumerate(new):
+                if is_soname:
+                    is_soname = False
+                    continue
+                elif '-soname' in each:
+                    # To proxy these arguments with D you need to split the
+                    # arguments, thus you get `-L=-soname -L=lib.so` we don't
+                    # want to put the lib in a link -roup
+                    is_soname = True
+                    continue
                 if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
                    not soregex.match(each):
                     continue

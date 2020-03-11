@@ -205,10 +205,6 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         objname = os.path.splitext(pchname)[0] + '.obj'
         return objname, ['/Yc' + header, '/Fp' + pchname, '/Fo' + objname]
 
-    def gen_import_library_args(self, implibname: str) -> T.List[str]:
-        "The name of the outputted import library"
-        return ['/IMPLIB:' + implibname]
-
     def openmp_flags(self) -> T.List[str]:
         return ['/openmp']
 

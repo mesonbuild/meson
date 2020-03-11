@@ -1,9 +1,11 @@
 {
   "installed": [
     {"type": "exe", "file": "usr/bin/app_d"},
-    {"type": "file", "platform": "msvc", "file": "usr/bin/stuff.dll"},
+    {"type": "pdb", "file": "usr/bin/app_d", "language": "d"},
+    {"type": "shared_lib", "platform": "msvc", "file": "usr/bin/stuff"},
+    {"type": "pdb", "file": "usr/bin/stuff", "language": "d"},
+    {"type": "shared_lib", "platform": "gcc", "file": "usr/lib/stuff"},
     {"type": "file", "platform": "msvc", "file": "usr/lib/stuff.lib"},
-    {"type": "file", "platform": "gcc", "file": "usr/lib/libstuff.so"},
     {"type": "file", "file": "usr/lib/pkgconfig/test.pc"}
   ]
 }

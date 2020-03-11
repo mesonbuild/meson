@@ -28,7 +28,6 @@ from .compilers import (
     CompilerArgs,
 )
 from .mixins.gnu import GnuCompiler
-from .mixins.islinker import LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
@@ -69,7 +68,7 @@ dmd_optimization_args = {'0': [],
 
 class DmdLikeCompilerMixin:
 
-    LINKER_PREFIX = '-L'
+    LINKER_PREFIX = '-L='
 
     def get_output_args(self, target):
         return ['-of=' + target]
@@ -214,26 +213,30 @@ class DmdLikeCompilerMixin:
         return []
 
     def gen_import_library_args(self, implibname):
-        return ['-Wl,--out-implib=' + implibname]
+        return self.linker.import_library_args(implibname)
 
     def build_rpath_args(self, env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if self.info.is_windows():
             return []
 
-        # This method is to be used by LDC and DMD.
-        # GDC can deal with the verbatim flags.
-        if not rpath_paths and not install_rpath:
-            return []
-        paths = ':'.join([os.path.join(build_dir, p) for p in rpath_paths])
-        if build_rpath != '':
-            paths += ':' + build_rpath
-        if len(paths) < len(install_rpath):
-            padding = 'X' * (len(install_rpath) - len(paths))
-            if not paths:
-                paths = padding
-            else:
-                paths = paths + ':' + padding
-        return ['-Wl,-rpath,{}'.format(paths)]
+        # GNU ld, solaris ld, and lld acting like GNU ld
+        if self.linker.id.startswith('ld'):
+            # The way that dmd and ldc pass rpath to gcc is different than we would
+            # do directly, each argument -rpath and the value to rpath, need to be
+            # split into two separate arguments both prefaced with the -L=.
+            args = []
+            for r in super().build_rpath_args(
+                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+                if ',' in r:
+                    a, b = r.split(',', maxsplit=1)
+                    args.append(a)
+                    args.append(self.LINKER_PREFIX + b)
+                else:
+                    args.append(r)
+            return args
+
+        return super().build_rpath_args(
+            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
     def translate_args_to_nongnu(self, args):
         dcargs = []
@@ -391,15 +394,33 @@ class DmdLikeCompilerMixin:
     def get_soname_args(self, *args, **kwargs) -> T.List[str]:
         # LDC and DMD actually do use a linker, but they proxy all of that with
         # their own arguments
-        soargs = []
-        for arg in Compiler.get_soname_args(self, *args, **kwargs):
-            soargs.append('-L=' + arg)
-        return soargs
+        if self.linker.id.startswith('ld.'):
+            soargs = []
+            for arg in super().get_soname_args(*args, **kwargs):
+                a, b = arg.split(',', maxsplit=1)
+                soargs.append(a)
+                soargs.append(self.LINKER_PREFIX + b)
+            return soargs
+        elif self.linker.id.startswith('ld64'):
+            soargs = []
+            for arg in super().get_soname_args(*args, **kwargs):
+                if not arg.startswith(self.LINKER_PREFIX):
+                    soargs.append(self.LINKER_PREFIX + arg)
+                else:
+                    soargs.append(arg)
+            return soargs
+        else:
+            return super().get_soname_args(*args, **kwargs)
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
-        args = []
-        for arg in self.linker.get_allow_undefined_args():
-            args.append('-L=' + arg)
+        args = self.linker.get_allow_undefined_args()
+        if self.info.is_darwin():
+            # On macOS we're passing these options to the C compiler, but
+            # they're linker options and need -Wl, so clang/gcc knows what to
+            # do with them. I'm assuming, but don't know for certain, that
+            # ldc/dmd do some kind of mapping internally for arguments they
+            # understand, but pass arguments they don't understand directly.
+            args = [a.replace('-L=', '-Xcc=-Wl,') for a in args]
         return args
 
 
@@ -600,7 +621,7 @@ class DCompiler(Compiler):
         return []
 
     def thread_link_flags(self, env):
-        return ['-pthread']
+        return self.linker.thread_flags(env)
 
     def name_string(self):
         return ' '.join(self.exelist)
@@ -658,7 +679,7 @@ class GnuDCompiler(DCompiler, GnuCompiler):
         return self.linker.get_allow_undefined_args()
 
 
-class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
@@ -687,9 +708,6 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
     def get_pic_args(self):
         return ['-relocation-model=pic']
 
-    def get_std_shared_lib_link_args(self):
-        return ['-shared']
-
     def get_crt_link_args(self, crt_val, buildtype):
         return self.get_crt_args(crt_val, buildtype)
 
@@ -699,8 +717,12 @@ class LLVMDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompi
     def get_optimization_args(self, optimization_level):
         return ldc_optimization_args[optimization_level]
 
+    @classmethod
+    def use_linker_args(cls, linker: str) -> T.List[str]:
+        return ['-linker={}'.format(linker)]
 
-class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompilerMixin, DCompiler):
+
+class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, **kwargs):
@@ -760,3 +782,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, LinkerEnvVarsMixin, BasicLinkerIsCompil
 
     def get_optimization_args(self, optimization_level):
         return dmd_optimization_args[optimization_level]
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False

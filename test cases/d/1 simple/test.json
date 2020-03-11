@@ -1,5 +1,6 @@
 {
   "installed": [
-    {"type": "exe", "file": "usr/bin/dsimpleapp"}
+    {"type": "exe", "file": "usr/bin/dsimpleapp"},
+    {"type": "pdb", "file": "usr/bin/dsimpleapp", "language": "d"}
   ]
 }

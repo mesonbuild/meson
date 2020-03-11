@@ -752,7 +752,8 @@ class Environment:
 
     def _guess_win_linker(self, compiler: T.List[str], comp_class: Compiler,
                           for_machine: MachineChoice, *,
-                          use_linker_prefix: bool = True) -> 'DynamicLinker':
+                          use_linker_prefix: bool = True, invoked_directly: bool = True,
+                          extra_args: T.Optional[T.List[str]] = None) -> 'DynamicLinker':
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
 
         # Explicitly pass logo here so that we can get the version of link.exe
@@ -771,25 +772,29 @@ class Environment:
             override = comp_class.use_linker_args(value[0])
             check_args += override
 
+        if extra_args is not None:
+            check_args.extend(extra_args)
+
         p, o, _ = Popen_safe(compiler + check_args)
         if o.startswith('LLD'):
             if '(compatible with GNU linkers)' in o:
                 return LLVMDynamicLinker(
                     compiler, for_machine, comp_class.LINKER_PREFIX,
-                    override, version=search_version(o))
-
-        if value is not None:
+                    override, version=search_version(o), direct=invoked_directly)
+ 
+        if value is not None and invoked_directly:
             compiler = value
+            # We've already hanedled the non-direct case above
 
         p, o, e = Popen_safe(compiler + check_args)
         if o.startswith('LLD'):
             return ClangClDynamicLinker(
                 for_machine, [],
                 prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-                exelist=compiler, version=search_version(o))
+                exelist=compiler, version=search_version(o), direct=invoked_directly)
         elif 'OPTLINK' in o:
             # Opltink's stdout *may* beging with a \r character.
-            return OptlinkDynamicLinker(for_machine, version=search_version(o))
+            return OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
         elif o.startswith('Microsoft') or e.startswith('Microsoft'):
             out = o or e
             match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
@@ -801,7 +806,7 @@ class Environment:
             return MSVCDynamicLinker(
                 for_machine, [], machine=target, exelist=compiler,
                 prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
-                version=search_version(out))
+                version=search_version(out), direct=invoked_directly)
         elif 'GNU coreutils' in o:
             raise EnvironmentException(
                 "Found GNU link.exe instead of MSVC link.exe. This link.exe "
@@ -1496,28 +1501,31 @@ class Environment:
 
             if 'LLVM D compiler' in out:
                 # LDC seems to require a file
-                if info.is_windows() or info.is_cygwin():
-                    # Getting LDC on windows to give useful linker output when
-                    # not doing real work is painfully hard. It ships with a
-                    # version of lld-link, so unless we think the user wants
-                    # link.exe, just assume that we're going to use lld-link
-                    # with it.
-                    linker = self._guess_win_linker(
-                        ['link' if is_msvc else 'lld-link'],
-                        compilers.LLVMDCompiler, for_machine, use_linker_prefix=False)
-                else:
-                    with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                # We cannot use NamedTemproraryFile on windows, its documented
+                # to not work for our uses. So, just use mkstemp and only have
+                # one path for simplicity.
+                o, f = tempfile.mkstemp('.d')
+                os.close(o)
+
+                try:
+                    if info.is_windows() or info.is_cygwin():
+                        objfile = os.path.basename(f)[:-1] + 'obj'
+                        linker = self._guess_win_linker(
+                            exelist,
+                            compilers.LLVMDCompiler, for_machine,
+                            use_linker_prefix=True, invoked_directly=False,
+                            extra_args=[f])
+                    else:
                         # LDC writes an object file to the current working directory.
                         # Clean it up.
-                        objectfile = os.path.basename(f.name)[:-1] + 'o'
+                        objfile = os.path.basename(f)[:-1] + 'o'
                         linker = self._guess_nix_linker(
                             exelist, compilers.LLVMDCompiler, for_machine,
-                            extra_args=[f.name])
-                        try:
-                            os.unlink(objectfile)
-                        except Exception:
-                            # Thank you Windows file system semantics and virus scanners.
-                            pass
+                            extra_args=[f])
+                finally:
+                    mesonlib.windows_proof_rm(f)
+                    mesonlib.windows_proof_rm(objfile)
+
                 return compilers.LLVMDCompiler(
                     exelist, version, for_machine, info, arch,
                     full_version=full_version, linker=linker)
@@ -1528,20 +1536,30 @@ class Environment:
                     full_version=full_version, linker=linker)
             elif 'The D Language Foundation' in out or 'Digital Mars' in out:
                 # DMD seems to require a file
-                if info.is_windows() or info.is_cygwin():
-                    if is_msvc:
-                        linker_cmd = ['link']
-                    elif arch == 'x86':
-                        linker_cmd = ['optlink']
+                # We cannot use NamedTemproraryFile on windows, its documented
+                # to not work for our uses. So, just use mkstemp and only have
+                # one path for simplicity.
+                o, f = tempfile.mkstemp('.d')
+                os.close(o)
+
+                # DMD as different detection logic for x86 and x86_64
+                arch_arg = '-m64' if arch == 'x86_64' else '-m32'
+
+                try:
+                    if info.is_windows() or info.is_cygwin():
+                        objfile = os.path.basename(f)[:-1] + 'obj'
+                        linker = self._guess_win_linker(
+                            exelist, compilers.DmdDCompiler, for_machine,
+                            invoked_directly=False, extra_args=[f, arch_arg])
                     else:
-                        linker_cmd = ['lld-link']
-                    linker = self._guess_win_linker(linker_cmd, compilers.DmdDCompiler, for_machine,
-                                                    use_linker_prefix=False)
-                else:
-                    with tempfile.NamedTemporaryFile(suffix='.d') as f:
+                        objfile = os.path.basename(f)[:-1] + 'o'
                         linker = self._guess_nix_linker(
                             exelist, compilers.DmdDCompiler, for_machine,
-                            extra_args=[f.name])
+                            extra_args=[f, arch_arg])
+                finally:
+                    mesonlib.windows_proof_rm(f)
+                    mesonlib.windows_proof_rm(objfile)
+
                 return compilers.DmdDCompiler(
                     exelist, version, for_machine, info, arch,
                     full_version=full_version, linker=linker)
