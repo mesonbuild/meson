@@ -4562,6 +4562,34 @@ recommended as it is not supported on some platforms''')
         self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
         self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
 
+    def test_spurious_reconfigure_built_dep_file(self):
+        testdir = os.path.join(self.unit_test_dir, '74 dep files')
+
+        # Regression test: Spurious reconfigure was happening when build
+        # directory is inside source directory.
+        # See https://gitlab.freedesktop.org/gstreamer/gst-build/-/issues/85.
+        srcdir = os.path.join(self.builddir, 'srctree')
+        shutil.copytree(testdir, srcdir)
+        builddir = os.path.join(srcdir, '_build')
+        self.change_builddir(builddir)
+
+        self.init(srcdir)
+        self.build()
+
+        # During first configure the file did not exist so no dependency should
+        # have been set. A rebuild should not trigger a reconfigure.
+        self.clean()
+        out = self.build()
+        self.assertNotIn('Project configured', out)
+
+        self.init(srcdir, extra_args=['--reconfigure'])
+
+        # During the reconfigure the file did exist, but is inside build
+        # directory, so no dependency should have been set. A rebuild should not
+        # trigger a reconfigure.
+        self.clean()
+        out = self.build()
+        self.assertNotIn('Project configured', out)
 
 class FailureTests(BasePlatformTests):
     '''
