@@ -40,6 +40,7 @@ topic](https://github.com/topics/meson).
  - [GameMode](https://github.com/FeralInteractive/gamemode), a daemon/lib combo for Linux that allows games to request a set of optimisations be temporarily applied to the host OS
  - [Geary](https://wiki.gnome.org/Apps/Geary), an email application built around conversations, for the GNOME 3 desktop.
  - [GLib](https://gitlab.gnome.org/GNOME/glib), cross-platform C library used by GTK+ and GStreamer
+ - [Glorytun](https://github.com/angt/glorytun), a multipath UDP tunnel
  - [GNOME Boxes](https://gitlab.gnome.org/GNOME/gnome-boxes), a GNOME hypervisor
  - [GNOME Builder](https://gitlab.gnome.org/GNOME/gnome-builder), an IDE for the GNOME platform
  - [GNOME MPV](https://github.com/gnome-mpv/gnome-mpv), GNOME frontend to the mpv video player
