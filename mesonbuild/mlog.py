@@ -298,7 +298,7 @@ def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
         prefix = red('ERROR:')
     log()
     args = []  # type: T.List[T.Union[AnsiDecorator, str]]
-    if getattr(e, 'file') is not None and getattr(e, 'lineno') is not None and getattr(e, 'colno') is not None:
+    if all(getattr(e, a, None) is not None for a in ['file', 'lineno', 'colno']):
         # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
         # that this is correct, so we'll just ignore it.
         path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
