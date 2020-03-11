@@ -2422,14 +2422,14 @@ class Interpreter(InterpreterBase):
                 return
             f = os.path.normpath(f.relative_name())
         elif os.path.isfile(f) and not f.startswith('/dev'):
-            srcdir = self.environment.get_source_dir()
-            builddir = self.environment.get_build_dir()
-            f = os.path.normpath(f)
-            rel_path = mesonlib.relpath(f, start=srcdir)
-            if not rel_path.startswith('..'):
-                f = rel_path
-            elif not mesonlib.relpath(f, start=builddir).startswith('..'):
+            srcdir = Path(self.environment.get_source_dir())
+            builddir = Path(self.environment.get_build_dir())
+            f = Path(f).resolve()
+            if builddir in f.parents:
                 return
+            if srcdir in f.parents:
+                f = f.relative_to(srcdir)
+            f = str(f)
         else:
             return
         if f not in self.build_def_files:
