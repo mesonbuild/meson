@@ -4990,6 +4990,7 @@ class WindowsTests(BasePlatformTests):
     def test_link_environment_variable_optlink(self):
         self._check_ld('optlink', 'c', 'optlink')
 
+    @skip_if_not_language('rust')
     def test_link_environment_variable_rust(self):
         self._check_ld('link', 'rust', 'link')
 
@@ -6342,20 +6343,22 @@ c = ['{0}']
     def test_ld_environment_variable_lld(self):
         self._check_ld('ld.lld', 'lld', 'c', 'ld.lld')
 
-    @skipIfNoExecutable('rustc')
+    @skip_if_not_language('rust')
     def test_ld_environment_variable_rust(self):
         self._check_ld('ld.gold', 'gold', 'rust', 'ld.gold')
 
     def test_ld_environment_variable_cpp(self):
         self._check_ld('ld.gold', 'gold', 'cpp', 'ld.gold')
 
+    @skip_if_not_language('objc')
     def test_ld_environment_variable_objc(self):
         self._check_ld('ld.gold', 'gold', 'objc', 'ld.gold')
 
+    @skip_if_not_language('objcpp')
     def test_ld_environment_variable_objcpp(self):
         self._check_ld('ld.gold', 'gold', 'objcpp', 'ld.gold')
 
-    @skipIfNoExecutable('gfortran')
+    @skip_if_not_language('fortran')
     def test_ld_environment_variable_fortran(self):
         self._check_ld('ld.gold', 'gold', 'fortran', 'ld.gold')
 
