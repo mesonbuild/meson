@@ -605,7 +605,7 @@ class CoreData:
             mode = 'debug'
         elif opt == '2' and debug:
             mode = 'debugoptimized'
-        elif opt == '3' and not debug:
+        elif opt in ('s', '2', '3') and not debug:
             mode = 'release'
         elif opt == 's' and debug:
             mode = 'minsize'

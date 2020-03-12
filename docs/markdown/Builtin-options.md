@@ -91,19 +91,31 @@ Using the option as-is with no prefix affects all machines. For example:
 For setting optimization levels and toggling debug, you can either set the
 `buildtype` option, or you can set the `optimization` and `debug` options which
 give finer control over the same. Whichever you decide to use, the other will
-be deduced from it. For example, `-Dbuildtype=debugoptimized` is the same as
+be deduced from it. For example, `-Dbuildtype=debugoptimized` will also set
 `-Ddebug=true -Doptimization=2` and vice-versa. This table documents the
-two-way mapping:
+mapping from `buildtype` to `debug` and `optimization`:
 
 | buildtype      | debug | optimization |
 | ---------      | ----- | ------------ |
-| plain          | false | 0            |
 | debug          | true  | 0            |
+| minsize        | true  | s            |
 | debugoptimized | true  | 2            |
 | release        | false | 3            |
-| minsize        | true  | s            |
+| plain          | false | 0            |
 
-All other combinations of `debug` and `optimization` set `buildtype` to `'custom'`.
+This table documents the reverse mapping:
+
+| debug | optimization | buildtype      |
+| ----- | ------------ | ---------      |
+| true  | 0            | debug          |
+| true  | s            | minsize        |
+| true  | 2            | debugoptimized |
+| false | 0            | plain          |
+| false | s            | release *(since 0.54)* |
+| false | 2            | release *(since 0.54)* |
+| false | 3            | release        |
+
+All other combinations of `debug` and `optimization` set `buildtype` to `custom`.
 
 ## Base options
 
