@@ -4994,6 +4994,14 @@ class WindowsTests(BasePlatformTests):
     def test_link_environment_variable_rust(self):
         self._check_ld('link', 'rust', 'link')
 
+    @skip_if_not_language('d')
+    def test_link_environment_variable_d(self):
+        env = get_fake_env()
+        comp = getattr(env, 'detect_d_compiler')(MachineChoice.HOST)
+        if comp.id == 'dmd':
+            raise unittest.SkipTest('meson cannot reliably make DMD use a different linker.')
+        self._check_ld('lld-link', 'd', 'lld-link')
+
     def test_pefile_checksum(self):
         try:
             import pefile
@@ -6361,6 +6369,12 @@ c = ['{0}']
     @skip_if_not_language('fortran')
     def test_ld_environment_variable_fortran(self):
         self._check_ld('ld.gold', 'gold', 'fortran', 'ld.gold')
+
+    @skip_if_not_language('d')
+    def test_ld_environment_variable_d(self):
+        # At least for me, ldc defaults to gold, and gdc defaults to bfd, so
+        # let's pick lld, which isn't the default for either (currently)
+        self._check_ld('ld.lld', 'lld', 'd', 'ld.lld')
 
     def compute_sha256(self, filename):
         with open(filename, 'rb') as f:
