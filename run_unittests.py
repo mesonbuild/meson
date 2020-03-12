@@ -4832,6 +4832,11 @@ class FailureTests(BasePlatformTests):
                                "meson.override_dependency('zlib', declare_dependency())",
                                """Tried to override dependency 'zlib' which has already been resolved or overridden""")
 
+    def test_buildtype_debug_warning(self):
+        self.assertMesonOutputs("get_option('buildtype').startswith('debug')\n",
+                                r"WARNING:.*get_option\('debug'\)")
+
+
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''

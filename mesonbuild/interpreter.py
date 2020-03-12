@@ -2833,7 +2833,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @stringArgs
     @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
+    def func_get_option(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Argument required for get_option.')
         optname = args[0]
@@ -2843,9 +2843,17 @@ external dependencies (including libraries) must go to "dependencies".''')
                                        'options of other subprojects.')
         opt = self.get_option_internal(optname)
         if isinstance(opt, coredata.UserFeatureOption):
-            return FeatureOptionHolder(self.environment, optname, opt)
+            opt = FeatureOptionHolder(self.environment, optname, opt)
         elif isinstance(opt, coredata.UserOption):
-            return opt.value
+            opt = opt.value
+        if optname == 'buildtype':
+            class BuildTypeString(str):
+                def startswith(self, token):
+                    if token == 'debug':
+                        mlog.warning("Use get_option('debug') to check whether debugging is enabled "
+                                     "instead of get_option('buildtype').startswith('debug')", location=node)
+                    super().startswith(token)
+            opt = BuildTypeString(opt)
         return opt
 
     @noKwargs
