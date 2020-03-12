@@ -134,6 +134,19 @@ platforms or with all compilers:
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
 
+<a name="b_vscrt-from_buildtype"></a>
+The default value of `b_vscrt` is `from_buildtype`. In that case, the following
+table is used internally to pick the CRT compiler arguments based on the value
+of the `buildtype` option:
+
+| buildtype      | Visual Studio CRT |
+| --------       | ----------------- |
+| debug          | `/MDd`            |
+| debugoptimized | `/MD`             |
+| release        | `/MD`             |
+| minsize        | `/MD`             |
+| custom         | error!            |
+
 ### Notes about Apple Bitcode support
 
 `b_bitcode` will pass `-fembed-bitcode` while compiling and will pass
