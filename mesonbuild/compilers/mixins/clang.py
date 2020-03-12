@@ -19,7 +19,6 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers import AppleDynamicLinker
-from ..compilers import clike_optimization_args
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -32,6 +31,14 @@ clang_color_args = {
     'never': ['-Xclang', '-fno-color-diagnostics'],
 }  # type: T.Dict[str, T.List[str]]
 
+clang_optimization_args = {
+    '0': [],
+    'g': ['-Og'],
+    '1': ['-O1'],
+    '2': ['-O2'],
+    '3': ['-O3'],
+    's': ['-Os'],
+}  # type: T.Dict[str, T.List[str]]
 
 class ClangCompiler(GnuLikeCompiler):
     def __init__(self):
@@ -49,7 +56,7 @@ class ClangCompiler(GnuLikeCompiler):
         return clang_color_args[colortype][:]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return clike_optimization_args[optimization_level]
+        return clang_optimization_args[optimization_level]
 
     def get_pch_suffix(self) -> str:
         return 'pch'
