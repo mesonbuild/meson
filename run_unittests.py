@@ -4972,14 +4972,21 @@ class WindowsTests(BasePlatformTests):
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
             raise unittest.SkipTest('Could not find {}.'.format(name))
-        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]
-        with mock.patch.dict(os.environ, {envvar: name}):
-            env = get_fake_env()
-            try:
-                comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
-            except EnvironmentException:
-                raise unittest.SkipTest('Could not find a compiler for {}'.format(lang))
-            self.assertEqual(comp.linker.id, expected)
+        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+
+        # Also test a deprecated variable if there is one.
+        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+            envvars.append(
+                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+
+        for envvar in envvars:
+            with mock.patch.dict(os.environ, {envvar: name}):
+                env = get_fake_env()
+                try:
+                    comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                except EnvironmentException:
+                    raise unittest.SkipTest('Could not find a compiler for {}'.format(lang))
+                self.assertEqual(comp.linker.id, expected)
 
     def test_link_environment_variable_lld_link(self):
         self._check_ld('lld-link', 'c', 'lld-link')
@@ -6333,14 +6340,21 @@ c = ['{0}']
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvar = mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]
-        with mock.patch.dict(os.environ, {envvar: name}):
-            env = get_fake_env()
-            comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
-            if lang != 'rust' and comp.use_linker_args('foo') == []:
-                raise unittest.SkipTest(
-                    'Compiler {} does not support using alternative linkers'.format(comp.id))
-            self.assertEqual(comp.linker.id, expected)
+        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+
+        # Also test a deprecated variable if there is one.
+        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+            envvars.append(
+                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+
+        for envvar in envvars:
+            with mock.patch.dict(os.environ, {envvar: name}):
+                env = get_fake_env()
+                comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                if lang != 'rust' and comp.use_linker_args('bfd') == []:
+                    raise unittest.SkipTest(
+                        'Compiler {} does not support using alternative linkers'.format(comp.id))
+                self.assertEqual(comp.linker.id, expected)
 
     def test_ld_environment_variable_bfd(self):
         self._check_ld('ld.bfd', 'bfd', 'c', 'ld.bfd')
