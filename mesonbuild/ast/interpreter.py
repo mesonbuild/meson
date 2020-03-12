@@ -316,17 +316,18 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         elif isinstance(node, MethodNode):
             src = quick_resolve(node.source_object)
             margs = self.flatten_args(node.args.arguments, include_unknown_args, id_loop_detect)
+            mkwargs = {} # type: T.Dict[str, TYPE_nvar]
             try:
                 if isinstance(src, str):
-                    result = self.string_method_call(src, node.name, margs)
+                    result = self.string_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, bool):
-                    result = self.bool_method_call(src, node.name, margs)
+                    result = self.bool_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, int):
-                    result = self.int_method_call(src, node.name, margs)
+                    result = self.int_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, list):
-                    result = self.array_method_call(src, node.name, margs)
+                    result = self.array_method_call(src, node.name, margs, mkwargs)
                 elif isinstance(src, dict):
-                    result = self.dict_method_call(src, node.name, margs)
+                    result = self.dict_method_call(src, node.name, margs, mkwargs)
             except mesonlib.MesonException:
                 return None
 

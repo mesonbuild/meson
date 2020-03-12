@@ -150,6 +150,19 @@ def noPosargs(f):
         return f(*wrapped_args, **wrapped_kwargs)
     return wrapped
 
+def builtinMethodNoKwargs(f):
+    @wraps(f)
+    def wrapped(*wrapped_args, **wrapped_kwargs):
+        node = wrapped_args[0].current_node
+        method_name = wrapped_args[2]
+        kwargs = wrapped_args[4]
+        if kwargs:
+            mlog.warning('Method {!r} does not take keyword arguments.'.format(method_name),
+                         'This will become a hard error in the future',
+                         location=node)
+        return f(*wrapped_args, **wrapped_kwargs)
+    return wrapped
+
 def noKwargs(f):
     @wraps(f)
     def wrapped(*wrapped_args, **wrapped_kwargs):
@@ -198,7 +211,6 @@ class permittedKwargs:
                     mlog.warning('This will become a hard error in the future.')
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
-
 
 class FeatureCheckBase:
     "Base class for feature version checks"
@@ -455,6 +467,7 @@ class InterpreterBase:
             i += 1 # In THE FUTURE jump over blocks and stuff.
 
     def evaluate_statement(self, cur: mparser.BaseNode) -> T.Optional[TYPE_var]:
+        self.current_node = cur
         if isinstance(cur, mparser.FunctionNode):
             return self.function_call(cur)
         elif isinstance(cur, mparser.AssignmentNode):
@@ -813,8 +826,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             func_args = posargs  # type: T.Any
             if not getattr(func, 'no-args-flattening', False):
                 func_args = flatten(posargs)
-
-            self.current_node = node
             return func(node, func_args, self.kwargs_string_keys(kwargs))
         else:
             self.unknown_function_called(func_name)
@@ -832,15 +843,15 @@ The result of this is undefined and will become a hard error in a future Meson r
         if is_disabled(args, kwargs):
             return Disabler()
         if isinstance(obj, str):
-            return self.string_method_call(obj, method_name, args)
+            return self.string_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, bool):
-            return self.bool_method_call(obj, method_name, args)
+            return self.bool_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, int):
-            return self.int_method_call(obj, method_name, args)
+            return self.int_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, list):
-            return self.array_method_call(obj, method_name, args)
+            return self.array_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, dict):
-            return self.dict_method_call(obj, method_name, args)
+            return self.dict_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, mesonlib.File):
             raise InvalidArguments('File object "%s" is not callable.' % obj)
         if not isinstance(obj, InterpreterObject):
@@ -859,7 +870,8 @@ The result of this is undefined and will become a hard error in a future Meson r
         obj.current_node = node
         return obj.method_call(method_name, args, self.kwargs_string_keys(kwargs))
 
-    def bool_method_call(self, obj: bool, method_name: str, posargs: T.List[TYPE_nvar]) -> T.Union[str, int]:
+    @builtinMethodNoKwargs
+    def bool_method_call(self, obj: bool, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> T.Union[str, int]:
         if method_name == 'to_string':
             if not posargs:
                 if obj:
@@ -881,7 +893,8 @@ The result of this is undefined and will become a hard error in a future Meson r
         else:
             raise InterpreterException('Unknown method "%s" for a boolean.' % method_name)
 
-    def int_method_call(self, obj: int, method_name: str, posargs: T.List[TYPE_nvar]) -> T.Union[str, bool]:
+    @builtinMethodNoKwargs
+    def int_method_call(self, obj: int, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> T.Union[str, bool]:
         if method_name == 'is_even':
             if not posargs:
                 return obj % 2 == 0
@@ -913,7 +926,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             return s
         return None
 
-    def string_method_call(self, obj: str, method_name: str, posargs: T.List[TYPE_nvar]) -> T.Union[str, int, bool, T.List[str]]:
+    @builtinMethodNoKwargs
+    def string_method_call(self, obj: str, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> T.Union[str, int, bool, T.List[str]]:
         if method_name == 'strip':
             s1 = self._get_one_string_posarg(posargs, 'strip')
             if s1 is not None:
@@ -982,7 +996,8 @@ The result of this is undefined and will become a hard error in a future Meson r
     def unknown_function_called(self, func_name: str) -> None:
         raise InvalidCode('Unknown function "%s".' % func_name)
 
-    def array_method_call(self, obj: list, method_name: str, posargs: T.List[TYPE_nvar]) -> TYPE_var:
+    @builtinMethodNoKwargs
+    def array_method_call(self, obj: list, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
         if method_name == 'contains':
             def check_contains(el: list) -> bool:
                 if len(posargs) != 1:
@@ -1022,7 +1037,8 @@ The result of this is undefined and will become a hard error in a future Meson r
         m = 'Arrays do not have a method called {!r}.'
         raise InterpreterException(m.format(method_name))
 
-    def dict_method_call(self, obj: dict, method_name: str, posargs: T.List[TYPE_nvar]) -> TYPE_var:
+    @builtinMethodNoKwargs
+    def dict_method_call(self, obj: dict, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
         if method_name in ('has_key', 'get'):
             if method_name == 'has_key':
                 if len(posargs) != 1:
