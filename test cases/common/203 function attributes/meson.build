@@ -31,7 +31,6 @@ expected_result = not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
 #    figure that out except by running the code we're trying to test.
 attributes = [
   'aligned',
-  'alloc_size',
   'always_inline',
   'cold',
   'const',
@@ -65,6 +64,7 @@ endif
 if host_machine.system() != 'darwin'
   attributes += 'alias'
   attributes += 'visibility'
+  attributes += 'alloc_size'
 endif
 
 if ['gcc', 'intel'].contains(c.get_id())
