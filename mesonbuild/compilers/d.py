@@ -627,7 +627,7 @@ class DCompiler(Compiler):
         return ' '.join(self.exelist)
 
 
-class GnuDCompiler(DCompiler, GnuCompiler):
+class GnuDCompiler(GnuCompiler, DCompiler):
 
     # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
