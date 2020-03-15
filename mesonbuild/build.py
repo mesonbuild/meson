@@ -1369,7 +1369,7 @@ class Generator:
         if 'depends' in kwargs:
             depends = unholder(listify(kwargs['depends']))
             for d in depends:
-                if not isinstance(d, BuildTarget):
+                if not (isinstance(d, (BuildTarget, CustomTarget))):
                     raise InvalidArguments('Depends entries must be build targets.')
                 self.depends.append(d)
 
