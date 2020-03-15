@@ -186,6 +186,7 @@ class Conf:
 
         dir_option_names = ['bindir',
                             'datadir',
+                            'docdir',
                             'includedir',
                             'infodir',
                             'libdir',

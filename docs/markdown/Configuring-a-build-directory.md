@@ -72,6 +72,7 @@ sample output for a simple project.
       ------         -------------        -----------
       bindir         bin                  Executable directory
       datadir        share                Data file directory
+      docdir         share/doc            Documentation directory
       includedir     include              Header file directory
       infodir        share/info           Info page directory
       libdir         lib/x86_64-linux-gnu Library directory

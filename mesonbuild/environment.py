@@ -1741,6 +1741,9 @@ class Environment:
     def get_mandir(self) -> str:
         return self.coredata.get_builtin_option('mandir')
 
+    def get_docdir(self) -> str:
+        return self.coredata.get_builtin_option('docdir')
+
     def get_datadir(self) -> str:
         return self.coredata.get_builtin_option('datadir')
 

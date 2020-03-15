@@ -20,6 +20,7 @@
         --includedir=%{_includedir} \
         --datadir=%{_datadir} \
         --mandir=%{_mandir} \
+        --docdir=%{_docdir} \
         --infodir=%{_infodir} \
         --localedir=%{_datadir}/locale \
         --sysconfdir=%{_sysconfdir} \

@@ -194,6 +194,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
 
     dir_option_names = ['bindir',
                         'datadir',
+                        'docdir',
                         'includedir',
                         'infodir',
                         'libdir',

@@ -104,6 +104,7 @@ _meson_complete_filedir() {
     includedir |\
     datadir |\
     mandir |\
+    docdir |\
     infodir |\
     localedir |\
     sysconfdir |\
@@ -143,6 +144,7 @@ _meson-setup() {
     includedir
     datadir
     mandir
+    docdir
     infodir
     localedir
     sysconfdir

@@ -1062,6 +1062,7 @@ builtin_options = OrderedDict([
     ('prefix',     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
     ('bindir',     BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
     ('datadir',    BuiltinOption(UserStringOption, 'Data file directory', 'share')),
+    ('docdir',     BuiltinOption(UserStringOption, 'Documentation directory', 'share/doc')),
     ('includedir', BuiltinOption(UserStringOption, 'Header file directory', 'include')),
     ('infodir',    BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
     ('libdir',     BuiltinOption(UserStringOption, 'Library directory', default_libdir())),

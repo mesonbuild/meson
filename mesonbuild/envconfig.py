@@ -395,14 +395,15 @@ class Directories:
     """
 
     def __init__(self, bindir: T.Optional[str] = None, datadir: T.Optional[str] = None,
-                 includedir: T.Optional[str] = None, infodir: T.Optional[str] = None,
-                 libdir: T.Optional[str] = None, libexecdir: T.Optional[str] = None,
-                 localedir: T.Optional[str] = None, localstatedir: T.Optional[str] = None,
-                 mandir: T.Optional[str] = None, prefix: T.Optional[str] = None,
-                 sbindir: T.Optional[str] = None, sharedstatedir: T.Optional[str] = None,
-                 sysconfdir: T.Optional[str] = None):
+                 docdir: T.Optional[str] = None, includedir: T.Optional[str] = None,
+                 infodir: T.Optional[str] = None, libdir: T.Optional[str] = None,
+                 libexecdir: T.Optional[str] = None, localedir: T.Optional[str] = None,
+                 localstatedir: T.Optional[str] = None, mandir: T.Optional[str] = None,
+                 prefix: T.Optional[str] = None, sbindir: T.Optional[str] = None,
+                 sharedstatedir: T.Optional[str] = None, sysconfdir: T.Optional[str] = None):
         self.bindir = bindir
         self.datadir = datadir
+        self.docdir = docdir
         self.includedir = includedir
         self.infodir = infodir
         self.libdir = libdir

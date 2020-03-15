@@ -96,6 +96,7 @@ local -a meson_commands=(
   '--sbindir=[system executable directory]: :_directories' \
   '--includedir=[header file directory]: :_directories' \
   '--datadir=[data file directory]: :_directories' \
+  '--docdir=[documentation directory]: :_directories' \
   '--mandir=[manual page directory]: :_directories' \
   '--infodir=[info page directory]: :_directories' \
   '--localedir=[locale data directory]: :_directories' \

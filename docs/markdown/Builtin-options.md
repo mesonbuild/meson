@@ -31,6 +31,7 @@ Installation options are all relative to the prefix, except:
 | prefix                               | see below     | Installation prefix |
 | bindir                               | bin           | Executable directory |
 | datadir                              | share         | Data file directory |
+| docdir                               | share/doc     | Documentation directory |
 | includedir                           | include       | Header file directory |
 | infodir                              | share/info    | Info page directory |
 | libdir                               | see below     | Library directory |
