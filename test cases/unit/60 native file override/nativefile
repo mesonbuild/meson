@@ -1,6 +1,7 @@
 [paths]
 bindir = 'binfoo'
 datadir = 'datafoo'
+docdir = 'docfoo'
 includedir = 'includefoo'
 infodir = 'infofoo'
 libdir = 'libfoo'

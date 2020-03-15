@@ -1,6 +1,7 @@
 [paths]
 bindir = 'binbar'
 datadir = 'databar'
+docdir = 'docbar'
 includedir = 'includebar'
 infodir = 'infobar'
 libdir = 'libbar'
