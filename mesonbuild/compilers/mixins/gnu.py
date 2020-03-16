@@ -304,7 +304,11 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
-        return ['-fuse-ld={}'.format(linker)]
+        if linker in ['bfd', 'gold', 'lld']:
+            return ['-fuse-ld={}'.format(linker)]
+        else:
+            mlog.warning('Ignoring invalid linker "{}", must be "bfd", "gold" or "lld".'.format(linker))
+            return []
 
 
 class GnuCompiler(GnuLikeCompiler):
