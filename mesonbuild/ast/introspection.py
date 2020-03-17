@@ -138,8 +138,13 @@ class IntrospectionInterpreter(AstInterpreter):
             return
 
     def func_add_languages(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
-        for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
-            self._add_languages(args, for_machine)
+        kwargs = self.flatten_kwargs(kwargs)
+        if 'native' in kwargs:
+            native = kwargs.get('native', False)
+            self._add_languages(args, MachineChoice.BUILD if native else MachineChoice.HOST)
+        else:
+            for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
+                self._add_languages(args, for_machine)
 
     def _add_languages(self, langs: T.List[TYPE_nvar], for_machine: MachineChoice) -> None:
         langs = self.flatten_args(langs)
