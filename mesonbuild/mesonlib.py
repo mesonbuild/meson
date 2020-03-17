@@ -270,10 +270,8 @@ class File:
     def rel_to_builddir(self, build_to_src: str) -> str:
         if self.is_built:
             return self.relative_name()
-            #NO! return os.path.realpath(self.relative_name())
         else:
             return os.path.join(build_to_src, self.subdir, self.fname)
-            #NO! return os.path.realpath(os.path.join(build_to_src, self.subdir, self.fname))
 
     @lru_cache(maxsize=None)
     def absolute_path(self, srcdir: str, builddir: str) -> str:
