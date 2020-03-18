@@ -842,7 +842,7 @@ class Compiler:
         """
         return self.linker.get_accepts_rsp()
 
-    def get_linker_always_args(self):
+    def get_linker_always_args(self) -> T.List[str]:
         return self.linker.get_always_args()
 
     def get_linker_lib_prefix(self):

@@ -678,6 +678,12 @@ class GnuDCompiler(GnuCompiler, DCompiler):
     def get_allow_undefined_link_args(self) -> T.List[str]:
         return self.linker.get_allow_undefined_args()
 
+    def get_linker_always_args(self) -> T.List[str]:
+        args = super().get_linker_always_args()
+        if self.info.is_windows():
+            return args
+        return args + ['-shared-libphobos']
+
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -720,6 +726,12 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
         return ['-linker={}'.format(linker)]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        args = super().get_linker_always_args()
+        if self.info.is_windows():
+            return args
+        return args + ['-link-defaultlib-shared']
 
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
@@ -785,3 +797,9 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def can_linker_accept_rsp(self) -> bool:
         return False
+
+    def get_linker_always_args(self) -> T.List[str]:
+        args = super().get_linker_always_args()
+        if self.info.is_windows():
+            return args
+        return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
