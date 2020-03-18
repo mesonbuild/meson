@@ -1991,7 +1991,7 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
 
     def __init__(self):
         self.name = None
-        self.command = []
+        self.command = [None]
         self.path = None
 
     def __repr__(self):
