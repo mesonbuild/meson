@@ -56,7 +56,7 @@ class CLikeCompiler:
         self.can_compile_suffixes.add('h')
         # If the exe wrapper was not found, pretend it wasn't set so that the
         # sanity check is skipped and compiler checks use fallbacks.
-        if not exe_wrapper or not exe_wrapper.found():
+        if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
             self.exe_wrapper = None
         else:
             self.exe_wrapper = exe_wrapper.get_command()
