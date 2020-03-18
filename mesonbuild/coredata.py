@@ -1104,7 +1104,7 @@ builtin_options = OrderedDict([
     ('unity',           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
     ('unity_size',      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
     ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'])),
-    ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False)),
+    ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
 ])
 

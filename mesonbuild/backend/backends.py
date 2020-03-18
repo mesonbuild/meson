@@ -179,7 +179,7 @@ class Backend:
         if option_name in target.option_overrides:
             override = target.option_overrides[option_name]
             return self.environment.coredata.validate_option_value(option_name, override)
-        return self.environment.coredata.get_builtin_option(option_name)
+        return self.environment.coredata.get_builtin_option(option_name, target.subproject)
 
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
