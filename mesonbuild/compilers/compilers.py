@@ -948,11 +948,14 @@ class Compiler:
             extra_args = []
         try:
             with tempfile.TemporaryDirectory(dir=temp_dir) as tmpdirname:
+                no_ccache = False
                 if isinstance(code, str):
                     srcname = os.path.join(tmpdirname,
                                            'testfile.' + self.default_suffix)
                     with open(srcname, 'w') as ofile:
                         ofile.write(code)
+                    # ccache would result in a cache miss
+                    no_ccache = True
                 elif isinstance(code, mesonlib.File):
                     srcname = code.fname
 
@@ -976,6 +979,8 @@ class Compiler:
                 mlog.debug('Code:\n', code)
                 os_env = os.environ.copy()
                 os_env['LC_ALL'] = 'C'
+                if no_ccache:
+                    os_env['CCACHE_DISABLE'] = '1'
                 p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
                 mlog.debug('Compiler stdout:\n', p.stdo)
                 mlog.debug('Compiler stderr:\n', p.stde)
