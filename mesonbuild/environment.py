@@ -780,7 +780,7 @@ class Environment:
             if '(compatible with GNU linkers)' in o:
                 return LLVMDynamicLinker(
                     compiler, for_machine, comp_class.LINKER_PREFIX,
-                    override, version=search_version(o), direct=invoked_directly)
+                    override, version=search_version(o))
  
         if value is not None and invoked_directly:
             compiler = value
