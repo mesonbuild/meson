@@ -40,7 +40,9 @@ like `llvm-config`
 c = '/usr/local/bin/clang'
 cpp = '/usr/local/bin/clang++'
 rust = '/usr/local/bin/rust'
-ld = 'gold'
+c_ld = 'gold'
+cpp_ld = 'gold'
+rust_ld = 'gold'
 llvm-config = '/usr/local/llvm-svn/bin/llvm-config'
 ```
 
