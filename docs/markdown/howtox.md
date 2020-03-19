@@ -26,6 +26,9 @@ build. Because of this Meson needs to know both the native and the
 cross compiler. The former is set via the environment variables or
 native-files and the latter via the cross file only.
 
+There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
+
+
 ## Set dynamic linker
 
 *New in 0.53.0*
@@ -60,6 +63,9 @@ or in a cross or native file:
 c = 'clang'
 c_ld = 'lld'
 ```
+
+There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
+
 
 ## Set default C/C++ language version
 

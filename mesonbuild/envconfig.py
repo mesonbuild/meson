@@ -317,11 +317,11 @@ class BinaryTable(HasEnvVarFallback):
         # Linkers
         'c_ld': 'CC_LD',
         'cpp_ld': 'CXX_LD',
-        'd_ld': 'D_LD',
-        'fortran_ld': 'F_LD',
+        'd_ld': 'DC_LD',
+        'fortran_ld': 'FC_LD',
         'objc_ld': 'OBJC_LD',
-        'objcpp_ld': 'OBJCPP_LD',
-        'rust_ld': 'RUST_LD',
+        'objcpp_ld': 'OBJCXX_LD',
+        'rust_ld': 'RUSTC_LD',
 
         # Binutils
         'strip': 'STRIP',
@@ -332,6 +332,15 @@ class BinaryTable(HasEnvVarFallback):
         'cmake': 'CMAKE',
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
+    }  # type: T.Dict[str, str]
+
+    # Deprecated environment variables mapped from the new variable to the old one
+    # Deprecated in 0.54.0
+    DEPRECATION_MAP = {
+        'DC_LD': 'D_LD',
+        'FC_LD': 'F_LD',
+        'RUSTC_LD': 'RUST_LD',
+        'OBJCXX_LD': 'OBJCPP_LD',
     }  # type: T.Dict[str, str]
 
     @staticmethod
@@ -362,12 +371,10 @@ This is probably wrong, it should always point to the native compiler.''' % evar
         return compiler, ccache
 
     def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
-        """Lookup binaryk
+        """Lookup binary in cross/native file and fallback to environment.
 
         Returns command with args as list if found, Returns `None` if nothing is
         found.
-
-        First tries looking in explicit map, then tries environment variable.
         """
         # Try explicit map, don't fall back on env var
         command = self.binaries.get(name)
@@ -380,8 +387,17 @@ This is probably wrong, it should always point to the native compiler.''' % evar
             # Relies on there being no "" env var
             evar = self.evarMap.get(name, "")
             command = os.environ.get(evar)
+            if command is None:
+                deprecated = self.DEPRECATION_MAP.get(evar)
+                if deprecated:
+                    command = os.environ.get(deprecated)
+                    if command:
+                        mlog.deprecation(
+                            'The', deprecated, 'environment variable is deprecated in favor of',
+                            evar, once=True)
             if command is not None:
                 command = split_args(command)
+
 
         # Do not return empty or blank string entries
         if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):

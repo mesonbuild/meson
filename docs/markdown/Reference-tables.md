@@ -255,3 +255,22 @@ These are the values that can be passed to `dependency` function's
 | config-tool       | Use a custom dep tool such as `cups-config`  |
 | system            | System provided (e.g. OpenGL)                |
 | extraframework    | A macOS/iOS framework                        |
+
+
+## Compiler and Linker selection variables
+
+| Language      | Compiler | Linker    | Note                                        |
+|:-------------:|----------|-----------|---------------------------------------------|
+| C             | CC       | CC_LD     |                                             |
+| C++           | CXX      | CXX_LD    |                                             |
+| D             | DC       | DC_LD     | Before 0.54 D_LD*                           |
+| Fortran       | FC       | FC_LD     | Before 0.54 F_LD*                           |
+| Objective-C   | OBJC     | OBJC_LD   |                                             |
+| Objective-C++ | OBJCXX   | OBJCXX_LD | Before 0.54 OBJCPP_LD*                      |
+| Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*                        |
+| Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
+| C#            | CSC      | CSC       | The linker is the compiler                  |
+
+*The old environment variales are still supported, but are deprecated and will
+be removed in a future version of meson.
+
