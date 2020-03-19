@@ -97,7 +97,8 @@ this:
 [binaries]
 c = '/usr/bin/i586-mingw32msvc-gcc'
 cpp = '/usr/bin/i586-mingw32msvc-g++'
-ld = 'gold'
+c_ld = 'gold'
+cpp_ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
 strip = '/usr/i586-mingw32msvc/bin/strip'
 pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
