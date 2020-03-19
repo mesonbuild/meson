@@ -6328,11 +6328,10 @@ c = ['{0}']
         testdir = os.path.join(self.unit_test_dir, '61 identity cross')
         env = {
             'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
+            'CC': '"' + os.path.join(testdir, 'host_wrapper.py') + '"',
         }
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        crossfile.write('''[binaries]
-c = ['{0}']
-'''.format(os.path.join(testdir, 'host_wrapper.py')))
+        crossfile.write('')
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         # TODO should someday be explicit about build platform only here

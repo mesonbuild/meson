@@ -119,9 +119,9 @@ def get_env_var_pair(for_machine: MachineChoice,
         # compiling we fall back on the unprefixed host version. This
         # allows native builds to never need to worry about the 'BUILD_*'
         # ones.
-        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
+        [var_name + '_FOR_BUILD'] + ([] if is_cross else [var_name]),
         # Always just the unprefixed host verions
-        ([] if is_cross else [var_name]),
+        [var_name],
     )[for_machine]
     for var in candidates:
         value = os.environ.get(var)
