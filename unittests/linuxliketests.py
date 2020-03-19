@@ -1545,12 +1545,10 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '60 identity cross')
         env = {
             'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
+            'CC': '"' + os.path.join(testdir, 'host_wrapper.py') + '"',
         }
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        crossfile.write(textwrap.dedent('''\
-            [binaries]
-            c = ['{}']
-            '''.format(os.path.join(testdir, 'host_wrapper.py'))))
+        crossfile.write('')
         crossfile.flush()
         self.meson_cross_files = [crossfile.name]
         # TODO should someday be explicit about build platform only here
