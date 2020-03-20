@@ -1,4 +1,5 @@
-project('c++ and assembly test', 'cpp')
+project('c++ and assembly test')
+add_languages('cpp')
 
 cpp = meson.get_compiler('cpp')
 cpu = host_machine.cpu_family()

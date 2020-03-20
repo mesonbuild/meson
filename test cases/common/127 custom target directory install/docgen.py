@@ -5,7 +5,10 @@ import sys
 
 out = sys.argv[1]
 
-os.mkdir(out)
+try:
+    os.mkdir(out)
+except FileExistsError:
+    pass
 
 for name in ('a', 'b', 'c'):
     with open(os.path.join(out, name + '.html'), 'w') as f:

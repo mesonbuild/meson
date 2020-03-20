@@ -65,7 +65,7 @@ class BuildStep(Enum):
     validate = 6
 
 
-class TestResult:
+class TestResult(BaseException):
     def __init__(self, cicmds):
         self.msg = ''  # empty msg indicates test success
         self.stdo = ''
@@ -421,6 +421,8 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
         with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
             try:
                 return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
+            except TestResult as r:
+                return r
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
 
@@ -462,29 +464,39 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
         testresult.fail('Generating the build system failed.')
         return testresult
     builddata = build.load(test_build_dir)
-    # Touch the meson.build file to force a regenerate so we can test that
-    # regeneration works before a build is run.
-    ensure_backend_detects_changes(backend)
-    os.utime(str(test.path / 'meson.build'))
-    # Build with subprocess
     dir_args = get_backend_args_for_dir(backend, test_build_dir)
-    build_start = time.time()
-    pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
-    testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
-    if should_fail == 'build':
+
+    # Build with subprocess
+    def build_step():
+        build_start = time.time()
+        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
+        testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
+        if should_fail == 'build':
+            if pc.returncode != 0:
+                raise testresult
+            testresult.fail('Test that should have failed to build succeeded.')
+            raise testresult
         if pc.returncode != 0:
-            return testresult
-        testresult.fail('Test that should have failed to build succeeded.')
-        return testresult
-    if pc.returncode != 0:
-        testresult.fail('Compiling source code failed.')
-        return testresult
-    # Touch the meson.build file to force a regenerate so we can test that
-    # regeneration works after a build is complete.
-    ensure_backend_detects_changes(backend)
-    os.utime(str(test.path / 'meson.build'))
-    test_start = time.time()
+            testresult.fail('Compiling source code failed.')
+            raise testresult
+
+    # Touch the meson.build file to force a regenerate
+    def force_regenerate():
+        ensure_backend_detects_changes(backend)
+        os.utime(str(test.path / 'meson.build'))
+
+    # just test building
+    build_step()
+
+    # test that regeneration works for build step
+    force_regenerate()
+    build_step()  # TBD: assert nothing gets built after the regenerate?
+
+    # test that regeneration works for test step
+    force_regenerate()
+
     # Test in-process
+    test_start = time.time()
     (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
     testresult.add_step(BuildStep.test, tstdo, tstde, test_log, time.time() - test_start)
     if should_fail == 'test':
@@ -495,6 +507,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     if returncode != 0:
         testresult.fail('Running unit tests failed.')
         return testresult
+
     # Do installation, if the backend supports it
     if install_commands:
         env = os.environ.copy()
