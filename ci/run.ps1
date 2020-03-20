@@ -67,7 +67,7 @@ python --version
 
 # Needed for running unit tests in parallel.
 echo ""
-python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist
+python -m pip --disable-pip-version-check install --upgrade pefile pytest-xdist jsonschema
 
 echo ""
 echo "=== Start running tests ==="

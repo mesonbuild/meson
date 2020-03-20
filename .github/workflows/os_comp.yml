@@ -15,7 +15,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt update -yq
-        sudo apt install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev
+        sudo apt install -yq --no-install-recommends python3-setuptools python3-pip g++ gfortran gobjc gobjc++ zlib1g-dev python-dev python3-dev python3-jsonschema
     - name: Install ninja-build tool
       uses: seanmiddleditch/gha-setup-ninja@v1
     - name: Python version
