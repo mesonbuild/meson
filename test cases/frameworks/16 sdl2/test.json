@@ -1,0 +1,13 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "auto" },
+        { "val": "pkg-config" },
+        { "val": "config-tool" },
+        { "val": "sdlconfig" },
+        { "val": "extraframework" }
+      ]
+    }
+  }
+}
