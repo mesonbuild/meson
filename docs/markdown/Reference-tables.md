@@ -9,6 +9,7 @@ These are return values of the `get_id` (Compiler family) and
 | -----     | ---------------                  | --------------- |
 | arm       | ARM compiler                     |                 |
 | armclang  | ARMCLANG compiler                |                 |
+| c2000     | Texas Instruments C2000 compiler |                 |
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
 | clang     | The Clang compiler               | gcc             |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
@@ -26,10 +27,11 @@ These are return values of the `get_id` (Compiler family) and
 | nagfor    | The NAG Fortran compiler         |                 |
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
-| pgi       |  Portland PGI C/C++/Fortran compilers |            |
+| pgi       | Portland PGI C/C++/Fortran compilers |             |
 | rustc     | Rust compiler                    |                 |
 | sun       | Sun Fortran compiler             |                 |
 | valac     | Vala compiler                    |                 |
+| xc16      | Microchip XC16 C compiler        |                 |
 
 ## Linker ids
 
@@ -48,13 +50,14 @@ These are return values of the `get_linker_id` method in a compiler object.
 | xilink     | Used with Intel-cl only, MSVC like          |
 | optlink    | optlink (used with DMD)                     |
 | rlink      | The Renesas linker, used with CCrx only     |
+| xc16-ar    | The Microchip linker, used with XC16 only   |
+| ar2000     | The Texas Instruments linker, used with C2000 only |
 | armlink    | The ARM linker (arm and armclang compilers) |
 | pgi        | Portland/Nvidia PGI                         |
 | nvlink     | Nvidia Linker used with cuda                |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
-
 
 ## Script environment variables
 
@@ -79,6 +82,7 @@ set in the cross file.
 | arc                 | 32 bit ARC processor     |
 | arm                 | 32 bit ARM processor     |
 | e2k                 | MCST Elbrus processor    |
+| c2000               | 32 bit C2000 processor   |
 | ia64                | Itanium processor        |
 | m68k                | Motorola 68000 processor |
 | microblaze          | MicroBlaze processor     |
@@ -97,6 +101,8 @@ set in the cross file.
 | sparc64             | SPARC v9 processor       |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
+| pic24               | 16 bit Microchip PIC24   |
+| dspic               | 16 bit Microchip dsPIC   |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
 

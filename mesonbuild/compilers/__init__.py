@@ -91,6 +91,9 @@ __all__ = [
     'RustCompiler',
     'CcrxCCompiler',
     'CcrxCPPCompiler',
+    'Xc16CCompiler',
+    'C2000CCompiler',
+    'C2000CPPCompiler',
     'SunFortranCompiler',
     'SwiftCompiler',
     'ValaCompiler',
@@ -135,6 +138,8 @@ from .c import (
     IntelClCCompiler,
     PGICCompiler,
     CcrxCCompiler,
+    Xc16CCompiler,
+    C2000CCompiler,
     VisualStudioCCompiler,
 )
 from .cpp import (
@@ -151,6 +156,7 @@ from .cpp import (
     IntelClCPPCompiler,
     PGICPPCompiler,
     CcrxCPPCompiler,
+    C2000CPPCompiler,
     VisualStudioCPPCompiler,
 )
 from .cs import MonoCompiler, VisualStudioCsCompiler

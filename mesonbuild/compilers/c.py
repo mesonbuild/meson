@@ -20,6 +20,8 @@ from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
+from .mixins.xc16 import Xc16Compiler
+from .mixins.c2000 import C2000Compiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
@@ -424,3 +426,92 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         if path == '':
             path = '.'
         return ['-include=' + path]
+
+
+class Xc16CCompiler(Xc16Compiler, CCompiler):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        Xc16Compiler.__init__(self)
+
+    def get_options(self):
+        opts = CCompiler.get_options(self)
+        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
+                                                       ['none', 'c89', 'c99', 'gnu89', 'gnu99'],
+                                                       'none')})
+        return opts
+
+    def get_no_stdinc_args(self):
+        return []
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('-ansi')
+            args.append('-std=' + std.value)
+        return args
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_no_optimization_args(self):
+        return ['-O0']
+
+    def get_output_args(self, target):
+        return ['-o%s' % target]
+
+    def get_werror_args(self):
+        return ['-change_message=error']
+
+    def get_include_args(self, path, is_system):
+        if path == '':
+            path = '.'
+        return ['-I' + path]
+
+
+class C2000CCompiler(C2000Compiler, CCompiler):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        C2000Compiler.__init__(self)
+
+    # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return []
+
+    def get_options(self):
+        opts = CCompiler.get_options(self)
+        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
+                                                       ['none', 'c89', 'c99', 'c11'],
+                                                       'none')})
+        return opts
+
+    def get_no_stdinc_args(self):
+        return []
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['c_std']
+        if std.value != 'none':
+            args.append('--' + std.value)
+        return args
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_no_optimization_args(self):
+        return ['-Ooff']
+
+    def get_output_args(self, target):
+        return ['--output_file=%s' % target]
+
+    def get_werror_args(self):
+        return ['-change_message=error']
+
+    def get_include_args(self, path, is_system):
+        if path == '':
+            path = '.'
+        return ['--include_path=' + path]

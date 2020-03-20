@@ -206,6 +206,38 @@ class CcrxLinker(StaticLinker):
         return ['-nologo', '-form=library']
 
 
+class Xc16Linker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        super().__init__(exelist)
+        self.id = 'xc16-ar'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['%s' % target]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return ['rcs']
+
+
+class C2000Linker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        super().__init__(exelist)
+        self.id = 'ar2000'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['%s' % target]
+
+    def get_linker_always_args(self) -> T.List[str]:
+        return ['-r']
+
+
 def prepare_rpaths(raw_rpaths: str, build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
     # because otherwise they have different length depending on the build
@@ -752,6 +784,85 @@ class CcrxDynamicLinker(DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
+        return []
+
+
+class Xc16DynamicLinker(DynamicLinker):
+
+    """Linker for Microchip XC16 compiler."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__('xc16-gcc', ['xc16-gcc.exe'], for_machine, '', [],
+                         version=version)
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        if not args:
+            return args
+        return self._apply_prefix('--start-group') + args + self._apply_prefix('--end-group')
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_lib_prefix(self) -> str:
+        return ''
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o%s' % outputname]
+
+    def get_search_args(self, dirname: str) -> 'T.NoReturn':
+        raise EnvironmentError('xc16-gcc.exe does not have a search dir argument')
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
+                        is_shared_module: bool) -> T.List[str]:
+        return []
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.List[str]:
+        return []
+
+
+class C2000DynamicLinker(DynamicLinker):
+
+    """Linker for Texas Instruments C2000 compiler."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__('cl2000', ['cl2000.exe'], for_machine, '', [],
+                         version=version)
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        if not args:
+            return args
+        return self._apply_prefix('--start-group') + args + self._apply_prefix('--end-group')
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_lib_prefix(self) -> str:
+        return '-l='
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-z', '--output_file=%s' % outputname]
+
+    def get_search_args(self, dirname: str) -> 'T.NoReturn':
+        raise EnvironmentError('cl2000.exe does not have a search dir argument')
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_always_args(self) -> T.List[str]:
         return []
 
 
