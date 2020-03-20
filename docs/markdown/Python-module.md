@@ -226,6 +226,33 @@ a non-existing variable will cause a fatal error.
 **Returns**: true if a variable named `variable_name` can be retrieved with
 [][`get_variable()`], false otherwise.
 
+#### `custom_target()`
+
+``` meson
+    customtarget py_installation.custom_target(*name*, ...)
+```
+
+Create a custom top level build target.
+
+The function takes the same arguments as [custom_target], and expects a
+Python script to be executed. The loaded Python files during the
+execution will be automatically added by the module runner as
+dependencies for the target.
+
+#### `generator()`
+
+``` meson
+    generator_object py_installation.generator(*executable*, ...)
+```
+
+Create a generator object that can be used to run custom compilation
+commands.
+
+The function takes the same arguments as [generator], and expects a
+Python script to be executed. The loaded Python files during the
+execution will be automatically added by the module runner as
+dependencies for the target.
+
 ## `python_dependency` object
 
 This [dependency object] subclass will try various methods to obtain the
@@ -234,6 +261,8 @@ using information obtained from python's `sysconfig` module.
 
 It exposes the same methods as its parent class.
 
+[custom_target]: Reference-manual.md#custom_target
+[generator]: Reference-manual.md#generator
 [find_program]: Reference-manual.md#find_program
 [shared_module]: Reference-manual.md#shared_module
 [external program]: Reference-manual.md#external-program-object
