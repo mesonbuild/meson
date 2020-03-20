@@ -76,6 +76,15 @@ expressing all of these configurations in monolithic configurations would
 result in 81 different native files. By layering them, it can be expressed by
 just 12 native files.
 
+### Composing Properties With Layering
+
+Entries in the `properties` section allow *composition* by appending to a value:
+
+```
+my_prop += ['append_this']
+```
+
+If the property is not already defined, it will be created. You must honor the `+=` usage when layering multiple native files together. If you include three different files and the last one assigns (`=`) instead of composes (`+=`), the value will be overwritten.
 
 ## Native file locations
 

@@ -85,10 +85,19 @@ class MesonConfigFile:
         # This is a bit hackish at the moment.
         for s in parser.sections():
             section = {}
+            add = False
             for entry in parser[s]:
                 value = parser[s][entry]
                 # Windows paths...
                 value = value.replace('\\', '\\\\')
+
+                # Allow composing values for properties (e.g., c_args)
+                if '+' in entry and s == 'properties':
+                    add = True
+                    # We've detected a compositional case (+=),
+                    # so we'll remove the + and ' ' chars from the string in order
+                    # to pass the next check
+                    entry = entry.replace(' ', '').replace('+', '')
                 if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
                     raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
                 try:
@@ -100,7 +109,11 @@ class MesonConfigFile:
                     if not isinstance(i, (str, int, bool)):
                         raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
 
-                section[entry] = res
+                if add and entry in section:
+                    # We can only add to the existing entry if a key exists!
+                    section[entry] += res
+                else:
+                    section[entry] = res
 
             out[s] = section
         return out

@@ -1,0 +1,4 @@
+[properties]
+my_args = ['-DDEF=3']
+
+; vim: ft=dosini

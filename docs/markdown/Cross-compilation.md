@@ -229,14 +229,82 @@ bindir = 'bin'
 
 This will be overwritten by any options passed on the command line.
 
+## Loading Multiple Cross Files
+
 Since meson 0.52.0 it is possible to layer cross files together. This
 works like native file layering: the purpose is to compose cross files
 together, and values from the second cross file will replace those
 from the first.
 
+### Cross File Layering Example
+
+For example, you might define a base ARM cross-compilation file:
+
+```
+[binaries]
+c = 'arm-none-eabi-gcc'
+cpp = 'arm-none-eabi-c++'
+ar = 'arm-none-eabi-ar'
+strip = 'arm-none-eabi-strip'
+
+[properties]
+needs_exe_wrapper = true
+
+[host_machine]
+system = 'none'
+cpu_family = 'arm'
+# CPU should be redefined in child cross files - this is a placeholder
+# that will be used in case a child file does not override this setting
+cpu = 'arm-generic'
+endian = 'little'
+```
+
+And layer it with a Cortex-M4 hard floating point cross-file:
+
+```
+[properties]
+c_args = [ '-mcpu=cortex-m4', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-mabi=aapcs', '-mthumb',]
+c_link_args = [ '-mcpu=cortex-m4', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-mabi=aapcs', '-mthumb',]
+cpp_args = [ '-mcpu=cortex-m4', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-mabi=aapcs', '-mthumb',]
+cpp_link_args = [ '-mcpu=cortex-m4', '-mfloat-abi=hard', '-mfpu=fpv4-sp-d16', '-mabi=aapcs', '-mthumb',]
+
+[host_machine]
+cpu = 'cortex-m4'
+```
+
+These files can be layered by adding multiple `cross-file` arguments during the configure step:
+
+```
+$ meson buildresults --cross-file=build/cross/arm.txt --cross-file=build/cross/cortex-m4_hardfloat.txt
+```
+
+### Composing Properties With Layering
+
+Entries in the `properties` section allow *composition* by appending to a value:
+
+```
+[properties]
+my_prop += ['append_this']
+```
+
+If the property is not already defined, it will be created. You must honor the `+=` usage when layering multiple native files together. If you include three different files and the last one assigns (`=`) instead of composes (`+=`), the value will be overwritten.
+
+For example, consider a Cortex-M4 cross file which defines compilation flags:
+
+```
+[properties]
+c_args = [ '-mcpu=cortex-m4', '-mabi=aapcs', '-mthumb',]
+endian = 'little'
+```
+
+We could create additional cross-files that add the appropriate flags for either hard or soft floating-point support. Using composition (`+=`), we can ensure that these flags are *added* to previously defined values instead of *replacing* the values.
+
+```
+[properties]
+c_args += ['-mfloat-abi=hard', '-mfpu=fpv4-sp-d16']
+```
 
 ## Starting a cross build
-
 
 Once you have the cross file, starting a build is simple
 

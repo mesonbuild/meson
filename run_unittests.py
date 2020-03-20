@@ -7348,6 +7348,28 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sharedstatedir=sharedstatebar',
                               '-Ddef_sysconfdir=sysconfbar'])
 
+    def test_cross_file_dirs_chain_composition_append(self):
+        # crossfile2 appends crossfile
+        testcase = os.path.join(self.unit_test_dir, '74 cross file properties composition')
+        self.init(testcase, default_args=False,
+                  extra_args=['--cross-file', os.path.join(testcase, 'crossfile_base'),
+                              '--cross-file', os.path.join(testcase, 'crossfile_append')])
+
+    def test_cross_file_dirs_chain_composition_append_without_previous_assign(self):
+        # crossfile2 appends crossfile
+        testcase = os.path.join(self.unit_test_dir, '74 cross file properties composition')
+        self.init(testcase, default_args=False,
+                  extra_args=['--cross-file', os.path.join(testcase, 'crossfile_append'),
+                              '-Dexpected_val=-DDEF=2'])
+
+    def test_cross_file_dirs_chain_composition_overwrite(self):
+        # crossfile2 appends crossfile
+        testcase = os.path.join(self.unit_test_dir, '74 cross file properties composition')
+        self.init(testcase, default_args=False,
+                  extra_args=['--cross-file', os.path.join(testcase, 'crossfile_base'),
+                              '--cross-file', os.path.join(testcase, 'crossfile_overwrite'),
+                              '-Dexpected_val=-DDEF=3'])
+
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):
         if 'explanation' not in kwargs:
