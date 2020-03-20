@@ -18,7 +18,7 @@ import shlex
 import typing as T
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, IntelVisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -45,6 +45,8 @@ from .linkers import (
     ArmClangDynamicLinker,
     ArmDynamicLinker,
     CcrxDynamicLinker,
+    Xc16DynamicLinker,
+    C2000DynamicLinker,
     ClangClDynamicLinker,
     DynamicLinker,
     GnuBFDDynamicLinker,
@@ -105,6 +107,9 @@ from .compilers import (
     RustCompiler,
     CcrxCCompiler,
     CcrxCPPCompiler,
+    Xc16CCompiler,
+    C2000CCompiler,
+    C2000CPPCompiler,
     SunFortranCompiler,
     ValaCompiler,
     VisualStudioCCompiler,
@@ -922,6 +927,10 @@ class Environment:
                 arg = '--vsn'
             elif 'ccrx' in compiler_name:
                 arg = '-v'
+            elif 'xc16' in compiler_name:
+                arg = '--version'
+            elif 'cl2000' in compiler_name:
+                arg = '-version'
             elif compiler_name in {'icl', 'icl.exe'}:
                 # if you pass anything to icl you get stuck in a pager
                 arg = ''
@@ -945,6 +954,9 @@ class Environment:
                 guess_gcc_or_lcc = 'gcc'
             if 'e2k' in out and 'lcc' in out:
                 guess_gcc_or_lcc = 'lcc'
+            if 'Microchip Technology' in out:
+                # this output has "Free Software Foundation" in its version
+                guess_gcc_or_lcc = False
 
             if guess_gcc_or_lcc:
                 defines = self.get_gnu_compiler_defines(compiler)
@@ -1103,6 +1115,22 @@ class Environment:
                 cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = CcrxDynamicLinker(for_machine, version=version)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross, info,
+                    exe_wrap, full_version=full_version, linker=linker)
+
+            if 'Microchip Technology' in out:
+                cls = Xc16CCompiler if lang == 'c' else Xc16CCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                linker = Xc16DynamicLinker(for_machine, version=version)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross, info,
+                    exe_wrap, full_version=full_version, linker=linker)
+
+            if 'TMS320C2000 C/C++' in out:
+                cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                linker = C2000DynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
@@ -1663,6 +1691,8 @@ class Environment:
         for linker in linkers:
             if not {'lib', 'lib.exe', 'llvm-lib', 'llvm-lib.exe', 'xilib', 'xilib.exe'}.isdisjoint(linker):
                 arg = '/?'
+            elif not {'ar2000', 'ar2000.exe'}.isdisjoint(linker):
+                arg = '?'
             else:
                 arg = '--version'
             try:
@@ -1686,6 +1716,10 @@ class Environment:
                 return DLinker(linker, compiler.arch)
             if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker):
                 return CcrxLinker(linker)
+            if out.startswith('GNU ar') and ('xc16-ar' in linker or 'xc16-ar.exe' in linker):
+                return Xc16Linker(linker)
+            if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker):
+                return C2000Linker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX

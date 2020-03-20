@@ -29,6 +29,7 @@ from .compilers import (
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
+from .mixins.c2000 import C2000Compiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
 from .mixins.gnu import GnuCompiler
@@ -616,6 +617,38 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
         CcrxCompiler.__init__(self)
 
     # Override CCompiler.get_always_args
+    def get_always_args(self):
+        return ['-nologo', '-lang=cpp']
+
+    def get_option_compile_args(self, options):
+        return []
+
+    def get_compile_only_args(self):
+        return []
+
+    def get_output_args(self, target):
+        return ['-output=obj=%s' % target]
+
+    def get_option_link_args(self, options):
+        return []
+
+    def get_compiler_check_args(self):
+        return []
+
+class C2000CPPCompiler(C2000Compiler, CPPCompiler):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrap=None, **kwargs):
+        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                             info, exe_wrap, **kwargs)
+        C2000Compiler.__init__(self)
+
+    def get_options(self):
+        opts = CPPCompiler.get_options(self)
+        opts.update({'cpp_std': coredata.UserComboOption('C++ language standard to use',
+                                                         ['none', 'c++03'],
+                                                         'none')})
+        return opts
+
     def get_always_args(self):
         return ['-nologo', '-lang=cpp']
 
