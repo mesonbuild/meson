@@ -4989,14 +4989,24 @@ class WindowsTests(BasePlatformTests):
                 self.assertEqual(comp.linker.id, expected)
 
     def test_link_environment_variable_lld_link(self):
+        env = get_fake_env()
+        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
+            raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('lld-link', 'c', 'lld-link')
 
     def test_link_environment_variable_link(self):
-        if shutil.which('gcc'):
-            raise unittest.SkipTest('GCC can not used with link.exe.')
+        env = get_fake_env()
+        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
+            raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('link', 'c', 'link')
 
     def test_link_environment_variable_optlink(self):
+        env = get_fake_env()
+        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
+            raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('optlink', 'c', 'optlink')
 
     @skip_if_not_language('rust')

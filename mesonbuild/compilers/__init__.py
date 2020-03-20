@@ -58,6 +58,7 @@ __all__ = [
     'ElbrusCCompiler',
     'EmscriptenCCompiler',
     'GnuCompiler',
+    'GnuLikeCompiler',
     'GnuCPPCompiler',
     'ElbrusCPPCompiler',
     'EmscriptenCPPCompiler',
@@ -196,6 +197,6 @@ from .rust import RustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler
-from .mixins.gnu import GnuCompiler
+from .mixins.gnu import GnuCompiler, GnuLikeCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
