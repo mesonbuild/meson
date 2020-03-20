@@ -1227,6 +1227,32 @@ class InternalTests(unittest.TestCase):
                 actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
                 self.assertListEqual([m.type_name for m in actual], ['cmake', 'pkgconfig'])
 
+    def test_validate_json(self) -> None:
+        """Validate the json schema for the test cases."""
+        try:
+            from jsonschema import validate, ValidationError
+        except ImportError:
+            if is_ci():
+                raise
+            raise unittest.SkipTest('Python jsonschema module not found.')
+
+        with Path('data/test.schema.json').open() as f:
+            schema = json.load(f)
+
+        errors = []  # type: T.Tuple[str, Exception]
+        for p in Path('test cases').glob('**/test.json'):
+            with p.open() as f:
+                try:
+                    validate(json.load(f), schema=schema)
+                except ValidationError as e:
+                    errors.append((p.resolve(), e))
+
+        for f, e in errors:
+            print('Failed to validate: "{}"'.format(f))
+            print(str(e))
+
+        self.assertFalse(errors)
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):

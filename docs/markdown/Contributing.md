@@ -294,9 +294,17 @@ Additionally, the `skip_on_env` key can be used to specify a list of environment
 variables. If at least one environment variable in `skip_on_env` is present, all
 matrix entries containing this value are skipped.
 
-Similarly, the `compilers` key can be used to define a set of compilers required
-for this value.
+Similarly, the `compilers` key can be used to define a mapping of compilers to languages that are required for this value.
 
+```json
+{
+  "compilers": {
+    "c": "gcc",
+    "cpp": "gcc",
+    "d": "gdc"
+  }
+}
+```
 
 Specific option combinations can be excluded with the `exclude` section. It should
 be noted that `exclude` does not require exact matches. Instead, any matrix entry

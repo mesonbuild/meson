@@ -1,0 +1,105 @@
+{
+  "type": "object",
+  "properties": {
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "installed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "file",
+              "exe",
+              "shared_lib",
+              "pdb",
+              "implib",
+              "implibempty",
+              "expr"
+            ]
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "msvc",
+              "gcc",
+              "cygwin",
+              "!cygwin"
+            ]
+          },
+          "version": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file",
+          "type"
+        ]
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "additionalProperties": {
+        "properties": {
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "val": {
+                  "type": "string"
+                },
+                "compilers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "skip_on_env": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "val"
+              ]
+            }
+          },
+          "exclude": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "do_not_set_opts": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "libdir",
+          "prefix"
+        ]
+      }
+    }
+  }
+}
