@@ -384,19 +384,32 @@ class NotFoundDependency(Dependency):
 
 class ConfigToolDependency(ExternalDependency):
 
-    """Class representing dependencies found using a config tool."""
+    """Class representing dependencies found using a config tool.
+
+    Takes the following extra keys in kwargs that it uses internally:
+    :tools List[str]: A list of tool names to use
+    :version_arg str: The argument to pass to the tool to get it's version
+    :returncode_value int: The value of the correct returncode
+        Because some tools are stupid and don't return 0
+    """
 
     tools = None
     tool_name = None
+    version_arg = '--version'
     __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
         super().__init__('config-tool', environment, kwargs, language=language)
         self.name = name
+        # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
+        if not self.tool_name:
+            self.tool_name = self.tools[0]
+        if 'version_arg' in kwargs:
+            self.version_arg = kwargs['version_arg']
 
         req_version = kwargs.get('version', None)
-        tool, version = self.find_config(req_version)
+        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0))
         self.config = tool
         self.is_found = self.report_config(version, req_version)
         if not self.is_found:
@@ -415,7 +428,7 @@ class ConfigToolDependency(ExternalDependency):
             return m.group(0).rstrip('.')
         return version
 
-    def find_config(self, versions=None):
+    def find_config(self, versions=None, returncode: int = 0):
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
@@ -444,10 +457,10 @@ class ConfigToolDependency(ExternalDependency):
                     continue
                 tool = potential_bin.get_command()
             try:
-                p, out = Popen_safe(tool + ['--version'])[:2]
+                p, out = Popen_safe(tool + [self.version_arg])[:2]
             except (FileNotFoundError, PermissionError):
                 continue
-            if p.returncode != 0:
+            if p.returncode != returncode:
                 continue
 
             out = self._sanitize_version(out.strip())

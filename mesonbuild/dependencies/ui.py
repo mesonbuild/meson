@@ -79,13 +79,13 @@ class GnuStepDependency(ConfigToolDependency):
             ['--gui-libs' if 'gui' in self.modules else '--base-libs'],
             'link_args'))
 
-    def find_config(self, versions=None):
+    def find_config(self, versions=None, returncode: int = 0):
         tool = [self.tools[0]]
         try:
             p, out = Popen_safe(tool + ['--help'])[:2]
         except (FileNotFoundError, PermissionError):
             return (None, None)
-        if p.returncode != 0:
+        if p.returncode != returncode:
             return (None, None)
         self.config = tool
         found_version = self.detect_version()
