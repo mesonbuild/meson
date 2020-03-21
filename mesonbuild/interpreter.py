@@ -3080,6 +3080,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         self._redetect_machines()
         return success
 
+    def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
+        if for_machine != MachineChoice.HOST:
+            return False
+        if not self.environment.is_cross_build():
+            return False
+        should = self.environment.properties.host.get('skip_sanity_check', False)
+        if not isinstance(should, bool):
+            raise InterpreterException('Option skip_sanity_check must be a boolean.')
+        return should
+
     def add_languages_for(self, args, required, for_machine: MachineChoice):
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
@@ -3093,7 +3103,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                     comp = self.environment.detect_compiler_for(lang, for_machine)
                     if comp is None:
                         raise InvalidArguments('Tried to use unknown language "%s".' % lang)
-                    comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
+                    if self.should_skip_sanity_check(for_machine):
+                        mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
+                    else:
+                        comp.sanity_check(self.environment.get_scratch_dir(), self.environment)
                 except Exception:
                     if not required:
                         mlog.log('Compiler for language',
