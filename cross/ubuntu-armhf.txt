@@ -18,6 +18,8 @@ cpp_args = '-DMESON_TEST_ISSUE_1665=1'
 has_function_printf = true
 has_function_hfkerhisadf = false
 
+skip_sanity_check = true
+
 [host_machine]
 system = 'linux'
 cpu_family = 'arm'

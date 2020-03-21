@@ -213,7 +213,7 @@ def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
              **kwargs: T.Any) -> None:
     """Log variant that only prints a given message one time per meson invocation.
 
-    This considers nasi decorated values by the values they wrap without
+    This considers ansi decorated values by the values they wrap without
     regard for the AnsiDecorator itself.
     """
     t = tuple(a.text if isinstance(a, AnsiDecorator) else a for a in args)
