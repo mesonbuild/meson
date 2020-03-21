@@ -2675,7 +2675,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return subproject
 
         subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'))
+        r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'), current_subproject=self.subproject)
         try:
             resolved = r.resolve(dirname, method)
         except wrap.WrapException as e:
