@@ -4992,6 +4992,8 @@ class WindowsTests(BasePlatformTests):
         self._check_ld('lld-link', 'c', 'lld-link')
 
     def test_link_environment_variable_link(self):
+        if shutil.which('gcc'):
+            raise unittest.SkipTest('GCC can not used with link.exe.')
         self._check_ld('link', 'c', 'link')
 
     def test_link_environment_variable_optlink(self):
