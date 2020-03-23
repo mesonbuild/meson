@@ -15,6 +15,7 @@
 import sys, pickle, os, shutil, subprocess, errno
 import argparse
 import shlex
+import filecmp
 from glob import glob
 from .scripts import depfixer
 from .scripts import destdir_join
@@ -225,17 +226,19 @@ class Installer:
         if not self.options.quiet:
             print(msg)
 
-    def should_preserve_existing_file(self, from_file, to_file):
+    def should_preserve_existing_file(self, from_file, to_file, compare_contents):
         if not self.options.only_changed:
             return False
         # Always replace danging symlinks
         if os.path.islink(from_file) and not os.path.isfile(from_file):
             return False
+        if compare_contents:
+            return filecmp.cmp(from_file, to_file, shallow=False)
         from_time = os.stat(from_file).st_mtime
         to_time = os.stat(to_file).st_mtime
         return from_time <= to_time
 
-    def do_copyfile(self, from_file, to_file, makedirs=None):
+    def do_copyfile(self, from_file, to_file, makedirs=None, preserve_mtime=True):
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise RuntimeError('Tried to install something that isn\'t a file:'
@@ -247,7 +250,7 @@ class Installer:
             if not os.path.isfile(to_file):
                 raise RuntimeError('Destination {!r} already exists and is not '
                                    'a file'.format(to_file))
-            if self.should_preserve_existing_file(from_file, to_file):
+            if self.should_preserve_existing_file(from_file, to_file, not preserve_mtime):
                 append_to_log(self.lf, '# Preserving old file {}\n'.format(to_file))
                 self.preserved_file_count += 1
                 return False
@@ -267,10 +270,12 @@ class Installer:
                 # symlinks rather than copying what they point to.
                 print(symlink_warning)
                 shutil.copyfile(from_file, to_file)
-                shutil.copystat(from_file, to_file)
+                if preserve_mtime:
+                    shutil.copystat(from_file, to_file)
         else:
             shutil.copyfile(from_file, to_file)
-            shutil.copystat(from_file, to_file)
+            if preserve_mtime:
+                shutil.copystat(from_file, to_file)
         selinux_updates.append(to_file)
         append_to_log(self.lf, to_file)
         return True
@@ -410,7 +415,7 @@ class Installer:
             outdir = get_destdir_path(d, t[1])
             outfilename = os.path.join(outdir, fname)
             install_mode = t[2]
-            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir)):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir), preserve_mtime=False):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
