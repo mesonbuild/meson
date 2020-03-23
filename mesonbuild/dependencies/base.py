@@ -28,6 +28,8 @@ import typing as T
 from enum import Enum
 from pathlib import Path, PurePath
 
+import pkg_resources
+
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
@@ -1522,8 +1524,8 @@ class CMakeDependency(ExternalDependency):
         build_dir = self._get_build_dir()
 
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
-        src_cmake = Path(__file__).parent / 'data' / cmake_file
-        cmake_txt = src_cmake.read_text()
+        # Per the warning in pkg_resources, this is *not* a path and os.path and Pathlib are *not* safe to use here.
+        cmake_txt = pkg_resources.resource_string('mesonbuild', 'dependencies/data/' + cmake_file).decode()
 
         # In general, some Fortran CMake find_package() also require C language enabled,
         # even if nothing from C is directly used. An easy Fortran example that fails
