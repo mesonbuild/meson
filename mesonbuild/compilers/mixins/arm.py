@@ -89,7 +89,7 @@ class ArmCompiler:
 
     # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
+        return ['--depend_target', outtarget, '--depend', outfile, '--depend_single_line']
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         # FIXME: Add required arguments
