@@ -15,6 +15,8 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
+import pkg_resources
+
 from .common import CMakeException, CMakeTarget
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
 from .fileapi import CMakeFileAPI
@@ -779,7 +781,7 @@ class CMakeInterpreter:
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
-        preload_file = Path(__file__).resolve().parent / 'data' / 'preload.cmake'
+        preload_file = pkg_resources.resource_filename('mesonbuild', 'cmake/data/preload.cmake')
 
         # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
         # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
@@ -1024,7 +1026,7 @@ class CMakeInterpreter:
         root_cb.lines += [function('project', [self.project_name] + self.languages)]
 
         # Add the run script for custom commands
-        run_script = '{}/data/run_ctgt.py'.format(os.path.dirname(os.path.realpath(__file__)))
+        run_script = pkg_resources.resource_filename('mesonbuild', 'cmake/data/run_ctgt.py')
         run_script_var = 'ctgt_run_script'
         root_cb.lines += [assign(run_script_var, function('find_program', [[run_script]], {'required': True}))]
 
