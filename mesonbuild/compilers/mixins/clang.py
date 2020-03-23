@@ -15,6 +15,7 @@
 """Abstractions for the LLVM/Clang compiler family."""
 
 import os
+import shutil
 import typing as T
 
 from ... import mesonlib
@@ -98,3 +99,16 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
+
+    @classmethod
+    def use_linker_args(cls, linker: str) -> T.List[str]:
+        # Clang additionally can use a linker specified as a path, which GCC
+        # (and other gcc-like compilers) cannot. This is becuse clang (being
+        # llvm based) is retargetable, while GCC is not.
+        #
+        if shutil.which(linker):
+            if not shutil.which(linker):
+                raise mesonlib.MesonException(
+                    'Cannot find linker {}.'.format(linker))
+            return ['-fuse-ld={}'.format(linker)]
+        return super().use_linker_args(linker)
