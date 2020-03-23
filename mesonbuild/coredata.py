@@ -390,7 +390,7 @@ class CoreData:
         if ftype == 'cross':
             filenames = options.cross_file
         else:
-            filenames = options.native_file
+            filenames = ['siteconfig.ini'] + options.native_file
 
         if not filenames:
             return []
@@ -433,6 +433,11 @@ class CoreData:
                     missing.append(f)
             else:
                 missing.append(f)
+
+        # Siteconfig is optional, if it's in missing remove it so we don't get
+        # warnings/errors
+        if 'siteconfig.ini' in missing:
+            missing.remove('siteconfig.ini')
 
         if missing:
             if found_invalid:

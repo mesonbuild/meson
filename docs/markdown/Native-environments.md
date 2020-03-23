@@ -25,6 +25,30 @@ persistent environment:
 All of the rules about cross files and changed settings apply to native files
 as well, see [here](Cross-compilation.md#changing-cross-file-settings)
 
+## Site local configuration
+
+*New in 0.54.0*
+
+Meson allows system administrators, OS distributions, and users to set
+default policy using a special native file, `siteconfig.ini`. This is looked
+up in all of the search paths meson searches. This applies to Unix-like OSes
+only.
+
+It is recommended that a minimal number of settings be put in this config. A
+good thing to put in this are non standard paths, for example, if a
+distribution uses Debian style libdirs (`/usr/lib/<host-triple>`) they could
+use this config for x86_64 Linux with glibc:
+
+```ini
+[paths]
+libdir = 'x64_64-linux-gnu'
+```
+
+Because normal search rules apply, if a user wants to disable this for
+themselves they could simply create an empty file in
+`$XDG_DATA_HOME/meson/native/siteconfig.ini`
+(`~/.local/share/meson/native/siteconfig.ini` if `$XDG_DATA_HOME` is unset),
+to disable this behavior.
 
 ## Defining the environment
 
@@ -81,7 +105,7 @@ just 12 native files.
 
 Like cross files, native files may be installed to user or system wide
 locations, defined as:
-  - $XDG_DATA_DIRS/meson/native 
+  - $XDG_DATA_DIRS/meson/native
     (/usr/local/share/meson/native:/usr/share/meson/native if $XDG_DATA_DIRS is
     undefined)
   - $XDG_DATA_HOME/meson/native ($HOME/.local/share/meson/native if

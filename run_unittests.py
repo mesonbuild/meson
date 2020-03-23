@@ -7320,6 +7320,64 @@ class NativeFileTests(BasePlatformTests):
         self.init(testcase, extra_args=['--native-file', config])
         self.build()
 
+    @unittest.skipIf(is_windows(), 'Test is not relavent on Windows.')
+    def test_siteconfig(self):
+        """Test that a siteconfig.ini is loaded correctly."""
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+
+        with tempfile.TemporaryDirectory() as d:
+            dpath = Path(d) / 'meson' / 'native'
+            dpath.mkdir(parents=True)
+            conf = ConfigParser()
+            conf['paths'] = {}
+            conf['paths']['bindir'] = "'sentinal value'"
+            with (dpath / 'siteconfig.ini').open('w') as f:
+                conf.write(f)
+
+            self.init(testcase, override_envvars={'XDG_DATA_HOME': d})
+            config = self.introspect(['--buildoptions'])
+            for opt in config:
+                if opt['name'] == 'bindir':
+                    self.assertEqual(opt['value'], 'sentinal value')
+                    break
+
+    @unittest.skipIf(is_windows(), 'Test is not relavent on Windows.')
+    def test_no_siteconfig(self):
+        """Test that not having a siteconfig.ini is okay."""
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+
+        with tempfile.TemporaryDirectory() as d:
+            self.init(testcase, override_envvars={'XDG_DATA_HOME': d, 'XDG_DATA_HOMES': d})
+
+    @unittest.skipIf(is_windows(), 'Test is not relavent on Windows.')
+    def test_siteconfig_order(self):
+        """Test that a siteconfig.ini is is loaded in the correct order."""
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+
+        with tempfile.TemporaryDirectory() as d:
+            dpath = Path(d) / 'meson' / 'native'
+            dpath.mkdir(parents=True)
+            conf = ConfigParser()
+            conf['paths'] = {}
+            conf['paths']['bindir'] = "'overriden value'"
+            conf['paths']['localstatedir'] = "'siteconfig value'"
+            with (dpath / 'siteconfig.ini').open('w') as f:
+                conf.write(f)
+
+            conf['paths']['bindir'] = "'sentinal value'"
+            with (dpath / 'override.ini').open('w') as f:
+                conf.write(f)
+
+            self.init(
+                testcase, extra_args=['--native-file', 'override.ini'],
+                override_envvars={'XDG_DATA_HOME': d})
+            config = self.introspect(['--buildoptions'])
+            for opt in config:
+                if opt['name'] == 'bindir':
+                    self.assertEqual(opt['value'], 'sentinal value')
+                elif opt['name'] == 'localstatedir':
+                    self.assertEqual(opt['value'], 'siteconfig value')
+
 
 class CrossFileTests(BasePlatformTests):
 
