@@ -1,0 +1,1 @@
+option('expected_val', type: 'array', value: ['-DDEF=1', '-DDEF=2'])
