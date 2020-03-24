@@ -1,0 +1,9 @@
+{
+  "matrix": {
+    "options": {
+      "warning_level": [
+        { "val": "1", "skip_on_env": [ "SINGLE_DUB_COMPILER" ] }
+      ]
+    }
+  }
+}
