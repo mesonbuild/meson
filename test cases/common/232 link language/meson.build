@@ -9,4 +9,10 @@ exe = executable(
   link_language : 'c',
 )
 
+lib = library(
+  'mylib',
+  ['lib.cpp'],
+  link_language : 'c',
+)
+
 test('main', exe)

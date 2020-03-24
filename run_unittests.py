@@ -4647,7 +4647,7 @@ recommended as it is not supported on some platforms''')
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('This test reads the ninja file')
 
-        testdir = os.path.join(self.common_test_dir, '230 link language')
+        testdir = os.path.join(self.common_test_dir, '232 link language')
         self.init(testdir)
 
         build_ninja = os.path.join(self.builddir, 'build.ninja')
@@ -4655,6 +4655,7 @@ recommended as it is not supported on some platforms''')
             contents = f.read()
 
         self.assertRegex(contents, r'build main(\.exe)?.*: c_LINKER')
+        self.assertRegex(contents, r'build (lib|cyg)?mylib.*: c_LINKER')
 
 
 class FailureTests(BasePlatformTests):
