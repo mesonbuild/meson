@@ -1219,10 +1219,6 @@ You probably should put it in link_with instead.''')
         '''
         langs = [] # type: T.List[str]
 
-        # User specified link_language of target (for multi-language targets)
-        if self.link_language:
-            return [self.link_language]
-
         # Check if any of the external libraries were written in this language
         for dep in self.external_deps:
             if dep.language is None:
@@ -1253,6 +1249,12 @@ You probably should put it in link_with instead.''')
         # Populate list of all compilers, not just those being used to compile
         # sources in this target
         all_compilers = self.environment.coredata.compilers[self.for_machine]
+
+        # If the user set the link_language, just return that.
+        if self.link_language:
+            comp = all_compilers[self.link_language]
+            return comp, comp.language_stdlib_only_link_flags()
+
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
         # Pick a compiler based on the language priority-order
