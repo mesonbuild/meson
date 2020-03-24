@@ -1217,7 +1217,7 @@ You probably should put it in link_with instead.''')
 
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
-        langs = []
+        langs = [] # type: T.List[str]
 
         # User specified link_language of target (for multi-language targets)
         if self.link_language:
