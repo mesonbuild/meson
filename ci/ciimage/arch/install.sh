@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Inspired by https://github.com/greyltc/docker-archlinux-aur/blob/master/add-aur.sh
 
 pkgs=(

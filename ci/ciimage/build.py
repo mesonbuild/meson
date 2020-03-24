@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+
+import json
+import argparse
+import stat
+import textwrap
+import shutil
+import subprocess
+from tempfile import TemporaryDirectory
+from pathlib import Path
+import typing as T
+
+image_namespace = 'mesonbuild'
+
+image_def_file = 'image.json'
+install_script = 'install.sh'
+
+class ImageDef:
+    def __init__(self, image_dir: Path) -> None:
+        path = image_dir / image_def_file
+        data = json.loads(path.read_text())
+
+        assert isinstance(data, dict)
+        assert all([x in data for x in ['base_image', 'env']])
+        assert isinstance(data['base_image'], str)
+        assert isinstance(data['env'],  dict)
+
+        self.base_image: str = data['base_image']
+        self.env: T.Dict[str, str] = data['env']
+
+class BuilderBase():
+    def __init__(self, data_dir: Path, temp_dir: Path) -> None:
+        self.data_dir = data_dir
+        self.temp_dir = temp_dir
+
+        self.validate_data_dir()
+
+        self.image_def = ImageDef(self.data_dir)
+
+        self.docker = shutil.which('docker')
+        self.git = shutil.which('git')
+        if self.docker is None:
+            raise RuntimeError('Unable to find docker')
+        if self.git is None:
+            raise RuntimeError('Unable to find git')
+
+    def validate_data_dir(self) -> None:
+        files = [
+            self.data_dir / image_def_file,
+            self.data_dir / install_script,
+        ]
+        if not self.data_dir.exists():
+            raise RuntimeError(f'{self.data_dir.as_posix()} does not exist')
+        for i in files:
+            if not i.exists():
+                raise RuntimeError(f'{i.as_posix()} does not exist')
+            if not i.is_file():
+                raise RuntimeError(f'{i.as_posix()} is not a regular file')
+
+class Builder(BuilderBase):
+    def gen_bashrc(self) -> None:
+        out_file = self.temp_dir / 'env_vars.sh'
+        out_data = ''
+
+        for key, val in self.image_def.env.items():
+            out_data += f'export {key}="{val}"\n'
+
+        out_file.write_text(out_data)
+
+        # make it executable
+        mode = out_file.stat().st_mode
+        out_file.chmod(mode | stat.S_IEXEC)
+
+    def gen_dockerfile(self) -> None:
+        out_file = self.temp_dir / 'Dockerfile'
+        out_data = textwrap.dedent(f'''\
+            FROM {self.image_def.base_image}
+
+            ADD install.sh  /usr/sbin/docker-do-install
+            ADD env_vars.sh /env_vars.sh
+            RUN docker-do-install
+        ''')
+
+        out_file.write_text(out_data)
+
+    def do_build(self) -> None:
+        # copy files
+        for i in self.data_dir.iterdir():
+            shutil.copy(str(i), str(self.temp_dir))
+
+        self.gen_bashrc()
+        self.gen_dockerfile()
+
+        cmd_git = [self.git, 'rev-parse', '--short', 'HEAD']
+        res = subprocess.run(cmd_git, cwd=self.data_dir, stdout=subprocess.PIPE)
+        if res.returncode != 0:
+            raise RuntimeError('Failed to get the current commit hash')
+        commit_hash = res.stdout.decode().strip()
+
+        cmd = [
+            self.docker, 'build',
+            '-t', f'{image_namespace}/{self.data_dir.name}:latest',
+            '-t', f'{image_namespace}/{self.data_dir.name}:{commit_hash}',
+            '--pull',
+            self.temp_dir.as_posix(),
+        ]
+        if subprocess.run(cmd).returncode != 0:
+            raise RuntimeError('Failde to build the docker image')
+
+class ImageTester(BuilderBase):
+    def __init__(self, data_dir: Path, temp_dir: Path, ci_root: Path) -> None:
+        super().__init__(data_dir, temp_dir)
+        self.meson_root = ci_root.parent.parent.resolve()
+
+    def gen_dockerfile(self) -> None:
+        out_file = self.temp_dir / 'Dockerfile'
+        out_data = textwrap.dedent(f'''\
+            FROM {image_namespace}/{self.data_dir.name}
+
+            ADD meson /meson
+        ''')
+
+        out_file.write_text(out_data)
+
+    def copy_meson(self) -> None:
+        shutil.copytree(
+            self.meson_root,
+            self.temp_dir / 'meson',
+            ignore=shutil.ignore_patterns(
+                '.git',
+                '*_cache',
+                'work area',
+                self.temp_dir.name,
+            )
+        )
+
+    def do_test(self):
+        self.copy_meson()
+        self.gen_dockerfile()
+
+        try:
+            build_cmd = [
+                self.docker, 'build',
+                '-t', 'meson_test_image',
+                self.temp_dir.as_posix(),
+            ]
+            if subprocess.run(build_cmd).returncode != 0:
+                raise RuntimeError('Failde to build the test docker image')
+
+            test_cmd = [
+                self.docker, 'run', '--rm', '-t', 'meson_test_image',
+                '/usr/bin/bash', '-c', 'source /env_vars.sh; cd meson; ./run_tests.py'
+            ]
+            if subprocess.run(test_cmd).returncode != 0:
+                raise RuntimeError('Running tests failed')
+        finally:
+            cleanup_cmd = [self.docker, 'rmi', '-f', 'meson_test_image']
+            subprocess.run(cleanup_cmd).returncode
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description='Meson CI image builder')
+    parser.add_argument('what', type=str, help='Which image to build / test')
+    parser.add_argument('-t', '--type', choices=['build', 'test'], help='What to do', required=True)
+
+    args = parser.parse_args()
+
+    ci_root = Path(__file__).parent
+    ci_data = ci_root / args.what
+
+    with TemporaryDirectory(prefix=f'{args.type}_{args.what}_', dir=ci_root) as td:
+        ci_build = Path(td)
+        print(f'Build dir: {ci_build}')
+
+        if args.type == 'build':
+            builder = Builder(ci_data, ci_build)
+            builder.do_build()
+        elif args.type == 'test':
+            tester = ImageTester(ci_data, ci_build, ci_root)
+            tester.do_test()
+
+if __name__ == '__main__':
+    main()

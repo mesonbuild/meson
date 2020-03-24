@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 pkgs=(
   python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3 python2
   ninja make git autoconf automake patch python3-Cython python2-Cython python3-jsonschema
@@ -17,22 +19,22 @@ pkgs=(
 )
 
 # Sys update
-zypper patch --with-update --with-optional
-zypper update
+zypper --non-interactive patch --with-update --with-optional
+zypper --non-interactive update
 
 # Install deps
 zypper install -y "${pkgs[@]}"
 python3 -m pip install hotdoc gobject PyGObject
 
-echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> ~/.bashrc
+echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /env_vars.sh
 
 # dmd is very special on OpenSUSE (as in the packages do not work)
 # see https://bugzilla.opensuse.org/show_bug.cgi?id=1162408
 curl -fsS https://dlang.org/install.sh | bash -s dmd | tee dmd_out.txt
-cat dmd_out.txt | grep source | sed 's/^[^`]*`//g' | sed 's/`.*//g' >> ~/.bashrc
-chmod +x ~/.bashrc
+cat dmd_out.txt | grep source | sed 's/^[^`]*`//g' | sed 's/`.*//g' >> /env_vars.sh
+chmod +x /env_vars.sh
 
-source ~/.bashrc
+source /env_vars.sh
 
 dub fetch urld
 dub build urld --compiler=dmd
@@ -41,4 +43,4 @@ dub build dubtestproject:test1 --compiler=dmd
 dub build dubtestproject:test2 --compiler=dmd
 
 # Cleanup
-zypper clean --all
+zypper --non-interactive clean --all

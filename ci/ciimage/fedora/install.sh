@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 pkgs=(
   python python-setuptools python-wheel python-pip python-pytest-xdist pygobject3 python3-devel python2-devel
   ninja-build make git autoconf automake patch python3-Cython python2-Cython python3-jsonschema
