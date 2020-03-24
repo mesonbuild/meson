@@ -2,7 +2,7 @@
 
 pkgs=(
   python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3 python2
-  ninja make git autoconf automake patch python3-Cython python2-Cython
+  ninja make git autoconf automake patch python3-Cython python2-Cython python3-jsonschema
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
   itstool gtk3-devel java-13-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
