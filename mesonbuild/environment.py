@@ -854,7 +854,9 @@ class Environment:
             linker = LLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
-            # Toolchain wrapper got in the way; this happens with e.g. https://github.com/mstorsjo/llvm-mingw
+            # The LLD MinGW frontend didn't respond to --version before version 9.0.0,
+            # and produced an error message about failing to link (when no object
+            # files were specified), instead of printing the version number.
             # Let's try to extract the linker invocation command to grab the version.
 
             _, o, e = Popen_safe(compiler + check_args + ['-v'])
