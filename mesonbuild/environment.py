@@ -336,9 +336,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
         trial = 'ppc64'
-    elif trial.startswith(('powerpc', 'ppc')):
-        trial = 'ppc'
-    elif trial == 'macppc':
+    elif trial.startswith(('powerpc', 'ppc')) or trial in {'macppc', 'power machintosh'}:
         trial = 'ppc'
     elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
@@ -790,7 +788,7 @@ class Environment:
                 return LLVMDynamicLinker(
                     compiler, for_machine, comp_class.LINKER_PREFIX,
                     override, version=search_version(o))
- 
+
         if value is not None and invoked_directly:
             compiler = value
             # We've already hanedled the non-direct case above
