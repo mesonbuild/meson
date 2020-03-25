@@ -171,6 +171,10 @@ def restore_selinux_contexts():
         # If we don't have restorecon, failure is ignored quietly.
         return
 
+    if not selinux_updates:
+        # If the list of files is empty, do not try to call restorecon.
+        return
+
     with subprocess.Popen(['restorecon', '-F', '-f-', '-0'],
                           stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         out, err = proc.communicate(input=b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0')
