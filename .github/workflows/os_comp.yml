@@ -1,6 +1,10 @@
 name: OS Comp Tests
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
   xenial:
@@ -25,38 +29,19 @@ jobs:
         XENIAL: '1'
 
   arch:
-    name: Arch Linux
+    name: ${{ matrix.cfg.name }}
     runs-on: ubuntu-latest
-    container: mensinda/arch:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { name: Arch Linux, id: arch     }
+          - { name: Fedora,     id: fedora   }
+          - { name: OpenSUSE,   id: opensuse }
+    container: mesonbuild/${{ matrix.cfg.id }}:latest
     steps:
     - uses: actions/checkout@v1
     - name: Run tests
-      run: ./run_tests.py
-      env:
-        CI: '1'
-
-  fedora:
-    name: Fedora
-    runs-on: ubuntu-latest
-    container: mensinda/fedora:latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Run tests
-      run: ./run_tests.py
-      env:
-        CI: '1'
-        SKIP_SCIENTIFIC: '1'
-        SKIP_STATIC_BOOST: '1'
-
-  opensuse:
-    name: OpenSUSE
-    runs-on: ubuntu-latest
-    container: mensinda/opensuse:latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Run tests
-      run: ./run_tests.py
-      env:
-        CI: '1'
-        SKIP_SCIENTIFIC: '1'
-        SKIP_STATIC_BOOST: '1'
+      # All environment variables are stored inside the docker image in /env_vars.sh
+      # They are defined in the `env` section in each image.json
+      run: bash -c "source /env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py"
