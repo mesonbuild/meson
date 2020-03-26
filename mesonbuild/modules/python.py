@@ -361,7 +361,7 @@ class PythonInstallation(ExternalProgramHolder):
 
     @permittedKwargs(['pure', 'subdir'])
     def install_sources_method(self, args, kwargs):
-        pure = kwargs.pop('pure', False)
+        pure = kwargs.pop('pure', True)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
 
