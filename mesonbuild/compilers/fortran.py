@@ -68,7 +68,8 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
         source_name.write_text('print *, "Fortran compilation is working."; end')
 
-        extra_flags = environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags = []
+        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
         extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         extra_flags += self.get_always_args()
         # %% build the test executable "sanitycheckf"
