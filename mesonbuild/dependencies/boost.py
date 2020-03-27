@@ -279,6 +279,9 @@ class BoostDependency(ExternalDependency):
             if i.startswith('boost_'):
                 raise DependencyException('Boost modules must be passed without the boost_ prefix')
 
+        self.modules_found = []    # type: T.List[str]
+        self.modules_missing = []  # type: T.List[str]
+
         # Do we need threads?
         if 'thread' in self.modules:
             if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
@@ -378,6 +381,13 @@ class BoostDependency(ExternalDependency):
 
             comp_args = list(set(comp_args))
             link_args = list(set(link_args))
+
+            self.modules_found = [x.mod_name for x in selected_modules]
+            self.modules_found = [x[6:] for x in self.modules_found]
+            self.modules_found = sorted(set(self.modules_found))
+            self.modules_missing = not_found
+            self.modules_missing = [x[6:] for x in self.modules_missing]
+            self.modules_missing = sorted(set(self.modules_missing))
 
             # if we found all modules we are done
             if not not_found:
@@ -526,10 +536,14 @@ class BoostDependency(ExternalDependency):
         return roots
 
     def log_details(self) -> str:
-        modules = sorted(set(self.modules))
-        if modules:
-            return 'modules: ' + ', '.join(modules)
-        return ''
+        res = ''
+        if self.modules_found:
+            res += 'found: ' + ', '.join(self.modules_found)
+        if self.modules_missing:
+            if res:
+                res += ' | '
+            res += 'missing: ' + ', '.join(self.modules_missing)
+        return res
 
     def log_info(self) -> str:
         if self.boost_root:
