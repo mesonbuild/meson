@@ -29,28 +29,14 @@ python3dep = python3.dependency(required: host_machine.system() == 'linux', embe
 
 # compile python 2/3 modules only if we found a corresponding python version
 if(python2dep.found() and host_machine.system() == 'linux' and not s)
-  if(dep.version().version_compare('>=1.67'))
-    # if we have a new version of boost, we need to construct the module name based
-    # on the installed version of python (and hope that they match the version boost
-    # was compiled against)
-    py2version_string = ''.join(python2dep.version().split('.'))
-    bpython2dep = dependency('boost', static: s, modules : ['python' + py2version_string], required: false, disabler: true)
-  else
-    # if we have an older version of boost, we need to use the old module names
-    bpython2dep = dependency('boost', static: s, modules : ['python'], required: false, disabler: true)
-  endif
+  bpython2dep = dependency('boost', static: s, modules : ['python'], required: false, disabler: true)
 else
   python2dep = disabler()
   bpython2dep = disabler()
 endif
 
 if(python3dep.found() and host_machine.system() == 'linux' and not s)
-  if(dep.version().version_compare('>=1.67'))
-    py3version_string = ''.join(python3dep.version().split('.'))
-    bpython3dep = dependency('boost', static: s, modules : ['python' + py3version_string], required: false, disabler: true)
-  else
-    bpython3dep = dependency('boost', static: s, modules : ['python3'], required: false, disabler: true)
-  endif
+  bpython3dep = dependency('boost', static: s, modules : ['python3'], required: false, disabler: true)
 else
   python3dep = disabler()
   bpython3dep = disabler()
