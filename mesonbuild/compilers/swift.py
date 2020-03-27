@@ -98,7 +98,8 @@ class SwiftCompiler(Compiler):
         src = 'swifttest.swift'
         source_name = os.path.join(work_dir, src)
         output_name = os.path.join(work_dir, 'swifttest')
-        extra_flags = environment.coredata.get_external_args(self.for_machine, self.language)
+        extra_flags = []
+        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
         else:
