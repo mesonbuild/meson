@@ -101,6 +101,11 @@ class BoostIncludeDir():
 
 @functools.total_ordering
 class BoostLibraryFile():
+    # Python libraries are special because of the included
+    # minor version in the module name.
+    boost_python_libs = ['boost_python', 'boost_numpy']
+    reg_python_mod_split = re.compile(r'(boost_[a-zA-Z]+)([0-9]*)')
+
     reg_abi_tag = re.compile(r'^s?g?y?d?p?n?$')
     reg_ver_tag = re.compile(r'^[0-9_]+$')
 
@@ -217,6 +222,33 @@ class BoostLibraryFile():
 
     def is_boost(self) -> bool:
         return any([self.name.startswith(x) for x in ['libboost_', 'boost_']])
+
+    def is_python_lib(self) -> bool:
+        return any([self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs])
+
+    def mod_name_matches(self, mod_name: str) -> bool:
+        if self.mod_name == mod_name:
+            return True
+        if not self.is_python_lib():
+            return False
+
+        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
+        m_arg = BoostLibraryFile.reg_python_mod_split.match(mod_name)
+
+        if not m_cur or not m_arg:
+            return False
+
+        if m_cur.group(1) != m_arg.group(1):
+            return False
+
+        cur_vers = m_cur.group(2)
+        arg_vers = m_arg.group(2)
+
+        # Always assume python 2 if nothing is specified
+        if not arg_vers:
+            arg_vers = '2'
+
+        return cur_vers.startswith(arg_vers)
 
     def version_matches(self, version_lib: str) -> bool:
         # If no version tag is present, assume that it fits
@@ -361,7 +393,7 @@ class BoostDependency(ExternalDependency):
             for mod in modules:
                 found = False
                 for l in f_libs:
-                    if l.mod_name == mod:
+                    if l.mod_name_matches(mod):
                         selected_modules += [l]
                         found = True
                         break
