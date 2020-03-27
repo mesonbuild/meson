@@ -49,6 +49,7 @@ def create_hash(fname):
     m.update(open(fname, 'rb').read())
     with open(hashname, 'w') as f:
         f.write('{} {}\n'.format(m.hexdigest(), os.path.basename(fname)))
+    print(os.path.relpath(fname), m.hexdigest())
 
 
 def del_gitfiles(dirname):
