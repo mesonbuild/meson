@@ -946,6 +946,8 @@ Timeout:            %4d
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
                         f = executor.submit(single_test.run)
                         futures.append((f, numlen, tests, visible_name, i))
+                        if len(futures) > self.options.num_processes:
+                            self.drain_future(futures.pop(0))
                     if self.options.repeat > 1 and self.fail_count:
                         break
                 if self.options.repeat > 1 and self.fail_count:
@@ -962,13 +964,16 @@ Timeout:            %4d
 
     def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, T.List['TestSerialisation'], str, int]]) -> None:
         for x in futures:
-            (result, numlen, tests, name, i) = x
-            if self.options.repeat > 1 and self.fail_count:
-                result.cancel()
-            if self.options.verbose:
-                result.result()
-            self.process_test_result(result.result())
-            self.print_stats(numlen, tests, name, result.result(), i)
+            self.drain_future(x)
+
+    def drain_future(self, x: T.Tuple['conc.Future[TestRun]', int, T.List['TestSerialisation'], str, int]) -> None:
+        (result, numlen, tests, name, i) = x
+        if self.options.repeat > 1 and self.fail_count:
+            result.cancel()
+        if self.options.verbose:
+            result.result()
+        self.process_test_result(result.result())
+        self.print_stats(numlen, tests, name, result.result(), i)
 
     def run_special(self) -> int:
         '''Tests run by the user, usually something like "under gdb 1000 times".'''
