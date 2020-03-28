@@ -163,6 +163,14 @@ class OutputTargetMap:
     def target(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         return self._return_first_valid_key([self._target_key(name)])
 
+    def executable(self, name: str) -> T.Optional['ConverterTarget']:
+        tgt = self.target(name)
+        if tgt is None or not isinstance(tgt, ConverterTarget):
+            return None
+        if tgt.meson_func() != 'executable':
+            return None
+        return tgt
+
     def artifact(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
         keys = []
         candidates = [name, OutputTargetMap.rm_so_version.sub('', name)]
@@ -659,7 +667,7 @@ class ConverterCustomTarget:
             for j in i:
                 if not j:
                     continue
-                target = output_target_map.target(j)
+                target = output_target_map.executable(j)
                 cmd += [target] if target else [j]
 
             commands += [cmd]
@@ -725,7 +733,7 @@ class ConverterCustomTarget:
             return None
 
     def log(self) -> None:
-        mlog.log('Custom Target', mlog.bold(self.name))
+        mlog.log('Custom Target', mlog.bold(self.name), '({})'.format(self.cmake_name))
         mlog.log('  -- command:      ', mlog.bold(str(self.command)))
         mlog.log('  -- outputs:      ', mlog.bold(str(self.outputs)))
         mlog.log('  -- conflict_map: ', mlog.bold(str(self.conflict_map)))
