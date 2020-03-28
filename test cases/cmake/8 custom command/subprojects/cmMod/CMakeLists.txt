@@ -125,5 +125,9 @@ add_custom_target(args_test_cmd
 )
 add_custom_target(macro_name_cmd COMMAND macro_name)
 
+# Only executable targets are replaced in the command
+# all other target names are kept as is
+add_custom_target(clang-format COMMAND clang-format -i cmMod.cpp)
+
 add_dependencies(cmModLib args_test_cmd tgtCpyTest4)
 add_dependencies(args_test_cmd macro_name_cmd;gen;mycpy)
