@@ -27,8 +27,8 @@ meson_jar_template = '''project('{project_name}', '{language}',
   default_options : [{default_options}])
 
 jar('{executable}',
-    {sourcespec},{depspec},
-    main_class: {main_class},
+    {sourcespec},{depspec}
+    main_class: '{main_class}',
     install : true)
 '''
 
