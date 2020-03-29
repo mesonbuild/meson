@@ -91,6 +91,7 @@ jobs:
         libjsoncpp19,^
         librhash0,^
         libuv1,^
+        libxml2,^
         ninja,^
         python2-devel,^
         python3-devel,^
@@ -102,8 +103,8 @@ jobs:
       displayName: Install Dependencies
     - script: |
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
-        env.exe -- python3 -m pip --disable-pip-version-check install pefile pytest-xdist jsonschema
-      displayName: pip install pefile pytest-xdist jsonschema
+        env.exe -- python3 -m pip --disable-pip-version-check install gcovr pefile pytest-xdist jsonschema
+      displayName: pip install gcovr pefile pytest-xdist jsonschema
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
@@ -165,6 +166,8 @@ jobs:
         git ^
         mercurial ^
         mingw-w64-$(MSYS2_ARCH)-cmake ^
+        mingw-w64-$(MSYS2_ARCH)-lcov ^
+        mingw-w64-$(MSYS2_ARCH)-libxml2 ^
         mingw-w64-$(MSYS2_ARCH)-ninja ^
         mingw-w64-$(MSYS2_ARCH)-pkg-config ^
         mingw-w64-$(MSYS2_ARCH)-python2 ^
@@ -172,7 +175,7 @@ jobs:
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
         mingw-w64-$(MSYS2_ARCH)-python3-pip ^
         %TOOLCHAIN%
-        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install pefile jsonschema"
+        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile"
       displayName: Install Dependencies
     - script: |
         set BOOST_ROOT=

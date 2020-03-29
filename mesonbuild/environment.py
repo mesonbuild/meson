@@ -134,8 +134,17 @@ def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
         return gcovr_exe, mesonlib.version_compare(found, '>=' + new_rootdir_version)
     return None, None
 
+def detect_llvm_cov():
+    tools = get_llvm_tool_names('llvm-cov')
+    for tool in tools:
+        if mesonlib.exe_exists([tool, '--version']):
+            return tool
+    return None
+
 def find_coverage_tools():
     gcovr_exe, gcovr_new_rootdir = detect_gcovr()
+
+    llvm_cov_exe = detect_llvm_cov()
 
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
@@ -145,7 +154,7 @@ def find_coverage_tools():
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
 
-    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
+    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe
 
 def detect_ninja(version: str = '1.7', log: bool = False) -> str:
     r = detect_ninja_command_and_version(version, log)
