@@ -744,19 +744,16 @@ class Vs2010Backend(backends.Backend):
 
     def gen_vcxproj(self, target, ofname, guid):
         mlog.debug('Generating vcxproj %s.' % target.name)
-        entrypoint = 'WinMainCRTStartup'
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
         if isinstance(target, build.Executable):
             conftype = 'Application'
             if not target.gui_app:
                 subsystem = 'Console'
-                entrypoint = 'mainCRTStartup'
         elif isinstance(target, build.StaticLibrary):
             conftype = 'StaticLibrary'
         elif isinstance(target, build.SharedLibrary):
             conftype = 'DynamicLibrary'
-            entrypoint = '_DllMainCrtStartup'
         elif isinstance(target, build.CustomTarget):
             return self.gen_custom_target_vcxproj(target, ofname, guid)
         elif isinstance(target, build.RunTarget):
@@ -1180,8 +1177,6 @@ class Vs2010Backend(backends.Backend):
         if '/ZI' in buildtype_args or '/Zi' in buildtype_args:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
             pdb.text = '$(OutDir}%s.pdb' % target_name
-        if isinstance(target, build.Executable):
-            ET.SubElement(link, 'EntryPointSymbol').text = entrypoint
         targetmachine = ET.SubElement(link, 'TargetMachine')
         targetplatform = self.platform.lower()
         if targetplatform == 'win32':
