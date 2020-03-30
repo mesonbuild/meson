@@ -5,6 +5,8 @@ Set-StrictMode -Version latest
 $ErrorActionPreference = "Stop"
 $ProgressPreference = "SilentlyContinue"
 
+echo "=== Installing DMD ==="
+
 # default installation directory
 $dmd_install = "C:\D"
 $dmd_version_file = "C:\cache\DMD_LATEST"
@@ -13,10 +15,12 @@ if (!$Version) {
     #echo "Fetching latest DMD version..."
     $dmd_latest_url = "http://downloads.dlang.org/releases/LATEST"
     $retries = 10
+    echo ('Downloading {0} ...' -f $dmd_latest_url)
     for ($i = 1; $i -le $retries; $i++) {
         try {
             [system.io.directory]::CreateDirectory((Split-Path -parent $dmd_version_file)) > $null
             Invoke-WebRequest -URI $dmd_latest_url -OutFile $dmd_version_file
+            echo '... DONE'
             break
         } catch [net.WebException] {
             if ($i -eq $retries) {
@@ -42,7 +46,7 @@ $dmd_url = "http://downloads.dlang.org/releases/2.x/$dmd_version/dmd.$dmd_versio
 $dmd_filename = [System.IO.Path]::GetFileName($dmd_url)
 $dmd_archive = Join-Path ($env:temp) $dmd_filename
 
-#echo "Downloading $dmd_filename..."
+echo "Downloading $dmd_filename..."
 $retries = 10
 for ($i = 1; $i -le $retries; $i++) {
     try {
@@ -59,13 +63,13 @@ for ($i = 1; $i -le $retries; $i++) {
     }
 }
 
-#echo "Extracting $dmd_filename..."
+echo "Extracting $dmd_filename..."
 Expand-Archive $dmd_archive -Force -DestinationPath $dmd_install
 
 # add to environment path
-#echo "Installing DMD..."
+echo "Installing DMD..."
 $dmd_bin = Join-Path $dmd_install "dmd2\windows\bin"
 $Env:Path = $Env:Path + ";" + $dmd_bin
 
-#echo "Testing DMD..."
+echo "Testing DMD..."
 & dmd.exe --version
