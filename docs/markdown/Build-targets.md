@@ -4,27 +4,39 @@ short-description: Definition of build targets
 
 # Build targets
 
-Meson provides three kinds of build targets: executables, static
-libraries and shared libraries. They are created with the commands
-`executable`, `static_library` and `shared_library`, respectively. All
-objects created in this way are **immutable**. That is, you can not
-change any aspect of them after they have been constructed. This
-ensures that all information pertaining to a given build target is
-specified in one well defined place.
+Meson provides four kinds of build targets: executables, libraries
+(which can be set to be built as static or shared or both of them at
+the build configuration time), static libraries, and shared libraries.
+They are created with the commands `executable`, `static_library` and
+`shared_library`, respectively. All objects created in this way are
+**immutable**. That is, you can not change any aspect of them after
+they have been constructed. This ensures that all information
+pertaining to a given build target is specified in one well defined
+place.
 
-As an example, here is how you would build a shared library.
+Libraries and executables
+--
+
+As an example, here is how you would build a library.
 
 ```meson
 project('shared lib', 'c')
-shared_library('mylib', 'source.c')
+library('mylib', 'source.c')
 ```
 
+It is generally preferred to use the `library` command instead of
+`shared_library` and `static_library` and then configure which
+libraries (static or shared or both of them) will be built at the
+build configuration time using the `default_library`
+[built-in option](Builtin-options.md).
+
 In Unix-like operating systems, shared libraries can be
-versioned. Meson supports this with keyword arguments.
+versioned. Meson supports this with keyword arguments, which will be
+ignored if the library is configured as static at the compile time.
 
 ```meson
 project('shared lib', 'c')
-shared_library('mylib', 'source.c', version : '1.2.3', soversion : '0')
+library('mylib', 'source.c', version : '1.2.3', soversion : '0')
 ```
 
 It is common to build a library and then an executable that links
@@ -32,7 +44,7 @@ against it. This is supported as well.
 
 ```meson
 project('shared lib', 'c')
-lib = shared_library('mylib', 'source.c')
+lib = library('mylib', 'source.c')
 executable('program', 'prog.c', link_with : lib)
 ```
 
