@@ -29,7 +29,7 @@ int main(int argc, char **argv) {{
 }}
 '''
 
-hello_cuda_meson_template = '''project('{project_name}', 'cpp',
+hello_cuda_meson_template = '''project('{project_name}', ['cuda', 'cpp'],
   version : '{version}',
   default_options : ['warning_level=3',
                      'cpp_std=c++14'])
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {{
 }}
 '''
 
-lib_cuda_meson_template = '''project('{project_name}', 'cuda',
+lib_cuda_meson_template = '''project('{project_name}', ['cuda', 'cpp'],
   version : '{version}',
   default_options : ['warning_level=3'])
 
