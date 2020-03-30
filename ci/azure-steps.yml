@@ -1,19 +1,23 @@
 steps:
 - powershell: |
+     echo "=== Check skip CI ==="
      python ./skip_ci.py --base-branch-env=SYSTEM_PULLREQUEST_TARGETBRANCH --is-pull-env=SYSTEM_PULLREQUEST_PULLREQUESTID --base-branch-origin
      if ($LastExitCode -ne 0) {
         exit 0
      }
 
+     echo "=== BEGIN CI setup ==="
      # remove Chocolately, MinGW, Strawberry Perl from path, so we don't find gcc/gfortran and try to use it
      $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey' }) -join ';'
 
      # download and install prerequisites
      function DownloadFile([String] $Source, [String] $Destination) {
        $retries = 10
+       echo ('Downloading {0} ...' -f $Source)
        for ($i = 1; $i -le $retries; $i++) {
            try {
                (New-Object net.webclient).DownloadFile($Source, $Destination)
+               echo '... DONE'
                break # succeeded
            } catch [net.WebException] {
                if ($i -eq $retries) {
@@ -84,6 +88,7 @@ steps:
 
      $origPath = $env:Path
      # import visual studio variables
+     echo "source vcvarsall.bat"
      if ($env:compiler -eq 'msvc2019') {
        $vcvars = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvarsall.bat"
      } else {
@@ -129,6 +134,8 @@ steps:
      if ((Get-Command "resgen.exe" -ErrorAction SilentlyContinue) -eq $null) {
        $env:Path = "$env:WindowsSDK_ExecutablePath_x86;$env:Path"
      }
+
+     echo "=== END CI setup ==="
 
      if ($env:backend -eq 'ninja') {
        ninja --version
