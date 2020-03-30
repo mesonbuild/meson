@@ -844,18 +844,18 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
         # Debug format
         if '/ZI' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'EditAndContinue'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
         elif '/Zi' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'ProgramDatabase'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
         elif '/Z7' in buildtype_args:
-            ET.SubElement(type_config, 'DebugInformationFormat').text = 'OldStyle'
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
         # Runtime checks
         if '/RTC1' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'EnableFastChecks'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
         elif '/RTCu' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
         elif '/RTCs' in buildtype_args:
-            ET.SubElement(type_config, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+            ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
         # End configuration
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
