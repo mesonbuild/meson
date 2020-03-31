@@ -139,7 +139,7 @@ def returncode_to_status(retcode: int) -> str:
         return '(killed by signal {} {})'.format(signum, signame)
 
     if retcode <= 128:
-        return '(exit status {})'.format((retcode,))
+        return '(exit status {})'.format(retcode)
 
     signum = retcode - 128
     try:
@@ -166,6 +166,10 @@ class TestResult(enum.Enum):
     EXPECTEDFAIL = 'EXPECTEDFAIL'
     UNEXPECTEDPASS = 'UNEXPECTEDPASS'
     ERROR = 'ERROR'
+
+    @staticmethod
+    def maxlen() -> int:
+        return 14 # len(UNEXPECTEDPASS)
 
 
 class TAPParser:
@@ -733,21 +737,23 @@ class TestHarness:
         else:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
-    def print_stats(self, numlen: int, tests: T.List['TestSerialisation'],
+    def print_stats(self, test_count: int, name_max_len: int,
+                    tests: T.List['TestSerialisation'],
                     name: str, result: TestRun, i: int) -> None:
-        startpad = ' ' * (numlen - len('{}'.format(i + 1)))
-        num = '{}{}/{}'.format(startpad, i + 1, len(tests))
-        padding1 = ' ' * (38 - len(name))
-        padding2 = ' ' * (8 - len(result.res.value))
-        status = ''
-
-        if result.res is TestResult.FAIL:
-            status = returncode_to_status(result.returncode)
-        result_str = '{} {}  {}{}{}{:5} s {}'.format(num, name, padding1, result.res.value,
-                                                      padding2, result.duration, status)
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
-        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.UNEXPECTEDPASS,
-                        TestResult.ERROR)
+        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT,
+                        TestResult.UNEXPECTEDPASS, TestResult.ERROR)
+        result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
+            numlen=len(str(test_count)),
+            num=i,
+            testcount=test_count,
+            name_max_len=name_max_len,
+            name=name,
+            reslen=TestResult.maxlen(),
+            res=result.res.value,
+            dur=result.duration)
+        if result.res is TestResult.FAIL:
+            result_str += ' ' + returncode_to_status(result.returncode)
         if not self.options.quiet or result.res not in ok_statuses:
             if result.res not in ok_statuses and mlog.colorize_console:
                 if result.res in bad_statuses:
@@ -932,8 +938,9 @@ Timeout:            {:<4}
 
     def run_tests(self, tests: T.List['TestSerialisation']) -> None:
         executor = None
-        futures = []  # type: T.List[T.Tuple[conc.Future[TestRun], int, T.List[TestSerialisation], str, int]]
-        numlen = len('{}'.format(len(tests)))
+        futures = []  # type: T.List[T.Tuple[conc.Future[TestRun], int, int, T.List[TestSerialisation], str, int]]
+        test_count = len(tests)
+        name_max_len = max([len(self.get_pretty_suite(test)) for test in tests])
         self.open_log_files()
         startdir = os.getcwd()
         if self.options.wd:
@@ -942,7 +949,7 @@ Timeout:            {:<4}
 
         try:
             for _ in range(self.options.repeat):
-                for i, test in enumerate(tests):
+                for i, test in enumerate(tests, 1):
                     visible_name = self.get_pretty_suite(test)
                     single_test = self.get_test_runner(test)
 
@@ -951,12 +958,12 @@ Timeout:            {:<4}
                         futures = []
                         res = single_test.run()
                         self.process_test_result(res)
-                        self.print_stats(numlen, tests, visible_name, res, i)
+                        self.print_stats(test_count, name_max_len, tests, visible_name, res, i)
                     else:
                         if not executor:
                             executor = conc.ThreadPoolExecutor(max_workers=self.options.num_processes)
                         f = executor.submit(single_test.run)
-                        futures.append((f, numlen, tests, visible_name, i))
+                        futures.append((f, test_count, name_max_len, tests, visible_name, i))
                     if self.options.repeat > 1 and self.fail_count:
                         break
                 if self.options.repeat > 1 and self.fail_count:
@@ -971,15 +978,15 @@ Timeout:            {:<4}
         finally:
             os.chdir(startdir)
 
-    def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, T.List['TestSerialisation'], str, int]]) -> None:
+    def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, int, T.List['TestSerialisation'], str, int]]) -> None:
         for x in futures:
-            (result, numlen, tests, name, i) = x
+            (result, test_count, name_max_len, tests, name, i) = x
             if self.options.repeat > 1 and self.fail_count:
                 result.cancel()
             if self.options.verbose:
                 result.result()
             self.process_test_result(result.result())
-            self.print_stats(numlen, tests, name, result.result(), i)
+            self.print_stats(test_count, name_max_len, tests, name, result.result(), i)
 
     def run_special(self) -> int:
         '''Tests run by the user, usually something like "under gdb 1000 times".'''
