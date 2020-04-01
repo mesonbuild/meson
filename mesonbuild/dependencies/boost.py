@@ -152,6 +152,9 @@ class BoostLibraryFile():
 
         # Process tags
         tags = self.nametags[1:]
+        # Filter out the python version tag and fix modname
+        if self.is_python_lib():
+            tags = self.fix_python_name(tags)
         if not tags:
             return
 
@@ -225,6 +228,40 @@ class BoostLibraryFile():
 
     def is_python_lib(self) -> bool:
         return any([self.mod_name.startswith(x) for x in BoostLibraryFile.boost_python_libs])
+
+    def fix_python_name(self, tags: T.List[str]) -> T.List[str]:
+        # Handle the boost_python naming madeness.
+        # See https://github.com/mesonbuild/meson/issues/4788 for some distro
+        # specific naming variantions.
+        other_tags = []  # type: T.List[str]
+
+        # Split the current modname into the base name and the version
+        m_cur = BoostLibraryFile.reg_python_mod_split.match(self.mod_name)
+        cur_name = m_cur.group(1)
+        cur_vers = m_cur.group(2)
+
+        # Update the current version string if the new version string is longer
+        def update_vers(new_vers: str) -> None:
+            nonlocal cur_vers
+            new_vers = new_vers.replace('_', '')
+            new_vers = new_vers.replace('.', '')
+            if not new_vers.isdigit():
+                return
+            if len(new_vers) > len(cur_vers):
+                cur_vers = new_vers
+
+        for i in tags:
+            if i.startswith('py'):
+                update_vers(i[2:])
+            elif i.isdigit():
+                update_vers(i)
+            elif len(i) >= 3 and i[0].isdigit and i[2].isdigit() and i[1] == '.':
+                update_vers(i)
+            else:
+                other_tags += [i]
+
+        self.mod_name = cur_name + cur_vers
+        return other_tags
 
     def mod_name_matches(self, mod_name: str) -> bool:
         if self.mod_name == mod_name:
