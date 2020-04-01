@@ -36,7 +36,7 @@ else
 endif
 
 if(python3dep.found() and host_machine.system() == 'linux' and not s)
-  bpython3dep = dependency('boost', static: s, modules : ['python3'], required: false, disabler: true)
+  bpython3dep = dependency('boost', static: s, modules : ['python3'])
 else
   python3dep = disabler()
   bpython3dep = disabler()
