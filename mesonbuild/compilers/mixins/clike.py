@@ -727,22 +727,23 @@ class CLikeCompiler:
         # need to look for them differently. On nice compilers like clang, we
         # can just directly use the __has_builtin() macro.
         fargs['no_includes'] = '#include' not in prefix
+        fargs['__builtin_'] = '' if funcname.startswith('__builtin_') else '__builtin_'
         t = '''{prefix}
         int main(void) {{
         #ifdef __has_builtin
-            #if !__has_builtin(__builtin_{func})
-                #error "__builtin_{func} not found"
+            #if !__has_builtin({__builtin_}{func})
+                #error "{__builtin_}{func} not found"
             #endif
         #elif ! defined({func})
-            /* Check for __builtin_{func} only if no includes were added to the
+            /* Check for {__builtin_}{func} only if no includes were added to the
              * prefix above, which means no definition of {func} can be found.
              * We would always check for this, but we get false positives on
              * MSYS2 if we do. Their toolchain is broken, but we can at least
              * give them a workaround. */
             #if {no_includes:d}
-                __builtin_{func};
+                {__builtin_}{func};
             #else
-                #error "No definition for __builtin_{func} found in the prefix"
+                #error "No definition for {__builtin_}{func} found in the prefix"
             #endif
         #endif
         return 0;
