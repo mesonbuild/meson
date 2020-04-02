@@ -3,11 +3,11 @@
 set -e
 
 pkgs=(
-  python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3 python2
-  ninja make git autoconf automake patch python3-Cython python2-Cython python3-jsonschema
+  python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3
+  ninja make git autoconf automake patch python3-Cython python3-jsonschema
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
-  itstool gtk3-devel java-13-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
+  itstool gtk3-devel java-15-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
   #hdf5-devel netcdf-devel libscalapack2-openmpi3-devel libscalapack2-gnu-openmpi3-hpc-devel openmpi3-devel
   doxygen vulkan-devel vulkan-validationlayers openssh mercurial gtk-sharp3-complete gtk-sharp2-complete libpcap-devel libgpgme-devel
   libqt5-qtbase-devel libqt5-qttools-devel libqt5-linguist libqt5-qtbase-private-headers-devel
@@ -15,7 +15,7 @@ pkgs=(
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
-  libboost_python-devel libboost_python-py2_7-1_71_0-devel libboost_python-py3-1_71_0-devel libboost_regex-devel
+  libboost_python-devel libboost_python-py3-1_71_0-devel libboost_regex-devel
 )
 
 # Sys update
