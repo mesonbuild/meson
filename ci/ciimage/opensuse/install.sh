@@ -2,6 +2,8 @@
 
 set -e
 
+source /ci/common.sh
+
 pkgs=(
   python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3
   ninja make git autoconf automake patch python3-Cython python3-jsonschema
@@ -36,9 +38,9 @@ chmod +x /env_vars.sh
 
 source /env_vars.sh
 
-dub fetch urld
+dub_fetch urld
 dub build urld --compiler=dmd
-dub fetch dubtestproject
+dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=dmd
 dub build dubtestproject:test2 --compiler=dmd
 

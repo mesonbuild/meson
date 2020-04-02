@@ -33,6 +33,8 @@ class BuilderBase():
         self.data_dir = data_dir
         self.temp_dir = temp_dir
 
+        self.common_sh = self.data_dir.parent / 'common.sh'
+        self.common_sh = self.common_sh.resolve(strict=True)
         self.validate_data_dir()
 
         self.image_def = ImageDef(self.data_dir)
@@ -76,9 +78,10 @@ class Builder(BuilderBase):
         out_data = textwrap.dedent(f'''\
             FROM {self.image_def.base_image}
 
-            ADD install.sh  /usr/sbin/docker-do-install
-            ADD env_vars.sh /env_vars.sh
-            RUN docker-do-install
+            ADD install.sh  /ci/install.sh
+            ADD common.sh   /ci/common.sh
+            ADD env_vars.sh /ci/env_vars.sh
+            RUN /ci/install.sh
         ''')
 
         out_file.write_text(out_data)
@@ -87,6 +90,7 @@ class Builder(BuilderBase):
         # copy files
         for i in self.data_dir.iterdir():
             shutil.copy(str(i), str(self.temp_dir))
+        shutil.copy(str(self.common_sh), str(self.temp_dir))
 
         self.gen_bashrc()
         self.gen_dockerfile()
@@ -149,7 +153,7 @@ class ImageTester(BuilderBase):
 
             test_cmd = [
                 self.docker, 'run', '--rm', '-t', 'meson_test_image',
-                '/usr/bin/bash', '-c', 'source /env_vars.sh; cd meson; ./run_tests.py'
+                '/usr/bin/bash', '-c', 'source /ci/env_vars.sh; cd meson; ./run_tests.py'
             ]
             if subprocess.run(test_cmd).returncode != 0:
                 raise RuntimeError('Running tests failed')

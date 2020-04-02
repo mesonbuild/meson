@@ -42,6 +42,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Run tests
-      # All environment variables are stored inside the docker image in /env_vars.sh
+      # All environment variables are stored inside the docker image in /ci/env_vars.sh
       # They are defined in the `env` section in each image.json
-      run: bash -c "source /env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py"
+      run: bash -c "source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py"

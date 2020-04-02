@@ -2,6 +2,8 @@
 
 set -e
 
+source /ci/common.sh
+
 export DEBIAN_FRONTEND=noninteractive
 export LANG='C.UTF-8'
 export DC=gdc
@@ -42,9 +44,9 @@ eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is spec
 eatmydata python3 -m pip install hotdoc codecov jsonschema
 
 # dub stuff
-dub fetch urld
+dub_fetch urld
 dub build urld --compiler=gdc
-dub fetch dubtestproject
+dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=ldc2
 dub build dubtestproject:test2 --compiler=ldc2
 
