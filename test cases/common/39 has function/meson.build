@@ -88,4 +88,12 @@ foreach cc : compilers
     assert (cc.has_function('sendmmsg', args : unit_test_args),
             'Failed to detect function "sendmmsg" (should always exist).')
   endif
+
+  # We should be able to find GCC and Clang __builtin functions
+  if ['gcc', 'clang'].contains(cc.get_id())
+    # __builtin_constant_p is documented to exist at least as far back as
+    # GCC 2.95.3
+    assert(cc.has_function('__builtin_constant_p', args : unit_test_args),
+           '__builtin_constant_p must be found under gcc and clang')
+  endif
 endforeach
