@@ -489,6 +489,13 @@ class Parser:
             return True
         return False
 
+    def accept_any(self, tids: T.Sequence[str]) -> str:
+        tid = self.current.tid
+        if tid in tids:
+            self.getsym()
+            return tid
+        return ''
+
     def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
@@ -562,36 +569,35 @@ class Parser:
         return left
 
     def e5(self) -> BaseNode:
-        return self.e5add()
+        return self.e5addsub()
 
-    def e5add(self) -> BaseNode:
-        left = self.e5sub()
-        if self.accept('plus'):
-            return ArithmeticNode('add', left, self.e5add())
+    def e5addsub(self) -> BaseNode:
+        op_map = {
+            'plus': 'add',
+            'dash': 'sub',
+        }
+        left = self.e5muldiv()
+        while True:
+            op = self.accept_any(tuple(op_map.keys()))
+            if op:
+                left = ArithmeticNode(op_map[op], left, self.e5muldiv())
+            else:
+                break
         return left
 
-    def e5sub(self) -> BaseNode:
-        left = self.e5mod()
-        if self.accept('dash'):
-            return ArithmeticNode('sub', left, self.e5sub())
-        return left
-
-    def e5mod(self) -> BaseNode:
-        left = self.e5mul()
-        if self.accept('percent'):
-            return ArithmeticNode('mod', left, self.e5mod())
-        return left
-
-    def e5mul(self) -> BaseNode:
-        left = self.e5div()
-        if self.accept('star'):
-            return ArithmeticNode('mul', left, self.e5mul())
-        return left
-
-    def e5div(self) -> BaseNode:
+    def e5muldiv(self) -> BaseNode:
+        op_map = {
+            'percent': 'mod',
+            'star': 'mul',
+            'fslash': 'div',
+        }
         left = self.e6()
-        if self.accept('fslash'):
-            return ArithmeticNode('div', left, self.e5div())
+        while True:
+            op = self.accept_any(tuple(op_map.keys()))
+            if op:
+                left = ArithmeticNode(op_map[op], left, self.e6())
+            else:
+                break
         return left
 
     def e6(self) -> BaseNode:
