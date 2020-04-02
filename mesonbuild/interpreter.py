@@ -717,7 +717,8 @@ class DataHolder(InterpreterObject, ObjectHolder):
         return self.held_object.install_dir
 
 class InstallDir(InterpreterObject):
-    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode, exclude, strip_directory):
+    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode,
+                 exclude, strip_directory, from_source_dir=True):
         InterpreterObject.__init__(self)
         self.source_subdir = src_subdir
         self.installable_subdir = inst_subdir
@@ -725,6 +726,7 @@ class InstallDir(InterpreterObject):
         self.install_mode = install_mode
         self.exclude = exclude
         self.strip_directory = strip_directory
+        self.from_source_dir = from_source_dir
 
 class Man(InterpreterObject):
 
