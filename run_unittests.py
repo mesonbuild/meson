@@ -5051,6 +5051,33 @@ class WindowsTests(BasePlatformTests):
                 # Verify that a valid checksum was written by all other compilers
                 self.assertTrue(pe.verify_checksum(), msg=msg)
 
+    def test_qt5dependency_vscrt(self):
+        '''
+        Test that qt5 dependencies use the debug module suffix when b_vscrt is
+        set to 'mdd'
+        '''
+        # Verify that the `b_vscrt` option is available
+        env = get_fake_env()
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if 'b_vscrt' not in cc.base_options:
+            raise unittest.SkipTest('Compiler does not support setting the VS CRT')
+        # Verify that qmake is for Qt5
+        if not shutil.which('qmake-qt5'):
+            if not shutil.which('qmake') and not is_ci():
+                raise unittest.SkipTest('QMake not found')
+            output = subprocess.getoutput('qmake --version')
+            if 'Qt version 5' not in output and not is_ci():
+                raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
+        # Setup with /MDd
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        self.init(testdir, extra_args=['-Db_vscrt=mdd'])
+        # Verify that we're linking to the debug versions of Qt DLLs
+        build_ninja = os.path.join(self.builddir, 'build.ninja')
+        with open(build_ninja, 'r', encoding='utf-8') as f:
+            contents = f.read()
+            m = re.search('build qt5core.exe: cpp_LINKER.*Qt5Cored.lib', contents)
+        self.assertIsNotNone(m, msg=contents)
+
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
 class DarwinTests(BasePlatformTests):
