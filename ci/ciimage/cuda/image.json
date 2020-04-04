@@ -1,0 +1,5 @@
+{
+  "base_image": "archlinux:latest",
+  "args": ["--only", "cuda"],
+  "env": {}
+}
