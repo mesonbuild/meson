@@ -177,6 +177,7 @@ class TAPParser:
     Bailout = namedtuple('Bailout', ['message'])
     Test = namedtuple('Test', ['number', 'name', 'result', 'explanation'])
     Error = namedtuple('Error', ['message'])
+    Warn = namedtuple('Warning', ['message'])
     Version = namedtuple('Version', ['version'])
 
     _MAIN = 1
@@ -212,7 +213,7 @@ class TAPParser:
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
-    def parse(self) -> T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout'], None, None]:
+    def parse(self) -> T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout', 'TAPParser.Warn'], None, None]:
         found_late_test = False
         bailed_out = False
         plan = None
@@ -308,7 +309,7 @@ class TAPParser:
             if len(line) == 0:
                 continue
 
-            yield self.Error('unexpected input at line {}'.format((lineno,)))
+            yield self.Warn('unexpected input at line {}'.format((lineno,)))
 
         if state == self._YAML:
             yield self.Error('YAML block not terminated (started on line {})'.format(yaml_lineno))
