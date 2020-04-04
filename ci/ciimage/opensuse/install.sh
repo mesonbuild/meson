@@ -28,15 +28,15 @@ zypper --non-interactive update
 zypper install -y "${pkgs[@]}"
 python3 -m pip install hotdoc gobject PyGObject
 
-echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /env_vars.sh
+echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /ci/env_vars.sh
 
 # dmd is very special on OpenSUSE (as in the packages do not work)
 # see https://bugzilla.opensuse.org/show_bug.cgi?id=1162408
 curl -fsS https://dlang.org/install.sh | bash -s dmd | tee dmd_out.txt
-cat dmd_out.txt | grep source | sed 's/^[^`]*`//g' | sed 's/`.*//g' >> /env_vars.sh
-chmod +x /env_vars.sh
+cat dmd_out.txt | grep source | sed 's/^[^`]*`//g' | sed 's/`.*//g' >> /ci/env_vars.sh
+chmod +x /ci/env_vars.sh
 
-source /env_vars.sh
+source /ci/env_vars.sh
 
 dub_fetch urld
 dub build urld --compiler=dmd
