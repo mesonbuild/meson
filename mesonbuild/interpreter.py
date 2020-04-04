@@ -3549,6 +3549,14 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_dependency()
 
         has_fallback = 'fallback' in kwargs
+        if not has_fallback and name:
+            # Add an implicit fallback if we have a wrap file or a directory with the same name.
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+            wrap_, directory = wrap.get_directory(subproject_dir_abs, name)
+            if wrap_ or os.path.exists(os.path.join(subproject_dir_abs, directory)):
+                kwargs['fallback'] = name
+                has_fallback = True
+
         if 'default_options' in kwargs and not has_fallback:
             mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
                          location=self.current_node)

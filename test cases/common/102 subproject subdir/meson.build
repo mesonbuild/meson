@@ -25,3 +25,7 @@ dependency('sub-novar', fallback : 'sub_novar')
 # Verify a subproject can force a dependency to be not-found
 d = dependency('sub-notfound', fallback : 'sub_novar', required : false)
 assert(not d.found(), 'Dependency should be not-found')
+
+# Verify that implicit fallback works because subprojects/sub_implicit directory exists
+d = dependency('sub_implicit')
+assert(d.found(), 'Should implicitly fallback')

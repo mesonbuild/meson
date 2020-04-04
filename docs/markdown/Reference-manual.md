@@ -456,7 +456,9 @@ arguments:
   *(since 0.54.0)* `'subproj_dep'` argument can be omitted in the case the
   subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
   In that case, the `fallback` keyword argument can be a single string instead
-  of a list of 2 strings.
+  of a list of 2 strings. *Since 0.55.0* the `fallback` keyword argument can be
+  omitted when there is a wrap file or a directory with the same `dependency_name`,
+  and subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
 - `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method`: defines the way the dependency is detected, the default is
