@@ -395,6 +395,17 @@ llvm_dep = dependency(
 )
 ```
 
+### Using LLVM tools
+When using LLVM as library but also needing its tools, it is often beneficial to use the same version.
+This can partially be achieved with the `version` argument of `find_program()`.
+However, distributions tend to package different LLVM versions in rather different ways.
+Therefore, it is often better to use the llvm dependency directly to retrieve the tools:
+
+```meson
+llvm_dep = dependency('llvm', version : ['>= 8', '< 9'])
+llvm_link = find_program(llvm_dep.get_variable(configtool: 'bindir') / 'llvm-link')
+```
+
 ## MPI
 
 *(added 0.42.0)*
