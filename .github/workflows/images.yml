@@ -28,6 +28,7 @@ jobs:
       matrix:
         cfg:
           - { name: Arch Linux,       id: arch     }
+          - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Eoan,      id: eoan     }
