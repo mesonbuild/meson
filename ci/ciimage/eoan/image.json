@@ -1,0 +1,7 @@
+{
+  "base_image": "ubuntu:eoan",
+  "env": {
+    "CI": "1",
+    "DC": "gdc"
+  }
+}

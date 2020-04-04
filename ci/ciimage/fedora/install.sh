@@ -1,8 +1,10 @@
 #!/bin/bash
 
+set -e
+
 pkgs=(
   python python-setuptools python-wheel python-pip python-pytest-xdist pygobject3 python3-devel python2-devel
-  ninja-build make git autoconf automake patch python3-Cython python2-Cython
+  ninja-build make git autoconf automake patch python3-Cython python2-Cython python3-jsonschema
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-objc++ vala rust bison flex ldc libasan libasan-static
   mono-core boost-devel gtkmm30 gtest-devel gmock-devel protobuf-devel wxGTK3-devel gobject-introspection
   boost-python3-devel boost-python2-devel

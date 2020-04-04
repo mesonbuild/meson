@@ -1,0 +1,6 @@
+{
+  "base_image": "archlinux:latest",
+  "env": {
+    "CI": "1"
+  }
+}
