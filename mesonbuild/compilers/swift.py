@@ -100,7 +100,8 @@ class SwiftCompiler(Compiler):
         output_name = os.path.join(work_dir, 'swifttest')
         extra_flags = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
+        need_exe_wrapper = self.is_cross and environment.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper:
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
@@ -111,7 +112,7 @@ class SwiftCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('Swift compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
+        if need_exe_wrapper:
             # Can't check if the binaries run so we have to assume they do
             return
         if subprocess.call(output_name) != 0:

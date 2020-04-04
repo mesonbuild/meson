@@ -67,7 +67,7 @@ class RustCompiler(Compiler):
                 self.name_string(),
                 stdo,
                 stde))
-        if self.is_cross:
+        if self.is_cross and environment.need_exe_wrapper(self.for_machine):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return

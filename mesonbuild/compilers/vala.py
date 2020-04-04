@@ -96,7 +96,7 @@ class ValaCompiler(Compiler):
         code = 'class MesonSanityCheck : Object { }'
         extra_flags = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
+        if self.is_cross and environment.need_exe_wrapper(self.for_machine):
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)

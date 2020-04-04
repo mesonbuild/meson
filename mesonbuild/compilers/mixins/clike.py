@@ -202,15 +202,18 @@ class CLikeCompiler:
         return self.linker.import_library_args(implibname)
 
     def sanity_check_impl(self, work_dir, environment, sname, code):
+        need_exe_wrapper = self.is_cross and environment.need_exe_wrapper(self.for_machine)
+
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
+        mlog.debug('Need exe wrapper: %s.' % str(need_exe_wrapper))
 
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
         mode = 'link'
         if self.is_cross:
             binname += '_cross'
-            if self.exe_wrapper is None:
+            if need_exe_wrapper and self.exe_wrapper is None:
                 # Linking cross built apps is painful. You can't really
                 # tell if you should use -nostdlib or not and for example
                 # on OSX the compiler binary is the same but you need
@@ -240,7 +243,7 @@ class CLikeCompiler:
         if pc.returncode != 0:
             raise mesonlib.EnvironmentException('Compiler {0} can not compile programs.'.format(self.name_string()))
         # Run sanity check
-        if self.is_cross:
+        if need_exe_wrapper:
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
@@ -371,15 +374,17 @@ class CLikeCompiler:
                              dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
-        if self.is_cross and self.exe_wrapper is None:
+        need_exe_wrapper = self.is_cross and env.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
+
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
             if p.returncode != 0:
                 mlog.debug('Could not compile test file %s: %d\n' % (
                     p.input_name,
                     p.returncode))
                 return compilers.RunResult(False)
-            if self.is_cross:
+            if need_exe_wrapper:
                 cmdlist = self.exe_wrapper + [p.output_name]
             else:
                 cmdlist = p.output_name

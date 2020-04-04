@@ -46,7 +46,8 @@ class ObjCCompiler(CLikeCompiler, Compiler):
         binary_name = os.path.join(work_dir, 'sanitycheckobjc')
         extra_flags = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
+        need_exe_wrapper = self.is_cross and environment.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and self.exe_wrapper is None:
             extra_flags += self.get_compile_only_args()
         else:
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
@@ -57,7 +58,7 @@ class ObjCCompiler(CLikeCompiler, Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('ObjC compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
+        if need_exe_wrapper:
             # Can't check if the binaries run so we have to assume they do
             return
         pe = subprocess.Popen(binary_name)

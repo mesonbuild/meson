@@ -452,7 +452,7 @@ class DCompiler(Compiler):
         pc.wait()
         if pc.returncode != 0:
             raise EnvironmentException('D compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
+        if self.is_cross and environment.need_exe_wrapper(self.for_machine):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
