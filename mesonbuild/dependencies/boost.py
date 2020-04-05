@@ -131,12 +131,17 @@ class BoostLibraryFile():
         name_parts = self.name.split('.')
         self.basename = name_parts[0]
         self.suffixes = name_parts[1:]
+        self.vers_raw = [x for x in self.suffixes if x.isdigit()]
         self.suffixes = [x for x in self.suffixes if not x.isdigit()]
         self.nvsuffix = '.'.join(self.suffixes)  # Used for detecting the library type
         self.nametags = self.basename.split('-')
         self.mod_name = self.nametags[0]
         if self.mod_name.startswith('lib'):
             self.mod_name = self.mod_name[3:]
+
+        # Set library version if possible
+        if len(self.vers_raw) >= 2:
+            self.version_lib = '{}_{}'.format(self.vers_raw[0], self.vers_raw[1])
 
         # Detecting library type
         if self.nvsuffix in ['so', 'dll', 'dll.a', 'dll.lib', 'dylib']:
