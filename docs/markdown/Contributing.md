@@ -209,6 +209,9 @@ Exanple `test.json`:
       { "opt1": "qwert", "opt2": "false" },
       { "opt1": "bad"                    }
     ]
+  },
+  "tools": {
+    "cmake": ">=3.11"
   }
 }
 ```
@@ -323,6 +326,13 @@ The above example will produce the following matrix entries:
 Currently supported values are:
 - `prefix`
 - `libdir`
+
+#### tools
+
+This section specifies a list of tool requirements in a simple key-value format.
+If a tool is specified, it has to be present in the environment, and the version
+requirement must be fulfilled match. Otherwise, the entire test is skipped
+(including every element in the test matrix).
 
 ### Skipping integration tests
 

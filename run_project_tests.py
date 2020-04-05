@@ -190,7 +190,7 @@ class TestDef:
         self.skip = skip
         self.env = os.environ.copy()
         self.installed_files = []  # type: T.List[InstalledFile]
-        self.do_not_set_opts = []      # type: T.List[str]
+        self.do_not_set_opts = []  # type: T.List[str]
 
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
@@ -233,6 +233,7 @@ no_meson_log_msg = 'No meson-log.txt found.'
 
 system_compiler = None
 compiler_id_map = {}  # type: T.Dict[str, str]
+tool_vers_map = {}    # type: T.Dict[str, str]
 
 class StopException(Exception):
     def __init__(self):
@@ -568,6 +569,15 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
         # Handle the do_not_set_opts list
         do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
 
+        # Skip tests if the tool requirements are not met
+        if 'tools' in test_def:
+            assert isinstance(test_def['tools'], dict)
+            for tool, vers_req in test_def['tools'].items():
+                if tool not in tool_vers_map:
+                    t.skip = True
+                elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
+                    t.skip = True
+
         # Skip the matrix code and just update the existing test
         if 'matrix' not in test_def:
             t.env.update(env)
@@ -639,7 +649,7 @@ def gather_tests(testdir: Path) -> T.List[TestDef]:
             name = ' '.join([x[0] for x in i if x[0] is not None])
             opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
-            test = TestDef(t.path, name, opts, skip)
+            test = TestDef(t.path, name, opts, skip or t.skip)
             test.env.update(env)
             test.installed_files = installed
             test.do_not_set_opts = do_not_set_opts
@@ -1123,6 +1133,7 @@ def print_tool_versions():
             i = i.strip('\n\r\t ')
             m = t['regex'].match(i)
             if m is not None:
+                tool_vers_map[t['tool']] = m.group(t['match_group'])
                 return '{} ({})'.format(exe, m.group(t['match_group']))
 
         return '{} (unknown)'.format(exe)
