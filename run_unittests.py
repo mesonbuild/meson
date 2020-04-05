@@ -7431,6 +7431,9 @@ class TAPParserTests(unittest.TestCase):
     def assert_error(self, events):
         self.assertEqual(type(next(events)), TAPParser.Error)
 
+    def assert_warning(self, events):
+        self.assertEqual(type(next(events)), TAPParser.Warn)
+
     def assert_bailout(self, events, **kwargs):
         self.assertEqual(next(events), TAPParser.Bailout(**kwargs))
 
@@ -7649,7 +7652,7 @@ class TAPParserTests(unittest.TestCase):
     def test_unexpected(self):
         events = self.parse_tap('1..1\ninvalid\nok 1')
         self.assert_plan(events, count=1, late=False)
-        self.assert_error(events)
+        self.assert_warning(events)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
