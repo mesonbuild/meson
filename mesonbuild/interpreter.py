@@ -2014,7 +2014,7 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
-    @FeatureNew('meson.override_dependency', '0.53.0')
+    @FeatureNew('meson.override_dependency', '0.54.0')
     @permittedKwargs({'native'})
     def override_dependency_method(self, args, kwargs):
         if len(args) != 2:
