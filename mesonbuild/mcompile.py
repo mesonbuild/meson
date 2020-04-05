@@ -54,7 +54,6 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         action='store',
         dest='builddir',
         type=pathlib.Path,
-        required=True,
         default='.',
         help='The directory containing build files to be built.'
     )
