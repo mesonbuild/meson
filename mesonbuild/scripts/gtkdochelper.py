@@ -21,6 +21,7 @@ from . import destdir_join
 
 parser = argparse.ArgumentParser()
 
+parser.add_argument('--prefix', dest='prefix')
 parser.add_argument('--sourcedir', dest='sourcedir')
 parser.add_argument('--builddir', dest='builddir')
 parser.add_argument('--subdir', dest='subdir')
@@ -80,7 +81,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
                  html_args, scan_args, fixxref_args, mkdb_args,
                  gobject_typesfile, scanobjs_args, run, ld, cc, ldflags, cflags,
                  html_assets, content_files, ignore_headers, namespace,
-                 expand_content_files, mode, options):
+                 expand_content_files, mode, install_prefix, datadir, options):
     print("Building documentation for %s" % module)
 
     src_dir_args = []
@@ -199,6 +200,7 @@ def build_gtkdoc(source_root, build_root, doc_subdir, src_subdirs,
 
     # Fix cross-references in HTML files
     fixref_cmd = [options.gtkdoc_fixxref,
+                  '--html-dir=' + os.path.join(install_prefix, datadir),
                   '--module=' + module,
                   '--module-dir=html'] + fixxref_args
     gtkdoc_run_check(fixref_cmd, abs_out)
@@ -260,6 +262,8 @@ def run(args):
         options.namespace,
         options.expand_content_files.split('@@') if options.expand_content_files else [],
         options.mode,
+        options.prefix,
+        'share/gtk-doc/html',
         options)
 
     if 'MESON_INSTALL_PREFIX' in os.environ:
