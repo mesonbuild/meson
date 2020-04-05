@@ -3237,8 +3237,8 @@ int main(int argc, char **argv) {
             ('10 out of bounds', 'meson.build'),
             ('18 wrong plusassign', 'meson.build'),
             ('61 bad option argument', 'meson_options.txt'),
-            ('100 subdir parse error', os.path.join('subdir', 'meson.build')),
-            ('101 invalid option file', 'meson_options.txt'),
+            ('102 subdir parse error', os.path.join('subdir', 'meson.build')),
+            ('103 invalid option file', 'meson_options.txt'),
         ]:
             tdir = os.path.join(self.src_root, 'test cases', 'failing', t)
 
