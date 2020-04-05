@@ -2779,10 +2779,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                                            self.subproject_dir, dirname))
             return subproject
 
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'), current_subproject=self.subproject)
+        r = self.environment.wrap_resolver
         try:
-            resolved = r.resolve(dirname, method)
+            resolved = r.resolve(dirname, method, self.subproject)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
             if isinstance(e, wrap.WrapNotFoundException):
@@ -2798,7 +2797,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
-        subdir_abs = os.path.join(subproject_dir_abs, resolved)
+        subdir_abs = os.path.join(self.environment.get_source_dir(), subdir)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
@@ -3062,6 +3061,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.subproject_dir = spdirname
 
         self.build.subproject_dir = self.subproject_dir
+        if not self.is_subproject():
+            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+            self.environment.wrap_resolver = wrap.Resolver(subproject_dir_abs, wrap_mode)
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
@@ -3551,10 +3554,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         has_fallback = 'fallback' in kwargs
         if not has_fallback and name:
             # Add an implicit fallback if we have a wrap file or a directory with the same name.
-            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-            wrap_, directory = wrap.get_directory(subproject_dir_abs, name)
-            if wrap_ or os.path.exists(os.path.join(subproject_dir_abs, directory)):
-                kwargs['fallback'] = name
+            provider = self.environment.wrap_resolver.find_provider(name)
+            if provider:
+                kwargs['fallback'] = provider
                 has_fallback = True
 
         if 'default_options' in kwargs and not has_fallback:

@@ -111,6 +111,10 @@ class PackageDefinition:
             self.config.read(fname)
         except configparser.Error:
             raise WrapException('Failed to parse {}'.format(self.basename))
+        self.parse_wrap_section()
+        self.parse_provide_section()
+
+    def parse_wrap_section(self):
         if len(self.config.sections()) < 1:
             raise WrapException('Missing sections in {}'.format(self.basename))
         self.wrap_section = self.config.sections()[0]
@@ -119,6 +123,11 @@ class PackageDefinition:
             raise WrapException(m.format(self.wrap_section, self.basename))
         self.type = self.wrap_section[5:]
         self.values = dict(self.config[self.wrap_section])
+
+    def parse_provide_section(self):
+        self.provide = {self.name: None}
+        if self.config.has_section('provide'):
+            self.provide.update(self.config['provide'])
 
     def get(self, key: str) -> str:
         try:
@@ -145,17 +154,48 @@ def get_directory(subdir_root: str, packagename: str):
     return wrap, directory
 
 class Resolver:
-    def __init__(self, subdir_root: str, wrap_mode=WrapMode.default, current_subproject: str = ''):
+    def __init__(self, subdir_root: str, wrap_mode=WrapMode.default):
         self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
-        self.current_subproject = current_subproject
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
         self.filesdir = os.path.join(self.subdir_root, 'packagefiles')
+        self.wraps = {} # type: T.Dict[str, T.Tuple[T.Optional[PackageDefinition], T.Optional[str]]]
+        self.load_wraps()
 
-    def resolve(self, packagename: str, method: str) -> str:
+    def load_wraps(self):
+        if not os.path.isdir(self.subdir_root):
+            return
+        # Load wrap files upfront
+        for f in os.listdir(self.subdir_root):
+            if f.endswith('.wrap'):
+                packagename = f[:-5]
+                wrap, directory = get_directory(self.subdir_root, packagename)
+                for k in wrap.provide.keys():
+                    self.wraps[k] = (wrap, directory)
+            elif os.path.isdir(os.path.join(self.subdir_root, f)):
+                # Keep it in the case we have dirs with no corresponding wrap file.
+                self.wraps.setdefault(f, (None, f))
+
+    def find_provider(self, packagename: str):
+        # Return value is in the same format as fallback kwarg:
+        # ['subproject_name', 'variable_name'], or 'subproject_name'.
+        wrap, directory = self.wraps.get(packagename, (None, None))
+        if wrap:
+            dep_var = wrap.provide[packagename]
+            if dep_var:
+                return [wrap.name, dep_var]
+            return wrap.name
+        return directory
+
+    def resolve(self, packagename: str, method: str, current_subproject: str = '') -> str:
+        self.current_subproject = current_subproject
         self.packagename = packagename
-        self.wrap, self.directory = get_directory(self.subdir_root, self.packagename)
+        self.wrap, self.directory = self.wraps.get(packagename, (None, self.packagename))
+        if self.wrap and packagename != self.wrap.name:
+            m = 'subproject() must not be called by the name of a dependency it provides. Expecting {!r} but got {!r}.'
+            raise WrapException(m.format(self.wrap.name, packagename))
         self.dirname = os.path.join(self.subdir_root, self.directory)
+
         meson_file = os.path.join(self.dirname, 'meson.build')
         cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
 

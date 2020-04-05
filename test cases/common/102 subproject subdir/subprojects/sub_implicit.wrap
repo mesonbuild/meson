@@ -1,0 +1,5 @@
+[wrap-file]
+
+[provide]
+sub_implicit_provide1=
+sub_implicit_provide2=sub_implicit_provide2_dep

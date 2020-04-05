@@ -105,7 +105,7 @@ of downloading the file, even if `--wrap-mode` option is set to
   valid value (such as a git tag) for the VCS's `checkout` command, or
   (for git) `head` to track upstream's default branch. Required.
 
-## Specific to wrap-git
+### Specific to wrap-git
 - `depth` - shallowly clone the repository to X number of commits. Note
   that git always allow shallowly cloning branches, but in order to
   clone commit ids shallowly, the server must support
@@ -137,6 +137,36 @@ put them somewhere where you can download them.
 
 Meson build patches are only supported for wrap-file mode. When using
 wrap-git, the repository must contain all Meson build definitions.
+
+## `provide` section
+
+*Since *0.55.0*
+
+Wrap files can define the dependencies it provides in the `[provide]` section.
+When a wrap file provides the dependency `foo` any call do `dependency('foo')`
+will automatically fallback to that subproject even if no `fallback` keyword
+argument is given. Each entry in the format `dependency_name = variable_name`,
+where `dependency_name` usually match the corresponding pkg-config name and
+`variable_name` is the name of a variable defined in the subproject that should
+be returned for that dependency. In the case the subproject uses
+`meson.override_dependency('foo', foo_dep)` the `variable_name` can be left empty
+in the wrap file.
+
+For example `glib.wrap` provides `glib-2.0`, `gobject-2.0` and `gio-2.0`. A wrap
+file for glib would look like:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+glib-2.0=glib_dep
+gobject-2.0=gobject_dep
+gio-2.0=gio_dep
+```
+
+With such wrap file, `dependency('glib-2.0')` will automatically fallback to use
+`glib.wrap` and return `glib_dep` variable from the subproject.
 
 ## Using wrapped projects
 

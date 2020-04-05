@@ -29,3 +29,14 @@ assert(not d.found(), 'Dependency should be not-found')
 # Verify that implicit fallback works because subprojects/sub_implicit directory exists
 d = dependency('sub_implicit')
 assert(d.found(), 'Should implicitly fallback')
+
+# Verify that implicit fallback works because sub_implicit.wrap has
+# `sub_implicit_provide1=` and the subproject overrides sub_implicit_provide1.
+d = dependency('sub_implicit_provide1')
+assert(d.found(), 'Should implicitly fallback')
+
+# Verify that implicit fallback works because sub_implicit.wrap has
+# `sub_implicit_provide2=sub_implicit_provide2_dep` and does not override
+# sub_implicit_provide2.
+d = dependency('sub_implicit_provide2')
+assert(d.found(), 'Should implicitly fallback')
