@@ -39,6 +39,7 @@ jobs:
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
           - { name: OpenSUSE,         id: opensuse }
+          - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest
     steps:
     - uses: actions/checkout@v1
