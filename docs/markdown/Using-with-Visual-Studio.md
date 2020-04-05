@@ -6,19 +6,20 @@ short-description: How to use meson in Visual Studio
 
 In order to generate Visual Studio projects, Meson needs to know the settings
 of your installed version of Visual Studio. The only way to get this
-information is to run Meson under the Visual Studio Command Prompt. The steps
-to set it up are as follows:
+information is to run Meson under the Visual Studio Command Prompt.
 
-1. Click on start menu and select "Visual Studio 2015 Command Prompt"
-1. cd into your source directory
-1. mkdir builddir
-1. py -3 path/to/meson.py builddir --backend vs2015
+You can always find the Visual Studio Command Prompt by searching from the
+Start Menu. However, the name is different for each Visual Studio version. With
+Visual Studio 2019, look for "x64 Native Tools Command Prompt for VS 2019".
+The next steps are [the same as always](https://mesonbuild.com/Running-Meson.html#configuring-the-build-directory):
 
-If you wish to use the Ninja backend instead of vs2015, pass `--backend
-ninja`. At the time of writing the Ninja backend is more mature than the VS
-backend so you might want to use it for serious work.
+1. `cd` into your source directory
+1. `meson setup builddir`, which will create and setup the build directory
+1. `meson compile -C builddir`, to compile your code. You can also use `ninja -C builddir` here if you are using the default Ninja backend.
 
-This assumes the py launcher is in your `PATH`, which is highly recommended.
+If you wish to generate Visual Studio project files, pass `--backend vs`.
+At the time of writing the Ninja backend is more mature than the VS backend so
+you might want to use it for serious work.
 
 # Using Clang-CL with Visual Studio
 
