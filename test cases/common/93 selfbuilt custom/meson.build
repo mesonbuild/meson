@@ -14,3 +14,14 @@ hfile = custom_target('datah',
 main = executable('mainprog', 'mainprog.cpp', hfile)
 
 test('maintest', main)
+
+lib = library('libtool', 'tool.cpp')
+
+checkarg = executable('checkarg', 'checkarg.cpp')
+
+ctlib = custom_target('ctlib',
+  output : 'ctlib.out',
+  capture : true,
+  command : [checkarg, lib],
+  build_by_default : true,
+)

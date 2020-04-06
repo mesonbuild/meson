@@ -817,9 +817,9 @@ class Backend:
             if delta > 0.001:
                 raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
 
-    def exe_object_to_cmd_array(self, exe):
-        if isinstance(exe, build.BuildTarget):
-            if exe.for_machine is not MachineChoice.BUILD:
+    def build_target_to_cmd_array(self, bt):
+        if isinstance(bt, build.BuildTarget):
+            if isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
                 if (self.environment.is_cross_build() and
                         self.environment.exe_wrapper is None and
                         self.environment.need_exe_wrapper()):
@@ -827,12 +827,12 @@ class Backend:
                         Cannot use target {} as a generator because it is built for the
                         host machine and no exe wrapper is defined or needs_exe_wrapper is
                         true. You might want to set `native: true` instead to build it for
-                        the build machine.'''.format(exe.name))
+                        the build machine.'''.format(bt.name))
                     raise MesonException(s)
-            exe_arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(exe))]
+            arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         else:
-            exe_arr = exe.get_command()
-        return exe_arr
+            arr = bt.get_command()
+        return arr
 
     def replace_extra_args(self, args, genlist):
         final_args = []
@@ -960,8 +960,8 @@ class Backend:
         # Evaluate the command list
         cmd = []
         for i in target.command:
-            if isinstance(i, build.Executable):
-                cmd += self.exe_object_to_cmd_array(i)
+            if isinstance(i, build.BuildTarget):
+                cmd += self.build_target_to_cmd_array(i)
                 continue
             elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
