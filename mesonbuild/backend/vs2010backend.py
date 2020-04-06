@@ -119,7 +119,7 @@ class Vs2010Backend(backends.Backend):
                 infilelist = genlist.get_inputs()
                 outfilelist = genlist.get_outputs()
                 source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
-                exe_arr = self.exe_object_to_cmd_array(exe)
+                exe_arr = self.build_target_to_cmd_array(exe)
                 idgroup = ET.SubElement(parent_node, 'ItemGroup')
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
