@@ -27,11 +27,13 @@ case $i in
 esac
 done
 
+DEP_ARGS=$(pkg-config somelib --cflags --libs)
+
 cat > Makefile << EOL
 all: libfoo.$LIBEXT
 
 libfoo.$LIBEXT:
-	\$(CC) "$srcdir/libfoo.c" -shared -o \$@
+	\$(CC) "$srcdir/libfoo.c" -shared $DEP_ARGS -o \$@
 
 install: libfoo.$LIBEXT
 	mkdir -p "\$(DESTDIR)$LIBDIR";

@@ -21,7 +21,7 @@ from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNe
 from ..interpreterbase import noKwargs, noPosargs, stringArgs, permittedKwargs
 from ..interpreter import DependencyHolder, InstallDir
 from ..compilers.compilers import cflags_mapping, cexe_mapping
-from ..dependencies.base import InternalDependency, DependencyException
+from ..dependencies.base import InternalDependency, DependencyException, PkgConfigDependency
 
 class ExternalProject(InterpreterObject):
     def __init__(self, subdir, project_version, subproject, environment, build_machine, host_machine,
@@ -96,6 +96,8 @@ class ExternalProject(InterpreterObject):
         if link_exelist:
             self.run_env['LD'] = self._quote_and_join(link_exelist)
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
+        PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
+                                      os.path.join(self.env.get_build_dir(), 'meson-uninstalled'))
         self._run('configure', configure_cmd)
 
     def _quote_and_join(self, array):

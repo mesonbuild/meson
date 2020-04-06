@@ -30,4 +30,5 @@ p = mod.add_project('configure',
   verbose : true,
 )
 
-libfoo_dep = p.dependency('foo')
+libfoo_dep = declare_dependency(link_with : somelib,
+  dependencies : p.dependency('foo'))

@@ -1,6 +1,8 @@
 #include "libfoo.h"
 
+int func();
+
 int call_foo()
 {
-  return 42;
+  return func() == 1 ? 42 : 0;
 }

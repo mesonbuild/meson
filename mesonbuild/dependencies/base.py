@@ -641,6 +641,25 @@ class PkgConfigDependency(ExternalDependency):
         mlog.debug("Called `{}` -> {}\n{}".format(call, rc, out))
         return rc, out, err
 
+    @staticmethod
+    def setup_env(env, environment, for_machine, extra_path=None):
+        extra_paths = environment.coredata.builtins_per_machine[for_machine]['pkg_config_path'].value
+        if extra_path:
+            extra_paths.append(extra_path)
+        sysroot = environment.properties[for_machine].get_sys_root()
+        if sysroot:
+            env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
+        new_pkg_config_path = ':'.join([p for p in extra_paths])
+        mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
+        env['PKG_CONFIG_PATH'] = new_pkg_config_path
+
+        pkg_config_libdir_prop = environment.properties[for_machine].get_pkg_config_libdir()
+        if pkg_config_libdir_prop:
+            new_pkg_config_libdir = ':'.join([p for p in pkg_config_libdir_prop])
+            env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
+            mlog.debug('PKG_CONFIG_LIBDIR: ' + new_pkg_config_libdir)
+
+
     def _call_pkgbin(self, args, env=None):
         # Always copy the environment since we're going to modify it
         # with pkg-config variables
@@ -649,19 +668,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        extra_paths = self.env.coredata.builtins_per_machine[self.for_machine]['pkg_config_path'].value
-        sysroot = self.env.properties[self.for_machine].get_sys_root()
-        if sysroot:
-            env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
-        new_pkg_config_path = ':'.join([p for p in extra_paths])
-        mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
-        env['PKG_CONFIG_PATH'] = new_pkg_config_path
-
-        pkg_config_libdir_prop = self.env.properties[self.for_machine].get_pkg_config_libdir()
-        if pkg_config_libdir_prop:
-            new_pkg_config_libdir = ':'.join([p for p in pkg_config_libdir_prop])
-            env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
-            mlog.debug('PKG_CONFIG_LIBDIR: ' + new_pkg_config_libdir)
+        PkgConfigDependency.setup_env(env, self.env, self.for_machine)
 
         fenv = frozenset(env.items())
         targs = tuple(args)
