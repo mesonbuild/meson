@@ -877,7 +877,7 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
         start_tag = '${'
         backslash_tag = '\\${'
     else:
-        assert variable_format == 'meson'
+        assert variable_format in ['meson', 'cmake@']
         start_tag = '@'
         backslash_tag = '\\@'
 
@@ -909,10 +909,15 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
     return re.sub(regex, variable_replace, line), missing_variables
 
 
-def do_mesondefine(line: str, confdata: 'ConfigurationData') -> str:
+def do_define(line: str, confdata: 'ConfigurationData', mesondefine: bool) -> str:
     arr = line.split()
-    if len(arr) != 2:
+    if mesondefine:
+      if len(arr) != 2:
         raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+    else:
+      if len(arr) not in (2, 3):
+        raise MesonException('#cmakedefine does not contain two or tree tokens: %s' % line.strip())
+
     varname = arr[1]
     try:
         (v, desc) = confdata.get(varname)
@@ -959,7 +964,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
     for line in data:
         if line.startswith(search_token):
             confdata_useless = False
-            line = do_mesondefine(line, confdata)
+            line = do_define(line, confdata, (variable_format == 'meson'))
         else:
             line, missing = do_replacement(regex, line, variable_format, confdata)
             missing_variables.update(missing)
