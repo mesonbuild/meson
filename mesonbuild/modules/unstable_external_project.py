@@ -25,8 +25,7 @@ from ..dependencies.base import InternalDependency, DependencyException, PkgConf
 
 class ExternalProject(InterpreterObject):
     def __init__(self, subdir, project_version, subproject, environment, build_machine, host_machine,
-                 configure_command, configure_options, configure_cross_options,
-                 verbose):
+                 configure_command, configure_options, configure_cross_options, env, verbose):
         InterpreterObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,
                              })
@@ -41,6 +40,7 @@ class ExternalProject(InterpreterObject):
         self.configure_options = configure_options
         self.configure_cross_options = configure_cross_options
         self.verbose = verbose
+        self.user_env = env
 
         self.name = os.path.basename(self.subdir)
         self.src_dir = os.path.join(self.env.get_source_dir(), self.subdir)
@@ -96,6 +96,7 @@ class ExternalProject(InterpreterObject):
         if link_exelist:
             self.run_env['LD'] = self._quote_and_join(link_exelist)
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
+        self.run_env = self.user_env.get_env(self.run_env)
         PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
                                       os.path.join(self.env.get_build_dir(), 'meson-uninstalled'))
         self._run('configure', configure_cmd)
@@ -196,7 +197,7 @@ class ExternalProjectModule(ExtensionModule):
         super().__init__(interpreter)
 
     @stringArgs
-    @permittedKwargs({'options', 'cross_options', 'verbose'})
+    @permittedKwargs({'options', 'cross_options', 'verbose', 'env'})
     def add_project(self, state, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('add_project takes exactly one positional argument')
@@ -204,6 +205,7 @@ class ExternalProjectModule(ExtensionModule):
         configure_options = kwargs.get('options', [])
         configure_cross_options = kwargs.get('cross_options', ['--host={host}'])
         verbose = kwargs.get('verbose', False)
+        env = self.interpreter.unpack_env_kwarg(kwargs)
         project = ExternalProject(state.subdir,
                                   state.project_version,
                                   state.subproject,
@@ -213,7 +215,7 @@ class ExternalProjectModule(ExtensionModule):
                                   configure_command,
                                   configure_options,
                                   configure_cross_options,
-                                  verbose)
+                                  env, verbose)
         targets = project._get_targets()
         return ModuleReturnValue(project, targets)
 

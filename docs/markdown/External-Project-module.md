@@ -46,6 +46,8 @@ Keyword arguments:
   omitted it defaults to `['--host={host}']`.
 - `verbose`: If set to `true` the output of sub-commands ran to configure, build
   and install the project will be printed onto Meson's stdout.
+- `env` : environment variables to set, such as `['NAME1=value1', 'NAME2=value2']`,
+  a dictionary, or an [`environment()` object](Reference-manual.md#environment-object).
 
 Returns an [`ExternalProject`](#ExternalProject_object) object
 
