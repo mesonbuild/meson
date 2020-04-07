@@ -79,6 +79,7 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
                              'auto': self.auto_method,
+                             'to_string': self.to_string_method,
                              })
 
     @noPosargs
@@ -95,6 +96,19 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     @permittedKwargs({})
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
+
+    @noPosargs
+    @permittedKwargs({})
+    def to_string_method(self, args, kwargs):
+        if self.held_object.is_enabled():
+            return 'enabled'
+        elif self.held_object.is_disabled():
+            return 'disabled'
+        elif self.held_object.is_auto():
+            return 'auto'
+
+        # Should never reach here
+        return 'unknown'
 
 def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
     val = kwargs.get('required', default)

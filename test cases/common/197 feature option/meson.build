@@ -8,18 +8,22 @@ disabled_opt = get_option('disabled')
 assert(not feature_opts.enabled(), 'Should be auto option')
 assert(not feature_opts.disabled(), 'Should be auto option')
 assert(feature_opts.auto(), 'Should be auto option')
+assert(feature_opts.to_string() == 'auto', 'Should return auto')
 
 assert(required_opt.enabled(), 'Should be enabled option')
 assert(not required_opt.disabled(), 'Should be enabled option')
 assert(not required_opt.auto(), 'Should be enabled option')
+assert(required_opt.to_string() == 'enabled', 'Should return enabled')
 
 assert(not optional_opt.enabled(), 'Should be auto option')
 assert(not optional_opt.disabled(), 'Should be auto option')
 assert(optional_opt.auto(), 'Should be auto option')
+assert(optional_opt.to_string() == 'auto', 'Should return auto')
 
 assert(not disabled_opt.enabled(), 'Should be disabled option')
 assert(disabled_opt.disabled(), 'Should be disabled option')
 assert(not disabled_opt.auto(), 'Should be disabled option')
+assert(disabled_opt.to_string() == 'disabled', 'Should return disabled')
 
 dep = dependency('threads', required : required_opt)
 assert(dep.found(), 'Should find required "threads" dep')
