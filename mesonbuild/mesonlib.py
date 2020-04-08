@@ -935,14 +935,8 @@ def do_define(line: str, confdata: 'ConfigurationData', mesondefine: bool) -> st
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
-
-def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
-                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
-    try:
-        with open(src, encoding=encoding, newline='') as f:
-            data = f.readlines()
-    except Exception as e:
-        raise MesonException('Could not read input file %s: %s' % (src, str(e)))
+def do_conf_str (data: list, confdata: 'ConfigurationData', variable_format: str,
+                 encoding: str = 'utf-8') -> T.Tuple[T.List[str],T.Set[str], bool]:
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
     if variable_format in ['meson', 'cmake@']:
@@ -971,6 +965,18 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
             if missing:
                 confdata_useless = False
         result.append(line)
+
+    return result, missing_variables, confdata_useless
+
+def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
+                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
+    try:
+        with open(src, encoding=encoding, newline='') as f:
+            data = f.readlines()
+    except Exception as e:
+        raise MesonException('Could not read input file %s: %s' % (src, str(e)))
+
+    (result, missing_variables, confdata_useless) = do_conf_str(data, confdata, variable_format, encoding)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:

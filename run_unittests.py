@@ -62,7 +62,7 @@ from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.dependencies.base
-from mesonbuild.build import Target
+from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
 
 from mesonbuild.mtest import TAPParser, TestResult
@@ -1869,6 +1869,35 @@ class AllPlatformTests(BasePlatformTests):
         confdata = {'VAR': ('foo', 'bar')}
         self.assertEqual(conf_file('@VAR@\n@VAR@\n', confdata), 'foo\nfoo\n')
         self.assertEqual(conf_file('@VAR@\r\n@VAR@\r\n', confdata), 'foo\r\nfoo\r\n')
+
+    def test_do_conf_file_by_format(self):
+
+        def conf_file(in_data, confdata, vformat):
+            (result, missing_variables, confdata_useless) = mesonbuild.mesonlib.do_conf_str(in_data, confdata, variable_format = vformat)
+            return '\n'.join(result)
+
+        def check_formats (confdata, result):
+          self.assertEqual(conf_file(['#mesondefine VAR'], confdata, 'meson'),result)
+          self.assertEqual(conf_file(['#cmakedefine VAR'], confdata, 'cmake'),result)
+          self.assertEqual(conf_file(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'),result)
+
+         #Key error as they do not exists
+        confdata = ConfigurationData()
+        check_formats(confdata, '/* #undef VAR */\n')
+
+        # check boolean
+        confdata.values = {'VAR': (False,'description')}
+        check_formats(confdata, '#undef VAR\n')
+        confdata.values = {'VAR': (True,'description')}
+        check_formats(confdata, '#define VAR\n')
+
+        # check string
+        confdata.values = {'VAR': ('value','description')}
+        check_formats(confdata, '#define VAR value\n')
+
+        # check integer
+        confdata.values = {'VAR': (10,'description')}
+        check_formats(confdata, '#define VAR 10\n')
 
     def test_absolute_prefix_libdir(self):
         '''
