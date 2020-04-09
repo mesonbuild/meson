@@ -293,6 +293,12 @@ class MachineInfo:
         """Machine is illumos or Solaris?"""
         return self.system == 'sunos'
 
+    def is_hurd(self) -> bool:
+        """
+        Machine is GNU/Hurd?
+        """
+        return self.system == 'gnu'
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.

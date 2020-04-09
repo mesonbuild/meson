@@ -508,6 +508,10 @@ def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
 
 
+def is_hurd() -> bool:
+    return platform.system().lower() == 'gnu'
+
+
 def exe_exists(arglist: T.List[str]) -> bool:
     try:
         if subprocess.run(arglist, timeout=10).returncode == 0:
