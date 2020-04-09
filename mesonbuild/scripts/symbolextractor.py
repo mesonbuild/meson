@@ -94,7 +94,7 @@ def call_tool_nowarn(tool: T.List[str], **kwargs) -> T.Tuple[str, str]:
         return None, e
     return output, None
 
-def linux_syms(libfilename: str, outfilename: str):
+def gnu_syms(libfilename: str, outfilename: str):
     # Get the name of the library
     output = call_tool('readelf', ['-d', libfilename])
     if not output:
@@ -231,7 +231,7 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
         dummy_syms(outfilename)
     elif mesonlib.is_linux():
-        linux_syms(libfilename, outfilename)
+        gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
     elif mesonlib.is_windows():
