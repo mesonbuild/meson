@@ -230,7 +230,7 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         # determine the correct toolset, but we would need to use the correct
         # `nm`, `readelf`, etc, from the cross info which requires refactoring.
         dummy_syms(outfilename)
-    elif mesonlib.is_linux():
+    elif mesonlib.is_linux() or mesonlib.is_hurd():
         gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
