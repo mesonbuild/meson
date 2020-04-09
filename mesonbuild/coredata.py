@@ -665,7 +665,9 @@ class CoreData:
                 if type(oldval) != type(value):
                     self.user_options[name] = value
 
-    def is_cross_build(self) -> bool:
+    def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
+        if when_building_for == MachineChoice.BUILD:
+            return False
         return len(self.cross_files) > 0
 
     def strip_build_option_names(self, options):
