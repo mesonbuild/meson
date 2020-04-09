@@ -397,6 +397,7 @@ class LLVMDependencyCMake(CMakeDependency):
         # cmake if dynamic is required
         if not self.static:
             self.is_found = False
+            mlog.warning('Ignoring LLVM CMake dependency because dynamic was requested')
             return
 
         if self.traceparser is None:
