@@ -635,8 +635,8 @@ class Environment:
         self.coredata.meson_command = mesonlib.meson_command
         self.first_invocation = True
 
-    def is_cross_build(self) -> bool:
-        return self.coredata.is_cross_build()
+    def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
+        return self.coredata.is_cross_build(when_building_for)
 
     def dump_coredata(self):
         return coredata.save(self.coredata, self.get_build_dir())
@@ -899,7 +899,7 @@ class Environment:
     def _detect_c_or_cpp_compiler(self, lang: str, for_machine: MachineChoice) -> Compiler:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(lang, for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         for compiler in compilers:
@@ -1152,7 +1152,7 @@ class Environment:
 
     def detect_cuda_compiler(self, for_machine):
         popen_exceptions = {}
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         compilers, ccache, exe_wrap = self._get_compilers('cuda', for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
@@ -1192,7 +1192,7 @@ class Environment:
     def detect_fortran_compiler(self, for_machine: MachineChoice):
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('fortran', for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -1311,7 +1311,7 @@ class Environment:
     def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('objc' if objc else 'objcpp', for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         for compiler in compilers:
@@ -1402,7 +1402,7 @@ class Environment:
 
     def detect_vala_compiler(self, for_machine):
         exelist = self.lookup_binary_entry(for_machine, 'vala')
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback
@@ -1422,7 +1422,7 @@ class Environment:
     def detect_rust_compiler(self, for_machine):
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('rust', for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         cc = self.detect_c_compiler(for_machine)
@@ -1513,7 +1513,7 @@ class Environment:
             arch = 'x86_mscoff'
 
         popen_exceptions = {}
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         results, ccache, exe_wrap = self._get_compilers('d', for_machine)
         for exelist in results:
             # Search for a D compiler.
@@ -1604,7 +1604,7 @@ class Environment:
 
     def detect_swift_compiler(self, for_machine):
         exelist = self.lookup_binary_entry(for_machine, 'swift')
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback

@@ -369,7 +369,8 @@ class CLikeCompiler:
                              dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env, *, extra_args=None, dependencies=None):
-        if self.is_cross and self.exe_wrapper is None:
+        need_exe_wrapper = env.need_exe_wrapper(self.for_machine)
+        if need_exe_wrapper and self.exe_wrapper is None:
             raise compilers.CrossNoRunException('Can not run test applications in this cross environment.')
         with self._build_wrapper(code, env, extra_args, dependencies, mode='link', want_output=True) as p:
             if p.returncode != 0:
@@ -377,7 +378,7 @@ class CLikeCompiler:
                     p.input_name,
                     p.returncode))
                 return compilers.RunResult(False)
-            if self.is_cross:
+            if need_exe_wrapper:
                 cmdlist = self.exe_wrapper + [p.output_name]
             else:
                 cmdlist = p.output_name
