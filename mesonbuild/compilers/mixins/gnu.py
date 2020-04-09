@@ -140,12 +140,14 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     LINKER_PREFIX = '-Wl,'
 
     def __init__(self):
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
+        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
             self.base_options.append('b_lundef')
         if not self.info.is_windows() or self.info.is_cygwin():
             self.base_options.append('b_asneeded')
+        if not self.info.is_hurd():
+            self.base_options.append('b_sanitize')
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
