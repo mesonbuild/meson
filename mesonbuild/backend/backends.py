@@ -734,7 +734,7 @@ class Backend:
                 # E.g. an external verifier or simulator program run on a generated executable.
                 # Can always be run without a wrapper.
                 test_for_machine = MachineChoice.BUILD
-            is_cross = not self.environment.machines.matches_build_machine(test_for_machine)
+            is_cross = self.environment.is_cross_build() if test_for_machine == MachineChoice.HOST else False
             if is_cross and self.environment.need_exe_wrapper():
                 exe_wrapper = self.environment.get_exe_wrapper()
             else:
