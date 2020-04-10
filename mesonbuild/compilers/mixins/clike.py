@@ -304,6 +304,10 @@ class CLikeCompiler:
         cargs += cleaned_sys_args
 
         if mode == 'link':
+            ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
+            if ld_value is not None:
+                largs += self.use_linker_args(ld_value[0])
+
             # Add LDFLAGS from the env
             sys_ld_args = env.coredata.get_external_link_args(self.for_machine, self.language)
             # CFLAGS and CXXFLAGS go to both linking and compiling, but we want them
