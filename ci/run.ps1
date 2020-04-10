@@ -6,6 +6,9 @@ if ($LastExitCode -ne 0) {
 # remove Chocolately, MinGW, Strawberry Perl from path, so we don't find gcc/gfortran and try to use it
 $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey' }) -join ';'
 
+# Rust puts its shared stdlib in a secret place, but it is needed to run tests.
+$env:Path += ";$HOME/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin"
+
 # download and install prerequisites
 function DownloadFile([String] $Source, [String] $Destination) {
   $retries = 10
