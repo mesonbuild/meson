@@ -53,7 +53,7 @@ def add_arguments(parser):
                              'is not working.')
     parser.add_argument('--wipe', action='store_true',
                         help='Wipe build directory and reconfigure using previous command line options. ' +
-                             'Userful when build directory got corrupted, or when rebuilding with a ' +
+                             'Useful when build directory got corrupted, or when rebuilding with a ' +
                              'newer version of meson.')
     parser.add_argument('builddir', nargs='?', default=None)
     parser.add_argument('sourcedir', nargs='?', default=None)
