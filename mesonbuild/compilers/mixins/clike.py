@@ -114,12 +114,6 @@ class CLikeCompiler:
     def get_output_args(self, target):
         return ['-o', target]
 
-    def get_coverage_args(self):
-        return ['--coverage']
-
-    def get_coverage_link_args(self) -> T.List[str]:
-        return self.linker.get_coverage_args()
-
     def get_werror_args(self):
         return ['-Werror']
 
