@@ -642,7 +642,7 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt']
+        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt', 'b_coverage']
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -661,9 +661,6 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 
     def get_warn_args(self, level):
         return self.warn_args[level]
-
-    def get_coverage_args(self):
-        return []
 
     def get_buildtype_args(self, buildtype):
         return d_gdc_buildtype_args[buildtype]
