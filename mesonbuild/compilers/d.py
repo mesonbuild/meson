@@ -105,6 +105,9 @@ class DmdLikeCompilerMixin:
     def get_coverage_args(self):
         return ['-cov']
 
+    def get_coverage_link_args(self):
+        return []
+
     def get_preprocess_only_args(self):
         return ['-E']
 
