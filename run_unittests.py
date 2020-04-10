@@ -6469,11 +6469,13 @@ c = ['{0}']
             [wrap-file]
             directory = foo
 
-            source_url = file://{}
+            source_url = http://server.invalid/foo
+            source_fallback_url = file://{}
             source_filename = foo.tar.xz
             source_hash = {}
 
-            patch_url = file://{}
+            patch_url = http://server.invalid/foo
+            patch_fallback_url = file://{}
             patch_filename = foo-patch.tar.xz
             patch_hash = {}
             """.format(source_filename, source_hash, patch_filename, patch_hash))

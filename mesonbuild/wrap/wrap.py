@@ -331,7 +331,8 @@ class Resolver:
         else:
             try:
                 resp = urllib.request.urlopen(urlstring, timeout=REQ_TIMEOUT)
-            except urllib.error.URLError:
+            except urllib.error.URLError as e:
+                mlog.log(str(e))
                 raise WrapException('could not get {} is the internet available?'.format(urlstring))
         with contextlib.closing(resp) as resp:
             try:
@@ -371,15 +372,23 @@ class Resolver:
         if dhash != expected:
             raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
 
-    def download(self, what: str, ofname: str) -> None:
+    def download(self, what: str, ofname: str, fallback=False) -> None:
         self.check_can_download()
-        srcurl = self.wrap.get(what + '_url')
+        srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
-        dhash, tmpfile = self.get_data(srcurl)
-        expected = self.wrap.get(what + '_hash')
-        if dhash != expected:
-            os.remove(tmpfile)
-            raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
+        try:
+            dhash, tmpfile = self.get_data(srcurl)
+            expected = self.wrap.get(what + '_hash')
+            if dhash != expected:
+                os.remove(tmpfile)
+                raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
+        except WrapException:
+            if not fallback:
+                if what + '_fallback_url' in self.wrap.values:
+                    return self.download(what, ofname, fallback=True)
+                mlog.log('A fallback URL could be specified using',
+                         mlog.bold(what + '_fallback_url'), 'key in the wrap file')
+            raise
         os.rename(tmpfile, ofname)
 
     def get_file_internal(self, what: str) -> str:

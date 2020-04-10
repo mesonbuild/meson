@@ -72,9 +72,11 @@ revision = head
 
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
+- `source_fallback_url` - fallback URL to be used when download from `source_url` fails *Since: 0.55.0*
 - `source_filename` - filename of the downloaded source archive
 - `source_hash` - sha256 checksum of the downloaded source archive
 - `patch_url` - download url to retrieve an optional overlay archive
+- `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
 - `patch_filename` - filename of the downloaded overlay archive
 - `patch_hash` - sha256 checksum of the downloaded overlay archive
 - `lead_directory_missing` - for `wrap-file` create the leading
