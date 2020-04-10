@@ -877,7 +877,7 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
         start_tag = '${'
         backslash_tag = '\\${'
     else:
-        assert variable_format == 'meson'
+        assert variable_format in ['meson', 'cmake@']
         start_tag = '@'
         backslash_tag = '\\@'
 
@@ -908,11 +908,22 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
             return var
     return re.sub(regex, variable_replace, line), missing_variables
 
+def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', variable_format: str) -> str:
+    def get_cmake_define(line: str, confdata: 'ConfigurationData') -> str:
+        arr = line.split()
+        define_value=[]
+        for token in arr[2:]:
+            try:
+                (v, desc) = confdata.get(token)
+                define_value += [v]
+            except KeyError:
+                define_value += [token]
+        return ' '.join(define_value)
 
-def do_mesondefine(line: str, confdata: 'ConfigurationData') -> str:
     arr = line.split()
-    if len(arr) != 2:
-        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+    if variable_format == 'meson' and len(arr) != 2:
+      raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+
     varname = arr[1]
     try:
         (v, desc) = confdata.get(varname)
@@ -926,18 +937,27 @@ def do_mesondefine(line: str, confdata: 'ConfigurationData') -> str:
     elif isinstance(v, int):
         return '#define %s %d\n' % (varname, v)
     elif isinstance(v, str):
-        return '#define %s %s\n' % (varname, v)
+        if variable_format == 'meson':
+            result = v
+        else:
+            result = get_cmake_define(line, confdata)
+        result = '#define %s %s\n' % (varname, result)
+        (result, missing_variable) = do_replacement(regex, result, variable_format, confdata)
+        return result
     else:
         raise MesonException('#mesondefine argument "%s" is of unknown type.' % varname)
 
+def do_conf_str (data: list, confdata: 'ConfigurationData', variable_format: str,
+                 encoding: str = 'utf-8') -> T.Tuple[T.List[str],T.Set[str], bool]:
+    def line_is_valid(line : str, variable_format: str):
+      if variable_format == 'meson':
+          if '#cmakedefine' in line:
+              return False
+      else: #cmake format
+         if '#mesondefine' in line:
+            return False
+      return True
 
-def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
-                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
-    try:
-        with open(src, encoding=encoding, newline='') as f:
-            data = f.readlines()
-    except Exception as e:
-        raise MesonException('Could not read input file %s: %s' % (src, str(e)))
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
     if variable_format in ['meson', 'cmake@']:
@@ -959,13 +979,27 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
     for line in data:
         if line.startswith(search_token):
             confdata_useless = False
-            line = do_mesondefine(line, confdata)
+            line = do_define(regex, line, confdata, variable_format)
         else:
+            if not line_is_valid(line,variable_format):
+                raise MesonException('Format "{}" mismatched'.format(variable_format))
             line, missing = do_replacement(regex, line, variable_format, confdata)
             missing_variables.update(missing)
             if missing:
                 confdata_useless = False
         result.append(line)
+
+    return result, missing_variables, confdata_useless
+
+def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_format: str,
+                 encoding: str = 'utf-8') -> T.Tuple[T.Set[str], bool]:
+    try:
+        with open(src, encoding=encoding, newline='') as f:
+            data = f.readlines()
+    except Exception as e:
+        raise MesonException('Could not read input file %s: %s' % (src, str(e)))
+
+    (result, missing_variables, confdata_useless) = do_conf_str(data, confdata, variable_format, encoding)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
