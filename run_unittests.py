@@ -2448,9 +2448,12 @@ class AllPlatformTests(BasePlatformTests):
         # Check include order for 'someexe'
         incs = [a for a in split_args(execmd) if a.startswith("-I")]
         self.assertEqual(len(incs), 9)
-        # target private dir
-        someexe_id = Target.construct_id_from_path("sub4", "someexe", "@exe")
-        self.assertPathEqual(incs[0], "-I" + os.path.join("sub4", someexe_id))
+        # Need to run the build so the private dir is created.
+        self.build()
+        pdirs = glob(os.path.join(self.builddir, 'sub4/someexe*.p'))
+        self.assertEqual(len(pdirs), 1)
+        privdir = pdirs[0][len(self.builddir)+1:]
+        self.assertPathEqual(incs[0], "-I" + privdir)
         # target build subdir
         self.assertPathEqual(incs[1], "-Isub4")
         # target source subdir
@@ -2471,7 +2474,10 @@ class AllPlatformTests(BasePlatformTests):
         incs = [a for a in split_args(fxecmd) if a.startswith('-I')]
         self.assertEqual(len(incs), 9)
         # target private dir
-        self.assertPathEqual(incs[0], '-Isomefxe@exe')
+        pdirs = glob(os.path.join(self.builddir, 'somefxe*.p'))
+        self.assertEqual(len(pdirs), 1)
+        privdir = pdirs[0][len(self.builddir)+1:]
+        self.assertPathEqual(incs[0], '-I' + privdir)
         # target build dir
         self.assertPathEqual(incs[1], '-I.')
         # target source dir
@@ -5558,6 +5564,10 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertRegex('\n'.join(mesonlog),
                          r'Run-time dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
 
+    def glob_sofiles_without_privdir(self, g):
+        files = glob(g)
+        return [f for f in files if not f.endswith('.p')]
+
     def _test_soname_impl(self, libpath, install):
         if is_cygwin() or is_osx():
             raise unittest.SkipTest('Test only applicable to ELF and linuxlike sonames')
@@ -5573,28 +5583,28 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertPathExists(nover)
         self.assertFalse(os.path.islink(nover))
         self.assertEqual(get_soname(nover), 'libnover.so')
-        self.assertEqual(len(glob(nover[:-3] + '*')), 1)
+        self.assertEqual(len(self.glob_sofiles_without_privdir(nover[:-3] + '*')), 1)
 
         # File with version set
         verset = os.path.join(libpath, 'libverset.so')
         self.assertPathExists(verset + '.4.5.6')
         self.assertEqual(os.readlink(verset), 'libverset.so.4')
         self.assertEqual(get_soname(verset), 'libverset.so.4')
-        self.assertEqual(len(glob(verset[:-3] + '*')), 3)
+        self.assertEqual(len(self.glob_sofiles_without_privdir(verset[:-3] + '*')), 3)
 
         # File with soversion set
         soverset = os.path.join(libpath, 'libsoverset.so')
         self.assertPathExists(soverset + '.1.2.3')
         self.assertEqual(os.readlink(soverset), 'libsoverset.so.1.2.3')
         self.assertEqual(get_soname(soverset), 'libsoverset.so.1.2.3')
-        self.assertEqual(len(glob(soverset[:-3] + '*')), 2)
+        self.assertEqual(len(self.glob_sofiles_without_privdir(soverset[:-3] + '*')), 2)
 
         # File with version and soversion set to same values
         settosame = os.path.join(libpath, 'libsettosame.so')
         self.assertPathExists(settosame + '.7.8.9')
         self.assertEqual(os.readlink(settosame), 'libsettosame.so.7.8.9')
         self.assertEqual(get_soname(settosame), 'libsettosame.so.7.8.9')
-        self.assertEqual(len(glob(settosame[:-3] + '*')), 2)
+        self.assertEqual(len(self.glob_sofiles_without_privdir(settosame[:-3] + '*')), 2)
 
         # File with version and soversion set to different values
         bothset = os.path.join(libpath, 'libbothset.so')
@@ -5602,7 +5612,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(os.readlink(bothset), 'libbothset.so.1.2.3')
         self.assertEqual(os.readlink(bothset + '.1.2.3'), 'libbothset.so.4.5.6')
         self.assertEqual(get_soname(bothset), 'libbothset.so.1.2.3')
-        self.assertEqual(len(glob(bothset[:-3] + '*')), 3)
+        self.assertEqual(len(self.glob_sofiles_without_privdir(bothset[:-3] + '*')), 3)
 
     def test_soname(self):
         self._test_soname_impl(self.builddir, False)
@@ -5722,10 +5732,12 @@ class LinuxlikeTests(BasePlatformTests):
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '45 subproject')
         self.init(testdir, extra_args='--unity=subprojects')
-        simpletest_id = Target.construct_id_from_path('subprojects/sublib', 'simpletest', '@exe')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', simpletest_id, 'simpletest-unity0.c'))
-        sublib_id = Target.construct_id_from_path('subprojects/sublib', 'sublib', '@sha')
-        self.assertPathExists(os.path.join(self.builddir, 'subprojects/sublib', sublib_id, 'sublib-unity0.c'))
+        pdirs = glob(os.path.join(self.builddir, 'subprojects/sublib/simpletest*.p'))
+        self.assertEqual(len(pdirs), 1)
+        self.assertPathExists(os.path.join(pdirs[0], 'simpletest-unity0.c'))
+        sdirs = glob(os.path.join(self.builddir, 'subprojects/sublib/*sublib*.p'))
+        self.assertEqual(len(sdirs), 1)
+        self.assertPathExists(os.path.join(sdirs[0], 'sublib-unity0.c'))
         self.assertPathDoesNotExist(os.path.join(self.builddir, 'user@exe/user-unity.c'))
         self.build()
 

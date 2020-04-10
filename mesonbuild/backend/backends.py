@@ -227,7 +227,7 @@ class Backend:
         return self.build_to_src
 
     def get_target_private_dir(self, target):
-        return os.path.join(self.get_target_dir(target), target.get_id())
+        return os.path.join(self.get_target_filename(target) + '.p')
 
     def get_target_private_dir_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))

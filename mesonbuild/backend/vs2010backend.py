@@ -98,6 +98,9 @@ class Vs2010Backend(backends.Backend):
         self.subdirs = {}
         self.handled_target_deps = {}
 
+    def get_target_private_dir(self, target):
+        return os.path.join(self.get_target_dir(target), target.get_id())
+
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
         custom_target_include_dirs = []
