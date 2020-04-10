@@ -1,0 +1,8 @@
+{
+  "installed": [
+    { "type": "exe", "file": "usr/bin/foo" },
+    { "type": "pdb", "file": "usr/bin/foo" },
+    { "type": "file", "file": "usr/share/applications/com.example.foo.desktop" },
+    { "type": "file", "file": "usr/share/applications/foo.desktop" }
+  ]
+}

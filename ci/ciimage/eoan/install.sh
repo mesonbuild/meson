@@ -27,6 +27,7 @@ pkgs=(
   libblocksruntime-dev
   libperl-dev
   liblapack-dev libscalapack-mpi-dev
+  desktop-file-utils
 )
 
 sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"
