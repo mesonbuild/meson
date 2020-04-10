@@ -113,7 +113,7 @@ class Builder(BuilderBase):
             self.temp_dir.as_posix(),
         ]
         if subprocess.run(cmd).returncode != 0:
-            raise RuntimeError('Failde to build the docker image')
+            raise RuntimeError('Failed to build the docker image')
 
 class ImageTester(BuilderBase):
     def __init__(self, data_dir: Path, temp_dir: Path, ci_root: Path) -> None:
@@ -153,7 +153,7 @@ class ImageTester(BuilderBase):
                 self.temp_dir.as_posix(),
             ]
             if subprocess.run(build_cmd).returncode != 0:
-                raise RuntimeError('Failde to build the test docker image')
+                raise RuntimeError('Failed to build the test docker image')
 
             test_cmd = [
                 self.docker, 'run', '--rm', '-t', 'meson_test_image',
