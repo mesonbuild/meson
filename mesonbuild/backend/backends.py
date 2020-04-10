@@ -468,8 +468,8 @@ class Backend:
             source = 'meson-generated_' + os.path.relpath(rel_src, targetdir)
         else:
             if os.path.isabs(rel_src):
-                # Not from the source directory; hopefully this doesn't conflict with user's source files.
-                source = os.path.basename(rel_src)
+                # Use the absolute path directly to avoid file name conflicts
+                source = rel_src
             else:
                 source = os.path.relpath(os.path.join(build_dir, rel_src),
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
