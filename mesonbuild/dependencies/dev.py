@@ -406,6 +406,9 @@ class LLVMDependencyCMake(CMakeDependency):
         # Extract extra include directories and definitions
         inc_dirs = self.traceparser.get_cmake_var('PACKAGE_INCLUDE_DIRS')
         defs = self.traceparser.get_cmake_var('PACKAGE_DEFINITIONS')
+        # LLVM explicitly uses space-separated variables rather than semicolon lists
+        if len(defs) == 1:
+            defs = defs[0].split(' ')
         temp = ['-I' + x for x in inc_dirs] + defs
         self.compile_args += [x for x in temp if x not in self.compile_args]
         if not self._add_sub_dependency(threads_factory(env, self.for_machine, {})):
