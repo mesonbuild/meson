@@ -30,4 +30,8 @@ if get_option('integer_opt') != 3
   error('Incorrect value in integer option.')
 endif
 
+if get_option('neg_int_opt') != -3
+  error('Incorrect value in negative integer option.')
+endif
+
 assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')
