@@ -9,6 +9,9 @@ $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberr
 # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
 $env:Path += ";$HOME/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin"
 
+# Set the CI env var for the meson test framework
+$env:CI = '1'
+
 # download and install prerequisites
 function DownloadFile([String] $Source, [String] $Destination) {
   $retries = 10
@@ -32,7 +35,7 @@ function DownloadFile([String] $Source, [String] $Destination) {
 
 if ($env:backend -eq 'ninja') { $dmd = $true } else { $dmd = $false }
 
-DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci1/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
+DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci2/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
 echo "Extracting  ci_data.zip"
 Expand-Archive $env:AGENT_WORKFOLDER\ci_data.zip -DestinationPath $env:AGENT_WORKFOLDER\ci_data
 & "$env:AGENT_WORKFOLDER\ci_data\install.ps1" -Arch $env:arch -Compiler $env:compiler -Boost $true -DMD $dmd
