@@ -166,6 +166,16 @@ class OptionInterpreter:
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
             return [self.reduce_single(curarg) for curarg in arg.args.arguments]
+        elif isinstance(arg, mparser.UMinusNode):
+            res = self.reduce_single(arg.value)
+            if not isinstance(res, (int, float)):
+                raise OptionException('Token after "-" is not a number')
+            return -res
+        elif isinstance(arg, mparser.NotNode):
+            res = self.reduce_single(arg.value)
+            if not isinstance(res, bool):
+                raise OptionException('Token after "not" is not a a boolean')
+            return not res
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
