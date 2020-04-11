@@ -266,7 +266,7 @@ These are the values that can be passed to `dependency` function's
 ## Compiler and Linker selection variables
 
 | Language      | Compiler | Linker    | Note                                        |
-|:-------------:|----------|-----------|---------------------------------------------|
+|---------------|----------|-----------|---------------------------------------------|
 | C             | CC       | CC_LD     |                                             |
 | C++           | CXX      | CXX_LD    |                                             |
 | D             | DC       | DC_LD     | Before 0.54 D_LD*                           |
