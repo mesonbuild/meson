@@ -1076,7 +1076,7 @@ The following keyword arguments are supported:
 - `install_mode`: the file mode in symbolic format and optionally
   the owner/uid and group/gid for the installed files. *(Added 0.47.0)*
 - `strip_directory`: install directory contents. `strip_directory=false` by default.
-  If `strip_directory=false` only last component of source path is used.
+  If `strip_directory=true` only the last component of the source path is used.
   Since 0.45.0
 
 For a given directory `foo`:
