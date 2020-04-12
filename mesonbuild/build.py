@@ -922,16 +922,17 @@ This will become a hard error in a future Meson release.''')
             name_prefix = kwargs['name_prefix']
             if isinstance(name_prefix, list):
                 if name_prefix:
-                    raise InvalidArguments('name_prefix array must be empty to signify null.')
-            elif not isinstance(name_prefix, str):
-                raise InvalidArguments('name_prefix must be a string.')
-            self.prefix = name_prefix
-            self.name_prefix_set = True
+                    raise InvalidArguments('name_prefix array must be empty to signify default.')
+            else:
+                if not isinstance(name_prefix, str):
+                    raise InvalidArguments('name_prefix must be a string.')
+                self.prefix = name_prefix
+                self.name_prefix_set = True
         if 'name_suffix' in kwargs:
             name_suffix = kwargs['name_suffix']
             if isinstance(name_suffix, list):
                 if name_suffix:
-                    raise InvalidArguments('name_suffix array must be empty to signify null.')
+                    raise InvalidArguments('name_suffix array must be empty to signify default.')
             else:
                 if not isinstance(name_suffix, str):
                     raise InvalidArguments('name_suffix must be a string.')
