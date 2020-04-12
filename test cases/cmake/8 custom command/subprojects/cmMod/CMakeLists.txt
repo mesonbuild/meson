@@ -7,6 +7,9 @@ set (CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_definitions("-DDO_NOTHING_JUST_A_FLAG=1")
 
+add_executable(genMain genMain.cpp)
+add_custom_command(OUTPUT main.cpp COMMAND genMain > main.cpp)
+
 add_executable(gen main.cpp)
 add_executable(mycpy cp.cpp)
 
