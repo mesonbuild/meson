@@ -22,7 +22,7 @@ from .executor import CMakeExecutor
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog
 from ..environment import Environment
-from ..mesonlib import MachineChoice, version_compare
+from ..mesonlib import MachineChoice, OrderedSet, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
@@ -441,8 +441,8 @@ class ConverterTarget:
             return x
 
         build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
-        self.includes = list(set([rel_path(x, True, False) for x in set(self.includes)] + [build_dir_rel]))
-        self.sys_includes = list(set([rel_path(x, True, False) for x in set(self.sys_includes)]))
+        self.includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.includes)] + [build_dir_rel]))
+        self.sys_includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.sys_includes)]))
         self.sources = [rel_path(x, False, False) for x in self.sources]
         self.generated = [rel_path(x, False, True) for x in self.generated]
 
@@ -507,7 +507,7 @@ class ConverterTarget:
                         self._append_objlib_sources(i)
                     else:
                         self.includes += i.includes
-                        self.includes = list(set(self.includes))
+                        self.includes = list(OrderedSet(self.includes))
                         self.object_libs += [i]
                     break
 
@@ -518,9 +518,9 @@ class ConverterTarget:
         self.includes += tgt.includes
         self.sources += tgt.sources
         self.generated += tgt.generated
-        self.sources = list(set(self.sources))
-        self.generated = list(set(self.generated))
-        self.includes = list(set(self.includes))
+        self.sources = list(OrderedSet(self.sources))
+        self.generated = list(OrderedSet(self.generated))
+        self.includes = list(OrderedSet(self.includes))
 
         # Inherit compiler arguments since they may be required for building
         for lang, opts in tgt.compile_opts.items():
@@ -546,7 +546,7 @@ class ConverterTarget:
                 to_process += [x for x in i.depends if x not in processed]
             else:
                 new_deps += [i]
-        self.depends = list(set(new_deps))
+        self.depends = list(OrderedSet(new_deps))
 
     def cleanup_dependencies(self):
         # Clear the dependencies from targets that where moved from
@@ -720,7 +720,7 @@ class ConverterCustomTarget:
                 to_process += [x for x in i.depends if x not in processed]
             else:
                 new_deps += [i]
-        self.depends = list(set(new_deps))
+        self.depends = list(OrderedSet(new_deps))
 
     def get_ref(self, fname: str) -> T.Optional[CustomTargetReference]:
         fname = os.path.basename(fname)
@@ -863,7 +863,7 @@ class CMakeInterpreter:
             cmake_files = self.fileapi.get_cmake_sources()
             self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
             self.bs_files = [os.path.relpath(x, self.env.get_source_dir()) for x in self.bs_files]
-            self.bs_files = list(set(self.bs_files))
+            self.bs_files = list(OrderedSet(self.bs_files))
 
             # Load the codemodel configurations
             self.codemodel_configs = self.fileapi.get_cmake_configurations()
@@ -888,7 +888,7 @@ class CMakeInterpreter:
         src_dir = bs_reply.src_dir
         self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
         self.bs_files = [os.path.relpath(os.path.join(src_dir, x), self.env.get_source_dir()) for x in self.bs_files]
-        self.bs_files = list(set(self.bs_files))
+        self.bs_files = list(OrderedSet(self.bs_files))
         self.codemodel_configs = cm_reply.configs
 
     def analyse(self) -> None:
