@@ -1,4 +1,10 @@
 #include <iostream>
+
+using namespace std;
+
+int main() {
+  cout << R"asd(
+#include <iostream>
 #include <fstream>
 
 using namespace std;
@@ -25,6 +31,10 @@ std::string getStr() {
   return "Hello World";
 }
 )";
+
+  return 0;
+}
+)asd";
 
   return 0;
 }
