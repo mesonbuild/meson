@@ -309,7 +309,7 @@ class CMakeTraceParser:
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine, name=None):
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
-        args = list(tline.args) # Make a working copy
+        args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' seperated lists
 
         if not args:
             return self._gen_exception('add_custom_command', 'requires at least 1 argument', tline)
@@ -325,15 +325,15 @@ class CMakeTraceParser:
         target = CMakeGeneratorTarget(name)
 
         def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
-            target.outputs += key.split(';')
+            target.outputs += [key]
 
         def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
             if key == 'ARGS':
                 return
-            target.command[-1] += key.split(';')
+            target.command[-1] += [key]
 
         def handle_depends(key: str, target: CMakeGeneratorTarget) -> None:
-            target.depends += key.split(';')
+            target.depends += [key]
 
         def handle_working_dir(key: str, target: CMakeGeneratorTarget) -> None:
             if target.working_dir is None:
@@ -607,6 +607,13 @@ class CMakeTraceParser:
             args = data['args']
             args = [parse_generator_expressions(x) for x in args]
             yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
+
+    def _flatten_args(self, args: T.List[str]) -> T.List[str]:
+        # Split lists in arguments
+        res = []  # type: T.List[str]
+        for i in args:
+            res += i.split(';')
+        return res
 
     def _guess_files(self, broken_list: T.List[str]) -> T.List[str]:
         # Nothing has to be done for newer formats

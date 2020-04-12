@@ -5,6 +5,7 @@ import subprocess
 import shutil
 import os
 import sys
+from pathlib import Path
 
 commands = [[]]
 SEPARATOR = ';;;'
@@ -40,9 +41,32 @@ for i in commands:
     if not i:
         continue
 
+    cmd = []
+    stdout = None
+    stderr = None
+    capture_file = ''
+
+    for j in i:
+        if j in ['>', '>>']:
+            stdout = subprocess.PIPE
+            continue
+        elif j in ['&>', '&>>']:
+            stdout = subprocess.PIPE
+            stderr = subprocess.STDOUT
+            continue
+
+        if stdout is not None or stderr is not None:
+            capture_file += j
+        else:
+            cmd += [j]
+
     try:
         os.makedirs(args.directory, exist_ok=True)
-        subprocess.run(i, cwd=args.directory, check=True)
+
+        res = subprocess.run(cmd, stdout=stdout, stderr=stderr, cwd=args.directory, check=True)
+        if capture_file:
+            out_file = Path(args.directory) / capture_file
+            out_file.write_bytes(res.stdout)
     except subprocess.CalledProcessError:
         exit(1)
 
