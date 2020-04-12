@@ -16,9 +16,15 @@ add_custom_command(
   COMMAND gen ARGS genTest
 )
 
+set(CMD_PART)
+list(APPEND CMD_PART COMMAND mycpy cpyBase.cpp.in     cpyBase.cpp.in.gen)
+list(APPEND CMD_PART COMMAND mycpy cpyBase.cpp.in.gen cpyBase.cpp.out)
+list(APPEND CMD_PART COMMAND mycpy cpyBase.cpp.out    cpyBase.cpp.something)
+
 add_custom_command(
   OUTPUT cpyBase.cpp
   COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyBase.cpp.am" cpyBase.cpp.in
+  ${CMD_PART}
   COMMAND mycpy cpyBase.cpp.in                               cpyBase.cpp.something
   COMMAND mycpy cpyBase.cpp.something                        cpyBase.cpp.IAmRunningOutOfIdeas
   COMMAND mycpy cpyBase.cpp.IAmRunningOutOfIdeas             cpyBase.cpp
