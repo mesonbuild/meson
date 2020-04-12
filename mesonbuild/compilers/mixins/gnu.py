@@ -312,6 +312,9 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
                 'not {}.'.format(linker))
         return ['-fuse-ld={}'.format(linker)]
 
+    def get_coverage_args(self) -> T.List[str]:
+        return ['--coverage']
+
 
 class GnuCompiler(GnuLikeCompiler):
     """

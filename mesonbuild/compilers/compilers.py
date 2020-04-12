@@ -1201,6 +1201,9 @@ class Compiler:
         """
         return []
 
+    def get_coverage_link_args(self) -> T.List[str]:
+        return self.linker.get_coverage_args()
+
 
 def get_largefile_args(compiler):
     '''
