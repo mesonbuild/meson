@@ -236,8 +236,8 @@ actually installed file.
 The `type` entry specifies how the `file` path should be interpreted based on the
 current platform. The following values are currently supported:
 
-| `type`        | Description                                                                                             |
-| :-----------: | ------------------------------------------------------------------------------------------------------- |
+| type          | Description                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------------- |
 | `file`        | No postprocessing, just use the provided path                                                           |
 | `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`                            |
 | `shared_lib`  | For shared libraries, always written as `name`. The appropriate suffix and prefix are added by platform |
@@ -249,7 +249,7 @@ current platform. The following values are currently supported:
 Except for the `file` and `expr` types, all paths should be provided *without* a suffix.
 
 | Argument   | Applies to                 | Description                                                                   |
-| :---------:|----------------------------|-------------------------------------------------------------------------------|
+| -----------|----------------------------|-------------------------------------------------------------------------------|
 | `version`  | `shared_lib`, `pdb`        | Sets the version to look for appropriately per-platform                       |
 | `language` | `pdb`                      | Determines which compiler/linker determines the existence of this file        |
 
@@ -270,8 +270,8 @@ This will be applied appropriatly per platform. On windows this expects `lib.dll
 If the `platform` key is present, the installed file entry is only considered if
 the platform matches. The following values for `platform` are currently supported:
 
-| `platform` | Description                                                          |
-| :--------: | -------------------------------------------------------------------- |
+| platform   | Description                                                          |
+| ---------- | -------------------------------------------------------------------- |
 | `msvc`     | Matches when a msvc like compiler is used (`msvc`, `clang-cl`, etc.) |
 | `gcc`      | Not `msvc`                                                           |
 | `cygwin`   | Matches when the platform is cygwin                                  |
