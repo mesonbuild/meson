@@ -31,7 +31,7 @@ d = dependency('sub_implicit')
 assert(d.found(), 'Should implicitly fallback')
 
 # Verify that implicit fallback works because sub_implicit.wrap has
-# `sub_implicit_provide1=` and the subproject overrides sub_implicit_provide1.
+# `dependency_names=sub_implicit_provide1` and the subproject overrides sub_implicit_provide1.
 d = dependency('sub_implicit_provide1')
 assert(d.found(), 'Should implicitly fallback')
 

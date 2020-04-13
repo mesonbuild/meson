@@ -145,12 +145,15 @@ wrap-git, the repository must contain all Meson build definitions.
 Wrap files can define the dependencies it provides in the `[provide]` section.
 When a wrap file provides the dependency `foo` any call do `dependency('foo')`
 will automatically fallback to that subproject even if no `fallback` keyword
-argument is given. Each entry in the format `dependency_name = variable_name`,
+argument is given. It is recommended for subprojects to call
+`meson.override_dependency('foo', foo_dep)`, dependency name can then be added into
+the special `dependency_names` entry which takes coma separated list of dependency
+names. For backward compatibility with subprojects that does not call
+`meson.override_dependency()`, the variable name can be provided in the wrap file
+with entries in the format `dependency_name = variable_name`,
 where `dependency_name` usually match the corresponding pkg-config name and
 `variable_name` is the name of a variable defined in the subproject that should
-be returned for that dependency. In the case the subproject uses
-`meson.override_dependency('foo', foo_dep)` the `variable_name` can be left empty
-in the wrap file.
+be returned for that dependency.
 
 For example `glib.wrap` provides `glib-2.0`, `gobject-2.0` and `gio-2.0`. A wrap
 file for glib would look like:
@@ -163,6 +166,17 @@ revision=glib-2-62
 glib-2.0=glib_dep
 gobject-2.0=gobject_dep
 gio-2.0=gio_dep
+```
+
+Alternatively, when using a recent enough version of glib that uses
+`meson.override_dependency()`:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+dependency_names = glib-2.0, gobject-2.0, gio-2.0
 ```
 
 With such wrap file, `dependency('glib-2.0')` will automatically fallback to use

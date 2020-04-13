@@ -127,7 +127,19 @@ class PackageDefinition:
     def parse_provide_section(self):
         self.provide = {self.name: None}
         if self.config.has_section('provide'):
-            self.provide.update(self.config['provide'])
+            for k, v in self.config['provide'].items():
+                if k == 'dependency_names':
+                    # A coma separated list of dependency names that does not
+                    # need a variable name
+                    names = {n.strip(): None for n in v.split(',')}
+                    self.provide.update(names)
+                    continue
+                if not v:
+                    m = ('Empty dependency variable name for {!r} in {}. '
+                         'If the subproject uses meson.override_dependency() '
+                         'it can be added in the "dependency_names" special key.')
+                    raise WrapException(m.format(k, self.basename))
+                self.provide[k] = v
 
     def get(self, key: str) -> str:
         try:
