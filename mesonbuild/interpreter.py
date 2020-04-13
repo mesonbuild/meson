@@ -2581,7 +2581,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                       ' and therefore cannot be used during configuration'
                 raise InterpreterException(msg.format(progname, cmd.description()))
             if not cmd.found():
-                raise InterpreterException('command {!r} not found or not executable'.format(cmd))
+                raise InterpreterException('command {!r} not found or not executable'.format(cmd.get_name()))
         elif isinstance(cmd, CompilerHolder):
             exelist = cmd.compiler.get_exelist()
             cmd = exelist[0]
