@@ -3218,7 +3218,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if required and (progobj is None or not progobj.found()):
             raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
         if progobj is None:
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
         # Only store successful lookups
         self.store_name_lookups(args)
         if wanted:
@@ -3231,7 +3231,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if required:
                     m = 'Invalid version of program, need {!r} {!r} found {!r}.'
                     raise InvalidArguments(m.format(progobj.get_name(), not_found, version))
-                return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
+                return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
         return progobj
 
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
@@ -3246,7 +3246,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram())
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
 
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
