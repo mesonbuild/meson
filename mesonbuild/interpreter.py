@@ -1010,15 +1010,14 @@ class Test(InterpreterObject):
 
 class SubprojectHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, subinterpreter, subproject_dir, name, warnings=0, disabled_feature=None,
+    def __init__(self, subinterpreter, subdir, warnings=0, disabled_feature=None,
                  exception=None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, subinterpreter)
-        self.name = name
         self.warnings = warnings
         self.disabled_feature = disabled_feature
         self.exception = exception
-        self.subproject_dir = subproject_dir
+        self.subdir = PurePath(subdir).as_posix()
         self.methods.update({'get_variable': self.get_variable_method,
                              'found': self.found_method,
                              })
@@ -1037,8 +1036,7 @@ class SubprojectHolder(InterpreterObject, ObjectHolder):
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Get_variable takes one or two arguments.')
         if not self.found():
-            raise InterpreterException('Subproject "%s/%s" disabled can\'t get_variable on it.' % (
-                self.subproject_dir, self.name))
+            raise InterpreterException('Subproject "%s" disabled can\'t get_variable on it.' % (self.subdir))
         varname = args[0]
         if not isinstance(varname, str):
             raise InterpreterException('Get_variable first argument must be a string.')
@@ -2844,7 +2842,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.do_subproject(subp_name, 'meson', kwargs)
 
     def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
-        sub = SubprojectHolder(None, self.subproject_dir, subp_name,
+        sub = SubprojectHolder(None, os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
         return sub
@@ -2882,28 +2880,19 @@ external dependencies (including libraries) must go to "dependencies".''')
         if subp_name in self.subprojects:
             subproject = self.subprojects[subp_name]
             if required and not subproject.found():
-                raise InterpreterException('Subproject "%s/%s" required but not found.' % (
-                                           self.subproject_dir, subp_name))
+                raise InterpreterException('Subproject "%s" required but not found.' % (subproject.subdir))
             return subproject
 
         r = self.environment.wrap_resolver
         try:
-            resolved = r.resolve(subp_name, method, self.subproject)
+            subdir = r.resolve(subp_name, method, self.subproject)
         except wrap.WrapException as e:
-            subprojdir = os.path.join(self.subproject_dir, r.directory)
-            if isinstance(e, wrap.WrapNotFoundException):
-                # if the reason subproject execution failed was because
-                # the directory doesn't exist, try to give some helpful
-                # advice if it's a nested subproject that needs
-                # promotion...
-                self.print_nested_info(subp_name)
             if not required:
                 mlog.log(e)
-                mlog.log('Subproject ', mlog.bold(subprojdir), 'is buildable:', mlog.red('NO'), '(disabling)')
+                mlog.log('Subproject ', mlog.bold(subp_name), 'is buildable:', mlog.red('NO'), '(disabling)')
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
-        subdir = os.path.join(self.subproject_dir, resolved)
         subdir_abs = os.path.join(self.environment.get_source_dir(), subdir)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
@@ -2927,7 +2916,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     # Suppress the 'ERROR:' prefix because this exception is not
                     # fatal and VS CI treat any logs with "ERROR:" as fatal.
                     mlog.exception(e, prefix=mlog.yellow('Exception:'))
-                mlog.log('\nSubproject', mlog.bold(subp_name), 'is buildable:', mlog.red('NO'), '(disabling)')
+                mlog.log('\nSubproject', mlog.bold(subdir), 'is buildable:', mlog.red('NO'), '(disabling)')
                 return self.disabled_subproject(subp_name, exception=e)
             raise e
 
@@ -2957,8 +2946,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Subproject %s version is %s but %s required.' % (subp_name, pv, wanted))
         self.active_projectname = current_active
         self.subprojects.update(subi.subprojects)
-        self.subprojects[subp_name] = SubprojectHolder(subi, self.subproject_dir, subp_name,
-                                                     warnings=subi_warnings)
+        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files = list(set(self.build_def_files + build_def_files))
@@ -3157,8 +3145,11 @@ external dependencies (including libraries) must go to "dependencies".''')
                                               'license': proj_license}
         if self.subproject in self.build.projects:
             raise InvalidCode('Second call to project().')
-        if not self.is_subproject() and 'subproject_dir' in kwargs:
-            spdirname = kwargs['subproject_dir']
+
+        # spdirname is the subproject_dir for this project, relative to self.subdir.
+        # self.subproject_dir is the subproject_dir for the main project, relative to top source dir.
+        spdirname = kwargs.get('subproject_dir')
+        if spdirname:
             if not isinstance(spdirname, str):
                 raise InterpreterException('Subproject_dir must be a string')
             if os.path.isabs(spdirname):
@@ -3167,13 +3158,20 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Subproject_dir must not begin with a period.')
             if '..' in spdirname:
                 raise InterpreterException('Subproject_dir must not contain a ".." segment.')
-            self.subproject_dir = spdirname
-
+            if not self.is_subproject():
+                self.subproject_dir = spdirname
+        else:
+            spdirname = 'subprojects'
         self.build.subproject_dir = self.subproject_dir
-        if not self.is_subproject():
-            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-            self.environment.wrap_resolver = wrap.Resolver(subproject_dir_abs, wrap_mode)
+
+        # Load wrap files from this (sub)project.
+        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+        subdir = os.path.join(self.subdir, spdirname)
+        r = wrap.Resolver(self.environment.get_source_dir(), subdir, wrap_mode)
+        if self.is_subproject():
+            self.environment.wrap_resolver.merge_wraps(r)
+        else:
+            self.environment.wrap_resolver = r
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
@@ -3594,7 +3592,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     def get_subproject_dep(self, name, display_name, subp_name, varname, kwargs):
         required = kwargs.get('required', True)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
-        subproj_path = os.path.join(self.subproject_dir, subp_name)
         dep = self.notfound_dependency()
         try:
             subproject = self.subprojects[subp_name]
@@ -3609,9 +3606,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 else:
                     if required:
                         m = 'Subproject {} did not override dependency {}'
-                        raise DependencyException(m.format(subproj_path, display_name))
+                        raise DependencyException(m.format(subproject.subdir, display_name))
                     mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                             mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+                             mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
                     return self.notfound_dependency()
             if subproject.found():
                 self.verify_fallback_consistency(subp_name, varname, cached_dep)
@@ -3629,7 +3626,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                                           ''.format(varname, subp_name))
             # If the dependency is not required, don't raise an exception
             mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                     mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
             return dep
 
         found = dep.held_object.get_version()
@@ -3640,14 +3637,14 @@ external dependencies (including libraries) must go to "dependencies".''')
                                           'dep {}'.format(found, subp_name, wanted, display_name))
 
             mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                     mlog.bold(subproj_path), 'found:', mlog.red('NO'),
+                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'),
                      'found', mlog.normal_cyan(found), 'but need:',
                      mlog.bold(', '.join(["'{}'".format(e) for e in wanted])))
             return self.notfound_dependency()
 
         found = mlog.normal_cyan(found) if found else None
         mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                 mlog.bold(subproj_path), 'found:', mlog.green('YES'), found)
+                 mlog.bold(subproject.subdir), 'found:', mlog.green('YES'), found)
         return dep
 
     def _handle_featurenew_dependencies(self, name):
@@ -3797,23 +3794,6 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noPosargs
     def func_disabler(self, node, args, kwargs):
         return Disabler()
-
-    def print_nested_info(self, dependency_name):
-        message = ['Dependency', mlog.bold(dependency_name), 'not found but it is available in a sub-subproject.\n' +
-                   'To use it in the current project, promote it by going in the project source\n'
-                   'root and issuing']
-        sprojs = mesonlib.detect_subprojects('subprojects', self.source_root)
-        if dependency_name not in sprojs:
-            return
-        found = sprojs[dependency_name]
-        if len(found) > 1:
-            message.append('one of the following commands:')
-        else:
-            message.append('the following command:')
-        command_templ = '\nmeson wrap promote {}'
-        for l in found:
-            message.append(mlog.bold(command_templ.format(l[len(self.source_root) + 1:])))
-        mlog.warning(*message, location=self.current_node)
 
     def get_subproject_infos(self, fbinfo):
         fbinfo = mesonlib.stringlistify(fbinfo)
@@ -4926,14 +4906,8 @@ This will become a hard error in the future.''', location=self.current_node)
 
     # Only permit object extraction from the same subproject
     def validate_extraction(self, buildtarget: InterpreterObject) -> None:
-        if not self.subdir.startswith(self.subproject_dir):
-            if buildtarget.subdir.startswith(self.subproject_dir):
-                raise InterpreterException('Tried to extract objects from a subproject target.')
-        else:
-            if not buildtarget.subdir.startswith(self.subproject_dir):
-                raise InterpreterException('Tried to extract objects from the main project from a subproject.')
-            if self.subdir.split('/')[1] != buildtarget.subdir.split('/')[1]:
-                raise InterpreterException('Tried to extract objects from a different subproject.')
+        if self.subproject != buildtarget.subproject:
+            raise InterpreterException('Tried to extract objects from a different subproject.')
 
     def is_subproject(self):
         return self.subproject != ''

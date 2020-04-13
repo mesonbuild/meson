@@ -97,11 +97,11 @@ class PackageDefinition:
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
         self.provided_programs = [] # type: T.List[str]
         self.basename = os.path.basename(fname)
-        self.name = self.basename
-        if self.name.endswith('.wrap'):
-            self.name = self.name[:-5]
+        self.has_wrap = self.basename.endswith('.wrap')
+        self.name = self.basename[:-5] if self.has_wrap else self.basename
+        self.directory = self.name
         self.provided_deps[self.name] = None
-        if fname.endswith('.wrap'):
+        if self.has_wrap:
             self.parse_wrap(fname)
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
@@ -164,9 +164,11 @@ def get_directory(subdir_root: str, packagename: str) -> str:
     return packagename
 
 class Resolver:
-    def __init__(self, subdir_root: str, wrap_mode: WrapMode = WrapMode.default) -> None:
+    def __init__(self, source_dir: str, subdir: str, wrap_mode: WrapMode = WrapMode.default) -> None:
+        self.source_dir = source_dir
+        self.subdir = subdir
         self.wrap_mode = wrap_mode
-        self.subdir_root = subdir_root
+        self.subdir_root = os.path.join(source_dir, subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
         self.filesdir = os.path.join(self.subdir_root, 'packagefiles')
         self.wraps = {} # type: T.Dict[str, PackageDefinition]
@@ -208,6 +210,14 @@ class Resolver:
                     raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
                 self.provided_programs[k] = wrap
 
+    def merge_wraps(self, other_resolver: 'Resolver') -> None:
+        for k, v in other_resolver.wraps.items():
+            self.wraps.setdefault(k, v)
+        for k, v in other_resolver.provided_deps.items():
+            self.provided_deps.setdefault(k, v)
+        for k, v in other_resolver.provided_programs.items():
+            self.provided_programs.setdefault(k, v)
+
     def find_dep_provider(self, packagename: str) -> T.Optional[T.Union[str, T.List[str]]]:
         # Return value is in the same format as fallback kwarg:
         # ['subproject_name', 'variable_name'], or 'subproject_name'.
@@ -235,7 +245,24 @@ class Resolver:
             m = 'Subproject directory not found and {}.wrap file not found'
             raise WrapNotFoundException(m.format(self.packagename))
         self.directory = self.wrap.directory
-        self.dirname = os.path.join(self.subdir_root, self.directory)
+
+        if self.wrap.has_wrap:
+            # We have a .wrap file, source code will be placed into main
+            # project's subproject_dir even if the wrap file comes from another
+            # subproject.
+            self.dirname = os.path.join(self.subdir_root, self.directory)
+            # Copy .wrap file into main project's subproject_dir
+            wrap_dir = os.path.normpath(os.path.dirname(self.wrap.filename))
+            main_dir = os.path.normpath(self.subdir_root)
+            if wrap_dir != main_dir:
+                rel = os.path.relpath(self.wrap.filename, self.source_dir)
+                mlog.log('Using', mlog.bold(rel))
+                shutil.copy2(self.wrap.filename, self.subdir_root)
+        else:
+            # No wrap file, it's a dummy package definition for an existing
+            # directory. Use the source code in place.
+            self.dirname = self.wrap.filename
+        rel_path = os.path.relpath(self.dirname, self.source_dir)
 
         meson_file = os.path.join(self.dirname, 'meson.build')
         cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
@@ -245,9 +272,9 @@ class Resolver:
 
         # The directory is there and has meson.build? Great, use it.
         if method == 'meson' and os.path.exists(meson_file):
-            return self.directory
+            return rel_path
         if method == 'cmake' and os.path.exists(cmake_file):
-            return self.directory
+            return rel_path
 
         # Check if the subproject is a git submodule
         self.resolve_git_submodule()
@@ -276,7 +303,7 @@ class Resolver:
         if method == 'cmake' and not os.path.exists(cmake_file):
             raise WrapException('Subproject exists but has no CMakeLists.txt file')
 
-        return self.directory
+        return rel_path
 
     def check_can_download(self) -> None:
         # Don't download subproject data based on wrap file if requested.

@@ -364,7 +364,7 @@ def run(options):
     if not os.path.isdir(subprojects_dir):
         mlog.log('Directory', mlog.bold(src_dir), 'does not seem to have subprojects.')
         return 0
-    r = Resolver(subprojects_dir)
+    r = Resolver(src_dir, 'subprojects')
     if options.subprojects:
         wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
     else:
