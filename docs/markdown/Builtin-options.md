@@ -43,7 +43,7 @@ Installation options are all relative to the prefix, except:
 | sysconfdir                           | etc           | Sysconf data directory |
 
 
-`prefix` defaults to `C:/` on Windows, and `/usr/local/` otherwise. You should always
+`prefix` defaults to `C:/` on Windows, and `/usr/local` otherwise. You should always
 override this value.
 
 `libdir` is automatically detected based on your platform, it should be
