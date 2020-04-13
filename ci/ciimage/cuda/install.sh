@@ -4,7 +4,7 @@ set -e
 
 pkgs=(
   python python-setuptools python-wheel python-pytest-xdist python-jsonschema
-  ninja gcc gcc-objc git cmake desktop-file-utils
+  ninja gcc gcc-objc git cmake desktop-file-utils appstream
   cuda zlib pkgconf
 )
 

@@ -1,4 +1,4 @@
-project('freedesktop module', 'c')
+project('freedesktop module', 'c', license : 'MIT')
 
 if ['darwin', 'windows', 'cygwin'].contains(host_machine.system())
   error('MESON_SKIP_TEST freedesktop module isn\'t relavent for this platform.')
@@ -38,3 +38,12 @@ exe_desktop = fdo.desktop_file(
 
 exe_desktop_all_default = fdo.desktop_file(exe, test_target : true)
 fdo.desktop_file(disabler(), test_target : true)
+
+appstream = fdo.appstream(
+  'com.example',
+  'foo',
+  summary : 'A foo',
+  description : '<p>A very foo program. This line needs to be fairly long, even longer than you expect.</p>',
+  desktop_file : exe_desktop,
+  test_target : true,
+)

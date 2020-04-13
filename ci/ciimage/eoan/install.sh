@@ -28,6 +28,7 @@ pkgs=(
   libperl-dev
   liblapack-dev libscalapack-mpi-dev
   desktop-file-utils
+  appstream
 )
 
 sed -i '/^#\sdeb-src /s/^#//' "/etc/apt/sources.list"

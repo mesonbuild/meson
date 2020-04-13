@@ -20,6 +20,7 @@ import json
 import os
 import sys
 import typing as T
+import xml.etree.ElementTree as et
 
 # These must be imported as absolute imports to make the __main__ thing work
 from mesonbuild.build import Executable, CustomTarget, EnvironmentVariables
@@ -114,6 +115,46 @@ def escape_exec_arg(arg: str) -> str:
             final.append('\\')
         final.append(c)
     return "{}".format(''.join(final))
+
+
+def subelem_text(parent: et.Element, tag: str, text: str, **kwargs: str) -> et.Element:
+    e = et.SubElement(parent, tag, **kwargs)
+    e.text = text
+    return e
+
+
+def generate_appstream_file(cmdline: T.List[str]) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('json')
+    parser.add_argument('output')
+    args = parser.parse_args(cmdline)
+
+    data = json.loads(args.json)
+
+    root = et.Element('component', type='desktop-application')
+    subelem_text(root, 'id', data['fqname'])
+    subelem_text(root, 'name', data['project_name'])
+
+    for l in data['project_licenses']:
+        subelem_text(root, 'project_license', l)
+
+    subelem_text(root, 'metadata_license', data['metadata_license'])
+
+    if data['summary']:
+        subelem_text(root, 'summary', data['summary'])
+
+    if data['description']:
+        desc = et.SubElement(root, 'description')
+        desc.append(et.fromstring(data['description']))
+
+    if data['launchable']:
+        subelem_text(root, 'launchable', data['launchable'], type='desktop-id')
+
+    tree = et.ElementTree(root)
+    with open(args.output, 'wb') as f:
+        tree.write(f, encoding='utf-8', xml_declaration=True)
+
+    return 0
 
 
 class FreedesktopModule(ExtensionModule):
@@ -251,6 +292,99 @@ class FreedesktopModule(ExtensionModule):
 
         return ModuleReturnValue(ct, new_objs)
 
+    @permittedKwargs({'metadata_license', 'summary', 'description',
+                      'desktop_file', 'test_target'})
+    def appstream(self, state: 'ModuleState',
+                  args: T.Tuple[str, str],
+                  kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+        if len(args) != 2:
+            raise MesonException('appstream method requires exactly two positional arguments.')
+
+        data = {}  # type: T.Dict[str, object]
+
+        domain, name = args
+        if not isinstance(domain, str):
+            raise MesonException('Positional argument 0 (domain) must be a string.')
+        if not isinstance(name, str):
+            raise MesonException('Positional argument 0 (domain) must be a string.')
+        data['fqname'] = '.'.join([domain, name])
+        data['project_name'] = self.interpreter.build.project_name
+        data['project_licenses'] = stringlistify(self.interpreter.build.dep_manifest[self.interpreter.active_projectname]['license'])
+        data['summary'] = kwargs.get('summary')
+        if data['summary'] is not None and not isinstance(data['summary'], str):
+            raise MesonException('Summary must be a string if provided.')
+        data['metadata_license'] = kwargs.get('metadata_license', 'CC0-1.0')
+        if data['metadata_license'] is not None and not isinstance(data['metadata_license'], str):
+            raise MesonException('metadata_license must be a string if provided.')
+        data['description'] = kwargs.get('description')
+        if data['description']:
+            if not isinstance(data['description'], str):
+                raise MesonException('description must be a string if provided.')
+            try:
+                et.fromstring(data['description'])
+            except et.ParseError:
+                raise MesonException('Improperly formatted xml in appstream description.')
+
+        data['launchable'] = None
+        d = kwargs.get('desktop_file')  # type: T.Optional[T.Union[CustomTarget, CustomTargetHolder]]
+        if d:
+            assert isinstance(d, CustomTargetHolder)
+            d = unholder(d)
+            if not isinstance(d, CustomTarget):
+                raise MesonException('desktop_file must be an object returned by freedesktop.desktop_file.')
+            data['launchable'] = d.name
+        assert d is None or isinstance(d, CustomTarget)
+
+        test = kwargs.get('test_target', False)
+        if not isinstance(test, bool):
+            raise MesonException('test_target must be a boolean')
+
+        install_name = '{}.{}.metainfo.xml'.format(domain, name)
+
+        py = python.PythonModule(self.interpreter).find_installation(
+            self.interpreter, state, ['python3'], {})
+        ct = CustomTarget(
+            'meson-freedesktop-{}'.format(install_name),
+            state.environment.get_scratch_dir(),
+            self.interpreter.subproject,
+            {
+                'output': install_name,
+                'command': [
+                    py, __file__, 'appstream_file',
+                    json.dumps(data), '@OUTPUT@',
+                ],
+                'install': d.install if d is not None else True,
+                'install_dir': os.path.join(state.environment.get_datadir(), 'metainfo'),
+                'install_mode': FileMode('rw-r--r--'),
+                'depends': [d],
+            },
+            internal_target=True,
+        )
+
+        new_objs = [ct]
+
+        if test:
+            validator = self.interpreter.find_program_impl(
+                ['appstreamcli'], required=False, for_machine=MachineChoice.BUILD)
+            tt = Test(
+                'validate meson-freedesktop-{}'.format(install_name),
+                self.interpreter.subproject,
+                suite=['freedesktop-module'],
+                exe=validator.held_object,
+                depends=[],
+                is_parallel=True,
+                cmd_args=['validate', '--no-net', '--pedantic', ct],
+                env=EnvironmentVariables(),
+                should_fail=False,
+                timeout=30,
+                workdir=None,
+                protocol='exitcode',
+                priority=0,
+            )
+            new_objs.append(tt)
+
+        return ModuleReturnValue(ct, new_objs)
+
 
 def initialize(*args, **kwargs) -> FreedesktopModule:
     return FreedesktopModule(*args, **kwargs)
@@ -263,5 +397,7 @@ if __name__ == '__main__':
 
     if args.mode == 'desktop_file':
         callable_ = generate_desktop_file
+    elif args.mode == 'appstream_file':
+        callable_ = generate_appstream_file
 
     sys.exit(callable_(remaining))

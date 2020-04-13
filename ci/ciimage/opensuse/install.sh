@@ -18,6 +18,7 @@ pkgs=(
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
   libboost_python-devel libboost_python-py3-1_71_0-devel libboost_regex-devel desktop-file-utils
+  AppStream
 )
 
 # Sys update
