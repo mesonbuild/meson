@@ -2352,7 +2352,7 @@ class Interpreter(InterpreterBase):
 
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, Disabler)) or item is None:
+        elif isinstance(item, (int, str, bool, Disabler, mesonlib.File)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -2397,7 +2397,7 @@ class Interpreter(InterpreterBase):
                 self.process_new_values(v.sources[0])
             elif hasattr(v, 'held_object'):
                 pass
-            elif isinstance(v, (int, str, bool, Disabler)):
+            elif isinstance(v, (int, str, bool, Disabler, mesonlib.File)):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
