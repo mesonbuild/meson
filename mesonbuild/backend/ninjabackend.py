@@ -483,8 +483,13 @@ int dummy;
     def generate_target(self, target):
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target)
+            return
         if isinstance(target, build.RunTarget):
             self.generate_run_target(target)
+            return
+        if isinstance(target, build.GeneratorTarget):
+            self.generate_generatortarget_target(target)
+            return
         name = target.get_id()
         if name in self.processed_targets:
             return
@@ -704,6 +709,35 @@ int dummy;
         elem.add_item('description', desc.format(target.name, cmd_type))
         self.add_build(elem)
         self.processed_targets[target.get_id()] = True
+
+    def generate_generatortarget_target(self, target):
+        '''Brought to you by the department of redundancy department.'''
+        self.processed_targets[target.get_id()] = True
+        assert(target.output.owning_gentarget is target)
+        genlist = target.output
+        generator = target.generator
+        assert(generator is genlist.get_generator())
+        # FIXME. start simple, add multiple outputs later.
+        assert(len(genlist.get_outputs()) == len(genlist.get_inputs()))
+        # A generatortarget is special compared to other target types.
+        # Its output goes to a named subdirectory in the build dir
+        # that can contain an arbitrary number of files and subdirs.
+        output_subdir = os.path.join(target.subdir, target.name)
+        for input in genlist.get_inputs():
+            ifile_str = input.rel_to_builddir(self.build_to_src)
+            cmd = generator.get_exe().get_command() + generator.get_arglist(ifile_str)
+            outputs = os.path.join(output_subdir, genlist.get_outputs_for(input)[0])
+            e = NinjaBuildElement(self.all_outputs, outputs, 'CUSTOM_COMMAND', ifile_str)
+            # HACK, just to get something working.
+            cmd2 = []
+            for c in cmd:
+                if c == '@INPUT@':
+                    c = ifile_str
+                if c == '@OUTPUT@':
+                    c = outputs
+                cmd2.append(c)
+            e.add_item('COMMAND', cmd2)
+            self.add_build(e)
 
     def build_run_target_name(self, target):
         if target.subproject != '':

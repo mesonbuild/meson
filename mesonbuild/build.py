@@ -1413,8 +1413,15 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
-        output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
+    def process_files(self, name, files, state, *,
+                      preserve_path_from=None,
+                      extra_args=None,
+                      owning_gentarget=None):
+        output = GeneratedList(self,
+                               state.subdir,
+                               preserve_path_from=preserve_path_from,
+                               extra_args=extra_args if extra_args is not None else [],
+                               owning_gentarget=owning_gentarget)
         for f in files:
             if isinstance(f, str):
                 f = File.from_source_file(state.environment.source_dir, state.subdir, f)
@@ -1429,7 +1436,7 @@ class Generator:
 
 
 class GeneratedList:
-    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=None):
+    def __init__(self, generator, subdir, *, preserve_path_from=None, extra_args=None, owning_gentarget=None):
         self.generator = unholder(generator)
         self.name = self.generator.exe
         self.subdir = subdir
@@ -1448,6 +1455,11 @@ class GeneratedList:
                 # Can only add a dependency on an external program which we
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
+        # If None, this generated list is of the old freestanding type.
+        # Its output goes in the target private directory. Otherwise it is
+        # the outcome of a generator_target and the output goes in its
+        # output dir.
+        self.owning_gentarget = owning_gentarget
 
     def add_preserved_path_segment(self, infile, outfiles, state):
         result = []
@@ -1993,8 +2005,41 @@ class SharedModule(SharedLibrary):
     def get_default_install_dir(self, environment):
         return environment.get_shared_module_dir()
 
+class CustomMixin:
+    def __init__(self, *args, **kwargs):
+        self.dependencies = []
+        self.extra_depends = []
+        self.depend_files = [] # Files that this target depends on but are not on the command line.
+        self.depfile = None
 
-class CustomTarget(Target):
+    def flatten_command(self, cmd):
+        cmd = unholder(listify(cmd))
+        final_cmd = []
+        for c in cmd:
+            if isinstance(c, str):
+                final_cmd.append(c)
+            elif isinstance(c, File):
+                self.depend_files.append(c)
+                final_cmd.append(c)
+            elif isinstance(c, dependencies.ExternalProgram):
+                if not c.found():
+                    raise InvalidArguments('Tried to use not-found external program in "command"')
+                path = c.get_path()
+                if os.path.isabs(path):
+                    # Can only add a dependency on an external program which we
+                    # know the absolute path of
+                    self.depend_files.append(File.from_absolute_file(path))
+                final_cmd += c.get_command()
+            elif isinstance(c, (BuildTarget, CustomTarget)):
+                self.dependencies.append(c)
+                final_cmd.append(c)
+            elif isinstance(c, list):
+                final_cmd += self.flatten_command(c)
+            else:
+                raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
+        return final_cmd
+
+class CustomTarget(Target, CustomMixin):
     known_kwargs = set([
         'input',
         'output',
@@ -2016,11 +2061,8 @@ class CustomTarget(Target):
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False, backend=None):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
-        self.dependencies = []
-        self.extra_depends = []
-        self.depend_files = [] # Files that this target depends on but are not on the command line.
-        self.depfile = None
+        Target.__init__(self, name, subdir, subproject, False, MachineChoice.HOST)
+        CustomMixin.__init__(self)
         self.process_kwargs(kwargs, backend)
         self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
@@ -2064,33 +2106,6 @@ class CustomTarget(Target):
             elif isinstance(d, CustomTarget):
                 bdeps.update(d.get_transitive_build_target_deps())
         return bdeps
-
-    def flatten_command(self, cmd):
-        cmd = unholder(listify(cmd))
-        final_cmd = []
-        for c in cmd:
-            if isinstance(c, str):
-                final_cmd.append(c)
-            elif isinstance(c, File):
-                self.depend_files.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, dependencies.ExternalProgram):
-                if not c.found():
-                    raise InvalidArguments('Tried to use not-found external program in "command"')
-                path = c.get_path()
-                if os.path.isabs(path):
-                    # Can only add a dependency on an external program which we
-                    # know the absolute path of
-                    self.depend_files.append(File.from_absolute_file(path))
-                final_cmd += c.get_command()
-            elif isinstance(c, (BuildTarget, CustomTarget)):
-                self.dependencies.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, list):
-                final_cmd += self.flatten_command(c)
-            else:
-                raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
-        return final_cmd
 
     def process_kwargs(self, kwargs, backend):
         self.process_kwargs_base(kwargs)
@@ -2260,6 +2275,44 @@ class CustomTarget(Target):
     def __iter__(self):
         for i in self.outputs:
             yield CustomTargetIndex(self, i)
+
+class GeneratorTarget(Target, CustomMixin):
+
+    def __init__(self, name, state, kwargs, backend=None):
+        self.typename = 'gent'
+        Target.__init__(self, name, state.subdir, state.subproject, False, MachineChoice.HOST)
+        CustomMixin.__init__(self)
+        self.sources = unholder(extract_as_list(kwargs, 'input'))
+        self.process_kwargs(kwargs, backend)
+        self.extra_files = []
+        self.output = self.generator.process_files('GeneratorTarget',
+                                                   self.sources,
+                                                   state,
+                                                   owning_gentarget=self)
+        assert(isinstance(self.output, GeneratedList))
+
+    def __repr__(self):
+        repr_str = "<{0} {1}: {2}>"
+        return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
+
+    def type_suffix(self):
+        return "@gta"
+
+    def get_dependencies(self):
+        return self.dependencies
+
+    def process_kwargs(self, kwargs, backend):
+        if 'generator' not in kwargs:
+            raise InvalidArguments('Missing keyword argument "command".')
+        self.generator = unholder(kwargs['generator'])
+        if not isinstance(self.generator, Generator):
+            raise InvalidArguments("Generator argument is not a generator object.")
+
+    def should_install(self):
+        return False
+
+    def get_outputs(self):
+        return []
 
 class RunTarget(Target):
     def __init__(self, name, command, args, dependencies, subdir, subproject):

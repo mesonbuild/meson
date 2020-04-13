@@ -638,8 +638,11 @@ class GeneratorHolder(InterpreterObject, ObjectHolder):
                 raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
         else:
             preserve_path_from = None
-        gl = self.held_object.process_files('Generator', args, self.interpreter,
-                                            preserve_path_from, extra_args=extras)
+        gl = self.held_object.process_files('Generator',
+                                            args,
+                                            self.interpreter,
+                                            preserve_path_from=preserve_path_from,
+                                            extra_args=extras)
         return GeneratedListHolder(gl)
 
 
@@ -952,6 +955,10 @@ class CustomTargetHolder(TargetHolder):
     def outdir_include(self):
         return IncludeDirsHolder(build.IncludeDirs('', [], False,
                                                    [os.path.join('@BUILD_ROOT@', self.interpreter.backend.get_target_dir(self.held_object))]))
+
+class GeneratorTargetHolder(TargetHolder):
+    def __init__(self, target, interp):
+        super().__init__(target, interp)
 
 class RunTargetHolder(TargetHolder):
     def __init__(self, target, interp):
@@ -2265,6 +2272,9 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                   'depfile',
                                   'capture',
                                   'preserve_path_from'},
+                    'generator_target': {'generator',
+                                         'output',
+                                         'sources'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
                     'install_headers': {'install_dir', 'install_mode', 'subdir'},
@@ -2382,6 +2392,7 @@ class Interpreter(InterpreterBase):
                            'error': self.func_error,
                            'executable': self.func_executable,
                            'generator': self.func_generator,
+                           'generator_target': self.func_generator_target,
                            'gettext': self.func_gettext,
                            'get_option': self.func_get_option,
                            'get_variable': self.func_get_variable,
@@ -3808,6 +3819,20 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         gen = GeneratorHolder(self, args, kwargs)
         self.generators.append(gen)
         return gen
+
+    @stringArgs
+    @permittedKwargs(permitted_kwargs['generator_target'])
+    def func_generator_target(self, node, args, kwargs):
+        if len(args) != 1:
+            raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
+
+        name = args[0]
+        gt = GeneratorTargetHolder(build.GeneratorTarget(name,
+                                                         self,
+                                                         kwargs),
+                                   self)
+        self.add_target(name, gt.held_object)
+        return gt
 
     @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
     @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
