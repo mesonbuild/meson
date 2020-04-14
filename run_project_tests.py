@@ -404,21 +404,21 @@ def run_test_inprocess(testdir):
 
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
-def create_deterministic_builddir(test: TestDef) -> str:
+def create_deterministic_builddir(test: TestDef, use_tmpdir: bool) -> str:
     import hashlib
     src_dir = test.path.as_posix()
     if test.name:
         src_dir += test.name
     rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
-    os.mkdir(rel_dirname)
-    abs_pathname = os.path.join(os.getcwd(), rel_dirname)
+    abs_pathname = os.path.join(tempfile.gettempdir() if use_tmpdir else os.getcwd(), rel_dirname)
+    os.mkdir(abs_pathname)
     return abs_pathname
 
-def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail):
+def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
     if test.skip:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(test)) as build_dir:
-        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=os.getcwd())) as install_dir:
+    with AutoDeletedDir(create_deterministic_builddir(test, use_tmp)) as build_dir:
+        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=None if use_tmp else os.getcwd())) as install_dir:
             try:
                 return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             except TestResult as r:
@@ -666,8 +666,8 @@ def have_d_compiler():
         return True
     return False
 
-def have_objc_compiler():
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+def have_objc_compiler(use_tmp: bool) -> bool:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
@@ -682,8 +682,8 @@ def have_objc_compiler():
             return False
     return True
 
-def have_objcpp_compiler():
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+def have_objcpp_compiler(use_tmp: bool) -> bool:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
@@ -805,7 +805,7 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -842,8 +842,8 @@ def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[TestDef
         ('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
         ('rust', 'rust', should_skip_rust(backend)),
         ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler()),
-        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler()),
+        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
+        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(options.use_tmpdir)),
         ('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
         ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
@@ -866,16 +866,16 @@ def detect_tests_to_run(only: T.List[str]) -> T.List[T.Tuple[str, T.List[TestDef
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
               log_name_base: str, failfast: bool,
-              extra_args: T.List[str]) -> T.Tuple[int, int, int]:
+              extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
     global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         logfile = lf
-        return _run_tests(all_tests, log_name_base, failfast, extra_args)
+        return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp)
 
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str, failfast: bool,
-               extra_args: T.List[str]) -> T.Tuple[int, int, int]:
+               extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
     global stop, executor, futures, system_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
@@ -929,7 +929,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             t.skip = skipped or t.skip
             result = executor.submit(run_test, t, extra_args + suite_args + t.args,
-                                     system_compiler, backend, backend_flags, commands, should_fail)
+                                     system_compiler, backend, backend_flags, commands, should_fail, use_tmp)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -1047,7 +1047,7 @@ def check_meson_commands_work(options):
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
         print('Checking that configuring works...')
         gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
         pc, o, e = Popen_safe(gen_cmd)
@@ -1072,7 +1072,7 @@ def check_meson_commands_work(options):
 def detect_system_compiler(options):
     global system_compiler, compiler_id_map
 
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir='.')) as build_dir:
+    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
         fake_opts = get_fake_options('/')
         if options.cross_file:
             fake_opts.cross_file = [options.cross_file]
@@ -1139,6 +1139,7 @@ if __name__ == '__main__':
                         help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
+    parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
     options = parser.parse_args()
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
@@ -1152,8 +1153,8 @@ if __name__ == '__main__':
     check_format()
     check_meson_commands_work(options)
     try:
-        all_tests = detect_tests_to_run(options.only)
-        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args)
+        all_tests = detect_tests_to_run(options.only, options.use_tmpdir)
+        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
     except StopException:
         pass
     print('\nTotal passed tests:', green(str(passing_tests)))
