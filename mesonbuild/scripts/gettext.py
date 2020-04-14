@@ -66,6 +66,16 @@ def gen_gmo(src_sub, bld_sub, langs):
                                '-o', os.path.join(bld_sub, l + '.gmo')])
     return 0
 
+def generate_mo(src_sub, bld_sub, pkgname, langs):
+    for l in langs:
+        srcfile = os.path.join(src_sub, l + '.po')
+        outfile = os.path.join(bld_sub, l, 'LC_MESSAGES',
+                               pkgname + '.mo')
+        os.makedirs(os.path.dirname(outfile), exist_ok=True)
+        subprocess.check_call(['msgfmt', srcfile,
+                               '-o', outfile])
+    return 0
+
 def update_po(src_sub, pkgname, langs):
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
@@ -78,7 +88,8 @@ def update_po(src_sub, pkgname, langs):
 
 def do_install(src_sub, bld_sub, dest, pkgname, langs):
     for l in langs:
-        srcfile = os.path.join(bld_sub, l + '.gmo')
+        srcfile = os.path.join(bld_sub, l, 'LC_MESSAGES',
+                               pkgname + '.mo')
         outfile = os.path.join(dest, l, 'LC_MESSAGES',
                                pkgname + '.mo')
         tempfile = outfile + '.tmp'
@@ -107,6 +118,8 @@ def run(args):
         return run_potgen(src_sub, options.pkgname, options.datadirs, extra_args)
     elif subcmd == 'gen_gmo':
         return gen_gmo(src_sub, bld_sub, langs)
+    elif subcmd == 'generate_mo':
+        return generate_mo(src_sub, bld_sub, options.pkgname, langs)
     elif subcmd == 'update_po':
         if run_potgen(src_sub, options.pkgname, options.datadirs, extra_args) != 0:
             return 1
@@ -115,7 +128,7 @@ def run(args):
         destdir = os.environ.get('DESTDIR', '')
         dest = destdir_join(destdir, os.path.join(os.environ['MESON_INSTALL_PREFIX'],
                                                   options.localedir))
-        if gen_gmo(src_sub, bld_sub, langs) != 0:
+        if generate_mo(src_sub, bld_sub, options.pkgname, langs) != 0:
             return 1
         do_install(src_sub, bld_sub, dest, options.pkgname, langs)
     else:

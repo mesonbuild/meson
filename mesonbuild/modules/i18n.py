@@ -154,10 +154,16 @@ class I18nModule(ExtensionModule):
             potargs.append(extra_args)
         pottarget = build.RunTarget(packagename + '-pot', potargs[0], potargs[1:], [], state.subdir, state.subproject)
 
+        # mark packagename-gmo as deprecated
         gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo']
         if lang_arg:
             gmoargs.append(lang_arg)
         gmotarget = build.RunTarget(packagename + '-gmo', gmoargs[0], gmoargs[1:], [], state.subdir, state.subproject)
+
+        generatemoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'generate_mo', pkg_arg]
+        if lang_arg:
+            generatemoargs.append(lang_arg)
+        generatemotarget = build.RunTarget(packagename + '-generate-mo', generatemoargs[0], generatemoargs[1:], [], state.subdir, state.subproject)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
         if lang_arg:
@@ -168,7 +174,7 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(extra_args)
         updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs[0], updatepoargs[1:], [], state.subdir, state.subproject)
 
-        targets = [pottarget, gmotarget, updatepotarget]
+        targets = [pottarget, gmotarget, generatemotarget, updatepotarget]
 
         install = kwargs.get('install', True)
         if install:
