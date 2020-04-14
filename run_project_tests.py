@@ -734,7 +734,11 @@ def skippable(suite, test):
 
     # Scientific libraries are skippable on certain systems
     # See the discussion here: https://github.com/mesonbuild/meson/pull/6562
-    if any([test.endswith(x) for x in ['17 mpi', '25 hdf5', '30 scalapack']]) and skip_scientific:
+    if any([x in test for x in ['17 mpi', '25 hdf5', '30 scalapack']]) and skip_scientific:
+        return True
+
+    # These create OS specific tests, and need to be skippable
+    if any([x in test for x in ['16 sdl', '17 mpi']]):
         return True
 
     # No frameworks test should be skipped on linux CI, as we expect all
