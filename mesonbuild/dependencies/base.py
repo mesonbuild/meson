@@ -1413,6 +1413,7 @@ class CMakeDependency(ExternalDependency):
         # Set dependencies with CMake targets
         # recognise arguments we should pass directly to the linker
         reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-pthread|-delayload:[a-zA-Z0-9_\.]+|[a-zA-Z0-9_]+\.lib)$')
+        reg_is_maybe_bare_lib = re.compile(r'^[a-zA-Z0-9_]+$')
         processed_targets = []
         incDirs = []
         compileDefinitions = []
@@ -1482,6 +1483,14 @@ class CMakeDependency(ExternalDependency):
                         targets += [j]
                     elif reg_is_lib.match(j) or os.path.exists(j):
                         libraries += [j]
+                    elif mesonlib.is_windows() and reg_is_maybe_bare_lib.match(j):
+                        # On Windows, CMake library dependencies can be passed as bare library names,
+                        # e.g. 'version' should translate into 'version.lib'. CMake brute-forces a
+                        # combination of prefix/suffix combinations to find the right library, however
+                        # as we do not have a compiler environment available to us, we cannot do the
+                        # same, but must assume any bare argument passed which is not also a CMake
+                        # target must be a system library we should try to link against
+                        libraries += ["{}.lib".format(j)]
 
                 processed_targets += [curr]
 
