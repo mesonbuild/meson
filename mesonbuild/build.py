@@ -2139,17 +2139,16 @@ class CustomTarget(Target):
             self.install = kwargs['install']
             if not isinstance(self.install, bool):
                 raise InvalidArguments('"install" must be boolean.')
-            if self.install:
-                if 'install_dir' not in kwargs:
-                    raise InvalidArguments('"install_dir" must be specified '
-                                           'when installing a target')
+            if 'install_dir' not in kwargs:
+                raise InvalidArguments('"install_dir" must be specified '
+                                        'when installing a target')
 
-                if isinstance(kwargs['install_dir'], list):
-                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use(self.subproject)
-                # If an item in this list is False, the output corresponding to
-                # the list index of that item will not be installed
-                self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
-                self.install_mode = kwargs.get('install_mode', None)
+            if isinstance(kwargs['install_dir'], list):
+                FeatureNew('multiple install_dir for custom_target', '0.40.0').use(self.subproject)
+            # If an item in this list is False, the output corresponding to
+            # the list index of that item will not be installed
+            self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+            self.install_mode = kwargs.get('install_mode', None)
         else:
             self.install = False
             self.install_dir = [None]
