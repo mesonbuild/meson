@@ -2395,6 +2395,8 @@ class Interpreter(InterpreterBase):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
+            elif isinstance(v, Test):
+                self.build.tests.append(v)
             elif hasattr(v, 'held_object'):
                 pass
             elif isinstance(v, (int, str, bool, Disabler, mesonlib.File)):
