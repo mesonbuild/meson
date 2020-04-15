@@ -1481,7 +1481,9 @@ class CMakeDependency(ExternalDependency):
                 for j in otherDeps:
                     if j in self.traceparser.targets:
                         targets += [j]
-                    elif reg_is_lib.match(j) or os.path.exists(j):
+                    elif reg_is_lib.match(j):
+                        libraries += [j]
+                    elif os.path.isabs(j) and os.path.exists(j):
                         libraries += [j]
                     elif mesonlib.is_windows() and reg_is_maybe_bare_lib.match(j):
                         # On Windows, CMake library dependencies can be passed as bare library names,
@@ -1491,6 +1493,8 @@ class CMakeDependency(ExternalDependency):
                         # same, but must assume any bare argument passed which is not also a CMake
                         # target must be a system library we should try to link against
                         libraries += ["{}.lib".format(j)]
+                    else:
+                        mlog.warning('CMake: Dependency', mlog.bold(j), 'for', mlog.bold(name), 'target', mlog.bold(self._original_module_name(curr)), 'was not found')
 
                 processed_targets += [curr]
 
