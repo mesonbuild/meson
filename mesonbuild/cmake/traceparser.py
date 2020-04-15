@@ -25,6 +25,7 @@ from pathlib import Path
 import re
 import os
 import json
+import textwrap
 
 class CMakeTraceLine:
     def __init__(self, file, line, func, args):
@@ -75,6 +76,8 @@ class CMakeTraceParser:
     def __init__(self, cmake_version: str, build_dir: str, permissive: bool = False):
         self.vars = {}     # type: T.Dict[str, T.List[str]]
         self.targets = {}  # type: T.Dict[str, CMakeTarget]
+
+        self.explicit_headers = set()  # type: T.Set[Path]
 
         # T.List of targes that were added with add_custom_command to generate files
         self.custom_targets = []  # type: T.List[CMakeGeneratorTarget]
@@ -185,16 +188,18 @@ class CMakeTraceParser:
 
         return None
 
-    def var_to_bool(self, var):
-        if var not in self.vars:
+    def _str_to_bool(self, expr: T.Union[str, T.List[str]]) -> bool:
+        if not expr:
             return False
+        if isinstance(expr, list):
+            expr_str = expr[0]
+        else:
+            expr_str = expr
+        expr_str = expr_str.upper()
+        return expr_str not in ['0', 'OFF', 'NO', 'FALSE', 'N', 'IGNORE'] and not expr_str.endswith('NOTFOUND')
 
-        if len(self.vars[var]) < 1:
-            return False
-
-        if self.vars[var][0].upper() in ['1', 'ON', 'TRUE']:
-            return True
-        return False
+    def var_to_bool(self, var: str) -> bool:
+        return self._str_to_bool(self.vars.get(var, []))
 
     def _gen_exception(self, function: str, error: str, tline: CMakeTraceLine) -> None:
         # Generate an exception if the parser is not in permissive mode
@@ -385,9 +390,7 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/set_property.html
         args = list(tline.args)
 
-        # We only care for TARGET properties
-        if args.pop(0) != 'TARGET':
-            return
+        scope = args.pop(0)
 
         append = False
         targets = []
@@ -402,7 +405,7 @@ class CMakeTraceParser:
             if curr == 'PROPERTY':
                 break
 
-            targets.append(curr)
+            targets += curr.split(';')
 
         if not args:
             return self._gen_exception('set_property', 'faild to parse argument list', tline)
@@ -412,11 +415,14 @@ class CMakeTraceParser:
             return
 
         identifier = args.pop(0)
-        value = ' '.join(args).split(';')
+        if self.trace_format == 'human':
+            value = ' '.join(args).split(';')
+        else:
+            value = [y for x in args for y in x.split(';')]
         if not value:
             return
 
-        for i in targets:
+        def do_target(tgt: str) -> None:
             if i not in self.targets:
                 return self._gen_exception('set_property', 'TARGET {} not found'.format(i), tline)
 
@@ -427,6 +433,33 @@ class CMakeTraceParser:
                 self.targets[i].properties[identifier] += value
             else:
                 self.targets[i].properties[identifier] = value
+
+        def do_source(src: str) -> None:
+            if identifier != 'HEADER_FILE_ONLY' or not self._str_to_bool(value):
+                return
+
+            current_src_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_SOURCE_DIR')
+            if not current_src_dir:
+                mlog.warning(textwrap.dedent('''\
+                    CMake trace: set_property(SOURCE) called before the preload script was loaded.
+                    Unable to determine CMAKE_CURRENT_SOURCE_DIR. This can lead to build errors.
+                '''))
+                current_src_dir = '.'
+
+            cur_p = Path(current_src_dir)
+            src_p = Path(src)
+
+            if not src_p.is_absolute():
+                src_p = cur_p / src_p
+            self.explicit_headers.add(src_p)
+
+        if scope == 'TARGET':
+            for i in targets:
+                do_target(i)
+        elif scope == 'SOURCE':
+            files = self._guess_files(targets)
+            for i in files:
+                do_source(i)
 
     def _cmake_set_target_properties(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/set_target_properties.html
