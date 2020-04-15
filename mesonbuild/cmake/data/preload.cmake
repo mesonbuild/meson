@@ -31,5 +31,37 @@ macro(add_custom_target)
   _add_custom_target(${ARGV})
 endmacro()
 
-set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target)
+macro(set_property)
+  meson_ps_inspect_vars()
+  _set_property(${ARGV})
+endmacro()
+
+function(set_source_files_properties)
+  set(FILES)
+  set(I 0)
+  set(PROPERTIES OFF)
+
+  while(I LESS ARGC)
+    if(NOT PROPERTIES)
+      if("${ARGV${I}}" STREQUAL "PROPERTIES")
+        set(PROPERTIES ON)
+      else()
+        list(APPEND FILES "${ARGV${I}}")
+      endif()
+
+      math(EXPR I "${I} + 1")
+    else()
+      set(ID_IDX ${I})
+      math(EXPR PROP_IDX "${ID_IDX} + 1")
+
+      set(ID   "${ARGV${ID_IDX}}")
+      set(PROP "${ARGV${PROP_IDX}}")
+
+      set_property(SOURCE ${FILES} PROPERTY "${ID}" "${PROP}")
+      math(EXPR I "${I} + 2")
+    endif()
+  endwhile()
+endfunction()
+
+set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()

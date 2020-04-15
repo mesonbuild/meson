@@ -411,6 +411,8 @@ class ConverterTarget:
                 mlog.warning('CMake: path', mlog.bold(x), 'does not exist.')
                 mlog.warning(' --> Ignoring. This can lead to build errors.')
                 return None
+            if Path(x) in trace.explicit_headers:
+                return None
             if (
                 os.path.isabs(x)
                     and os.path.commonpath([x, self.env.get_source_dir()]) == self.env.get_source_dir()
