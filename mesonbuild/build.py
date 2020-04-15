@@ -345,7 +345,8 @@ class EnvironmentVariables:
         return env
 
 class Target:
-    def __init__(self, name, subdir, subproject, build_by_default, for_machine: MachineChoice):
+    def __init__(self, name, subdir, subproject, build_by_default, for_machine: MachineChoice,
+                 *, internal_target: bool = False):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "{}" has a path separator in its name.
@@ -359,6 +360,10 @@ a hard error in the future.'''.format(name))
         self.install = False
         self.build_always_stale = False
         self.option_overrides = {}
+
+        # This target is internal to meson, and can use meson- in it's name
+        self.internal_target = internal_target
+
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
@@ -468,7 +473,8 @@ a hard error in the future.'''.format(name))
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name, subdir, subproject, for_machine: MachineChoice,
+                 sources, objects, environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_builtin_option('unity')
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
@@ -1996,10 +2002,13 @@ class CustomTarget(Target):
         'console',
     ])
 
-    def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False, backend=None):
+    def __init__(self, name, subdir, subproject, kwargs,
+                 absolute_paths=False, backend=None, *,
+                 internal_target: bool = False):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
-        super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
+        super().__init__(name, subdir, subproject, False, MachineChoice.HOST,
+                         internal_target=internal_target)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.

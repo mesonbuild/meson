@@ -4450,12 +4450,12 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             results.append(s)
         return results
 
-    def add_target(self, name, tobj):
+    def add_target(self, name: str, tobj: build.BuildTarget) -> None:
         if name == '':
             raise InterpreterException('Target name must not be empty.')
         if name.strip() == '':
             raise InterpreterException('Target name must not consist only of whitespace.')
-        if name.startswith('meson-'):
+        if not tobj.internal_target and name.startswith('meson-'):
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
         if name in coredata.forbidden_target_names:
