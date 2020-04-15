@@ -3552,8 +3552,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_dependency()
 
         has_fallback = 'fallback' in kwargs
-        if not has_fallback and name:
-            # Add an implicit fallback if we have a wrap file or a directory with the same name.
+        if not has_fallback and name and required:
+            # Add an implicit fallback if we have a wrap file or a directory with the same name,
+            # but only if this dependency is required. It is common to first check for a pkg-config,
+            # then fallback to use find_library() and only afterward check again the dependency
+            # with a fallback.
             provider = self.environment.wrap_resolver.find_provider(name)
             if provider:
                 kwargs['fallback'] = provider
