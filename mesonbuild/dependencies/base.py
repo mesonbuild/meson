@@ -1411,7 +1411,8 @@ class CMakeDependency(ExternalDependency):
                                       'Valid targets are:\n{}'.format(name, list(self.traceparser.targets.keys())))
 
         # Set dependencies with CMake targets
-        reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-pthread)$')
+        # recognise arguments we should pass directly to the linker
+        reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-pthread|-delayload:[a-zA-Z0-9_\.]+|[a-zA-Z0-9_]+\.lib)$')
         processed_targets = []
         incDirs = []
         compileDefinitions = []
