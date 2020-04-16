@@ -82,30 +82,30 @@ if ['gcc', 'intel'].contains(c.get_id())
   endif
 endif
 
+if get_option('mode') == 'single'
+  foreach a : attributes
+    x = c.has_function_attribute(a)
+    assert(x == expected_result, '@0@: @1@'.format(c.get_id(), a))
+    x = cpp.has_function_attribute(a)
+    assert(x == expected_result, '@0@: @1@'.format(cpp.get_id(), a))
+  endforeach
 
-foreach a : attributes
-  x = c.has_function_attribute(a)
-  assert(x == expected_result, '@0@: @1@'.format(c.get_id(), a))
-  x = cpp.has_function_attribute(a)
-  assert(x == expected_result, '@0@: @1@'.format(cpp.get_id(), a))
-endforeach
-
-win_expect = ['windows', 'cygwin'].contains(host_machine.system())
-foreach a : ['dllexport', 'dllimport']
-  assert(c.has_function_attribute(a) == win_expect,
-         '@0@: @1@'.format(c.get_id(), a))
-  assert(cpp.has_function_attribute(a) == win_expect,
-         '@0@: @1@'.format(cpp.get_id(), a))
-endforeach
-
-message('checking get_supported_function_attributes')
-if not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
-  multi_expected = attributes
+  win_expect = ['windows', 'cygwin'].contains(host_machine.system())
+  foreach a : ['dllexport', 'dllimport']
+    assert(c.has_function_attribute(a) == win_expect,
+          '@0@: @1@'.format(c.get_id(), a))
+    assert(cpp.has_function_attribute(a) == win_expect,
+          '@0@: @1@'.format(cpp.get_id(), a))
+  endforeach
 else
-  multi_expected = []
-endif
+  if not ['msvc', 'clang-cl', 'intel-cl'].contains(c.get_id())
+    multi_expected = attributes
+  else
+    multi_expected = []
+  endif
 
-multi_check = c.get_supported_function_attributes(attributes)
-assert(multi_check == multi_expected, 'get_supported_function_arguments works (C)')
-multi_check = cpp.get_supported_function_attributes(attributes)
-assert(multi_check == multi_expected, 'get_supported_function_arguments works (C++)')
+  multi_check = c.get_supported_function_attributes(attributes)
+  assert(multi_check == multi_expected, 'get_supported_function_arguments works (C)')
+  multi_check = cpp.get_supported_function_attributes(attributes)
+  assert(multi_check == multi_expected, 'get_supported_function_arguments works (C++)')
+endif
