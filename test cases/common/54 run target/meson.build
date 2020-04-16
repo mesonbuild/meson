@@ -4,12 +4,13 @@ project('run target', 'c')
 # In cross builds exe_wrapper should be added if it exists.
 
 exe = executable('helloprinter', 'helloprinter.c')
-run_target('runhello',
+runhello = run_target('runhello',
   command : [exe, 'argument'])
 
 converter = find_program('converter.py')
 
 hex = custom_target('exe.hex',
+  depends: runhello,
   input : exe,
   output : 'exe.hex',
   command : [converter, '@INPUT@', '@OUTPUT@',

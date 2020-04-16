@@ -2158,7 +2158,9 @@ class CustomTarget(Target):
             raise InvalidArguments('Argument build_always_stale must be a boolean.')
         extra_deps, depend_files = [extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files']]
         for ed in unholder(extra_deps):
-            if not isinstance(ed, (CustomTarget, BuildTarget)):
+            if isinstance(ed, RunTarget):
+                FeatureNew('Depend on run_target', '0.54.0').use(self.subproject)
+            if not isinstance(ed, (CustomTarget, BuildTarget, RunTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
                                       .format(type(ed), ed))
             self.extra_depends.append(ed)
