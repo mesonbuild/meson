@@ -51,14 +51,14 @@ topic](https://github.com/topics/meson).
  - [GNU FriBidi](https://github.com/fribidi/fribidi), the open source implementation of the Unicode Bidirectional Algorithm
  - [Graphene](https://ebassi.github.io/graphene/), a thin type library for graphics
  - [Grilo](https://git.gnome.org/browse/grilo) and [Grilo plugins](https://git.gnome.org/browse/grilo-plugins), the Grilo multimedia framework
- - [GStreamer](https://cgit.freedesktop.org/gstreamer/gstreamer/), multimedia framework
+ - [GStreamer](https://gitlab.freedesktop.org/gstreamer/gstreamer), multimedia framework
  - [GTK+](https://gitlab.gnome.org/GNOME/gtk), the multi-platform toolkit used by GNOME
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [GVfs](https://git.gnome.org/browse/gvfs/), a userspace virtual filesystem designed to work with the I/O abstraction of GIO
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
- - [IGT](https://cgit.freedesktop.org/xorg/app/intel-gpu-tools/), Linux kernel graphics driver test suite
+ - [IGT](https://gitlab.freedesktop.org/drm/igt-gpu-tools), Linux kernel graphics driver test suite
  - [inih](https://github.com/benhoyt/inih) (INI Not Invented Here), a small and simple .INI file parser written in C
  - [Irssi](https://github.com/irssi/irssi), a terminal chat client in C
  - [iSH](https://github.com/tbodt/ish), Linux shell for iOS
@@ -71,7 +71,7 @@ topic](https://github.com/topics/meson).
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
  - [libcamera](https://git.linuxtv.org/libcamera.git/), a library to handle complex cameras on Linux, ChromeOS and Android
- - [Libdrm](https://cgit.freedesktop.org/drm/libdrm/), a library for abstracting DRM kernel interfaces
+ - [Libdrm](https://gitlab.freedesktop.org/mesa/drm), a library for abstracting DRM kernel interfaces
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
@@ -97,7 +97,7 @@ format files
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project.
- - [Orc](http://cgit.freedesktop.org/gstreamer/orc/), the Optimized Inner Loop Runtime Compiler
+ - [Orc](https://gitlab.freedesktop.org/gstreamer/orc), the Optimized Inner Loop Runtime Compiler
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
  - [Pacman](https://git.archlinux.org/pacman.git/tree/), a package manager for Arch Linux
@@ -131,7 +131,7 @@ format files
  - [wlroots](https://github.com/swaywm/wlroots), a modular Wayland compositor library
  - [wxFormBuilder](https://github.com/wxFormBuilder/wxFormBuilder), RAD tool for wxWidgets GUI design
  - [xi-gtk](https://github.com/eyelash/xi-gtk), a GTK+ front-end for the Xi editor
- - [Xorg](https://cgit.freedesktop.org/xorg/xserver/), the X.org display server (not the default yet)
+ - [Xorg](https://gitlab.freedesktop.org/xorg/xserver), the X.org display server (not the default yet)
  - [X Test Suite](https://gitlab.freedesktop.org/xorg/test/xts), The X.org test suite
  - [zathura](https://github.com/pwmt/zathura), a highly customizable and functional document viewer based on the
 girara user interface library and several document libraries
