@@ -59,6 +59,7 @@ def gtkdoc_run_check(cmd, cwd, library_paths=None):
         if 'PATH' in env:
             library_paths.extend(env['PATH'].split(os.pathsep))
         env['PATH'] = os.pathsep.join(library_paths)
+        cmd.insert(0, sys.executable)
     else:
         if 'LD_LIBRARY_PATH' in env:
             library_paths.extend(env['LD_LIBRARY_PATH'].split(os.pathsep))
