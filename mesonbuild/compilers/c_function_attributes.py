@@ -127,7 +127,4 @@ CXX_FUNC_ATTRIBUTES = {
          'static int (*resolve_foo(void))(void) { return my_foo; }'
          '}'
          'int foo(void) __attribute__((ifunc("resolve_foo")));'),
-    # Clang >= 10 requires the 'extern' keyword
-    'gnu_inline':
-        'extern inline __attribute__((gnu_inline)) int foo(void) { return 0; }',
 }

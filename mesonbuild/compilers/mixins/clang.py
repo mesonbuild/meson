@@ -112,3 +112,8 @@ class ClangCompiler(GnuLikeCompiler):
                     'Cannot find linker {}.'.format(linker))
             return ['-fuse-ld={}'.format(linker)]
         return super().use_linker_args(linker)
+
+    def get_has_func_attribute_extra_args(self, name):
+        # Clang only warns about unknown or ignored attributes, so force an
+        # error.
+        return ['-Werror=attributes']

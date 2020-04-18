@@ -369,3 +369,8 @@ class GnuCompiler(GnuLikeCompiler):
             if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stde:
                 result = False
         return result, p.cached
+
+    def get_has_func_attribute_extra_args(self, name):
+        # GCC only warns about unknown or ignored attributes, so force an
+        # error.
+        return ['-Werror=attributes']
