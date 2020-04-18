@@ -1114,6 +1114,12 @@ class CLikeCompiler:
             m = pattern.match(ret)
         return ret
 
+    def get_has_func_attribute_extra_args(self, name):
+        # Most compilers (such as GCC and Clang) only warn about unknown or
+        # ignored attributes, so force an error. Overriden in GCC and Clang
+        # mixins.
+        return ['-Werror']
+
     def has_func_attribute(self, name, env):
         # Just assume that if we're not on windows that dllimport and dllexport
         # don't work
@@ -1122,6 +1128,5 @@ class CLikeCompiler:
             if name in ['dllimport', 'dllexport']:
                 return False, False
 
-        # Clang and GCC both return warnings if the __attribute__ is undefined,
-        # so set -Werror
-        return self.compiles(self.attribute_check_func(name), env, extra_args='-Werror')
+        return self.compiles(self.attribute_check_func(name), env,
+                             extra_args=self.get_has_func_attribute_extra_args(name))
