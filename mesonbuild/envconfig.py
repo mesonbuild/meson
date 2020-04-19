@@ -93,15 +93,15 @@ class MesonConfigFile:
                 # Windows paths...
                 value = value.replace('\\', '\\\\')
                 if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                    raise EnvironmentException('Malformed variable name %s in cross file..' % entry)
+                    raise EnvironmentException('Malformed variable name {} in cross file..'.format(entry))
                 try:
                     res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
                 except Exception:
-                    raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+                    raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
 
                 for i in (res if isinstance(res, list) else [res]):
                     if not isinstance(i, (str, int, bool)):
-                        raise EnvironmentException('Malformed value in cross file variable %s.' % entry)
+                        raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
 
                 section[entry] = res
 
@@ -224,11 +224,11 @@ class MachineInfo:
 
         cpu_family = literal['cpu_family']
         if cpu_family not in known_cpu_families:
-            mlog.warning('Unknown CPU family %s, please report this at https://github.com/mesonbuild/meson/issues/new' % cpu_family)
+            mlog.warning('Unknown CPU family {}, please report this at https://github.com/mesonbuild/meson/issues/new'.format(cpu_family))
 
         endian = literal['endian']
         if endian not in ('little', 'big'):
-            mlog.warning('Unknown endian %s' % endian)
+            mlog.warning('Unknown endian {}'.format(endian))
 
         return cls(literal['system'], cpu_family, literal['cpu'], endian)
 

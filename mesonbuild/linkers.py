@@ -201,7 +201,7 @@ class CcrxLinker(StaticLinker):
         return False
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-output=%s' % target]
+        return ['-output={}'.format(target)]
 
     def get_linker_always_args(self) -> T.List[str]:
         return ['-nologo', '-form=library']
@@ -217,7 +217,7 @@ class Xc16Linker(StaticLinker):
         return False
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['%s' % target]
+        return ['{}'.format(target)]
 
     def get_linker_always_args(self) -> T.List[str]:
         return ['rcs']
@@ -233,7 +233,7 @@ class C2000Linker(StaticLinker):
         return False
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['%s' % target]
+        return ['{}'.format(target)]
 
     def get_linker_always_args(self) -> T.List[str]:
         return ['-r']
@@ -781,7 +781,7 @@ class CcrxDynamicLinker(DynamicLinker):
         return []
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        return ['-output=%s' % outputname]
+        return ['-output={}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
         raise EnvironmentError('rlink.exe does not have a search dir argument')
@@ -819,7 +819,7 @@ class Xc16DynamicLinker(DynamicLinker):
         return []
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        return ['-o%s' % outputname]
+        return ['-o{}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
         raise EnvironmentError('xc16-gcc.exe does not have a search dir argument')
@@ -862,7 +862,7 @@ class C2000DynamicLinker(DynamicLinker):
         return []
 
     def get_output_args(self, outputname: str) -> T.List[str]:
-        return ['-z', '--output_file=%s' % outputname]
+        return ['-z', '--output_file={}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
         raise EnvironmentError('cl2000.exe does not have a search dir argument')

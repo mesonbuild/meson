@@ -302,7 +302,7 @@ def exception(e: Exception, prefix: T.Optional[AnsiDecorator] = None) -> None:
         # Mypy doesn't follow hasattr, and it's pretty easy to visually inspect
         # that this is correct, so we'll just ignore it.
         path = get_relative_path(Path(e.file), Path(os.getcwd()))  # type: ignore
-        args.append('%s:%d:%d:' % (path, e.lineno, e.colno))  # type: ignore
+        args.append('{}:{}:{}:'.format(path, e.lineno, e.colno))  # type: ignore
     if prefix:
         args.append(prefix)
     args.append(str(e))
