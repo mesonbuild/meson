@@ -253,6 +253,21 @@ line arguments, environment variable settings and how to process the output.
 }
 ```
 
+## Build system files
+
+It is also possible to get Meson build files used in your current project. This
+can be done by running `meson introspect --buildsystem-files /path/to/builddir`.
+
+The output format is as follows:
+
+```json
+[
+    "/Path/to/the/targets/meson.build",
+    "/Path/to/the/targets/meson_options.txt",
+    "/Path/to/the/targets/subdir/meson.build"
+]
+```
+
 # Programmatic interface
 
 Meson also provides the `meson introspect` for project introspection via the
