@@ -16,7 +16,7 @@ build system.
 #### Dependencies
 
  - [Python](https://python.org) (version 3.5 or newer)
- - [Ninja](https://ninja-build.org) (version 1.5 or newer)
+ - [Ninja](https://ninja-build.org) (version 1.7 or newer)
 
 #### Installing from source
 
