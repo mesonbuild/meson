@@ -285,7 +285,7 @@ print (json.dumps ({
 
 class PythonInstallation(ExternalProgramHolder):
     def __init__(self, interpreter, python, info):
-        ExternalProgramHolder.__init__(self, python)
+        ExternalProgramHolder.__init__(self, python, interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = self.interpreter.subproject
         prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
@@ -514,7 +514,7 @@ class PythonModule(ExtensionModule):
 
         if disabled:
             mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
-            return ExternalProgramHolder(NonExistingExternalProgram())
+            return ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
 
         if not name_or_path:
             python = ExternalProgram('python3', mesonlib.python_command, silent=True)
@@ -561,11 +561,11 @@ class PythonModule(ExtensionModule):
         if not python.found():
             if required:
                 raise mesonlib.MesonException('{} not found'.format(name_or_path or 'python'))
-            res = ExternalProgramHolder(NonExistingExternalProgram())
+            res = ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
         elif missing_modules:
             if required:
                 raise mesonlib.MesonException('{} is missing modules: {}'.format(name_or_path or 'python', ', '.join(missing_modules)))
-            res = ExternalProgramHolder(NonExistingExternalProgram())
+            res = ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
         else:
             # Sanity check, we expect to have something that at least quacks in tune
             try:
@@ -583,7 +583,7 @@ class PythonModule(ExtensionModule):
             if isinstance(info, dict) and 'version' in info and self._check_version(name_or_path, info['version']):
                 res = PythonInstallation(interpreter, python, info)
             else:
-                res = ExternalProgramHolder(NonExistingExternalProgram())
+                res = ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
                 if required:
                     raise mesonlib.MesonException('{} is not a valid python or it is missing setuptools'.format(python))
 

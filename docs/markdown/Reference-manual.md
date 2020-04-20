@@ -1846,7 +1846,9 @@ the following methods.
   specifies that whenever `find_program` is used to find a program
   named `progname`, Meson should not look it up on the system but
   instead return `program`, which may either be the result of
-  `find_program`, `configure_file` or `executable`.
+  `find_program`, `configure_file` or `executable`. *Since 0.55.0* if a version
+  check is passed to `find_program` for a program that has been overridden with
+  an executable, the current project version is used.
 
   If `program` is an `executable`, it cannot be used during configure.
 
@@ -2460,6 +2462,12 @@ and has the following methods:
 - `path()` which returns a string pointing to the script or executable
   **NOTE:** You should not need to use this method. Passing the object
   itself should work in all cases. For example: `run_command(obj, arg1, arg2)`
+  *Since 0.55.0* this method has been deprecated in favor of `full_path()` for
+  consistency with other returned objects.
+
+- `full_path()` *Since 0.55.0* which returns a string pointing to the script or
+  executable **NOTE:** You should not need to use this method. Passing the object
+  itself should work in all cases. For example: `run_command(obj, arg1, arg2)`.
 
 ### `environment` object
 
