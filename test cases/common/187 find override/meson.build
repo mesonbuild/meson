@@ -10,3 +10,6 @@ if not gencodegen.found()
 endif
 
 subdir('otherdir')
+
+tool = find_program('sometool')
+assert(tool.found())

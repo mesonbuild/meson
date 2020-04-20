@@ -126,6 +126,7 @@ class PackageDefinition:
 
     def parse_provide_section(self):
         self.provide = {self.name: None}
+        self.provide_programs = []
         if self.config.has_section('provide'):
             for k, v in self.config['provide'].items():
                 if k == 'dependency_names':
@@ -133,6 +134,11 @@ class PackageDefinition:
                     # need a variable name
                     names = {n.strip(): None for n in v.split(',')}
                     self.provide.update(names)
+                    continue
+                if k == 'program_names':
+                    # A coma separated list of program names
+                    names = {n.strip(): None for n in v.split(',')}
+                    self.provide_programs += names
                     continue
                 if not v:
                     m = ('Empty dependency variable name for {!r} in {}. '
@@ -198,6 +204,14 @@ class Resolver:
                 return [wrap.name, dep_var]
             return wrap.name
         return directory
+
+    def find_program_provider(self, names: T.List[str]):
+        wraps = [i[0] for i in self.wraps.values()]
+        for name in names:
+            for wrap in wraps:
+                if wrap and name in wrap.provide_programs:
+                    return wrap.name
+        return None
 
     def resolve(self, packagename: str, method: str, current_subproject: str = '') -> str:
         self.current_subproject = current_subproject

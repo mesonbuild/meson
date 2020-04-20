@@ -14,3 +14,8 @@ Wrap files can define the dependencies it provides in the `[provide]` section.
 When a wrap file provides the dependency `foo` any call do `dependency('foo')`
 will automatically fallback to that subproject even if no `fallback` keyword
 argument is given. See [Wrap documentation](Wrap-dependency-system-manual.md#provide_section).
+
+## `find_program()` fallback
+
+When a program cannot be found on the system but a wrap file has its name in the
+`[provide]` section, that subproject will be used as fallback.

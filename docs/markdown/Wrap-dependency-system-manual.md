@@ -71,6 +71,7 @@ revision = head
 - `directory` - name of the subproject root directory, defaults to the name of the wrap.
 
 Since *0.55.0* those can be used in all wrap types, they were previously reserved to `wrap-file`:
+
 - `patch_url` - download url to retrieve an optional overlay archive
 - `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
 - `patch_filename` - filename of the downloaded overlay archive
@@ -181,6 +182,18 @@ dependency_names = glib-2.0, gobject-2.0, gio-2.0
 
 With such wrap file, `dependency('glib-2.0')` will automatically fallback to use
 `glib.wrap` and return `glib_dep` variable from the subproject.
+
+Programs can also be provided by wrap files, with the `program_names` key:
+```ini
+[wrap-git]
+...
+
+[provide]
+program_names = myprog, otherprog
+```
+
+With such wrap file, `find_program('myprog')` will automatically fallback to use
+the subproject, assuming it uses `meson.override_find_program('myprog')`.
 
 ## Using wrapped projects
 
