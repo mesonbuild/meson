@@ -195,14 +195,18 @@ surprisingly, `build_machine`, `host_machine` and
 `target_machine`. Determining the operating system of your host
 machine is simply a matter of calling `host_machine.system()`.
 
-There are two different values for the CPU. The first one is
-`cpu_family`. It is a general type of the CPU. Common values might
-include `x86`, `arm` or `x86_64`. The second value is `cpu` which is a
-more specific subtype for the CPU. Typical values for a `x86` CPU
-family might include `i386` or `i586` and for `arm` family `armv5` or
-`armv7hl`. Note that CPU type strings are very system dependent. You
-might get a different value if you check its value on the same machine
-but with different operating systems.
+There are two different values for the CPU. The first one is `cpu_family`. It
+is a general type of the CPU. This should have a value from [the CPU Family
+table](Reference-tables.md#cpu-families). *Note* that meson does not add
+`el` to end cpu_family value for little endian systems. Big endian and little
+endian mips are both just `mips`, with the `endian` field set approriately.
+
+The second value is `cpu` which is
+a more specific subtype for the CPU. Typical values for a `x86` CPU family
+might include `i386` or `i586` and for `arm` family `armv5` or `armv7hl`.
+Note that CPU type strings are very system dependent. You might get a
+different value if you check its value on the same machine but with different
+operating systems.
 
 If you do not define your host machine, it is assumed to be the build
 machine. Similarly if you do not specify target machine, it is assumed
