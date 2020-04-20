@@ -509,11 +509,14 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, ep):
+    def __init__(self, ep, subproject, backend=None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
+        self.subproject = subproject
+        self.backend = backend
         self.methods.update({'found': self.found_method,
-                             'path': self.path_method})
+                             'path': self.path_method,
+                             'full_path': self.full_path_method})
         self.cached_version = None
 
     @noPosargs
@@ -524,7 +527,20 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     @noPosargs
     @permittedKwargs({})
     def path_method(self, args, kwargs):
-        return self.held_object.get_path()
+        mlog.deprecation('path() method is deprecated and replaced by full_path()')
+        return self._full_path()
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('ExternalProgram.full_path', '0.55.0')
+    def full_path_method(self, args, kwargs):
+        return self._full_path()
+
+    def _full_path(self):
+        exe = self.held_object
+        if isinstance(exe, build.Executable):
+            return self.backend.get_target_filename_abs(exe)
+        return exe.get_path()
 
     def found(self):
         return isinstance(self.held_object, build.Executable) or self.held_object.found()
@@ -533,9 +549,14 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
         return self.held_object.get_command()
 
     def get_name(self):
-        return self.held_object.get_name()
+        exe = self.held_object
+        if isinstance(exe, build.Executable):
+            return exe.name
+        return exe.get_name()
 
     def get_version(self, interpreter):
+        if isinstance(self.held_object, build.Executable):
+            return self.held_object.project_version
         if not self.cached_version:
             raw_cmd = self.get_command() + ['--version']
             cmd = [self, '--version']
@@ -2366,7 +2387,7 @@ class Interpreter(InterpreterBase):
         elif isinstance(item, dependencies.Dependency):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
-            return ExternalProgramHolder(item)
+            return ExternalProgramHolder(item, self.subproject)
         elif hasattr(item, 'held_object'):
             return item
         else:
@@ -2389,7 +2410,7 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
             elif isinstance(v, dependencies.ExternalProgram):
-                return ExternalProgramHolder(v)
+                return ExternalProgramHolder(v, self.subproject)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
@@ -3143,7 +3164,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Executable name must be a string')
             prog = ExternalProgram.from_bin_list(self.environment, for_machine, p)
             if prog.found():
-                return ExternalProgramHolder(prog)
+                return ExternalProgramHolder(prog, self.subproject)
         return None
 
     def program_from_system(self, args, search_dirs, silent=False):
@@ -3170,7 +3191,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
                                                    extra_search_dirs=extra_search_dirs,
                                                    silent=silent)
-            progobj = ExternalProgramHolder(extprog)
+            progobj = ExternalProgramHolder(extprog, self.subproject)
             if progobj.found():
                 return progobj
 
@@ -3183,7 +3204,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if not silent:
                     mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
                              '(overridden: %s)' % exe.description())
-                return ExternalProgramHolder(exe)
+                return ExternalProgramHolder(exe, self.subproject, self.backend)
         return None
 
     def store_name_lookups(self, command_names):
@@ -3214,11 +3235,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             progobj = self.program_from_system(args, search_dirs, silent=silent)
         if progobj is None and args[0].endswith('python3'):
             prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
-            progobj = ExternalProgramHolder(prog)
+            progobj = ExternalProgramHolder(prog, self.subproject)
         if required and (progobj is None or not progobj.found()):
             raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
         if progobj is None:
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
         # Only store successful lookups
         self.store_name_lookups(args)
         if wanted:
@@ -3231,7 +3252,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 if required:
                     m = 'Invalid version of program, need {!r} {!r} found {!r}.'
                     raise InvalidArguments(m.format(progobj.get_name(), not_found, version))
-                return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
+                return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
         return progobj
 
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
@@ -3246,7 +3267,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)))
+            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
 
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
@@ -3321,7 +3342,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return
         dep = subi.get_variable_method([varname], {})
         if dep.held_object != cached_dep:
-            m = 'Inconsistency: Subproject has overriden the dependency with another variable than {!r}'
+            m = 'Inconsistency: Subproject has overridden the dependency with another variable than {!r}'
             raise DependencyException(m.format(varname))
 
     def get_subproject_dep(self, name, display_name, dirname, varname, kwargs):
@@ -3333,7 +3354,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             subproject = self.subprojects[dirname]
             _, cached_dep = self._find_cached_dep(name, kwargs)
             if varname is None:
-                # Assuming the subproject overriden the dependency we want
+                # Assuming the subproject overridden the dependency we want
                 if cached_dep:
                     if required and not cached_dep.found():
                         m = 'Dependency {!r} is not satisfied'
@@ -4551,6 +4572,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
         target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs, self.environment, kwargs)
+        target.project_version = self.project_version
 
         if not self.environment.machines.matches_build_machine(for_machine):
             self.add_cross_stdlib_info(target)
