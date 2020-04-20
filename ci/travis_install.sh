@@ -11,6 +11,7 @@ if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
   if [[ "$MESON_ARGS" =~ .*unity=on.* ]]; then
     which pkg-config || brew install pkg-config
   fi
+  python3 -m pip install jsonschema
 elif [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
   msg "Running Linux setup"
   docker pull mesonbuild/eoan

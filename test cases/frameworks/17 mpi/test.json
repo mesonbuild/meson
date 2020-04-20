@@ -1,0 +1,15 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "auto" },
+        { "val": "pkg-config" },
+        { "val": "config-tool" },
+        {
+          "val": "system",
+          "compilers": { "c" :"msvc", "cpp": "msvc" }
+        }
+      ]
+    }
+  }
+}

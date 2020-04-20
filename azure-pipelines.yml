@@ -100,8 +100,8 @@ jobs:
       displayName: Install Dependencies
     - script: |
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
-        env.exe -- python3 -m pip --disable-pip-version-check install pefile pytest-xdist
-      displayName: pip install pefile pytest-xdist
+        env.exe -- python3 -m pip --disable-pip-version-check install pefile pytest-xdist jsonschema
+      displayName: pip install pefile pytest-xdist jsonschema
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
@@ -169,7 +169,7 @@ jobs:
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
         mingw-w64-$(MSYS2_ARCH)-python3-pip ^
         %TOOLCHAIN%
-        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install pefile"
+        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install pefile jsonschema"
       displayName: Install Dependencies
     - script: |
         set BOOST_ROOT=
