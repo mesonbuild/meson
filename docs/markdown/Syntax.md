@@ -588,3 +588,64 @@ FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup
 because of this limitation you find yourself copying and pasting code
 a lot you may be able to use a [`foreach` loop
 instead](#foreach-statements).
+
+Grammar
+--
+
+This is the full Meson grammar, as it is used to parse Meson build definition files:
+
+```
+program = (NEWLINE | stmt)*
+stmt = (expression_stmt | selection_stmt | iteration_stmt | jump_stmt) NEWLINE
+selection_stmt = 'if' condition NEWLINE (stmt)* ('elif' condition NEWLINE (stmt)*)* ['else' (stmt)*] 'endif'
+iteration_stmt = 'foreach' identifier_list ':' identifier NEWLINE (stmt)* 'endforeach'
+condition = conditional_expr // TODO classic way would be condition = expression, but we can't have assignments in conditions. Should that be covered by the grammar (syntax) or not
+identifier_list = identifier | (identifier_list ',' identifier)
+jump_stmt = 'break' | 'continue' // TODO can currently only occur inside a iteration_stmt body, but that is not reflected here
+parameter_list = [arg_list] | [kwarg_list] | (arg_list ',' kwarg_list) // TODO could be more concise
+arg_list = expr_list
+kwarg_list = kwarg | (kwarg_list ',' kwarg)
+kwarg = string_literal ':' expr // TODO or could the key here actually be an expression?
+expression_stmt = expr
+expr_list = assignment_expr | (expr_list ',' assignment_expr)
+expr = assignment_expr
+expr_list = assignment_expr | expression_list ',' assignment_expr // TODO currently unused, do we need it somewhere?
+assignment_expr = conditional_expr | (logical_or_expr assignment_op assignment_expr)
+assignment_op = '=' | '*=' | '/=' | '%=' | '+=' | '-='
+conditional_expr = logical_or_expr | (logical_or_expr '?' expr ':' assignment_expr
+logical_or_expr = logical_end_expr | (logical_or_expr 'or' logical_and_expr')
+// FIXME in between here would be xor, if we had it
+logical_and_expr = equality_expr | (logical_and_expr 'and' equality_expr)
+equality_expr = relational_expr | (equality_expr equality_op relational_expr)
+equality_op = '==' | '!='
+relational_expr = additive_expr | (relational_expr relational_op additive_expr)
+relational_op = '>' | '<' | '>=' | '<='
+additive_expr = multiplicative_expr | (additive_expr additive_op multiplicative_expr)
+additive_op = '+' | '-'
+multiplicative_expr = postfix_expr | (multiplicative_expr multiplicative_op postfix_expr)
+multiplicative_op = '*' | '/' | '%'
+postfix_expr = primary_expr | subscript_expr | call_expr
+subscript_expr = identifier '[' expr ']' // TODO not sure about the expr as index here
+call_expr = function_expr | method_expr
+function_expr = identifier '(' parameter_list ')' // TODO actually, it is allowed to call a function like this (func)(param), but its still not a primary expression, because a function name cannot be a literal
+method_expr = primary_expr '.' function_expr
+primary_expr = literal | ('(' expr ')') | id_expr
+id_expr = identifier
+parameter_list = arg_list
+identifier = nondigit | (identifier nondigit) | (identifier digit)
+nondigit = ALPHA_CHARACTER | '_'
+digit = DIGIT
+literal = integer_literal | character_literal | string_literal | boolean_literal | array_literal | dictionary_literal
+integer_literal = decimal_literal | octal_literal | hex_literal
+decimal_literal = nonzero_digit | (decimal_literal digit)
+nonzero_digit = NON_ZERO_DIGIT
+octal_literal = '0o' (octal_digit)*
+octal_digit = OCTAL_DIGIT
+hex_literal = '0x' (hex_digit)*
+hex_digit = HEX_DIGIT
+string_literal = "'" char_seq "'" // TODO multiline strings
+char_seq = (string_char)* // FIXME escapes
+boolean_literal = 'true' | 'false'
+array_literal = '[' expr_list ']' // TODO not assignment expressions unfortunately
+dictionary_literal = '{' kwarg_list '}'
+```
