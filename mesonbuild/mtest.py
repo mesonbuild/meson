@@ -33,6 +33,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import typing as T
 
@@ -775,14 +776,14 @@ class TestHarness:
             write_json_log(self.jsonlogfile, name, result)
 
     def print_summary(self) -> None:
-        msg = '''
-Ok:                 {:<4}
-Expected Fail:      {:<4}
-Fail:               {:<4}
-Unexpected Pass:    {:<4}
-Skipped:            {:<4}
-Timeout:            {:<4}
-'''.format(self.success_count, self.expectedfail_count, self.fail_count,
+        msg = textwrap.dedent('''
+            Ok:                 {:<4}
+            Expected Fail:      {:<4}
+            Fail:               {:<4}
+            Unexpected Pass:    {:<4}
+            Skipped:            {:<4}
+            Timeout:            {:<4}
+            ''').format(self.success_count, self.expectedfail_count, self.fail_count,
            self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
         if self.logfile:
