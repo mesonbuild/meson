@@ -132,7 +132,7 @@ class CMakeExecutor:
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
-        cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
+        cmvers = re.sub(r'\s*(cmake|cmake3) version\s*', '', out.split('\n')[0]).strip()
         return cmvers
 
     def set_exec_mode(self, print_cmout: T.Optional[bool] = None, always_capture_stderr: T.Optional[bool] = None) -> None:
