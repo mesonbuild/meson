@@ -739,7 +739,7 @@ class Environment:
         else:
             if not self.machines.matches_build_machine(for_machine):
                 raise EnvironmentException('{!r} compiler binary not defined in cross or native file'.format(lang))
-            compilers = getattr(self, 'default_' + lang)
+            compilers = getattr(self, 'default_' + lang.get_lower_case_name())
             ccache = BinaryTable.detect_ccache()
 
         if self.machines.matches_build_machine(for_machine):
@@ -970,10 +970,10 @@ class Environment:
 
                 if guess_gcc_or_lcc == 'lcc':
                     version = self.get_lcc_version_from_defines(defines)
-                    cls = ElbrusCCompiler if lang == 'c' else ElbrusCPPCompiler
+                    cls = ElbrusCCompiler if lang == Language.C else ElbrusCPPCompiler
                 else:
                     version = self.get_gnu_version_from_defines(defines)
-                    cls = GnuCCompiler if lang == 'c' else GnuCPPCompiler
+                    cls = GnuCCompiler if lang == Language.C else GnuCPPCompiler
 
                 linker = self._guess_nix_linker(compiler, cls, for_machine)
 
@@ -983,7 +983,7 @@ class Environment:
                     linker=linker)
 
             if 'Emscripten' in out:
-                cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
+                cls = EmscriptenCCompiler if lang == Language.C else EmscriptenCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 # emcc cannot be queried to get the version out of it (it
                 # ignores -Wl,--version and doesn't have an alternative).
@@ -1012,7 +1012,7 @@ class Environment:
                 # Override previous values
                 version = search_version(arm_ver_str)
                 full_version = arm_ver_str
-                cls = ArmclangCCompiler if lang == 'c' else ArmclangCPPCompiler
+                cls = ArmclangCCompiler if lang == Language.C else ArmclangCPPCompiler
                 linker = ArmClangDynamicLinker(for_machine, version=version)
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 return cls(
@@ -1032,7 +1032,7 @@ class Environment:
                     target = match.group(1)
                 else:
                     target = 'unknown target'
-                cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
+                cls = ClangClCCompiler if lang == Language.C else ClangClCPPCompiler
                 linker = self._guess_win_linker(['lld-link'], cls, for_machine)
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
@@ -1043,9 +1043,9 @@ class Environment:
                 # Even if the for_machine is darwin, we could be using vanilla
                 # clang.
                 if 'Apple' in out:
-                    cls = AppleClangCCompiler if lang == 'c' else AppleClangCPPCompiler
+                    cls = AppleClangCCompiler if lang == Language.C else AppleClangCPPCompiler
                 else:
-                    cls = ClangCCompiler if lang == 'c' else ClangCPPCompiler
+                    cls = ClangCCompiler if lang == Language.C else ClangCPPCompiler
 
                 if 'windows' in out or self.machines[for_machine].is_windows():
                     # If we're in a MINGW context this actually will use a gnu
@@ -1065,7 +1065,7 @@ class Environment:
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
                 target = 'x86' if 'IA-32' in err else 'x86_64'
-                cls = IntelClCCompiler if lang == 'c' else IntelClCPPCompiler
+                cls = IntelClCCompiler if lang == Language.C else IntelClCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = XilinkDynamicLinker(for_machine, [], version=version)
                 return cls(
@@ -1090,33 +1090,33 @@ class Environment:
                 else:
                     m = 'Failed to detect MSVC compiler target architecture: \'cl /?\' output is\n{}'
                     raise EnvironmentException(m.format(cl_signature))
-                cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
+                cls = VisualStudioCCompiler if lang == Language.C else VisualStudioCPPCompiler
                 linker = self._guess_win_linker(['link'], cls, for_machine)
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     target, linker=linker)
             if 'PGI Compilers' in out:
-                cls = PGICCompiler if lang == 'c' else PGICPPCompiler
+                cls = PGICCompiler if lang == Language.C else PGICPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = PGIDynamicLinker(compiler, for_machine, cls.LINKER_PREFIX, [], version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, linker=linker)
             if '(ICC)' in out:
-                cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
+                cls = IntelCCompiler if lang == Language.C else IntelCPPCompiler
                 l = self._guess_nix_linker(compiler, cls, for_machine)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=l)
             if 'ARM' in out:
-                cls = ArmCCompiler if lang == 'c' else ArmCPPCompiler
+                cls = ArmCCompiler if lang == Language.C else ArmCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = ArmDynamicLinker(for_machine, version=version)
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, full_version=full_version, linker=linker)
             if 'RX Family' in out:
-                cls = CcrxCCompiler if lang == 'c' else CcrxCPPCompiler
+                cls = CcrxCCompiler if lang == Language.C else CcrxCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = CcrxDynamicLinker(for_machine, version=version)
                 return cls(
@@ -1124,7 +1124,7 @@ class Environment:
                     exe_wrap, full_version=full_version, linker=linker)
 
             if 'Microchip Technology' in out:
-                cls = Xc16CCompiler if lang == 'c' else Xc16CCompiler
+                cls = Xc16CCompiler if lang == Language.C else Xc16CCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = Xc16DynamicLinker(for_machine, version=version)
                 return cls(
@@ -1132,7 +1132,7 @@ class Environment:
                     exe_wrap, full_version=full_version, linker=linker)
 
             if 'TMS320C2000 C/C++' in out:
-                cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
+                cls = C2000CCompiler if lang == Language.C else C2000CPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = C2000DynamicLinker(for_machine, version=version)
                 return cls(
@@ -1142,15 +1142,15 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_c_compiler(self, for_machine):
-        return self._detect_c_or_cpp_compiler('c', for_machine)
+        return self._detect_c_or_cpp_compiler(Language.C, for_machine)
 
     def detect_cpp_compiler(self, for_machine):
-        return self._detect_c_or_cpp_compiler('cpp', for_machine)
+        return self._detect_c_or_cpp_compiler(Language.CPP, for_machine)
 
     def detect_cuda_compiler(self, for_machine):
         popen_exceptions = {}
         is_cross = not self.machines.matches_build_machine(for_machine)
-        compilers, ccache, exe_wrap = self._get_compilers('cuda', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers(Language.CUDA, for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -1188,7 +1188,7 @@ class Environment:
 
     def detect_fortran_compiler(self, for_machine: MachineChoice):
         popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('fortran', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers(Language.FORTRAN, for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
@@ -1307,7 +1307,7 @@ class Environment:
 
     def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
         popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('objc' if objc else 'objcpp', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers(Language.OBJC if objc else Language.OBJCPP, for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
 
@@ -1351,7 +1351,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
-        exelist = self.lookup_binary_entry(for_machine, 'java')
+        exelist = self.lookup_binary_entry(for_machine, Language.JAVA)
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback
@@ -1373,7 +1373,7 @@ class Environment:
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def detect_cs_compiler(self, for_machine):
-        compilers, ccache, exe_wrap = self._get_compilers('cs', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers(Language.CS, for_machine)
         popen_exceptions = {}
         info = self.machines[for_machine]
         for comp in compilers:
@@ -1398,7 +1398,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_vala_compiler(self, for_machine):
-        exelist = self.lookup_binary_entry(for_machine, 'vala')
+        exelist = self.lookup_binary_entry(for_machine, Language.VALA)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
@@ -1418,7 +1418,7 @@ class Environment:
 
     def detect_rust_compiler(self, for_machine):
         popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('rust', for_machine)
+        compilers, ccache, exe_wrap = self._get_compilers(Language.RUST, for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
 
@@ -1500,8 +1500,8 @@ class Environment:
 
         # Detect the target architecture, required for proper architecture handling on Windows.
         # MSVC compiler is required for correct platform detection.
-        c_compiler = {'c': self.detect_c_compiler(for_machine)}
-        is_msvc = isinstance(c_compiler['c'], VisualStudioCCompiler)
+        c_compiler = {Language.C: self.detect_c_compiler(for_machine)}
+        is_msvc = isinstance(c_compiler[Language.C], VisualStudioCCompiler)
         if not is_msvc:
             c_compiler = {}
 
@@ -1511,7 +1511,7 @@ class Environment:
 
         popen_exceptions = {}
         is_cross = not self.machines.matches_build_machine(for_machine)
-        results, ccache, exe_wrap = self._get_compilers('d', for_machine)
+        results, ccache, exe_wrap = self._get_compilers(Language.D, for_machine)
         for exelist in results:
             # Search for a D compiler.
             # We prefer LDC over GDC unless overridden with the DC
@@ -1600,7 +1600,7 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_swift_compiler(self, for_machine):
-        exelist = self.lookup_binary_entry(for_machine, 'swift')
+        exelist = self.lookup_binary_entry(for_machine, Language.SWIFT)
         is_cross = not self.machines.matches_build_machine(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
@@ -1624,29 +1624,29 @@ class Environment:
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
     def compiler_from_language(self, lang: Language, for_machine: MachineChoice):
-        if lang == 'c':
+        if lang == Language.C:
             comp = self.detect_c_compiler(for_machine)
-        elif lang == 'cpp':
+        elif lang == Language.CPP:
             comp = self.detect_cpp_compiler(for_machine)
-        elif lang == 'objc':
+        elif lang == Language.OBJC:
             comp = self.detect_objc_compiler(for_machine)
-        elif lang == 'cuda':
+        elif lang == Language.CUDA:
             comp = self.detect_cuda_compiler(for_machine)
-        elif lang == 'objcpp':
+        elif lang == Language.OBJCPP:
             comp = self.detect_objcpp_compiler(for_machine)
-        elif lang == 'java':
+        elif lang == Language.JAVA:
             comp = self.detect_java_compiler(for_machine)
-        elif lang == 'cs':
+        elif lang == Language.CS:
             comp = self.detect_cs_compiler(for_machine)
-        elif lang == 'vala':
+        elif lang == Language.VALA:
             comp = self.detect_vala_compiler(for_machine)
-        elif lang == 'd':
+        elif lang == Language.D:
             comp = self.detect_d_compiler(for_machine)
-        elif lang == 'rust':
+        elif lang == Language.RUST:
             comp = self.detect_rust_compiler(for_machine)
-        elif lang == 'fortran':
+        elif lang == Language.FORTRAN:
             comp = self.detect_fortran_compiler(for_machine)
-        elif lang == 'swift':
+        elif lang == Language.SWIFT:
             comp = self.detect_swift_compiler(for_machine)
         else:
             comp = None

@@ -24,6 +24,7 @@ import re
 from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
+from mesonbuild.mesonlib import Language
 from mesonbuild.templates.samplefactory import sameple_generator
 
 '''
@@ -33,7 +34,18 @@ from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'} | FORTRAN_SUFFIXES
-LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp'}
+LANG_SUPPORTED = {
+    Language.C,
+    Language.CPP,
+    Language.CS,
+    Language.CUDA,
+    Language.D,
+    Language.FORTRAN,
+    Language.JAVA,
+    Language.RUST,
+    Language.OBJC,
+    Language.OBJCPP,
+}
 
 DEFAULT_PROJECT = 'executable'
 DEFAULT_VERSION = '0.1'
@@ -96,34 +108,34 @@ def autodetect_options(options, sample: bool = False) -> None:
     if not options.language:
         for f in options.srcfiles:
             if f.suffix == '.c':
-                options.language = 'c'
+                options.language = Language.C
                 break
             if f.suffix in ('.cc', '.cpp'):
-                options.language = 'cpp'
+                options.language = Language.CPP
                 break
             if f.suffix in '.cs':
-                options.language = 'cs'
+                options.language = Language.CS
                 break
             if f.suffix == '.cu':
-                options.language = 'cuda'
+                options.language = Language.CUDA
                 break
             if f.suffix == '.d':
-                options.language = 'd'
+                options.language = Language.D
                 break
             if f.suffix in FORTRAN_SUFFIXES:
-                options.language = 'fortran'
+                options.language = Language.FORTRAN
                 break
             if f.suffix == '.rs':
-                options.language = 'rust'
+                options.language = Language.RUST
                 break
             if f.suffix == '.m':
-                options.language = 'objc'
+                options.language = Language.OBJC
                 break
             if f.suffix == '.mm':
-                options.language = 'objcpp'
+                options.language = Language.OBJCPP
                 break
             if f.suffix == '.java':
-                options.language = 'java'
+                options.language = Language.JAVA
                 break
         if not options.language:
             raise SystemExit("Can't autodetect language, please specify it with -l.")
@@ -158,7 +170,7 @@ def run(options) -> int:
         autodetect_options(options, sample=True)
         if not options.language:
             print('Defaulting to generating a C language project.')
-            options.language = 'c'
+            options.language = Language.C
         create_sample(options)
     else:
         autodetect_options(options)

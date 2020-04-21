@@ -36,9 +36,11 @@ from ..compilers import clib_langs
 from ..envconfig import get_env_var
 from ..environment import BinaryTable, Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
-from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
-from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
-from ..mesonlib import Version, LibType
+from ..mesonlib import (
+    Language, MachineChoice, MesonException, OrderedSet, PerMachine,
+    Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args,
+    Version, LibType,
+)
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import CompilerType  # noqa: F401
@@ -710,7 +712,7 @@ class PkgConfigDependency(ExternalDependency):
 
     def _set_cargs(self):
         env = None
-        if self.language == 'fortran':
+        if self.language == Language.FORTRAN:
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
             env = os.environ.copy()
@@ -1046,14 +1048,14 @@ class CMakeDependency(ExternalDependency):
             else:
                 compilers = environment.coredata.compilers.host
 
-            candidates = ['c', 'cpp', 'fortran', 'objc', 'objcxx']
+            candidates = [Language.C, Language.CPP, Language.FORTRAN, Language.OBJC, Language.OBJCPP]
             self.language_list += [x for x in candidates if x in compilers]
         else:
             self.language_list += [language]
 
         # Add additional languages if required
-        if 'fortran' in self.language_list:
-            self.language_list += ['c']
+        if Language.FORTRAN in self.language_list:
+            self.language_list += [Language.C]
 
         # Ensure that the list is unique
         self.language_list = list(set(self.language_list))
@@ -1590,7 +1592,7 @@ class DubDependency(ExternalDependency):
     class_dubbin = None
 
     def __init__(self, name, environment, kwargs):
-        super().__init__('dub', environment, kwargs, language='d')
+        super().__init__('dub', environment, kwargs, language=Language.D)
         self.name = name
         self.compiler = super().get_compiler()
         self.module_path = None
@@ -2087,8 +2089,8 @@ class ExternalLibrary(ExternalDependency):
         '''
         # Using a vala library in a non-vala target, or a non-vala library in a vala target
         # XXX: This should be extended to other non-C linkers such as Rust
-        if (self.language == 'vala' and language != 'vala') or \
-           (language == 'vala' and self.language != 'vala'):
+        if (self.language == Language.VALA and language != Language.VALA) or \
+           (language == Language.VALA and self.language != Language.VALA):
             return []
         return super().get_link_args(**kwargs)
 
@@ -2558,7 +2560,7 @@ def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
         if language not in compilers:
             m = name.capitalize() + ' requires a {0} compiler, but ' \
                 '{0} is not in the list of project languages'
-            raise DependencyException(m.format(language.capitalize()))
+            raise DependencyException(m.format(language.get_display_name()))
         return compilers[language]
     else:
         for lang in clib_langs:

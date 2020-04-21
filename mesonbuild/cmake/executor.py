@@ -280,9 +280,9 @@ class CMakeExecutor:
                 mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
                 return fallback, ''
 
-        c_comp, c_launcher = choose_compiler('c')
-        cxx_comp, cxx_launcher = choose_compiler('cpp')
-        fortran_comp, fortran_launcher = choose_compiler('fortran')
+        c_comp, c_launcher = choose_compiler(Language.C)
+        cxx_comp, cxx_launcher = choose_compiler(Language.CPP)
+        fortran_comp, fortran_launcher = choose_compiler(Language.FORTRAN)
 
         # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
         c_comp = c_comp.replace('\\', '/')

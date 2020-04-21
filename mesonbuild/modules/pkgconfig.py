@@ -325,7 +325,7 @@ class PkgConfigModule(ExtensionModule):
                             install_dir = l.get_custom_install_dir()[0]
                         if install_dir is False:
                             continue
-                        if 'cs' in l.compilers:
+                        if Language.CS in l.compilers:
                             if isinstance(install_dir, str):
                                 Lflag = '-r${prefix}/%s/%s' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
@@ -343,7 +343,7 @@ class PkgConfigModule(ExtensionModule):
                         # find the library
                         if l.name_suffix_set:
                             mlog.warning(msg.format(l.name, 'name_suffix', lname, pcfile))
-                        if 'cs' not in l.compilers:
+                        if Language.CS not in l.compilers:
                             yield '-l%s' % lname
 
             def get_uninstalled_include_dirs(libs):
@@ -463,7 +463,7 @@ class PkgConfigModule(ExtensionModule):
 
         dversions = kwargs.get('d_module_versions', None)
         if dversions:
-            compiler = state.environment.coredata.compilers.host.get('d')
+            compiler = state.environment.coredata.compilers.host.get(Language.D)
             if compiler:
                 deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
 

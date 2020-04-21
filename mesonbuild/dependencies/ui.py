@@ -69,7 +69,7 @@ class GnuStepDependency(ConfigToolDependency):
     tool_name = 'gnustep-config'
 
     def __init__(self, environment, kwargs):
-        super().__init__('gnustep', environment, kwargs, language='objc')
+        super().__init__('gnustep', environment, kwargs, language=Language.OBJC)
         if not self.is_found:
             return
         self.modules = kwargs.get('modules', [])
@@ -181,7 +181,7 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
 
 class QtBaseDependency(ExternalDependency):
     def __init__(self, name, env, kwargs):
-        super().__init__(name, env, kwargs, language='cpp')
+        super().__init__(name, env, kwargs, language=Language.CPP)
         self.qtname = name.capitalize()
         self.qtver = name[-1]
         if self.qtver == "4":
@@ -547,7 +547,7 @@ class WxDependency(ConfigToolDependency):
     tool_name = 'wx-config'
 
     def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
-        super().__init__('WxWidgets', environment, kwargs, language='cpp')
+        super().__init__('WxWidgets', environment, kwargs, language=Language.CPP)
         if not self.is_found:
             return
         self.requested_modules = self.get_requested(kwargs)

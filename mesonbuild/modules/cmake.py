@@ -129,9 +129,9 @@ class CmakeModule(ExtensionModule):
 
     def detect_voidp_size(self, env):
         compilers = env.coredata.compilers.host
-        compiler = compilers.get('c', None)
+        compiler = compilers.get(Language.C, None)
         if not compiler:
-            compiler = compilers.get('cpp', None)
+            compiler = compilers.get(Language.CPP, None)
 
         if not compiler:
             raise mesonlib.MesonException('Requires a C or C++ compiler to compute sizeof(void *).')

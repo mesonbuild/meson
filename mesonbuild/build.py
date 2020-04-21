@@ -24,7 +24,7 @@ from . import environment
 from . import dependencies
 from . import mlog
 from .mesonlib import (
-    File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
+    File, Language, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep, unholder
 )
@@ -456,8 +456,9 @@ a hard error in the future.'''.format(name))
 
         for k, v in option_overrides.items():
             if '_' in k:
-               lang, k2 = k.split('_', 1)
-               if lang in all_languages:
+               lang_str, k2 = k.split('_', 1)
+               lang = Language.from_lower_case_name(lang_str)
+               if lang is not None:
                    self.option_overrides_compiler[lang][k2] = v
                    continue
             self.option_overrides_base[k] = v
@@ -659,7 +660,7 @@ class BuildTarget(Target):
                 # Don't add Vala sources since that will pull in the Vala
                 # compiler even though we will never use it since we are
                 # dealing with compiled C code.
-                if not s.endswith(lang_suffixes['vala']):
+                if not s.endswith(lang_suffixes[Language.VALA]):
                     sources.append(s)
         if sources:
             # For each source, try to add one compiler that can compile it.
@@ -687,21 +688,23 @@ class BuildTarget(Target):
 
         # If all our sources are Vala, our target also needs the C compiler but
         # it won't get added above.
-        if 'vala' in self.compilers and 'c' not in self.compilers:
-            self.compilers['c'] = compilers['c']
+        if Language.VALA in self.compilers and Language.C not in self.compilers:
+            self.compilers[Language.C] = compilers[Language.C]
 
     def validate_sources(self):
         if not self.sources:
             return
-        for lang in ('cs', 'java'):
+        for lang in (Language.CS, Language.JAVA):
             if lang in self.compilers:
                 check_sources = list(self.sources)
                 compiler = self.compilers[lang]
                 if not self.can_compile_remove_sources(compiler, check_sources):
-                    m = 'No {} sources found in target {!r}'.format(lang, self.name)
+                    m = 'No {} sources found in target {!r}'.format(
+                            lang.get_lower_case_name(), self.name)
                     raise InvalidArguments(m)
                 if check_sources:
-                    m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
+                    m = '{0} targets can only contain {0} files:\n'.format(
+                            lang.get_display_name())
                     m += '\n'.join([repr(c) for c in check_sources])
                     raise InvalidArguments(m)
                 # CSharp and Java targets can't contain any other file types
@@ -844,11 +847,19 @@ just like those detected with the dependency() function.''')
         c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
             = [extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args']]
 
-        self.add_pch('c', c_pchlist)
-        self.add_pch('cpp', cpp_pchlist)
-        compiler_args = {'c': clist, 'cpp': cpplist, 'cuda': cudalist, 'cs': cslist, 'vala': valalist, 'objc': objclist, 'objcpp': objcpplist,
-                         'fortran': fortranlist, 'rust': rustlist
-                         }
+        self.add_pch(Language.C, c_pchlist)
+        self.add_pch(Language.CPP, cpp_pchlist)
+        compiler_args = {
+            Language.CPP: cpplist,
+            Language.CS: cslist,
+            Language.CUDA: cudalist,
+            Language.FORTRAN: fortranlist,
+            Language.OBJC: objclist,
+            Language.OBJCPP: objcpplist,
+            Language.RUST: rustlist,
+            Language.VALA: valalist,
+            Language.C: clist,
+        }
         for key, value in compiler_args.items():
             self.add_compiler_args(key, value)
 
@@ -858,7 +869,7 @@ just like those detected with the dependency() function.''')
             self.vala_gir = kwargs.get('vala_gir', None)
 
         dlist = stringlistify(kwargs.get('d_args', []))
-        self.add_compiler_args('d', dlist)
+        self.add_compiler_args(Language.D, dlist)
         dfeatures = dict()
         dfeature_unittest = kwargs.get('d_unittest', False)
         if dfeature_unittest:
@@ -982,7 +993,7 @@ This will become a hard error in a future Meson release.''')
 
     def _extract_pic_pie(self, kwargs, arg):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
-        all_flags = self.extra_args['c'] + self.extra_args['cpp']
+        all_flags = self.extra_args[Language.C] + self.extra_args[Language.CPP]
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning("Use the '{}' kwarg instead of passing '{}' manually to {!r}".format(arg, '-f' + arg, self.name))
             return True
@@ -1208,7 +1219,7 @@ You probably should put it in link_with instead.''')
     def get_aliases(self):
         return {}
 
-    def get_langs_used_by_deps(self) -> T.List[str]:
+    def get_langs_used_by_deps(self) -> T.List[Language]:
         '''
         Sometimes you want to link to a C++ library that exports C API, which
         means the linker must link in the C++ stdlib, and we must use a C++
@@ -1492,20 +1503,20 @@ class Executable(BuildTarget):
         if not hasattr(self, 'suffix'):
             machine = environment.machines[for_machine]
             # Executable for Windows or C#/Mono
-            if machine.is_windows() or machine.is_cygwin() or 'cs' in self.compilers:
+            if machine.is_windows() or machine.is_cygwin() or Language.CS in self.compilers:
                 self.suffix = 'exe'
             elif machine.system.startswith('wasm') or machine.system == 'emscripten':
                 self.suffix = 'js'
-            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('arm') or
-                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('arm')):
+            elif (Language.C in self.compilers and self.compilers[Language.C].get_id().startswith('arm') or
+                  Language.CPP in self.compilers and self.compilers[Language.CPP].get_id().startswith('arm')):
                 self.suffix = 'axf'
-            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('ccrx') or
-                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('ccrx')):
+            elif (Language.C in self.compilers and self.compilers[Language.C].get_id().startswith('ccrx') or
+                  Language.CPP in self.compilers and self.compilers[Language.CPP].get_id().startswith('ccrx')):
                 self.suffix = 'abs'
-            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('xc16')):
+            elif (Language.C in self.compilers and self.compilers[Language.C].get_id().startswith('xc16')):
                 self.suffix = 'elf'
-            elif ('c' in self.compilers and self.compilers['c'].get_id().startswith('c2000') or
-                  'cpp' in self.compilers and self.compilers['cpp'].get_id().startswith('c2000')):
+            elif (Language.C in self.compilers and self.compilers[Language.C].get_id().startswith('c2000') or
+                  Language.CPP in self.compilers and self.compilers[Language.CPP].get_id().startswith('c2000')):
                 self.suffix = 'out'
             else:
                 self.suffix = environment.machines[for_machine].get_exe_suffix()
@@ -1549,7 +1560,7 @@ class Executable(BuildTarget):
                 else:
                     self.import_filename = self.gcc_import_filename
 
-        if m.is_windows() and ('cs' in self.compilers or
+        if m.is_windows() and (Language.CS in self.compilers or
                                self.get_using_rustc() or
                                self.get_using_msvc()):
             self.debug_filename = self.name + '.pdb'
@@ -1599,9 +1610,9 @@ class StaticLibrary(BuildTarget):
         if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
             kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
-        if 'cs' in self.compilers:
+        if Language.CS in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
-        if 'rust' in self.compilers:
+        if Language.RUST in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use rlib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
                 mlog.debug('Defaulting Rust static library target crate type to rlib')
@@ -1619,7 +1630,7 @@ class StaticLibrary(BuildTarget):
         if not hasattr(self, 'prefix'):
             self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
-            if 'rust' in self.compilers:
+            if Language.RUST in self.compilers:
                 if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
                     # default Rust static library suffix
                     self.suffix = 'rlib'
@@ -1670,7 +1681,7 @@ class SharedLibrary(BuildTarget):
         # The debugging information file this target will generate
         self.debug_filename = None
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
-        if 'rust' in self.compilers:
+        if Language.RUST in self.compilers:
             # If no crate type is specified, or it's the generic lib type, use dylib
             if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'lib':
                 mlog.debug('Defaulting Rust dynamic library target crate type to "dylib"')
@@ -1727,7 +1738,7 @@ class SharedLibrary(BuildTarget):
         self.filename_tpl = self.basic_filename_tpl
         # NOTE: manual prefix/suffix override is currently only tested for C/C++
         # C# and Mono
-        if 'cs' in self.compilers:
+        if Language.CS in self.compilers:
             prefix = ''
             suffix = 'dll'
             self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'

@@ -702,7 +702,12 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
 
         # Now finally targets.
-        langnamemap = {'c': 'C', 'cpp': 'CPLUSPLUS', 'objc': 'OBJC', 'objcpp': 'OBJCPLUSPLUS'}
+        langnamemap = {
+            Language.C: 'C',
+            Language.CPP: 'CPLUSPLUS',
+            Language.OBJC: 'OBJC',
+            Language.OBJCPP: 'OBJCPLUSPLUS',
+        }
         for target_name, target in self.build.targets.items():
             for buildtype in self.buildtypes:
                 dep_libs = []
@@ -773,7 +778,10 @@ class XCodeBackend(backends.Backend):
                     # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                     # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
                     # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
-                    pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                    pchs = target.get_pch(Language.C)
+                        + target.get_pch(Language.CPP)
+                        + target.get_pch(Language.OBJC)
+                        + target.get_pch(Language.OBJCPP)
                     # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
                     pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
                     if pchs:

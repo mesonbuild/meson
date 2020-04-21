@@ -817,7 +817,7 @@ class Compiler:
 
     @classmethod
     def get_display_language(cls) -> str:
-        return cls.language.capitalize()
+        return cls.language.get_display_name()
 
     def get_default_suffix(self) -> str:
         return self.default_suffix

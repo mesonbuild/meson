@@ -25,14 +25,14 @@ from mesonbuild.templates.ctemplates import CProject
 
 def sameple_generator(options):
     return {
-        'c': CProject,
-        'cpp': CppProject,
-        'cs': CSharpProject,
-        'cuda': CudaProject,
-        'objc': ObjCProject,
-        'objcpp': ObjCppProject,
-        'java': JavaProject,
-        'd': DlangProject,
-        'rust': RustProject,
-        'fortran': FortranProject
+        Language.C: CProject,
+        Language.CPP: CppProject,
+        Language.CS: CSharpProject,
+        Language.CUDA: CudaProject,
+        Language.OBJC: ObjCProject,
+        Language.OBJCPP: ObjCppProject,
+        Language.JAVA: JavaProject,
+        Language.D: DlangProject,
+        Language.RUST: RustProject,
+        Language.FORTRAN: FortranProject
     }[options.language](options)

@@ -339,7 +339,7 @@ class BoostLibraryFile():
 
 class BoostDependency(ExternalDependency):
     def __init__(self, environment: Environment, kwargs):
-        super().__init__('boost', environment, kwargs, language='cpp')
+        super().__init__('boost', environment, kwargs, language=Language.CPP)
         self.debug = environment.coredata.get_builtin_option('buildtype').startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 

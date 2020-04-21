@@ -585,9 +585,9 @@ class Vs2010Backend(backends.Backend):
     def lang_from_source_file(cls, src):
         ext = src.split('.')[-1]
         if ext in compilers.c_suffixes:
-            return 'c'
+            return Language.C
         if ext in compilers.cpp_suffixes:
-            return 'cpp'
+            return Language.CPP
         raise MesonException('Could not guess language from source file %s.' % src)
 
     def add_pch(self, pch_sources, lang, inc_cl):
@@ -724,13 +724,13 @@ class Vs2010Backend(backends.Backend):
 
     def _get_cl_compiler(self, target):
         for lang, c in target.compilers.items():
-            if lang in ('c', 'cpp'):
+            if lang in (Language.C, Language.CPP):
                 return c
         # No source files, only objects, but we still need a compiler, so
         # return a found compiler
         if len(target.objects) > 0:
             for lang, c in self.environment.coredata.compilers[target.for_machine].items():
-                if lang in ('c', 'cpp'):
+                if lang in (Language.C, Language.CPP):
                     return c
         raise MesonException('Could not find a C or C++ compiler. MSVC can only build C/C++ projects.')
 
@@ -1047,7 +1047,7 @@ class Vs2010Backend(backends.Backend):
         pch_sources = {}
         if self.environment.coredata.base_options.get('b_pch', False):
             pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
-            for lang in ['c', 'cpp']:
+            for lang in [Language.C, Language.CPP]:
                 pch = target.get_pch(lang)
                 if not pch:
                     continue

@@ -18,6 +18,7 @@ import os
 
 from .. import mlog
 from .. import mesonlib
+from ..mesonlib import Language
 from ..environment import detect_cpu_family
 
 from .base import (DependencyException, ExternalDependency)
@@ -25,7 +26,7 @@ from .base import (DependencyException, ExternalDependency)
 
 class CudaDependency(ExternalDependency):
 
-    supported_languages = ['cuda', 'cpp', 'c'] # see also _default_language
+    supported_languages = [Language.CUDA, Language.CPP, Language.C] # see also _default_language
 
     def __init__(self, environment, kwargs):
         compilers = environment.coredata.compilers[self.get_for_machine_from_kwargs(kwargs)]
@@ -33,7 +34,7 @@ class CudaDependency(ExternalDependency):
         if language not in self.supported_languages:
             raise DependencyException('Language \'{}\' is not supported by the CUDA Toolkit. Supported languages are {}.'.format(language, self.supported_languages))
 
-        super().__init__('cuda', environment, kwargs, language=language)
+        super().__init__(Language.CUDA, environment, kwargs, language=language)
         self.requested_modules = self.get_requested(kwargs)
         if 'cudart' not in self.requested_modules:
             self.requested_modules = ['cudart'] + self.requested_modules
@@ -47,11 +48,11 @@ class CudaDependency(ExternalDependency):
 
         # nvcc already knows where to find the CUDA Toolkit, but if we're compiling
         # a mixed C/C++/CUDA project, we still need to make the include dir searchable
-        if self.language != 'cuda' or len(compilers) > 1:
+        if self.language != Language.CUDA or len(compilers) > 1:
             self.incdir = os.path.join(self.cuda_path, 'include')
             self.compile_args += ['-I{}'.format(self.incdir)]
 
-        if self.language != 'cuda':
+        if self.language != Language.CUDA:
             arch_libdir = self._detect_arch_libdir()
             self.libdir = os.path.join(self.cuda_path, arch_libdir)
             mlog.debug('CUDA library directory is', mlog.bold(self.libdir))
@@ -72,7 +73,7 @@ class CudaDependency(ExternalDependency):
         mlog.debug('Default path env var:', mlog.bold(self.env_var))
 
         version_reqs = self.version_reqs
-        if self.language == 'cuda':
+        if self.language == Language.CUDA:
             nvcc_version = self._strip_patch_version(self.get_compiler().version)
             mlog.debug('nvcc version:', mlog.bold(nvcc_version))
             if version_reqs:
@@ -144,7 +145,7 @@ class CudaDependency(ExternalDependency):
     def _cuda_paths_nix(self):
         # include /usr/local/cuda default only if no env_var was found
         pattern = '/usr/local/cuda-*' if self.env_var else '/usr/local/cuda*'
-        return [(path, os.path.basename(path) == 'cuda') for path in glob.iglob(pattern)]
+        return [(path, os.path.basename(path) == Language.CUDA) for path in glob.iglob(pattern)]
 
     toolkit_version_regex = re.compile(r'^CUDA Version\s+(.*)$')
     path_version_win_regex = re.compile(r'^v(.*)$')

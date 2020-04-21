@@ -559,7 +559,7 @@ class GnomeModule(ExtensionModule):
         for girtarget in girtargets:
             for lang, compiler in girtarget.compilers.items():
                 # XXX: Can you use g-i with any other language?
-                if lang in ('c', 'cpp', 'objc', 'objcpp', 'd'):
+                if lang in (Language.C, Language.CPP, Language.OBJC, Language.OBJCPP, Language.D):
                     ret.append((lang, compiler))
                     break
 
@@ -1062,11 +1062,11 @@ This will become a hard error in the future.''')
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
-        compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
+        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, Language.C))
+        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, Language.C))
+        compiler = state.environment.coredata.compilers[MachineChoice.HOST][Language.C]
 
-        compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
+        compiler_flags = self._get_langs_compilers_flags(state, [(Language.C, compiler)])
         cflags.extend(compiler_flags[0])
         ldflags.extend(compiler_flags[1])
         ldflags.extend(compiler_flags[2])

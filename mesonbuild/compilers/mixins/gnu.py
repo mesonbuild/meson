@@ -23,6 +23,7 @@ import subprocess
 import typing as T
 
 from ... import mesonlib
+from ...mesonlib import Language
 from ... import mlog
 
 if T.TYPE_CHECKING:
@@ -84,12 +85,12 @@ gnu_color_args = {
 
 
 @functools.lru_cache(maxsize=None)
-def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: mesonlib.Language) -> T.List[str]:
+def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: Language) -> T.List[str]:
     lang_map = {
-        'c': 'c',
-        'cpp': 'c++',
-        'objc': 'objective-c',
-        'objcpp': 'objective-c++'
+        Language.C: 'c',
+        Language.CPP: 'c++',
+        Language.OBJC: 'objective-c',
+        Language.OBJCPP: 'objective-c++'
     }
     if lang not in lang_map:
         return []
@@ -364,9 +365,9 @@ class GnuCompiler(GnuLikeCompiler):
         # another language, but still complete with exit_success
         with self._build_wrapper(code, env, args, None, mode, disable_cache=False, want_output=True) as p:
             result = p.returncode == 0
-            if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stde:
+            if self.language in {Language.CPP, Language.OBJCPP} and 'is valid for C/ObjC' in p.stde:
                 result = False
-            if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stde:
+            if self.language in {Language.C, Language.OBJC} and 'is valid for C++/ObjC++' in p.stde:
                 result = False
         return result, p.cached
 

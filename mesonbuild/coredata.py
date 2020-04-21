@@ -642,9 +642,9 @@ class CoreData:
         cls,
         outer # : PerMachine[Dict[Language, T.Dict[str, V]]]
     ) -> T.Iterable[T.Tuple[str, _V]]:
-        self.get_prefixed_options_per_machine(
-            self.compiler_options.map(lambda opts_per_lang:
-                self.flatten_lang_iterator(opts_per_lang)))
+        cls.get_prefixed_options_per_machine(
+            outer.map(lambda opts_per_lang:
+                cls.flatten_lang_iterator(opts_per_lang)))
 
     @staticmethod
     def _flatten_pair_iterator(

@@ -20,6 +20,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
+import enum
 from enum import Enum
 from functools import lru_cache, wraps
 from itertools import tee, filterfalse
@@ -473,18 +474,18 @@ class Language(Enum):
 
     # Alphabetized for now, but order comparisons explicitly disallowed so it
     # shouldn't matter.
-    C = 0
-    CPP = 1
-    CS = 2
-    CUDA = 3
-    D = 4
-    FORTRAN = 5
-    JAVA = 6
-    OBJC = 7
-    OBJCPP = 8
-    RUST = 9
-    SWIFT = 10
-    VALA = 11
+    C = enum.auto()
+    CPP = enum.auto()
+    CS = enum.auto()
+    CUDA = enum.auto()
+    D = enum.auto()
+    FORTRAN = enum.auto()
+    JAVA = enum.auto()
+    OBJC = enum.auto()
+    OBJCPP = enum.auto()
+    RUST = enum.auto()
+    SWIFT = enum.auto()
+    VALA = enum.auto()
 
     def get_lower_case_name(self) -> str:
         return {
@@ -502,8 +503,8 @@ class Language(Enum):
             Language.VALA: 'vala',
         }[self]
 
-    @staticmethod
-    def from_lower_case_name(lang_name: str) -> Language:
+    @classmethod
+    def from_lower_case_name(cls, lang_name: str) -> T.Optional['Language']:
         return {
             'c': Language.C,
             'cpp': Language.CPP,
@@ -517,7 +518,23 @@ class Language(Enum):
             'rust': Language.RUST,
             'swift': Language.SWIFT,
             'vala': Language.VALA,
-        }[lang_name]
+        }.get(lang_name, None)
+
+    def get_display_name(self) -> str:
+        return {
+            Language.C: 'C',
+            Language.CPP: 'C++',
+            Language.CS: 'C#',
+            Language.CUDA: 'Cuda',
+            Language.D: 'D',
+            Language.FORTRAN: 'Fortran',
+            Language.JAVA: 'Java',
+            Language.OBJC: 'Objective-C',
+            Language.OBJCPP: 'Objective-C++',
+            Language.RUST: 'Rust',
+            Language.SWIFT: 'Swift',
+            Language.VALA: 'Vala',
+        }[self]
 
 def is_sunos() -> bool:
     return platform.system().lower() == 'sunos'
