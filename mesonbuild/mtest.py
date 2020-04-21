@@ -336,30 +336,29 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd)
 
     @classmethod
     def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
-        res = None
-        num_tests = 0
+        res = None    # T.Optional[TestResult]
+        results = []  # T.List[TestResult]
         failed = False
-        num_skipped = 0
 
         for i in TAPParser(io.StringIO(stdo)).parse():
             if isinstance(i, TAPParser.Bailout):
-                res = TestResult.ERROR
+                results.append(TestResult.ERROR)
+                failed = True
             elif isinstance(i, TAPParser.Test):
-                if i.result == TestResult.SKIP:
-                    num_skipped += 1
-                elif i.result in (TestResult.FAIL, TestResult.UNEXPECTEDPASS):
+                results.append(i.result)
+                if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL}:
                     failed = True
-                num_tests += 1
             elif isinstance(i, TAPParser.Error):
-                res = TestResult.ERROR
+                results.append(TestResult.ERROR)
                 stde += '\nTAP parsing error: ' + i.message
+                failed = True
 
         if returncode != 0:
             res = TestResult.ERROR
@@ -367,7 +366,7 @@ class TestRun:
 
         if res is None:
             # Now determine the overall result of the test based on the outcome of the subcases
-            if num_skipped == num_tests:
+            if all(t is TestResult.SKIP for t in results):
                 # This includes the case where num_tests is zero
                 res = TestResult.SKIP
             elif test.should_fail:
@@ -375,14 +374,16 @@ class TestRun:
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
 
-        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
 
     def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
-                 res: TestResult, returncode: int, starttime: float, duration: float,
+                 res: TestResult, results: T.List[TestResult], returncode:
+                 int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.Optional[T.List[str]]):
         assert isinstance(res, TestResult)
         self.res = res
+        self.results = results  # May be an empty list
         self.returncode = returncode
         self.starttime = starttime
         self.duration = duration
@@ -391,6 +392,7 @@ class TestRun:
         self.cmd = cmd
         self.env = test_env
         self.should_fail = test.should_fail
+        self.project = test.project_name
 
     def get_log(self) -> str:
         res = '--- command ---\n'
@@ -491,7 +493,7 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(self.test, self.test_env, TestResult.SKIP, GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
+            return TestRun(self.test, self.test_env, TestResult.SKIP, [], GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -634,7 +636,7 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, p.returncode, starttime, duration, stdo, stde, cmd)
+            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol == 'exitcode':
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
@@ -656,6 +658,7 @@ class TestHarness:
         self.timeout_count = 0
         self.is_run = False
         self.tests = None
+        self.results = []         # type: T.List[TestRun]
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
         self.jsonlogfile = None   # type: T.Optional[T.TextIO]
@@ -679,12 +682,11 @@ class TestHarness:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
-        if self.logfile:
-            self.logfile.close()
-            self.logfile = None
-        if self.jsonlogfile:
-            self.jsonlogfile.close()
-            self.jsonlogfile = None
+        for f in ['logfile', 'jsonlogfile']:
+            lfile =  getattr(self, f)
+            if lfile:
+                lfile.close()
+                setattr(self, f, None)
 
     def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> T.Dict[str, str]:
         if ':' in options.setup:
