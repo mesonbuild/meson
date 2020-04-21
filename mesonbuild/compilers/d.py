@@ -16,7 +16,7 @@ import os.path, subprocess
 import typing as T
 
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare,
+    EnvironmentException, Language, MachineChoice, version_compare,
 )
 
 from .compilers import (
@@ -436,7 +436,7 @@ class DCompiler(Compiler):
         'mtd': ['-mscrtlib=libcmtd'],
     }
 
-    language = 'd'
+    language = Language.D
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', arch, is_cross, exe_wrapper, **kwargs):

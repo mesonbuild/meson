@@ -18,6 +18,7 @@ import typing as T
 import os
 from pathlib import Path
 
+from ...mesonlib import Language
 from ..compilers import clike_debug_args, clike_optimization_args
 
 pgi_buildtype_args = {
@@ -87,7 +88,7 @@ class PGICompiler:
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         # PGI supports PCH for C++ only.
         hdr = Path(pch_dir).resolve().parent / header
-        if self.language == 'cpp':
+        if self.language == Language.CPP:
             return ['--pch',
                     '--pch_dir', str(hdr.parent),
                     '-I{}'.format(hdr.parent)]

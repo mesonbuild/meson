@@ -19,7 +19,7 @@ from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
-    MesonException, MachineChoice, PerMachine, OrderedSet,
+    Language, MesonException, MachineChoice, PerMachine, OrderedSet,
     default_libdir, default_libexecdir, default_prefix, split_args
 )
 from .envconfig import get_env_var_pair
@@ -373,7 +373,7 @@ class CoreData:
         self.compiler_options = PerMachine(
             defaultdict(dict),
             defaultdict(dict),
-        ) # : PerMachine[T.defaultdict[str, OptionDictType]]
+        ) # : PerMachine[T.defaultdict[Language, OptionDictType]]
         self.base_options = {} # : OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
@@ -623,29 +623,41 @@ class CoreData:
         options_per_machine # : PerMachine[T.Dict[str, _V]]]
     ) -> T.Iterable[T.Tuple[str, _V]]:
         return cls._flatten_pair_iterator(
-            (for_machine.get_prefix(), options_per_machine[for_machine])
+            (for_machine.get_prefix(), options_per_machine[for_machine].items())
             for for_machine in iter(MachineChoice)
         )
 
     @classmethod
     def flatten_lang_iterator(
         cls,
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
+        outer # : T.Iterable[T.Tuple[Language, T.Dict[str, V]]]
     ) -> T.Iterable[T.Tuple[str, _V]]:
-        return cls._flatten_pair_iterator((lang + '_', opts) for lang, opts in outer)
+        return cls._flatten_pair_iterator(
+            (lang.get_lower_case_name() + '_', inner.items())
+            for lang, inner in outer
+        )
+
+    @classmethod
+    def flatten_lang_iterator_per_machine(
+        cls,
+        outer # : PerMachine[Dict[Language, T.Dict[str, V]]]
+    ) -> T.Iterable[T.Tuple[str, _V]]:
+        self.get_prefixed_options_per_machine(
+            self.compiler_options.map(lambda opts_per_lang:
+                self.flatten_lang_iterator(opts_per_lang)))
 
     @staticmethod
     def _flatten_pair_iterator(
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
+        outer # : T.Iterable[T.Tuple[str, T.Iterable[T.Tuple[str, _V]]]]
     ) -> T.Iterable[T.Tuple[str, _V]]:
         for k0, v0 in outer:
-            for k1, v1 in v0.items():
+            for k1, v1 in v0:
                 yield (k0 + k1, v1)
 
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield self.backend_options
         yield self.user_options
-        yield dict(self.flatten_lang_iterator(self.get_prefixed_options_per_machine(self.compiler_options)))
+        yield dict(flatten_lang_iterator_per_machine(self.compiler_options))
         yield self.base_options
 
     def _get_all_builtin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
@@ -667,10 +679,10 @@ class CoreData:
                         .with_traceback(sys.exc_info()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-    def get_external_args(self, for_machine: MachineChoice, lang):
+    def get_external_args(self, for_machine: MachineChoice, lang: Language):
         return self.compiler_options[for_machine][lang]['args'].value
 
-    def get_external_link_args(self, for_machine: MachineChoice, lang):
+    def get_external_link_args(self, for_machine: MachineChoice, lang: Language):
         return self.compiler_options[for_machine][lang]['link_args'].value
 
     def merge_user_options(self, options):
@@ -821,7 +833,7 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
+    def add_lang_args(self, lang: Language, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
@@ -834,12 +846,12 @@ class CoreData:
                 env.properties[for_machine]).items():
             # prefixed compiler options affect just this machine
             opt_prefix = for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
+            user_k = opt_prefix + lang.get_lower_case_name() + '_' + k
             if user_k in env.cmd_line_options:
                 o.set_value(env.cmd_line_options[user_k])
             self.compiler_options[for_machine][lang].setdefault(k, o)
 
-    def process_new_compiler(self, lang: str, comp: T.Type['Compiler'], env: 'Environment') -> None:
+    def process_new_compiler(self, lang: Language, comp: T.Type['Compiler'], env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
@@ -848,7 +860,7 @@ class CoreData:
         for k, o in comp.get_options().items():
             # prefixed compiler options affect just this machine
             opt_prefix = comp.for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
+            user_k = opt_prefix + lang.get_lower_case_name() + '_' + k
             if user_k in env.cmd_line_options:
                 o.set_value(env.cmd_line_options[user_k])
             self.compiler_options[comp.for_machine][lang].setdefault(k, o)

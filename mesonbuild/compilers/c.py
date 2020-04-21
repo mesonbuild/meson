@@ -16,7 +16,7 @@ import os.path
 import typing as T
 
 from .. import coredata
-from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
+from ..mesonlib import Language, MachineChoice, MesonException, mlog, version_compare
 from ..linkers import LinkerEnvVarsMixin
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -50,7 +50,7 @@ class CCompiler(CLikeCompiler, Compiler):
         except KeyError:
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
-    language = 'c'
+    language = Language.C
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional[str] = None, **kwargs):

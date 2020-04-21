@@ -32,7 +32,7 @@ from ..compilers import (Compiler, CompilerArgs, CCompiler, FortranCompiler,
                          PGICCompiler, VisualStudioLikeCompiler)
 from ..linkers import ArLinker
 from ..mesonlib import (
-    File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
+    File, LibType, Language, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unholder,
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep
@@ -1376,12 +1376,12 @@ int dummy;
         return PerMachine('_FOR_BUILD', '')[for_machine]
 
     @classmethod
-    def get_compiler_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '%s_COMPILER%s' % (lang, cls.get_rule_suffix(for_machine))
+    def get_compiler_rule_name(cls, lang: Language, for_machine: MachineChoice) -> str:
+        return '%s_COMPILER%s' % (lang.get_lower_case_name(), cls.get_rule_suffix(for_machine))
 
     @classmethod
-    def get_pch_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '%s_PCH%s' % (lang, cls.get_rule_suffix(for_machine))
+    def get_pch_rule_name(cls, lang: Language, for_machine: MachineChoice) -> str:
+        return '%s_PCH%s' % (lang.get_lower_case_name(), cls.get_rule_suffix(for_machine))
 
     @classmethod
     def compiler_to_rule_name(cls, compiler: Compiler) -> str:

@@ -21,7 +21,7 @@ from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, Popen_safe,
+    MesonException, EnvironmentException, Language, MachineChoice, Popen_safe,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg
 )
 from . import mlog
@@ -774,7 +774,7 @@ class Environment:
         check_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
 
         override = []  # type: T.List[str]
-        value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
+        value = self.lookup_binary_entry(for_machine, comp_class.language.get_lower_case_name() + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -841,7 +841,7 @@ class Environment:
             check_args = comp_class.LINKER_PREFIX + ['--version'] + extra_args
 
         override = []  # type: T.List[str]
-        value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
+        value = self.lookup_binary_entry(for_machine, comp_class.language.get_lower_case_name() + '_ld')
         if value is not None:
             override = comp_class.use_linker_args(value[0])
             check_args += override
@@ -896,7 +896,7 @@ class Environment:
             raise EnvironmentException('Unable to determine dynamic linker')
         return linker
 
-    def _detect_c_or_cpp_compiler(self, lang: str, for_machine: MachineChoice) -> Compiler:
+    def _detect_c_or_cpp_compiler(self, lang: Language, for_machine: MachineChoice) -> Compiler:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(lang, for_machine)
         is_cross = not self.machines.matches_build_machine(for_machine)
@@ -1623,7 +1623,7 @@ class Environment:
 
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def compiler_from_language(self, lang: str, for_machine: MachineChoice):
+    def compiler_from_language(self, lang: Language, for_machine: MachineChoice):
         if lang == 'c':
             comp = self.detect_c_compiler(for_machine)
         elif lang == 'cpp':
@@ -1652,7 +1652,7 @@ class Environment:
             comp = None
         return comp
 
-    def detect_compiler_for(self, lang: str, for_machine: MachineChoice):
+    def detect_compiler_for(self, lang: Language, for_machine: MachineChoice):
         comp = self.compiler_from_language(lang, for_machine)
         if comp is not None:
             assert comp.for_machine == for_machine

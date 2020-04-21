@@ -14,6 +14,7 @@
 
 """A library of random helper functionality."""
 from pathlib import Path
+import copy
 import sys
 import stat
 import time
@@ -373,6 +374,12 @@ class PerMachine(T.Generic[_T]):
     def __setitem__(self, machine: MachineChoice, val: _T) -> None:
         setattr(self, machine.get_lower_case_name(), val)
 
+    def map(self, fun):
+        return PerMachine(
+            fun(self.build),
+            fun(self.host),
+        )
+
     def miss_defaulting(self) -> "PerMachineDefaultable[T.Optional[_T]]":
         """Unset definition duplicated from their previous to None
 
@@ -458,6 +465,59 @@ class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Option
             freeze.target = freeze.host
         return freeze
 
+
+class Language(Enum):
+
+    """Enum class representing the languages Meson supports.
+    """
+
+    # Alphabetized for now, but order comparisons explicitly disallowed so it
+    # shouldn't matter.
+    C = 0
+    CPP = 1
+    CS = 2
+    CUDA = 3
+    D = 4
+    FORTRAN = 5
+    JAVA = 6
+    OBJC = 7
+    OBJCPP = 8
+    RUST = 9
+    SWIFT = 10
+    VALA = 11
+
+    def get_lower_case_name(self) -> str:
+        return {
+            Language.C: 'c',
+            Language.CPP: 'cpp',
+            Language.CS: 'cs',
+            Language.CUDA: 'cuda',
+            Language.D: 'd',
+            Language.FORTRAN: 'fortran',
+            Language.JAVA: 'java',
+            Language.OBJC: 'objc',
+            Language.OBJCPP: 'objcpp',
+            Language.RUST: 'rust',
+            Language.SWIFT: 'swift',
+            Language.VALA: 'vala',
+        }[self]
+
+    @staticmethod
+    def from_lower_case_name(lang_name: str) -> Language:
+        return {
+            'c': Language.C,
+            'cpp': Language.CPP,
+            'cs': Language.CS,
+            'cuda': Language.CUDA,
+            'd': Language.D,
+            'fortran': Language.FORTRAN,
+            'java': Language.JAVA,
+            'objc': Language.OBJC,
+            'objcpp': Language.OBJCPP,
+            'rust': Language.RUST,
+            'swift': Language.SWIFT,
+            'vala': Language.VALA,
+        }[lang_name]
 
 def is_sunos() -> bool:
     return platform.system().lower() == 'sunos'

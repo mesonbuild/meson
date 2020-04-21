@@ -250,7 +250,7 @@ class CMakeExecutor:
         fallback = os.path.realpath(__file__)  # A file used as a fallback wehen everything else fails
         compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
 
-        def make_abs(exe: str, lang: str) -> str:
+        def make_abs(exe: str, lang: Language) -> str:
             if os.path.isabs(exe):
                 return exe
 
@@ -260,7 +260,7 @@ class CMakeExecutor:
                 p = fallback
             return p
 
-        def choose_compiler(lang: str) -> T.Tuple[str, str]:
+        def choose_compiler(lang: Language) -> T.Tuple[str, str]:
             exe_list = []
             if lang in compilers:
                 exe_list = compilers[lang].get_exelist()

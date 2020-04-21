@@ -304,7 +304,7 @@ class CLikeCompiler:
         cargs += cleaned_sys_args
 
         if mode == 'link':
-            ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
+            ld_value = env.lookup_binary_entry(self.for_machine, self.language.get_lower_case_name() + '_ld')
             if ld_value is not None:
                 largs += self.use_linker_args(ld_value[0])
 

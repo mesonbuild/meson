@@ -15,7 +15,7 @@
 import os.path, subprocess
 import typing as T
 
-from ..mesonlib import EnvironmentException, MachineChoice
+from ..mesonlib import EnvironmentException, Language, MachineChoice
 
 from .mixins.clike import CLikeCompiler
 from .compilers import Compiler
@@ -27,7 +27,7 @@ if T.TYPE_CHECKING:
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
 
-    language = 'objcpp'
+    language = Language.OBJCPP
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',

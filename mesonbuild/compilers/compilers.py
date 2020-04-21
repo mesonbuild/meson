@@ -26,7 +26,7 @@ from .. import coredata
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, MesonException,
+    EnvironmentException, Language, MachineChoice, MesonException,
     Popen_safe, split_args
 )
 from ..envconfig import (
@@ -51,52 +51,67 @@ lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
-    'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
-    'cuda': ('cu',),
+    Language.C: ('c',),
+    Language.CPP: ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
+    Language.CUDA: ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
-    'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
-    'd': ('d', 'di'),
-    'objc': ('m',),
-    'objcpp': ('mm',),
-    'rust': ('rs',),
-    'vala': ('vala', 'vapi', 'gs'),
-    'cs': ('cs',),
-    'swift': ('swift',),
-    'java': ('java',),
+    Language.FORTRAN: ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
+    Language.D: ('d', 'di'),
+    Language.OBJC: ('m',),
+    Language.OBJCPP: ('mm',),
+    Language.RUST: ('rs',),
+    Language.VALA: ('vala', 'vapi', 'gs'),
+    Language.CS: ('cs',),
+    Language.SWIFT: ('swift',),
+    Language.JAVA: ('java',),
 }
 all_languages = lang_suffixes.keys()
-cpp_suffixes = lang_suffixes['cpp'] + ('h',)
-c_suffixes = lang_suffixes['c'] + ('h',)
+cpp_suffixes = lang_suffixes[Language.CPP] + ('h',)
+c_suffixes = lang_suffixes[Language.C] + ('h',)
 # List of languages that by default consume and output libraries following the
 # C ABI; these can generally be used interchangebly
-clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
+clib_langs = (Language.OBJCPP, Language.CPP, Language.OBJC, Language.C, Language.FORTRAN,)
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clink_langs = ('d', 'cuda') + clib_langs
+clink_langs = (Language.D, Language.CUDA) + clib_langs
 clink_suffixes = ()
-for _l in clink_langs + ('vala',):
+for _l in clink_langs + (Language.VALA,):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))
 
 # Languages that should use LDFLAGS arguments when linking.
-languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}
+languages_using_ldflags = {
+    Language.OBJCPP,
+    Language.CPP,
+    Language.OBJC,
+    Language.C,
+    Language.FORTRAN,
+    Language.D,
+    Language.CUDA
+}
 # Languages that should use CPPFLAGS arguments when linking.
-languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}
+languages_using_cppflags = {
+    Language.C,
+    Language.CPP,
+    Language.OBJC,
+    Language.OBJCPP,
+}
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'cuda': 'CUFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS',
-                  'rust': 'RUSTFLAGS'}
+cflags_mapping = {
+    Language.C: 'CFLAGS',
+    Language.CPP: 'CXXFLAGS',
+    Language.CUDA: 'CUFLAGS',
+    Language.OBJC: 'OBJCFLAGS',
+    Language.OBJCPP: 'OBJCXXFLAGS',
+    Language.FORTRAN: 'FFLAGS',
+    Language.D: 'DFLAGS',
+    Language.VALA: 'VALAFLAGS',
+    Language.RUST: 'RUSTFLAGS',
+}
 
 unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
 # execinfo is a compiler lib on FreeBSD and NetBSD
@@ -569,7 +584,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         return False
 
     def need_to_split_linker_args(self):
-        return isinstance(self.compiler, Compiler) and self.compiler.get_language() == 'd'
+        return isinstance(self.compiler, Compiler) and self.compiler.get_language() == Language.D
 
     def to_native(self, copy: bool = False) -> T.List[str]:
         # Check if we need to add --start/end-group for circular dependencies
@@ -1227,7 +1242,7 @@ def get_largefile_args(compiler):
     return []
 
 
-def get_args_from_envvars(lang: str,
+def get_args_from_envvars(lang: Language,
                           for_machine: MachineChoice,
                           is_cross: bool,
                           use_linker_args: bool) -> T.Tuple[T.List[str], T.List[str]]:
@@ -1264,7 +1279,7 @@ def get_args_from_envvars(lang: str,
     return compile_flags, link_flags
 
 
-def get_global_options(lang: str,
+def get_global_options(lang: Language,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
                        is_cross: bool,
@@ -1288,7 +1303,7 @@ def get_global_options(lang: str,
         comp.INVOKES_LINKER)
 
     for k, o in opts.items():
-        user_k = lang + '_' + k
+        user_k = lang.get_lower_case_name() + '_' + k
         if user_k in properties:
             # Get from configuration files.
             o.set_value(properties[user_k])

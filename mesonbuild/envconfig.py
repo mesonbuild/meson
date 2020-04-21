@@ -152,13 +152,13 @@ class Properties:
         self.properties = properties or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
 
     def has_stdlib(self, language: str) -> bool:
-        return language + '_stdlib' in self.properties
+        return language.get_lower_case_name() + '_stdlib' in self.properties
 
     # Some of get_stdlib, get_root, get_sys_root are wider than is actually
     # true, but without heterogenious dict annotations it's not practical to
     # narrow them
     def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
-        return self.properties[language + '_stdlib']
+        return self.properties[language.get_lower_case_name() + '_stdlib']
 
     def get_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
         return self.properties.get('root', None)

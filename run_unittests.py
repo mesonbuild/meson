@@ -53,7 +53,7 @@ import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
-    BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
+    BuildDirLock, Language, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
     quote_arg, relpath

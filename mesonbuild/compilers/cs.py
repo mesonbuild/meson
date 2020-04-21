@@ -15,7 +15,7 @@
 import os.path, subprocess
 import typing as T
 
-from ..mesonlib import EnvironmentException
+from ..mesonlib import Language, EnvironmentException
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
@@ -34,7 +34,7 @@ cs_optimization_args = {'0': [],
 
 class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
-    language = 'cs'
+    language = Language.CS
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo', comp_id, runner=None):

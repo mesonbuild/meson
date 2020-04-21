@@ -2802,8 +2802,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
                 dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
-                dict(self.coredata.flatten_lang_iterator(
-                    self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options))),
+                dict(self.coredata.flatten_lang_iterator_per_machine(self.coredata.compiler_options)),
         ]:
             v = opts.get(optname)
             if v is None or v.yielding:

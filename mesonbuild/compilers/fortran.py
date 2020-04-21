@@ -32,7 +32,7 @@ from .mixins.pgi import PGICompiler
 from .. import mlog
 
 from mesonbuild.mesonlib import (
-    version_compare, EnvironmentException, MesonException, MachineChoice, LibType
+    version_compare, EnvironmentException, Language, MesonException, MachineChoice, LibType
 )
 
 if T.TYPE_CHECKING:
@@ -41,7 +41,7 @@ if T.TYPE_CHECKING:
 
 class FortranCompiler(CLikeCompiler, Compiler):
 
-    language = 'fortran'
+    language = Language.FORTRAN
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):

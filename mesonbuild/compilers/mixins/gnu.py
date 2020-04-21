@@ -84,7 +84,7 @@ gnu_color_args = {
 
 
 @functools.lru_cache(maxsize=None)
-def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[str]:
+def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: mesonlib.Language) -> T.List[str]:
     lang_map = {
         'c': 'c',
         'cpp': 'c++',
