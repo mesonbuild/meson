@@ -3406,7 +3406,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         display_name = name if name else '(anonymous)'
         mods = extract_as_list(kwargs, 'modules')
         if mods:
-            display_name += ' (modules: {})'.format(', '.join(mods))
+            display_name += ' (modules: {})'.format(', '.join(str(i) for i in mods))
         not_found_message = kwargs.get('not_found_message', '')
         if not isinstance(not_found_message, str):
             raise InvalidArguments('The not_found_message must be a string.')
