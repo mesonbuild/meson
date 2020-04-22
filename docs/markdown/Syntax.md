@@ -629,10 +629,9 @@ kwarg: identifier ":" expr
 kwarg_list: kwarg | (kwarg_list "," kwarg)
 literal: integer_literal | character_literal | string_literal | boolean_literal | array_literal | dictionary_literal
 logical_and_expr: equality_expr | (logical_and_expr "and" equality_expr)
-logical_not_expr: postfix_expr | ("not" logical_not_expr)
 logical_or_expr: logical_and_expr | (logical_or_expr "or" logical_and_expr)
 method_expr: primary_expr "." function_expr
-multiplicative_expr: logical_not_expr | (multiplicative_expr multiplicative_op logical_not_expr)
+multiplicative_expr: unary_expr | (multiplicative_expr multiplicative_op unary_expr)
 multiplicative_op: "*" | "/" | "%"
 nondigit: ALPHA_CHARACTER | "_"
 nonzero_digit: NON_ZERO_DIGIT
@@ -648,4 +647,6 @@ selection_stmt: "if" condition NEWLINE (stmt)* ("elif" condition NEWLINE (stmt)*
 stmt: (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
 string_literal: "'" char_seq "'" // TODO multiline strings
 subscript_expr: identifier "[" expr "]" // TODO not sure about the expr as index here
+unary_expr: postfix_expr | (unary_op unary_expr)
+unary_op: "not" | "+" | "-"
 ```
