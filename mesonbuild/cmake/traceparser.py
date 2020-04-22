@@ -655,7 +655,7 @@ class CMakeTraceParser:
 
         # Try joining file paths that contain spaces
 
-        reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
+        reg_start = re.compile(r'^([A-Za-z]:)?/(.*/)*[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
         fixed_list = []  # type: T.List[str]
