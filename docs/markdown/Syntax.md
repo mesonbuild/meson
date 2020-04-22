@@ -603,40 +603,37 @@ assignment_expr: conditional_expr | (logical_or_expr assignment_op assignment_ex
 assignment_op: "=" | "*=" | "/=" | "%=" | "+=" | "-="
 boolean_literal: "true" | "false"
 call_expr: function_expr | method_expr
-char_seq: (string_char)* // TODO escapes,unicode
 condition: conditional_expr // TODO classic way would be condition = expression, but we cannot have assignments in conditions. Should that be covered by the grammar (syntax) or not
 conditional_expr: logical_or_expr | (logical_or_expr "?" expr ":" assignment_expr
-decimal_literal: nonzero_digit | (decimal_literal digit)
+decimal_literal: DECIMAL_NUMBER
+DECIMAL_NUMBER: /[1-9][0-9]*/
 dictionary_literal: "{" kv_pair_list "}"
-digit: DIGIT
 equality_expr: relational_expr | (equality_expr equality_op relational_expr)
 equality_op: "==" | "!="
 expr: assignment_expr
 expr_list: assignment_expr | (expr_list "," assignment_expr)
 expression_stmt: expr
-function_expr: identifier "(" parameter_list ")" // TODO actually, it is allowed to call a function like this (func)(param), but its still not a primary expression, because a function name cannot be a literal
-hex_digit: HEX_DIGIT
-hex_literal: "0x" (hex_digit)*
-id_expr: identifier
-identifier: nondigit | (identifier nondigit) | (identifier digit)
-identifier_list: identifier | (identifier_list "," identifier)
+function_expr: id_expr "(" parameter_list ")" // TODO actually, it is allowed to call a function like this (func)(param), but its still not a primary expression, because a function name cannot be a literal
+hex_literal: "0x" HEX_NUMBER
+HEX_NUMBER: /[a-fA-F0-9]+/
+id_expr: IDENTIFIER
+IDENTIFIER: /[a-zA-Z_][a-zA-Z_0-9]*/
+identifier_list: id_expr | (identifier_list "," id_expr)
 integer_literal: decimal_literal | octal_literal | hex_literal
-iteration_stmt: "foreach" identifier_list ":" identifier NEWLINE (stmt | jump_stmt)* "endforeach"
+iteration_stmt: "foreach" identifier_list ":" id_expr NEWLINE (stmt | jump_stmt)* "endforeach"
 jump_stmt: "break" | "continue"
 key_value_pair: expr ":" expr // TODO not any expression though. value could be conditional_expr, key could be additive_expr (because of string concatenation)
 kv_pair_list: key_value_pair | (kv_pair_list "," key_value_pair)
-kwarg: identifier ":" expr
+kwarg: id_expr ":" expr
 kwarg_list: kwarg | (kwarg_list "," kwarg)
-literal: integer_literal | character_literal | string_literal | boolean_literal | array_literal | dictionary_literal
+literal: integer_literal | string_literal | boolean_literal | array_literal | dictionary_literal
 logical_and_expr: equality_expr | (logical_and_expr "and" equality_expr)
 logical_or_expr: logical_and_expr | (logical_or_expr "or" logical_and_expr)
 method_expr: primary_expr "." function_expr
 multiplicative_expr: unary_expr | (multiplicative_expr multiplicative_op unary_expr)
 multiplicative_op: "*" | "/" | "%"
-nondigit: ALPHA_CHARACTER | "_"
-nonzero_digit: NON_ZERO_DIGIT
-octal_digit: OCTAL_DIGIT
-octal_literal: "0o" (octal_digit)*
+octal_literal: "0o" OCTAL_NUMBER
+OCTAL_NUMBER: /[0-7]+/
 parameter_list: [arg_list] | [kwarg_list] | (arg_list "," kwarg_list) // TODO could be more concise
 postfix_expr: primary_expr | subscript_expr | call_expr
 primary_expr: literal | ("(" expr ")") | id_expr
@@ -645,8 +642,10 @@ relational_expr: additive_expr | (relational_expr relational_op additive_expr)
 relational_op: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
 selection_stmt: "if" condition NEWLINE (stmt)* ("elif" condition NEWLINE (stmt)*)* ["else" (stmt)*] "endif"
 stmt: (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
-string_literal: ("'" char_seq "'") | ("'''" char_seq "'''")
-subscript_expr: identifier "[" expr "]" // TODO not sure about the expr as index here
+string_literal: ("'" STRING_SIMPLE_VALUE "'") | ("'''" STRING_MULTILINE_VALUE "'''")
+STRING_MULTILINE_VALUE: \.*?(''')\
+STRING_SIMPLE_VALUE: \.*?(?<!\\)(\\\\)*?'\
+subscript_expr: id_expr "[" expr "]" // TODO not sure about the expr as index here // TODO could be func()[1] too if func returns array?
 unary_expr: postfix_expr | (unary_op unary_expr)
 unary_op: "not" | "+" | "-"
 ```
