@@ -595,60 +595,57 @@ Grammar
 This is the full Meson grammar, as it is used to parse Meson build definition files:
 
 ```
-program = (NEWLINE | stmt)*
-stmt = (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
-selection_stmt = 'if' condition NEWLINE (stmt)* ('elif' condition NEWLINE (stmt)*)* ['else' (stmt)*] 'endif'
-iteration_stmt = 'foreach' identifier_list ':' identifier NEWLINE (stmt | jump_stmt)* 'endforeach'
-condition = conditional_expr // TODO classic way would be condition = expression, but we can't have assignments in conditions. Should that be covered by the grammar (syntax) or not
-identifier_list = identifier | (identifier_list ',' identifier)
-jump_stmt = 'break' | 'continue'
-parameter_list = [arg_list] | [kwarg_list] | (arg_list ',' kwarg_list) // TODO could be more concise
-arg_list = expr_list
-kwarg = identifier ':' expr
-kwarg_list = kwarg | (kwarg_list ',' kwarg)
-key_value_pair = expr ':' expr // TODO not any expression though. value could be conditional_expr, key could be additive_expr (because of string concatenation)
-kv_pair_list = key_value_pair | (kv_pair_list ',' key_value_pair)
-expression_stmt = expr
-expr_list = assignment_expr | (expr_list ',' assignment_expr)
-expr = assignment_expr
-expr_list = assignment_expr | expression_list ',' assignment_expr // TODO currently unused, do we need it somewhere?
-assignment_expr = conditional_expr | (logical_or_expr assignment_op assignment_expr)
-assignment_op = '=' | '*=' | '/=' | '%=' | '+=' | '-='
-conditional_expr = logical_or_expr | (logical_or_expr '?' expr ':' assignment_expr
-logical_or_expr = logical_and_expr | (logical_or_expr 'or' logical_and_expr')
-// FIXME in between here would be xor, if we had it
-logical_and_expr = equality_expr | (logical_and_expr 'and' equality_expr)
-equality_expr = relational_expr | (equality_expr equality_op relational_expr)
-equality_op = '==' | '!='
-relational_expr = additive_expr | (relational_expr relational_op additive_expr)
-relational_op = '>' | '<' | '>=' | '<=' | 'in' | ('not' 'in')
-additive_expr = multiplicative_expr | (additive_expr additive_op multiplicative_expr)
-additive_op = '+' | '-'
-multiplicative_expr = logical_not_expr | (multiplicative_expr multiplicative_op logical_not_expr)
-multiplicative_op = '*' | '/' | '%'
-logical_not_expr = postfix_expr | ('not' logical_not_expr)
-postfix_expr = primary_expr | subscript_expr | call_expr
-subscript_expr = identifier '[' expr ']' // TODO not sure about the expr as index here
-call_expr = function_expr | method_expr
-function_expr = identifier '(' parameter_list ')' // TODO actually, it is allowed to call a function like this (func)(param), but its still not a primary expression, because a function name cannot be a literal
-method_expr = primary_expr '.' function_expr
-primary_expr = literal | ('(' expr ')') | id_expr
-id_expr = identifier
-parameter_list = arg_list
-identifier = nondigit | (identifier nondigit) | (identifier digit)
-nondigit = ALPHA_CHARACTER | '_'
-digit = DIGIT
-literal = integer_literal | character_literal | string_literal | boolean_literal | array_literal | dictionary_literal
-integer_literal = decimal_literal | octal_literal | hex_literal
-decimal_literal = nonzero_digit | (decimal_literal digit)
-nonzero_digit = NON_ZERO_DIGIT
-octal_literal = '0o' (octal_digit)*
-octal_digit = OCTAL_DIGIT
-hex_literal = '0x' (hex_digit)*
-hex_digit = HEX_DIGIT
-string_literal = "'" char_seq "'" // TODO multiline strings
-char_seq = (string_char)* // FIXME escapes
-boolean_literal = 'true' | 'false'
-array_literal = '[' expr_list ']' // TODO not assignment expressions unfortunately
-dictionary_literal = '{' kv_pair_list '}'
+additive_expr: multiplicative_expr | (additive_expr additive_op multiplicative_expr)
+additive_op: "+" | "-"
+arg_list: expr_list
+array_literal: "[" expr_list "]"
+assignment_expr: conditional_expr | (logical_or_expr assignment_op assignment_expr)
+assignment_op: "=" | "*=" | "/=" | "%=" | "+=" | "-="
+boolean_literal: "true" | "false"
+call_expr: function_expr | method_expr
+char_seq: (string_char)* // TODO escapes,unicode
+condition: conditional_expr // TODO classic way would be condition = expression, but we cannot have assignments in conditions. Should that be covered by the grammar (syntax) or not
+conditional_expr: logical_or_expr | (logical_or_expr "?" expr ":" assignment_expr
+decimal_literal: nonzero_digit | (decimal_literal digit)
+dictionary_literal: "{" kv_pair_list "}"
+digit: DIGIT
+equality_expr: relational_expr | (equality_expr equality_op relational_expr)
+equality_op: "==" | "!="
+expr: assignment_expr
+expr_list: assignment_expr | (expr_list "," assignment_expr)
+expression_stmt: expr
+function_expr: identifier "(" parameter_list ")" // TODO actually, it is allowed to call a function like this (func)(param), but its still not a primary expression, because a function name cannot be a literal
+hex_digit: HEX_DIGIT
+hex_literal: "0x" (hex_digit)*
+id_expr: identifier
+identifier: nondigit | (identifier nondigit) | (identifier digit)
+identifier_list: identifier | (identifier_list "," identifier)
+integer_literal: decimal_literal | octal_literal | hex_literal
+iteration_stmt: "foreach" identifier_list ":" identifier NEWLINE (stmt | jump_stmt)* "endforeach"
+jump_stmt: "break" | "continue"
+key_value_pair: expr ":" expr // TODO not any expression though. value could be conditional_expr, key could be additive_expr (because of string concatenation)
+kv_pair_list: key_value_pair | (kv_pair_list "," key_value_pair)
+kwarg: identifier ":" expr
+kwarg_list: kwarg | (kwarg_list "," kwarg)
+literal: integer_literal | character_literal | string_literal | boolean_literal | array_literal | dictionary_literal
+logical_and_expr: equality_expr | (logical_and_expr "and" equality_expr)
+logical_not_expr: postfix_expr | ("not" logical_not_expr)
+logical_or_expr: logical_and_expr | (logical_or_expr "or" logical_and_expr)
+method_expr: primary_expr "." function_expr
+multiplicative_expr: logical_not_expr | (multiplicative_expr multiplicative_op logical_not_expr)
+multiplicative_op: "*" | "/" | "%"
+nondigit: ALPHA_CHARACTER | "_"
+nonzero_digit: NON_ZERO_DIGIT
+octal_digit: OCTAL_DIGIT
+octal_literal: "0o" (octal_digit)*
+parameter_list: [arg_list] | [kwarg_list] | (arg_list "," kwarg_list) // TODO could be more concise
+postfix_expr: primary_expr | subscript_expr | call_expr
+primary_expr: literal | ("(" expr ")") | id_expr
+program: (NEWLINE | stmt)*
+relational_expr: additive_expr | (relational_expr relational_op additive_expr)
+relational_op: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
+selection_stmt: "if" condition NEWLINE (stmt)* ("elif" condition NEWLINE (stmt)*)* ["else" (stmt)*] "endif"
+stmt: (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
+string_literal: "'" char_seq "'" // TODO multiline strings
+subscript_expr: identifier "[" expr "]" // TODO not sure about the expr as index here
 ```
