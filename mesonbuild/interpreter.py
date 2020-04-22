@@ -1801,6 +1801,11 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             target_machine=self.interpreter.builtin['target_machine'].held_object,
             current_node=self.current_node
         )
+        # Many modules do for example self.interpreter.find_program_impl(),
+        # so we have to ensure they use the current interpreter and not the one
+        # that first imported that module, otherwise it will use outdated
+        # overrides.
+        self.held_object.interpreter = self.interpreter
         if self.held_object.is_snippet(method_name):
             value = fn(self.interpreter, state, args, kwargs)
             return self.interpreter.holderify(value)
