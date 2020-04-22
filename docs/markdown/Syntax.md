@@ -645,7 +645,7 @@ relational_expr: additive_expr | (relational_expr relational_op additive_expr)
 relational_op: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
 selection_stmt: "if" condition NEWLINE (stmt)* ("elif" condition NEWLINE (stmt)*)* ["else" (stmt)*] "endif"
 stmt: (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
-string_literal: "'" char_seq "'" // TODO multiline strings
+string_literal: ("'" char_seq "'") | ("'''" char_seq "'''")
 subscript_expr: identifier "[" expr "]" // TODO not sure about the expr as index here
 unary_expr: postfix_expr | (unary_op unary_expr)
 unary_op: "not" | "+" | "-"
