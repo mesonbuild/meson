@@ -36,6 +36,7 @@ import tempfile
 import textwrap
 import time
 import typing as T
+import xml.etree.ElementTree as et
 
 from . import build
 from . import environment
@@ -319,6 +320,110 @@ class TAPParser:
                 yield self.Error('Too few tests run (expected {}, got {})'.format(plan.count, num_tests))
             else:
                 yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
+
+
+
+class JunitBuilder:
+
+    """Builder for Junit test results.
+
+    Junit is impossible to stream out, it requires attributes counting the
+    total number of tests, failures, skips, and errors in the root element
+    and in each test suite. As such, we use a builder class to track each
+    test case, and calculate all metadata before writing it out.
+
+    For tests with multiple results (like from a TAP test), we record the
+    test as a suite with the project_name.test_name. This allows us to track
+    each result separately. For tests with only one result (such as exit-code
+    tests) we record each one into a suite with the name project_name. The use
+    of the project_name allows us to sort subproject tests separately from
+    the root project.
+    """
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+        self.root = et.Element(
+            'testsuites', tests='0', errors='0', failures='0')
+        self.suites = {}  # type: T.Dict[str, et.Element]
+
+    def log(self, name: str, test: 'TestRun') -> None:
+        """Log a single test case."""
+        # In this case we have a test binary with multiple results.
+        # We want to record this so that each result is recorded
+        # separately
+        if test.results:
+            suitename = '{}.{}'.format(test.project, name)
+            assert suitename not in self.suites, 'duplicate suite'
+
+            suite = self.suites[suitename] = et.Element(
+                'testsuite',
+                name=suitename,
+                tests=str(len(test.results)),
+                errors=str(sum(1 for r in test.results if r is TestResult.ERROR)),
+                failures=str(sum(1 for r in test.results if r in
+                                 {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
+                skipped=str(sum(1 for r in test.results if r is TestResult.SKIP)),
+            )
+
+            for i, result in enumerate(test.results):
+                # Both name and classname are required. Set them both to the
+                # number of the test in a TAP test, as TAP doesn't give names.
+                testcase = et.SubElement(suite, 'testcase', name=str(i), classname=str(i))
+                if result is TestResult.SKIP:
+                    et.SubElement(testcase, 'skipped')
+                elif result is TestResult.ERROR:
+                    et.SubElement(testcase, 'error')
+                elif result is TestResult.FAIL:
+                    et.SubElement(testcase, 'failure')
+                elif result is TestResult.UNEXPECTEDPASS:
+                    fail = et.SubElement(testcase, 'failure')
+                    fail.text = 'Test unexpected passed.'
+                elif result is TestResult.TIMEOUT:
+                    fail = et.SubElement(testcase, 'failure')
+                    fail.text = 'Test did not finish before configured timeout.'
+            if test.stdo:
+                out = et.SubElement(suite, 'system-out')
+                out.text = test.stdo.rstrip()
+            if test.stde:
+                err = et.SubElement(suite, 'system-err')
+                err.text = test.stde.rstrip()
+        else:
+            if test.project not in self.suites:
+                suite = self.suites[test.project] = et.Element(
+                    'testsuite', name=test.project, tests='1', errors='0',
+                    failures='0', skipped='0')
+            else:
+                suite = self.suites[test.project]
+                suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
+
+            testcase = et.SubElement(suite, 'testcase', name=name, classname=name)
+            if test.res is TestResult.SKIP:
+                et.SubElement(testcase, 'skipped')
+                suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
+            elif test.res is TestResult.ERROR:
+                et.SubElement(testcase, 'error')
+                suite.attrib['errors'] = str(int(suite.attrib['errors']) + 1)
+            elif test.res is TestResult.FAIL:
+                et.SubElement(testcase, 'failure')
+                suite.attrib['failures'] = str(int(suite.attrib['failures']) + 1)
+            if test.stdo:
+                out = et.SubElement(testcase, 'system-out')
+                out.text = test.stdo.rstrip()
+            if test.stde:
+                err = et.SubElement(testcase, 'system-err')
+                err.text = test.stde.rstrip()
+
+    def write(self) -> None:
+        """Calculate total test counts and write out the xml result."""
+        for suite in self.suites.values():
+            self.root.append(suite)
+            # Skipped is really not allowed in the "testsuits" element
+            for attr in ['tests', 'errors', 'failures']:
+                self.root.attrib[attr] = str(int(self.root.attrib[attr]) + int(suite.attrib[attr]))
+
+        tree = et.ElementTree(self.root)
+        with open(self.filename, 'wb') as f:
+            tree.write(f, encoding='utf-8', xml_declaration=True)
 
 
 class TestRun:
@@ -662,6 +767,7 @@ class TestHarness:
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
         self.jsonlogfile = None   # type: T.Optional[T.TextIO]
+        self.junit = None         # type: T.Optional[JunitBuilder]
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
         else:
@@ -776,6 +882,8 @@ class TestHarness:
             self.logfile.write(result_str)
         if self.jsonlogfile:
             write_json_log(self.jsonlogfile, name, result)
+        if self.junit:
+            self.junit.log(name, result)
 
     def print_summary(self) -> None:
         msg = textwrap.dedent('''
@@ -790,6 +898,8 @@ class TestHarness:
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
+        if self.junit:
+            self.junit.write()
 
     def print_collected_logs(self) -> None:
         if len(self.collected_logs) > 0:
@@ -906,6 +1016,9 @@ class TestHarness:
 
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
+
+        self.junit = JunitBuilder(logfile_base + '.junit.xml')
+
         self.logfilename = logfile_base + '.txt'
         self.jsonlogfilename = logfile_base + '.json'
 
