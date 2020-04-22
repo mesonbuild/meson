@@ -2169,7 +2169,7 @@ class MesonMain(InterpreterObject):
                                         self.interpreter.environment.build_dir)
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
-            exe = OverrideProgram(abspath)
+            exe = OverrideProgram(name, abspath)
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
@@ -3374,7 +3374,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return ExternalProgramHolder(prog, self.subproject)
         return None
 
-    def program_from_system(self, args, search_dirs, silent=False):
+    def program_from_system(self, args, search_dirs, extra_info):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -3397,9 +3397,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                                        'files, not {!r}'.format(exename))
             extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
                                                    extra_search_dirs=extra_search_dirs,
-                                                   silent=silent)
+                                                   silent=True)
             progobj = ExternalProgramHolder(extprog, self.subproject)
             if progobj.found():
+                extra_info.append('({})'.format(' '.join(progobj.get_command())))
                 return progobj
 
     def program_from_overrides(self, command_names, extra_info):
@@ -3457,7 +3458,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not is_found:
                 mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'),
                          'found', mlog.normal_cyan(version), 'but need:',
-                         mlog.bold(', '.join(["'{}'".format(e) for e in not_found])))
+                         mlog.bold(', '.join(["'{}'".format(e) for e in not_found])), *extra_info)
                 if required:
                     m = 'Invalid version of program, need {!r} {!r} found {!r}.'
                     raise InterpreterException(m.format(progobj.get_name(), not_found, version))
@@ -3483,7 +3484,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, silent=True)
+            progobj = self.program_from_system(args, search_dirs, extra_info)
         if progobj is None and args[0].endswith('python3'):
             prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = ExternalProgramHolder(prog, self.subproject) if prog.found() else None
@@ -3593,53 +3594,68 @@ external dependencies (including libraries) must go to "dependencies".''')
         required = kwargs.get('required', True)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         dep = self.notfound_dependency()
+
+        # Verify the subproject is found
+        subproject = self.subprojects.get(subp_name)
+        if not subproject or not subproject.found():
+            mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'),
+                     mlog.blue('(subproject failed to configure)'))
+            if required:
+                m = 'Subproject {} failed to configure for dependency {}'
+                raise DependencyException(m.format(subproject.subdir, display_name))
+            return dep
+
+        extra_info = []
         try:
-            subproject = self.subprojects[subp_name]
+            # Check if the subproject overridden the dependency
             _, cached_dep = self._find_cached_dep(name, display_name, kwargs)
-            if varname is None:
-                # Assuming the subproject overridden the dependency we want
-                if cached_dep:
-                    if required and not cached_dep.found():
-                        m = 'Dependency {!r} is not satisfied'
-                        raise DependencyException(m.format(display_name))
-                    return DependencyHolder(cached_dep, self.subproject)
-                else:
-                    if required:
-                        m = 'Subproject {} did not override dependency {}'
-                        raise DependencyException(m.format(subproject.subdir, display_name))
-                    mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                             mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
-                    return self.notfound_dependency()
-            if subproject.found():
-                self.verify_fallback_consistency(subp_name, varname, cached_dep)
-                dep = self.subprojects[subp_name].get_variable_method([varname], {})
+            if cached_dep:
+                if varname:
+                    self.verify_fallback_consistency(subp_name, varname, cached_dep)
+                if required and not cached_dep.found():
+                    m = 'Dependency {!r} is not satisfied'
+                    raise DependencyException(m.format(display_name))
+                return DependencyHolder(cached_dep, self.subproject)
+            elif varname is None:
+                mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                         mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
+                if required:
+                    m = 'Subproject {} did not override dependency {}'
+                    raise DependencyException(m.format(subproject.subdir, display_name))
+                return self.notfound_dependency()
+            else:
+                # The subproject did not override the dependency, but we know the
+                # variable name to take.
+                dep = subproject.get_variable_method([varname], {})
         except InvalidArguments:
-            pass
+            # This is raised by get_variable_method() if varname does no exist
+            # in the subproject. Just add the reason in the not-found message
+            # that will be printed later.
+            extra_info.append(mlog.blue('(Variable {!r} not found)'.format(varname)))
 
         if not isinstance(dep, DependencyHolder):
             raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, subp_name))
 
         if not dep.found():
+            mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'), *extra_info)
             if required:
                 raise DependencyException('Could not find dependency {} in subproject {}'
                                           ''.format(varname, subp_name))
-            # If the dependency is not required, don't raise an exception
-            mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
-                     mlog.bold(subproject.subdir), 'found:', mlog.red('NO'))
             return dep
 
         found = dep.held_object.get_version()
         if not self.check_version(wanted, found):
-            if required:
-                raise DependencyException('Version {} of subproject dependency {} already '
-                                          'cached, requested incompatible version {} for '
-                                          'dep {}'.format(found, subp_name, wanted, display_name))
-
             mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
                      mlog.bold(subproject.subdir), 'found:', mlog.red('NO'),
                      'found', mlog.normal_cyan(found), 'but need:',
                      mlog.bold(', '.join(["'{}'".format(e) for e in wanted])))
+            if required:
+                raise DependencyException('Version {} of subproject dependency {} already '
+                                          'cached, requested incompatible version {} for '
+                                          'dep {}'.format(found, subp_name, wanted, display_name))
             return self.notfound_dependency()
 
         found = mlog.normal_cyan(found) if found else None
