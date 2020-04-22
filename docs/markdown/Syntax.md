@@ -596,16 +596,18 @@ This is the full Meson grammar, as it is used to parse Meson build definition fi
 
 ```
 program = (NEWLINE | stmt)*
-stmt = (expression_stmt | selection_stmt | iteration_stmt | jump_stmt) NEWLINE
+stmt = (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
 selection_stmt = 'if' condition NEWLINE (stmt)* ('elif' condition NEWLINE (stmt)*)* ['else' (stmt)*] 'endif'
-iteration_stmt = 'foreach' identifier_list ':' identifier NEWLINE (stmt)* 'endforeach'
+iteration_stmt = 'foreach' identifier_list ':' identifier NEWLINE (stmt | jump_stmt)* 'endforeach'
 condition = conditional_expr // TODO classic way would be condition = expression, but we can't have assignments in conditions. Should that be covered by the grammar (syntax) or not
 identifier_list = identifier | (identifier_list ',' identifier)
-jump_stmt = 'break' | 'continue' // TODO can currently only occur inside a iteration_stmt body, but that is not reflected here
+jump_stmt = 'break' | 'continue'
 parameter_list = [arg_list] | [kwarg_list] | (arg_list ',' kwarg_list) // TODO could be more concise
 arg_list = expr_list
+kwarg = identifier ':' expr
 kwarg_list = kwarg | (kwarg_list ',' kwarg)
-kwarg = string_literal ':' expr // TODO or could the key here actually be an expression?
+key_value_pair = expr ':' expr // TODO not any expression though. value could be conditional_expr, key could be additive_expr (because of string concatenation)
+kv_pair_list = key_value_pair | (kv_pair_list ',' key_value_pair)
 expression_stmt = expr
 expr_list = assignment_expr | (expr_list ',' assignment_expr)
 expr = assignment_expr
@@ -613,17 +615,18 @@ expr_list = assignment_expr | expression_list ',' assignment_expr // TODO curren
 assignment_expr = conditional_expr | (logical_or_expr assignment_op assignment_expr)
 assignment_op = '=' | '*=' | '/=' | '%=' | '+=' | '-='
 conditional_expr = logical_or_expr | (logical_or_expr '?' expr ':' assignment_expr
-logical_or_expr = logical_end_expr | (logical_or_expr 'or' logical_and_expr')
+logical_or_expr = logical_and_expr | (logical_or_expr 'or' logical_and_expr')
 // FIXME in between here would be xor, if we had it
 logical_and_expr = equality_expr | (logical_and_expr 'and' equality_expr)
 equality_expr = relational_expr | (equality_expr equality_op relational_expr)
 equality_op = '==' | '!='
 relational_expr = additive_expr | (relational_expr relational_op additive_expr)
-relational_op = '>' | '<' | '>=' | '<='
+relational_op = '>' | '<' | '>=' | '<=' | 'in' | ('not' 'in')
 additive_expr = multiplicative_expr | (additive_expr additive_op multiplicative_expr)
 additive_op = '+' | '-'
-multiplicative_expr = postfix_expr | (multiplicative_expr multiplicative_op postfix_expr)
+multiplicative_expr = logical_not_expr | (multiplicative_expr multiplicative_op logical_not_expr)
 multiplicative_op = '*' | '/' | '%'
+logical_not_expr = postfix_expr | ('not' logical_not_expr)
 postfix_expr = primary_expr | subscript_expr | call_expr
 subscript_expr = identifier '[' expr ']' // TODO not sure about the expr as index here
 call_expr = function_expr | method_expr
@@ -647,5 +650,5 @@ string_literal = "'" char_seq "'" // TODO multiline strings
 char_seq = (string_char)* // FIXME escapes
 boolean_literal = 'true' | 'false'
 array_literal = '[' expr_list ']' // TODO not assignment expressions unfortunately
-dictionary_literal = '{' kwarg_list '}'
+dictionary_literal = '{' kv_pair_list '}'
 ```
