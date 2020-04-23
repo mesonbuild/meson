@@ -1009,14 +1009,26 @@ class Environment:
             return OptlinkDynamicLinker(compiler, for_machine, version=search_version(o))
         elif o.startswith('Microsoft') or e.startswith('Microsoft'):
             out = o or e
-            match = re.search(r'.*(X86|X64|ARM|ARM64).*', out)
-            if match:
-                target = str(match.group(1))
+
+            target_arch = self.machines[for_machine].cpu_family
+            if target_arch is None:
+                match = re.search(r'.*(X86|X64|ARM|ARM64)\s+', out)
+                if match:
+                    target_arch = str(match.group(1))
+                else:
+                    target_arch = 'X86'
+            elif target_arch in ('x86', 'arm'):
+                target_arch = target_arch.upper()
+            elif target_arch == 'x86_64':
+                target_arch = 'X64'
+            elif target_arch == 'aarch64':
+                target_arch = 'ARM64'
             else:
-                target = 'x86'
+                raise EnvironmentException('Unknown target arch {!r} for MSVC linker '
+                                           '`link.exe`'.format(target_arch))
 
             return MSVCDynamicLinker(
-                for_machine, [], machine=target, exelist=compiler,
+                for_machine, [], machine=target_arch, exelist=compiler,
                 prefix=comp_class.LINKER_PREFIX if use_linker_prefix else [],
                 version=search_version(out), direct=invoked_directly)
         elif 'GNU coreutils' in o:
