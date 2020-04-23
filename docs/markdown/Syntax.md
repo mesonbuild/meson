@@ -597,7 +597,7 @@ This is the full Meson grammar, as it is used to parse Meson build definition fi
 ```
 additive_expr: multiplicative_expr | (additive_expr additive_op multiplicative_expr)
 additive_op: "+" | "-"
-arg_list: expr_list
+argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
 array_literal: "[" expr_list "]"
 assignment_expr: conditional_expr | (logical_or_expr assignment_op assignment_expr)
 assignment_op: "=" | "*=" | "/=" | "%=" | "+=" | "-="
@@ -612,7 +612,7 @@ equality_op: "==" | "!="
 expr: assignment_expr
 expr_list: assignment_expr | (expr_list "," assignment_expr)
 expression_stmt: expr
-function_expr: id_expr "(" parameter_list ")"
+function_expr: id_expr "(" [argument_list] ")"
 hex_literal: "0x" HEX_NUMBER
 HEX_NUMBER: /[a-fA-F0-9]+/
 id_expr: IDENTIFIER
@@ -622,9 +622,9 @@ integer_literal: decimal_literal | octal_literal | hex_literal
 iteration_stmt: "foreach" identifier_list ":" id_expr NEWLINE (stmt | jump_stmt)* "endforeach"
 jump_stmt: "break" | "continue"
 key_value_pair: expr ":" expr
+keyword_item: id_expr ":" expr
+keyword_arguments: keyword_item ("," keyword_item)*
 kv_pair_list: key_value_pair | (kv_pair_list "," key_value_pair)
-kwarg: id_expr ":" expr
-kwarg_list: kwarg | (kwarg_list "," kwarg)
 literal: integer_literal | string_literal | boolean_literal | array_literal | dictionary_literal
 logical_and_expr: equality_expr | (logical_and_expr "and" equality_expr)
 logical_or_expr: logical_and_expr | (logical_or_expr "or" logical_and_expr)
@@ -633,7 +633,7 @@ multiplicative_expr: unary_expr | (multiplicative_expr multiplicative_op unary_e
 multiplicative_op: "*" | "/" | "%"
 octal_literal: "0o" OCTAL_NUMBER
 OCTAL_NUMBER: /[0-7]+/
-parameter_list: [arg_list] | [kwarg_list] | (arg_list "," kwarg_list) // TODO could be more concise
+positional_arguments: expr ("," expr)*
 postfix_expr: primary_expr | subscript_expr | function_expr | method_expr
 primary_expr: literal | ("(" expr ")") | id_expr
 program: (NEWLINE | stmt)*
