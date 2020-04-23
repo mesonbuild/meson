@@ -591,10 +591,8 @@ class Vs2010Backend(backends.Backend):
         raise MesonException('Could not guess language from source file %s.' % src)
 
     def add_pch(self, pch_sources, lang, inc_cl):
-        if len(pch_sources) <= 1:
-            # We only need per file precompiled headers if we have more than 1 language.
-            return
-        self.use_pch(pch_sources, lang, inc_cl)
+        if lang in pch_sources:
+            self.use_pch(pch_sources, lang, inc_cl)
 
     def create_pch(self, pch_sources, lang, inc_cl):
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
@@ -602,6 +600,8 @@ class Vs2010Backend(backends.Backend):
         self.add_pch_files(pch_sources, lang, inc_cl)
 
     def use_pch(self, pch_sources, lang, inc_cl):
+        pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
+        pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
@@ -1046,12 +1046,10 @@ class Vs2010Backend(backends.Backend):
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
         if self.environment.coredata.base_options.get('b_pch', False):
-            pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
             for lang in ['c', 'cpp']:
                 pch = target.get_pch(lang)
                 if not pch:
                     continue
-                pch_node.text = 'Use'
                 if compiler.id == 'msvc':
                     if len(pch) == 1:
                         # Auto generate PCH.
@@ -1065,10 +1063,6 @@ class Vs2010Backend(backends.Backend):
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
                     pch_sources[lang] = [pch[0], None, lang, None]
-        if len(pch_sources) == 1:
-            # If there is only 1 language with precompiled headers, we can use it for the entire project, which
-            # is cleaner than specifying it for each source file.
-            self.use_pch(pch_sources, list(pch_sources)[0], clconf)
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
