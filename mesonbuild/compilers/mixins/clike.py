@@ -919,7 +919,7 @@ class CLikeCompiler:
         for f in files:
             if not f.is_file():
                 continue
-            archs = mesonlib.darwin_get_object_archs(f)
+            archs = mesonlib.darwin_get_object_archs(str(f))
             if archs and env.machines.host.cpu_family in archs:
                 return f
             else:
