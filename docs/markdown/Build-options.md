@@ -218,6 +218,9 @@ project('my_project', 'c', default_options: ['backend_startup_project=my_exe'])
 executable('my_exe', ...)
 ```
 
+The backend\_multithreaded option can be set to set the "multi-processor
+compilation" (`/MP`) option for visual studio targets to speed up builds.
+
 ### Ninja
 
 #### Max links

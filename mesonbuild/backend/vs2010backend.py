@@ -887,6 +887,8 @@ class Vs2010Backend(backends.Backend):
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
             else: # 'sc' or 'default'
                 ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
+        if self.environment.coredata.backend_options['backend_multithreaded']:
+            ET.SubElement(clconf, 'MultiProcessorCompilation').text = 'true'
         # End configuration
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
@@ -1274,7 +1276,15 @@ class Vs2010Backend(backends.Backend):
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
                     self.add_include_dirs(lang, inc_cl, file_inc_dirs)
-                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, s)
+                    obj_filename = self.object_filename_from_source(target, s)
+                    # For source files in the current directory, just let VS pick their output filename
+                    # If the output filename isn't just a directory, it'll prevent it from being parallelized
+                    # with other source files in the same project
+                    # However, for source files not in the current directory, continue to customize the filename
+                    # to prevent collisions for files with the same name from different directories
+                    if obj_filename == s.fname + '.obj':
+                        obj_filename = ''
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + obj_filename
             for s in gen_src:
                 if path_normalize_add(s, previous_sources):
                     inc_cl = ET.SubElement(inc_src, 'CLCompile', Include=s)

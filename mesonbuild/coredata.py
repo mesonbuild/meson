@@ -552,6 +552,10 @@ class CoreData:
                 UserStringOption(
                     'Default project to execute in Visual Studio',
                     '')
+            self.backend_options['backend_multithreaded'] = \
+                UserBooleanOption(
+                    'Use /MP switch for multithreaded compilation with cl.exe',
+                    True)
 
     def get_builtin_option(self, optname: str, subproject: str = '') -> T.Union[str, int, bool]:
         raw_optname = optname
