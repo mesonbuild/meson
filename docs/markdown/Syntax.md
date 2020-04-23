@@ -595,56 +595,56 @@ Grammar
 This is the full Meson grammar, as it is used to parse Meson build definition files:
 
 ```
-additive_expr: multiplicative_expr | (additive_expr additive_op multiplicative_expr)
-additive_op: "+" | "-"
+additive_expression: multiplicative_expression | (additive_expression additive_operator multiplicative_expression)
+additive_operator: "+" | "-"
 argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
-array_literal: "[" expr_list "]"
-assignment_expr: conditional_expr | (logical_or_expr assignment_op assignment_expr)
-assignment_op: "=" | "*=" | "/=" | "%=" | "+=" | "-="
+array_literal: "[" [expression_list] "]"
+assignment_expression: conditional_expression | (logical_or_expression assignment_operator assignment_expression)
+assignment_operator: "=" | "*=" | "/=" | "%=" | "+=" | "-="
 boolean_literal: "true" | "false"
-condition: expr
-conditional_expr: logical_or_expr | (logical_or_expr "?" expr ":" assignment_expr
+build_definition: (NEWLINE | statement)*
+condition: expression
+conditional_expression: logical_or_expression | (logical_or_expression "?" expression ":" assignment_expression
 decimal_literal: DECIMAL_NUMBER
 DECIMAL_NUMBER: /[1-9][0-9]*/
-dictionary_literal: "{" kv_pair_list "}"
-equality_expr: relational_expr | (equality_expr equality_op relational_expr)
-equality_op: "==" | "!="
-expr: assignment_expr
-expr_list: assignment_expr | (expr_list "," assignment_expr)
-expression_stmt: expr
-function_expr: id_expr "(" [argument_list] ")"
+dictionary_literal: "{" [key_value_list] "}"
+equality_expression: relational_expression | (equality_expression equality_operator relational_expression)
+equality_operator: "==" | "!="
+expression: assignment_expression
+expression_list: expression ("," expression)*
+expression_statememt: expression 
+function_expression: id_expression "(" [argument_list] ")"
 hex_literal: "0x" HEX_NUMBER
 HEX_NUMBER: /[a-fA-F0-9]+/
-id_expr: IDENTIFIER
+id_expression: IDENTIFIER
 IDENTIFIER: /[a-zA-Z_][a-zA-Z_0-9]*/
-identifier_list: id_expr | (identifier_list "," id_expr)
+identifier_list: id_expression ("," id_expression)*
 integer_literal: decimal_literal | octal_literal | hex_literal
-iteration_stmt: "foreach" identifier_list ":" id_expr NEWLINE (stmt | jump_stmt)* "endforeach"
-jump_stmt: "break" | "continue"
-key_value_pair: expr ":" expr
-keyword_item: id_expr ":" expr
+iteration_statement: "foreach" identifier_list ":" id_expression NEWLINE (statement | jump_statement)* "endforeach"
+jump_statement: ("break" | "continue") NEWLINE
+key_value_item: expression ":" expression
+key_value_list: key_value_item ("," key_value_item)*
+keyword_item: id_expression ":" expression
 keyword_arguments: keyword_item ("," keyword_item)*
-kv_pair_list: key_value_pair | (kv_pair_list "," key_value_pair)
 literal: integer_literal | string_literal | boolean_literal | array_literal | dictionary_literal
-logical_and_expr: equality_expr | (logical_and_expr "and" equality_expr)
-logical_or_expr: logical_and_expr | (logical_or_expr "or" logical_and_expr)
-method_expr: postfix_expr "." function_expr
-multiplicative_expr: unary_expr | (multiplicative_expr multiplicative_op unary_expr)
-multiplicative_op: "*" | "/" | "%"
+logical_and_expression: equality_expression | (logical_and_expression "and" equality_expression)
+logical_or_expression: logical_and_expression | (logical_or_expression "or" logical_and_expression)
+method_expression: postfix_expression "." function_expression
+multiplicative_expression: unary_expression | (multiplicative_expression multiplicative_operator unary_expression)
+multiplicative_operator: "*" | "/" | "%"
 octal_literal: "0o" OCTAL_NUMBER
 OCTAL_NUMBER: /[0-7]+/
-positional_arguments: expr ("," expr)*
-postfix_expr: primary_expr | subscript_expr | function_expr | method_expr
-primary_expr: literal | ("(" expr ")") | id_expr
-program: (NEWLINE | stmt)*
-relational_expr: additive_expr | (relational_expr relational_op additive_expr)
-relational_op: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
-selection_stmt: "if" condition NEWLINE (stmt)* ("elif" condition NEWLINE (stmt)*)* ["else" (stmt)*] "endif"
-stmt: (expression_stmt | selection_stmt | iteration_stmt) NEWLINE
+positional_arguments: expression ("," expression)*
+postfix_expression: primary_expression | subscript_expression | function_expression | method_expression
+primary_expression: literal | ("(" expression ")") | id_expression
+relational_expression: additive_expression | (relational_expression relational_operator additive_expression)
+relational_operator: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
+selection_statement: "if" condition NEWLINE (statement)* ("elif" condition NEWLINE (statement)*)* ["else" (statement)*] "endif"
+statement: (expression_statement | selection_statement | iteration_statement) NEWLINE
 string_literal: ("'" STRING_SIMPLE_VALUE "'") | ("'''" STRING_MULTILINE_VALUE "'''")
 STRING_MULTILINE_VALUE: \.*?(''')\
 STRING_SIMPLE_VALUE: \.*?(?<!\\)(\\\\)*?'\
-subscript_expr: postfix_expr "[" expr "]"
-unary_expr: postfix_expr | (unary_op unary_expr)
-unary_op: "not" | "+" | "-"
+subscript_expression: postfix_expression "[" expression "]"
+unary_expression: postfix_expression | (unary_operator unary_expression)
+unary_operator: "not" | "+" | "-"
 ```
