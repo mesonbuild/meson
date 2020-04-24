@@ -54,6 +54,7 @@ if T.TYPE_CHECKING:
         quiet: bool
         wd: str
         destdir: str
+        dry_run: bool
 
 
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
@@ -75,20 +76,27 @@ def add_arguments(parser: argparse.Namespace) -> None:
                         help='Do not print every file that was installed.')
     parser.add_argument('--destdir', default=None,
                         help='Sets or overrides DESTDIR environment. (Since 0.57.0)')
+    parser.add_argument('--dry-run', '-n', action='store_true',
+                        help='Doesn\'t actually install, but print logs.')
 
 class DirMaker:
-    def __init__(self, lf: T.TextIO):
+    def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
         self.lf = lf
         self.dirs: T.List[str] = []
+        self.makedirs_impl = makedirs
 
     def makedirs(self, path: str, exist_ok: bool = False) -> None:
         dirname = os.path.normpath(path)
         dirs = []
         while dirname != os.path.dirname(dirname):
+            if dirname in self.dirs:
+                # In dry-run mode the directory does not exist but we would have
+                # created it with all its parents otherwise.
+                break
             if not os.path.exists(dirname):
                 dirs.append(dirname)
             dirname = os.path.dirname(dirname)
-        os.makedirs(path, exist_ok=exist_ok)
+        self.makedirs_impl(path, exist_ok=exist_ok)
 
         # store the directories in creation order, with the parent directory
         # before the child directories. Future calls of makedir() will not
@@ -275,6 +283,74 @@ class Installer:
         self.options = options
         self.lf = lf
         self.preserved_file_count = 0
+        self.dry_run = options.dry_run
+
+    def mkdir(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            os.mkdir(*args, **kwargs)
+
+    def remove(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            os.remove(*args, **kwargs)
+
+    def symlink(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            os.symlink(*args, **kwargs)
+
+    def makedirs(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            os.makedirs(*args, **kwargs)
+
+    def copy(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            shutil.copy(*args, **kwargs)
+
+    def copy2(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            shutil.copy2(*args, **kwargs)
+
+    def copyfile(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            shutil.copyfile(*args, **kwargs)
+
+    def copystat(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            shutil.copystat(*args, **kwargs)
+
+    def fix_rpath(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            depfixer.fix_rpath(*args, **kwargs)
+
+    def set_chown(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            set_chown(*args, **kwargs)
+
+    def set_chmod(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            set_chmod(*args, **kwargs)
+
+    def sanitize_permissions(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            sanitize_permissions(*args, **kwargs)
+
+    def set_mode(self, *args: T.Any, **kwargs: T.Any) -> None:
+        if not self.dry_run:
+            set_mode(*args, **kwargs)
+
+    def restore_selinux_contexts(self) -> None:
+        if not self.dry_run:
+            restore_selinux_contexts()
+
+    def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
+        if not self.dry_run:
+            p, o, e = Popen_safe(*args, **kwargs)
+            return p.returncode, o, e
+        return 0, '', ''
+
+    def run_exe(self, *args: T.Any, **kwargs: T.Any) -> int:
+        if not self.dry_run:
+            return run_exe(*args, **kwargs)
+        return 0
 
     def log(self, msg: str) -> None:
         if not self.options.quiet:
@@ -307,7 +383,7 @@ class Installer:
                 append_to_log(self.lf, '# Preserving old file {}\n'.format(to_file))
                 self.preserved_file_count += 1
                 return False
-            os.remove(to_file)
+            self.remove(to_file)
         elif makedirs:
             # Unpack tuple
             dirmaker, outdir = makedirs
@@ -317,14 +393,14 @@ class Installer:
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
-                shutil.copy(from_file, outdir, follow_symlinks=False)
+                self.copy(from_file, outdir, follow_symlinks=False)
             else:
                 # Remove this entire branch when changing the behaviour to duplicate
                 # symlinks rather than copying what they point to.
                 print(symlink_warning)
-                shutil.copy2(from_file, to_file)
+                self.copy2(from_file, to_file)
         else:
-            shutil.copy2(from_file, to_file)
+            self.copy2(from_file, to_file)
         selinux_updates.append(to_file)
         append_to_log(self.lf, to_file)
         return True
@@ -378,8 +454,8 @@ class Installer:
                     print('Tried to copy directory {} but a file of that name already exists.'.format(abs_dst))
                     sys.exit(1)
                 dm.makedirs(abs_dst)
-                shutil.copystat(abs_src, abs_dst)
-                sanitize_permissions(abs_dst, data.install_umask)
+                self.copystat(abs_src, abs_dst)
+                self.sanitize_permissions(abs_dst, data.install_umask)
             for f in files:
                 abs_src = os.path.join(root, f)
                 filepart = os.path.relpath(abs_src, start=src_dir)
@@ -391,11 +467,11 @@ class Installer:
                     sys.exit(1)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
-                    os.mkdir(parent_dir)
-                    shutil.copystat(os.path.dirname(abs_src), parent_dir)
+                    self.mkdir(parent_dir)
+                    self.copystat(os.path.dirname(abs_src), parent_dir)
                 # FIXME: what about symlinks?
                 self.do_copyfile(abs_src, abs_dst)
-                set_mode(abs_dst, install_mode, data.install_umask)
+                self.set_mode(abs_dst, install_mode, data.install_umask)
 
     @staticmethod
     def check_installdata(obj: InstallData) -> InstallData:
@@ -422,13 +498,13 @@ class Installer:
 
         self.did_install_something = False
         try:
-            with DirMaker(self.lf) as dm:
+            with DirMaker(self.lf, self.makedirs) as dm:
                 self.install_subdirs(d, dm, destdir, fullprefix) # Must be first, because it needs to delete the old subtree.
                 self.install_targets(d, dm, destdir, fullprefix)
                 self.install_headers(d, dm, destdir, fullprefix)
                 self.install_man(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
-                restore_selinux_contexts()
+                self.restore_selinux_contexts()
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
@@ -460,7 +536,7 @@ class Installer:
             outdir = os.path.dirname(outfilename)
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            set_mode(outfilename, mode, d.install_umask)
+            self.set_mode(outfilename, mode, d.install_umask)
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for m in d.man:
@@ -470,7 +546,7 @@ class Installer:
             install_mode = m[2]
             if self.do_copyfile(full_source_filename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            set_mode(outfilename, install_mode, d.install_umask)
+            self.set_mode(outfilename, install_mode, d.install_umask)
 
     def install_headers(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.headers:
@@ -481,7 +557,7 @@ class Installer:
             install_mode = t[2]
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            set_mode(outfilename, install_mode, d.install_umask)
+            self.set_mode(outfilename, install_mode, d.install_umask)
 
     def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
@@ -501,7 +577,7 @@ class Installer:
             self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log('Running custom install script {!r}'.format(name))
             try:
-                rc = run_exe(i, env)
+                rc = self.run_exe(i, env)
             except OSError:
                 print('FAILED: install script \'{}\' could not be run, stopped'.format(name))
                 # POSIX shells return 127 when a command could not be found
@@ -533,14 +609,14 @@ class Installer:
                 raise RuntimeError('File {!r} could not be found'.format(fname))
             elif os.path.isfile(fname):
                 file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
-                set_mode(outname, install_mode, d.install_umask)
+                self.set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
                         self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
                     self.log('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
-                    ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
-                    if ps.returncode != 0:
+                    returncode, stdo, stde = self.Popen_safe(d.strip_bin + [outname])
+                    if returncode != 0:
                         print('Could not strip file.\n')
                         print('Stdout:\n{}\n'.format(stdo))
                         print('Stderr:\n{}\n'.format(stde))
@@ -564,10 +640,10 @@ class Installer:
                 try:
                     symlinkfilename = os.path.join(outdir, alias)
                     try:
-                        os.remove(symlinkfilename)
+                        self.remove(symlinkfilename)
                     except FileNotFoundError:
                         pass
-                    os.symlink(to, symlinkfilename)
+                    self.symlink(to, symlinkfilename)
                     append_to_log(self.lf, symlinkfilename)
                 except (NotImplementedError, OSError):
                     if not printed_symlink_error:
@@ -577,8 +653,8 @@ class Installer:
             if file_copied:
                 self.did_install_something = True
                 try:
-                    depfixer.fix_rpath(outname, t.rpath_dirs_to_remove, install_rpath, final_path,
-                                       install_name_mappings, verbose=False)
+                    self.fix_rpath(outname, t.rpath_dirs_to_remove, install_rpath, final_path,
+                                         install_name_mappings, verbose=False)
                 except SystemExit as e:
                     if isinstance(e.code, int) and e.code == 0:
                         pass
