@@ -266,10 +266,13 @@ import sys
 install_paths = sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})
 
 def links_against_libpython():
-    from distutils.core import Distribution, Extension
-    cmd = Distribution().get_command_obj('build_ext')
-    cmd.ensure_finalized()
-    return bool(cmd.get_libraries(Extension('dummy', [])))
+    try:
+        from distutils.core import Distribution, Extension
+        cmd = Distribution().get_command_obj('build_ext')
+        cmd.ensure_finalized()
+        return bool(cmd.get_libraries(Extension('dummy', [])))
+    except ModuleNotFoundError:
+        return False
 
 print (json.dumps ({
   'variables': sysconfig.get_config_vars(),
@@ -585,7 +588,7 @@ class PythonModule(ExtensionModule):
             else:
                 res = ExternalProgramHolder(NonExistingExternalProgram())
                 if required:
-                    raise mesonlib.MesonException('{} is not a valid python or it is missing setuptools'.format(python))
+                    raise mesonlib.MesonException('{} is not a valid python'.format(python))
 
         return res
 
