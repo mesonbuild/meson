@@ -246,6 +246,8 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
                 else:
                     i = '/I' + i[10:]
             # -pthread in link flags is only used on Linux
+            elif i.startswith('-I'):
+                result.append('/I' + i[2:])
             elif i == '-pthread':
                 continue
             result.append(i)
