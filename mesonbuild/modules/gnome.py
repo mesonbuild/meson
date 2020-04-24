@@ -32,7 +32,7 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
     join_args, unholder,
 )
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 
 # gresource compilation is broken due to the way
@@ -746,6 +746,8 @@ class GnomeModule(ExtensionModule):
                 giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
         else:
             giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
+        if not isinstance(giscanner, ExternalProgram):
+            giscanner = ExternalProgram(giscanner)
 
         gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
         if gicompiler.found():
@@ -754,6 +756,8 @@ class GnomeModule(ExtensionModule):
                 gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
         else:
             gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
+        if not isinstance(gicompiler, ExternalProgram):
+            gicompiler = ExternalProgram(gicompiler)
 
         ns = kwargs.pop('namespace')
         nsversion = kwargs.pop('nsversion')
