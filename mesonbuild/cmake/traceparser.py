@@ -660,25 +660,40 @@ class CMakeTraceParser:
 
         fixed_list = []  # type: T.List[str]
         curr_str = None  # type: T.Optional[str]
+        path_found = False # type: bool
 
         for i in broken_list:
             if curr_str is None:
                 curr_str = i
+                path_found = False
             elif os.path.isfile(curr_str):
                 # Abort concatenation if curr_str is an existing file
                 fixed_list += [curr_str]
                 curr_str = i
+                path_found = False
             elif not reg_start.match(curr_str):
                 # Abort concatenation if curr_str no longer matches the regex
                 fixed_list += [curr_str]
                 curr_str = i
-            elif reg_end.match(i) or os.path.exists('{} {}'.format(curr_str, i)):
+                path_found = False
+            elif reg_end.match(i):
                 # File detected
                 curr_str = '{} {}'.format(curr_str, i)
                 fixed_list += [curr_str]
                 curr_str = None
+                path_found = False
+            elif os.path.exists('{} {}'.format(curr_str, i)):
+                # Path detected
+                curr_str = '{} {}'.format(curr_str, i)
+                path_found = True
+            elif path_found:
+                # Add path to fixed_list after ensuring the whole path is in curr_str
+                fixed_list += [curr_str]
+                curr_str = i
+                path_found = False
             else:
                 curr_str = '{} {}'.format(curr_str, i)
+                path_found = False
 
         if curr_str:
             fixed_list += [curr_str]
