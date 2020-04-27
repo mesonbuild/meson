@@ -329,10 +329,10 @@ Currently supported values are:
 
 #### tools
 
-This section specifies a list of tool requirements in a simple key-value format.
+This section specifies a dict of tool requirements in a simple key-value format.
 If a tool is specified, it has to be present in the environment, and the version
-requirement must be fulfilled match. Otherwise, the entire test is skipped
-(including every element in the test matrix).
+requirement must be fulfilled. Otherwise, the entire test is skipped (including
+every element in the test matrix).
 
 #### stdout
 

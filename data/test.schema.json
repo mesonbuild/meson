@@ -1,5 +1,6 @@
 {
   "type": "object",
+  "additionalProperties": false,
   "properties": {
     "env": {
       "type": "object",
@@ -98,6 +99,30 @@
         "enum": [
           "libdir",
           "prefix"
+        ]
+      }
+    },
+    "tools": {
+      "type": "object"
+    },
+    "stdout": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "line": {
+            "type": "string"
+          },
+          "match": {
+            "type": "string",
+            "enum": [
+              "literal",
+              "re"
+            ]
+          }
+        },
+        "required": [
+          "line"
         ]
       }
     }
