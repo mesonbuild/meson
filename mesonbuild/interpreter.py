@@ -3282,7 +3282,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                           'Look here for example: http://mesonbuild.com/howtox.html#add-math-library-lm-portably\n'
                           )
 
-    def _find_cached_dep(self, name, kwargs):
+    def _find_cached_dep(self, name, display_name, kwargs):
         # Check if we want this as a build-time / build machine or runt-time /
         # host machine dep.
         for_machine = self.machine_from_native_kwarg(kwargs)
@@ -3297,7 +3297,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # have explicitly called meson.override_dependency() with a not-found
             # dep.
             if not cached_dep.found():
-                mlog.log('Dependency', mlog.bold(name),
+                mlog.log('Dependency', mlog.bold(display_name),
                          'found:', mlog.red('NO'), *info)
                 return identifier, cached_dep
             found_vers = cached_dep.get_version()
@@ -3319,7 +3319,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if cached_dep:
             if found_vers:
                 info = [mlog.normal_cyan(found_vers), *info]
-            mlog.log('Dependency', mlog.bold(name),
+            mlog.log('Dependency', mlog.bold(display_name),
                      'found:', mlog.green('YES'), *info)
             return identifier, cached_dep
 
@@ -3352,7 +3352,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         dep = self.notfound_dependency()
         try:
             subproject = self.subprojects[dirname]
-            _, cached_dep = self._find_cached_dep(name, kwargs)
+            _, cached_dep = self._find_cached_dep(name, display_name, kwargs)
             if varname is None:
                 # Assuming the subproject overridden the dependency we want
                 if cached_dep:
@@ -3425,6 +3425,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.validate_arguments(args, 1, [str])
         name = args[0]
         display_name = name if name else '(anonymous)'
+        mods = extract_as_list(kwargs, 'modules')
+        if mods:
+            display_name += ' (modules: {})'.format(', '.join(str(i) for i in mods))
         not_found_message = kwargs.get('not_found_message', '')
         if not isinstance(not_found_message, str):
             raise InvalidArguments('The not_found_message must be a string.')
@@ -3466,7 +3469,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidArguments('Characters <, > and = are forbidden in dependency names. To specify'
                                    'version\n requirements use the \'version\' keyword argument instead.')
 
-        identifier, cached_dep = self._find_cached_dep(name, kwargs)
+        identifier, cached_dep = self._find_cached_dep(name, display_name, kwargs)
         if cached_dep:
             if has_fallback:
                 dirname, varname = self.get_subproject_infos(kwargs)
