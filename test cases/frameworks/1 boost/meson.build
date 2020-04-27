@@ -13,7 +13,7 @@ endif
 # within one project. The need to be independent of each other.
 # Use one without a library dependency and one with it.
 
-linkdep     = dependency('boost', static: s, modules : ['thread', 'system'])
+linkdep     = dependency('boost', static: s, modules : ['thread', 'system', 'date_time'])
 testdep     = dependency('boost', static: s, modules : ['unit_test_framework'])
 nomoddep    = dependency('boost', static: s)
 extralibdep = dependency('boost', static: s, modules : ['thread', 'system', 'date_time', 'log_setup', 'log', 'filesystem', 'regex'])
