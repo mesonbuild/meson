@@ -33,8 +33,10 @@ import signal
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import typing as T
+import xml.etree.ElementTree as et
 
 from . import build
 from . import environment
@@ -320,6 +322,110 @@ class TAPParser:
                 yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
 
 
+
+class JunitBuilder:
+
+    """Builder for Junit test results.
+
+    Junit is impossible to stream out, it requires attributes counting the
+    total number of tests, failures, skips, and errors in the root element
+    and in each test suite. As such, we use a builder class to track each
+    test case, and calculate all metadata before writing it out.
+
+    For tests with multiple results (like from a TAP test), we record the
+    test as a suite with the project_name.test_name. This allows us to track
+    each result separately. For tests with only one result (such as exit-code
+    tests) we record each one into a suite with the name project_name. The use
+    of the project_name allows us to sort subproject tests separately from
+    the root project.
+    """
+
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+        self.root = et.Element(
+            'testsuites', tests='0', errors='0', failures='0')
+        self.suites = {}  # type: T.Dict[str, et.Element]
+
+    def log(self, name: str, test: 'TestRun') -> None:
+        """Log a single test case."""
+        # In this case we have a test binary with multiple results.
+        # We want to record this so that each result is recorded
+        # separately
+        if test.results:
+            suitename = '{}.{}'.format(test.project, name)
+            assert suitename not in self.suites, 'duplicate suite'
+
+            suite = self.suites[suitename] = et.Element(
+                'testsuite',
+                name=suitename,
+                tests=str(len(test.results)),
+                errors=str(sum(1 for r in test.results if r is TestResult.ERROR)),
+                failures=str(sum(1 for r in test.results if r in
+                                 {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
+                skipped=str(sum(1 for r in test.results if r is TestResult.SKIP)),
+            )
+
+            for i, result in enumerate(test.results):
+                # Both name and classname are required. Set them both to the
+                # number of the test in a TAP test, as TAP doesn't give names.
+                testcase = et.SubElement(suite, 'testcase', name=str(i), classname=str(i))
+                if result is TestResult.SKIP:
+                    et.SubElement(testcase, 'skipped')
+                elif result is TestResult.ERROR:
+                    et.SubElement(testcase, 'error')
+                elif result is TestResult.FAIL:
+                    et.SubElement(testcase, 'failure')
+                elif result is TestResult.UNEXPECTEDPASS:
+                    fail = et.SubElement(testcase, 'failure')
+                    fail.text = 'Test unexpected passed.'
+                elif result is TestResult.TIMEOUT:
+                    fail = et.SubElement(testcase, 'failure')
+                    fail.text = 'Test did not finish before configured timeout.'
+            if test.stdo:
+                out = et.SubElement(suite, 'system-out')
+                out.text = test.stdo.rstrip()
+            if test.stde:
+                err = et.SubElement(suite, 'system-err')
+                err.text = test.stde.rstrip()
+        else:
+            if test.project not in self.suites:
+                suite = self.suites[test.project] = et.Element(
+                    'testsuite', name=test.project, tests='1', errors='0',
+                    failures='0', skipped='0')
+            else:
+                suite = self.suites[test.project]
+                suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
+
+            testcase = et.SubElement(suite, 'testcase', name=name, classname=name)
+            if test.res is TestResult.SKIP:
+                et.SubElement(testcase, 'skipped')
+                suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
+            elif test.res is TestResult.ERROR:
+                et.SubElement(testcase, 'error')
+                suite.attrib['errors'] = str(int(suite.attrib['errors']) + 1)
+            elif test.res is TestResult.FAIL:
+                et.SubElement(testcase, 'failure')
+                suite.attrib['failures'] = str(int(suite.attrib['failures']) + 1)
+            if test.stdo:
+                out = et.SubElement(testcase, 'system-out')
+                out.text = test.stdo.rstrip()
+            if test.stde:
+                err = et.SubElement(testcase, 'system-err')
+                err.text = test.stde.rstrip()
+
+    def write(self) -> None:
+        """Calculate total test counts and write out the xml result."""
+        for suite in self.suites.values():
+            self.root.append(suite)
+            # Skipped is really not allowed in the "testsuits" element
+            for attr in ['tests', 'errors', 'failures']:
+                self.root.attrib[attr] = str(int(self.root.attrib[attr]) + int(suite.attrib[attr]))
+
+        tree = et.ElementTree(self.root)
+        with open(self.filename, 'wb') as f:
+            tree.write(f, encoding='utf-8', xml_declaration=True)
+
+
 class TestRun:
 
     @classmethod
@@ -335,30 +441,29 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd)
 
     @classmethod
     def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
-        res = None
-        num_tests = 0
+        res = None    # T.Optional[TestResult]
+        results = []  # T.List[TestResult]
         failed = False
-        num_skipped = 0
 
         for i in TAPParser(io.StringIO(stdo)).parse():
             if isinstance(i, TAPParser.Bailout):
-                res = TestResult.ERROR
+                results.append(TestResult.ERROR)
+                failed = True
             elif isinstance(i, TAPParser.Test):
-                if i.result == TestResult.SKIP:
-                    num_skipped += 1
-                elif i.result in (TestResult.FAIL, TestResult.UNEXPECTEDPASS):
+                results.append(i.result)
+                if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL}:
                     failed = True
-                num_tests += 1
             elif isinstance(i, TAPParser.Error):
-                res = TestResult.ERROR
+                results.append(TestResult.ERROR)
                 stde += '\nTAP parsing error: ' + i.message
+                failed = True
 
         if returncode != 0:
             res = TestResult.ERROR
@@ -366,7 +471,7 @@ class TestRun:
 
         if res is None:
             # Now determine the overall result of the test based on the outcome of the subcases
-            if num_skipped == num_tests:
+            if all(t is TestResult.SKIP for t in results):
                 # This includes the case where num_tests is zero
                 res = TestResult.SKIP
             elif test.should_fail:
@@ -374,14 +479,16 @@ class TestRun:
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
 
-        return cls(test, test_env, res, returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
 
     def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
-                 res: TestResult, returncode: int, starttime: float, duration: float,
+                 res: TestResult, results: T.List[TestResult], returncode:
+                 int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.Optional[T.List[str]]):
         assert isinstance(res, TestResult)
         self.res = res
+        self.results = results  # May be an empty list
         self.returncode = returncode
         self.starttime = starttime
         self.duration = duration
@@ -390,6 +497,7 @@ class TestRun:
         self.cmd = cmd
         self.env = test_env
         self.should_fail = test.should_fail
+        self.project = test.project_name
 
     def get_log(self) -> str:
         res = '--- command ---\n'
@@ -490,7 +598,7 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(self.test, self.test_env, TestResult.SKIP, GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
+            return TestRun(self.test, self.test_env, TestResult.SKIP, [], GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -633,7 +741,7 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, p.returncode, starttime, duration, stdo, stde, cmd)
+            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol == 'exitcode':
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
@@ -655,9 +763,11 @@ class TestHarness:
         self.timeout_count = 0
         self.is_run = False
         self.tests = None
+        self.results = []         # type: T.List[TestRun]
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
         self.jsonlogfile = None   # type: T.Optional[T.TextIO]
+        self.junit = None         # type: T.Optional[JunitBuilder]
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
         else:
@@ -678,12 +788,11 @@ class TestHarness:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
-        if self.logfile:
-            self.logfile.close()
-            self.logfile = None
-        if self.jsonlogfile:
-            self.jsonlogfile.close()
-            self.jsonlogfile = None
+        for f in ['logfile', 'jsonlogfile']:
+            lfile =  getattr(self, f)
+            if lfile:
+                lfile.close()
+                setattr(self, f, None)
 
     def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> T.Dict[str, str]:
         if ':' in options.setup:
@@ -773,20 +882,24 @@ class TestHarness:
             self.logfile.write(result_str)
         if self.jsonlogfile:
             write_json_log(self.jsonlogfile, name, result)
+        if self.junit:
+            self.junit.log(name, result)
 
     def print_summary(self) -> None:
-        msg = '''
-Ok:                 {:<4}
-Expected Fail:      {:<4}
-Fail:               {:<4}
-Unexpected Pass:    {:<4}
-Skipped:            {:<4}
-Timeout:            {:<4}
-'''.format(self.success_count, self.expectedfail_count, self.fail_count,
+        msg = textwrap.dedent('''
+            Ok:                 {:<4}
+            Expected Fail:      {:<4}
+            Fail:               {:<4}
+            Unexpected Pass:    {:<4}
+            Skipped:            {:<4}
+            Timeout:            {:<4}
+            ''').format(self.success_count, self.expectedfail_count, self.fail_count,
            self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
+        if self.junit:
+            self.junit.write()
 
     def print_collected_logs(self) -> None:
         if len(self.collected_logs) > 0:
@@ -903,6 +1016,9 @@ Timeout:            {:<4}
 
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
+
+        self.junit = JunitBuilder(logfile_base + '.junit.xml')
+
         self.logfilename = logfile_base + '.txt'
         self.jsonlogfilename = logfile_base + '.json'
 

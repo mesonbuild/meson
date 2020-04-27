@@ -5,7 +5,7 @@ set -e
 source /ci/common.sh
 
 pkgs=(
-  python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3
+  python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3 python3-lxml
   ninja make git autoconf automake patch python3-Cython python3-jsonschema
   elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
@@ -17,7 +17,7 @@ pkgs=(
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
-  libboost_python-devel libboost_python-py3-1_71_0-devel libboost_regex-devel
+  libboost_python-py3-1_71_0-devel libboost_regex-devel
 )
 
 # Sys update

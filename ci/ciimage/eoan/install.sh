@@ -11,6 +11,7 @@ export DC=gdc
 pkgs=(
   python3-pytest-xdist
   python3-pip libxml2-dev libxslt1-dev libyaml-dev libjson-glib-dev
+  python3-lxml
   wget unzip
   qt5-default clang
   pkg-config-arm-linux-gnueabihf
