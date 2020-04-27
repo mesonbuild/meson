@@ -9,6 +9,7 @@ d2 = dependency(d)
 d3 = (d == d2)
 d4 = d + 0
 d5 = d2 or true
+set_variable('d6', disabler())
 
 has_not_changed = false
 if is_disabler(d)
@@ -23,12 +24,14 @@ assert(is_disabler(d2), 'Function laundered disabler was not identified correctl
 assert(is_disabler(d3), 'Disabler comparison should yield disabler.')
 assert(is_disabler(d4), 'Disabler addition should yield disabler.')
 assert(is_disabler(d5), 'Disabler logic op should yield disabler.')
+assert(is_disabler(d6), 'set_variable with a disabler should set variable to disabler.')
 
 assert(d, 'Disabler did not cause this to be skipped.')
 assert(d2, 'Function laundered disabler did not cause this to be skipped.')
 assert(d3, 'Disabler comparison should yield disabler and thus this would not be called.')
 assert(d4, 'Disabler addition should yield disabler and thus this would not be called.')
 assert(d5, 'Disabler logic op should yield disabler and thus this would not be called.')
+assert(d6, 'set_variable with a disabler did not cause this to be skipped.')
 
 number = 0
 
@@ -79,6 +82,31 @@ else
     has_not_changed = true
 endif
 assert(has_not_changed, 'App has changed.')
+
+assert(not is_disabler(is_variable('d6')), 'is_variable should not return a disabler')
+assert(is_variable('d6'), 'is_variable for a disabler should return true')
+
+if_is_not_disabled = false
+if is_variable('d6')
+    if_is_not_disabled = true
+else
+    if_is_not_disabled = true
+endif
+assert(if_is_not_disabled, 'Disabler in is_variable should not skip blocks')
+
+get_d = get_variable('d6')
+assert(is_disabler(get_d), 'get_variable should yield a disabler')
+
+get_fallback_d = get_variable('nonexistant', disabler())
+assert(is_disabler(get_fallback_d), 'get_variable fallback should yield a disabler')
+
+var_true = true
+get_no_fallback_d = get_variable('var_true', disabler())
+assert(not is_disabler(get_no_fallback_d), 'get_variable should not fallback to disabler')
+assert(get_no_fallback_d, 'get_variable should yield true')
+
+assert(is_disabler(get_variable(disabler())), 'get_variable should yield a disabler')
+assert(is_disabler(get_variable(disabler(), var_true)), 'get_variable should yield a disabler')
 
 if_is_disabled = true
 if disabler()

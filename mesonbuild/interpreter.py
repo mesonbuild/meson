@@ -4661,6 +4661,8 @@ This will become a hard error in the future.''', location=self.current_node)
         if len(args) < 1 or len(args) > 2:
             raise InvalidCode('Get_variable takes one or two arguments.')
         varname = args[0]
+        if isinstance(varname, Disabler):
+            return varname
         if not isinstance(varname, str):
             raise InterpreterException('First argument must be a string.')
         try:
