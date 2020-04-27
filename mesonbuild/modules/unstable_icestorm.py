@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from .. import mesonlib
+from ..mesonlib import MachineChoice
 from ..interpreterbase import flatten
 from ..interpreterbase import FeatureNew
 
@@ -27,11 +28,11 @@ class IceStormModule(ExtensionModule):
         self.yosys_bin = None
 
     def detect_binaries(self, interpreter):
-        self.yosys_bin = interpreter.find_program_impl(['yosys'])
-        self.arachne_bin = interpreter.find_program_impl(['arachne-pnr'])
-        self.icepack_bin = interpreter.find_program_impl(['icepack'])
-        self.iceprog_bin = interpreter.find_program_impl(['iceprog'])
-        self.icetime_bin = interpreter.find_program_impl(['icetime'])
+        self.yosys_bin = interpreter.find_program_impl(['yosys'], MachineChoice.BUILD)
+        self.arachne_bin = interpreter.find_program_impl(['arachne-pnr'], MachineChoice.BUILD)
+        self.icepack_bin = interpreter.find_program_impl(['icepack'], MachineChoice.BUILD)
+        self.iceprog_bin = interpreter.find_program_impl(['iceprog'], MachineChoice.BUILD)
+        self.icetime_bin = interpreter.find_program_impl(['icetime'], MachineChoice.BUILD)
 
     def project(self, interpreter, state, args, kwargs):
         if not self.yosys_bin:

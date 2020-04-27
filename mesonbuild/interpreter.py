@@ -2111,7 +2111,8 @@ class MesonMain(InterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @permittedKwargs({})
+    @FeatureNewKwargs('meson.override_find_program', '0.55.0', ['native'])
+    @permittedKwargs({'native'})
     def override_find_program_method(self, args, kwargs):
         if len(args) != 2:
             raise InterpreterException('Override needs two arguments')
@@ -2128,7 +2129,16 @@ class MesonMain(InterpreterObject):
             exe = OverrideProgram(abspath)
         if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
-        self.interpreter.add_find_program_override(name, exe)
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        if (self.build.environment.is_cross_build() and
+                for_machine is not exe.for_machine):
+            m = 'Cannot override executable named {} for {} machine with executable for {} machine'
+            raise InterpreterException(m.format(
+                name,
+                for_machine.get_lower_case_name(),
+                exe.for_machine.get_lower_case_name(),
+            ))
+        self.interpreter.add_find_program_override(name, exe, for_machine)
 
     @FeatureNew('meson.override_dependency', '0.54.0')
     @permittedKwargs({'native'})
@@ -2150,6 +2160,14 @@ class MesonMain(InterpreterObject):
             m = 'Tried to override dependency {!r} which has already been resolved or overridden at {}'
             location = mlog.get_error_location_string(override.node.filename, override.node.lineno)
             raise InterpreterException(m.format(name, location))
+        if (self.build.environment.is_cross_build() and
+                for_machine is not dep.for_machine):
+            m = 'Cannot override dependency named {} for {} machine with dependency for {} machine'
+            raise InterpreterException(m.format(
+                name,
+                for_machine.get_lower_case_name(),
+                dep.for_machine.get_lower_case_name(),
+            ))
         self.build.dependency_overrides[for_machine][identifier] = \
             build.DependencyOverride(dep, self.interpreter.current_node)
 
@@ -2618,6 +2636,7 @@ class Interpreter(InterpreterBase):
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
+    @FeatureNewKwargs('declare_dependency', '0.55.0', ['native'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
@@ -2633,6 +2652,7 @@ class Interpreter(InterpreterBase):
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
         variables = kwargs.get('variables', {})
+        for_machine = self.machine_from_native_kwarg(kwargs)
         if not isinstance(variables, dict):
             raise InterpreterException('variables must be a dict.')
         if not all(isinstance(v, str) for v in variables.values()):
@@ -2651,7 +2671,7 @@ class Interpreter(InterpreterBase):
             if isinstance(l, dependencies.Dependency):
                 raise InterpreterException('''Entries in "link_with" may only be self-built targets,
 external dependencies (including libraries) must go to "dependencies".''')
-        dep = dependencies.InternalDependency(version, incs, compile_args,
+        dep = dependencies.InternalDependency(version, for_machine, incs, compile_args,
                                               link_args, libs, libs_whole, sources, final_deps,
                                               variables)
         return DependencyHolder(dep, self.subproject)
@@ -3302,7 +3322,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return ExternalProgramHolder(prog, self.subproject)
         return None
 
-    def program_from_system(self, args, search_dirs, silent=False):
+    def program_from_system(self, args, search_dirs, for_machine: MachineChoice, silent=False):
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -3323,43 +3343,44 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 raise InvalidArguments('find_program only accepts strings and '
                                        'files, not {!r}'.format(exename))
-            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
+            extprog = dependencies.ExternalProgram(exename, for_machine=for_machine,
+                                                   search_dir=search_dir,
                                                    extra_search_dirs=extra_search_dirs,
                                                    silent=silent)
             progobj = ExternalProgramHolder(extprog, self.subproject)
             if progobj.found():
                 return progobj
 
-    def program_from_overrides(self, command_names, extra_info):
+    def program_from_overrides(self, for_machine: MachineChoice, command_names, extra_info):
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
+            if name in self.build.find_overrides[for_machine]:
+                exe = self.build.find_overrides[for_machine][name]
                 extra_info.append(mlog.blue('(overriden)'))
                 return ExternalProgramHolder(exe, self.subproject, self.backend)
         return None
 
-    def store_name_lookups(self, command_names):
+    def store_name_lookups(self, for_machine: MachineChoice, command_names):
         for name in command_names:
             if isinstance(name, str):
-                self.build.searched_programs.add(name)
+                self.build.searched_programs[for_machine].add(name)
 
-    def add_find_program_override(self, name, exe):
-        if name in self.build.searched_programs:
+    def add_find_program_override(self, name, exe, for_machine: MachineChoice):
+        if name in self.build.searched_programs[for_machine]:
             raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
                                        % name)
-        if name in self.build.find_overrides:
+        if name in self.build.find_overrides[for_machine]:
             raise InterpreterException('Tried to override executable "%s" which has already been overridden.'
                                        % name)
-        self.build.find_overrides[name] = exe
+        self.build.find_overrides[for_machine][name] = exe
 
     def notfound_program(self, args):
         return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
+    def find_program_impl(self, args, for_machine: MachineChoice,
                           required=True, silent=True, wanted='', search_dirs=None,
                           version_func=None):
         args = mesonlib.listify(args)
@@ -3398,7 +3419,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return progobj
 
     def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
-        progobj = self.program_from_overrides(args, extra_info)
+        progobj = self.program_from_overrides(for_machine, args, extra_info)
         if progobj:
             return progobj
 
@@ -3425,7 +3446,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                  mlog.bold(' '.join(args)))
         sp_kwargs = { 'required': required }
         self.do_subproject(fallback, 'meson', sp_kwargs)
-        return self.program_from_overrides(args, extra_info)
+        return self.program_from_overrides(for_machine, args, extra_info)
 
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
@@ -3479,7 +3500,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                          'found', mlog.normal_cyan(found_vers), 'but need:',
                          mlog.bold(', '.join(["'{}'".format(e) for e in wanted_vers])),
                          *info)
-                return identifier, NotFoundDependency(self.environment)
+                return identifier, NotFoundDependency(self.environment, for_machine)
         else:
             info = [mlog.blue('(cached)')]
             cached_dep = self.coredata.deps[for_machine].get(identifier)
@@ -3505,8 +3526,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             return False
         return True
 
-    def notfound_dependency(self):
-        return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
+    def notfound_dependency(self, for_machine):
+        return DependencyHolder(
+            NotFoundDependency(self.environment, for_machine),
+            self.subproject)
 
     def verify_fallback_consistency(self, dirname, varname, cached_dep):
         subi = self.subprojects.get(dirname)
@@ -3521,7 +3544,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         required = kwargs.get('required', True)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         subproj_path = os.path.join(self.subproject_dir, dirname)
-        dep = self.notfound_dependency()
+        dep = self.notfound_dependency(MachineChoice.HOST) # TODO native: true subprojects
         try:
             subproject = self.subprojects[dirname]
             _, cached_dep = self._find_cached_dep(name, display_name, kwargs)
@@ -3569,7 +3592,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                      mlog.bold(subproj_path), 'found:', mlog.red('NO'),
                      'found', mlog.normal_cyan(found), 'but need:',
                      mlog.bold(', '.join(["'{}'".format(e) for e in wanted])))
-            return self.notfound_dependency()
+            return self.notfound_dependency(MachineChoice.HOST)
 
         found = mlog.normal_cyan(found) if found else None
         mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
@@ -3628,9 +3651,10 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def dependency_impl(self, name, display_name, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        for_machine = self.machine_from_native_kwarg(kwargs)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.notfound_dependency()
+            return self.notfound_dependency(for_machine)
 
         has_fallback = 'fallback' in kwargs
         if not has_fallback and name:
@@ -3689,14 +3713,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             # cannot cache them. They must always be evaluated else
             # we won't actually read all the build files.
             if dep.found():
-                for_machine = self.machine_from_native_kwarg(kwargs)
                 self.coredata.deps[for_machine].put(identifier, dep)
                 return DependencyHolder(dep, self.subproject)
 
         if has_fallback:
             return self.dependency_fallback(name, display_name, kwargs)
 
-        return self.notfound_dependency()
+        return self.notfound_dependency(for_machine)
 
     @FeatureNew('disabler', '0.44.0')
     @noKwargs
@@ -3747,7 +3770,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             if required:
                 m = 'Dependency {!r} not found and fallback is disabled'
                 raise DependencyException(m.format(display_name))
-            return self.notfound_dependency()
+            for_machine = self.machine_from_native_kwarg(kwargs)
+            return self.notfound_dependency(for_machine)
         elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback dependencies is forced.')

@@ -23,7 +23,8 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, version_compare_many
+    MachineChoice, MesonException, Popen_safe, extract_as_list,
+    version_compare_many,
 )
 from ..environment import detect_cpu_family
 
@@ -260,9 +261,11 @@ class QtBaseDependency(ExternalDependency):
                     care = err
                 return care.split(' ')[-1].replace(')', '')
 
-            p = interp_obj.find_program_impl([b], required=required,
-                                             version_func=get_version,
-                                             wanted=wanted).held_object
+            p = interp_obj.find_program_impl(
+                [b], for_machine=MachineChoice.BUILD,
+                required=required, version_func=get_version,
+                wanted=wanted
+            ).held_object
             if p.found():
                 found[name] = p
 
