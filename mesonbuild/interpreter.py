@@ -3651,7 +3651,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 has_fallback = True
 
         if 'default_options' in kwargs and not has_fallback:
-            mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
+            mlog.warning('The "default_options" keyword argument does nothing without a "fallback" keyword argument.',
                          location=self.current_node)
 
         # writing just "dependency('')" is an error, because it can only fail
