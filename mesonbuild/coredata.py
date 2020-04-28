@@ -20,7 +20,8 @@ from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix, split_args
+    default_libdir, default_libexecdir, default_prefix, split_args,
+    stringlistify
 )
 from .wrap import WrapMode
 import ast
@@ -1021,15 +1022,21 @@ def register_builtin_arguments(parser):
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def create_options_dict(options):
-    result = OrderedDict()
-    for o in options:
-        try:
-            (key, value) = o.split('=', 1)
-        except ValueError:
-            raise MesonException('Option {!r} must have a value separated by equals sign.'.format(o))
-        result[key] = value
-    return result
+def create_options_dict(options: T.Union[str, T.Dict[str, str], T.List[str]]) -> 'T.OrderedDict[str, str]':
+    if isinstance(options, dict):
+        if not all(isinstance(v, str) for v in options.values()):
+            raise MesonException('All values in default_options dict must be strings')
+        return OrderedDict(options)
+    elif isinstance(options, (str, list)):
+        result = OrderedDict()  # type: T.OrderedDict[str, str]
+        for o in stringlistify(options):
+            try:
+                (key, value) = o.split('=', 1)
+            except ValueError:
+                raise MesonException('Option {!r} must have a value separated by equals sign.'.format(o))
+            result[key] = value
+        return result
+    raise MesonException('Invalid type {!r}, expected dictionary, array, or string.')
 
 def parse_cmd_line_options(args):
     args.cmd_line_options = create_options_dict(args.projectoptions)

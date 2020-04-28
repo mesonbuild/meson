@@ -34,6 +34,7 @@ from .compilers import (
     Compiler, all_languages, is_object, clink_langs, sort_clink, lang_suffixes,
     is_known_suffix
 )
+from .coredata import create_options_dict
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
@@ -455,7 +456,7 @@ a hard error in the future.'''.format(name))
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
 
-        option_overrides = self.parse_overrides(kwargs)
+        option_overrides = create_options_dict(kwargs.get('override_options', []))
 
         for k, v in option_overrides.items():
             if '_' in k:
@@ -464,18 +465,6 @@ a hard error in the future.'''.format(name))
                    self.option_overrides_compiler[lang][k2] = v
                    continue
             self.option_overrides_base[k] = v
-
-    def parse_overrides(self, kwargs) -> dict:
-        result = {}
-        overrides = stringlistify(kwargs.get('override_options', []))
-        for o in overrides:
-            if '=' not in o:
-                raise InvalidArguments('Overrides must be of form "key=value"')
-            k, v = o.split('=', 1)
-            k = k.strip()
-            v = v.strip()
-            result[k] = v
-        return result
 
     def is_linkable_target(self) -> bool:
         return False

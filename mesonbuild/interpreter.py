@@ -2370,7 +2370,6 @@ class Interpreter(InterpreterBase):
             self.default_project_options = default_project_options.copy()
         else:
             self.default_project_options = {}
-        self.project_default_options = {}
         self.build_func_dict()
         # build_def_files needs to be defined before parse_project is called
         self.build_def_files = [os.path.join(self.subdir, environment.build_filename)]
@@ -2773,6 +2772,11 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_option(self, nodes, args, kwargs):
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
+    def _handle_default_options(self, options: T.Union[str, T.List[str], T.Dict[str, str]]) -> 'T.OrderedDict[str, str]':
+        if isinstance(options, dict):
+            FeatureNew.single_use('Dictionary argument to default_options', '0.56.0', self.subproject)
+        return coredata.create_options_dict(options)
+
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['subproject'])
     @stringArgs
@@ -2794,8 +2798,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Subproject', mlog.bold(dirname), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.disabled_subproject(dirname, disabled_feature=feature)
 
-        default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        default_options = coredata.create_options_dict(default_options)
+        default_options = self._handle_default_options(kwargs.get('default_options', []))
 
         if dirname == '':
             raise InterpreterException('Subproject dir name must not be empty.')
@@ -3069,8 +3072,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # values previously set from command line. That means that changing
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
-        self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        self.project_default_options = coredata.create_options_dict(self.project_default_options)
+        self.project_default_options = self._handle_default_options(kwargs.get('default_options', []))
         if self.environment.first_invocation:
             default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)
