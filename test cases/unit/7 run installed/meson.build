@@ -1,5 +1,5 @@
 project('foo', 'c',
-  default_options : 'libdir=lib')
+  default_options : ['libdir=lib'])
 
 subdir('foo')
 
