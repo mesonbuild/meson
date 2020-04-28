@@ -3761,7 +3761,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     def add_test(self, node, args, kwargs, is_base_test):
         if len(args) != 2:
-            raise InterpreterException('test expects 2 arguments, {} given'.format(len(args))
+            raise InterpreterException('test expects 2 arguments, {} given'.format(len(args)))
         if not isinstance(args[0], str):
             raise InterpreterException('First argument of test must be a string.')
         exe = args[1]
