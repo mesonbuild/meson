@@ -1113,9 +1113,21 @@ def detect_system_compiler(options):
 def print_tool_versions():
     tools = [
         {
+            'tool': 'ninja',
+            'args': ['--version'],
+            'regex': re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
+            'match_group': 1,
+        },
+        {
             'tool': 'cmake',
             'args': ['--version'],
             'regex': re.compile(r'^cmake version ([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
+            'match_group': 1,
+        },
+        {
+            'tool': 'hotdoc',
+            'args': ['--version'],
+            'regex': re.compile(r'^([0-9]+(\.[0-9]+)*(-[a-z0-9]+)?)$'),
             'match_group': 1,
         },
     ]
