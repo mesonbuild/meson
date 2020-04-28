@@ -17,7 +17,7 @@ pkgs=(
   libxml2-devel libxslt-devel libyaml-devel glib2-devel json-glib-devel
   boost-devel libboost_date_time-devel libboost_filesystem-devel libboost_locale-devel libboost_system-devel
   libboost_test-devel libboost_log-devel libboost_regex-devel
-  libboost_python-py3-1_71_0-devel libboost_regex-devel
+  libboost_python3-devel libboost_regex-devel
 )
 
 # Sys update
