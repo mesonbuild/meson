@@ -124,3 +124,6 @@ class ClangCompiler(GnuLikeCompiler):
         # Clang only warns about unknown or ignored attributes, so force an
         # error.
         return ['-Werror=attributes']
+
+    def get_coverage_link_args(self) -> T.List[str]:
+        return ['--coverage']
