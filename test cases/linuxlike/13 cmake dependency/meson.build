@@ -6,6 +6,9 @@ if not find_program('cmake', required: false).found()
   error('MESON_SKIP_TEST cmake binary not available.')
 endif
 
+# CMake version
+cm_vers = run_command(find_program('./cmVers.sh')).stdout().strip()
+
 # Zlib is probably on all dev machines.
 
 dep = dependency('ZLIB', version : '>=1.2', method : 'cmake')
@@ -48,14 +51,16 @@ depm1 = dependency('SomethingLikeZLIB', required : true, components : 'required_
 depm2 = dependency('SomethingLikeZLIB', required : true, components : 'required_comp',   method : 'cmake', cmake_module_path : ['cmake'])
 depm3 = dependency('SomethingLikeZLIB', required : true, components : ['required_comp'], cmake_module_path : 'cmake')
 
-# Test some edge cases with spaces, etc.
+# Test some edge cases with spaces, etc. (but only for CMake >= 3.15)
 
-testDep1 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules: 'mesonTestLibDefs')
-testDep2 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules : ['MesonTest::TestLibDefs'])
-testFlagSet1 = executable('testFlagSet1', ['testFlagSet.c'], dependencies: [testDep1])
-testFlagSet2 = executable('testFlagSet2', ['testFlagSet.c'], dependencies: [testDep2])
-test('testFlagSetTest1', testFlagSet1)
-test('testFlagSetTest2', testFlagSet2)
+if cm_vers.version_compare('>=3.15')
+  testDep1 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules: 'mesonTestLibDefs')
+  testDep2 = dependency('ImportedTarget', required : true, method : 'cmake', cmake_module_path : 'cmake', modules : ['MesonTest::TestLibDefs'])
+  testFlagSet1 = executable('testFlagSet1', ['testFlagSet.c'], dependencies: [testDep1])
+  testFlagSet2 = executable('testFlagSet2', ['testFlagSet.c'], dependencies: [testDep2])
+  test('testFlagSetTest1', testFlagSet1)
+  test('testFlagSetTest2', testFlagSet2)
+endif
 
 # Try to compile a test that takes a dep and an include_directories
 

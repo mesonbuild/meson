@@ -1,0 +1,8 @@
+{
+  "base_image": "ubuntu:bionic",
+  "env": {
+    "CI": "1",
+    "SKIP_SCIENTIFIC": "1",
+    "DC": "gdc"
+  }
+}
