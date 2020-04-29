@@ -1735,6 +1735,8 @@ the following methods.
   0.49.0, the function only accepted a single argument. Since 0.54.0
   the `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` environment variables
   are set when dist scripts are run.
+  *(Since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
+  as well as strings.
 
 - `add_install_script(script_name, arg1, arg2, ...)` causes the script
   given as an argument to be run during the install step, this script
@@ -1742,6 +1744,9 @@ the following methods.
   `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`,
   `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set.
   All positional arguments are passed as parameters.
+  *(Since 0.55.0)* The output of `configure_file`, `files`, `find_program`,
+  `custom_target`, indexes of `custom_target`, `executable`, `library`, and
+  other built targets as well as strings.
 
   *(added 0.54)* If `meson install` is called with the `--quiet` option, the
   environment variable `MESON_INSTALL_QUIET` will be set.
@@ -1772,6 +1777,8 @@ the following methods.
   executable given as an argument after all project files have been
   generated. This script will have the environment variables
   `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT` set.
+  *(Since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
+  as well as strings.
 
 - `backend()` *(added 0.37.0)* returns a string representing the
   current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, `vs2019`,
