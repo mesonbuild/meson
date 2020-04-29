@@ -1920,7 +1920,7 @@ class MesonMain(InterpreterObject):
                 str, mesonlib.File, CustomTargetHolder,
                 CustomTargetIndexHolder, ConfigureFileHolder,
                 ExternalProgramHolder, ExecutableHolder,
-            ]]) -> T.List[str]:
+            ]], allow_built: bool = False) -> T.List[str]:
         script_args = []  # T.List[str]
         new = False
         for a in args:
@@ -1931,6 +1931,8 @@ class MesonMain(InterpreterObject):
                 new = True
                 script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+                if not allow_built:
+                    raise InterpreterException('Arguments to {} cannot be built'.format(name))
                 new = True
                 script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
@@ -1961,7 +1963,7 @@ class MesonMain(InterpreterObject):
     def add_install_script_method(self, args: 'T.Tuple[T.Union[str, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
-        script_args = self._process_script_args('add_install_script', args[1:])
+        script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.install_scripts.append(script)
 
@@ -1969,8 +1971,8 @@ class MesonMain(InterpreterObject):
     def add_postconf_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_postconf_script takes one or more arguments')
-        check_stringlist(args, 'add_postconf_script arguments must be strings')
-        script = self._find_source_script(args[0], args[1:])
+        script_args = self._process_script_args('add_postconf_script', args[1:], allow_built=True)
+        script = self._find_source_script(args[0], script_args)
         self.build.postconf_scripts.append(script)
 
     @permittedKwargs(set())
@@ -1979,10 +1981,10 @@ class MesonMain(InterpreterObject):
             raise InterpreterException('add_dist_script takes one or more arguments')
         if len(args) > 1:
             FeatureNew('Calling "add_dist_script" with multiple arguments', '0.49.0').use(self.interpreter.subproject)
-        check_stringlist(args, 'add_dist_script argumetn must be a string')
         if self.interpreter.subproject != '':
             raise InterpreterException('add_dist_script may not be used in a subproject.')
-        script = self._find_source_script(args[0], args[1:])
+        script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)
+        script = self._find_source_script(args[0], script_args)
         self.build.dist_scripts.append(script)
 
     @noPosargs
