@@ -819,7 +819,7 @@ The result of this is undefined and will become a hard error in a future Meson r
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[TYPE_var]:
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
-        if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'is_disabler'}:
+        if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'is_disabler', 'vcs_tag'}:
             return Disabler()
         if func_name in self.funcs:
             func = self.funcs[func_name]

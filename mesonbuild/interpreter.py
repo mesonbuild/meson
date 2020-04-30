@@ -26,7 +26,7 @@ from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
 from .interpreterbase import InterpreterBase
-from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
+from .interpreterbase import is_arg_disabled, check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
@@ -3627,22 +3627,36 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @permittedKwargs(permitted_kwargs['vcs_tag'])
     def func_vcs_tag(self, node, args, kwargs):
+        for k in list(kwargs):
+            v = kwargs[k]
+            if is_arg_disabled(v):
+                if k == 'command' and not is_arg_disabled(kwargs.get('fallback', Disabler())):
+                    kwargs['command'] = Disabler() # Use fallback when command is a disabler
+                elif k == 'fallback' and not is_arg_disabled(kwargs.get('command', None)):
+                    del kwargs['fallback'] # Ignore disabler fallback when command is not a disabler
+                else:
+                    return Disabler()
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
             FeatureNew('Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
         fallback = kwargs.pop('fallback', self.project_version)
+        if fallback == True:
+            fallback = self.project_version
         if not isinstance(fallback, str):
-            raise InterpreterException('Keyword argument fallback must be a string.')
+            raise InterpreterException('Keyword argument fallback must be a string or true.')
         replace_string = kwargs.pop('replace_string', '@VCS_TAG@')
         regex_selector = '(.*)' # default regex selector for custom command: use complete output
         vcs_cmd = kwargs.get('command', None)
-        if vcs_cmd and not isinstance(vcs_cmd, list):
+        if vcs_cmd and not isinstance(vcs_cmd, list) and not isinstance(vcs_cmd, Disabler):
             vcs_cmd = [vcs_cmd]
         source_dir = os.path.normpath(os.path.join(self.environment.get_source_dir(), self.subdir))
         if vcs_cmd:
-            # Is the command an executable in path or maybe a script in the source tree?
-            vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
+            if isinstance(vcs_cmd, Disabler):
+                vcs_cmd = [' '] # executing this cmd will fail in vcstagger.py and force to use the fallback string
+            else:
+                # Is the command an executable in path or maybe a script in the source tree?
+                vcs_cmd[0] = shutil.which(vcs_cmd[0]) or os.path.join(source_dir, vcs_cmd[0])
         else:
             vcs = mesonlib.detect_vcs(source_dir)
             if vcs:
