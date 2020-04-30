@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re
+from collections import OrderedDict
+from functools import lru_cache
+import json
+import os
+import pickle
+import re
+import shlex
+import subprocess
 import textwrap
+import typing as T
+
 from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-import json
-import subprocess
-from ..mesonlib import MachineChoice, MesonException, OrderedSet, OptionOverrideProxy
-from ..mesonlib import classify_unity_sources, unholder
-from ..mesonlib import File
 from ..compilers import CompilerArgs, VisualStudioLikeCompiler
 from ..interpreter import Interpreter
-from collections import OrderedDict
-import shlex
-from functools import lru_cache
-import typing as T
+from ..mesonlib import (
+    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
+    classify_unity_sources, unholder
+)
 
 
 class CleanTrees:
