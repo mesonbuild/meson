@@ -544,9 +544,7 @@ def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> No
     jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname: str) -> bool:
-    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
-        return True
-    return False
+    return fname.endswith('.exe') and not (is_windows() or is_cygwin())
 
 def load_benchmarks(build_dir: str) -> T.List['TestSerialisation']:
     datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
