@@ -93,7 +93,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
-    parser.add_argument('-C', default='.', dest='wd',
+    parser.add_argument('-C', default='.', dest='wd', type=os.path.abspath,
                         help='directory to cd into before running')
     parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                         help='Only run tests belonging to the given suite.')
@@ -1160,7 +1160,6 @@ def run(options: argparse.Namespace) -> int:
         if not exe.found():
             print('Could not find requested program: {!r}'.format(check_bin))
             return 1
-    options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:
         if not rebuild_all(options.wd):
