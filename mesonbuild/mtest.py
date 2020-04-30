@@ -43,6 +43,7 @@ from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args
+from .backend.backends import TestProtocol
 
 if T.TYPE_CHECKING:
     from .backend.backends import TestSerialisation
@@ -631,7 +632,7 @@ class SingleTestRunner:
         if not self.options.verbose:
             stdout = tempfile.TemporaryFile("wb+")
             stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
-        if self.test.protocol == 'tap' and stderr is stdout:
+        if self.test.protocol is TestProtocol.TAP and stderr is stdout:
             stdout = tempfile.TemporaryFile("wb+")
 
         # Let gdb handle ^C instead of us
@@ -741,7 +742,7 @@ class SingleTestRunner:
         if timed_out:
             return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
         else:
-            if self.test.protocol == 'exitcode':
+            if self.test.protocol is TestProtocol.EXITCODE:
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:

@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+import enum
 import json
 import os
 import pickle
@@ -28,11 +29,32 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..compilers import CompilerArgs, VisualStudioLikeCompiler
-from ..interpreter import Interpreter
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder
 )
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
+
+
+class TestProtocol(enum.Enum):
+
+    EXITCODE = 0
+    TAP = 1
+
+    @classmethod
+    def from_str(cls, string: str) -> 'TestProtocol':
+        if string == 'exitcode':
+            return cls.EXITCODE
+        elif string == 'tap':
+            return cls.TAP
+        raise MesonException('unknown test format {}'.format(string))
+
+    def __str__(self) -> str:
+        if self is self.EXITCODE:
+            return 'exitcode'
+        return 'tap'
 
 
 class CleanTrees:
@@ -91,7 +113,7 @@ class TestSerialisation:
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
-                 extra_paths: T.List[str], protocol: str, priority: int):
+                 extra_paths: T.List[str], protocol: TestProtocol, priority: int):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -111,7 +133,7 @@ class TestSerialisation:
         self.priority = priority
         self.needs_exe_wrapper = needs_exe_wrapper
 
-def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional[Interpreter] = None) -> T.Optional['Backend']:
+def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
     if backend == 'ninja':
         from . import ninjabackend
         return ninjabackend.NinjaBackend(build, interpreter)
@@ -138,7 +160,7 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, i
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:

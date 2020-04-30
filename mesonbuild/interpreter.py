@@ -33,6 +33,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
+from .backend.backends import TestProtocol
 
 from pathlib import Path, PurePath
 import os
@@ -979,7 +980,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.timeout = timeout
         self.workdir = workdir
-        self.protocol = protocol
+        self.protocol = TestProtocol.from_str(protocol)
         self.priority = priority
 
     def get_exe(self):
