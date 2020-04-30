@@ -109,7 +109,7 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
-                 is_cross_built: bool, exe_wrapper: T.Optional[build.Executable],
+                 is_cross_built: bool, exe_wrapper: T.Optional[dependencies.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
