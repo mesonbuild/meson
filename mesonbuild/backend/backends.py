@@ -42,6 +42,7 @@ class TestProtocol(enum.Enum):
 
     EXITCODE = 0
     TAP = 1
+    GTEST = 2
 
     @classmethod
     def from_str(cls, string: str) -> 'TestProtocol':
@@ -49,11 +50,15 @@ class TestProtocol(enum.Enum):
             return cls.EXITCODE
         elif string == 'tap':
             return cls.TAP
+        elif string == 'gtest':
+            return cls.GTEST
         raise MesonException('unknown test format {}'.format(string))
 
     def __str__(self) -> str:
         if self is self.EXITCODE:
             return 'exitcode'
+        elif self is self.GTEST:
+            return 'gtest'
         return 'tap'
 
 

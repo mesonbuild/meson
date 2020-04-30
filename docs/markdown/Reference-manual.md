@@ -1662,11 +1662,14 @@ test(..., env: nomalloc, ...)
   before test is executed even if they have `build_by_default : false`.
   Since 0.46.0
 
-- `protocol` specifies how the test results are parsed and can be one
-  of `exitcode` (the executable's exit code is used by the test harness
-  to record the outcome of the test) or `tap` ([Test Anything
-  Protocol](https://www.testanything.org/)). For more on the Meson test
-  harness protocol read [Unit Tests](Unit-tests.md). Since 0.50.0
+- `protocol` *(Since 0.50.0)* specifies how the test results are parsed and can
+  be one of `exitcode`, `tap`, or `gtest`. For more information about test
+  harness protocol read [Unit Tests](Unit-tests.md). The following values are
+  accepted:
+  - `exitcode`: the executable's exit code is used by the test harness
+    to record the outcome of the test)
+  - `tap` ([Test Anything Protocol](https://www.testanything.org/))
+  - `gtest`. *(Since 0.55.0)* for Google Tests.
 
 - `priority` specifies the priority of a test. Tests with a
   higher priority are *started* before tests with a lower priority.

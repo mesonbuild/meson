@@ -94,7 +94,10 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         help='List available tests.')
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
-    parser.add_argument('-C', default='.', dest='wd', type=os.path.abspath,
+    parser.add_argument('-C', default='.', dest='wd',
+                        # https://github.com/python/typeshed/issues/3107
+                        # https://github.com/python/mypy/issues/7177
+                        type=os.path.abspath,  # type: ignore
                         help='directory to cd into before running')
     parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                         help='Only run tests belonging to the given suite.')
@@ -349,6 +352,19 @@ class JunitBuilder:
 
     def log(self, name: str, test: 'TestRun') -> None:
         """Log a single test case."""
+        if test.junit is not None:
+            for suite in test.junit.findall('.//testsuite'):
+                # Assume that we don't need to merge anything here...
+                suite.attrib['name'] = '{}.{}.{}'.format(test.project, name, suite.attrib['name'])
+
+                # GTest can inject invalid attributes
+                for case in suite.findall('.//testcase[@result]'):
+                    del case.attrib['result']
+                for case in suite.findall('.//testcase[@timestamp]'):
+                    del case.attrib['timestamp']
+                self.root.append(suite)
+            return
+
         # In this case we have a test binary with multiple results.
         # We want to record this so that each result is recorded
         # separately
@@ -430,10 +446,24 @@ class JunitBuilder:
 class TestRun:
 
     @classmethod
+    def make_gtest(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
+                   returncode: int, starttime: float, duration: float,
+                   stdo: T.Optional[str], stde: T.Optional[str],
+                   cmd: T.Optional[T.List[str]]) -> 'TestRun':
+        filename = '{}.xml'.format(test.name)
+        if test.workdir:
+            filename = os.path.join(test.workdir, filename)
+        tree = et.parse(filename)
+
+        return cls.make_exitcode(
+            test, test_env, returncode, starttime, duration, stdo, stde, cmd,
+            junit=tree)
+
+    @classmethod
     def make_exitcode(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                       returncode: int, starttime: float, duration: float,
                       stdo: T.Optional[str], stde: T.Optional[str],
-                      cmd: T.Optional[T.List[str]]) -> 'TestRun':
+                      cmd: T.Optional[T.List[str]], **kwargs) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
@@ -442,15 +472,15 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd, **kwargs)
 
     @classmethod
     def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
-        res = None    # T.Optional[TestResult]
-        results = []  # T.List[TestResult]
+        res = None    # type: T.Optional[TestResult]
+        results = []  # type: T.List[TestResult]
         failed = False
 
         for i in TAPParser(io.StringIO(stdo)).parse():
@@ -486,7 +516,7 @@ class TestRun:
                  res: TestResult, results: T.List[TestResult], returncode:
                  int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
-                 cmd: T.Optional[T.List[str]]):
+                 cmd: T.Optional[T.List[str]], *, junit: T.Optional[et.ElementTree] = None):
         assert isinstance(res, TestResult)
         self.res = res
         self.results = results  # May be an empty list
@@ -499,6 +529,7 @@ class TestRun:
         self.env = test_env
         self.should_fail = test.should_fail
         self.project = test.project_name
+        self.junit = junit
 
     def get_log(self) -> str:
         res = '--- command ---\n'
@@ -652,7 +683,14 @@ class SingleTestRunner:
                 # errors avoid not being able to use the terminal.
                 os.setsid()  # type: ignore
 
-        p = subprocess.Popen(cmd,
+        extra_cmd = []  # type: T.List[str]
+        if self.test.protocol is TestProtocol.GTEST:
+            gtestname = '{}.xml'.format(self.test.name)
+            if self.test.workdir:
+                gtestname = '{}:{}'.format(self.test.workdir, self.test.name)
+            extra_cmd.append('--gtest_output=xml:{}'.format(gtestname))
+
+        p = subprocess.Popen(cmd + extra_cmd,
                              stdout=stdout,
                              stderr=stderr,
                              env=self.env,
@@ -744,6 +782,8 @@ class SingleTestRunner:
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+            elif self.test.protocol is TestProtocol.GTEST:
+                return TestRun.make_gtest(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
