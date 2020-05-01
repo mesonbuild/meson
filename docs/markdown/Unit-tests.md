@@ -235,3 +235,28 @@ If `meson test` does not work for you, you likely have a old version of
 Meson. In that case you should call `mesontest` instead. If `mesontest`
 doesn't work either you have a very old version prior to 0.37.0 and should
 upgrade.
+
+## Test outputs
+
+Meson will write several different files with detailed results of running
+tests. These will be written into $builddir/meson-logs/
+
+### testlog.json
+
+This is not a proper json file, but a file containing one valid json object
+per line. This is file is designed so each line is streamed out as each test
+is run, so it can be read as a stream while the test harness is running
+
+### testlog.junit.xml
+
+This is a valid JUnit XML description of all tests run. It is not streamed
+out, and is written only once all tests complete running.
+
+When tests use the `tap` protocol each test will be recorded as a testsuite
+container, with each case named by the number of the result.
+
+When tests use the `gtest` protocol meson will inject arguments to the test
+to generate it's own JUnit XML, which meson will include as part of this XML
+file.
+
+*New in 0.55.0*
