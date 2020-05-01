@@ -850,7 +850,7 @@ class Backend:
             m = regex.search(arg)
             while m is not None:
                 index = int(m.group(1))
-                src = '@OUTPUT%d@' % index
+                src = '@OUTPUT{}@'.format(index)
                 arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
                 m = regex.search(arg)
             newargs.append(arg)
