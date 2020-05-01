@@ -1377,11 +1377,11 @@ int dummy;
 
     @classmethod
     def get_compiler_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '{}_COMPILER{}'.format((lang, cls.get_rule_suffix(for_machine))
+        return '{}_COMPILER{}'.format(lang, cls.get_rule_suffix(for_machine))
 
     @classmethod
     def get_pch_rule_name(cls, lang: str, for_machine: MachineChoice) -> str:
-        return '{}_PCH{}'.format((lang, cls.get_rule_suffix(for_machine))
+        return '{}_PCH{}'.format(lang, cls.get_rule_suffix(for_machine))
 
     @classmethod
     def compiler_to_rule_name(cls, compiler: Compiler) -> str:
