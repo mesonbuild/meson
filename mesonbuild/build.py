@@ -82,6 +82,7 @@ buildtarget_kwargs = set([
     'override_options',
     'sources',
     'gnu_symbol_visibility',
+    'link_language',
 ])
 
 known_build_target_kwargs = (
@@ -92,7 +93,7 @@ known_build_target_kwargs = (
     rust_kwargs |
     cs_kwargs)
 
-known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'link_language', 'pie'}
+known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
 known_stlib_kwargs = known_build_target_kwargs | {'pic'}
@@ -1217,11 +1218,7 @@ You probably should put it in link_with instead.''')
 
         See: https://github.com/mesonbuild/meson/issues/1653
         '''
-        langs = []
-
-        # User specified link_language of target (for multi-language targets)
-        if self.link_language:
-            return [self.link_language]
+        langs = [] # type: T.List[str]
 
         # Check if any of the external libraries were written in this language
         for dep in self.external_deps:
@@ -1253,6 +1250,12 @@ You probably should put it in link_with instead.''')
         # Populate list of all compilers, not just those being used to compile
         # sources in this target
         all_compilers = self.environment.coredata.compilers[self.for_machine]
+
+        # If the user set the link_language, just return that.
+        if self.link_language:
+            comp = all_compilers[self.link_language]
+            return comp, comp.language_stdlib_only_link_flags()
+
         # Languages used by dependencies
         dep_langs = self.get_langs_used_by_deps()
         # Pick a compiler based on the language priority-order
