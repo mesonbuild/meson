@@ -589,6 +589,16 @@ because of this limitation you find yourself copying and pasting code
 a lot you may be able to use a [`foreach` loop
 instead](#foreach-statements).
 
+Stability Promises
+--
+
+Meson is very actively developed and continuously improved. There is a
+possibility that future enhancements to the Meson build system will require
+changes to the syntax. Such changes might be the addition of new reserved
+keywords, changing the meaning of existing keywords or additions around the
+basic building blocks like statements and fundamental types. It is planned
+to stabilize the syntax with the 1.0 release.
+
 Grammar
 --
 
