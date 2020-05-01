@@ -637,11 +637,8 @@ class BoostDependency(ExternalDependency):
         return BoostIncludeDir(hfile.parents[1], int(m.group(1)))
 
     def _extra_compile_args(self) -> T.List[str]:
-        args = []  # type: T.List[str]
-        args += ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
-        if not self.static:
-            args += ['-DBOOST_ALL_DYN_LINK']
-        return args
+        # BOOST_ALL_DYN_LINK should not be required with the known defines below
+        return ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
 
 
 # See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
