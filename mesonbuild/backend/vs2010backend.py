@@ -1192,7 +1192,7 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        if (self.buildtype not in ['debug', 'debugoptimized']):
+        if not self.environment.coredata.get_builtin_option('debug'):
             ET.SubElement(link, 'SetChecksum').text = 'true'
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
