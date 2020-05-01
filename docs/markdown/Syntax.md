@@ -588,3 +588,73 @@ FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup
 because of this limitation you find yourself copying and pasting code
 a lot you may be able to use a [`foreach` loop
 instead](#foreach-statements).
+
+Stability Promises
+--
+
+Meson is very actively developed and continuously improved. There is a
+possibility that future enhancements to the Meson build system will require
+changes to the syntax. Such changes might be the addition of new reserved
+keywords, changing the meaning of existing keywords or additions around the
+basic building blocks like statements and fundamental types. It is planned
+to stabilize the syntax with the 1.0 release.
+
+Grammar
+--
+
+This is the full Meson grammar, as it is used to parse Meson build definition files:
+
+```
+additive_expression: multiplicative_expression | (additive_expression additive_operator multiplicative_expression)
+additive_operator: "+" | "-"
+argument_list: positional_arguments ["," keyword_arguments] | keyword_arguments
+array_literal: "[" [expression_list] "]"
+assignment_expression: conditional_expression | (logical_or_expression assignment_operator assignment_expression)
+assignment_operator: "=" | "*=" | "/=" | "%=" | "+=" | "-="
+boolean_literal: "true" | "false"
+build_definition: (NEWLINE | statement)*
+condition: expression
+conditional_expression: logical_or_expression | (logical_or_expression "?" expression ":" assignment_expression
+decimal_literal: DECIMAL_NUMBER
+DECIMAL_NUMBER: /[1-9][0-9]*/
+dictionary_literal: "{" [key_value_list] "}"
+equality_expression: relational_expression | (equality_expression equality_operator relational_expression)
+equality_operator: "==" | "!="
+expression: assignment_expression
+expression_list: expression ("," expression)*
+expression_statememt: expression 
+function_expression: id_expression "(" [argument_list] ")"
+hex_literal: "0x" HEX_NUMBER
+HEX_NUMBER: /[a-fA-F0-9]+/
+id_expression: IDENTIFIER
+IDENTIFIER: /[a-zA-Z_][a-zA-Z_0-9]*/
+identifier_list: id_expression ("," id_expression)*
+integer_literal: decimal_literal | octal_literal | hex_literal
+iteration_statement: "foreach" identifier_list ":" id_expression NEWLINE (statement | jump_statement)* "endforeach"
+jump_statement: ("break" | "continue") NEWLINE
+key_value_item: expression ":" expression
+key_value_list: key_value_item ("," key_value_item)*
+keyword_item: id_expression ":" expression
+keyword_arguments: keyword_item ("," keyword_item)*
+literal: integer_literal | string_literal | boolean_literal | array_literal | dictionary_literal
+logical_and_expression: equality_expression | (logical_and_expression "and" equality_expression)
+logical_or_expression: logical_and_expression | (logical_or_expression "or" logical_and_expression)
+method_expression: postfix_expression "." function_expression
+multiplicative_expression: unary_expression | (multiplicative_expression multiplicative_operator unary_expression)
+multiplicative_operator: "*" | "/" | "%"
+octal_literal: "0o" OCTAL_NUMBER
+OCTAL_NUMBER: /[0-7]+/
+positional_arguments: expression ("," expression)*
+postfix_expression: primary_expression | subscript_expression | function_expression | method_expression
+primary_expression: literal | ("(" expression ")") | id_expression
+relational_expression: additive_expression | (relational_expression relational_operator additive_expression)
+relational_operator: ">" | "<" | ">=" | "<=" | "in" | ("not" "in")
+selection_statement: "if" condition NEWLINE (statement)* ("elif" condition NEWLINE (statement)*)* ["else" (statement)*] "endif"
+statement: (expression_statement | selection_statement | iteration_statement) NEWLINE
+string_literal: ("'" STRING_SIMPLE_VALUE "'") | ("'''" STRING_MULTILINE_VALUE "'''")
+STRING_MULTILINE_VALUE: \.*?(''')\
+STRING_SIMPLE_VALUE: \.*?(?<!\\)(\\\\)*?'\
+subscript_expression: postfix_expression "[" expression "]"
+unary_expression: postfix_expression | (unary_operator unary_expression)
+unary_operator: "not" | "+" | "-"
+```
