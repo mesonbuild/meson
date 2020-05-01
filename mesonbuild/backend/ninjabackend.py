@@ -1574,7 +1574,7 @@ int dummy;
                         or langname == 'rust' \
                         or langname == 'cs':
                     continue
-                rule = '{}_LINKER{}'.format((langname, self.get_rule_suffix(for_machine)))
+                rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
                 args = ['$ARGS'] + compiler.get_linker_output_args('$out') + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
@@ -1645,7 +1645,7 @@ int dummy;
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_fortran_dep_hack(self, crstr):
-        rule = 'FORTRAN_DEP_HACK{}'.format((crstr))
+        rule = 'FORTRAN_DEP_HACK{}'.format(crstr)
         if mesonlib.is_windows():
             cmd = ['cmd', '/C']
         else:
@@ -1860,8 +1860,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         if modname in module_files:
                             raise InvalidArguments(
                                 'Namespace collision: module {} defined in '
-                                'two files {} and {}.' %
-                                (modname, module_files[modname], s))
+                                'two files {} and {}.'.format(modname, module_files[modname], s))
                         module_files[modname] = s
                     else:
                         submodmatch = submodre.match(line)
@@ -1873,8 +1872,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                             if submodname in submodule_files:
                                 raise InvalidArguments(
                                     'Namespace collision: submodule {} defined in '
-                                    'two files {} and {}.' %
-                                    (submodname, submodule_files[submodname], s))
+                                    'two files {} and {}.'.format(submodname, submodule_files[submodname], s))
                             submodule_files[submodname] = s
 
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
