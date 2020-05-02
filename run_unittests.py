@@ -4683,6 +4683,45 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(contents, r'build main(\.exe)?.*: c_LINKER')
         self.assertRegex(contents, r'build (lib|cyg)?mylib.*: c_LINKER')
 
+    def test_cross_file_options(self):
+        testdir = os.path.join(self.unit_test_dir,
+                               '78 config file options')
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(textwrap.dedent(
+                '''
+                [options]
+                default_library = 'static'
+                opt1 = false
+
+                c_args = ['-DNATIVE']
+                pkg_config_path = ['/native']
+                '''))
+            self.meson_native_file = f.name
+
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(textwrap.dedent(
+                '''
+                [options]
+                default_library = 'both'
+                opt1 = true
+                opt2 = false
+                opt3 = 1
+                datadir = 'my_datadir'
+
+                c_args = ['-DCROSS']
+                pkg_config_path = ['/cross']
+
+                sub:sub_opt1 = true
+                sub:default_library = 'static'
+
+                [paths]
+                datadir = 'wrong_datadir'
+                '''))
+            self.meson_cross_file = f.name
+
+        # Verify that -Dopt2=true from command line overrides value from
+        # native file
+        self.init(testdir, extra_args=['-Dopt2=true'])
 
 class FailureTests(BasePlatformTests):
     '''

@@ -542,14 +542,19 @@ class Environment:
         binaries.build = BinaryTable()
         properties.build = Properties()
 
+        self.cmd_line_options = {}
+
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
             config = MesonConfigFile.from_config_parser(
                 coredata.load_configs(self.coredata.config_files))
             binaries.build = BinaryTable(config.get('binaries', {}))
+            if 'paths' in config:
+                mlog.deprecation('[paths] section in native file is deprecated in favor of the generic [options] section')
             paths.build = Directories(**config.get('paths', {}))
             properties.build = Properties(config.get('properties', {}))
+            self.cmd_line_options.update(config.get('options', {}))
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -562,7 +567,12 @@ class Environment:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
+            if 'paths' in config:
+                mlog.deprecation('[paths] section in native file is deprecated in favor of the generic [options] section')
             paths.host = Directories(**config.get('paths', {}))
+            # Keep only per machine options from the native file
+            self.cmd_line_options = coredata.keep_per_machine_options(self.cmd_line_options)
+            self.cmd_line_options.update(config.get('options', {}))
 
         ## "freeze" now initialized configuration, and "save" to the class.
 
@@ -578,7 +588,7 @@ class Environment:
         else:
             self.exe_wrapper = None
 
-        self.cmd_line_options = options.cmd_line_options.copy()
+        self.cmd_line_options.update(options.cmd_line_options)
 
         # List of potential compilers.
         if mesonlib.is_windows():

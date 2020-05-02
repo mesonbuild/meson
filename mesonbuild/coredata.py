@@ -230,7 +230,7 @@ class UserFeatureOption(UserComboOption):
 
 def load_configs(filenames: T.List[str]) -> configparser.ConfigParser:
     """Load configuration files from a named subdirectory."""
-    config = configparser.ConfigParser(interpolation=None)
+    config = CmdLineFileParser()
     config.read(filenames)
     return config
 
@@ -1133,6 +1133,29 @@ builtin_options_per_machine = OrderedDict([
     ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
     ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
+
+def insert_build_prefix(k):
+    idx = k.find(':')
+    if idx < 0:
+        return 'build.' + k
+    return k[:idx + 1] + 'build.' + k[idx + 1:]
+
+def is_per_machine_option(optname):
+    if optname in builtin_options_per_machine:
+        return True
+    from .compilers import compilers
+    for lang_prefix in [lang + '_' for lang in compilers.all_languages]:
+        if optname.startswith(lang_prefix):
+            return True
+    return False
+
+def keep_per_machine_options(options):
+    per_machine_options = {}
+    for optname, value in options.items():
+        if is_per_machine_option(optname):
+            build_optname = insert_build_prefix(optname)
+            per_machine_options[build_optname] = value
+    return per_machine_options
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.

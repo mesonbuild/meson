@@ -1,0 +1,3 @@
+option('opt1', type: 'boolean', value : false)
+option('opt2', type: 'boolean', value : false)
+option('opt3', type: 'integer', value : 0)
