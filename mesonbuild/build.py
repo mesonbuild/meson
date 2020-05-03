@@ -810,7 +810,13 @@ class BuildTarget(Target):
     def get_link_dep_subdirs(self):
         result = OrderedSet()
         for i in self.link_targets:
-            result.add(i.get_subdir())
+            dir = i.get_subdir()
+            if dir:
+              # Mark this rpath entry as added by Meson for use during build,
+              # and to be removed by fix_rpathtype_entry() during install.
+              # ('test cases/fortran/6 dynamic' fails if done unconditionally?)
+              dir += '/./.'
+            result.add(dir)
             result.update(i.get_link_dep_subdirs())
         return result
 

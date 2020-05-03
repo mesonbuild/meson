@@ -306,6 +306,15 @@ class Elf(DataSizes):
             return
         self.bf.seek(rp_off)
         old_rpath = self.read_str()
+
+        if old_rpath and not new_rpath:
+          # meson only wants to remove rpaths it added in e.g.
+          # get_link_dep_subdirs(), not ones added by external pkgconfig Libs flags.
+          # So get_link_dep_subdirs() marks the rpath entries it adds by
+          # appending /./. to them, which should not occur in the wild,
+          # but does not change their meaning.
+          new_rpath = b':'.join([dir for dir in old_rpath.split(b':') if not dir.endswith(b'/./.')])
+
         if len(old_rpath) < len(new_rpath):
             sys.exit("New rpath must not be longer than the old one.")
         # The linker does read-only string deduplication. If there is a

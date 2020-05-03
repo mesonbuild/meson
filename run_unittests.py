@@ -6395,6 +6395,56 @@ class LinuxlikeTests(BasePlatformTests):
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
 
+    @skipIfNoPkgconfig
+    def test_usage_pkgconfig_prefixes(self):
+        '''
+        Build and install two external libraries, to different prefixes,
+        then build and install a client program that finds them via pkgconfig,
+        and verify the installed client program runs.
+        '''
+        oldinstalldir = self.installdir
+
+        # Build and install both external libraries without DESTDIR
+        val1dir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'val1')
+        val1prefix = os.path.join(oldinstalldir, 'val1')
+        self.prefix = val1prefix
+        self.installdir = val1prefix
+        self.init(val1dir)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        val2dir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'val2')
+        val2prefix = os.path.join(oldinstalldir, 'val2')
+        self.prefix = val2prefix
+        self.installdir = val2prefix
+        self.init(val2dir)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        # Build, install, and run the client program
+        env = {}
+        env['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig') + \
+                                 os.pathsep + \
+                                 os.path.join(val2prefix, self.libdir, 'pkgconfig')
+        testdir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'client')
+        testprefix = os.path.join(oldinstalldir, 'client')
+        self.prefix = testprefix
+        self.installdir = testprefix
+        self.init(testdir, override_envvars=env)
+        self.build(override_envvars=env)
+        self.install(use_destdir=False)
+        prog = os.path.join(self.installdir, 'bin', 'client')
+        if is_cygwin():
+          env['PATH'] = os.path.join(val1prefix, 'bin') + \
+                        os.pathsep + \
+                        os.path.join(val2prefix, 'bin') + \
+                        os.pathsep + os.environ['PATH']
+        out = self._run([prog], override_envvars=env).strip()
+        # Expected output is val1 + val2 = 3
+        self.assertEqual(out, '3')
+
     def install_subdir_invalid_symlinks(self, testdir, subdir_path):
         '''
         Test that installation of broken symlinks works fine.
