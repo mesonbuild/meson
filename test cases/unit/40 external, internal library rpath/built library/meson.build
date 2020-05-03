@@ -15,7 +15,9 @@ l = shared_library('bar_built', 'bar.c',
                    install: true,
                    dependencies : [foo_system_dep, faa_pkg_dep])
 
-if host_machine.system() == 'darwin'
-  e = executable('prog', 'prog.c', link_with: l, install: true)
+if host_machine.system() == 'darwin' or host_machine.system() == 'linux'
+  e = executable('prog', 'prog.c', link_with: l, install: true,
+        install_rpath: '$ORIGIN/..' / get_option('libdir'),
+      )
   test('testprog', e)
 endif

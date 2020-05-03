@@ -56,7 +56,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg, relpath
+    quote_arg, relpath, is_linux
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -6372,13 +6372,15 @@ class LinuxlikeTests(BasePlatformTests):
         self.build(override_envvars=env)
         # test uninstalled
         self.run_tests(override_envvars=env)
-        if not is_osx():
-            # Rest of the workflow only works on macOS
+        if not (is_osx() or is_linux()):
             return
         # test running after installation
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'prog')
         self._run([prog])
+        if not is_osx():
+            # Rest of the workflow only works on macOS
+            return
         out = self._run(['otool', '-L', prog])
         self.assertNotIn('@rpath', out)
         ## New builddir for testing that DESTDIR is not added to install_name

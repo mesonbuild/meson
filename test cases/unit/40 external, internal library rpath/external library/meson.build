@@ -4,16 +4,16 @@ shared_library('foo_in_system', 'foo.c', install : true)
 l = shared_library('faa_pkg', 'faa.c', install: true)
 
 if host_machine.system() == 'darwin'
-  frameworks = ['-framework', 'CoreFoundation', '-framework', 'CoreMedia']
+  ldflags = ['-framework', 'CoreFoundation', '-framework', 'CoreMedia']
   allow_undef_args = ['-Wl,-undefined,dynamic_lookup']
 else
-  frameworks = []
+  ldflags = ['-Wl,-rpath,${libdir}']
   allow_undef_args = []
 endif
 
 pkg = import('pkgconfig')
 pkg.generate(name: 'faa_pkg',
-             libraries: [l] + frameworks,
+             libraries: [l] + ldflags,
              description: 'FAA, a pkg-config test library')
 
 # cygwin DLLs can't have undefined symbols
