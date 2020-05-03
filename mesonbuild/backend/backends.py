@@ -196,7 +196,7 @@ class Backend:
             return os.path.join(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
             if not target.is_linkable_target():
-                raise MesonException('Tried to link against custom target "%s", which is not linkable.' % target.name)
+                raise MesonException('Tried to link against custom target "{}", which is not linkable.'.format(target.name))
             return os.path.join(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, build.Executable):
             if target.import_filename:
@@ -282,7 +282,7 @@ class Backend:
                     ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
                     unity_file_number += 1
                     files_in_current = 0
-                ofile.write('#include<%s>\n' % src)
+                ofile.write('#include<{}>\n'.format(src))
                 files_in_current += 1
             if ofile:
                 ofile.close()
@@ -537,14 +537,14 @@ class Backend:
     def create_msvc_pch_implementation(self, target, lang, pch_header):
         # We have to include the language in the file name, otherwise
         # pch.c and pch.cpp will both end up as pch.obj in VS backends.
-        impl_name = 'meson_pch-%s.%s' % (lang, lang)
+        impl_name = 'meson_pch-{}.{}'.format(lang, lang)
         pch_rel_to_build = os.path.join(self.get_target_private_dir(target), impl_name)
         # Make sure to prepend the build dir, since the working directory is
         # not defined. Otherwise, we might create the file in the wrong path.
         pch_file = os.path.join(self.build_dir, pch_rel_to_build)
         os.makedirs(os.path.dirname(pch_file), exist_ok=True)
 
-        content = '#include "%s"' % os.path.basename(pch_header)
+        content = '#include "{}"'.format(os.path.basename(pch_header))
         pch_file_tmp = pch_file + '.tmp'
         with open(pch_file_tmp, 'w') as f:
             f.write(content)
@@ -664,7 +664,7 @@ class Backend:
         args = []
         for d in deps:
             if not (d.is_linkable_target()):
-                raise RuntimeError('Tried to link with a non-library target "%s".' % d.get_basename())
+                raise RuntimeError('Tried to link with a non-library target "{}".'.format(d.get_basename()))
             arg = self.get_target_filename_for_linking(d)
             if not arg:
                 continue
@@ -853,7 +853,7 @@ class Backend:
             m = regex.search(arg)
             while m is not None:
                 index = int(m.group(1))
-                src = '@OUTPUT%d@' % index
+                src = '@OUTPUT{}@'.format(index)
                 arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
                 m = regex.search(arg)
             newargs.append(arg)
