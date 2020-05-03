@@ -5175,7 +5175,7 @@ class WindowsTests(BasePlatformTests):
                 raise
             raise unittest.SkipTest('pefile module not found')
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
-        self.init(testdir)
+        self.init(testdir, extra_args=['--buildtype=release'])
         self.build()
         # Test that binaries have a non-zero checksum
         env = get_fake_env()
