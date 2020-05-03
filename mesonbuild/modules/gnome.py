@@ -406,11 +406,19 @@ class GnomeModule(ExtensionModule):
             kwargs = {'native': True, 'required': True}
             holder = self.interpreter.func_dependency(state.current_node, ['gobject-introspection-1.0'], kwargs)
             self.gir_dep = holder.held_object
-            if self.gir_dep.type_name == 'pkgconfig':
+            giscanner = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-scanner')
+            if giscanner is not None:
+                self.giscanner = ExternalProgram.from_entry('g-ir-scanner', giscanner)
+            elif self.gir_dep.type_name == 'pkgconfig':
                 self.giscanner = ExternalProgram('g_ir_scanner', self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {}))
-                self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
             else:
                 self.giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+            gicompiler = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-compiler')
+            if gicompiler is not None:
+                self.gicompiler = ExternalProgram.from_entry('g-ir-compiler', gicompiler)
+            elif self.gir_dep.type_name == 'pkgconfig':
+                self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
+            else:
                 self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
         return self.gir_dep, self.giscanner, self.gicompiler
 
