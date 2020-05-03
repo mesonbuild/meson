@@ -99,16 +99,16 @@ class UserBooleanOption(UserOption[bool]):
 class UserIntegerOption(UserOption[int]):
     def __init__(self, description, value, yielding=None):
         min_value, max_value, default_value = value
-        super().__init__(description, [True, False], yielding)
         self.min_value = min_value
         self.max_value = max_value
-        self.set_value(default_value)
         c = []
         if min_value is not None:
             c.append('>=' + str(min_value))
         if max_value is not None:
             c.append('<=' + str(max_value))
-        self.choices = ', '.join(c)
+        choices = ', '.join(c)
+        super().__init__(description, choices, yielding)
+        self.set_value(default_value)
 
     def validate_value(self, value) -> int:
         if isinstance(value, str):
