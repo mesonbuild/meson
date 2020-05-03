@@ -732,8 +732,12 @@ class GnomeModule(ExtensionModule):
 
         gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
 
-        ns = kwargs.pop('namespace')
-        nsversion = kwargs.pop('nsversion')
+        ns = kwargs.get('namespace')
+        if not ns:
+            raise MesonException('Missing "namespace" keyword argument')
+        nsversion = kwargs.get('nsversion')
+        if not nsversion:
+            raise MesonException('Missing "nsversion" keyword argument')
         libsources = mesonlib.extract_as_list(kwargs, 'sources', pop=True)
         girfile = '%s-%s.gir' % (ns, nsversion)
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)

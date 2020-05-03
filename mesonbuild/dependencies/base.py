@@ -1800,6 +1800,10 @@ class ExternalProgram:
         self.name = name
         if command is not None:
             self.command = listify(command)
+            if mesonlib.is_windows():
+                cmd = self.command[0]
+                args = self.command[1:]
+                self.command = self._search_windows_special_cases(name, cmd) + args
         else:
             all_search_dirs = [search_dir]
             if extra_search_dirs:
