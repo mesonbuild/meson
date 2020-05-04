@@ -121,7 +121,7 @@ def get_env_var_pair(for_machine: MachineChoice,
         # ones.
         ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
         # Always just the unprefixed host verions
-        ([] if is_cross else [var_name]),
+        [var_name]
     )[for_machine]
     for var in candidates:
         value = os.environ.get(var)
