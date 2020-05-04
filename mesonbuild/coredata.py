@@ -385,6 +385,7 @@ class CoreData:
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.init_builtins('')
+        self.libdir_cross_fixup()
 
     @staticmethod
     def __load_config_files(options: argparse.Namespace, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -510,7 +511,6 @@ class CoreData:
         for for_machine in iter(MachineChoice):
             for key, opt in builtin_options_per_machine.items():
                 self.add_builtin_option(self.builtins_per_machine[for_machine], key, opt, subproject)
-        self.libdir_cross_fixup()
 
     def add_builtin_option(self, opts_map, key, opt, subproject):
         if subproject:
