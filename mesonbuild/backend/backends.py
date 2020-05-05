@@ -59,12 +59,13 @@ class InstallData:
         self.mesonintrospect = mesonintrospect
 
 class TargetInstallData:
-    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, install_rpath, install_mode, optional=False):
+    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, build_rpath, install_rpath, install_mode, optional=False):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
         self.strip = strip
         self.install_name_mappings = install_name_mappings
+        self.build_rpath = build_rpath
         self.install_rpath = install_rpath
         self.install_mode = install_mode
         self.optional = optional
@@ -1109,7 +1110,7 @@ class Backend:
                     mappings = t.get_link_deps_mapping(d.prefix, self.environment)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           t.get_aliases(), should_strip, mappings,
-                                          t.install_rpath, install_mode)
+                                          t.build_rpath, t.install_rpath, install_mode)
                     d.targets.append(i)
 
                     if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)):
@@ -1126,14 +1127,14 @@ class Backend:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                                  implib_install_dir, {}, False, {}, '', install_mode,
+                                                  implib_install_dir, {}, False, {}, '', '', install_mode,
                                                   optional=isinstance(t, build.SharedModule))
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, outdirs[0],
-                                                  {}, False, {}, '',
+                                                  {}, False, {}, '', '',
                                                   install_mode, optional=True)
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
@@ -1143,7 +1144,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, None, install_mode)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
@@ -1156,7 +1157,7 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode,
+                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, None, install_mode,
                                               optional=not t.build_by_default)
                         d.targets.append(i)
                 else:
@@ -1165,7 +1166,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode,
+                        i = TargetInstallData(f, outdir, {}, False, {}, None, None, install_mode,
                                               optional=not t.build_by_default)
                         d.targets.append(i)
 

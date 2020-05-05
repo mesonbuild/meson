@@ -6050,13 +6050,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.build()
         # C program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
-        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        self.assertEqual(build_rpath, '$ORIGIN/sub/./.:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
         self.assertEqual(install_rpath, '/baz')
         # C++ program RPATH
         build_rpath = get_rpath(os.path.join(self.builddir, 'progcxx'))
-        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar')
+        self.assertEqual(build_rpath, '$ORIGIN/sub/./.:/foo/bar')
         self.install()
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
@@ -6321,7 +6321,7 @@ class LinuxlikeTests(BasePlatformTests):
         if is_osx():
             rpathre = re.compile(r'-rpath,.*/subprojects/sub1.*-rpath,.*/subprojects/sub2')
         else:
-            rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1:\$\$ORIGIN/subprojects/sub2')
+            rpathre = re.compile(r'-rpath,\$\$ORIGIN/subprojects/sub1/./.:\$\$ORIGIN/subprojects/sub2/./.')
         with open(os.path.join(self.builddir, 'build.ninja')) as bfile:
             for line in bfile:
                 if '-rpath' in line:
@@ -6416,34 +6416,35 @@ class LinuxlikeTests(BasePlatformTests):
         self.install(use_destdir=False)
         self.new_builddir()
 
+        env1 = {}
+        env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig')
         val2dir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'val2')
         val2prefix = os.path.join(oldinstalldir, 'val2')
         self.prefix = val2prefix
         self.installdir = val2prefix
-        self.init(val2dir)
+        self.init(val2dir, override_envvars=env1)
         self.build()
         self.install(use_destdir=False)
         self.new_builddir()
 
         # Build, install, and run the client program
-        env = {}
-        env['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig') + \
-                                 os.pathsep + \
-                                 os.path.join(val2prefix, self.libdir, 'pkgconfig')
+        env2 = {}
+        env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
         testdir = os.path.join(self.unit_test_dir, '75 pkgconfig prefixes', 'client')
         testprefix = os.path.join(oldinstalldir, 'client')
         self.prefix = testprefix
         self.installdir = testprefix
-        self.init(testdir, override_envvars=env)
-        self.build(override_envvars=env)
+        self.init(testdir, override_envvars=env2)
+        self.build()
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'client')
+        env3 = {}
         if is_cygwin():
-          env['PATH'] = os.path.join(val1prefix, 'bin') + \
+          env3['PATH'] = os.path.join(val1prefix, 'bin') + \
                         os.pathsep + \
                         os.path.join(val2prefix, 'bin') + \
                         os.pathsep + os.environ['PATH']
-        out = self._run([prog], override_envvars=env).strip()
+        out = self._run([prog], override_envvars=env3).strip()
         # Expected output is val1 + val2 = 3
         self.assertEqual(out, '3')
 

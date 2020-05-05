@@ -290,13 +290,15 @@ class Elf(DataSizes):
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
-    def fix_rpath(self, new_rpath):
+    def fix_rpath(self, build_rpath, new_rpath):
         # The path to search for can be either rpath or runpath.
         # Fix both of them to be sure.
-        self.fix_rpathtype_entry(new_rpath, DT_RPATH)
-        self.fix_rpathtype_entry(new_rpath, DT_RUNPATH)
+        self.fix_rpathtype_entry(build_rpath, new_rpath, DT_RPATH)
+        self.fix_rpathtype_entry(build_rpath, new_rpath, DT_RUNPATH)
 
-    def fix_rpathtype_entry(self, new_rpath, entrynum):
+    def fix_rpathtype_entry(self, build_rpath, new_rpath, entrynum):
+        if isinstance(build_rpath, str):
+            build_rpath = build_rpath.encode('utf8')
         if isinstance(new_rpath, str):
             new_rpath = new_rpath.encode('utf8')
         rp_off = self.get_entry_offset(entrynum)
@@ -305,15 +307,24 @@ class Elf(DataSizes):
                 print('File does not have rpath. It should be a fully static executable.')
             return
         self.bf.seek(rp_off)
-        old_rpath = self.read_str()
 
-        if old_rpath and not new_rpath:
-          # meson only wants to remove rpaths it added in e.g.
-          # get_link_dep_subdirs(), not ones added by external pkgconfig Libs flags.
-          # So get_link_dep_subdirs() marks the rpath entries it adds by
-          # appending /./. to them, which should not occur in the wild,
-          # but does not change their meaning.
-          new_rpath = b':'.join([dir for dir in old_rpath.split(b':') if not dir.endswith(b'/./.')])
+        old_rpath = self.read_str()
+        new_rpaths = []
+        if new_rpath:
+            new_rpaths.append(new_rpath)
+        if old_rpath:
+            # Filter out build-only rpath entries
+            # added by get_link_dep_subdirs() or
+            # specified by user with build_rpath.
+            build_rpaths = build_rpath.split(b':')
+            for dir in old_rpath.split(b':'):
+                if not (dir.endswith(b'/./.') or    # marked by get_link_dep_subdirs()
+                        dir in build_rpaths or
+                        dir == (b'X' * len(dir))):
+                    new_rpaths.append(dir)
+
+        # Prepend user-specified new entries while preserving the ones that came from pkgconfig etc.
+        new_rpath = b':'.join(new_rpaths)
 
         if len(old_rpath) < len(new_rpath):
             sys.exit("New rpath must not be longer than the old one.")
@@ -352,13 +363,13 @@ class Elf(DataSizes):
             entry.write(self.bf)
         return None
 
-def fix_elf(fname, new_rpath, verbose=True):
+def fix_elf(fname, build_rpath, new_rpath, verbose=True):
     with Elf(fname, verbose) as e:
         if new_rpath is None:
             e.print_rpath()
             e.print_runpath()
         else:
-            e.fix_rpath(new_rpath)
+            e.fix_rpath(build_rpath, new_rpath)
 
 def get_darwin_rpaths_to_remove(fname):
     out = subprocess.check_output(['otool', '-l', fname],
@@ -439,7 +450,7 @@ def fix_jar(fname):
         f.truncate()
     subprocess.check_call(['jar', 'ufm', fname, 'META-INF/MANIFEST.MF'])
 
-def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True):
+def fix_rpath(fname, build_rpath, new_rpath, final_path, install_name_mappings, verbose=True):
     global INSTALL_NAME_TOOL
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
@@ -450,7 +461,7 @@ def fix_rpath(fname, new_rpath, final_path, install_name_mappings, verbose=True)
         if fname.endswith('.jar'):
             fix_jar(fname)
             return
-        fix_elf(fname, new_rpath, verbose)
+        fix_elf(fname, build_rpath, new_rpath, verbose)
         return
     except SystemExit as e:
         if isinstance(e.code, int) and e.code == 0:

@@ -563,7 +563,7 @@ class GnuLikeDynamicLinkerMixin:
         # Need to deduplicate rpaths, as macOS's install_name_tool
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
-        all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p, './.') for p in processed_rpaths])
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
             all_paths.add(build_rpath)
@@ -579,6 +579,7 @@ class GnuLikeDynamicLinkerMixin:
 
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
+        # FIXME: is this still correct?
         paths = ':'.join(all_paths)
         if len(paths) < len(install_rpath):
             padding = 'X' * (len(install_rpath) - len(paths))
