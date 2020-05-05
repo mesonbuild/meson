@@ -1137,3 +1137,6 @@ class CLikeCompiler:
 
         return self.compiles(self.attribute_check_func(name), env,
                              extra_args=self.get_has_func_attribute_extra_args(name))
+
+    def get_disable_assert_args(self) -> T.List[str]:
+        return ['-DNDEBUG']

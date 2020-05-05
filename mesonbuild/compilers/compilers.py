@@ -320,7 +320,7 @@ def get_base_compile_args(options, compiler):
         if (options['b_ndebug'].value == 'true' or
                 (options['b_ndebug'].value == 'if-release' and
                  options['buildtype'].value in {'release', 'plain'})):
-            args += ['-DNDEBUG']
+            args += compiler.get_disable_assert_args()
     except KeyError:
         pass
     # This does not need a try...except
@@ -1203,6 +1203,9 @@ class Compiler:
 
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
+
+    def get_disable_assert_args(self) -> T.List[str]:
+        return []
 
 
 def get_largefile_args(compiler):
