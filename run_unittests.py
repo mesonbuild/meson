@@ -7408,6 +7408,10 @@ class LinuxlikeTests(BasePlatformTests):
         link_args = ['-L' + libpath.as_posix(), '-lrelativepath']
         self.assertEqual(relative_path_dep.get_link_args(), link_args)
 
+        # Ensure the -I flag gets parsed
+        inc_dirs = ['/include/dir']
+        self.assertEqual(relative_path_dep.get_include_paths(), inc_dirs)
+
     @skipIfNoPkgconfig
     def test_pkgconfig_duplicate_path_entries(self):
         testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')

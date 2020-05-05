@@ -2718,6 +2718,10 @@ an external dependency with the following methods:
    use the same variable name, in which case it's easier to write `dep.get_variable('foo')`
    instead of `dep.get_variable(pkgconfig: 'foo', internal: 'foo')`.
 
+ - `get_include_paths()` *(Added 0.58.0)* returns a list of strings containing
+   the include directory paths for this dependency, including those defined by
+   `include_directories` and `-I`/`-isystem` flags in `compile_args`.
+
 ### `disabler` object
 
 A disabler object is an object that behaves in much the same way as

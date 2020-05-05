@@ -2452,7 +2452,7 @@ subproject. This is a problem as it hardcodes the relative paths of these two pr
 This makes it impossible to compile the project in any other directory layout and also
 prevents the subproject from changing its own directory layout.
 
-Instead of poking directly at the internals the subproject should be executed and 
+Instead of poking directly at the internals the subproject should be executed and
 it should set a variable that the caller can then use. Something like:
 
 # In subproject
@@ -2462,7 +2462,7 @@ some_dep = declare_depencency(include_directories: include_directories('include'
 some_dep = depencency('some')
 executable(..., dependencies: [some_dep])
 
-This warning will become a hard error in a future Meson release. 
+This warning will become a hard error in a future Meson release.
 ''')
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
