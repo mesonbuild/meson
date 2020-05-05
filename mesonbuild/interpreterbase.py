@@ -215,9 +215,8 @@ class permittedKwargs:
 class FeatureCheckBase:
     "Base class for feature version checks"
 
-    # Class variable, shared across all instances
-    #
-    # Format: {subproject: {feature_version: set(feature_names)}}
+    # In python 3.6 we can just forward declare this, but in 3.5 we can't
+    # This will be overwritten by the subclasses by necessity
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
     def __init__(self, feature_name: str, version: str):
@@ -283,6 +282,11 @@ class FeatureCheckBase:
 class FeatureNew(FeatureCheckBase):
     """Checks for new features"""
 
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
@@ -293,6 +297,11 @@ class FeatureNew(FeatureCheckBase):
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
