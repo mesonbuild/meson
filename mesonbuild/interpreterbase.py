@@ -18,6 +18,7 @@
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
+import abc
 import os, copy, re
 import collections.abc
 from functools import wraps
@@ -212,7 +213,7 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
-class FeatureCheckBase:
+class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
     # In python 3.6 we can just forward declare this, but in 3.5 we can't
@@ -230,13 +231,18 @@ class FeatureCheckBase:
             return ''
         return mesonlib.project_meson_versions[subproject]
 
+    @staticmethod
+    @abc.abstractmethod
+    def check_version(target_version: str, feature_Version: str) -> bool:
+        pass
+
     def use(self, subproject: str) -> None:
         tv = self.get_target_version(subproject)
         # No target version
         if tv == '':
             return
         # Target version is new enough
-        if mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+        if self.check_version(tv, self.feature_version):
             return
         # Feature is too new for target version, register it
         if subproject not in self.feature_registry:
@@ -288,6 +294,10 @@ class FeatureNew(FeatureCheckBase):
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
     @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        return mesonlib.version_compare_condition_with_min(target_version, feature_version)
+
+    @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
 
@@ -302,6 +312,11 @@ class FeatureDeprecated(FeatureCheckBase):
     #
     # Format: {subproject: {feature_version: set(feature_names)}}
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        # For deprecatoin checks we need to return the inverse of FeatureNew checks
+        return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
