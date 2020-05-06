@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy, os, re
 from collections import OrderedDict, defaultdict
-import itertools, pathlib
-import hashlib
-import pickle
 from functools import lru_cache
+import copy
+import hashlib
+import itertools, pathlib
+import os
+import pickle
+import re
 import typing as T
 
 from . import environment

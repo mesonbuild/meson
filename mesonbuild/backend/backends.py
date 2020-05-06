@@ -12,23 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, pickle, re
+from collections import OrderedDict
+from functools import lru_cache
+import enum
+import json
+import os
+import pickle
+import re
+import shlex
+import subprocess
 import textwrap
+import typing as T
+
 from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-import json
-import subprocess
-from ..mesonlib import MachineChoice, MesonException, OrderedSet, OptionOverrideProxy
-from ..mesonlib import classify_unity_sources, unholder
-from ..mesonlib import File
 from ..compilers import CompilerArgs, VisualStudioLikeCompiler
-from ..interpreter import Interpreter
-from collections import OrderedDict
-import shlex
-from functools import lru_cache
-import typing as T
+from ..mesonlib import (
+    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
+    classify_unity_sources, unholder
+)
+
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
+
+
+class TestProtocol(enum.Enum):
+
+    EXITCODE = 0
+    TAP = 1
+    GTEST = 2
+
+    @classmethod
+    def from_str(cls, string: str) -> 'TestProtocol':
+        if string == 'exitcode':
+            return cls.EXITCODE
+        elif string == 'tap':
+            return cls.TAP
+        elif string == 'gtest':
+            return cls.GTEST
+        raise MesonException('unknown test format {}'.format(string))
+
+    def __str__(self) -> str:
+        if self is self.EXITCODE:
+            return 'exitcode'
+        elif self is self.GTEST:
+            return 'gtest'
+        return 'tap'
 
 
 class CleanTrees:
@@ -83,11 +114,11 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
-                 is_cross_built: bool, exe_wrapper: T.Optional[build.Executable],
+                 is_cross_built: bool, exe_wrapper: T.Optional[dependencies.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
-                 extra_paths: T.List[str], protocol: str, priority: int):
+                 extra_paths: T.List[str], protocol: TestProtocol, priority: int):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -107,7 +138,7 @@ class TestSerialisation:
         self.priority = priority
         self.needs_exe_wrapper = needs_exe_wrapper
 
-def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional[Interpreter] = None) -> T.Optional['Backend']:
+def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
     if backend == 'ninja':
         from . import ninjabackend
         return ninjabackend.NinjaBackend(build, interpreter)
@@ -134,7 +165,7 @@ def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, i
 # This class contains the basic functionality that is needed by all backends.
 # Feel free to move stuff in and out of it as you see fit.
 class Backend:
-    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
+    def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional['Interpreter']):
         # Make it possible to construct a dummy backend
         # This is used for introspection without a build directory
         if build is None:

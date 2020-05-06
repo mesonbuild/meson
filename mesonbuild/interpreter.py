@@ -33,6 +33,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
+from .backend.backends import TestProtocol
 
 from pathlib import Path, PurePath
 import os
@@ -979,7 +980,7 @@ class Test(InterpreterObject):
         self.should_fail = should_fail
         self.timeout = timeout
         self.workdir = workdir
-        self.protocol = protocol
+        self.protocol = TestProtocol.from_str(protocol)
         self.priority = priority
 
     def get_exe(self):
@@ -3821,6 +3822,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('test', '0.52.0', ['priority'])
     @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
+        if kwargs.get('protocol') == 'gtest':
+            FeatureNew('"gtest" protocol for tests', '0.55.0').use(self.subproject)
         self.add_test(node, args, kwargs, True)
 
     def unpack_env_kwarg(self, kwargs) -> build.EnvironmentVariables:
@@ -3872,8 +3875,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
         protocol = kwargs.get('protocol', 'exitcode')
-        if protocol not in ('exitcode', 'tap'):
-            raise InterpreterException('Protocol must be "exitcode" or "tap".')
+        if protocol not in {'exitcode', 'tap', 'gtest'}:
+            raise InterpreterException('Protocol must be "exitcode", "tap", or "gtest".')
         suite = []
         prj = self.subproject if self.is_subproject() else self.build.project_name
         for s in mesonlib.stringlistify(kwargs.get('suite', '')):

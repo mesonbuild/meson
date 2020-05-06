@@ -43,6 +43,7 @@ from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args
+from .backend.backends import TestProtocol
 
 if T.TYPE_CHECKING:
     from .backend.backends import TestSerialisation
@@ -94,6 +95,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--wrapper', default=None, dest='wrapper', type=split_args,
                         help='wrapper to run tests with (e.g. Valgrind)')
     parser.add_argument('-C', default='.', dest='wd',
+                        # https://github.com/python/typeshed/issues/3107
+                        # https://github.com/python/mypy/issues/7177
+                        type=os.path.abspath,  # type: ignore
                         help='directory to cd into before running')
     parser.add_argument('--suite', default=[], dest='include_suites', action='append', metavar='SUITE',
                         help='Only run tests belonging to the given suite.')
@@ -348,6 +352,19 @@ class JunitBuilder:
 
     def log(self, name: str, test: 'TestRun') -> None:
         """Log a single test case."""
+        if test.junit is not None:
+            for suite in test.junit.findall('.//testsuite'):
+                # Assume that we don't need to merge anything here...
+                suite.attrib['name'] = '{}.{}.{}'.format(test.project, name, suite.attrib['name'])
+
+                # GTest can inject invalid attributes
+                for case in suite.findall('.//testcase[@result]'):
+                    del case.attrib['result']
+                for case in suite.findall('.//testcase[@timestamp]'):
+                    del case.attrib['timestamp']
+                self.root.append(suite)
+            return
+
         # In this case we have a test binary with multiple results.
         # We want to record this so that each result is recorded
         # separately
@@ -429,10 +446,24 @@ class JunitBuilder:
 class TestRun:
 
     @classmethod
+    def make_gtest(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
+                   returncode: int, starttime: float, duration: float,
+                   stdo: T.Optional[str], stde: T.Optional[str],
+                   cmd: T.Optional[T.List[str]]) -> 'TestRun':
+        filename = '{}.xml'.format(test.name)
+        if test.workdir:
+            filename = os.path.join(test.workdir, filename)
+        tree = et.parse(filename)
+
+        return cls.make_exitcode(
+            test, test_env, returncode, starttime, duration, stdo, stde, cmd,
+            junit=tree)
+
+    @classmethod
     def make_exitcode(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                       returncode: int, starttime: float, duration: float,
                       stdo: T.Optional[str], stde: T.Optional[str],
-                      cmd: T.Optional[T.List[str]]) -> 'TestRun':
+                      cmd: T.Optional[T.List[str]], **kwargs) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
@@ -441,15 +472,15 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd)
+        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd, **kwargs)
 
     @classmethod
     def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
-        res = None    # T.Optional[TestResult]
-        results = []  # T.List[TestResult]
+        res = None    # type: T.Optional[TestResult]
+        results = []  # type: T.List[TestResult]
         failed = False
 
         for i in TAPParser(io.StringIO(stdo)).parse():
@@ -485,7 +516,7 @@ class TestRun:
                  res: TestResult, results: T.List[TestResult], returncode:
                  int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
-                 cmd: T.Optional[T.List[str]]):
+                 cmd: T.Optional[T.List[str]], *, junit: T.Optional[et.ElementTree] = None):
         assert isinstance(res, TestResult)
         self.res = res
         self.results = results  # May be an empty list
@@ -498,6 +529,7 @@ class TestRun:
         self.env = test_env
         self.should_fail = test.should_fail
         self.project = test.project_name
+        self.junit = junit
 
     def get_log(self) -> str:
         res = '--- command ---\n'
@@ -544,9 +576,7 @@ def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> No
     jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname: str) -> bool:
-    if fname.endswith('.exe') and not (is_windows() or is_cygwin()):
-        return True
-    return False
+    return fname.endswith('.exe') and not (is_windows() or is_cygwin())
 
 def load_benchmarks(build_dir: str) -> T.List['TestSerialisation']:
     datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
@@ -633,7 +663,7 @@ class SingleTestRunner:
         if not self.options.verbose:
             stdout = tempfile.TemporaryFile("wb+")
             stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
-        if self.test.protocol == 'tap' and stderr is stdout:
+        if self.test.protocol is TestProtocol.TAP and stderr is stdout:
             stdout = tempfile.TemporaryFile("wb+")
 
         # Let gdb handle ^C instead of us
@@ -653,7 +683,14 @@ class SingleTestRunner:
                 # errors avoid not being able to use the terminal.
                 os.setsid()  # type: ignore
 
-        p = subprocess.Popen(cmd,
+        extra_cmd = []  # type: T.List[str]
+        if self.test.protocol is TestProtocol.GTEST:
+            gtestname = '{}.xml'.format(self.test.name)
+            if self.test.workdir:
+                gtestname = '{}:{}'.format(self.test.workdir, self.test.name)
+            extra_cmd.append('--gtest_output=xml:{}'.format(gtestname))
+
+        p = subprocess.Popen(cmd + extra_cmd,
                              stdout=stdout,
                              stderr=stderr,
                              env=self.env,
@@ -743,8 +780,10 @@ class SingleTestRunner:
         if timed_out:
             return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
         else:
-            if self.test.protocol == 'exitcode':
+            if self.test.protocol is TestProtocol.EXITCODE:
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+            elif self.test.protocol is TestProtocol.GTEST:
+                return TestRun.make_gtest(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
@@ -1162,7 +1201,6 @@ def run(options: argparse.Namespace) -> int:
         if not exe.found():
             print('Could not find requested program: {!r}'.format(check_bin))
             return 1
-    options.wd = os.path.abspath(options.wd)
 
     if not options.list and not options.no_rebuild:
         if not rebuild_all(options.wd):
