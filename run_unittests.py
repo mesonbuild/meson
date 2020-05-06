@@ -6683,6 +6683,17 @@ class LinuxCrossArmTests(BasePlatformTests):
                 return
         self.assertTrue(False, 'Option libdir not in introspect data.')
 
+    def test_cross_libdir_subproject(self):
+        # Guard against a regression where calling "subproject"
+        # would reset the value of libdir to its default value.
+        testdir = os.path.join(self.unit_test_dir, '75 subdir libdir')
+        self.init(testdir, extra_args=['--libdir=fuf'])
+        for i in self.introspect('--buildoptions'):
+            if i['name'] == 'libdir':
+                self.assertEqual(i['value'], 'fuf')
+                return
+        self.assertTrue(False, 'Libdir specified on command line gets reset.')
+
     def test_std_remains(self):
         # C_std defined in project options must be in effect also when cross compiling.
         testdir = os.path.join(self.unit_test_dir, '51 noncross options')
