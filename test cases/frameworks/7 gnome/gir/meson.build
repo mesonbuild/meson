@@ -45,7 +45,7 @@ gnome.generate_gir(
 )
 
 test('gobject introspection/c', girexe)
-gir_paths = ':'.join([girlib.outdir(), dep1lib.outdir(), dep2lib.outdir()])
+gir_paths = ':'.join([girlib.outdir(), dep1lib.outdir(), dep2lib.outdir(), dep3lib.outdir()])
 envdata = environment()
 envdata.append('GI_TYPELIB_PATH', gir_paths, separator : ':')
 envdata.append('LD_LIBRARY_PATH', gir_paths)

@@ -685,11 +685,10 @@ class GnomeModule(ExtensionModule):
                                               source.get_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
-            elif isinstance(dep, PkgConfigDependency):
-                girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
+            if isinstance(dep, Dependency):
+                girdir = dep.get_variable(pkgconfig='girdir', internal='girdir', default_value='')
                 if girdir and girdir not in typelib_includes:
                     typelib_includes.append(girdir)
-
         return typelib_includes
 
     def _get_external_args_for_langs(self, state, langs):
