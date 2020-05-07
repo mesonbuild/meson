@@ -985,12 +985,15 @@ class Environment:
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == 'c' else EmscriptenCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-                # emcc cannot be queried to get the version out of it (it
-                # ignores -Wl,--version and doesn't have an alternative).
-                # Further, wasm-id *is* lld and will return `LLD X.Y.Z` if you
-                # call `wasm-ld --version`, but a special version of lld that
-                # takes different options.
-                p, o, _ = Popen_safe(['wasm-ld', '--version'])
+
+                # emcc requires a file input in order to pass arguments to the
+                # linker. It'll exit with an error code, but still print the
+                # linker version. Old emcc versions ignore -Wl,--version completely,
+                # however. We'll report "unknown version" in that case.
+                with tempfile.NamedTemporaryFile(suffix='.c') as f:
+                    cmd = compiler + [cls.LINKER_PREFIX + "--version", f.name]
+                    _, o, _ = Popen_safe(cmd)
+
                 linker = WASMDynamicLinker(
                     compiler, for_machine, cls.LINKER_PREFIX,
                     [], version=search_version(o))
