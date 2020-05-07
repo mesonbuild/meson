@@ -761,6 +761,11 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     def get_asneeded_args(self) -> T.List[str]:
         return []
 
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.List[str]:
+        return []
+
 
 class CcrxDynamicLinker(DynamicLinker):
 
