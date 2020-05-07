@@ -2004,6 +2004,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             curdir = '.'
         return compiler.get_include_args(curdir, False)
 
+    @lru_cache(maxsize=None)
+    def get_normpath_target(self, source) -> str:
+        return os.path.normpath(source)
+
     def get_custom_target_dir_include_args(self, target, compiler):
         custom_target_include_dirs = []
         for i in target.get_generated_sources():
@@ -2012,7 +2016,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # own target build dir.
             if not isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
                 continue
-            idir = os.path.normpath(self.get_target_dir(i))
+            idir = self.get_normpath_target(self.get_target_dir(i))
             if not idir:
                 idir = '.'
             if idir not in custom_target_include_dirs:
