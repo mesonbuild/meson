@@ -437,28 +437,11 @@ class ConfigToolDependency(ExternalDependency):
         """
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
-
-        tool = self.env.lookup_binary_entry(self.for_machine, self.tool_name)
-        if tool is not None:
-            tools = [tool]
-        else:
-            if not self.env.machines.matches_build_machine(self.for_machine):
-                mlog.deprecation('No entry for {0} specified in your cross file. '
-                                 'Falling back to searching PATH. This may find a '
-                                 'native version of {0}! This will become a hard '
-                                 'error in a future version of meson'.format(self.tool_name))
-            tools = [[t] for t in self.tools]
-
         best_match = (None, None)
-        for tool in tools:
-            if len(tool) == 1:
-                # In some situations the command can't be directly executed.
-                # For example Shell scripts need to be called through sh on
-                # Windows (see issue #1423).
-                potential_bin = ExternalProgram(tool[0], silent=True)
-                if not potential_bin.found():
-                    continue
-                tool = potential_bin.get_command()
+        for potential_bin in self.search_tool(self.tool_name, self.tool_name, self.tools):
+            if not potential_bin.found():
+                continue
+            tool = potential_bin.get_command()
             try:
                 p, out = Popen_safe(tool + [self.version_arg])[:2]
             except (FileNotFoundError, PermissionError):
