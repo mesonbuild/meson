@@ -51,7 +51,7 @@ Using precompiled headers with GCC and derivatives
 --
 
 Once you have a file to precompile, you can enable the use of pch for
-a give target with a *pch* keyword argument. As an example, let's assume
+a given target with a *pch* keyword argument. As an example, let's assume
 you want to build a small C binary with precompiled headers.
 Let's say the source files of the binary use the system headers `stdio.h`
 and `string.h`. Then you create a header file `pch/myexe_pch.h` with this
