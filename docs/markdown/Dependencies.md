@@ -242,6 +242,9 @@ libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
 ```
 
+*Since 0.55.0* Meson won't search $PATH any more for a config tool binary when
+cross compiling if the config tool did not have an entry in the cross file.
+
 ## AppleFrameworks
 
 Use the `modules` keyword to list frameworks required, e.g.
