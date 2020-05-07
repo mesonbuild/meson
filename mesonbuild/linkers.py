@@ -56,8 +56,8 @@ class StaticLinker:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
@@ -444,8 +444,8 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
@@ -551,12 +551,12 @@ class GnuLikeDynamicLinkerMixin:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         m = env.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
-            return []
+            return ([], set())
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
+            return ([], set())
         args = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
@@ -564,9 +564,14 @@ class GnuLikeDynamicLinkerMixin:
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        rpath_dirs_to_remove = set()
+        for p in all_paths:
+            rpath_dirs_to_remove.add(p.encode('utf8'))
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
             all_paths.add(build_rpath)
+            for p in build_rpath.split(':'):
+                rpath_dirs_to_remove.add(p.encode('utf8'))
 
         # TODO: should this actually be "for (dragonfly|open)bsd"?
         if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
@@ -590,7 +595,7 @@ class GnuLikeDynamicLinkerMixin:
 
         # TODO: should this actually be "for solaris/sunos"?
         if mesonlib.is_sunos():
-            return args
+            return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
         # written to the binary. Needed only with GNU ld:
@@ -610,7 +615,7 @@ class GnuLikeDynamicLinkerMixin:
         for p in rpath_paths:
             args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
 
-        return args
+        return (args, rpath_dirs_to_remove)
 
 
 class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
@@ -676,9 +681,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
+            return ([], set())
         # Ensure that there is enough space for install_name_tool in-place
         # editing of large RPATHs
         args = self._apply_prefix('-headerpad_max_install_names')
@@ -692,7 +697,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         for rp in all_paths:
             args.extend(self._apply_prefix('-rpath,' + rp))
 
-        return args
+        return (args, set())
 
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -763,8 +768,8 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
 
 class CcrxDynamicLinker(DynamicLinker):
@@ -839,8 +844,8 @@ class Xc16DynamicLinker(DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
 
 class C2000DynamicLinker(DynamicLinker):
@@ -938,10 +943,10 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not env.machines[self.for_machine].is_windows():
-            return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
-        return []
+            return (['-R' + os.path.join(build_dir, p) for p in rpath_paths], set())
+        return ([], set())
 
 
 class PGIStaticLinker(StaticLinker):
@@ -1091,9 +1096,9 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
+            return ([], set())
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
         if build_rpath != '':
@@ -1108,7 +1113,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return self._apply_prefix('-rpath,{}'.format(paths))
+        return (self._apply_prefix('-rpath,{}'.format(paths)), set())
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],

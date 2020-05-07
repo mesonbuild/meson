@@ -271,9 +271,10 @@ class CudaCompiler(Compiler):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return self._cook_link_args(self.host_compiler.build_rpath_args(
-            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath))
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        (rpath_args, rpath_dirs_to_remove) = self.host_compiler.build_rpath_args(
+            env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+        return (self._cook_link_args(rpath_args), rpath_dirs_to_remove)
 
     def linker_to_compiler_args(self, args):
         return args

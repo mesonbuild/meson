@@ -220,7 +220,7 @@ class DmdLikeCompilerMixin:
 
     def build_rpath_args(self, env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if self.info.is_windows():
-            return []
+            return ([], set())
 
         # GNU ld, solaris ld, and lld acting like GNU ld
         if self.linker.id.startswith('ld'):
@@ -228,15 +228,16 @@ class DmdLikeCompilerMixin:
             # do directly, each argument -rpath and the value to rpath, need to be
             # split into two separate arguments both prefaced with the -L=.
             args = []
-            for r in super().build_rpath_args(
-                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+            (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
+                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+            for r in rpath_args:
                 if ',' in r:
                     a, b = r.split(',', maxsplit=1)
                     args.append(a)
                     args.append(self.LINKER_PREFIX + b)
                 else:
                     args.append(r)
-            return args
+            return (args, rpath_dirs_to_remove)
 
         return super().build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
