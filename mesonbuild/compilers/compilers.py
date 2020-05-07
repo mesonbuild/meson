@@ -138,11 +138,15 @@ def is_llvm_ir(fname):
         fname = fname.fname
     return fname.split('.')[-1] == 'll'
 
+@lru_cache(maxsize=None)
+def cached_by_name(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in obj_suffixes
+
 def is_object(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
-    suffix = fname.split('.')[-1]
-    return suffix in obj_suffixes
+    return cached_by_name(fname)
 
 def is_library(fname):
     if hasattr(fname, 'fname'):
