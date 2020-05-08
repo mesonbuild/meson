@@ -729,7 +729,7 @@ class BuildTarget(Target):
                     File.from_source_file(environment.source_dir, self.subdir, s))
             elif hasattr(s, 'get_outputs'):
                 self.link_depends.extend(
-                    [File.from_built_file(s.subdir, p) for p in s.get_outputs()])
+                    [File.from_built_file(s.get_subdir(), p) for p in s.get_outputs()])
             else:
                 raise InvalidArguments(
                     'Link_depends arguments must be strings, Files, '
