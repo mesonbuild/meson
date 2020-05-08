@@ -838,6 +838,13 @@ class Vs2010Backend(backends.Backend):
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+        elif vscrt_type.value == 'static_from_buildtype':
+            if self.buildtype == 'debug':
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'
+            else:
+                ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
         elif vscrt_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'

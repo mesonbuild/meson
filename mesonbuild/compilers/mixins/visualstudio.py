@@ -362,18 +362,23 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if crt_val in self.crt_args:
             return self.crt_args[crt_val]
-        assert(crt_val == 'from_buildtype')
+        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+        dbg = 'mdd'
+        rel = 'md'
+        if crt_val == 'static_from_buildtype':
+            dbg = 'mtd'
+            rel = 'mt'
         # Match what build type flags used to do.
         if buildtype == 'plain':
             return []
         elif buildtype == 'debug':
-            return self.crt_args['mdd']
+            return self.crt_args[dbg]
         elif buildtype == 'debugoptimized':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         elif buildtype == 'release':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         elif buildtype == 'minsize':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         else:
             assert(buildtype == 'custom')
             raise mesonlib.EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')

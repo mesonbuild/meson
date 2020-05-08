@@ -289,7 +289,7 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                 'b_bitcode': coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)',
                                                         False),
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
-                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
+                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
                                                     'from_buildtype'),
                 }  # type: OptionDictType
 

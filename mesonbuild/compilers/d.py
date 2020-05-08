@@ -389,19 +389,25 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         if crt_val in self.mscrt_args:
             return self.mscrt_args[crt_val]
-        assert(crt_val == 'from_buildtype')
+        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+
+        dbg = 'mdd'
+        rel = 'md'
+        if crt_val == 'static_from_buildtype':
+            dbg = 'mtd'
+            rel = 'mt'
 
         # Match what build type flags used to do.
         if buildtype == 'plain':
             return []
         elif buildtype == 'debug':
-            return self.mscrt_args['mdd']
+            return self.mscrt_args[dbg]
         elif buildtype == 'debugoptimized':
-            return self.mscrt_args['md']
+            return self.mscrt_args[rel]
         elif buildtype == 'release':
-            return self.mscrt_args['md']
+            return self.mscrt_args[rel]
         elif buildtype == 'minsize':
-            return self.mscrt_args['md']
+            return self.mscrt_args[rel]
         else:
             assert(buildtype == 'custom')
             raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
