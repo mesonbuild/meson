@@ -31,9 +31,11 @@ from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
+from .base import find_external_program
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import ExternalProgram
 
 
 class GLDependencySystem(ExternalDependency):
@@ -324,10 +326,9 @@ class QtBaseDependency(ExternalDependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def search_qmake(self):
+    def search_qmake(self) -> T.Generator['ExternalProgram', None, None]:
         for qmake in ('qmake-' + self.name, 'qmake'):
-            for potential_qmake in self.search_tool(qmake, 'QMake', [qmake]):
-                yield potential_qmake
+            yield from find_external_program(self.env, self.for_machine, qmake, 'QMake', [qmake])
 
     def _qmake_detect(self, mods, kwargs):
         for qmake in self.search_qmake():
