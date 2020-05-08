@@ -344,6 +344,7 @@ class BoostDependency(ExternalDependency):
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
         self.boost_root = None
+        self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
         self.modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
@@ -522,7 +523,7 @@ class BoostDependency(ExternalDependency):
         except (KeyError, IndexError, AttributeError):
             pass
 
-        libs = [x for x in libs if x.static == self.static]
+        libs = [x for x in libs if x.static == self.static or not self.explicit_static]
         libs = [x for x in libs if x.mt == self.multithreading]
         libs = [x for x in libs if x.version_matches(lib_vers)]
         libs = [x for x in libs if x.arch_matches(self.arch)]
