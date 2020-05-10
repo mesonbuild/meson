@@ -40,6 +40,7 @@ known_cpu_families = (
     'alpha',
     'arc',
     'arm',
+    'avr',
     'c2000',
     'e2k',
     'ia64',

@@ -81,6 +81,7 @@ set in the cross file.
 | alpha               | DEC Alpha processor      |
 | arc                 | 32 bit ARC processor     |
 | arm                 | 32 bit ARM processor     |
+| avr                 | Atmel AVR processor      |
 | e2k                 | MCST Elbrus processor    |
 | c2000               | 32 bit C2000 processor   |
 | ia64                | Itanium processor        |
