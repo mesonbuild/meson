@@ -727,24 +727,29 @@ class CLikeCompiler:
         # need to look for them differently. On nice compilers like clang, we
         # can just directly use the __has_builtin() macro.
         fargs['no_includes'] = '#include' not in prefix
-        fargs['__builtin_'] = '' if funcname.startswith('__builtin_') else '__builtin_'
+        is_builtin = funcname.startswith('__builtin_')
+        fargs['is_builtin'] = is_builtin
+        fargs['__builtin_'] = '' if is_builtin else '__builtin_'
         t = '''{prefix}
         int main(void) {{
+
+        /* With some toolchains (MSYS2/mingw for example) the compiler
+         * provides various builtins which are not really implemented and
+         * fall back to the stdlib where they aren't provided and fail at
+         * build/link time. In case the user provides a header, including
+         * the header didn't lead to the function being defined, and the
+         * function we are checking isn't a builtin itself we assume the
+         * builtin is not functional and we just error out. */
+        #if !{no_includes:d} && !defined({func}) && !{is_builtin:d}
+            #error "No definition for {__builtin_}{func} found in the prefix"
+        #endif
+
         #ifdef __has_builtin
             #if !__has_builtin({__builtin_}{func})
                 #error "{__builtin_}{func} not found"
             #endif
         #elif ! defined({func})
-            /* Check for {__builtin_}{func} only if no includes were added to the
-             * prefix above, which means no definition of {func} can be found.
-             * We would always check for this, but we get false positives on
-             * MSYS2 if we do. Their toolchain is broken, but we can at least
-             * give them a workaround. */
-            #if {no_includes:d}
-                {__builtin_}{func};
-            #else
-                #error "No definition for {__builtin_}{func} found in the prefix"
-            #endif
+            {__builtin_}{func};
         #endif
         return 0;
         }}'''
