@@ -27,10 +27,10 @@ if T.TYPE_CHECKING:
 
 arm_buildtype_args = {
     'plain': [],
-    'debug': ['-O0', '--debug'],
-    'debugoptimized': ['-O1', '--debug'],
-    'release': ['-O3', '-Otime'],
-    'minsize': ['-O3', '-Ospace'],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
@@ -38,9 +38,9 @@ arm_optimization_args = {
     '0': ['-O0'],
     'g': ['-g'],
     '1': ['-O1'],
-    '2': ['-O2'],
-    '3': ['-O3'],
-    's': [],
+    '2': [], # Compiler defaults to -O2
+    '3': ['-O3', '-Otime'],
+    's': ['-O3'], # Compiler defaults to -Ospace
 }  # type: T.Dict[str, T.List[str]]
 
 armclang_buildtype_args = {
