@@ -289,7 +289,15 @@ class ConverterTarget:
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
                 if m:
-                    self.override_options += ['{}_std={}'.format(i, m.group(2))]
+                    std = m.group(2)
+                    if std not in self._all_lang_stds(i):
+                        mlog.warning(
+                            'Unknown {}_std "{}" -> Ingoring. Try setting the project'
+                            'level {}_std if build errors occur.'.format(i, std),
+                            once=True
+                        )
+                        continue
+                    self.override_options += ['{}_std={}'.format(i, std)]
                 elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
                     self.pie = True
                 elif j in blacklist_compiler_flags:
@@ -538,6 +546,13 @@ class ConverterTarget:
         for exts in lang_suffixes.values():
             suffixes += [x for x in exts]
         return suffixes
+
+    @lru_cache(maxsize=None)
+    def _all_lang_stds(self, lang: str) -> T.List[str]:
+        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
+        if not lang_opts or 'std' not in lang_opts:
+            return []
+        return lang_opts['std'].choices
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
