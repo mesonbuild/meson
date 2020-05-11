@@ -45,20 +45,20 @@ arm_optimization_args = {
 
 armclang_buildtype_args = {
     'plain': [],
-    'debug': ['-O0', '-g'],
-    'debugoptimized': ['-O1', '-g'],
-    'release': ['-Os'],
-    'minsize': ['-Oz'],
+    'debug': [],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
 armclang_optimization_args = {
-    '0': ['-O0'],
+    '0': [], # Compiler defaults to -O0
     'g': ['-g'],
     '1': ['-O1'],
     '2': ['-O2'],
     '3': ['-O3'],
-    's': ['-Os']
+    's': ['-Oz']
 }  # type: T.Dict[str, T.List[str]]
 
 
