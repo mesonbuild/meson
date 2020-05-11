@@ -181,7 +181,7 @@ class ArmclangCompiler:
 
     # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
+        return ['-MD', '-MT', outtarget, '-MF', outfile]
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return armclang_optimization_args[optimization_level]
