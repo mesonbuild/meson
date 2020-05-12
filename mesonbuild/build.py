@@ -776,7 +776,7 @@ class BuildTarget(Target):
             if isinstance(src, str):
                 src = File(False, self.subdir, src)
             elif isinstance(src, File):
-                FeatureNew('File argument for extract_objects', '0.50.0').use(self.subproject)
+                FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
             else:
                 raise MesonException('Object extraction arguments must be strings or Files.')
             # FIXME: It could be a generated source
@@ -2160,7 +2160,7 @@ class CustomTarget(Target):
                                            'when installing a target')
 
                 if isinstance(kwargs['install_dir'], list):
-                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use(self.subproject)
+                    FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))

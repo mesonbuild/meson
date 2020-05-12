@@ -584,7 +584,7 @@ class InterpreterBase:
         self.argument_depth += 1
         for key, value in kwargs.items():
             if not isinstance(key, mparser.StringNode):
-                FeatureNew('Dictionary entry using non literal key', '0.53.0').use(self.subproject)
+                FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
             assert isinstance(key, mparser.BaseNode)  # All keys must be nodes due to resolve_key_nodes=False
             str_key = self.evaluate_statement(key)
             if not isinstance(str_key, str):

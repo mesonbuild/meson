@@ -76,7 +76,7 @@ class DependenciesHelper:
         processed_reqs = []
         for obj in mesonlib.unholder(mesonlib.listify(reqs)):
             if not isinstance(obj, str):
-                FeatureNew('pkgconfig.generate requirement from non-string object', '0.46.0').use(self.state.subproject)
+                FeatureNew.single_use('pkgconfig.generate requirement from non-string object', '0.46.0', self.state.subproject)
             if hasattr(obj, 'generated_pc'):
                 self._check_generated_pc_deprecation(obj)
                 processed_reqs.append(obj.generated_pc)
@@ -401,9 +401,9 @@ class PkgConfigModule(ExtensionModule):
         mainlib = None
         default_subdirs = ['.']
         if not args and 'version' not in kwargs:
-            FeatureNew('pkgconfig.generate implicit version keyword', '0.46.0').use(state.subproject)
+            FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
         elif len(args) == 1:
-            FeatureNew('pkgconfig.generate optional positional argument', '0.46.0').use(state.subproject)
+            FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
             mainlib = getattr(args[0], 'held_object', args[0])
             if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
                 raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
