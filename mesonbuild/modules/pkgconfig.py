@@ -394,8 +394,6 @@ class PkgConfigModule(ExtensionModule):
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
                       'dataonly', 'conflicts'})
     def generate(self, state, args, kwargs):
-        if 'variables' in kwargs:
-            FeatureNew('custom pkgconfig variables', '0.41.0').use(state.subproject)
         default_version = state.project_version['version']
         default_install_dir = None
         default_description = None
