@@ -29,7 +29,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
-from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
+from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
@@ -527,8 +527,9 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     @noPosargs
     @permittedKwargs({})
+    @FeatureDeprecated('ExternalProgram.path', '0.55.0',
+                       'use ExternalProgram.full_path() instead')
     def path_method(self, args, kwargs):
-        mlog.deprecation('path() method is deprecated and replaced by full_path()')
         return self._full_path()
 
     @noPosargs
@@ -3686,6 +3687,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Unknown target_type.')
 
     @permittedKwargs(permitted_kwargs['vcs_tag'])
+    @FeatureDeprecatedKwargs('custom_target', '0.47.0', ['build_always'],
+                             'combine build_by_default and build_always_stale instead.')
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
