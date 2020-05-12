@@ -658,7 +658,7 @@ class CLikeCompiler:
         # is not run so we don't care what the return value is.
         main = '''\nint main(void) {{
             void *a = (void*) &{func};
-            long b = (long) a;
+            long long b = (long long) a;
             return (int) b;
         }}'''
         return head, main
