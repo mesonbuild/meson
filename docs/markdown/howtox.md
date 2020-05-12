@@ -260,3 +260,26 @@ The `cmake_module_path` property is only needed for custom CMake scripts. System
 wide CMake scripts are found automatically.
 
 More information can be found [here](Dependencies.md#cmake)
+
+## Get a default not-found dependency?
+
+```meson
+null_dep = dependency('', required : false)
+```
+
+This can be used in cases where you want a default value, but might override it
+later.
+
+```meson
+my_dep = dependency('', required : false)
+if host_machine.system() in ['freebsd', 'netbsd', 'openbsd', 'dragonfly']
+  my_dep = dependency('some dep', required : false)
+elif host_machine.system() == 'linux'
+  my_dep = dependency('some other dep', required : false)
+endif
+
+# Last ditch effort!
+if no my_dep.found()
+  my_dep = meson.get_compiler('c').find_library('dep')
+endif
+```
