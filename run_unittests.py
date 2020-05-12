@@ -6079,6 +6079,39 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
 
+    def test_global_rpath(self):
+        if is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+        if is_osx():
+            raise unittest.SkipTest('Global RPATHs via LDFLAGS not yet supported on MacOS (does anybody need it?)')
+
+        testdir = os.path.join(self.unit_test_dir, '77 global-rpath')
+        oldinstalldir = self.installdir
+
+        # Build and install an external library without DESTDIR.
+        # The external library generates a .pc file without an rpath.
+        yonder_dir = os.path.join(testdir, 'yonder')
+        yonder_prefix = os.path.join(oldinstalldir, 'yonder')
+        yonder_libdir = os.path.join(yonder_prefix, self.libdir)
+        self.prefix = yonder_prefix
+        self.installdir = yonder_prefix
+        self.init(yonder_dir)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        # Build an app that uses that installed library.
+        # Supply the rpath to the installed library via LDFLAGS
+        # (as systems like buildroot and guix are wont to do)
+        # and verify install preserves that rpath.
+        env = {'LDFLAGS': '-Wl,-rpath=' + yonder_libdir,
+               'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
+        self.init(testdir, override_envvars=env)
+        self.build()
+        self.install(use_destdir=False)
+        got_rpath = get_rpath(os.path.join(yonder_prefix, 'bin/rpathified'))
+        self.assertEqual(got_rpath, yonder_libdir)
+
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():

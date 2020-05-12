@@ -444,6 +444,21 @@ class Backend:
                 return True
         return False
 
+    def get_external_rpath_dirs(self, target):
+        dirs = set()
+        args = []
+        # FIXME: is there a better way?
+        for lang in ['c', 'cpp']:
+            try:
+                args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
+            except Exception:
+                pass
+        for arg in args:
+            if arg.startswith('-Wl,-rpath='):
+                for dir in arg.replace('-Wl,-rpath=','').split(':'):
+                    dirs.add(dir)
+        return dirs
+
     def rpaths_for_bundled_shared_libraries(self, target, exclude_system=True):
         paths = []
         for dep in target.external_deps:
@@ -457,6 +472,9 @@ class Backend:
             libdir = os.path.dirname(libpath)
             if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
                 # No point in adding system paths.
+                continue
+            # Don't remove rpaths specified in LDFLAGS.
+            if libdir in self.get_external_rpath_dirs(target):
                 continue
             # Windows doesn't support rpaths, but we use this function to
             # emulate rpaths by setting PATH, so also accept DLLs here
