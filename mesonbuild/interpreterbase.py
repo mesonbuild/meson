@@ -286,6 +286,13 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
+    @classmethod
+    def single_use(cls, feature_name: str, version: str, subproject: str,
+                   extra_message: T.Optional[str] = None) -> None:
+        """Oneline version that instantiates and calls use()."""
+        cls(feature_name, version, extra_message).use(subproject)
+
+
 class FeatureNew(FeatureCheckBase):
     """Checks for new features"""
 
@@ -342,7 +349,13 @@ class FeatureDeprecated(FeatureCheckBase):
         mlog.warning(*args)
 
 
-class FeatureCheckKwargsBase:
+class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
+
+    @property
+    @abc.abstractmethod
+    def feature_check_class(self) -> T.Type[FeatureCheckBase]:
+        pass
+
     def __init__(self, feature_name: str, feature_version: str, kwargs: T.List[str]):
         self.feature_name = feature_name
         self.feature_version = feature_version
@@ -351,8 +364,6 @@ class FeatureCheckKwargsBase:
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            # Which FeatureCheck class to invoke
-            FeatureCheckClass = self.feature_check_class
             kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
             if subproject is None:
                 raise AssertionError('{!r}'.format(wrapped_args))
@@ -360,7 +371,7 @@ class FeatureCheckKwargsBase:
                 if arg not in kwargs:
                     continue
                 name = arg + ' arg in ' + self.feature_name
-                FeatureCheckClass(name, self.feature_version).use(subproject)
+                self.feature_check_class.single_use(name, self.feature_version, subproject)
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
