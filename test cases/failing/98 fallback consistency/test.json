@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/98 fallback consistency/meson.build:4:0: ERROR: Inconsistency: Subproject has overridden the dependency with another variable than 'dep2'"
+    }
+  ]
+}
