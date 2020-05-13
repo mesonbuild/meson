@@ -1131,7 +1131,7 @@ class Compiler:
     def remove_linkerlike_args(self, args):
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
-        rm_next = ('-L',)
+        rm_next = ('-L', '-framework',)
         ret = []
         iargs = iter(args)
         for arg in iargs:
