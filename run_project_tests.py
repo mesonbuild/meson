@@ -417,6 +417,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     match = bool(re.match(expected, actual))
                 else:
                     match = (expected == actual)
+                    print(actual)
                 if match:
                     how, expected = next_expected(i)
 

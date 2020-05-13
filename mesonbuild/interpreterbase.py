@@ -220,9 +220,10 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     # This will be overwritten by the subclasses by necessity
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
-    def __init__(self, feature_name: str, version: str):
+    def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None):
         self.feature_name = feature_name  # type: str
         self.feature_version = version    # type: str
+        self.extra_message = extra_message or ''  # type: str
 
     @staticmethod
     def get_target_version(subproject: str) -> str:
@@ -302,8 +303,15 @@ class FeatureNew(FeatureCheckBase):
         return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
 
     def log_usage_warning(self, tv: str) -> None:
-        mlog.warning('Project targeting \'{}\' but tried to use feature introduced '
-                     'in \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
+        args = [
+            'Project targeting', "'{}'".format(tv),
+            'but tried to use feature introduced in',
+            "'{}':".format(self.feature_version),
+            '{}.'.format(self.feature_name),
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args)
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
@@ -323,9 +331,15 @@ class FeatureDeprecated(FeatureCheckBase):
         return 'Deprecated features used:'
 
     def log_usage_warning(self, tv: str) -> None:
-        mlog.deprecation('Project targeting \'{}\' but tried to use feature '
-                         'deprecated since \'{}\': {}'
-                         ''.format(tv, self.feature_version, self.feature_name))
+        args = [
+            'Project targeting', "'{}'".format(tv),
+            'but tried to use feature deprecated since',
+            "'{}':".format(self.feature_version),
+            '{}.'.format(self.feature_name),
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args)
 
 
 class FeatureCheckKwargsBase:
