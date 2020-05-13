@@ -585,7 +585,7 @@ int dummy;
                 o = self.generate_llvm_ir_compile(target, src)
             else:
                 o = self.generate_single_compile(target, src, True,
-                                                 header_deps=header_deps)
+                                                 order_deps=header_deps)
             obj_list.append(o)
 
         use_pch = self.environment.coredata.base_options.get('b_pch', False)
