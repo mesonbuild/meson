@@ -5325,7 +5325,7 @@ class DarwinTests(BasePlatformTests):
 
     def test_removing_unused_linker_args(self):
         testdir = os.path.join(self.common_test_dir, '108 has arg')
-        env = {'CFLAGS': '-L/tmp -L /var/tmp -headerpad_max_install_names -Wl,-export_dynamic'}
+        env = {'CFLAGS': '-L/tmp -L /var/tmp -headerpad_max_install_names -Wl,-export_dynamic -framework Foundation'}
         self.init(testdir, override_envvars=env)
 
 
