@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/105 no glib-compile-resources/meson.build:8:0: ERROR: Could not execute glib-compile-resources."
+    }
+  ]
+}
