@@ -617,8 +617,7 @@ class GnomeModule(ExtensionModule):
 
     def _make_gir_filelist(self, state, srcdir, ns, nsversion, girtargets, libsources):
         gir_filelist_dir = state.backend.get_target_private_dir_abs(girtargets[0])
-        if not os.path.isdir(gir_filelist_dir):
-            os.mkdir(gir_filelist_dir)
+        os.makedirs(gir_filelist_dir, exist_ok=True)
         gir_filelist_filename = os.path.join(gir_filelist_dir, '%s_%s_gir_filelist' % (ns, nsversion))
 
         with open(gir_filelist_filename, 'w', encoding='utf-8') as gir_filelist:
