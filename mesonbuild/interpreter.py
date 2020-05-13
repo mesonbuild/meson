@@ -1873,6 +1873,7 @@ class MesonMain(InterpreterObject):
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build': self.is_cross_build_method,
                              'has_exe_wrapper': self.has_exe_wrapper_method,
+                             'can_run_host_binaries': self.can_run_host_binaries_method,
                              'is_unity': self.is_unity_method,
                              'is_subproject': self.is_subproject_method,
                              'current_source_dir': self.current_source_dir_method,
@@ -2023,9 +2024,16 @@ class MesonMain(InterpreterObject):
 
     @noPosargs
     @permittedKwargs({})
-    def has_exe_wrapper_method(self, args, kwargs):
-        if self.is_cross_build_method(None, None) and \
-           self.build.environment.need_exe_wrapper():
+    @FeatureDeprecated('meson.has_exe_wrapper', '0.55.0', 'use meson.can_run_host_binaries instead.')
+    def has_exe_wrapper_method(self, args: T.Tuple[object, ...], kwargs: T.Dict[str, object]) -> bool:
+        return self.can_run_host_binaries_method(args, kwargs)
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('meson.can_run_host_binaries', '0.55.0')
+    def can_run_host_binaries_method(self, args: T.Tuple[object, ...], kwargs: T.Dict[str, object]) -> bool:
+        if (self.is_cross_build_method(None, None) and
+                self.build.environment.need_exe_wrapper()):
             if self.build.environment.exe_wrapper is None:
                 return False
         # We return True when exe_wrap is defined, when it's not needed, and

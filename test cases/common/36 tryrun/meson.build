@@ -2,7 +2,7 @@ project('tryrun', 'c', 'cpp')
 
 # Complex to exercise all code paths.
 if meson.is_cross_build()
-  if meson.has_exe_wrapper()
+  if meson.can_run_host_binaries()
     compilers = [meson.get_compiler('c', native : false), meson.get_compiler('cpp', native : false)]
   else
     compilers = [meson.get_compiler('c', native : true), meson.get_compiler('cpp', native : true)]

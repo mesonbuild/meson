@@ -1,7 +1,7 @@
 project('exe wrapper behaviour', 'c')
 
 assert(meson.is_cross_build(), 'not setup as cross build')
-assert(meson.has_exe_wrapper(), 'exe wrapper not defined?')
+assert(meson.has_exe_wrapper(), 'exe wrapper not defined?')  # intentionally not changed to can_run_host_binaries,
 
 exe = executable('prog', 'prog.c')
 
