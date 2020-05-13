@@ -1836,10 +1836,14 @@ the following methods.
   If `native: false` or not specified, variable is retrieved from the
   cross-file if cross-compiling, and from the native-file when not cross-compiling.
 
-- `has_exe_wrapper()` returns true when doing a cross build if there
-  is a wrapper command that can be used to execute cross built
-  binaries (for example when cross compiling from Linux to Windows,
-  one can use `wine` as the wrapper).
+- `can_run_host_binaries()` returns true if the build machine can run
+  binaries compiled for the host. This returns true unless you are
+  cross compiling, need a helper to run host binaries, and don't have one.
+  For example when cross compiling from Linux to Windows, one can use `wine`
+  as the helper. *New in 0.55.0*
+
+- `has_exe_wrapper()` alias of `can_run_host_binaries`
+  *Deprecated since 0.55.0*
 
 - `install_dependency_manifest(output_name)` installs a manifest file
   containing a list of all subprojects, their versions and license

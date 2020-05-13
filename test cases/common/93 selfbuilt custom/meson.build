@@ -26,7 +26,7 @@ ctlib = custom_target('ctlib',
   build_by_default : true,
 )
 
-if meson.is_cross_build() and meson.has_exe_wrapper()
+if meson.is_cross_build() and meson.can_run_host_binaries()
   checkarg_host = executable('checkarg_host', 'checkarg.cpp')
 
   ctlib_host = custom_target(

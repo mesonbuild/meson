@@ -231,12 +231,9 @@ The main *meson* object provides two functions to determine cross
 compilation status.
 
 ```meson
-meson.is_cross_build()  # returns true when cross compiling
-meson.has_exe_wrapper() # returns true if an exe wrapper has been defined
+meson.is_cross_build()        # returns true when cross compiling
+meson.can_run_host_binaries() # returns true if the host binaries can be run, either with a wrapper or natively
 ```
-
-Note that the latter gives undefined return value when doing a native
-build.
 
 You can run system checks on both the system compiler or the cross
 compiler. You just have to specify which one to use.
