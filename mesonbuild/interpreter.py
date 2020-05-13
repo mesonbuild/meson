@@ -3504,7 +3504,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
-            self.message_impl([not_found_message])
         # Override this dependency to have consistent results in subsequent
         # dependency lookups.
         if name and d.found():
