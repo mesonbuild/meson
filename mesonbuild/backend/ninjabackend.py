@@ -570,7 +570,7 @@ int dummy;
                     generated_source_files.append(raw_src)
             elif self.environment.is_object(rel_src):
                 obj_list.append(rel_src)
-            elif self.environment.is_library(rel_src):
+            elif self.environment.is_library(rel_src) or modules.is_module_library(rel_src):
                 pass
             else:
                 # Assume anything not specifically a source file is a header. This is because
