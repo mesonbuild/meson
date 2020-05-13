@@ -2595,6 +2595,11 @@ int main(int argc, char **argv) {
         self.init(testdir, extra_args=['--layout=flat'])
         self.build()
 
+    def test_generate_gir_with_flat_layout(self):
+        testdir = os.path.join(self.framework_test_dir, '7 gnome')
+        self.init(testdir, ['-Dlayout=flat'])
+        self.build()
+
     def test_flock(self):
         exception_raised = False
         with tempfile.TemporaryDirectory() as tdir:
