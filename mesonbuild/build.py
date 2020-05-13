@@ -497,6 +497,7 @@ class BuildTarget(Target):
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
+        self.added_deps = set()
         self.name_prefix_set = False
         self.name_suffix_set = False
         self.filename = 'no_name'
@@ -1053,6 +1054,8 @@ This will become a hard error in a future Meson release.''')
     def add_deps(self, deps):
         deps = listify(deps)
         for dep in unholder(deps):
+            if dep in self.added_deps:
+                continue
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
@@ -1091,6 +1094,7 @@ You probably should put it in link_with instead.''')
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
                                        'declare_dependency()).'.format(type(dep).__name__))
+            self.added_deps.add(dep)
 
     def get_external_deps(self):
         return self.external_deps
