@@ -494,7 +494,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         value = self.__container[index]
         del self.__container[index]
         if value in self.__seen_args and value in self.__container: # this is also honoring that you can have duplicated entries
-          self.__seen_args.remove(value)
+            self.__seen_args.remove(value)
 
     def __len__(self) -> int:
         return len(self.__container)
@@ -688,7 +688,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             should_prepend = self._should_prepend(arg)
             if dedup == 2:
                 # Remove all previous occurrences of the arg and add it anew
-                if arg in self.__seen_args and arg not in this_round_added: #if __seen_args contains arg as well as this_round_added, then its not yet part in self.
+                if arg in self.__seen_args and arg not in this_round_added:  # if __seen_args contains arg as well as this_round_added, then its not yet part in self.
                     self.remove(arg)
                 if should_prepend:
                     if arg in pre:
@@ -954,7 +954,7 @@ class Compiler:
         return args
 
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, *, mode='link', want_output=False, temp_dir=None):
+    def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None):
         if extra_args is None:
             extra_args = []
         try:
