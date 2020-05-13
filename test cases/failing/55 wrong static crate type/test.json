@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/55 wrong static crate type/meson.build:7:0: ERROR: Crate type \"cdylib\" invalid for static libraries; must be \"rlib\" or \"staticlib\""
+    }
+  ]
+}

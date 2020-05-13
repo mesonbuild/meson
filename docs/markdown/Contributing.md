@@ -329,10 +329,31 @@ Currently supported values are:
 
 #### tools
 
-This section specifies a list of tool requirements in a simple key-value format.
+This section specifies a dict of tool requirements in a simple key-value format.
 If a tool is specified, it has to be present in the environment, and the version
-requirement must be fulfilled match. Otherwise, the entire test is skipped
-(including every element in the test matrix).
+requirement must be fulfilled. Otherwise, the entire test is skipped (including
+every element in the test matrix).
+
+#### stdout
+
+The `stdout` key contains a list of dicts, describing the expected stdout.
+
+Each dict contains the following keys:
+
+- `line`
+- `match` (optional)
+
+Each item in the list is matched, in order, against the remaining actual stdout
+lines, after any previous matches. If the actual stdout is exhausted before
+every item in the list is matched, the expected output has not been seen, and
+the test has failed.
+
+The `match` element of the dict determines how the `line` element is matched:
+
+| Type      | Description             |
+| --------  | ----------------------- |
+| `literal` | Literal match (default) |
+| `re`      | regex match             |
 
 ### Skipping integration tests
 

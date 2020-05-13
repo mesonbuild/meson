@@ -303,7 +303,7 @@ def run_configure(commandlist, env=None):
     return run_configure_inprocess(commandlist, env=env)
 
 def print_system_info():
-    print(mlog.bold('System information.').get_text(mlog.colorize_console))
+    print(mlog.bold('System information.').get_text(mlog.colorize_console()))
     print('Architecture:', platform.architecture())
     print('Machine:', platform.machine())
     print('Platform:', platform.system())
@@ -377,7 +377,7 @@ def main():
                 print(flush=True)
                 returncode = 0
             else:
-                print(mlog.bold('Running unittests.').get_text(mlog.colorize_console))
+                print(mlog.bold('Running unittests.').get_text(mlog.colorize_console()))
                 print(flush=True)
                 cmd = mesonlib.python_command + ['run_unittests.py', '-v']
                 if options.failfast:
@@ -390,7 +390,7 @@ def main():
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
             for cf in options.cross:
-                print(mlog.bold('Running {} cross tests.'.format(cf)).get_text(mlog.colorize_console))
+                print(mlog.bold('Running {} cross tests.'.format(cf)).get_text(mlog.colorize_console()))
                 print(flush=True)
                 cmd = cross_test_args + ['cross/' + cf]
                 if options.failfast:

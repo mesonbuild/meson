@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/50 executable comparison/meson.build:6:0: ERROR: exe1 can only be compared for equality."
+    }
+  ]
+}

@@ -3168,6 +3168,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         return should
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
+        langs = set(self.coredata.compilers[for_machine].keys())
+        langs.update(args)
+        if 'vala' in langs:
+            if 'c' not in langs:
+                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
+
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
             lang = lang.lower()
@@ -3204,11 +3210,6 @@ external dependencies (including libraries) must go to "dependencies".''')
                 logger_fun(comp.get_display_language(), 'linker for the', machine_name, 'machine:',
                            mlog.bold(' '.join(comp.linker.get_exelist())), comp.linker.id, comp.linker.version)
             self.build.ensure_static_linker(comp)
-
-        langs = self.coredata.compilers[for_machine].keys()
-        if 'vala' in langs:
-            if 'c' not in langs:
-                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
         return success
 
@@ -3950,7 +3951,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         absname = os.path.join(self.environment.get_source_dir(), buildfilename)
         if not os.path.isfile(absname):
             self.subdir = prev_subdir
-            raise InterpreterException('Non-existent build file {!r}'.format(buildfilename))
+            raise InterpreterException("Non-existent build file '{!s}'".format(buildfilename))
         with open(absname, encoding='utf8') as f:
             code = f.read()
         assert(isinstance(code, str))
@@ -3998,7 +3999,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             elif isinstance(s, str):
                 source_strings.append(s)
             else:
-                raise InvalidArguments('Argument {!r} must be string or file.'.format(s))
+                raise InvalidArguments('Argument must be string or file.')
         sources += self.source_strings_to_files(source_strings)
         install_dir = kwargs.get('install_dir', None)
         if not isinstance(install_dir, (str, type(None))):
@@ -4272,8 +4273,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         for a in incdir_strings:
             if a.startswith(src_root):
-                raise InvalidArguments('''Tried to form an absolute path to a source dir. You should not do that but use
-relative paths instead.
+                raise InvalidArguments('Tried to form an absolute path to a source dir. '
+                                       'You should not do that but use relative paths instead.'
+                                       '''
 
 To get include path to any directory relative to the current dir do
 
