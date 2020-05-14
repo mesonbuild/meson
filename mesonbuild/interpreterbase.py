@@ -356,10 +356,12 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
     def feature_check_class(self) -> T.Type[FeatureCheckBase]:
         pass
 
-    def __init__(self, feature_name: str, feature_version: str, kwargs: T.List[str]):
+    def __init__(self, feature_name: str, feature_version: str,
+                 kwargs: T.List[str], extra_message: T.Optional[str] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.kwargs = kwargs
+        self.extra_message = extra_message
 
     def __call__(self, f):
         @wraps(f)
@@ -371,7 +373,8 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
                 if arg not in kwargs:
                     continue
                 name = arg + ' arg in ' + self.feature_name
-                self.feature_check_class.single_use(name, self.feature_version, subproject)
+                self.feature_check_class.single_use(
+                        name, self.feature_version, subproject, self.extra_message)
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
