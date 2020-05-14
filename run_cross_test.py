@@ -21,8 +21,9 @@ This is now just a wrapper around run_project_tests.py with specific arguments
 
 import argparse
 import subprocess
-import sys
 from mesonbuild import mesonlib
+from mesonbuild.coredata import version as meson_version
+
 
 def runtests(cross_file, failfast):
     tests = ['--only', 'common']
@@ -37,4 +38,5 @@ def main():
     return runtests(options.cross_file, options.failfast)
 
 if __name__ == '__main__':
-    sys.exit(main())
+    print('Meson build system', meson_version, 'Cross Tests')
+    raise SystemExit(main())
