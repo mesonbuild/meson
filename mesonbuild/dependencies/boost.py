@@ -605,6 +605,12 @@ class BoostDependency(ExternalDependency):
                 roots += paths
                 return roots  # Do not add system paths if BOOST_ROOT is present
 
+        # Add roots from system paths
+        inc_paths = [Path(x) for x in self.clib_compiler.get_default_include_dirs()]
+        inc_paths = [x.parent for x in inc_paths if x.exists()]
+        inc_paths = [x.resolve() for x in inc_paths]
+        roots += inc_paths
+
         # Add system paths
         if self.env.machines[self.for_machine].is_windows():
             # Where boost built from source actually installs it
@@ -626,8 +632,6 @@ class BoostDependency(ExternalDependency):
             roots += [x for x in candidates if x.name.lower().startswith('boost') and x.is_dir()]
         else:
             tmp = []  # type: T.List[Path]
-            # Add unix paths
-            tmp += [Path(x).parent for x in self.clib_compiler.get_default_include_dirs()]
 
             # Homebrew
             brew_boost = Path('/usr/local/Cellar/boost')
