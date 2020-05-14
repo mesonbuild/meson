@@ -290,8 +290,8 @@ class ConverterTarget:
                     std = m.group(2)
                     if std not in self._all_lang_stds(i):
                         mlog.warning(
-                            'Unknown {}_std "{}" -> Ingoring. Try setting the project'
-                            'level {}_std if build errors occur.'.format(i, std),
+                            'Unknown {0}_std "{1}" -> Ignoring. Try setting the project-'
+                            'level {0}_std if build errors occur.'.format(i, std),
                             once=True
                         )
                         continue
