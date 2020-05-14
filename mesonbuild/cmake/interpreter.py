@@ -288,10 +288,12 @@ class ConverterTarget:
                 m = ConverterTarget.std_regex.match(j)
                 if m:
                     std = m.group(2)
-                    if std not in self._all_lang_stds(i):
+                    supported = self._all_lang_stds(i)
+                    if std not in supported:
                         mlog.warning(
                             'Unknown {0}_std "{1}" -> Ignoring. Try setting the project-'
-                            'level {0}_std if build errors occur.'.format(i, std),
+                            'level {0}_std if build errors occur. Known '
+                            '{0}_stds are: {2}'.format(i, std, ' '.join(supported)),
                             once=True
                         )
                         continue
@@ -547,10 +549,10 @@ class ConverterTarget:
 
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
-        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
-        if not lang_opts or 'std' not in lang_opts:
+        lang_std = self.env.coredata.compiler_options.build.get(lang + '_std', None)
+        if not lang_std:
             return []
-        return lang_opts['std'].choices
+        return lang_std.choices
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
