@@ -381,8 +381,8 @@ class CoreData:
         self.compiler_check_cache = OrderedDict()
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
+        self.builtin_options_libdir_cross_fixup()
         self.init_builtins('')
-        self.libdir_cross_fixup()
 
     @staticmethod
     def __load_config_files(options: argparse.Namespace, scratch_dir: str, ftype: str) -> T.List[str]:
@@ -442,12 +442,12 @@ class CoreData:
             raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
         return real
 
-    def libdir_cross_fixup(self):
+    def builtin_options_libdir_cross_fixup(self):
         # By default set libdir to "lib" when cross compiling since
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            self.builtins['libdir'].value = 'lib'
+            builtin_options['libdir'].default = 'lib'
 
     def sanitize_prefix(self, prefix):
         prefix = os.path.expanduser(prefix)
