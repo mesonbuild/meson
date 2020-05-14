@@ -406,6 +406,9 @@ class QtBaseDependency(ExternalDependency):
             if libfile:
                 libfile = libfile[0]
             else:
+                mlog.log("Could not find:", module,
+                         self.qtpkgname + module + modules_lib_suffix,
+                         'in', libdir)
                 self.is_found = False
                 break
             self.link_args.append(libfile)
@@ -426,6 +429,17 @@ class QtBaseDependency(ExternalDependency):
         if self.env.machines[self.for_machine].is_darwin():
             if is_debug:
                 suffix += '_debug'
+        if mesonlib.version_compare(self.version, '>= 5.14.0'):
+            if self.env.machines[self.for_machine].is_android():
+                cpu_family = self.env.machines[self.for_machine].cpu_family
+                if cpu_family == 'x86':
+                    suffix += '_x86'
+                elif cpu_family == 'x86_64':
+                    suffix += '_x86_64'
+                elif cpu_family == 'arm':
+                    suffix += '_armeabi-v7a'
+                elif cpu_family == 'aarch64':
+                    suffix += '_arm64-v8a'
         return suffix
 
     def _link_with_qtmain(self, is_debug, libdir):
