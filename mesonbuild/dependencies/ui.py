@@ -440,6 +440,9 @@ class QtBaseDependency(ExternalDependency):
                     suffix += '_armeabi-v7a'
                 elif cpu_family == 'aarch64':
                     suffix += '_arm64-v8a'
+                else:
+                    mlog.warning('Android target arch {!r} for Qt5 is unknown, '
+                                 'module detection may not work'.format(cpu_family))
         return suffix
 
     def _link_with_qtmain(self, is_debug, libdir):
