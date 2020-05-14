@@ -38,7 +38,7 @@ if T.TYPE_CHECKING:
 
     OptionDictType = T.Dict[str, 'UserOption[T.Any]']
 
-version = '0.54.1'
+version = '0.54.2'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
