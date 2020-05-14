@@ -1468,14 +1468,14 @@ class DataTests(unittest.TestCase):
 
 
 class BasePlatformTests(unittest.TestCase):
+    prefix = '/usr'
+    libdir = 'lib'
     def setUp(self):
         super().setUp()
         self.maxDiff = None
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
-        self.prefix = '/usr'
-        self.libdir = 'lib'
         # Get the backend
         # FIXME: Extract this from argv?
         self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
@@ -1588,8 +1588,9 @@ class BasePlatformTests(unittest.TestCase):
             extra_args = [extra_args]
         args = [srcdir, self.builddir]
         if default_args:
-            args += ['--prefix', self.prefix,
-                     '--libdir', self.libdir]
+            args += ['--prefix', self.prefix]
+            if self.libdir:
+                args += ['--libdir', self.libdir]
             if self.meson_native_file:
                 args += ['--native-file', self.meson_native_file]
             if self.meson_cross_file:
@@ -6634,11 +6635,17 @@ c = ['{0}']
         os.unlink(wrap_filename)
 
 
+class BaseLinuxCrossTests(BasePlatformTests):
+    # Don't pass --libdir when cross-compiling. We have tests that
+    # check whether meson auto-detects it correctly.
+    libdir = None
+
+
 def should_run_cross_arm_tests():
     return shutil.which('arm-linux-gnueabihf-gcc') and not platform.machine().lower().startswith('arm')
 
 @unittest.skipUnless(not is_windows() and should_run_cross_arm_tests(), "requires ability to cross compile to ARM")
-class LinuxCrossArmTests(BasePlatformTests):
+class LinuxCrossArmTests(BaseLinuxCrossTests):
     '''
     Tests that cross-compilation to Linux/ARM works
     '''
@@ -6719,7 +6726,7 @@ def should_run_cross_mingw_tests():
     return shutil.which('x86_64-w64-mingw32-gcc') and not (is_windows() or is_cygwin())
 
 @unittest.skipUnless(not is_windows() and should_run_cross_mingw_tests(), "requires ability to cross compile with MinGW")
-class LinuxCrossMingwTests(BasePlatformTests):
+class LinuxCrossMingwTests(BaseLinuxCrossTests):
     '''
     Tests that cross-compilation to Windows/MinGW works
     '''
