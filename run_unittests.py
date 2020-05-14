@@ -8303,4 +8303,5 @@ def main():
     return unittest.main(defaultTest=cases, buffer=True)
 
 if __name__ == '__main__':
+    print('Meson build system', mesonbuild.coredata.version, 'Unit Tests')
     raise SystemExit(main())

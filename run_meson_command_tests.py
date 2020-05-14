@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import tempfile
 import unittest
@@ -23,6 +22,8 @@ import zipapp
 from pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
+from mesonbuild.coredata import version as meson_version
+
 
 def get_pypath():
     import sysconfig
@@ -195,4 +196,5 @@ class CommandTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    sys.exit(unittest.main(buffer=True))
+    print('Meson build system', meson_version, ' Command Tests')
+    raise SystemExit(unittest.main(buffer=True))

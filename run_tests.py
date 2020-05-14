@@ -33,7 +33,7 @@ from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
-from mesonbuild.coredata import backendlist
+from mesonbuild.coredata import backendlist, version as meson_version
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
@@ -401,4 +401,5 @@ def main():
     return returncode
 
 if __name__ == '__main__':
-    sys.exit(main())
+    print('Meson build system', meson_version, 'Project and Unit Tests')
+    raise SystemExit(main())

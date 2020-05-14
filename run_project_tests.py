@@ -42,7 +42,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
-from mesonbuild.coredata import backendlist
+from mesonbuild.coredata import backendlist, version as meson_version
 
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
@@ -1248,6 +1248,7 @@ if __name__ == '__main__':
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
 
+    print('Meson build system', meson_version, 'Project Tests')
     setup_commands(options.backend)
     detect_system_compiler(options)
     print_tool_versions()
