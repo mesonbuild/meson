@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing as T
 import stat
 import subprocess
 import re
@@ -682,7 +683,6 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([1, [2, [3]]], listify([1, [2, [3]]], flatten=False))
         # Test flattening and unholdering
         holder1 = ObjectHolder(1)
-        holder3 = ObjectHolder(3)
         self.assertEqual([holder1], listify(holder1))
         self.assertEqual([holder1], listify([holder1]))
         self.assertEqual([holder1, 2], listify([holder1, 2]))
@@ -1468,6 +1468,7 @@ class DataTests(unittest.TestCase):
 class BasePlatformTests(unittest.TestCase):
     prefix = '/usr'
     libdir = 'lib'
+
     def setUp(self):
         super().setUp()
         self.maxDiff = None
@@ -1900,48 +1901,48 @@ class AllPlatformTests(BasePlatformTests):
             (result, missing_variables, confdata_useless) = mesonbuild.mesonlib.do_conf_str(in_data, confdata, variable_format = vformat)
             return '\n'.join(result)
 
-        def check_formats (confdata, result):
-          self.assertEqual(conf_str(['#mesondefine VAR'], confdata, 'meson'),result)
-          self.assertEqual(conf_str(['#cmakedefine VAR ${VAR}'], confdata, 'cmake'),result)
-          self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'),result)
+        def check_formats(confdata, result):
+            self.assertEqual(conf_str(['#mesondefine VAR'], confdata, 'meson'), result)
+            self.assertEqual(conf_str(['#cmakedefine VAR ${VAR}'], confdata, 'cmake'), result)
+            self.assertEqual(conf_str(['#cmakedefine VAR @VAR@'], confdata, 'cmake@'), result)
 
         confdata = ConfigurationData()
         # Key error as they do not exists
         check_formats(confdata, '/* #undef VAR */\n')
 
         # Check boolean
-        confdata.values = {'VAR': (False,'description')}
+        confdata.values = {'VAR': (False, 'description')}
         check_formats(confdata, '#undef VAR\n')
-        confdata.values = {'VAR': (True,'description')}
+        confdata.values = {'VAR': (True, 'description')}
         check_formats(confdata, '#define VAR\n')
 
         # Check string
-        confdata.values = {'VAR': ('value','description')}
+        confdata.values = {'VAR': ('value', 'description')}
         check_formats(confdata, '#define VAR value\n')
 
         # Check integer
-        confdata.values = {'VAR': (10,'description')}
+        confdata.values = {'VAR': (10, 'description')}
         check_formats(confdata, '#define VAR 10\n')
 
         # Check multiple string with cmake formats
-        confdata.values = {'VAR': ('value','description')}
-        self.assertEqual(conf_str(['#cmakedefine VAR xxx @VAR@ yyy @VAR@'], confdata, 'cmake@'),'#define VAR xxx value yyy value\n')
-        self.assertEqual(conf_str(['#define VAR xxx @VAR@ yyy @VAR@'], confdata, 'cmake@'),'#define VAR xxx value yyy value')
-        self.assertEqual(conf_str(['#cmakedefine VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'),'#define VAR xxx value yyy value\n')
-        self.assertEqual(conf_str(['#define VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'),'#define VAR xxx value yyy value')
+        confdata.values = {'VAR': ('value', 'description')}
+        self.assertEqual(conf_str(['#cmakedefine VAR xxx @VAR@ yyy @VAR@'], confdata, 'cmake@'), '#define VAR xxx value yyy value\n')
+        self.assertEqual(conf_str(['#define VAR xxx @VAR@ yyy @VAR@'], confdata, 'cmake@'), '#define VAR xxx value yyy value')
+        self.assertEqual(conf_str(['#cmakedefine VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'), '#define VAR xxx value yyy value\n')
+        self.assertEqual(conf_str(['#define VAR xxx ${VAR} yyy ${VAR}'], confdata, 'cmake'), '#define VAR xxx value yyy value')
 
         # Handles meson format exceptions
         #   Unknown format
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#mesondefine VAR xxx'], confdata, 'unknown_format')
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#mesondefine VAR xxx'], confdata, 'unknown_format')
         #   More than 2 params in mesondefine
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#mesondefine VAR xxx'], confdata, 'meson')
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#mesondefine VAR xxx'], confdata, 'meson')
         #   Mismatched line with format
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#cmakedefine VAR'], confdata, 'meson')
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#mesondefine VAR'], confdata, 'cmake')
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#mesondefine VAR'], confdata, 'cmake@')
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#cmakedefine VAR'], confdata, 'meson')
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#mesondefine VAR'], confdata, 'cmake')
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#mesondefine VAR'], confdata, 'cmake@')
         #   Dict value in confdata
-        confdata.values = {'VAR': (['value'],'description')}
-        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str,['#mesondefine VAR'], confdata, 'meson')
+        confdata.values = {'VAR': (['value'], 'description')}
+        self.assertRaises(mesonbuild.mesonlib.MesonException, conf_str, ['#mesondefine VAR'], confdata, 'meson')
 
     def test_absolute_prefix_libdir(self):
         '''
@@ -6521,10 +6522,10 @@ class LinuxlikeTests(BasePlatformTests):
         prog = os.path.join(self.installdir, 'bin', 'client')
         env3 = {}
         if is_cygwin():
-          env3['PATH'] = os.path.join(val1prefix, 'bin') + \
-                        os.pathsep + \
-                        os.path.join(val2prefix, 'bin') + \
-                        os.pathsep + os.environ['PATH']
+            env3['PATH'] = os.path.join(val1prefix, 'bin') + \
+                os.pathsep + \
+                os.path.join(val2prefix, 'bin') + \
+                os.pathsep + os.environ['PATH']
         out = self._run([prog], override_envvars=env3).strip()
         # Expected output is val1 + val2 = 3
         self.assertEqual(out, '3')

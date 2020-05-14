@@ -196,5 +196,5 @@ class CommandTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    print('Meson build system', meson_version, ' Command Tests')
+    print('Meson build system', meson_version, 'Command Tests')
     raise SystemExit(unittest.main(buffer=True))
