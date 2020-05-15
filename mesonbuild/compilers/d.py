@@ -645,7 +645,8 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt', 'b_coverage']
+        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic',
+                             'b_vscrt', 'b_coverage', 'b_pgo']
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
