@@ -317,6 +317,28 @@ VAPI or Vala binaries.
 
 *Added 0.36.0*
 
+### gnome.valadoc()
+
+Generates the Vala documentation using the `valadoc` tool from the source files,
+provided in the `sources` kwarg.
+
+* `doclet_args`: (optional) extra arguments that should be passed to the doclet module
+* `doclet`: the doclet module that should be used (default: `html`)
+* `install`: if true, install the generated documentation
+* `install_dir`: location to install the generated documentation.
+                 Defaults to `${datadir}/doc/${package}` or normal install dirs
+                 if doclet is `gtkdoc` or `devhelp`.
+* `package_name`: Name of the package (required)
+* `package_version`: (optional) version of the package
+* `packages`: the dependencies' VAPI packages
+* `sources`: the source files from which the comments should be rendered
+* `vapi_dirs`: (optional) extra directories to include for VAPI files
+* `wiki_dir`: (optional) the directory with extra valadoc wiki pages
+
+Returns a `${package}-valadoc` target.
+
+*Added 0.63.0*
+
 ### gnome.yelp()
 
 ```meson
