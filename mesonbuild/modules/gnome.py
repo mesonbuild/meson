@@ -29,8 +29,8 @@ from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import (
-    MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
-    join_args, unholder,
+    MachineChoice, MesonException, OrderedSet, Popen_safe, PerMachine,
+    extract_as_list, join_args, unholder,
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -45,7 +45,7 @@ gresource_dep_needed_version = '>= 2.51.1'
 native_glib_version = None
 
 class GnomeModule(ExtensionModule):
-    gir_dep = None
+    gir_dep = PerMachine(None, None)
 
     @staticmethod
     def _get_native_glib_version(state):
@@ -401,26 +401,26 @@ class GnomeModule(ExtensionModule):
 
         return girtarget
 
-    def _get_gir_dep(self, state):
-        if not self.gir_dep:
-            kwargs = {'native': True, 'required': True}
+    def _get_gir_dep(self, state, for_machine: MachineChoice = MachineChoice.HOST):
+        if not self.gir_dep[for_machine]:
+            kwargs = {'native': True if for_machine == MachineChoice.BUILD else False, 'required': True}
             holder = self.interpreter.func_dependency(state.current_node, ['gobject-introspection-1.0'], kwargs)
-            self.gir_dep = holder.held_object
-            giscanner = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-scanner')
+            self.gir_dep[for_machine] = holder.held_object
+            giscanner = state.environment.lookup_binary_entry(for_machine, 'g-ir-scanner')
             if giscanner is not None:
                 self.giscanner = ExternalProgram.from_entry('g-ir-scanner', giscanner)
-            elif self.gir_dep.type_name == 'pkgconfig':
+            elif self.gir_dep[for_machine].type_name == 'pkgconfig':
                 self.giscanner = ExternalProgram('g_ir_scanner', self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {}))
             else:
-                self.giscanner = self.interpreter.find_program_impl('g-ir-scanner')
-            gicompiler = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-compiler')
+                self.giscanner = self.interpreter.find_program_impl('g-ir-scanner', kwargs)
+            gicompiler = state.environment.lookup_binary_entry(for_machine, 'g-ir-compiler')
             if gicompiler is not None:
                 self.gicompiler = ExternalProgram.from_entry('g-ir-compiler', gicompiler)
-            elif self.gir_dep.type_name == 'pkgconfig':
+            elif self.gir_dep[for_machine].type_name == 'pkgconfig':
                 self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
             else:
-                self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
-        return self.gir_dep, self.giscanner, self.gicompiler
+                self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler', kwargs)
+        return self.gir_dep[for_machine], self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
     def _gir_has_option(self, option):
