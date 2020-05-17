@@ -153,6 +153,7 @@ class PackageGenerator:
             if os.path.exists(sdir):
                 shutil.rmtree(sdir)
         main_stage, ninja_stage = self.staging_dirs
+        dep_data_dir = 'mesonbuild/dependencies/data'
         modules = self.get_all_modules_from_dir('mesonbuild/modules')
         modules += self.get_all_modules_from_dir('mesonbuild/scripts')
         modules += self.get_more_modules()
@@ -174,6 +175,7 @@ class PackageGenerator:
         pyinst_cmd += ['meson.py']
         subprocess.check_call(pyinst_cmd)
         shutil.move(pyinstaller_tmpdir + '/meson', main_stage)
+        shutil.copytree(dep_data_dir, main_stage + '/mesonbuild/dependencies/data')
         if not os.path.exists(os.path.join(main_stage, 'meson.exe')):
             sys.exit('Meson exe missing from staging dir.')
         os.mkdir(ninja_stage)
