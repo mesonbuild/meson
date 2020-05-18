@@ -364,7 +364,6 @@ class Backend:
         '''
         Serialize an executable for running with a generator or a custom target
         '''
-        import hashlib
         machine = self.environment.machines[for_machine]
         if machine.is_windows() or machine.is_cygwin():
             extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
