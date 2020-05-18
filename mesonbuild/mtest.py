@@ -42,7 +42,7 @@ from . import build
 from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
-from .mesonlib import MesonException, get_wine_shortpath, split_args
+from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
 from .backend.backends import TestProtocol
 
 if T.TYPE_CHECKING:
@@ -311,7 +311,7 @@ class TAPParser:
                     yield self.Version(version=version)
                 continue
 
-            if len(line) == 0:
+            if not line:
                 continue
 
             yield self.Error('unexpected input at line {}'.format((lineno,)))
@@ -609,20 +609,20 @@ class SingleTestRunner:
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
             return ['mono'] + self.test.fname
-        else:
-            if self.test.is_cross_built and self.test.needs_exe_wrapper:
-                if self.test.exe_runner is None:
-                    # Can not run test on cross compiled executable
-                    # because there is no execute wrapper.
-                    return None
-                else:
-                    if not self.test.exe_runner.found():
-                        msg = 'The exe_wrapper defined in the cross file {!r} was not ' \
-                              'found. Please check the command and/or add it to PATH.'
-                        raise TestException(msg.format(self.test.exe_runner.name))
-                    return self.test.exe_runner.get_command() + self.test.fname
-            else:
-                return self.test.fname
+        elif self.test.cmd_is_built and self.test.needs_exe_wrapper:
+            if self.test.exe_runner is None:
+                # Can not run test on cross compiled executable
+                # because there is no execute wrapper.
+                return None
+            elif self.test.cmd_is_built:
+                # If the command is not built (ie, its a python script),
+                # then we don't check for the exe-wrapper
+                if not self.test.exe_runner.found():
+                    msg = ('The exe_wrapper defined in the cross file {!r} was not '
+                           'found. Please check the command and/or add it to PATH.')
+                    raise TestException(msg.format(self.test.exe_runner.name))
+                return self.test.exe_runner.get_command() + self.test.fname
+        return self.test.fname
 
     def run(self) -> TestRun:
         cmd = self._get_cmd()
@@ -638,7 +638,7 @@ class SingleTestRunner:
     def _run_cmd(self, cmd: T.List[str]) -> TestRun:
         starttime = time.time()
 
-        if len(self.test.extra_paths) > 0:
+        if self.test.extra_paths:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
             winecmd = []
             for c in cmd:
@@ -867,6 +867,9 @@ class TestHarness:
             env = os.environ.copy()
         test_env = test.env.get_env(env)
         env.update(test_env)
+        if (test.is_cross_built and test.needs_exe_wrapper and
+                test.exe_runner and test.exe_runner.found()):
+            env['MESON_EXE_WRAPPER'] = join_args(test.exe_runner.get_command())
         return SingleTestRunner(test, test_env, env, options)
 
     def process_test_result(self, result: TestRun) -> None:
@@ -941,7 +944,7 @@ class TestHarness:
             self.junit.write()
 
     def print_collected_logs(self) -> None:
-        if len(self.collected_logs) > 0:
+        if self.collected_logs:
             if len(self.collected_logs) > 10:
                 print('\nThe output from 10 first failed tests:\n')
             else:
@@ -1023,7 +1026,7 @@ class TestHarness:
             print('No tests defined.')
             return []
 
-        if len(self.options.include_suites) or len(self.options.exclude_suites):
+        if self.options.include_suites or self.options.exclude_suites:
             tests = []
             for tst in self.tests:
                 if self.test_suitable(tst):
@@ -1085,7 +1088,7 @@ class TestHarness:
         if len(self.suites) > 1 and test.suite:
             rv = TestHarness.split_suite_string(test.suite[0])[0]
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
-            if len(s):
+            if s:
                 rv += ":"
             return rv + s + " / " + test.name
         else:

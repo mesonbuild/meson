@@ -119,7 +119,8 @@ class TestSerialisation:
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
-                 extra_paths: T.List[str], protocol: TestProtocol, priority: int):
+                 extra_paths: T.List[str], protocol: TestProtocol, priority: int,
+                 cmd_is_built: bool):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -138,6 +139,8 @@ class TestSerialisation:
         self.protocol = protocol
         self.priority = priority
         self.needs_exe_wrapper = needs_exe_wrapper
+        self.cmd_is_built = cmd_is_built
+
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
     if backend == 'ninja':
@@ -788,6 +791,15 @@ class Backend:
                 # E.g. an external verifier or simulator program run on a generated executable.
                 # Can always be run without a wrapper.
                 test_for_machine = MachineChoice.BUILD
+
+            # we allow passing compiled executables to tests, which may be cross built.
+            # We need to consider these as well when considering whether the target is cross or not.
+            for a in t.cmd_args:
+                if isinstance(a, build.BuildTarget):
+                    if a.for_machine is MachineChoice.HOST:
+                        test_for_machine = MachineChoice.HOST
+                        break
+
             is_cross = self.environment.is_cross_build(test_for_machine)
             if is_cross and self.environment.need_exe_wrapper():
                 exe_wrapper = self.environment.get_exe_wrapper()
@@ -801,6 +813,7 @@ class Backend:
                 extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps)
             else:
                 extra_paths = []
+
             cmd_args = []
             for a in unholder(t.cmd_args):
                 if isinstance(a, build.BuildTarget):
@@ -810,6 +823,11 @@ class Backend:
                     cmd_args.append(a)
                 elif isinstance(a, str):
                     cmd_args.append(a)
+                elif isinstance(a, build.Executable):
+                    p = self.construct_target_rel_path(a, t.workdir)
+                    if p == a.get_filename():
+                        p = './' + p
+                    cmd_args.append(p)
                 elif isinstance(a, build.Target):
                     cmd_args.append(self.construct_target_rel_path(a, t.workdir))
                 else:
@@ -818,7 +836,8 @@ class Backend:
                                    exe_wrapper, self.environment.need_exe_wrapper(),
                                    t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir,
-                                   extra_paths, t.protocol, t.priority)
+                                   extra_paths, t.protocol, t.priority,
+                                   isinstance(exe, build.Executable))
             arr.append(ts)
         return arr
 
