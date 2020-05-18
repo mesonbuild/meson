@@ -37,6 +37,19 @@ from ..mesonlib import (
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
 
+import hashlib
+
+def get_filename_sha256(filename: str):
+    return hashlib.sha256(filename.encode()).hexdigest()
+
+def obtain_valid_filename(inname: str, length_limit=155):
+    if len(inname) > length_limit:
+        name_comp = inname[:length_limit-64]
+        outname = name_comp + get_filename_sha256(inname)
+        mlog.warning('filename is too long change `{}` to `{}`'.format(inname, outname))
+
+        return outname
+    return inname
 
 class TestProtocol(enum.Enum):
 
@@ -508,7 +521,9 @@ class Backend:
                 source = os.path.relpath(os.path.join(build_dir, rel_src),
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        return source.replace('/', '_').replace('\\', '_') + '.' + machine.get_object_suffix()
+        src_file_name = obtain_valid_filename(source.replace('/', '_').replace('\\', '_'))
+        return src_file_name + '.' + machine.get_object_suffix()
+        #return source.replace('/', '_').replace('\\', '_') + '.' + machine.get_object_suffix()
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root):
         result = []
@@ -1020,8 +1035,11 @@ class Backend:
                     msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
                           'keyword argument.'.format(target.name)
                     raise MesonException(msg)
+                mlog.debug('target.depfile={}'.format(target.depfile))
                 dfilename = os.path.join(outdir, target.depfile)
+                mlog.debug('dfilename={}'.format(dependencies))
                 i = i.replace('@DEPFILE@', dfilename)
+                mlog.debug('i={}'.format(i))
             elif '@PRIVATE_DIR@' in i:
                 if target.absolute_paths:
                     pdir = self.get_target_private_dir_abs(target)
