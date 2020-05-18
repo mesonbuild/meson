@@ -86,7 +86,7 @@ Using the option as-is with no prefix affects all machines. For example:
 | warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             |
 | werror                               | false         | Treat warnings as errors                                       | no             |
 | wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
-| max_filename_len {>=65, <=250} | 155 | maximum object filename | no
+| max_filename_len {>=65, <=230} | 155 | maximum object filename | no
 
 <a name="build-type-options"></a>
 For setting optimization levels and toggling debug, you can either set the
