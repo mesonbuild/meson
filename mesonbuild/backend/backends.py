@@ -44,10 +44,9 @@ def get_filename_sha256(filename: str):
 
 def obtain_valid_filename(inname: str, length_limit=155):
     if len(inname) > length_limit:
-        name_comp = inname[:length_limit-64]
-        outname = name_comp + get_filename_sha256(inname)
+        name_comp = inname[-length_limit+64:]
+        outname = get_filename_sha256(inname) + name_comp
         mlog.warning('filename is too long change `{}` to `{}`'.format(inname, outname))
-
         return outname
     return inname
 
@@ -521,7 +520,8 @@ class Backend:
                 source = os.path.relpath(os.path.join(build_dir, rel_src),
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        src_file_name = obtain_valid_filename(source.replace('/', '_').replace('\\', '_'))
+        max_filename_len = self.environment.coredata.get_builtin_option('max_filename_len')
+        src_file_name = obtain_valid_filename(source.replace('/', '_').replace('\\', '_'), length_limit=max_filename_len)
         return src_file_name + '.' + machine.get_object_suffix()
         #return source.replace('/', '_').replace('\\', '_') + '.' + machine.get_object_suffix()
 
@@ -1035,11 +1035,8 @@ class Backend:
                     msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
                           'keyword argument.'.format(target.name)
                     raise MesonException(msg)
-                mlog.debug('target.depfile={}'.format(target.depfile))
                 dfilename = os.path.join(outdir, target.depfile)
-                mlog.debug('dfilename={}'.format(dependencies))
                 i = i.replace('@DEPFILE@', dfilename)
-                mlog.debug('i={}'.format(i))
             elif '@PRIVATE_DIR@' in i:
                 if target.absolute_paths:
                     pdir = self.get_target_private_dir_abs(target)
