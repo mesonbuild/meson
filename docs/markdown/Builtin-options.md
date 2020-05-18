@@ -72,7 +72,7 @@ Using the option as-is with no prefix affects all machines. For example:
 | backend {ninja, vs,<br>vs2010, vs2015, vs2017, vs2019, xcode} | ninja | Backend to use                                | no             |
 | buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             |
 | debug                                | true          | Debug                                                          | no             |
-| default_library {shared, static, both} | shared      | Default library type                                           | no             |
+| default-library {shared, static, both} | shared      | Default library type                                           | no             |
 | errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             |
 | install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             |
 | layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             |
