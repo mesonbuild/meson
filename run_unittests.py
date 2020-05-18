@@ -56,7 +56,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg, relpath
+    quote_arg, relpath, is_linux
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -6080,6 +6080,39 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
 
+    def test_global_rpath(self):
+        if is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+        if is_osx():
+            raise unittest.SkipTest('Global RPATHs via LDFLAGS not yet supported on MacOS (does anybody need it?)')
+
+        testdir = os.path.join(self.unit_test_dir, '77 global-rpath')
+        oldinstalldir = self.installdir
+
+        # Build and install an external library without DESTDIR.
+        # The external library generates a .pc file without an rpath.
+        yonder_dir = os.path.join(testdir, 'yonder')
+        yonder_prefix = os.path.join(oldinstalldir, 'yonder')
+        yonder_libdir = os.path.join(yonder_prefix, self.libdir)
+        self.prefix = yonder_prefix
+        self.installdir = yonder_prefix
+        self.init(yonder_dir)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        # Build an app that uses that installed library.
+        # Supply the rpath to the installed library via LDFLAGS
+        # (as systems like buildroot and guix are wont to do)
+        # and verify install preserves that rpath.
+        env = {'LDFLAGS': '-Wl,-rpath=' + yonder_libdir,
+               'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
+        self.init(testdir, override_envvars=env)
+        self.build()
+        self.install(use_destdir=False)
+        got_rpath = get_rpath(os.path.join(yonder_prefix, 'bin/rpathified'))
+        self.assertEqual(got_rpath, yonder_libdir)
+
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
         if is_cygwin():
@@ -6391,13 +6424,15 @@ class LinuxlikeTests(BasePlatformTests):
         self.build(override_envvars=env)
         # test uninstalled
         self.run_tests(override_envvars=env)
-        if not is_osx():
-            # Rest of the workflow only works on macOS
+        if not (is_osx() or is_linux()):
             return
         # test running after installation
         self.install(use_destdir=False)
         prog = os.path.join(self.installdir, 'bin', 'prog')
         self._run([prog])
+        if not is_osx():
+            # Rest of the workflow only works on macOS
+            return
         out = self._run(['otool', '-L', prog])
         self.assertNotIn('@rpath', out)
         ## New builddir for testing that DESTDIR is not added to install_name
@@ -6413,6 +6448,57 @@ class LinuxlikeTests(BasePlatformTests):
             out = self._run(['otool', '-L', f])
             # Ensure that the otool output does not contain self.installdir
             self.assertNotRegex(out, self.installdir + '.*dylib ')
+
+    @skipIfNoPkgconfig
+    def test_usage_pkgconfig_prefixes(self):
+        '''
+        Build and install two external libraries, to different prefixes,
+        then build and install a client program that finds them via pkgconfig,
+        and verify the installed client program runs.
+        '''
+        oldinstalldir = self.installdir
+
+        # Build and install both external libraries without DESTDIR
+        val1dir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'val1')
+        val1prefix = os.path.join(oldinstalldir, 'val1')
+        self.prefix = val1prefix
+        self.installdir = val1prefix
+        self.init(val1dir)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        env1 = {}
+        env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig')
+        val2dir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'val2')
+        val2prefix = os.path.join(oldinstalldir, 'val2')
+        self.prefix = val2prefix
+        self.installdir = val2prefix
+        self.init(val2dir, override_envvars=env1)
+        self.build()
+        self.install(use_destdir=False)
+        self.new_builddir()
+
+        # Build, install, and run the client program
+        env2 = {}
+        env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
+        testdir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'client')
+        testprefix = os.path.join(oldinstalldir, 'client')
+        self.prefix = testprefix
+        self.installdir = testprefix
+        self.init(testdir, override_envvars=env2)
+        self.build()
+        self.install(use_destdir=False)
+        prog = os.path.join(self.installdir, 'bin', 'client')
+        env3 = {}
+        if is_cygwin():
+          env3['PATH'] = os.path.join(val1prefix, 'bin') + \
+                        os.pathsep + \
+                        os.path.join(val2prefix, 'bin') + \
+                        os.pathsep + os.environ['PATH']
+        out = self._run([prog], override_envvars=env3).strip()
+        # Expected output is val1 + val2 = 3
+        self.assertEqual(out, '3')
 
     def install_subdir_invalid_symlinks(self, testdir, subdir_path):
         '''

@@ -90,12 +90,13 @@ class InstallData:
         self.mesonintrospect = mesonintrospect
 
 class TargetInstallData:
-    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, install_rpath, install_mode, optional=False):
+    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, rpath_dirs_to_remove, install_rpath, install_mode, optional=False):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
         self.strip = strip
         self.install_name_mappings = install_name_mappings
+        self.rpath_dirs_to_remove = rpath_dirs_to_remove
         self.install_rpath = install_rpath
         self.install_mode = install_mode
         self.optional = optional
@@ -443,6 +444,21 @@ class Backend:
                 return True
         return False
 
+    def get_external_rpath_dirs(self, target):
+        dirs = set()
+        args = []
+        # FIXME: is there a better way?
+        for lang in ['c', 'cpp']:
+            try:
+                args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
+            except Exception:
+                pass
+        for arg in args:
+            if arg.startswith('-Wl,-rpath='):
+                for dir in arg.replace('-Wl,-rpath=','').split(':'):
+                    dirs.add(dir)
+        return dirs
+
     def rpaths_for_bundled_shared_libraries(self, target, exclude_system=True):
         paths = []
         for dep in target.external_deps:
@@ -456,6 +472,9 @@ class Backend:
             libdir = os.path.dirname(libpath)
             if exclude_system and self._libdir_is_system(libdir, target.compilers, self.environment):
                 # No point in adding system paths.
+                continue
+            # Don't remove rpaths specified in LDFLAGS.
+            if libdir in self.get_external_rpath_dirs(target):
                 continue
             # Windows doesn't support rpaths, but we use this function to
             # emulate rpaths by setting PATH, so also accept DLLs here
@@ -476,6 +495,7 @@ class Backend:
             result = OrderedSet()
             result.add('meson-out')
         result.update(self.rpaths_for_bundled_shared_libraries(target))
+        target.rpath_dirs_to_remove.update([d.encode('utf8') for d in result])
         return tuple(result)
 
     def object_filename_from_source(self, target, source):
@@ -1140,6 +1160,7 @@ class Backend:
                     mappings = t.get_link_deps_mapping(d.prefix, self.environment)
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           t.get_aliases(), should_strip, mappings,
+                                          t.rpath_dirs_to_remove,
                                           t.install_rpath, install_mode)
                     d.targets.append(i)
 
@@ -1157,14 +1178,14 @@ class Backend:
                                 implib_install_dir = self.environment.get_import_lib_dir()
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
-                                                  implib_install_dir, {}, False, {}, '', install_mode,
+                                                  implib_install_dir, {}, False, {}, set(), '', install_mode,
                                                   optional=isinstance(t, build.SharedModule))
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, outdirs[0],
-                                                  {}, False, {}, '',
+                                                  {}, False, {}, set(), '',
                                                   install_mode, optional=True)
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
@@ -1174,7 +1195,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode)
+                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
@@ -1187,7 +1208,7 @@ class Backend:
                 if num_outdirs == 1 and num_out > 1:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdirs[0], {}, False, {}, None, install_mode,
+                        i = TargetInstallData(f, outdirs[0], {}, False, {}, set(), None, install_mode,
                                               optional=not t.build_by_default)
                         d.targets.append(i)
                 else:
@@ -1196,7 +1217,7 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, None, install_mode,
+                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode,
                                               optional=not t.build_by_default)
                         d.targets.append(i)
 
