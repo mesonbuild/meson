@@ -4,8 +4,14 @@ project(
 )
 
 dep = dependency('zlib', method: 'pkg-config', required : false)
+boost_dep = dependency('boost', modules: ['graph'], include_type : 'system', required: false)
+
 if not dep.found()
   error('MESON_SKIP_TEST zlib was not found')
+endif
+
+if not boost_dep.found()
+  error('MESON_SKIP_TEST boost was not found')
 endif
 
 assert(dep.include_type() == 'preserve', 'include_type must default to "preserve"')
@@ -26,3 +32,7 @@ assert(sp_dep.include_type() == 'preserve', 'default is preserve')
 sp_dep_sys = sp_dep.as_system('system')
 assert(sp_dep_sys.include_type() == 'system', 'changing include_type works')
 assert(sp_dep.include_type() == 'preserve', 'as_system must not mutate the original object')
+
+# Check that PCH works with `include_type : 'system'` See https://github.com/mesonbuild/meson/issues/7167
+main_exe = executable('main_exe', 'main.cpp', cpp_pch: 'pch/test.hpp', dependencies: boost_dep)
+test('main_test', main_exe)

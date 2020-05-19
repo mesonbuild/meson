@@ -151,6 +151,10 @@ class NinjaBuildElement:
             self.orderdeps.add(dep)
 
     def add_item(self, name, elems):
+        # Always convert from GCC-style argument naming to the naming used by the
+        # current compiler. Also filter system include paths, deduplicate, etc.
+        if isinstance(elems, CompilerArgs):
+            elems = elems.to_native()
         if isinstance(elems, str):
             elems = [elems]
         self.elems.append((name, elems))
@@ -1985,9 +1989,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Write the Ninja build command
         compiler_name = self.get_compiler_rule_name('llvm_ir', compiler.for_machine)
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
-        # Convert from GCC-style link argument naming to the naming used by the
-        # current compiler.
-        commands = commands.to_native()
         element.add_item('ARGS', commands)
         self.add_build(element)
         return rel_obj
@@ -2204,9 +2205,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 d = os.path.join(self.get_target_private_dir(target), d)
             element.add_orderdep(d)
         element.add_dep(pch_dep)
-        # Convert from GCC-style link argument naming to the naming used by the
-        # current compiler.
-        commands = commands.to_native()
         for i in self.get_fortran_orderdeps(target, compiler):
             element.add_orderdep(i)
         element.add_item('DEPFILE', dep_file)
@@ -2594,9 +2592,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += extra_args
         commands += custom_target_libraries
         commands += stdlib_args # Standard library arguments go last, because they never depend on anything.
-        # Convert from GCC-style link argument naming to the naming used by the
-        # current compiler.
-        commands = commands.to_native()
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
