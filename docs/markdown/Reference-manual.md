@@ -2456,7 +2456,7 @@ an external dependency with the following methods:
    - sources: any compiled or static sources the dependency has
 
  - `get_variable(cmake : str, pkgconfig : str, configtool : str,
-   internal: str, default_value : str, pkgconfig_define : [str, str])`
+   internal: str, meson: str, default_value : str, pkgconfig_define : [str, str])`
    *(Added in 0.51.0)* A generic variable getter method, which replaces the
    get_*type*_variable methods. This allows one to get the variable
    from a dependency without knowing specifically how that dependency
@@ -2464,7 +2464,9 @@ an external dependency with the following methods:
    from the object then default_value is returned, if it is not set
    then an error is raised.
 
-   *New in 0.54.0, the `internal` keyword*
+   *New in 0.54.0, the `internal` keyword*. Used by `declare_dependency`
+   *New in 0.55.0, the `meson` keyword*. Used by special dependencies
+   implemented by meson.
 
 ### `disabler` object
 
