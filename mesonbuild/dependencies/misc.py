@@ -116,6 +116,22 @@ class ThreadDependency(ExternalDependency):
             self.compile_args = self.clib_compiler.thread_flags(environment)
             self.link_args = self.clib_compiler.thread_link_flags(environment)
 
+        m = self.env.machines[self.for_machine]
+        if m.system == 'windows':
+            # For compilers like mingw and clang (not clang-cl) on windows that
+            # use pthread wrappers around win32 threads
+            if '-pthreads' in self.compile_args:
+                self.variables['model'] = 'posix'
+            else:
+                self.variables['model'] = 'win32'
+        elif m.system in {'cygwin', 'darwin', 'dragonfly', 'emscripten',
+                          'freebsd', 'gnu', 'haiku', 'linux', 'netbsd',
+                          'openbsd', 'sunos'}:
+            self.variables['model'] = 'posix'
+        else:
+            mlog.warning('Unknown threading model, please file a bug to help us fix this.')
+            self.variables['model'] == 'unknown'
+
     @staticmethod
     def get_methods():
         return [DependencyMethods.AUTO, DependencyMethods.CMAKE]
