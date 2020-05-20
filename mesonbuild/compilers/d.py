@@ -647,7 +647,7 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
         self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic',
-                             'b_vscrt', 'b_coverage', 'b_pgo']
+                             'b_vscrt', 'b_coverage', 'b_pgo', 'b_ndebug']
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -686,6 +686,9 @@ class GnuDCompiler(GnuCompiler, DCompiler):
             return args
         return args + ['-shared-libphobos']
 
+    def get_disable_assert_args(self):
+        return ['-frelease']
+
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -693,7 +696,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                  info: 'MachineInfo', arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'llvm'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -735,6 +738,9 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-link-defaultlib-shared']
 
+    def get_disable_assert_args(self) -> T.List[str]:
+        return ['--release']
+
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -742,7 +748,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                  info: 'MachineInfo', arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'dmd'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -805,3 +811,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         if self.info.is_windows():
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
+
+    def get_disable_assert_args(self) -> T.List[str]:
+        return ['-release']
