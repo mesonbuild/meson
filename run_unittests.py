@@ -4630,33 +4630,83 @@ recommended as it is not supported on some platforms''')
 
     def test_meson_compile(self):
         """Test the meson compile command."""
-        prog = 'trivialprog'
-        if is_windows():
-            prog = '{}.exe'.format(prog)
+
+        def get_exe_name(basename: str) -> str:
+            if is_windows():
+                return '{}.exe'.format(basename)
+            else:
+                return basename
+
+        def get_shared_lib_name(basename: str) -> str:
+            if mesonbuild.environment.detect_msys2_arch():
+                return 'lib{}.dll'.format(basename)
+            elif is_windows():
+                return '{}.dll'.format(basename)
+            elif is_cygwin():
+                return 'cyg{}.dll'.format(basename)
+            elif is_osx():
+                return 'lib{}.dylib'.format(basename)
+            else:
+                return 'lib{}.so'.format(basename)
+
+        def get_static_lib_name(basename: str) -> str:
+            return 'lib{}.a'.format(basename)
+
+        # Base case (no targets or additional arguments)
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         self.init(testdir)
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir])
-        # If compile worked then we should get a program
-        self.assertPathExists(os.path.join(self.builddir, prog))
+        self.assertPathExists(os.path.join(self.builddir, get_exe_name('trivialprog')))
+
+        # `--clean`
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
-        self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
+
+        # Target specified in a project with unique names
+
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+        self.init(testdir, extra_args=['--wipe'])
+        # Multiple targets and target type specified
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, 'mylib', 'mycpplib:shared_library'])
+        # Check that we have a shared lib, but not an executable, i.e. check that target actually worked
+        self.assertPathExists(os.path.join(self.builddir, get_shared_lib_name('mylib')))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('prog')))
+        self.assertPathExists(os.path.join(self.builddir, get_shared_lib_name('mycpplib')))
+        self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('cppprog')))
+
+        # Target specified in a project with non unique names
+
+        testdir = os.path.join(self.common_test_dir, '190 same target name')
+        self.init(testdir, extra_args=['--wipe'])
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, './foo'])
+        self.assertPathExists(os.path.join(self.builddir, get_static_lib_name('foo')))
+        self._run([*self.meson_command, 'compile', '-C', self.builddir, 'sub/foo'])
+        self.assertPathExists(os.path.join(self.builddir, 'sub', get_static_lib_name('foo')))
+
+        # run_target
+
+        testdir = os.path.join(self.common_test_dir, '54 run target')
+        self.init(testdir, extra_args=['--wipe'])
+        out = self._run([*self.meson_command, 'compile', '-C', self.builddir, 'py3hi'])
+        self.assertIn('I am Python3.', out)
 
         # `--$BACKEND-args`
 
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
         if self.backend is Backend.ninja:
             self.init(testdir, extra_args=['--wipe'])
             # Dry run - should not create a program
             self._run([*self.meson_command, 'compile', '-C', self.builddir, '--ninja-args=-n'])
-            self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+            self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
         elif self.backend is Backend.vs:
             self.init(testdir, extra_args=['--wipe'])
             self._run([*self.meson_command, 'compile', '-C', self.builddir])
             # Explicitly clean the target through msbuild interface
-            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', prog))])
-            self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', get_exe_name('trivialprog')))])
+            self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
 
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '75 dep files')
