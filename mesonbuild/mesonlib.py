@@ -509,6 +509,8 @@ def is_netbsd() -> bool:
 def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
 
+def is_irix() -> bool:
+    return platform.system().startswith('irix')
 
 def is_hurd() -> bool:
     return platform.system().lower() == 'gnu'
@@ -733,7 +735,7 @@ def default_libdir() -> str:
                 return 'lib/' + archpath
         except Exception:
             pass
-    if is_freebsd():
+    if is_freebsd() or is_irix():
         return 'lib'
     if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
         return 'lib64'
