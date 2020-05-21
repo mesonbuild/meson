@@ -136,30 +136,49 @@ meson configure builddir -Doption=new_value
 *(since 0.54.0)*
 
 ```
-$ meson compile [-h] [-j JOBS] [-l LOAD_AVERAGE] [--clean] [-C BUILDDIR]
+$ meson compile [-h] [--clean] [-C BUILDDIR] [-j JOBS] [-l LOAD_AVERAGE]
                 [--verbose] [--ninja-args NINJA_ARGS] [--vs-args VS_ARGS]
+                [TARGET [TARGET ...]]
 ```
 
 Builds a default or a specified target of a configured meson project.
 
 ```
+positional arguments:
+  TARGET                                Targets to build. Target has the
+                                        following format: [PATH_TO_TARGET/]TARGE
+                                        T_NAME[:TARGET_TYPE].
+
 optional arguments:
   -h, --help                            show this help message and exit
+  --clean                               Clean the build directory.
+  -C BUILDDIR                           The directory containing build files to
+                                        be built.
   -j JOBS, --jobs JOBS                  The number of worker jobs to run (if
                                         supported). If the value is less than 1
                                         the build program will guess.
   -l LOAD_AVERAGE, --load-average LOAD_AVERAGE
                                         The system load average to try to
-                                        maintain (if supported)
-  --clean                               Clean the build directory.
-  -C BUILDDIR                           The directory containing build files to
-                                        be built.
+                                        maintain (if supported).
   --verbose                             Show more verbose output.
   --ninja-args NINJA_ARGS               Arguments to pass to `ninja` (applied
                                         only on `ninja` backend).
   --vs-args VS_ARGS                     Arguments to pass to `msbuild` (applied
                                         only on `vs` backend).
 ```
+
+`--verbose` argument is available since 0.55.0.
+
+#### Targets
+
+*(since 0.55.0)*
+
+`TARGET` has the following syntax `[PATH/]NAME[:TYPE]`, where:
+- `NAME`: name of the target from `meson.build` (e.g. `foo` from `executable('foo', ...)`).
+- `PATH`: path to the target relative to the root `meson.build` file. Note: relative path for a target specified in the root `meson.build` is `./`.
+- `TYPE`: type of the target. Can be one of the following: 'executable', 'static_library', 'shared_library', 'shared_module', 'custom', 'run', 'jar'.
+  
+`PATH` and/or `TYPE` can be ommited if the resulting `TARGET` can be used to uniquely identify the target in `meson.build`.
 
 #### Backend specific arguments
 
@@ -191,6 +210,16 @@ meson compile -C builddir
 Execute a dry run on ninja backend with additional debug info:
 ```
 meson compile --ninja-args=-n,-d,explain
+```
+
+Build three targets: two targets that have the same `foo` name, but different type, and a `bar` target:
+```
+meson compile foo:shared_library foo:static_library bar
+```
+
+Produce a coverage html report (if available):
+```
+meson compile coverage-html
 ```
 
 ### dist
