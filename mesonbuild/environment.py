@@ -344,6 +344,9 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'sparc64'
     elif trial in {'mipsel', 'mips64el'}:
         trial = trial.rstrip('el')
+    elif trial in {'ip30', 'ip35'}:
+        trial = 'mips64'
+
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
