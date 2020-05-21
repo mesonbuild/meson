@@ -189,13 +189,13 @@ class BoostLibraryFile():
     def __lt__(self, other: T.Any) -> bool:
         if isinstance(other, BoostLibraryFile):
             return (
-                self.mod_name, self.version_lib, self.arch, self.static,
+                self.mod_name, self.static, self.version_lib, self.arch,
                 not self.mt, not self.runtime_static,
                 not self.debug, self.runtime_debug, self.python_debug,
                 self.stlport, self.deprecated_iostreams,
                 self.name,
             ) < (
-                other.mod_name, other.version_lib, other.arch, other.static,
+                other.mod_name, other.static, other.version_lib, other.arch,
                 not other.mt, not other.runtime_static,
                 not other.debug, other.runtime_debug, other.python_debug,
                 other.stlport, other.deprecated_iostreams,
