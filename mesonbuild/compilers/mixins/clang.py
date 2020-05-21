@@ -42,9 +42,10 @@ clang_optimization_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 class ClangCompiler(GnuLikeCompiler):
-    def __init__(self):
+    def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.id = 'clang'
+        self.defines = defines or {}
         self.base_options.append('b_colorout')
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
@@ -55,6 +56,12 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         return clang_color_args[colortype][:]
+
+    def has_builtin_define(self, define: str) -> bool:
+        return define in self.defines
+
+    def get_builtin_define(self, define: str) -> T.Optional[str]:
+        return self.defines.get(define)
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return clang_optimization_args[optimization_level]
