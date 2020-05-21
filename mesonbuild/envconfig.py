@@ -64,7 +64,9 @@ known_cpu_families = (
     'wasm32',
     'wasm64',
     'x86',
-    'x86_64'
+    'x86_64',
+    'ip30',
+    'ip35'
 )
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILES", but
@@ -298,6 +300,10 @@ class MachineInfo:
         Machine is GNU/Hurd?
         """
         return self.system == 'gnu'
+
+    def is_irix(self) -> bool:
+        """Machine is IRIX?"""
+        return self.system == 'irix64'
 
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
