@@ -4636,12 +4636,27 @@ recommended as it is not supported on some platforms''')
 
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         self.init(testdir)
+
         self._run([*self.meson_command, 'compile', '-C', self.builddir])
         # If compile worked then we should get a program
         self.assertPathExists(os.path.join(self.builddir, prog))
 
         self._run([*self.meson_command, 'compile', '-C', self.builddir, '--clean'])
         self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+
+        # `--$BACKEND-args`
+
+        if self.backend is Backend.ninja:
+            self.init(testdir, extra_args=['--wipe'])
+            # Dry run - should not create a program
+            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--ninja-args=-n'])
+            self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
+        elif self.backend is Backend.vs:
+            self.init(testdir, extra_args=['--wipe'])
+            self._run([*self.meson_command, 'compile', '-C', self.builddir])
+            # Explicitly clean the target through msbuild interface
+            self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', prog))])
+            self.assertPathDoesNotExist(os.path.join(self.builddir, prog))
 
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '75 dep files')

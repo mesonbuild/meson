@@ -137,7 +137,7 @@ meson configure builddir -Doption=new_value
 
 ```
 $ meson compile [-h] [-j JOBS] [-l LOAD_AVERAGE] [--clean] [-C BUILDDIR]
-                [--verbose]
+                [--verbose] [--ninja-args NINJA_ARGS] [--vs-args VS_ARGS]
 ```
 
 Builds a default or a specified target of a configured meson project.
@@ -155,6 +155,30 @@ optional arguments:
   -C BUILDDIR                           The directory containing build files to
                                         be built.
   --verbose                             Show more verbose output.
+  --ninja-args NINJA_ARGS               Arguments to pass to `ninja` (applied
+                                        only on `ninja` backend).
+  --vs-args VS_ARGS                     Arguments to pass to `msbuild` (applied
+                                        only on `vs` backend).
+```
+
+#### Backend specific arguments
+
+*(since 0.55.0)*
+
+`BACKEND-args` use the following syntax:
+
+If you only pass a single string, then it is considered to have all values separated by commas. Thus invoking the following command:
+
+```
+$ meson compile --ninja-args=-n,-d,explain
+```
+
+would add `-n`, `-d` and `explain` arguments to ninja invocation.
+
+If you need to have commas or spaces in your string values, then you need to pass the value with proper shell quoting like this:
+
+```
+$ meson compile "--ninja-args=['a,b', 'c d']"
 ```
 
 #### Examples:
@@ -162,6 +186,11 @@ optional arguments:
 Build the project:
 ```
 meson compile -C builddir
+```
+
+Execute a dry run on ninja backend with additional debug info:
+```
+meson compile --ninja-args=-n,-d,explain
 ```
 
 ### dist

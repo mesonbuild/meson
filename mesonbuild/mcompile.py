@@ -14,6 +14,7 @@
 
 """Entrypoint script for backend agnostic compile."""
 
+import argparse
 import sys
 import typing as T
 from pathlib import Path
@@ -23,10 +24,11 @@ from . import mesonlib
 from . import coredata
 from .mesonlib import MesonException
 from mesonbuild.environment import detect_ninja
+from mesonbuild.coredata import UserArrayOption
 
-if T.TYPE_CHECKING:
-    import argparse
-    
+def array_arg(value: str) -> T.List[str]:
+    return UserArrayOption(None, value, allow_dups=True, user_input=True).value
+
 def validate_builddir(builddir: Path):
     if not (builddir / 'meson-private' / 'coredata.dat' ).is_file():
         raise MesonException('Current directory is not a meson build directory: `{}`.\n'
@@ -58,31 +60,31 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path):
         cmd.append('-v')
     if options.clean:
         cmd.append('clean')
-    
+
     return cmd
 
 def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path):
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
-    
+
     sln = slns[0]
     cmd = ['msbuild', str(sln.resolve())]
-    
+
     # In msbuild `-m` with no number means "detect cpus", the default is `-m1`
     if options.jobs > 0:
         cmd.append('-m{}'.format(options.jobs))
     else:
         cmd.append('-m')
-    
+
     if options.load_average:
         mlog.warning('Msbuild does not have a load-average switch, ignoring.')
     if not options.verbose:
         cmd.append('/v:minimal')
     if options.clean:
         cmd.append('/t:Clean')
-    
+
     return cmd
-    
+
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(
@@ -117,7 +119,18 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         action='store_true',
         help='Show more verbose output.'
     )
-
+    parser.add_argument(
+        '--ninja-args',
+        type=array_arg,
+        default=[],
+        help='Arguments to pass to `ninja` (applied only on `ninja` backend).'
+    )
+    parser.add_argument(
+        '--vs-args',
+        type=array_arg,
+        default=[],
+        help='Arguments to pass to `msbuild` (applied only on `vs` backend).'
+    )
 
 def run(options: 'argparse.Namespace') -> int:
     bdir = options.builddir  # type: Path
@@ -128,8 +141,10 @@ def run(options: 'argparse.Namespace') -> int:
     backend = get_backend_from_coredata(bdir)
     if backend == 'ninja':
         cmd = get_parsed_args_ninja(options, bdir)
+        cmd += options.ninja_args
     elif backend.startswith('vs'):
         cmd = get_parsed_args_vs(options, bdir)
+        cmd += options.vs_args
     else:
         # TODO: xcode?
         raise MesonException(
