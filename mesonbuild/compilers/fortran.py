@@ -424,7 +424,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                  **kwargs):
         FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, [])
         self.id = 'flang'
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],

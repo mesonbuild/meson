@@ -726,6 +726,28 @@ class Environment:
         minor = defines.get('__LCC_MINOR__', '0')
         return dot.join((generation, major, minor))
 
+    @staticmethod
+    def get_clang_compiler_defines(compiler):
+        """
+        Get the list of Clang pre-processor defines
+        """
+        args = compiler + ['-E', '-dM', '-']
+        p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to get clang pre-processor defines:\n' + output + error)
+        defines = {}
+        for line in output.split('\n'):
+            if not line:
+                continue
+            d, *rest = line.split(' ', 2)
+            if d != '#define':
+                continue
+            if len(rest) == 1:
+                defines[rest] = True
+            if len(rest) == 2:
+                defines[rest[0]] = rest[1]
+        return defines
+
     def _get_compilers(self, lang, for_machine):
         '''
         The list of compilers is detected in the exact same way for
@@ -1043,6 +1065,8 @@ class Environment:
             if 'clang' in out:
                 linker = None
 
+                defines = self.get_clang_compiler_defines(compiler)
+
                 # Even if the for_machine is darwin, we could be using vanilla
                 # clang.
                 if 'Apple' in out:
@@ -1063,7 +1087,7 @@ class Environment:
 
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
-                    exe_wrap, full_version=full_version, linker=linker)
+                    exe_wrap, defines, full_version=full_version, linker=linker)
 
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)

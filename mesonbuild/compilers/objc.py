@@ -86,7 +86,7 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                  **kwargs):
         ObjCCompiler.__init__(self, exelist, version, for_machine, is_cross,
                               info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, [])
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

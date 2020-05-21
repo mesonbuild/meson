@@ -155,10 +155,11 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
 class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines : T.Optional[T.List[str]] = None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
