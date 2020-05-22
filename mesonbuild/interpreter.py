@@ -2254,6 +2254,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'private_headers',
                                    'cmake_args',
                                    'include_type',
+                                   'boost_root',
                                    },
                     'declare_dependency': {'include_directories',
                                            'link_with',
@@ -3478,6 +3479,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
 
+    @FeatureNewKwargs('dependency', '0.55.0', ['boost_root'])
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
     @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])

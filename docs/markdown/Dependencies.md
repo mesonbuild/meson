@@ -289,7 +289,10 @@ use those to link against your targets.
 
 If your boost headers or libraries are in non-standard locations you
 can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
-environment variables.
+environment variables. *(added in 0.55.0)* You can also set the argument
+`boost_root` to select a boost installation. BOOST_ROOT does not
+fall back to `boost_root` or system boost directories, however
+`boost_root` will fall back to system directories if not found.
 
 You can set the argument `threading` to `single` to use boost
 libraries that have been compiled for single-threaded use instead.

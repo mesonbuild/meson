@@ -367,7 +367,7 @@ class BoostDependency(ExternalDependency):
         self.arch = environment.machines[self.for_machine].cpu_family
         self.arch = boost_arch_map.get(self.arch, None)
 
-        # Prefere BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if preset
+        # Prefer BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if present
         boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR']]
         if all(boost_manual_env):
             inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
@@ -390,8 +390,10 @@ class BoostDependency(ExternalDependency):
         elif any(boost_manual_env):
             mlog.warning('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
 
-        # A) Detect potential boost root directories (uses also BOOST_ROOT env var)
-        roots = self.detect_roots()
+        # A) Detect potential boost root directories (uses BOOST_ROOT env var, then boost_root kwarg (if present) and system paths)
+        kwarg_boost_root = mesonlib.extract_as_list(kwargs, 'boost_root')
+
+        roots = self.detect_roots(kwarg_boost_root)
         roots = list(mesonlib.OrderedSet(roots))
 
         # B) Foreach candidate
@@ -592,9 +594,7 @@ class BoostDependency(ExternalDependency):
             libs += [BoostLibraryFile(i)]
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
-    def detect_roots(self) -> T.List[Path]:
-        roots = []  # type: T.List[Path]
-
+    def detect_roots(self, kwarg_boost_roots: T.List[str]) -> T.List[Path]:
         # Add roots from the environment
         for i in ['BOOST_ROOT', 'BOOSTROOT']:
             if i in os.environ:
@@ -602,8 +602,18 @@ class BoostDependency(ExternalDependency):
                 paths = [Path(x) for x in raw_paths]
                 if paths and any([not x.is_absolute() for x in paths]):
                     raise DependencyException('Paths in {} must be absolute'.format(i))
-                roots += paths
-                return roots  # Do not add system paths if BOOST_ROOT is present
+                return paths  # Do not add system paths if BOOST_ROOT is present
+
+        roots = []  # type: T.List[Path]
+
+        # Add roots from kwarg boost_root parameter
+        if kwarg_boost_roots:
+            paths = [Path(x) for x in kwarg_boost_roots]
+            if paths and any([not x.is_absolute() for x in paths]):
+                print([not x.is_absolute() for x in paths])
+                print(paths)
+                raise DependencyException('Paths in "boost_root" kwarg must be absolute')
+            roots += paths  # Prefer but do not require paths provided in boost_root
 
         # Add roots from system paths
         inc_paths = [Path(x) for x in self.clib_compiler.get_default_include_dirs()]
