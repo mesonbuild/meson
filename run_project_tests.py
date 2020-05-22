@@ -594,16 +594,18 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     return testresult
 
-def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
+def gather_tests(testdir: Path) -> T.List[TestDef]:
     tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
     test_defs = [TestDef(testdir / t, None, []) for t in tests]
     all_tests = []  # type: T.List[TestDef]
     for t in test_defs:
-        test_def = {}
         test_def_file = t.path / 'test.json'
-        if test_def_file.is_file():
-            test_def = json.loads(test_def_file.read_text())
+        if not test_def_file.is_file():
+            all_tests += [t]
+            continue
+
+        test_def = json.loads(test_def_file.read_text())
 
         # Handle additional environment variables
         env = {}  # type: T.Dict[str, str]
@@ -621,8 +623,6 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
 
         # Handle expected output
         stdout = test_def.get('stdout', [])
-        if stdout_mandatory and not stdout:
-            raise RuntimeError("{} must contain a non-empty stdout key".format(test_def_file))
 
         # Handle the do_not_set_opts list
         do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
@@ -897,50 +897,45 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
                        shutil.which('pgfortran') or
                        shutil.which('ifort'))
 
-    class TestCategory:
-        def __init__(self, category: str, subdir: str, skip: bool = False, stdout_mandatory: bool = False):
-            self.category = category                  # category name
-            self.subdir = subdir                      # subdirectory
-            self.skip = skip                          # skip condition
-            self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this categroy
-
+    # Name, subdirectory, skip condition.
     all_tests = [
-        TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
-        TestCategory('common', 'common'),
-        TestCategory('warning-meson', 'warning', stdout_mandatory=True),
-        TestCategory('failing-meson', 'failing', stdout_mandatory=True),
-        TestCategory('failing-build', 'failing build'),
-        TestCategory('failing-test',  'failing test'),
-        TestCategory('keyval', 'keyval'),
-        TestCategory('platform-osx', 'osx', not mesonlib.is_osx()),
-        TestCategory('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
-        TestCategory('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
-        TestCategory('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
-        TestCategory('C#', 'csharp', skip_csharp(backend)),
-        TestCategory('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
-        TestCategory('rust', 'rust', should_skip_rust(backend)),
-        TestCategory('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
-        TestCategory('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
-        TestCategory('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(options.use_tmpdir)),
-        TestCategory('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
-        TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
+        ('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
+        ('common', 'common', False),
+        ('warning-meson', 'warning', False),
+        ('failing-meson', 'failing', False),
+        ('failing-build', 'failing build', False),
+        ('failing-test',  'failing test', False),
+        ('keyval', 'keyval', False),
+
+        ('platform-osx', 'osx', not mesonlib.is_osx()),
+        ('platform-windows', 'windows', not mesonlib.is_windows() and not mesonlib.is_cygwin()),
+        ('platform-linux', 'linuxlike', mesonlib.is_osx() or mesonlib.is_windows()),
+
+        ('java', 'java', backend is not Backend.ninja or mesonlib.is_osx() or not have_java()),
+        ('C#', 'csharp', skip_csharp(backend)),
+        ('vala', 'vala', backend is not Backend.ninja or not shutil.which(os.environ.get('VALAC', 'valac'))),
+        ('rust', 'rust', should_skip_rust(backend)),
+        ('d', 'd', backend is not Backend.ninja or not have_d_compiler()),
+        ('objective c', 'objc', backend not in (Backend.ninja, Backend.xcode) or not have_objc_compiler(options.use_tmpdir)),
+        ('objective c++', 'objcpp', backend not in (Backend.ninja, Backend.xcode) or not have_objcpp_compiler(options.use_tmpdir)),
+        ('fortran', 'fortran', skip_fortran or backend != Backend.ninja),
+        ('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
-        TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
-        TestCategory('python3', 'python3', backend is not Backend.ninja),
-        TestCategory('python', 'python', backend is not Backend.ninja),
-        TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
-        TestCategory('frameworks', 'frameworks'),
-        TestCategory('nasm', 'nasm'),
-        TestCategory('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
+        ('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
+        ('python3', 'python3', backend is not Backend.ninja),
+        ('python', 'python', backend is not Backend.ninja),
+        ('fpga', 'fpga', shutil.which('yosys') is None),
+        ('frameworks', 'frameworks', False),
+        ('nasm', 'nasm', False),
+        ('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
     ]
 
-    categories = [t.category for t in all_tests]
-    assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
-
+    names = [t[0] for t in all_tests]
+    assert names == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests names'
     if only:
-        all_tests = [t for t in all_tests if t.category in only]
-
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory), t.skip) for t in all_tests]
+        ind = [names.index(o) for o in only]
+        all_tests = [all_tests[i] for i in ind]
+    gathered_tests = [(name, gather_tests(Path('test cases', subdir)), skip) for name, subdir, skip in all_tests]
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],

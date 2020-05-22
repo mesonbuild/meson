@@ -1,7 +1,0 @@
-{
-  "stdout": [
-    {
-      "line": "test cases/failing/84 gtest dependency with version/meson.build:8:0: ERROR: Dependency 'gtest' was already checked and was not found"
-    }
-  ]
-}
