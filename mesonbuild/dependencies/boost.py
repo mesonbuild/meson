@@ -22,7 +22,7 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import Environment
 
-from .base import (DependencyException, ExternalDependency)
+from .base import DependencyException, ExternalDependency, PkgConfigDependency
 from .misc import threads_factory
 
 # On windows 3 directory layouts are supported:
@@ -604,6 +604,17 @@ class BoostDependency(ExternalDependency):
                     raise DependencyException('Paths in {} must be absolute'.format(i))
                 roots += paths
                 return roots  # Do not add system paths if BOOST_ROOT is present
+
+        # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarely
+        # allows BoostDependency to find boost from Conan. See #5438
+        try:
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
+            if boost_pc.found():
+                boost_root = boost_pc.get_pkgconfig_variable('prefix', {'default': None})
+                if boost_root:
+                    roots += [Path(boost_root)]
+        except DependencyException:
+            pass
 
         # Add roots from system paths
         inc_paths = [Path(x) for x in self.clib_compiler.get_default_include_dirs()]
