@@ -33,7 +33,7 @@ from ..mesonlib import (
     join_args, unholder,
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -834,6 +834,8 @@ class GnomeModule(ExtensionModule):
         return ModuleReturnValue(target_g, [target_g])
 
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
+    @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
+                             'Use a LINGUAS file in the source directory instead')
     def yelp(self, state, args, kwargs):
         if len(args) < 1:
             raise MesonException('Yelp requires a project id')
@@ -848,11 +850,6 @@ class GnomeModule(ExtensionModule):
         source_str = '@@'.join(sources)
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
-        if langs:
-            mlog.deprecation('''The "languages" argument of gnome.yelp() is deprecated.
-Use a LINGUAS file in the sources directory instead.
-This will become a hard error in the future.''')
-
         media = mesonlib.stringlistify(kwargs.pop('media', []))
         symlinks = kwargs.pop('symlink_media', True)
 

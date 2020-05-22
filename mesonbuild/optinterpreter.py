@@ -16,10 +16,11 @@ import re
 import functools
 import typing as T
 
-from . import mparser
+from . import compilers
 from . import coredata
 from . import mesonlib
-from . import compilers
+from . import mparser
+from .interpreterbase import FeatureNew
 
 forbidden_option_names = set(coredata.builtin_options.keys())
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
@@ -200,11 +201,8 @@ class OptionInterpreter:
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
 
-        # FIXME: Cannot use FeatureNew while parsing options because we parse
-        # it before reading options in project(). See func_project() in
-        # interpreter.py
-        #if 'yield' in kwargs:
-        #    FeatureNew('option yield', '0.45.0').use(self.subproject)
+        if 'yield' in kwargs:
+           FeatureNew.single_use('option yield', '0.45.0', self.subproject)
 
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')

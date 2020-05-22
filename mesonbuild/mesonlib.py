@@ -39,8 +39,10 @@ _U = T.TypeVar('_U')
 
 have_fcntl = False
 have_msvcrt = False
+# TODO: this is such a hack, this really should be either in coredata or in the
+# interpreter
 # {subproject: project_meson_version}
-project_meson_versions = {}  # type: T.Dict[str, str]
+project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
 
 try:
     import fcntl

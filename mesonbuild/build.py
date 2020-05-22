@@ -778,7 +778,7 @@ class BuildTarget(Target):
             if isinstance(src, str):
                 src = File(False, self.subdir, src)
             elif isinstance(src, File):
-                FeatureNew('File argument for extract_objects', '0.50.0').use(self.subproject)
+                FeatureNew.single_use('File argument for extract_objects', '0.50.0', self.subproject)
             else:
                 raise MesonException('Object extraction arguments must be strings or Files.')
             # FIXME: It could be a generated source
@@ -2162,7 +2162,7 @@ class CustomTarget(Target):
                                            'when installing a target')
 
                 if isinstance(kwargs['install_dir'], list):
-                    FeatureNew('multiple install_dir for custom_target', '0.40.0').use(self.subproject)
+                    FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
                 self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
@@ -2174,7 +2174,6 @@ class CustomTarget(Target):
         if 'build_always' in kwargs and 'build_always_stale' in kwargs:
             raise InvalidArguments('build_always and build_always_stale are mutually exclusive. Combine build_by_default and build_always_stale.')
         elif 'build_always' in kwargs:
-            mlog.deprecation('build_always is deprecated. Combine build_by_default and build_always_stale instead.')
             if 'build_by_default' not in kwargs:
                 self.build_by_default = kwargs['build_always']
             self.build_always_stale = kwargs['build_always']

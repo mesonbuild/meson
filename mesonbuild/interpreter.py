@@ -29,7 +29,7 @@ from .interpreterbase import InterpreterBase
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
-from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs
+from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from .interpreterbase import ObjectHolder
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
@@ -527,8 +527,9 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     @noPosargs
     @permittedKwargs({})
+    @FeatureDeprecated('ExternalProgram.path', '0.55.0',
+                       'use ExternalProgram.full_path() instead')
     def path_method(self, args, kwargs):
-        mlog.deprecation('path() method is deprecated and replaced by full_path()')
         return self._full_path()
 
     @noPosargs
@@ -1957,8 +1958,10 @@ class MesonMain(InterpreterObject):
                     'Arguments to {} must be strings, Files, CustomTargets, '
                     'Indexes of CustomTargets, or ConfigureFiles'.format(name))
         if new:
-            FeatureNew('Calling "{}" with File, CustomTaget, Index of CustomTarget, ConfigureFile, Executable, or ExternalProgram'.format(name), '0.55.0').use(
-                self.interpreter.subproject)
+            FeatureNew.single_use(
+                'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
+                'ConfigureFile, Executable, or ExternalProgram'.format(name),
+                '0.55.0', self.interpreter.subproject)
         return script_args
 
     @permittedKwargs(set())
@@ -1982,7 +1985,8 @@ class MesonMain(InterpreterObject):
         if len(args) < 1:
             raise InterpreterException('add_dist_script takes one or more arguments')
         if len(args) > 1:
-            FeatureNew('Calling "add_dist_script" with multiple arguments', '0.49.0').use(self.interpreter.subproject)
+            FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
+                                  '0.49.0', self.interpreter.subproject)
         if self.interpreter.subproject != '':
             raise InterpreterException('add_dist_script may not be used in a subproject.')
         script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)
@@ -2605,7 +2609,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_assert(self, node, args, kwargs):
         if len(args) == 1:
-            FeatureNew('assert function without message argument', '0.53.0').use(self.subproject)
+            FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
             value = args[0]
             message = None
         elif len(args) == 2:
@@ -2941,7 +2945,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) > 1:
             raise InterpreterException('configuration_data takes only one optional positional arguments')
         elif len(args) == 1:
-            FeatureNew('configuration_data dictionary', '0.49.0').use(self.subproject)
+            FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
             initial_values = args[0]
             if not isinstance(initial_values, dict):
                 raise InterpreterException('configuration_data first argument must be a dictionary')
@@ -2981,11 +2985,14 @@ external dependencies (including libraries) must go to "dependencies".''')
         if ':' in proj_name:
             raise InvalidArguments("Project name {!r} must not contain ':'".format(proj_name))
 
+        # This needs to be evaluated as early as possible, as meson uses this
+        # for things like deprecation testing.
         if 'meson_version' in kwargs:
             cv = coredata.version
             pv = kwargs['meson_version']
             if not mesonlib.version_compare(cv, pv):
                 raise InterpreterException('Meson version is %s but project requires %s' % (cv, pv))
+            mesonlib.project_meson_versions[self.subproject] = kwargs['meson_version']
 
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
@@ -3031,10 +3038,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.subproject_dir = spdirname
 
         self.build.subproject_dir = self.subproject_dir
-
-        mesonlib.project_meson_versions[self.subproject] = ''
-        if 'meson_version' in kwargs:
-            mesonlib.project_meson_versions[self.subproject] = kwargs['meson_version']
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
@@ -3082,7 +3085,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_message(self, node, args, kwargs):
         if len(args) > 1:
-            FeatureNew('message with more than one argument', '0.54.0').use(self.subproject)
+            FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject)
         args_str = [self.get_message_string_arg(i) for i in args]
         self.message_impl(args_str)
 
@@ -3144,7 +3147,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @noKwargs
     def func_warning(self, node, args, kwargs):
         if len(args) > 1:
-            FeatureNew('warning with more than one argument', '0.54.0').use(self.subproject)
+            FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject)
         args_str = [self.get_message_string_arg(i) for i in args]
         mlog.warning(*args_str, location=node)
 
@@ -3468,15 +3471,15 @@ external dependencies (including libraries) must go to "dependencies".''')
     def _handle_featurenew_dependencies(self, name):
         'Do a feature check on dependencies used by this subproject'
         if name == 'mpi':
-            FeatureNew('MPI Dependency', '0.42.0').use(self.subproject)
+            FeatureNew.single_use('MPI Dependency', '0.42.0', self.subproject)
         elif name == 'pcap':
-            FeatureNew('Pcap Dependency', '0.42.0').use(self.subproject)
+            FeatureNew.single_use('Pcap Dependency', '0.42.0', self.subproject)
         elif name == 'vulkan':
-            FeatureNew('Vulkan Dependency', '0.42.0').use(self.subproject)
+            FeatureNew.single_use('Vulkan Dependency', '0.42.0', self.subproject)
         elif name == 'libwmf':
-            FeatureNew('LibWMF Dependency', '0.44.0').use(self.subproject)
+            FeatureNew.single_use('LibWMF Dependency', '0.44.0', self.subproject)
         elif name == 'openmp':
-            FeatureNew('OpenMP Dependency', '0.46.0').use(self.subproject)
+            FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
     @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
@@ -3598,7 +3601,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def get_subproject_infos(self, kwargs):
         fbinfo = mesonlib.stringlistify(kwargs['fallback'])
         if len(fbinfo) == 1:
-            FeatureNew('Fallback without variable name', '0.53.0').use(self.subproject)
+            FeatureNew.single_use('Fallback without variable name', '0.53.0', self.subproject)
             return fbinfo[0], None
         elif len(fbinfo) != 2:
             raise InterpreterException('Fallback info must have one or two items.')
@@ -3686,11 +3689,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Unknown target_type.')
 
     @permittedKwargs(permitted_kwargs['vcs_tag'])
+    @FeatureDeprecatedKwargs('custom_target', '0.47.0', ['build_always'],
+                             'combine build_by_default and build_always_stale instead.')
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
         if 'fallback' not in kwargs:
-            FeatureNew('Optional fallback in vcs_tag', '0.41.0').use(self.subproject)
+            FeatureNew.single_use('Optional fallback in vcs_tag', '0.41.0', self.subproject)
         fallback = kwargs.pop('fallback', self.project_version)
         if not isinstance(fallback, str):
             raise InterpreterException('Keyword argument fallback must be a string.')
@@ -3743,7 +3748,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
-            FeatureNew('substitutions in custom_target depfile', '0.47.0').use(self.subproject)
+            FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
         return self._func_custom_target_impl(node, args, kwargs)
 
     def _func_custom_target_impl(self, node, args, kwargs):
@@ -3832,7 +3837,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @permittedKwargs(permitted_kwargs['test'])
     def func_test(self, node, args, kwargs):
         if kwargs.get('protocol') == 'gtest':
-            FeatureNew('"gtest" protocol for tests', '0.55.0').use(self.subproject)
+            FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
         self.add_test(node, args, kwargs, True)
 
     def unpack_env_kwarg(self, kwargs) -> build.EnvironmentVariables:
@@ -3840,7 +3845,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
         elif isinstance(envlist, dict):
-            FeatureNew('environment dictionary', '0.52.0').use(self.subproject)
+            FeatureNew.single_use('environment dictionary', '0.52.0', self.subproject)
             env = EnvironmentVariablesHolder(envlist)
             env = env.held_object
         else:
@@ -4156,7 +4161,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if 'configuration' in kwargs:
             conf = kwargs['configuration']
             if isinstance(conf, dict):
-                FeatureNew('configure_file.configuration dictionary', '0.49.0').use(self.subproject)
+                FeatureNew.single_use('configure_file.configuration dictionary', '0.49.0', self.subproject)
                 conf = ConfigurationDataHolder(self.subproject, conf)
             elif not isinstance(conf, ConfigurationDataHolder):
                 raise InterpreterException('Argument "configuration" is not of type configuration_data')
@@ -4186,7 +4191,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             conf.mark_used()
         elif 'command' in kwargs:
             if len(inputs) > 1:
-                FeatureNew('multiple inputs in configure_file()', '0.52.0').use(self.subproject)
+                FeatureNew.single_use('multiple inputs in configure_file()', '0.52.0', self.subproject)
             # We use absolute paths for input and output here because the cwd
             # that the command is run from is 'unspecified', so it could change.
             # Currently it's builddir/subdir for in_builddir else srcdir/subdir.
@@ -4434,7 +4439,7 @@ different subdirectory.
         if len(args) > 1:
             raise InterpreterException('environment takes only one optional positional arguments')
         elif len(args) == 1:
-            FeatureNew('environment positional arguments', '0.52.0').use(self.subproject)
+            FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject)
             initial_values = args[0]
             if not isinstance(initial_values, dict) and not isinstance(initial_values, list):
                 raise InterpreterException('environment first argument must be a dictionary or a list')
