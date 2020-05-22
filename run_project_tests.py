@@ -802,6 +802,10 @@ def skippable(suite, test):
     if test.endswith('29 blocks'):
         return True
 
+    # Test can't be run if dub is not installed.
+    if test.endswith('85 dub library'):
+        return True
+
     # Scientific libraries are skippable on certain systems
     # See the discussion here: https://github.com/mesonbuild/meson/pull/6562
     if any([x in test for x in ['17 mpi', '25 hdf5', '30 scalapack']]) and skip_scientific:
