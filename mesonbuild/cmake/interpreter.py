@@ -353,9 +353,16 @@ class ConverterTarget:
                 if 'CONFIGURATIONS' in tgt.properties:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
-
-                if 'RELEASE' in cfgs:
-                    cfg = 'RELEASE'
+                
+                is_debug = self.env.coredata.get_builtin_option('debug');
+                if is_debug:
+                    if 'DEBUG' in cfgs:
+                        cfg = 'DEBUG'
+                    elif 'RELEASE' in cfgs:
+                        cfg = 'RELEASE'
+                else:
+                    if 'RELEASE' in cfgs:
+                        cfg = 'RELEASE'
 
                 if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properties:
                     libraries += [x for x in tgt.properties['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
