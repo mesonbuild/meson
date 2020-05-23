@@ -431,6 +431,15 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
 def validate_output(test: TestDef, stdo: str, stde: str) -> str:
     return _compare_output(test.stdout, stdo, 'stdout')
 
+# There are some class variables and such that cahce
+# information. Clear all of these. The better solution
+# would be to change the code so that no state is persisted
+# but that would be a lot of work given that Meson was originally
+# coded to run as a batch process.
+def clear_internal_caches():
+    import mesonbuild.interpreterbase
+    mesonbuild.interpreterbase.FeatureNew.feature_registry = {}
+
 def run_test_inprocess(testdir):
     old_stdout = sys.stdout
     sys.stdout = mystdout = StringIO()
@@ -551,6 +560,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     force_regenerate()
 
     # Test in-process
+    clear_internal_caches()
     test_start = time.time()
     (returncode, tstdo, tstde, test_log) = run_test_inprocess(test_build_dir)
     testresult.add_step(BuildStep.test, tstdo, tstde, test_log, time.time() - test_start)
