@@ -397,6 +397,10 @@ the following special string substitutions:
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
 
+**Note:** Assuming that `command:` is executed by a POSIX `sh` shell is not
+portable, notably to Windows. Instead, consider using a `native: true`
+[executable()](#executable), or a python script.
+
 ### declare_dependency()
 
 ``` meson
