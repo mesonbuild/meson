@@ -55,9 +55,12 @@ def run_exe(exe: ExecutableSerialisation) -> int:
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
+    if exe.pickled and p.returncode != 0:
+        print('while executing {!r}'.format(cmd_args))
+
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
-        raise FileNotFoundError('Missing DLLs on calling {!r}'.format(cmd_args))
+        raise FileNotFoundError('due to missing DLLs')
 
     if exe.capture and p.returncode == 0:
         skip_write = False
@@ -90,6 +93,7 @@ def run(args: T.List[str]) -> int:
             parser.error('no other arguments can be used with --unpickle')
         with open(options.unpickle, 'rb') as f:
             exe = pickle.load(f)
+            exe.pickled = True
     else:
         exe = ExecutableSerialisation(cmd_args, capture=options.capture)
 
