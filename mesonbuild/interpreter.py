@@ -3196,13 +3196,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         return success
 
     def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
-        if for_machine != MachineChoice.HOST:
-            return False
-        if not self.environment.is_cross_build():
-            return False
         should = self.environment.properties.host.get('skip_sanity_check', False)
         if not isinstance(should, bool):
             raise InterpreterException('Option skip_sanity_check must be a boolean.')
+        if for_machine != MachineChoice.HOST and not should:
+            return False
+        if not self.environment.is_cross_build() and not should:
+            return False
         return should
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
