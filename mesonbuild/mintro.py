@@ -22,7 +22,7 @@ project files and don't need this info."""
 import json
 from . import build, coredata as cdata
 from . import mesonlib
-from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator
+from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
 from . import mlog
 from .backend import backends
 from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
@@ -62,6 +62,7 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
         benchmarkdata = testdata = installdata = None
 
     return {
+        'ast': IntroCommand('Dump the AST of the meson file', no_bd=dump_ast),
         'benchmarks': IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata)),
         'buildoptions': IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source),
         'buildsystem_files': IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter)),
@@ -88,6 +89,11 @@ def add_arguments(parser):
     parser.add_argument('-f', '--force-object-output', action='store_true', dest='force_dict', default=False,
                         help='Always use the new JSON format for multiple entries (even for 0 and 1 introspection commands)')
     parser.add_argument('builddir', nargs='?', default='.', help='The build directory')
+
+def dump_ast(intr: IntrospectionInterpreter) -> T.Dict[str, T.Any]:
+    printer = AstJSONPrinter()
+    intr.ast.accept(printer)
+    return printer.result
 
 def list_installed(installdata):
     res = {}

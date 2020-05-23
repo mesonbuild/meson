@@ -18,6 +18,7 @@
 from .. import mparser
 from . import AstVisitor
 import re
+import typing as T
 
 arithmic_map = {
     'add': '+',
@@ -155,7 +156,7 @@ class AstPrinter(AstVisitor):
             self.append_padded(prefix + 'if', node)
             prefix = 'el'
             i.accept(self)
-        if node.elseblock:
+        if not isinstance(node.elseblock, mparser.EmptyNode):
             self.append('else', node)
             node.elseblock.accept(self)
         self.append('endif', node)
@@ -199,3 +200,160 @@ class AstPrinter(AstVisitor):
             self.result = re.sub(r', \n$', '\n', self.result)
         else:
             self.result = re.sub(r', $', '', self.result)
+
+class AstJSONPrinter(AstVisitor):
+    def __init__(self) -> None:
+        self.result = {}  # type: T.Dict[str, T.Any]
+        self.current = self.result
+
+    def _accept(self, key: str, node: mparser.BaseNode) -> None:
+        old = self.current
+        data = {}  # type: T.Dict[str, T.Any]
+        self.current = data
+        node.accept(self)
+        self.current = old
+        self.current[key] = data
+
+    def _accept_list(self, key: str, nodes: T.Sequence[mparser.BaseNode]) -> None:
+        old = self.current
+        datalist = []  # type: T.List[T.Dict[str, T.Any]]
+        for i in nodes:
+            self.current = {}
+            i.accept(self)
+            datalist += [self.current]
+        self.current = old
+        self.current[key] = datalist
+
+    def _raw_accept(self, node: mparser.BaseNode, data: T.Dict[str, T.Any]) -> None:
+        old = self.current
+        self.current = data
+        node.accept(self)
+        self.current = old
+
+    def setbase(self, node: mparser.BaseNode) -> None:
+        self.current['node'] = type(node).__name__
+        self.current['lineno'] = node.lineno
+        self.current['colno'] = node.colno
+        self.current['end_lineno'] = node.end_lineno
+        self.current['end_colno'] = node.end_colno
+
+    def visit_default_func(self, node: mparser.BaseNode) -> None:
+        self.setbase(node)
+
+    def gen_ElementaryNode(self, node: mparser.ElementaryNode) -> None:
+        self.current['value'] = node.value
+        self.setbase(node)
+
+    def visit_BooleanNode(self, node: mparser.BooleanNode) -> None:
+        self.gen_ElementaryNode(node)
+
+    def visit_IdNode(self, node: mparser.IdNode) -> None:
+        self.gen_ElementaryNode(node)
+
+    def visit_NumberNode(self, node: mparser.NumberNode) -> None:
+        self.gen_ElementaryNode(node)
+
+    def visit_StringNode(self, node: mparser.StringNode) -> None:
+        self.gen_ElementaryNode(node)
+
+    def visit_ArrayNode(self, node: mparser.ArrayNode) -> None:
+        self._accept('args', node.args)
+        self.setbase(node)
+
+    def visit_DictNode(self, node: mparser.DictNode) -> None:
+        self._accept('args', node.args)
+        self.setbase(node)
+
+    def visit_OrNode(self, node: mparser.OrNode) -> None:
+        self._accept('left', node.left)
+        self._accept('right', node.right)
+        self.setbase(node)
+
+    def visit_AndNode(self, node: mparser.AndNode) -> None:
+        self._accept('left', node.left)
+        self._accept('right', node.right)
+        self.setbase(node)
+
+    def visit_ComparisonNode(self, node: mparser.ComparisonNode) -> None:
+        self._accept('left', node.left)
+        self._accept('right', node.right)
+        self.current['ctype'] = node.ctype
+        self.setbase(node)
+
+    def visit_ArithmeticNode(self, node: mparser.ArithmeticNode) -> None:
+        self._accept('left', node.left)
+        self._accept('right', node.right)
+        self.current['op'] = arithmic_map[node.operation]
+        self.setbase(node)
+
+    def visit_NotNode(self, node: mparser.NotNode) -> None:
+        self._accept('right', node.value)
+        self.setbase(node)
+
+    def visit_CodeBlockNode(self, node: mparser.CodeBlockNode) -> None:
+        self._accept_list('lines', node.lines)
+        self.setbase(node)
+
+    def visit_IndexNode(self, node: mparser.IndexNode) -> None:
+        self._accept('object', node.iobject)
+        self._accept('index', node.index)
+        self.setbase(node)
+
+    def visit_MethodNode(self, node: mparser.MethodNode) -> None:
+        self._accept('object', node.source_object)
+        self._accept('args', node.args)
+        self.current['name'] = node.name
+        self.setbase(node)
+
+    def visit_FunctionNode(self, node: mparser.FunctionNode) -> None:
+        self._accept('args', node.args)
+        self.current['name'] = node.func_name
+        self.setbase(node)
+
+    def visit_AssignmentNode(self, node: mparser.AssignmentNode) -> None:
+        self._accept('value', node.value)
+        self.current['var_name'] = node.var_name
+        self.setbase(node)
+
+    def visit_PlusAssignmentNode(self, node: mparser.PlusAssignmentNode) -> None:
+        self._accept('value', node.value)
+        self.current['var_name'] = node.var_name
+        self.setbase(node)
+
+    def visit_ForeachClauseNode(self, node: mparser.ForeachClauseNode) -> None:
+        self._accept('items', node.items)
+        self._accept('block', node.block)
+        self.current['varnames'] = node.varnames
+        self.setbase(node)
+
+    def visit_IfClauseNode(self, node: mparser.IfClauseNode) -> None:
+        self._accept_list('ifs', node.ifs)
+        self._accept('else', node.elseblock)
+        self.setbase(node)
+
+    def visit_UMinusNode(self, node: mparser.UMinusNode) -> None:
+        self._accept('right', node.value)
+        self.setbase(node)
+
+    def visit_IfNode(self, node: mparser.IfNode) -> None:
+        self._accept('condition', node.condition)
+        self._accept('block', node.block)
+        self.setbase(node)
+
+    def visit_TernaryNode(self, node: mparser.TernaryNode) -> None:
+        self._accept('condition', node.condition)
+        self._accept('true', node.trueblock)
+        self._accept('false', node.falseblock)
+        self.setbase(node)
+
+    def visit_ArgumentNode(self, node: mparser.ArgumentNode) -> None:
+        self._accept_list('positional', node.arguments)
+        kwargs_list = []  # type: T.List[T.Dict[str, T.Dict[str, T.Any]]]
+        for key, val in node.kwargs.items():
+            key_res = {}  # type: T.Dict[str, T.Any]
+            val_res = {}  # type: T.Dict[str, T.Any]
+            self._raw_accept(key, key_res)
+            self._raw_accept(val, val_res)
+            kwargs_list += [{'key': key_res, 'val': val_res}]
+        self.current['kwargs'] = kwargs_list
+        self.setbase(node)

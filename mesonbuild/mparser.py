@@ -426,8 +426,8 @@ class IfNode(BaseNode):
 class IfClauseNode(BaseNode):
     def __init__(self, linenode: BaseNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
-        self.ifs = []  # type: T.List[IfNode]
-        self.elseblock = EmptyNode(linenode.lineno, linenode.colno, linenode.filename)  # type: T.Union[EmptyNode, CodeBlockNode]
+        self.ifs = []          # type: T.List[IfNode]
+        self.elseblock = None  # type: T.Union[EmptyNode, CodeBlockNode]
 
 class UMinusNode(BaseNode):
     def __init__(self, current_location: Token, value: BaseNode):
@@ -747,9 +747,7 @@ class Parser:
         block = self.codeblock()
         clause.ifs.append(IfNode(clause, condition, block))
         self.elseifblock(clause)
-        elseblock = self.elseblock()
-        if elseblock:
-            clause.elseblock = elseblock
+        clause.elseblock = self.elseblock()
         return clause
 
     def elseifblock(self, clause) -> None:
@@ -759,11 +757,11 @@ class Parser:
             b = self.codeblock()
             clause.ifs.append(IfNode(s, s, b))
 
-    def elseblock(self) -> T.Optional[CodeBlockNode]:
+    def elseblock(self) -> T.Union[CodeBlockNode, EmptyNode]:
         if self.accept('else'):
             self.expect('eol')
             return self.codeblock()
-        return None
+        return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def line(self) -> BaseNode:
         block_start = self.current
