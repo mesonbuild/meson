@@ -76,7 +76,7 @@ and config-tool based variables.
 
 ```meson
 foo_dep = dependency('foo')
-var = foo.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', configtool : 'get-var', default_value : 'default')
+var = foo_dep.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', configtool : 'get-var', default_value : 'default')
 ```
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
