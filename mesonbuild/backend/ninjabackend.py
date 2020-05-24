@@ -2647,18 +2647,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_gcov_clean(self):
         gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
-        script_root = self.environment.get_script_dir()
-        clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcno_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcno'])
+        gcno_elem.add_item('COMMAND', mesonlib.meson_command + ['--internal', 'delwithsuffix', '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files')
         self.add_build(gcno_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcno')
 
         gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
-        script_root = self.environment.get_script_dir()
-        clean_script = os.path.join(script_root, 'delwithsuffix.py')
-        gcda_elem.add_item('COMMAND', mesonlib.python_command + [clean_script, '.', 'gcda'])
+        gcda_elem.add_item('COMMAND', mesonlib.meson_command + ['--internal', 'delwithsuffix', '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files')
         self.add_build(gcda_elem)
         # Alias that runs the target defined above
