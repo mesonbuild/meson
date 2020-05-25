@@ -177,6 +177,13 @@ class OptionInterpreter:
             if not isinstance(res, bool):
                 raise OptionException('Token after "not" is not a a boolean')
             return not res
+        elif isinstance(arg, mparser.ArithmeticNode):
+            l = self.reduce_single(arg.left)
+            r = self.reduce_single(arg.right)
+            if not (arg.operation == 'add' and isinstance(l, str) and isinstance(r, str)):
+                raise OptionException('Only string concatenation with the "+" operator is allowed')
+            FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
+            return l + r
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
