@@ -20,6 +20,9 @@ option('integer_opt', type : 'integer', min : 0, max : 5, value : 3) # Since 0.4
 option('free_array_opt', type : 'array', value : ['one', 'two'])  # Since 0.44.0
 option('array_opt', type : 'array', choices : ['one', 'two', 'three'], value : ['one', 'two'])
 option('some_feature', type : 'feature', value : 'enabled')  # Since 0.47.0
+option('long_desc', type : 'string', value : 'optval',
+       description : 'An option with a very long description' +
+                     'that does something in a specific context') # Since 0.55.0
 ```
 
 For built-in options, see [Built-in options][builtin_opts].
