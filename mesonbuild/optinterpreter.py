@@ -171,11 +171,13 @@ class OptionInterpreter:
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
                 raise OptionException('Token after "-" is not a number')
+            FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
             return -res
         elif isinstance(arg, mparser.NotNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, bool):
                 raise OptionException('Token after "not" is not a a boolean')
+            FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
             return not res
         elif isinstance(arg, mparser.ArithmeticNode):
             l = self.reduce_single(arg.left)
