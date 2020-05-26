@@ -24,6 +24,7 @@ from . import mlog
 from . import mesonlib
 from . import coredata
 from .mesonlib import MesonException
+from mesonbuild.environment import detect_ninja
 
 if T.TYPE_CHECKING:
     import argparse
@@ -42,15 +43,9 @@ def get_backend_from_coredata(builddir: Path) -> str:
     return coredata.load(str(builddir)).get_builtin_option('backend')
 
 def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path):
-    runner = os.environ.get('NINJA')
-    if not runner:
-        if shutil.which('ninja'):
-            runner = 'ninja'
-        elif shutil.which('samu'):
-            runner = 'samu'
-
+    runner = detect_ninja()
     if runner is None:
-        raise MesonException('Cannot find either ninja or samu.')
+        raise MesonException('Cannot find ninja.')
     mlog.log('Found runner:', runner)
 
     cmd = [runner, '-C', builddir.as_posix()]
