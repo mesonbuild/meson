@@ -379,7 +379,7 @@ class PkgConfigModule(ExtensionModule):
                 return cflags_buf
 
             cflags = generate_compiler_flags()
-            ofile.write('Cflags:')
+            ofile.write('Cflags: ')
             if uninstalled:
                 ofile.write(' '.join(generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)))
             elif not dataonly and cflags:
