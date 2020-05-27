@@ -28,16 +28,16 @@ itself in a way that makes it easy to use (usually this means as a
 static library).
 
 To use this kind of a project as a dependency you could just copy and
-extract it inside your project's `subprojects` directory. 
+extract it inside your project's `subprojects` directory.
 
 However there is a simpler way. You can specify a Wrap file that tells Meson
-how to download it for you. If you then use this subproject in your build, 
+how to download it for you. If you then use this subproject in your build,
 Meson will automatically download and extract it during build. This makes
 subproject embedding extremely easy.
 
 All wrap files must have a name of `<project_name>.wrap` form and be in `subprojects` dir.
 
-Currently Meson has four kinds of wraps: 
+Currently Meson has four kinds of wraps:
 - wrap-file
 - wrap-git
 - wrap-hg
@@ -82,6 +82,12 @@ revision = head
 - `lead_directory_missing` - for `wrap-file` create the leading
   directory name. Needed when the source file does not have a leading
   directory.
+
+Since *0.55.0* it is possible to use only the `source_filename` and
+`patch_filename` value in a .wrap file (without `source_url` and `patch_url`) to
+specify a local archive in the `subprojects/packagefiles` directory. The `*_hash`
+entries are optional when using this method. This method should be prefered over
+the old `packagecache` approach described below.
 
 Since *0.49.0* if `source_filename` or `patch_filename` is found in the
 project's `subprojects/packagecache` directory, it will be used instead
@@ -129,14 +135,14 @@ wrap-git, the repository must contain all Meson build definitions.
 
 ## Using wrapped projects
 
-Wraps provide a convenient way of obtaining a project into your subproject directory. 
+Wraps provide a convenient way of obtaining a project into your subproject directory.
 Then you use it as a regular subproject (see [subprojects](Subprojects.md)).
 
 ## Getting wraps
 
-Usually you don't want to write your wraps by hand. 
+Usually you don't want to write your wraps by hand.
 
-There is an online repository called [WrapDB](https://wrapdb.mesonbuild.com) that provides 
+There is an online repository called [WrapDB](https://wrapdb.mesonbuild.com) that provides
 many dependencies ready to use. You can read more about WrapDB [here](Using-the-WrapDB.md).
 
 There is also a Meson subcommand to get and manage wraps (see [using wraptool](Using-wraptool.md)).

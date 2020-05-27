@@ -27,6 +27,7 @@ import sys
 import configparser
 import typing as T
 
+from pathlib import Path
 from . import WrapMode
 from ..mesonlib import git, GIT, ProgressBar, MesonException
 
@@ -126,7 +127,7 @@ class PackageDefinition:
             raise WrapException(m.format(key, self.basename))
 
     def has_patch(self) -> bool:
-        return 'patch_url' in self.values
+        return 'patch_filename' in self.values
 
 def load_wrap(subdir_root: str, packagename: str) -> PackageDefinition:
     fname = os.path.join(subdir_root, packagename + '.wrap')
@@ -146,10 +147,12 @@ def get_directory(subdir_root: str, packagename: str):
     return wrap, directory
 
 class Resolver:
-    def __init__(self, subdir_root: str, wrap_mode=WrapMode.default):
+    def __init__(self, subdir_root: str, wrap_mode=WrapMode.default, current_subproject: str = ''):
         self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
+        self.current_subproject = current_subproject
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
+        self.filesdir = os.path.join(self.subdir_root, 'packagefiles')
 
     def resolve(self, packagename: str, method: str) -> str:
         self.packagename = packagename
@@ -363,7 +366,9 @@ class Resolver:
             hashvalue = h.hexdigest()
         return hashvalue, tmpfile.name
 
-    def check_hash(self, what: str, path: str) -> None:
+    def check_hash(self, what: str, path: str, hash_required: bool = True) -> None:
+        if what + '_hash' not in self.wrap.values and not hash_required:
+            return
         expected = self.wrap.get(what + '_hash')
         h = hashlib.sha256()
         with open(path, 'rb') as f:
@@ -393,17 +398,28 @@ class Resolver:
 
     def get_file_internal(self, what: str) -> str:
         filename = self.wrap.get(what + '_filename')
-        cache_path = os.path.join(self.cachedir, filename)
+        if what + '_url' in self.wrap.values:
+            cache_path = os.path.join(self.cachedir, filename)
 
-        if os.path.exists(cache_path):
-            self.check_hash(what, cache_path)
-            mlog.log('Using', mlog.bold(self.packagename), what, 'from cache.')
+            if os.path.exists(cache_path):
+                self.check_hash(what, cache_path)
+                mlog.log('Using', mlog.bold(self.packagename), what, 'from cache.')
+                return cache_path
+
+            if not os.path.isdir(self.cachedir):
+                os.mkdir(self.cachedir)
+            self.download(what, cache_path)
             return cache_path
+        else:
+            from ..interpreterbase import FeatureNew
+            FeatureNew('Local wrap patch files without {}_url'.format(what), '0.55.0').use(self.current_subproject)
+            path = Path(self.filesdir) / filename
 
-        if not os.path.isdir(self.cachedir):
-            os.mkdir(self.cachedir)
-        self.download(what, cache_path)
-        return cache_path
+            if not path.exists():
+                raise WrapException('File "{}" does not exist'.format(path))
+            self.check_hash(what, path.as_posix(), hash_required=False)
+
+            return path.as_posix()
 
     def apply_patch(self) -> None:
         path = self.get_file_internal('patch')
