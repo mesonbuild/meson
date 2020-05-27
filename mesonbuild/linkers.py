@@ -704,6 +704,10 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
 
     """Representation of GNU ld.bfd and ld.gold."""
 
+    def get_accepts_rsp(self) -> bool:
+        # rsp files should only be used if on windows or if # of args is huge,
+        # but we don't know # of args here, so let caller worry about that.
+        return True;
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
 

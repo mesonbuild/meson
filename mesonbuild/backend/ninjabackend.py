@@ -1589,6 +1589,11 @@ int dummy;
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
                                         extra=pool))
+                # Also output a LINKER_SHORT rule for short commandlines on non-windows systems
+                rule = '{}_LINKER_SHORT{}'.format(langname, self.get_rule_suffix(for_machine))
+                self.add_rule(NinjaRule(rule, command, args, description,
+                                        rspable=False,
+                                        extra=pool))
 
         args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
             ['--internal',
@@ -1709,8 +1714,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             deps = 'gcc'
             depfile = '$DEPFILE'
+        want_rsp = mesonlib.is_windows()
         self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=compiler.can_linker_accept_rsp(),
+                                rspable=(want_rsp and compiler.can_linker_accept_rsp()),
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
@@ -2459,6 +2465,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         return guessed_dependencies + absolute_libs
 
+    def should_use_rsp_file(self, linker_base, obj_list):
+        # On Windows systems, always use rsp files.
+        # On other systems, only use them for long lines passed to dynamic linker (for now)
+        # FIXME: don't hardcode commandline length limit; do define it better
+        # FIXME: also handle static case (and detect whether ar supports @)
+        max_len = 1000
+        return mesonlib.is_windows() or linker_base == 'STATIC' or (len(obj_list) > max_len)
+
     def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
@@ -2471,6 +2485,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             self.generate_shsym(target)
         crstr = self.get_rule_suffix(target.for_machine)
         linker_rule = linker_base + '_LINKER' + crstr
+        linker_short_rule = linker_base + '_LINKER_SHORT' + crstr
         # Create an empty commands list, and start adding link arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
@@ -2595,7 +2610,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         dep_targets.extend([self.get_dependency_filename(t) for t in dependencies])
         dep_targets.extend([self.get_dependency_filename(t)
                             for t in target.link_depends])
-        elem = NinjaBuildElement(self.all_outputs, outname, linker_rule, obj_list, implicit_outs=implicit_outs)
+        if self.should_use_rsp_file(linker_base, obj_list):
+            rule = linker_rule
+        else:
+            rule = linker_short_rule
+        elem = NinjaBuildElement(self.all_outputs, outname, rule, obj_list, implicit_outs=implicit_outs)
         elem.add_dep(dep_targets + custom_target_libraries)
         elem.add_item('LINK_ARGS', commands)
         return elem
