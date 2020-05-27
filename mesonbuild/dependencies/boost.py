@@ -613,7 +613,6 @@ class BoostDependency(ExternalDependency):
             return
 
         self.is_found = self.run_check([boost_inc_dir], [lib_dir])
-        return
 
     def detect_env_var_roots(self) -> T.List[Path]:
         # Add roots from the environment
@@ -626,6 +625,7 @@ class BoostDependency(ExternalDependency):
                 if paths and any([not x.is_absolute() for x in paths]):
                     raise DependencyException('Paths in {} must be absolute'.format(i))
                 return paths  # Do not add system paths if BOOST_ROOT is present
+        return []
 
     def detect_roots(self) -> T.List[Path]:
         roots = []  # type: T.List[Path]
