@@ -367,7 +367,7 @@ class BoostDependency(ExternalDependency):
         self.arch = environment.machines[self.for_machine].cpu_family
         self.arch = boost_arch_map.get(self.arch, None)
 
-        # Prefere BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if preset
+        # Prefer BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if present in environment
         boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR']]
         if all(boost_manual_env):
             inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
@@ -376,22 +376,32 @@ class BoostDependency(ExternalDependency):
             mlog.debug('  - BOOST_INCLUDEDIR = {}'.format(inc_dir))
             mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
 
-            boost_inc_dir = None
-            for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
-                if j.is_file():
-                    boost_inc_dir = self._include_dir_from_version_header(j)
-                    break
-            if not boost_inc_dir:
-                self.is_found = False
-                return
+            return self.detect_split_root(inc_dir, lib_dir)
 
-            self.is_found = self.run_check([boost_inc_dir], [lib_dir])
-            return
         elif any(boost_manual_env):
             mlog.warning('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
 
-        # A) Detect potential boost root directories (uses also BOOST_ROOT env var)
-        roots = self.detect_roots()
+        # Next, look for BOOST_ROOT so that we prefer all environment variables to all other methods of detection
+        roots = self.detect_env_var_roots()
+
+        if not roots:
+            # Then, prefer boost_includedir and boost_librarydir if present in properties file
+            props = self.env.properties[self.for_machine]
+            boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir')]
+            if all(boost_property_env):
+                inc_dir = Path(props['boost_includedir'])
+                lib_dir = Path(props['boost_librarydir'])
+                mlog.debug('Trying to find boost with:')
+                mlog.debug('  - boost_includedir = {}'.format(inc_dir))
+                mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
+
+                return self.detect_split_root(inc_dir, lib_dir)
+
+            elif any(boost_property_env):
+                mlog.warning('Both boost_includedir *and* boost_librarydir have to be set in your properties file (one is not enough). Ignoring.')
+
+            roots = self.detect_roots()
+
         roots = list(mesonlib.OrderedSet(roots))
 
         # B) Foreach candidate
@@ -592,20 +602,40 @@ class BoostDependency(ExternalDependency):
             libs += [BoostLibraryFile(i)]
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
-    def detect_roots(self) -> T.List[Path]:
-        roots = []  # type: T.List[Path]
+    def detect_split_root(self, inc_dir, lib_dir):
+        boost_inc_dir = None
+        for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
+            if j.is_file():
+                boost_inc_dir = self._include_dir_from_version_header(j)
+                break
+        if not boost_inc_dir:
+            self.is_found = False
+            return
 
+        self.is_found = self.run_check([boost_inc_dir], [lib_dir])
+        return
+
+    def detect_env_var_roots(self) -> T.List[Path]:
         # Add roots from the environment
+        # This is separate from detect_roots so that environment variables can be preferred
+        # overall to property file variables
         for i in ['BOOST_ROOT', 'BOOSTROOT']:
             if i in os.environ:
                 raw_paths = os.environ[i].split(os.pathsep)
                 paths = [Path(x) for x in raw_paths]
                 if paths and any([not x.is_absolute() for x in paths]):
                     raise DependencyException('Paths in {} must be absolute'.format(i))
-                roots += paths
-                return roots  # Do not add system paths if BOOST_ROOT is present
+                return paths  # Do not add system paths if BOOST_ROOT is present
 
-        # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarely
+    def detect_roots(self) -> T.List[Path]:
+        roots = []  # type: T.List[Path]
+
+        # Read boost_root out of the ini file, if available
+        boost_root_props = self.env.properties[self.for_machine].get('boost_root', [])
+        raw_paths = mesonlib.stringlistify(boost_root_props)
+        roots += [Path(x) for x in raw_paths]
+
+        # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
         try:
             boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
