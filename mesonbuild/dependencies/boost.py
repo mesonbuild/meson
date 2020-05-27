@@ -602,7 +602,7 @@ class BoostDependency(ExternalDependency):
             libs += [BoostLibraryFile(i)]
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
-    def detect_split_root(self, inc_dir, lib_dir):
+    def detect_split_root(self, inc_dir, lib_dir) -> None:
         boost_inc_dir = None
         for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
             if j.is_file():
