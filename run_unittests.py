@@ -4716,7 +4716,7 @@ recommended as it is not supported on some platforms''')
         found_entries.add('help')
 
         help_output = self._run(self.meson_command + ['--help'])
-        help_commands = set(re.findall(r"usage:(?s:.+)?{((?:[a-z]+,*)+?)}", help_output, re.MULTILINE))
+        help_commands = set(c.strip() for c in re.findall(r"usage:(?s:.+)?{((?:[a-z]+,*)+?)}", help_output, re.MULTILINE)[0].split(','))
 
         self.assertEqual(found_entries, help_commands)
 

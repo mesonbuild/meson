@@ -9,8 +9,9 @@ Meson is invoked using the following syntax:
 `meson [COMMAND] [COMMAND_OPTIONS]`
 
 This section describes all available commands and some of their notable options.
+The most common workflow is to run [`setup`](#setup), followed by [`compile`](#compile), and then [`install`](#install).
 
-For full list of available options for a specific command use the following syntax:
+For the full list of all available options for a specific command use the following syntax:
 `meson COMMAND --help`
 
 ### compile
