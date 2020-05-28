@@ -14,6 +14,18 @@ The most common workflow is to run [`setup`](#setup), followed by [`compile`](#c
 For the full list of all available options for a specific command use the following syntax:
 `meson COMMAND --help`
 
+### configure
+
+Reconfigures existing meson project.
+
+Examples:
+- `meson configure builddir`: list all available options.
+- `meson configure builddir -Doption=new_value`: change a single option
+
+Most arguments are the same as in [`setup`](#setup).
+
+Note: reconfiguring project will not reset options to their default values (even if they were changed in `meson.build`).
+
 ### compile
 
 *(since 0.54.0)*
