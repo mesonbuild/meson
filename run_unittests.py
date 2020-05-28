@@ -1483,6 +1483,7 @@ class DataTests(unittest.TestCase):
         astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
+
 class BasePlatformTests(unittest.TestCase):
     prefix = '/usr'
     libdir = 'lib'
@@ -4704,8 +4705,7 @@ recommended as it is not supported on some platforms''')
     def test_commands_documented(self):
         '''
         Test that all listed meson commands are documented in Commands.md.
-        '''
-        from itertools import tee
+        '''        
         md = None
         with open('docs/markdown/Commands.md', encoding='utf-8') as f:
             md = f.read()
@@ -4716,7 +4716,7 @@ recommended as it is not supported on some platforms''')
         found_entries.add('help')
 
         help_output = self._run(self.meson_command + ['--help'])
-        help_commands = set(re.findall(r"usage:.+?{((?:[a-z]+,*)+?)}", help_output))
+        help_commands = set(re.findall(r"usage:(?s:.+)?{((?:[a-z]+,*)+?)}", help_output, re.MULTILINE))
 
         self.assertEqual(found_entries, help_commands)
 

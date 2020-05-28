@@ -79,7 +79,7 @@ Noteable options:
 
 *(since 0.45.0)*
 
-Generates a basic meson setup from the template.
+Creates a basic set of build files based on a template.
 
 Example: `meson init -C sourcedir`
 
@@ -103,11 +103,13 @@ Notable introspect commands:
 
 *(since 0.47.0)*
 
-Installs the project to the folder specified in `setup`.
+Installs the project to the prefix specified in `setup`.
 
-Example: `meson install -C builddir`
+Examples: 
+- `meson install -C builddir`
+- `DESTDIR=/path/to/staging/area meson install -C builddir`
 
-See [this page](Installing.md) for more info.
+See [the installation documentation](Installing.md) for more info.
 
 ### rewrite
 
@@ -115,7 +117,7 @@ See [this page](Installing.md) for more info.
 
 Modifies the meson project.
 
-See [this page](Rewriter.md) for more info.
+See [the meson file rewriter documentation](Rewriter.md) for more info.
 
 ### setup
 
@@ -125,7 +127,7 @@ Configures a build directory for the meson project.
 
 Example: `meson setup builddir`
 
-See [this page](Running-Meson.md#configuring-the-build-directory) for more info.
+See [meson introduction page](Running-Meson.md#configuring-the-build-directory) for more info.
 
 ### subprojects
 
@@ -147,10 +149,10 @@ Run tests for the configure meson project.
 
 Example: `meson test -C builddir`
 
-See [this page](Unit-tests.md) for more info.
+See [the unit test documentation](Unit-tests.md) for more info.
 
 ### wrap
 
 An utility to manage WrapDB dependencies.
 
-See [this page](Using-wraptool.md) for more info.
+See [the WrapDB tool documentation](Using-wraptool.md) for more info.
