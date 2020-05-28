@@ -79,6 +79,9 @@ revision = head
 - `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
 - `patch_filename` - filename of the downloaded overlay archive
 - `patch_hash` - sha256 checksum of the downloaded overlay archive
+- `patch_directory` - *Since 0.55.0* Overlay directory, alternative to `patch_filename` in the case
+  files are local instead of a downloaded archive. The directory must be placed in
+  `subprojects/packagefiles`.
 - `lead_directory_missing` - for `wrap-file` create the leading
   directory name. Needed when the source file does not have a leading
   directory.
