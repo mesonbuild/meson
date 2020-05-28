@@ -1483,7 +1483,6 @@ class DataTests(unittest.TestCase):
         astint = AstInterpreter('.', '', '')
         self.assertEqual(set(interp.funcs.keys()), set(astint.funcs.keys()))
 
-
 class BasePlatformTests(unittest.TestCase):
     prefix = '/usr'
     libdir = 'lib'
@@ -4702,6 +4701,24 @@ recommended as it is not supported on some platforms''')
         self.assertRegex(contents, r'build main(\.exe)?.*: c_LINKER')
         self.assertRegex(contents, r'build (lib|cyg)?mylib.*: c_LINKER')
 
+    def test_commands_documented(self):
+        '''
+        Test that all listed meson commands are documented in Commands.md.
+        '''
+        from itertools import tee
+        md = None
+        with open('docs/markdown/Commands.md', encoding='utf-8') as f:
+            md = f.read()
+        self.assertIsNotNone(md)
+
+        found_entries = set(re.findall(r"^### (.+)$", md, re.MULTILINE))
+        # Help is not documented for obvious reasons =)
+        found_entries.add('help')
+
+        help_output = self._run(self.mtest_command + ['--help'])
+        help_commands = set(re.findall(r"usage:.+?{((?:[a-z]+,*)+?)}", help_output))
+
+        self.assertEqual(found_entries, help_commands)
 
 class FailureTests(BasePlatformTests):
     '''
