@@ -126,9 +126,6 @@ class PackageDefinition:
             m = 'Missing key {!r} in {}'
             raise WrapException(m.format(key, self.basename))
 
-    def has_patch(self) -> bool:
-        return 'patch_filename' in self.values
-
 def load_wrap(subdir_root: str, packagename: str) -> PackageDefinition:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
@@ -253,8 +250,7 @@ class Resolver:
             os.mkdir(self.dirname)
             extract_dir = self.dirname
         shutil.unpack_archive(path, extract_dir)
-        if self.wrap.has_patch():
-            self.apply_patch()
+        self.apply_patch()
 
     def get_git(self) -> None:
         if not GIT:
@@ -422,13 +418,25 @@ class Resolver:
             return path.as_posix()
 
     def apply_patch(self) -> None:
-        path = self.get_file_internal('patch')
-        try:
-            shutil.unpack_archive(path, self.subdir_root)
-        except Exception:
-            with tempfile.TemporaryDirectory() as workdir:
-                shutil.unpack_archive(path, workdir)
-                self.copy_tree(workdir, self.subdir_root)
+        if 'patch_filename' in self.wrap.values and 'patch_directory' in self.wrap.values:
+            m = 'Wrap file {!r} must not have both "patch_filename" and "patch_directory"'
+            raise WrapException(m.format(self.wrap.basename))
+        if 'patch_filename' in self.wrap.values:
+            path = self.get_file_internal('patch')
+            try:
+                shutil.unpack_archive(path, self.subdir_root)
+            except Exception:
+                with tempfile.TemporaryDirectory() as workdir:
+                    shutil.unpack_archive(path, workdir)
+                    self.copy_tree(workdir, self.subdir_root)
+        elif 'patch_directory' in self.wrap.values:
+            from ..interpreterbase import FeatureNew
+            FeatureNew('patch_directory', '0.55.0').use(self.current_subproject)
+            patch_dir = self.wrap.values['patch_directory']
+            src_dir = os.path.join(self.filesdir, patch_dir)
+            if not os.path.isdir(src_dir):
+                raise WrapException('patch directory does not exists: {}'.format(patch_dir))
+            self.copy_tree(src_dir, self.dirname)
 
     def copy_tree(self, root_src_dir: str, root_dst_dir: str) -> None:
         """
