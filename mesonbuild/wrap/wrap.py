@@ -130,13 +130,13 @@ class PackageDefinition:
         if self.config.has_section('provide'):
             for k, v in self.config['provide'].items():
                 if k == 'dependency_names':
-                    # A coma separated list of dependency names that does not
+                    # A comma separated list of dependency names that does not
                     # need a variable name
                     names = {n.strip(): None for n in v.split(',')}
                     self.provide.update(names)
                     continue
                 if k == 'program_names':
-                    # A coma separated list of program names
+                    # A comma separated list of program names
                     names = {n.strip(): None for n in v.split(',')}
                     self.provide_programs += names
                     continue

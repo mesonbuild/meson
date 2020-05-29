@@ -148,7 +148,7 @@ When a wrap file provides the dependency `foo` any call do `dependency('foo')`
 will automatically fallback to that subproject even if no `fallback` keyword
 argument is given. It is recommended for subprojects to call
 `meson.override_dependency('foo', foo_dep)`, dependency name can then be added into
-the special `dependency_names` entry which takes coma separated list of dependency
+the special `dependency_names` entry which takes comma separated list of dependency
 names. For backward compatibility with subprojects that does not call
 `meson.override_dependency()`, the variable name can be provided in the wrap file
 with entries in the format `dependency_name = variable_name`,
