@@ -199,6 +199,16 @@ class NinjaBuildElement:
         if not self.rule.rspable:
             return False
 
+        if mesonlib.is_windows():
+            # Since be6114068, meson has used response files on Windows.
+            # Return True here to force that behavior to continue.
+            # This can be removed once quoting in the non-response-file case
+            # on windows is handled properly; see WIP at
+            # https://github.com/mesonbuild/meson/pull/5245
+            # Quoting is a strange beast that rears its head at many levels,
+            # and if you aim at it, best not miss.
+            return True
+
         infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
         outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
 
