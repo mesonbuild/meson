@@ -149,6 +149,10 @@ class ArLinker(StaticLinker):
             self.std_args = ['csrD']
         else:
             self.std_args = ['csr']
+        self.can_rsp = '@<' in stdo
+
+    def can_linker_accept_rsp(self) -> bool:
+        return self.can_rsp
 
     def get_std_link_args(self) -> T.List[str]:
         return self.std_args
@@ -703,6 +707,9 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
+
+    def get_accepts_rsp(self) -> bool:
+        return True;
 
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
