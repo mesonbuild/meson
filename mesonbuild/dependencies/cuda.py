@@ -157,11 +157,15 @@ class CudaDependency(ExternalDependency):
 
         mlog.debug('Falling back to extracting version from path')
         path_version_regex = self.path_version_win_regex if self._is_windows() else self.path_version_nix_regex
-        m = path_version_regex.match(os.path.basename(path))
-        if m:
-            return m[1]
+        try:
+            m = path_version_regex.match(os.path.basename(path))
+            if m:
+                return m.group(1)
+            else:
+                mlog.warning('Could not detect CUDA Toolkit version for {}'.format(path))
+        except Exception as e:
+            mlog.warning('Could not detect CUDA Toolkit version for {}: {}'.format(path, str(e)))
 
-        mlog.warning('Could not detect CUDA Toolkit version for {}'.format(path))
         return '0.0'
 
     def _read_toolkit_version_txt(self, path):
@@ -172,7 +176,7 @@ class CudaDependency(ExternalDependency):
                 version_str = version_file.readline() # e.g. 'CUDA Version 10.1.168'
                 m = self.toolkit_version_regex.match(version_str)
                 if m:
-                    return self._strip_patch_version(m[1])
+                    return self._strip_patch_version(m.group(1))
         except Exception as e:
             mlog.debug('Could not read CUDA Toolkit\'s version file {}: {}'.format(version_file_path, str(e)))
 
@@ -192,7 +196,7 @@ class CudaDependency(ExternalDependency):
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
         elif machine.is_linux():
-            libdirs = {'x86_64': 'lib64', 'ppc64': 'lib'}
+            libdirs = {'x86_64': 'lib64', 'ppc64': 'lib', 'aarch64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Linux'))
             return libdirs[arch]
