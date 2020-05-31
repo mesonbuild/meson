@@ -551,13 +551,16 @@ def detect_vcs(source_dir: str) -> T.Optional[T.Dict[str, str]]:
         dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
         dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
     ]
-    # FIXME: this is much cleaner with pathlib.Path
-    segs = source_dir.replace('\\', '/').split('/')
-    for i in range(len(segs), -1, -1):
-        curdir = '/'.join(segs[:i])
+
+    source_dir = Path(source_dir)
+    parent_paths_and_self = collections.deque(source_dir.parents)
+    # Prepend the source directory to the front so we can check it;
+    # source_dir.parents doesn't include source_dir
+    parent_paths_and_self.appendleft(source_dir)
+    for curdir in parent_paths_and_self:
         for vcs in vcs_systems:
-            if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
-                vcs['wc_dir'] = curdir
+            if Path.is_dir(curdir.joinpath(vcs['repo_dir'])) and shutil.which(vcs['cmd']):
+                vcs['wc_dir'] = str(curdir)
                 return vcs
     return None
 
