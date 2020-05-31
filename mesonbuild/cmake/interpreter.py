@@ -17,7 +17,7 @@
 
 import pkg_resources
 
-from .common import CMakeException, CMakeTarget
+from .common import CMakeException, CMakeTarget, TargetOptions
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
@@ -994,7 +994,7 @@ class CMakeInterpreter:
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
-    def pretend_to_be_meson(self) -> CodeBlockNode:
+    def pretend_to_be_meson(self, options: TargetOptions) -> CodeBlockNode:
         if not self.project_name:
             raise CMakeException('CMakeInterpreter was not analysed')
 
@@ -1158,21 +1158,26 @@ class CMakeInterpreter:
             dep_var = '{}_dep'.format(tgt.name)
             tgt_var = tgt.name
 
+            install_tgt = options.get_install(tgt.cmake_name, tgt.install)
+
             # Generate target kwargs
             tgt_kwargs = {
-                'build_by_default': tgt.install,
-                'link_args': tgt.link_flags + tgt.link_libraries,
+                'build_by_default': install_tgt,
+                'link_args': options.get_link_args(tgt.cmake_name, tgt.link_flags + tgt.link_libraries),
                 'link_with': link_with,
                 'include_directories': id_node(inc_var),
-                'install': tgt.install,
-                'install_dir': tgt.install_dir,
-                'override_options': tgt.override_options,
+                'install': install_tgt,
+                'override_options': options.get_override_options(tgt.cmake_name, tgt.override_options),
                 'objects': [method(x, 'extract_all_objects') for x in objec_libs],
             }
 
+            # Only set if installed and only override if it is set
+            if install_tgt and tgt.install_dir:
+                tgt_kwargs['install_dir'] = tgt.install_dir
+
             # Handle compiler args
             for key, val in tgt.compile_opts.items():
-                tgt_kwargs['{}_args'.format(key)] = val
+                tgt_kwargs['{}_args'.format(key)] = options.get_compile_args(tgt.cmake_name, key, val)
 
             # Handle -fPCI, etc
             if tgt_func == 'executable':

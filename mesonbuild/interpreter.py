@@ -2440,7 +2440,7 @@ class Interpreter(InterpreterBase):
 
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, Disabler)) or item is None:
+        elif isinstance(item, (int, str, bool, Disabler, InterpreterObject)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -2851,13 +2851,21 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
+
+            from .modules.cmake import CMakeSubprojectOptions
+            options = kwargs.get('options', CMakeSubprojectOptions())
+            if not isinstance(options, CMakeSubprojectOptions):
+                raise InterpreterException('"options" kwarg must be CMakeSubprojectOptions'
+                                           ' object (created by cmake.subproject_options())')
+
             cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
+            cmake_options += options.cmake_options
             cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
-            ast = cm_int.pretend_to_be_meson()
+            ast = cm_int.pretend_to_be_meson(options.target_options)
 
             mlog.log()
             with mlog.nested():

@@ -60,6 +60,26 @@ def _flags_to_list(raw: str) -> T.List[str]:
     res = list(filter(lambda x: len(x) > 0, res))
     return res
 
+def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
+    res = []  # type: T.List[str]
+    if not isinstance(raw, list):
+        raw = [raw]
+
+    for i in raw:
+        if not isinstance(i, dict):
+            raise MesonException('Invalid CMake defines. Expected a dict, but got a {}'.format(type(i).__name__))
+        for key, val in i.items():
+            assert isinstance(key, str)
+            if isinstance(val, (str, int, float)):
+                res += ['-D{}={}'.format(key, val)]
+            elif isinstance(val, bool):
+                val_str = 'ON' if val else 'OFF'
+                res += ['-D{}={}'.format(key, val_str)]
+            else:
+                raise MesonException('Type "{}" of "{}" is not supported as for a CMake define value'.format(type(val).__name__, key))
+
+    return res
+
 class CMakeFileGroup:
     def __init__(self, data: dict):
         self.defines = data.get('defines', '')
@@ -163,3 +183,78 @@ class CMakeConfiguration:
             mlog.log('Project {}:'.format(idx))
             with mlog.nested():
                 i.log()
+
+class SingleTargetOptions:
+    def __init__(self) -> None:
+        self.opts = {}       # type: T.Dict[str, str]
+        self.lang_args = {}  # type: T.Dict[str, T.List[str]]
+        self.link_args = []  # type: T.List[str]
+        self.install = 'preserve'
+
+    def set_opt(self, opt: str, val: str) -> None:
+        self.opts[opt] = val
+
+    def append_args(self, lang: str, args: T.List[str]) -> None:
+        if lang not in self.lang_args:
+            self.lang_args[lang] = []
+        self.lang_args[lang] += args
+
+    def append_link_args(self, args: T.List[str]) -> None:
+        self.link_args += args
+
+    def set_install(self, install: bool) -> None:
+        self.install = 'true' if install else 'false'
+
+    def get_override_options(self, initial: T.List[str]) -> T.List[str]:
+        res = []  # type: T.List[str]
+        for i in initial:
+            opt = i[:i.find('=')]
+            if opt not in self.opts:
+                res += [i]
+        res += ['{}={}'.format(k, v) for k, v in self.opts.items()]
+        return res
+
+    def get_compile_args(self, lang: str, initial: T.List[str]) -> T.List[str]:
+        if lang in self.lang_args:
+            return initial + self.lang_args[lang]
+        return initial
+
+    def get_link_args(self, initial: T.List[str]) -> T.List[str]:
+        return initial + self.link_args
+
+    def get_install(self, initial: bool) -> bool:
+        return {'preserve': initial, 'true': True, 'false': False}[self.install]
+
+class TargetOptions:
+    def __init__(self) -> None:
+        self.global_options = SingleTargetOptions()
+        self.target_options = {}  # type: T.Dict[str, SingleTargetOptions]
+
+    def __getitem__(self, tgt: str) -> SingleTargetOptions:
+        if tgt not in self.target_options:
+            self.target_options[tgt] = SingleTargetOptions()
+        return self.target_options[tgt]
+
+    def get_override_options(self, tgt: str, initial: T.List[str]) -> T.List[str]:
+        initial = self.global_options.get_override_options(initial)
+        if tgt in self.target_options:
+            initial = self.target_options[tgt].get_override_options(initial)
+        return initial
+
+    def get_compile_args(self, tgt: str, lang: str, initial: T.List[str]) -> T.List[str]:
+        initial = self.global_options.get_compile_args(lang, initial)
+        if tgt in self.target_options:
+            initial = self.target_options[tgt].get_compile_args(lang, initial)
+        return initial
+
+    def get_link_args(self, tgt: str, initial: T.List[str]) -> T.List[str]:
+        initial = self.global_options.get_link_args(initial)
+        if tgt in self.target_options:
+            initial = self.target_options[tgt].get_link_args(initial)
+        return initial
+
+    def get_install(self, tgt: str, initial: bool) -> bool:
+        initial = self.global_options.get_install(initial)
+        if tgt in self.target_options:
+            initial = self.target_options[tgt].get_install(initial)
+        return initial
