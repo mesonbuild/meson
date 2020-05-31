@@ -355,7 +355,7 @@ class ConverterTarget:
                 if 'CONFIGURATIONS' in tgt.properties:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
-                
+
                 is_debug = self.env.coredata.get_builtin_option('debug');
                 if is_debug:
                     if 'DEBUG' in cfgs:
