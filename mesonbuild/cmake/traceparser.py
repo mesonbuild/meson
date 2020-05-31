@@ -64,6 +64,7 @@ class CMakeTarget:
             return
         for key, val in self.properties.items():
             self.properties[key] = [x.strip() for x in val]
+            assert all([';' not in x for x in self.properties[key]])
 
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name):
@@ -574,10 +575,10 @@ class CMakeTraceParser:
                 continue
 
             if mode in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC']:
-                interface += [i]
+                interface += i.split(';')
 
             if mode in ['PUBLIC', 'PRIVATE', 'LINK_PRIVATE']:
-                private += [i]
+                private += i.split(';')
 
         if paths:
             interface = self._guess_files(interface)
