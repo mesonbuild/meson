@@ -4705,20 +4705,116 @@ recommended as it is not supported on some platforms''')
     def test_commands_documented(self):
         '''
         Test that all listed meson commands are documented in Commands.md.
-        '''        
+        '''
+        def get_next_start(iterators, end):
+            return next((i.start() for i in iterators if i), end)
+
+        help_positional_start_pattern = re.compile(r"^positional arguments:[\t ]*[\r\n]+", re.MULTILINE)
+        help_positional_pattern = re.compile(r'^[ \t]+([a-z_]+)[ \t]*', re.MULTILINE)
+        help_options_start_pattern = re.compile(r"^optional arguments:[\t ]*[\r\n]+", re.MULTILINE)
+        help_option_pattern = re.compile(r'^[ \t]+(-.*?(?: [A-Z_]+)*(?:, --.*?(?: [A-Z_]+)*)*)[ \t]+', re.MULTILINE)
+        help_commands_start_pattern = re.compile(r"^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+", re.MULTILINE)
+        help_command_pattern = re.compile(r"{((?:[a-z_-]+,*)+?)}", re.MULTILINE|re.DOTALL)
+
+        def parse_help(help):
+            out = dict()
+
+            help_len = len(help)
+            positionals_start = help_positional_start_pattern.search(help)
+            options_start = help_options_start_pattern.search(help)
+            commands_start = help_commands_start_pattern.search(help)
+
+            if positionals_start:
+                start = positionals_start.end()
+                end = get_next_start([options_start, commands_start], help_len)
+                out['positionals'] = set(i.group(1)
+                                         for i in help_positional_pattern.finditer(
+                                             help,
+                                             pos=start,
+                                             endpos=end))
+            if options_start:
+                start = options_start.end()
+                end = get_next_start([commands_start], help_len)
+                out['options'] = set(i.group(1)
+                                     for i in help_option_pattern.finditer(
+                                         help,
+                                         pos=start,
+                                         endpos=end))
+            if commands_start:
+                start = commands_start.end()
+                end = help_len
+                out['commands'] = set(help_command_pattern.findall(help, pos=start, endpos=end)[0].split(','))
+
+            return out
+
+        md_positional_start_pattern = re.compile(r"^Positional arguments:[\t ]*[\r\n]+", re.MULTILINE)
+        ms_positional_pattern = re.compile(r'^- `*([a-z_]+)`:', re.MULTILINE)
+        md_options_start_pattern = re.compile(r"^Optional arguments:[\t ]*[\r\n]+", re.MULTILINE)
+        md_option_pattern = re.compile(r'^- `(-.*?(?:, --.*?)*(?: [A-Z_]+)*)`:', re.MULTILINE)
+        md_commands_start_pattern = re.compile(r"^Commands:[\t ]*[\r\n]+", re.MULTILINE)
+        md_command_pattern = re.compile(r'^- `(-.*?(?:, --.*?)*(?: [A-Z_]+)*)`:', re.MULTILINE)
+
+        def parse_section(text, section_start, section_end):
+            out = dict()
+
+            positionals_start = md_positional_start_pattern.search(text, pos=section_start)
+            options_start = md_options_start_pattern.search(text, pos=section_start)
+            commands_start = md_commands_start_pattern.search(text, pos=section_start)
+
+            if positionals_start:
+                start = positionals_start.end()
+                end = get_next_start([options_start, commands_start], section_end)
+                out['positionals'] = set(i.group(1)
+                                         for i in md_command_pattern.finditer(
+                                             text,
+                                             pos=start,
+                                             endpos=end))
+            if options_start:
+                start = options_start.end()
+                end = get_next_start([commands_start], section_end)
+                out['options'] = set(i.group(1)
+                                     for i in md_option_pattern.finditer(
+                                         text,
+                                         pos=start,
+                                         endpos=end)) | {'-h, --help'}
+            if commands_start:
+                start = commands_start.end()
+                end = section_end
+                out['commands'] = set(md_command_pattern.findall(text, pos=start, endpos=end).split(','))
+
+            return out
+
+        ## Get command sections
+
         md = None
         with open('docs/markdown/Commands.md', encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
 
-        found_entries = set(re.findall(r"^### (.+)$", md, re.MULTILINE))
-        # Help is not documented for obvious reasons =)
-        found_entries.add('help')
+        section_pattern = re.compile(r"^### (.+)$", re.MULTILINE)
+        md_command_section_matches = [i for i in section_pattern.finditer(md)]
+        md_command_sections = dict()
+        for i, s in enumerate(md_command_section_matches):
+            section_end = len(md) if i == len(md_command_section_matches) - 1 else md_command_section_matches[i + 1].start()
+            md_command_sections[s.group(1)] = (s.start(), section_end)
+
+        ## Validate commands
+
+        md_commands = set(k for k,v in md_command_sections.items())
 
         help_output = self._run(self.meson_command + ['--help'])
         help_commands = set(c.strip() for c in re.findall(r"usage:(?:.+)?{((?:[a-z]+,*)+?)}", help_output, re.MULTILINE|re.DOTALL)[0].split(','))
 
-        self.assertEqual(found_entries, help_commands)
+        self.assertEqual(md_commands | {'help'}, help_commands)
+
+        ## Validate command options
+
+        for command in md_commands:
+            help_cmd_output = self._run(self.meson_command + [command, '--help'])
+
+            parsed_help = parse_help(help_cmd_output)
+            parsed_section = parse_section(md, md_command_sections[command][0], md_command_sections[command][1])
+            self.assertEqual(parsed_help, parsed_section)
 
 class FailureTests(BasePlatformTests):
     '''

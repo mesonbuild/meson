@@ -8,7 +8,7 @@ we only use the latter format for simplicity.
 Meson is invoked using the following syntax:
 `meson [COMMAND] [COMMAND_OPTIONS]`
 
-This section describes all available commands and some of their notable options.
+This section describes all available commands and some of their Optional arguments.
 The most common workflow is to run [`setup`](#setup), followed by [`compile`](#compile), and then [`install`](#install).
 
 For the full list of all available options for a specific command use the following syntax:
@@ -56,7 +56,7 @@ Note: the following limitations for backends apply:
 - `ninja`: `custom_target` is not supported.
 - `vs`: `run_target` is not supported.
 
-Notable options:
+Optional arguments:
 - `--jobs JOBS`: The number of worker jobs to run (if supported). If the value is less
                  than 1 the build program will guess.
 - `--clean`: Cleans the build directory.
@@ -96,7 +96,7 @@ Creates a basic set of build files based on a template.
 
 Example: `meson init -C sourcedir`
 
-Notable options:
+Optional arguments:
 - `--name NAME`: project name. default: name of current directory.
 - `--deps DEPS`: list of project dependencies, comma-separated.
 
