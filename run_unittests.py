@@ -4706,18 +4706,32 @@ recommended as it is not supported on some platforms''')
         '''
         Test that all listed meson commands are documented in Commands.md.
         '''
+        positional_pattern = r'[a-z_]+'
+        option_name_pattern = r'[A-Za-z_\-\.]+'
+        option_value_pattern = r'[A-Z_\.]+'
+        option_pattern = (
+            r'-D option|'
+            r'(?:-{1,2}' + option_name_pattern + r'(?: '+ option_value_pattern + r')?)'            
+            r'(?:, --' + option_name_pattern + r'(?: '+ option_value_pattern + r')?)?'
+        )
+        command_pattern = r'[a-z_\-]+'
+
+        help_positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
+        help_positional_pattern = re.compile(r'^(?:  |\t)(' + positional_pattern + r')(?:[ \t]+|$)', re.MULTILINE)
+        help_options_start_pattern = re.compile(r'^optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
+        help_option_pattern = re.compile(r'^(?:  |\t)(' + option_pattern + r')', re.MULTILINE)
+        help_commands_start_pattern = re.compile(r'^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+', re.MULTILINE)
+        help_command_pattern = re.compile(r'{((?:' + command_pattern + r',*)+?)}', re.MULTILINE|re.DOTALL)
+
         def get_next_start(iterators, end):
             return next((i.start() for i in iterators if i), end)
 
-        help_positional_start_pattern = re.compile(r"^positional arguments:[\t ]*[\r\n]+", re.MULTILINE)
-        help_positional_pattern = re.compile(r'^[ \t]+([a-z_]+)[ \t]*', re.MULTILINE)
-        help_options_start_pattern = re.compile(r"^optional arguments:[\t ]*[\r\n]+", re.MULTILINE)
-        help_option_pattern = re.compile(r'^[ \t]+(-.*?(?: [A-Z_]+)*(?:, --.*?(?: [A-Z_]+)*)*)[ \t]+', re.MULTILINE)
-        help_commands_start_pattern = re.compile(r"^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+", re.MULTILINE)
-        help_command_pattern = re.compile(r"{((?:[a-z_-]+,*)+?)}", re.MULTILINE|re.DOTALL)
-
         def parse_help(help):
-            out = dict()
+            out = {
+                'positionals': set(),
+                'options': set(),
+                'commands': set(),
+            }
 
             help_len = len(help)
             positionals_start = help_positional_start_pattern.search(help)
@@ -4747,25 +4761,29 @@ recommended as it is not supported on some platforms''')
 
             return out
 
-        md_positional_start_pattern = re.compile(r"^Positional arguments:[\t ]*[\r\n]+", re.MULTILINE)
-        ms_positional_pattern = re.compile(r'^- `*([a-z_]+)`:', re.MULTILINE)
-        md_options_start_pattern = re.compile(r"^Optional arguments:[\t ]*[\r\n]+", re.MULTILINE)
-        md_option_pattern = re.compile(r'^- `(-.*?(?:, --.*?)*(?: [A-Z_]+)*)`:', re.MULTILINE)
-        md_commands_start_pattern = re.compile(r"^Commands:[\t ]*[\r\n]+", re.MULTILINE)
-        md_command_pattern = re.compile(r'^- `(-.*?(?:, --.*?)*(?: [A-Z_]+)*)`:', re.MULTILINE)
+        md_positional_start_pattern = re.compile(r'^Positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
+        ms_positional_pattern = re.compile(r'^- `*(' + positional_pattern + r')`:', re.MULTILINE)
+        md_options_start_pattern = re.compile(r'^Optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
+        md_option_pattern = re.compile(r'^- `(' + option_pattern + r')`:', re.MULTILINE)
+        md_commands_start_pattern = re.compile(r'^Commands:[\t ]*[\r\n]+', re.MULTILINE)
+        md_command_pattern = re.compile(r'^- `(' + command_pattern + r')`:', re.MULTILINE)
 
         def parse_section(text, section_start, section_end):
-            out = dict()
+            out = {
+                'positionals': set(),
+                'options': {'-h, --help'},
+                'commands': set(),
+            }
 
-            positionals_start = md_positional_start_pattern.search(text, pos=section_start)
-            options_start = md_options_start_pattern.search(text, pos=section_start)
-            commands_start = md_commands_start_pattern.search(text, pos=section_start)
+            positionals_start = md_positional_start_pattern.search(text, pos=section_start, endpos=section_end)
+            options_start = md_options_start_pattern.search(text, pos=section_start, endpos=section_end)
+            commands_start = md_commands_start_pattern.search(text, pos=section_start, endpos=section_end)
 
             if positionals_start:
                 start = positionals_start.end()
                 end = get_next_start([options_start, commands_start], section_end)
                 out['positionals'] = set(i.group(1)
-                                         for i in md_command_pattern.finditer(
+                                         for i in ms_positional_pattern.finditer(
                                              text,
                                              pos=start,
                                              endpos=end))
@@ -4780,7 +4798,11 @@ recommended as it is not supported on some platforms''')
             if commands_start:
                 start = commands_start.end()
                 end = section_end
-                out['commands'] = set(md_command_pattern.findall(text, pos=start, endpos=end).split(','))
+                out['commands'] = set(i.group(1)
+                                      for i in md_command_pattern.finditer(
+                                          text,
+                                          pos=start,
+                                          endpos=end))
 
             return out
 
@@ -4791,7 +4813,7 @@ recommended as it is not supported on some platforms''')
             md = f.read()
         self.assertIsNotNone(md)
 
-        section_pattern = re.compile(r"^### (.+)$", re.MULTILINE)
+        section_pattern = re.compile(r'^### (.+)$', re.MULTILINE)
         md_command_section_matches = [i for i in section_pattern.finditer(md)]
         md_command_sections = dict()
         for i, s in enumerate(md_command_section_matches):
@@ -4803,7 +4825,7 @@ recommended as it is not supported on some platforms''')
         md_commands = set(k for k,v in md_command_sections.items())
 
         help_output = self._run(self.meson_command + ['--help'])
-        help_commands = set(c.strip() for c in re.findall(r"usage:(?:.+)?{((?:[a-z]+,*)+?)}", help_output, re.MULTILINE|re.DOTALL)[0].split(','))
+        help_commands = set(c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(','))
 
         self.assertEqual(md_commands | {'help'}, help_commands)
 
@@ -4814,7 +4836,18 @@ recommended as it is not supported on some platforms''')
 
             parsed_help = parse_help(help_cmd_output)
             parsed_section = parse_section(md, md_command_sections[command][0], md_command_sections[command][1])
-            self.assertEqual(parsed_help, parsed_section)
+            if parsed_help != parsed_section:
+                # for better error messages
+                print('Current command: {}'.format(command))
+                for k,v in parsed_help.items():
+                    if k not in parsed_section:
+                        parsed_section[k] = set()
+                    self.assertEqual(v, parsed_section[k])
+                for k,v in parsed_section.items():
+                    if k not in parsed_help:
+                        parsed_help[k] = set()
+                    self.assertEqual(parsed_help[k], v)
+                self.assertTrue(False, 'Should not reach here!')
 
 class FailureTests(BasePlatformTests):
     '''
