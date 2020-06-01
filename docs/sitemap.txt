@@ -72,6 +72,7 @@ index.md
 		Adding-new-projects-to-wrapdb.md
 		Using-the-WrapDB.md
 		Using-wraptool.md
+		Wrap-maintainer-tools.md
 		Wrap-best-practices-and-tips.md
 		Wrap-review-guidelines.md
 		Shipping-prebuilt-binaries-as-wraps.md
