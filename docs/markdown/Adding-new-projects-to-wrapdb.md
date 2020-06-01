@@ -6,14 +6,17 @@
 Each wrap repository has a master branch with only one initial commit and *no* wrap files.
 And that is the only commit ever made on that branch.
 
-For every release of a project a new branch is created. The new branch is named after the 
-the upstream release number (e.g. `1.0.0`). This branch holds a wrap file for 
+For every release of a project a new branch is created. The new branch is named after the
+the upstream release number (e.g. `1.0.0`). This branch holds a wrap file for
 this particular release.
 
 There are two types of wraps on WrapDB - regular wraps and wraps with Meson build
 definition patches. A wrap file in a repository on WrapDB must have a name `upstream.wrap`.
 
-Wraps with Meson build definition patches work in much the same way as Debian: we take the unaltered upstream source package and add a new build system to it as a patch. These build systems are stored as Git repositories on GitHub. They only contain build definition files. You may also think of them as an overlay to upstream source.
+Wraps with Meson build definition patches work in much the same way as Debian:
+we take the unaltered upstream source package and add a new build system to it as a patch.
+These build systems are stored as Git repositories on GitHub. They only contain build definition files.
+You may also think of them as an overlay to upstream source.
 
 Whenever a new commit is pushed into GitHub's project branch, a new wrap is generated
 with an incremented version number. All the old releases remain unaltered.
@@ -21,13 +24,13 @@ New commits are always done via GitHub merge requests and must be reviewed by
 someone other than the submitter.
 
 Note that your Git repo with wrap must not contain the subdirectory of the source
-release. That gets added automatically by the service. You also must not commit 
+release. That gets added automatically by the service. You also must not commit
 any source code from the original tarball into the wrap repository.
 
 ## Choosing the repository name
 
 Wrapped subprojects are used much like external dependencies. Thus
-they should have the same name as the upstream projects. 
+they should have the same name as the upstream projects.
 
 If the project provides a pkg-config file, then the repository name should be
 the same as the pkg-config name. Usually this is the name of the
@@ -36,13 +39,13 @@ however. As an example the libogg project's chosen pkg-config name is
 `ogg` instead of `libogg`, which is the reason why the repository is
 named plain `ogg`.
 
-If there is no a pkg-config file, the name the project uses/promotes should be used, 
+If there is no a pkg-config file, the name the project uses/promotes should be used,
 lowercase only (Catch2 -> catch2).
 
 ## How to contribute a new wrap
 
 If the project already uses Meson build system, then only a wrap file - `upstream.wrap`
-should be provided. In other case a Meson build definition patch - a set of `meson.build` 
+should be provided. In other case a Meson build definition patch - a set of `meson.build`
 files - should be also provided.
 
 ### Request a new repository or branch
@@ -80,8 +83,8 @@ git commit -a -m 'Add wrap files for libfoo-1.0.0'
 git push origin 1.0.0
 ```
 
-Now you should create a pull request on GitHub. Remember to create it against the 
-correct branch rather than master (`1.0.0` branch in this example). GitHub should do 
+Now you should create a pull request on GitHub. Remember to create it against the
+correct branch rather than master (`1.0.0` branch in this example). GitHub should do
 this automatically.
 
 ## What is done by WrapDB maintainers
@@ -99,7 +102,8 @@ git remote add origin <repo url>
 git push -u origin master
 ```
 
-Note that this is the *only* commit that will ever be made to master branch. All other commits are done to branches.
+Note that this is the *only* commit that will ever be made to master branch.
+All other commits are done to branches.
 
 Repo names must fully match this regexp: `[a-z0-9._]+`.
 
