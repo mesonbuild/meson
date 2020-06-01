@@ -1,5 +1,10 @@
 project('cmake_set_opt', ['c', 'cpp'])
 
+comp = meson.get_compiler('cpp')
+if comp.get_argument_syntax() == 'msvc'
+  error('MESON_SKIP_TEST: MSVC is not supported because it does not support C++11')
+endif
+
 cm   = import('cmake')
 opts = cm.subproject_options()
 
