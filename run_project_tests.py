@@ -238,6 +238,7 @@ class TestDef:
         self.installed_files = []  # type: T.List[InstalledFile]
         self.do_not_set_opts = []  # type: T.List[str]
         self.stdout = [] # type: T.List[T.Dict[str, str]]
+        self.skip_expected = False
 
         # Always print a stack trace for Meson exceptions
         self.env['MESON_FORCE_BACKTRACE'] = '1'
@@ -265,6 +266,7 @@ failing_logs: T.List[str] = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
 skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
+ci_jobname = os.environ.get('MESON_CI_JOBNAME', None)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
@@ -770,12 +772,20 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
             elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
                 t.skip = True
 
+    # Test is expected to skip if MESON_CI_JOBNAME contains any of the list of
+    # substrings
+    if ('skip_on_jobname' in test_def) and (ci_jobname is not None):
+        skip_expected = any(s in ci_jobname for s in test_def['skip_on_jobname'])
+    else:
+        skip_expected = False
+
     # Skip the matrix code and just update the existing test
     if 'matrix' not in test_def:
         t.env.update(env)
         t.installed_files = installed
         t.do_not_set_opts = do_not_set_opts
         t.stdout = stdout
+        t.skip_expected = skip_expected
         return [t]
 
     new_opt_list: T.List[T.List[T.Tuple[str, bool]]]
@@ -848,6 +858,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
         test.installed_files = installed
         test.do_not_set_opts = do_not_set_opts
         test.stdout = stdout
+        test.skip_expected = skip_expected
         all_tests.append(test)
 
     return all_tests
@@ -922,12 +933,21 @@ def have_java() -> bool:
         return True
     return False
 
-def skippable(suite: str, test: str) -> bool:
+def skip_dont_care(t: TestDef) -> bool:
+    test = t.path.as_posix()
+
     # Everything is optional when not running on CI
     if not under_ci:
         return True
 
-    if not suite.endswith('frameworks'):
+    # Non-frameworks test are allowed to determine their own skipping under CI (currently)
+    if not t.category.endswith('frameworks'):
+        return True
+
+    # For the moment, all skips in jobs which don't set MESON_CI_JOBNAME are
+    # treated as expected.  In the future, we should make it mandatory to set
+    # MESON_CI_JOBNAME for all CI jobs.
+    if ci_jobname is None:
         return True
 
     # gtk-doc test may be skipped, pending upstream fixes for spaces in
@@ -1114,6 +1134,8 @@ class TestStatus(Enum):
     OK = normal_green(' [SUCCESS] ')
     SKIP = yellow(' [SKIPPED] ')
     ERROR = red('  [ERROR]  ')
+    UNEXSKIP = red('[UNEXSKIP] ')
+    UNEXRUN = red(' [UNEXRUN] ')
     CANCELED = cyan('[CANCELED] ')
     RUNNING = blue(' [RUNNING] ')  # Should never be actually printed
     LOG = bold('   [LOG]   ')      # Should never be actually printed
@@ -1263,11 +1285,40 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             continue
 
         # Handle skipped tests
-        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(t.category, t.path.as_posix()))):
+        if result is None:
+            # skipped due to skipped category skip or 'tools:' or 'skip_on_env:'
+            is_skipped = True
+            skip_as_expected = True
+        else:
+            # skipped due to test outputting 'MESON_SKIP_TEST'
+            is_skipped = 'MESON_SKIP_TEST' in result.stdo
+            if not skip_dont_care(t):
+                skip_as_expected = (is_skipped == t.skip_expected)
+            else:
+                skip_as_expected = True
+
+        if is_skipped:
+            skipped_tests += 1
+
+        if is_skipped and skip_as_expected:
             f.update_log(TestStatus.SKIP)
             current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
             ET.SubElement(current_test, 'skipped', {})
-            skipped_tests += 1
+            continue
+
+        if not skip_as_expected:
+            failing_tests += 1
+            if is_skipped:
+                skip_msg = 'Test asked to be skipped, but was not expected to'
+                status = TestStatus.UNEXSKIP
+            else:
+                skip_msg = 'Test ran, but was expected to be skipped'
+                status = TestStatus.UNEXRUN
+            result.msg = "%s for MESON_CI_JOBNAME '%s'" % (skip_msg, ci_jobname)
+
+            f.update_log(status)
+            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': t.category})
+            ET.SubElement(current_test, 'failure', {'message': result.msg})
             continue
 
         # Handle Failed tests

@@ -380,6 +380,16 @@ matched:
 | `literal` | Literal match (default) |
 | `re`      | regex match             |
 
+#### skip_on_jobname
+
+The `skip_on_jobname` key contains a list of strings. If the `MESON_CI_JOBNAME`
+environment variable is set, and any of them are a sub-string of it, the test is
+expected to be skipped (that is, it is expected that the test will output
+`MESON_SKIP_TEST`, because the CI environment is not one in which it can run,
+for whatever reason).
+
+The test is failed if it skips or runs unexpectedly.
+
 ### Skipping integration tests
 
 Meson uses several continuous integration testing systems that have
