@@ -158,15 +158,24 @@ class CLikeCompiler:
             if not files:
                 retval.append(d)
                 continue
-            file_to_check = os.path.join(d, files[0])
-            with open(file_to_check, 'rb') as fd:
-                header = fd.read(5)
-                # if file is not an ELF file, it's weird, but accept dir
-                # if it is elf, and the class matches, accept dir
-                if header[1:4] != b'ELF' or int(header[4]) == elf_class:
-                    retval.append(d)
-                # at this point, it's an ELF file which doesn't match the
-                # appropriate elf_class, so skip this one
+
+            for f in files:
+                file_to_check = os.path.join(d, f)
+                try:
+                    with open(file_to_check, 'rb') as fd:
+                        header = fd.read(5)
+                        # if file is not an ELF file, it's weird, but accept dir
+                        # if it is elf, and the class matches, accept dir
+                        if header[1:4] != b'ELF' or int(header[4]) == elf_class:
+                            retval.append(d)
+                        # at this point, it's an ELF file which doesn't match the
+                        # appropriate elf_class, so skip this one
+                    # stop scanning after the first sucessful read
+                    break
+                except OSError:
+                    # Skip the file if we can't read it
+                    pass
+
         return tuple(retval)
 
     @functools.lru_cache()
