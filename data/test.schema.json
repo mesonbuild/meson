@@ -141,6 +141,12 @@
           "line"
         ]
       }
+    },
+    "skip_on_jobname": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }
