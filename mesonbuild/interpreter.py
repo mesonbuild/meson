@@ -3568,7 +3568,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-        forcefallback = wrap_mode == WrapMode.forcefallback and has_fallback
+        force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+        forcefallback = (wrap_mode == WrapMode.forcefallback or name in force_fallback_for) and has_fallback
         if name != '' and not forcefallback:
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not has_fallback
@@ -3622,7 +3623,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     def dependency_fallback(self, name, display_name, kwargs):
         required = kwargs.get('required', True)
-        if self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
+
+        # Explicitly listed fallback preferences for specific subprojects
+        # take precedence over wrap-mode
+        if name in self.coredata.get_builtin_option('force_fallback_for'):
+            mlog.log('Looking for a fallback subproject for the dependency',
+                     mlog.bold(display_name), 'because:\nUse of fallback was forced for that specific subproject')
+        elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback '
                      'dependencies is disabled.')
