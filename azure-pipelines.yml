@@ -177,6 +177,7 @@ jobs:
         mingw-w64-$(MSYS2_ARCH)-pkg-config ^
         mingw-w64-$(MSYS2_ARCH)-python2 ^
         mingw-w64-$(MSYS2_ARCH)-python3 ^
+        mingw-w64-$(MSYS2_ARCH)-python3-lxml ^
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
         mingw-w64-$(MSYS2_ARCH)-python3-pip ^
         %TOOLCHAIN%
