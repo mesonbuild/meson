@@ -92,9 +92,14 @@ jobs:
         librhash0,^
         libuv1,^
         libxml2,^
+        libxml2-devel,^
+        libxslt,^
+        libxslt-devel,^
         ninja,^
         python2-devel,^
         python3-devel,^
+        python3-libxml2,^
+        python3-libxslt,^
         python36-pip,^
         vala,^
         wget,^
