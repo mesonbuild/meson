@@ -1900,6 +1900,14 @@ class SharedLibrary(BuildTarget):
         # Visual Studio module-definitions file
         if 'vs_module_defs' in kwargs:
             path = unholder(kwargs['vs_module_defs'])
+            if isinstance(path, list):
+                if path:
+                    if len(path) > 1:
+                        mlog.warning('"vs_module_defs" uses only the first file, additional files will be ignored')
+                    path = path[0]
+                else:
+                    path = None
+
             if isinstance(path, str):
                 if os.path.isabs(path):
                     self.vs_module_defs = File.from_absolute_file(path)
@@ -1915,7 +1923,7 @@ class SharedLibrary(BuildTarget):
                 path = File.from_built_file(path.subdir, path.get_filename())
                 self.vs_module_defs = path
                 self.link_depends.append(path)
-            else:
+            elif path is not None:
                 raise InvalidArguments(
                     'Shared library vs_module_defs must be either a string, '
                     'a file object or a Custom Target')

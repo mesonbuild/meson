@@ -1461,9 +1461,13 @@ extra keyword arguments.
   or if it's not a list, the specified value will be used for setting
   both compatibility version and current version. If unspecified, the
   `soversion` will be used as per the aforementioned rules.
-- `vs_module_defs` a string, a File object, or Custom Target for a
-  Microsoft module definition file for controlling symbol exports,
-  etc., on platforms where that is possible (e.g. Windows).
+- `vs_module_defs` a string, a File object, Custom Target, or an array of
+  those for a Microsoft module definition file for controlling symbol
+  exports, etc., on platforms where that is possible (e.g. Windows). If a
+  an array is passed it should have a length of 1 or 0. An empty array may
+  used if module defs are only needed in some situations, such as not using
+  one with mingw.
+  *(new in 0.55.0)* Array options.
 
 ### shared_module()
 
@@ -1485,10 +1489,8 @@ you will need to set the `export_dynamic` argument of the executable to
 
 Supports the following extra keyword arguments:
 
-- `vs_module_defs`, *(Added 0.52.0)*, a string, a File object, or
-  Custom Target for a Microsoft module definition file for controlling
-  symbol exports, etc., on platforms where that is possible
-  (e.g. Windows).
+- `vs_module_defs`, *(Added 0.52.0)*, See the `vs_module_defs` entry of
+  [`shared_library`](#shared_library) for more information.
 
 **Note:** Linking to a shared module is not supported on some
 platforms, notably OSX.  Consider using a
