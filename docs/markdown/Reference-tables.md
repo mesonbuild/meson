@@ -121,6 +121,7 @@ These are provided by the `.system()` method call.
 
 | Value               | Comment                         |
 | -----               | -------                         |
+| android             | By convention only, subject to change |
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
