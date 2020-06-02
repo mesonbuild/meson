@@ -2261,6 +2261,12 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_force_fallback_for(self):
+        testdir = os.path.join(self.unit_test_dir, '31 forcefallback')
+        self.init(testdir, extra_args=['--force-fallback-for=zlib,foo'])
+        self.build()
+        self.run_tests()
+
     def test_env_ops_dont_stack(self):
         '''
         Test that env ops prepend/append do not stack, and that this usage issues a warning

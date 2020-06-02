@@ -212,6 +212,9 @@ the following command-line options:
     calls, and those are meant to be used for sources that cannot be
     provided by the system, such as copylibs.
 
+    This option may be overriden by `--force-fallback-for` for specific
+    dependencies.
+
 * **--wrap-mode=forcefallback**
 
     Meson will not look at the system for any dependencies which have
@@ -219,6 +222,19 @@ the following command-line options:
     them. This is useful when you want to test your fallback setup, or
     want to specifically build against the library sources provided by
     your subprojects.
+
+* **--force-fallback-for=list,of,dependencies**
+
+    Meson will not look at the system for any dependencies listed there,
+    provided a fallback was supplied when the dependency was declared.
+
+    This option takes precedence over `--wrap-mode=nofallback`, and when
+    used in combination with `--wrap-mode=nodownload` will only work
+    if the dependency has already been downloaded.
+
+    This is useful when your project has many fallback dependencies,
+    but you only want to build against the library sources for a few
+    of them.
 
 ## Download subprojects
 
