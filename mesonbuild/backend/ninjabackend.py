@@ -57,8 +57,26 @@ else:
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
 
-# a conservative estimate of the command-line length limit on windows
-rsp_threshold = 4096
+def get_rsp_threshold():
+    '''Return a conservative estimate of the commandline size in bytes
+    above which a response file should be used.  May be overridden for
+    debugging by setting environment variable MESON_RSP_THRESHOLD.'''
+
+    if mesonlib.is_windows():
+        # Usually 32k, but some projects might use cmd.exe,
+        # and that has a limit of 8k.
+        limit = 8192
+    else:
+        # On Linux, ninja always passes the commandline as a single
+        # big string to /bin/sh, and the kernel limits the size of a
+        # single argument; see MAX_ARG_STRLEN
+        limit = 131072
+    # Be conservative
+    limit = limit / 2
+    return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
+
+# a conservative estimate of the command-line length limit
+rsp_threshold = get_rsp_threshold()
 
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
