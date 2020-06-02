@@ -23,6 +23,10 @@ export CXX=$CXX
 export OBJC=$CC
 export OBJCXX=$CXX
 export PATH=/root/tools:$PATH
+if test "$MESON_RSP_THRESHOLD" != ""
+then
+  export MESON_RSP_THRESHOLD=$MESON_RSP_THRESHOLD
+fi
 
 source /ci/env_vars.sh
 cd /root
@@ -55,5 +59,9 @@ elif [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then
   export OBJC=$CC
   export OBJCXX=$CXX
   export PATH=$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin
+  if test "$MESON_RSP_THRESHOLD" != ""
+  then
+    export MESON_RSP_THRESHOLD=$MESON_RSP_THRESHOLD
+  fi
   ./run_tests.py $RUN_TESTS_ARGS --backend=ninja -- $MESON_ARGS
 fi
