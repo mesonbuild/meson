@@ -154,25 +154,6 @@ class NinjaCommandArg:
     def list(l, q):
         return [NinjaCommandArg(i, q) for i in l]
 
-@unique
-class Quoting(Enum):
-    both = 0
-    notShell = 1
-    notNinja = 2
-    none = 3
-
-class NinjaCommandArg:
-    def __init__(self, s, quoting = Quoting.both):
-        self.s = s
-        self.quoting = quoting
-
-    def __str__(self):
-        return self.s
-
-    @staticmethod
-    def list(l, q):
-        return [NinjaCommandArg(i, q) for i in l]
-
 class NinjaComment:
     def __init__(self, comment):
         self.comment = comment
@@ -1794,7 +1775,6 @@ int dummy;
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
-                args = ['$ARGS'] + compiler.get_linker_output_args('$out') + ['$in', '$LINK_ARGS']
                 args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
                 if num_pools > 0:
@@ -1810,7 +1790,7 @@ int dummy;
         args = self.environment.get_build_command() + \
             ['--internal',
              'symbolextractor',
-             ninja_quote(quote_func(self.environment.get_build_dir())),
+             self.environment.get_build_dir(),
              '$in',
              '$IMPLIB',
              '$out']
@@ -1876,6 +1856,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def generate_llvm_ir_compile_rule(self, compiler):
         if self.created_llvm_ir_rule[compiler.for_machine]:
             return
+        rule = self.get_compiler_rule_name('llvm_ir', compiler.for_machine)
         command = compiler.get_exelist()
         args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling LLVM IR object $in'
