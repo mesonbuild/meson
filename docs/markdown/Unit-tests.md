@@ -136,7 +136,7 @@ For clarity, consider the meson.build containing:
 ```meson
 
 test('A', ..., suite: 'foo')
-test('B', ..., suite: 'foo')
+test('B', ..., suite: ['foo', 'bar'])
 test('C', ..., suite: 'bar')
 test('D', ..., suite: 'baz')
 
