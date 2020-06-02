@@ -343,16 +343,6 @@ class NinjaBuildElement:
         if not self.rule.rspable:
             return False
 
-        if mesonlib.is_windows():
-            # Since be6114068, meson has used response files on Windows.
-            # Return True here to force that behavior to continue.
-            # This can be removed once quoting in the non-response-file case
-            # on windows is handled properly; see WIP at
-            # https://github.com/mesonbuild/meson/pull/5245
-            # Quoting is a strange beast that rears its head at many levels,
-            # and if you aim at it, best not miss.
-            return True
-
         infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
         outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
 
@@ -377,9 +367,7 @@ class NinjaBuildElement:
         use_rspfile = self._should_use_rspfile()
         if use_rspfile:
             rulename = self.rulename + '_RSP'
-            # On Windows, response files are well-debugged, no need to warn.
-            if not mesonlib.is_windows():
-               mlog.log("Command line for building %s is very long, using a response file" % self.outfilenames)
+            mlog.log("Command line for building %s is very long, using a response file" % self.outfilenames)
         else:
             rulename = self.rulename
         line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
