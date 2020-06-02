@@ -379,7 +379,7 @@ class NinjaBuildElement:
             rulename = self.rulename + '_RSP'
             # On Windows, response files are well-debugged, no need to warn.
             if not mesonlib.is_windows():
-               mlog.warning("Command line for building %s is very long, using a response file" % self.outfilenames)
+               mlog.log("Command line for building %s is very long, using a response file" % self.outfilenames)
         else:
             rulename = self.rulename
         line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
