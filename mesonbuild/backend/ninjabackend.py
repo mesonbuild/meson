@@ -111,13 +111,7 @@ rsp_threshold = get_rsp_threshold()
 # variables (or variables we use them in) is interpreted directly by ninja
 # (e.g. the value of the depfile variable is a pathname that ninja will read
 # from, etc.), so it must not be shell quoted.
-raw_names = {'DEPFILE', 'DESC', 'pool', 'description'}
-
-# ninja variables whose value should remain unquoted. The value of these ninja
-# variables (or variables we use them in) is interpreted directly by ninja
-# (e.g. the value of the depfile variable is a pathname that ninja will read
-# from, etc.), so it must not be shell quoted.
-raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description'}
+raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep'}
 
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
