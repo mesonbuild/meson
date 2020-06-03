@@ -1,0 +1,2 @@
+[properties]
+boost_root = '@ROOT@/test cases/frameworks/32 boost root/boost'

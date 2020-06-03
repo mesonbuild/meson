@@ -41,6 +41,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
+from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist, version as meson_version
 
@@ -605,6 +606,14 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     return testresult
 
+def set_boost_nativefile_paths(test: TestDef) -> None:
+    script_dir = os.path.abspath(os.path.split(__file__)[0])
+
+    confdata = ConfigurationData()
+    confdata.values = {'ROOT': (script_dir, 'project base directory')}
+
+    mesonlib.do_conf_file(str(test.path / 'nativefile.ini.in'), str(test.path / 'nativefile.ini'), confdata, 'meson')
+
 def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
     tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
@@ -615,6 +624,10 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
         test_def_file = t.path / 'test.json'
         if test_def_file.is_file():
             test_def = json.loads(test_def_file.read_text())
+
+        # Perform setup for boost tests that require absolute paths in nativefile.ini
+        if str(t.path).endswith('32 boost root') or str(t.path).endswith('33 boost split root'):
+            set_boost_nativefile_paths(t)
 
         # Handle additional environment variables
         env = {}  # type: T.Dict[str, str]
