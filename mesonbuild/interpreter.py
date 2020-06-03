@@ -40,6 +40,7 @@ import shutil
 import uuid
 import re
 import shlex
+import stat
 import subprocess
 import collections
 from itertools import chain
@@ -2424,7 +2425,19 @@ class Interpreter(InterpreterBase):
         elif os.path.isfile(f) and not f.startswith('/dev'):
             srcdir = Path(self.environment.get_source_dir())
             builddir = Path(self.environment.get_build_dir())
-            f = Path(f).resolve()
+            try:
+                f = Path(f).resolve()
+            except OSError:
+                f = Path(f)
+                s = f.stat()
+                if (hasattr(s, 'st_file_attributes') and
+                        s.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT != 0 and
+                        s.st_reparse_tag == stat.IO_REPARSE_TAG_APPEXECLINK):
+                    # This is a Windows Store link which we can't
+                    # resolve, so just do our best otherwise.
+                    f = f.parent.resolve() / f.name
+                else:
+                    raise
             if builddir in f.parents:
                 return
             if srcdir in f.parents:
