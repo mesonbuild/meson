@@ -544,20 +544,24 @@ def darwin_get_object_archs(objpath: str) -> T.List[str]:
     return stdo.split()
 
 
-def detect_vcs(source_dir: str) -> T.Optional[T.Dict[str, str]]:
+def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
     vcs_systems = [
         dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
         dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -i',               rev_regex = '(.*)', dep = '.hg/dirstate'),
         dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
         dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
     ]
-    # FIXME: this is much cleaner with pathlib.Path
-    segs = source_dir.replace('\\', '/').split('/')
-    for i in range(len(segs), -1, -1):
-        curdir = '/'.join(segs[:i])
+    if isinstance(source_dir, str):
+        source_dir = Path(source_dir)
+
+    parent_paths_and_self = collections.deque(source_dir.parents)
+    # Prepend the source directory to the front so we can check it;
+    # source_dir.parents doesn't include source_dir
+    parent_paths_and_self.appendleft(source_dir)
+    for curdir in parent_paths_and_self:
         for vcs in vcs_systems:
-            if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
-                vcs['wc_dir'] = curdir
+            if Path.is_dir(curdir.joinpath(vcs['repo_dir'])) and shutil.which(vcs['cmd']):
+                vcs['wc_dir'] = str(curdir)
                 return vcs
     return None
 
