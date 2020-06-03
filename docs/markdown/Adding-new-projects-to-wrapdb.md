@@ -100,7 +100,7 @@ WrapDB maintainers can fix it before merging.
 
 ## What is done by WrapDB maintainers
 
-[mesonwrap tools](Wrap-tools.md) must be used for the tasks below.
+[mesonwrap tools](Wrap-maintainer-tools.md) must be used for the tasks below.
 
 ### Adding new project to the Wrap provider service
 
