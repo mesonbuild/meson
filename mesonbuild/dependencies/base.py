@@ -22,6 +22,7 @@ import json
 import shlex
 import shutil
 import stat
+import sys
 import textwrap
 import platform
 import typing as T
@@ -1845,14 +1846,22 @@ class ExternalProgram:
         # Ensure that we use USERPROFILE even when inside MSYS, MSYS2, Cygwin, etc.
         if 'USERPROFILE' not in os.environ:
             return path
-        # Ignore executables in the WindowsApps directory which are
-        # zero-sized wrappers that magically open the Windows Store to
-        # install the application.
+        # The WindowsApps directory is a bit of a problem. It contains
+        # some zero-sized .exe files which have "reparse points", that
+        # might either launch an installed application, or might open
+        # a page in the Windows Store to download the application.
+        #
+        # To handle the case where the python interpreter we're
+        # running on came from the Windows Store, if we see the
+        # WindowsApps path in the search path, replace it with
+        # dirname(sys.executable).
         appstore_dir = Path(os.environ['USERPROFILE']) / 'AppData' / 'Local' / 'Microsoft' / 'WindowsApps'
         paths = []
         for each in path.split(os.pathsep):
             if Path(each) != appstore_dir:
                 paths.append(each)
+            elif 'WindowsApps' in sys.executable:
+                paths.append(os.path.dirname(sys.executable))
         return os.pathsep.join(paths)
 
     @staticmethod
