@@ -395,13 +395,30 @@ class Backend:
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
-        force_serialize = force_serialize or extra_paths or workdir or \
-            exe_wrapper or any('\n' in c for c in cmd_args)
+        reasons = []
+        if extra_paths:
+            reasons.append('to set PATH')
+
+        if exe_wrapper:
+            reasons.append('to use exe_wrapper')
+
+        if workdir:
+            reasons.append('to set workdir')
+
+        if any('\n' in c for c in cmd_args):
+            reasons.append('because command contains newlines')
+
+        force_serialize = force_serialize or bool(reasons)
+
+        if capture:
+            reasons.append('to capture output')
+
         if not force_serialize:
             if not capture:
-                return None
-            return (self.environment.get_build_command() +
-                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args)
+                return None, ''
+            return ((self.environment.get_build_command() +
+                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args),
+                    ', '.join(reasons))
 
         workdir = workdir or self.environment.get_build_dir()
         env = {}
@@ -425,7 +442,8 @@ class Backend:
                                          exe_wrapper, workdir,
                                          extra_paths, capture)
             pickle.dump(es, f)
-        return self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data]
+        return (self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data],
+                ', '.join(reasons))
 
     def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')

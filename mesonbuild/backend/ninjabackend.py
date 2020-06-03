@@ -870,7 +870,7 @@ int dummy;
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
-        desc = 'Generating {0} with a {1} command'
+        desc = 'Generating {0} with a custom command{1}'
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
@@ -884,14 +884,14 @@ int dummy;
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        meson_exe_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                  extra_bdeps=target.get_transitive_build_target_deps(),
-                                                  capture=ofilenames[0] if target.capture else None)
+        meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                          extra_bdeps=target.get_transitive_build_target_deps(),
+                                                          capture=ofilenames[0] if target.capture else None)
         if meson_exe_cmd:
             cmd = meson_exe_cmd
-            cmd_type = 'meson_exe.py custom'
+            cmd_type = ' (wrapped by meson {})'.format(reason)
         else:
-            cmd_type = 'custom'
+            cmd_type = ''
         if target.depfile is not None:
             depfile = target.get_dep_outname(elem.infilenames)
             rel_dfile = os.path.join(self.get_target_dir(target), depfile)
@@ -2012,9 +2012,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            meson_exe_cmd = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
-                                                      cmdlist[0], cmdlist[1:],
-                                                      capture=outfiles[0] if generator.capture else None)
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
+                                                              cmdlist[0], cmdlist[1:],
+                                                              capture=outfiles[0] if generator.capture else None)
             if meson_exe_cmd:
                 cmdlist = meson_exe_cmd
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
@@ -2026,11 +2026,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
                 elem.add_dep(extra_dependencies)
+
             if len(generator.outputs) == 1:
-                elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
+                what = '{!r}'.format(sole_output)
             else:
                 # since there are multiple outputs, we log the source that caused the rebuild
-                elem.add_item('DESC', 'Generating source from {!r}.'.format(sole_output))
+                what = 'from {!r}.'.format(sole_output)
+            if reason:
+                reason = ' (wrapped by meson {})'.format(reason)
+            elem.add_item('DESC', 'Generating {}{}.'.format(what, reason))
+
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmdlist)
