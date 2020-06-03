@@ -372,6 +372,10 @@ class BoostDependency(ExternalDependency):
         if all(boost_manual_env):
             inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
             lib_dir = Path(os.environ['BOOST_LIBRARYDIR'])
+
+            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                raise DependencyException('Paths given in BOOST_INCLUDEDIR and BOOST_LIBRARYDIR must be absolute')
+
             mlog.debug('Trying to find boost with:')
             mlog.debug('  - BOOST_INCLUDEDIR = {}'.format(inc_dir))
             mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
@@ -394,6 +398,9 @@ class BoostDependency(ExternalDependency):
                 mlog.debug('Trying to find boost with:')
                 mlog.debug('  - boost_includedir = {}'.format(inc_dir))
                 mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
+
+                if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                    raise DependencyException('Paths given for boost_includedir and boost_librarydir in property file must be absolute')
 
                 return self.detect_split_root(inc_dir, lib_dir)
 
@@ -633,7 +640,11 @@ class BoostDependency(ExternalDependency):
         # Read boost_root out of the ini file, if available
         boost_root_props = self.env.properties[self.for_machine].get('boost_root', [])
         raw_paths = mesonlib.stringlistify(boost_root_props)
-        roots += [Path(x) for x in raw_paths]
+        paths = [Path(x) for x in raw_paths]
+        if paths and any([not x.is_absolute() for x in paths]):
+            raise DependencyException('boost_root path given in property file must be absolute')
+
+        roots += paths
 
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
