@@ -158,13 +158,6 @@ command line will override any options in the native file. For example, passing
 
 In addition to special data that may be specified in cross files, this
 section may contain random key value pairs accessed using the
-`meson.get_external_property()`
-
-## Properties
-
-*New for native files in 0.54.0*
-
-The properties section can contain any variable you like, and is accessed via
 `meson.get_external_property`, or `meson.get_cross_property`.
 
 ### Project specific options
