@@ -367,7 +367,72 @@ class BoostDependency(ExternalDependency):
         self.arch = environment.machines[self.for_machine].cpu_family
         self.arch = boost_arch_map.get(self.arch, None)
 
-        # Prefer BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if present in environment
+        # First, look for paths specified in a property file
+        props = self.env.properties[self.for_machine]
+        boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir'), props.get('boost_root')]
+        if any(boost_property_env):
+            self.detect_boost_property_file(props)
+            return
+
+        # Next, look for paths in the environment
+        boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR', 'BOOST_ROOT', 'BOOSTROOT']]
+        if any(boost_manual_env):
+            self.detect_boost_env()
+            return
+
+        # Finally, look for paths from .pc files and from searching the filesystem
+        self.detect_roots()
+
+    def check_and_set_roots(self, roots):
+        roots = list(mesonlib.OrderedSet(roots))
+        for j in roots:
+            #   1. Look for the boost headers (boost/version.hpp)
+            mlog.debug('Checking potential boost root {}'.format(j.as_posix()))
+            inc_dirs = self.detect_inc_dirs(j)
+            inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
+
+            # Early abort when boost is not found
+            if not inc_dirs:
+                continue
+
+            lib_dirs = self.detect_lib_dirs(j)
+            self.is_found = self.run_check(inc_dirs, lib_dirs)
+            if self.is_found:
+                self.boost_root = j
+                break
+
+    def detect_boost_property_file(self, props):
+        incdir = props.get('boost_includedir')
+        libdir = props.get('boost_librarydir')
+
+        if incdir and libdir:
+            inc_dir = Path(props['boost_includedir'])
+            lib_dir = Path(props['boost_librarydir'])
+
+            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                raise DependencyException('Paths given for boost_includedir and boost_librarydir in property file must be absolute')
+
+            mlog.debug('Trying to find boost with:')
+            mlog.debug('  - boost_includedir = {}'.format(inc_dir))
+            mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
+
+            return self.detect_split_root(inc_dir, lib_dir)
+
+        elif incdir or libdir:
+            raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your properties file (one is not enough)')
+
+        rootdir = props.get('boost_root')
+        # It shouldn't be possible to get here without something in boost_root
+        assert(rootdir)
+
+        raw_paths = mesonlib.stringlistify(rootdir)
+        paths = [Path(x) for x in raw_paths]
+        if paths and any([not x.is_absolute() for x in paths]):
+            raise DependencyException('boost_root path given in property file must be absolute')
+
+        self.check_and_set_roots(paths)
+
+    def detect_boost_env(self):
         boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR']]
         if all(boost_manual_env):
             inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
@@ -383,50 +448,20 @@ class BoostDependency(ExternalDependency):
             return self.detect_split_root(inc_dir, lib_dir)
 
         elif any(boost_manual_env):
-            mlog.warning('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
+            raise DependencyException('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
 
-        # Next, look for BOOST_ROOT so that we prefer all environment variables to all other methods of detection
-        roots = self.detect_env_var_roots()
+        # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
+        assert('BOOST_ROOT' in os.environ or 'BOOSTROOT' in os.environ)
 
-        if not roots:
-            # Then, prefer boost_includedir and boost_librarydir if present in properties file
-            props = self.env.properties[self.for_machine]
-            boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir')]
-            if all(boost_property_env):
-                inc_dir = Path(props['boost_includedir'])
-                lib_dir = Path(props['boost_librarydir'])
-                mlog.debug('Trying to find boost with:')
-                mlog.debug('  - boost_includedir = {}'.format(inc_dir))
-                mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
-
-                if not inc_dir.is_absolute() or not lib_dir.is_absolute():
-                    raise DependencyException('Paths given for boost_includedir and boost_librarydir in property file must be absolute')
-
-                return self.detect_split_root(inc_dir, lib_dir)
-
-            elif any(boost_property_env):
-                mlog.warning('Both boost_includedir *and* boost_librarydir have to be set in your properties file (one is not enough). Ignoring.')
-
-            roots = self.detect_roots()
-
-        roots = list(mesonlib.OrderedSet(roots))
-
-        # B) Foreach candidate
-        for j in roots:
-            #   1. Look for the boost headers (boost/version.pp)
-            mlog.debug('Checking potential boost root {}'.format(j.as_posix()))
-            inc_dirs = self.detect_inc_dirs(j)
-            inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
-
-            # Early abort when boost is not found
-            if not inc_dirs:
-                continue
-
-            lib_dirs = self.detect_lib_dirs(j)
-            self.is_found = self.run_check(inc_dirs, lib_dirs)
-            if self.is_found:
-                self.boost_root = j
+        for i in ['BOOST_ROOT', 'BOOSTROOT']:
+            if i in os.environ:
+                raw_paths = os.environ[i].split(os.pathsep)
+                paths = [Path(x) for x in raw_paths]
+                if paths and any([not x.is_absolute() for x in paths]):
+                    raise DependencyException('Paths in {} must be absolute'.format(i))
                 break
+
+        self.check_and_set_roots(paths)
 
     def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
         mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
@@ -621,30 +656,8 @@ class BoostDependency(ExternalDependency):
 
         self.is_found = self.run_check([boost_inc_dir], [lib_dir])
 
-    def detect_env_var_roots(self) -> T.List[Path]:
-        # Add roots from the environment
-        # This is separate from detect_roots so that environment variables can be preferred
-        # overall to property file variables
-        for i in ['BOOST_ROOT', 'BOOSTROOT']:
-            if i in os.environ:
-                raw_paths = os.environ[i].split(os.pathsep)
-                paths = [Path(x) for x in raw_paths]
-                if paths and any([not x.is_absolute() for x in paths]):
-                    raise DependencyException('Paths in {} must be absolute'.format(i))
-                return paths  # Do not add system paths if BOOST_ROOT is present
-        return []
-
     def detect_roots(self) -> T.List[Path]:
         roots = []  # type: T.List[Path]
-
-        # Read boost_root out of the ini file, if available
-        boost_root_props = self.env.properties[self.for_machine].get('boost_root', [])
-        raw_paths = mesonlib.stringlistify(boost_root_props)
-        paths = [Path(x) for x in raw_paths]
-        if paths and any([not x.is_absolute() for x in paths]):
-            raise DependencyException('boost_root path given in property file must be absolute')
-
-        roots += paths
 
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
         # allows BoostDependency to find boost from Conan. See #5438
@@ -701,7 +714,7 @@ class BoostDependency(ExternalDependency):
             tmp = [x.resolve() for x in tmp]
             roots += tmp
 
-        return roots
+        self.check_and_set_roots(roots)
 
     def log_details(self) -> str:
         res = ''
