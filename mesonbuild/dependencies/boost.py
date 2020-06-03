@@ -656,7 +656,7 @@ class BoostDependency(ExternalDependency):
 
         self.is_found = self.run_check([boost_inc_dir], [lib_dir])
 
-    def detect_roots(self) -> T.List[Path]:
+    def detect_roots(self) -> None:
         roots = []  # type: T.List[Path]
 
         # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
