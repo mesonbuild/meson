@@ -344,8 +344,8 @@ of the module.
   Note that this has the downside of rebuilding the doc for each build, which is
   often very slow. It usually should be enabled only in CI.
 
-This creates a `$module-doc` target that can be ran to build docs and
-normally these are only built on install.
+This also creates a `$module-doc` target that can be run to build documentation.
+Normally the documentation is only built on install.
 
 *Since 0.52.0* Returns a target object that can be passed as dependency to other
 targets using generated doc files (e.g. in `content_files` of another doc).
