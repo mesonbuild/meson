@@ -72,6 +72,7 @@ topic](https://github.com/topics/meson).
  - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
  - [libcamera](https://git.linuxtv.org/libcamera.git/), a library to handle complex cameras on Linux, ChromeOS and Android
  - [Libdrm](https://gitlab.freedesktop.org/mesa/drm), a library for abstracting DRM kernel interfaces
+ - [libeconf](https://github.com/openSUSE/libeconf), Enhanced config file parsing library, which merges config files placed in several locations into one
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
