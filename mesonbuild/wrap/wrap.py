@@ -103,9 +103,22 @@ class WrapNotFoundException(WrapException):
 
 class PackageDefinition:
     def __init__(self, fname: str):
-        self.filename = fname
+        self.type = None
+        self.values = {} # type: T.Dict[str, str]
+        self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
+        self.provided_programs = [] # type: T.List[str]
         self.basename = os.path.basename(fname)
-        self.name = self.basename[:-5]
+        self.name = self.basename
+        if self.name.endswith('.wrap'):
+            self.name = self.name[:-5]
+        self.provided_deps[self.name] = None
+        if fname.endswith('.wrap'):
+            self.parse_wrap(fname)
+        self.directory = self.values.get('directory', self.name)
+        if os.path.dirname(self.directory):
+            raise WrapException('Directory key must be a name and not a path')
+
+    def parse_wrap(self, fname: str):
         try:
             self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(fname)
@@ -125,27 +138,25 @@ class PackageDefinition:
         self.values = dict(self.config[self.wrap_section])
 
     def parse_provide_section(self):
-        self.provide = {self.name: None}
-        self.provide_programs = []
         if self.config.has_section('provide'):
             for k, v in self.config['provide'].items():
                 if k == 'dependency_names':
                     # A comma separated list of dependency names that does not
                     # need a variable name
                     names = {n.strip(): None for n in v.split(',')}
-                    self.provide.update(names)
+                    self.provided_deps.update(names)
                     continue
                 if k == 'program_names':
                     # A comma separated list of program names
-                    names = {n.strip(): None for n in v.split(',')}
-                    self.provide_programs += names
+                    names = [n.strip() for n in v.split(',')]
+                    self.provided_programs += names
                     continue
                 if not v:
                     m = ('Empty dependency variable name for {!r} in {}. '
                          'If the subproject uses meson.override_dependency() '
                          'it can be added in the "dependency_names" special key.')
                     raise WrapException(m.format(k, self.basename))
-                self.provide[k] = v
+                self.provided_deps[k] = v
 
     def get(self, key: str) -> str:
         try:
@@ -154,22 +165,12 @@ class PackageDefinition:
             m = 'Missing key {!r} in {}'
             raise WrapException(m.format(key, self.basename))
 
-def load_wrap(subdir_root: str, packagename: str) -> PackageDefinition:
+def get_directory(subdir_root: str, packagename: str) -> str:
     fname = os.path.join(subdir_root, packagename + '.wrap')
     if os.path.isfile(fname):
-        return PackageDefinition(fname)
-    return None
-
-def get_directory(subdir_root: str, packagename: str):
-    directory = packagename
-    # We always have to load the wrap file, if it exists, because it could
-    # override the default directory name.
-    wrap = load_wrap(subdir_root, packagename)
-    if wrap and 'directory' in wrap.values:
-        directory = wrap.get('directory')
-        if os.path.dirname(directory):
-            raise WrapException('Directory key must be a name and not a path')
-    return wrap, directory
+        wrap = PackageDefinition(fname)
+        return wrap.directory
+    return packagename
 
 class Resolver:
     def __init__(self, subdir_root: str, wrap_mode=WrapMode.default):
@@ -177,49 +178,60 @@ class Resolver:
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
         self.filesdir = os.path.join(self.subdir_root, 'packagefiles')
-        self.wraps = {} # type: T.Dict[str, T.Tuple[T.Optional[PackageDefinition], T.Optional[str]]]
+        self.wraps = {} # type: T.Dict[str, PackageDefinition]
+        self.provided_deps = {} # type: T.Dict[str, PackageDefinition]
+        self.provided_programs = {} # type: T.Dict[str, PackageDefinition]
         self.load_wraps()
 
     def load_wraps(self):
         if not os.path.isdir(self.subdir_root):
             return
-        # Load wrap files upfront
         for f in os.listdir(self.subdir_root):
-            if f.endswith('.wrap'):
-                packagename = f[:-5]
-                wrap, directory = get_directory(self.subdir_root, packagename)
-                for k in wrap.provide.keys():
-                    self.wraps[k] = (wrap, directory)
-            elif os.path.isdir(os.path.join(self.subdir_root, f)):
-                # Keep it in the case we have dirs with no corresponding wrap file.
-                self.wraps.setdefault(f, (None, f))
+            fname = os.path.join(self.subdir_root, f)
+            # Ignore not .wrap files, and reserved directories.
+            if (os.path.isfile(fname) and not fname.endswith('.wrap')) or \
+               f in ['packagecache', 'packagefiles']:
+                continue
+            wrap = PackageDefinition(fname)
+            # We could have added a dummy package definition for the directory,
+            # replace it now with the proper wrap. This happens if we already
+            # downloaded the subproject into 'foo-1.0' directory and we now found
+            # 'foo.wrap' file.
+            if wrap.directory in self.wraps:
+                del self.wraps[wrap.directory]
+            self.wraps[wrap.name] = wrap
+            for k in wrap.provided_deps.keys():
+                self.provided_deps[k] = wrap
+            for k in wrap.provided_programs:
+                self.provided_programs[k] = wrap
 
-    def find_provider(self, packagename: str):
+    def find_dep_provider(self, packagename: str):
         # Return value is in the same format as fallback kwarg:
         # ['subproject_name', 'variable_name'], or 'subproject_name'.
-        wrap, directory = self.wraps.get(packagename, (None, None))
+        wrap = self.provided_deps.get(packagename)
         if wrap:
-            dep_var = wrap.provide[packagename]
+            dep_var = wrap.provided_deps.get(packagename)
             if dep_var:
                 return [wrap.name, dep_var]
             return wrap.name
-        return directory
+        return None
 
     def find_program_provider(self, names: T.List[str]):
-        wraps = [i[0] for i in self.wraps.values()]
         for name in names:
-            for wrap in wraps:
-                if wrap and name in wrap.provide_programs:
-                    return wrap.name
+            wrap = self.provided_programs.get(name)
+            if wrap:
+                return wrap.name
         return None
 
     def resolve(self, packagename: str, method: str, current_subproject: str = '') -> str:
         self.current_subproject = current_subproject
         self.packagename = packagename
-        self.wrap, self.directory = self.wraps.get(packagename, (None, self.packagename))
-        if self.wrap and packagename != self.wrap.name:
-            m = 'subproject() must not be called by the name of a dependency it provides. Expecting {!r} but got {!r}.'
-            raise WrapException(m.format(self.wrap.name, packagename))
+        self.directory = packagename
+        self.wrap = self.wraps.get(packagename)
+        if not self.wrap:
+            m = 'Subproject directory not found and {}.wrap file not found'
+            raise WrapNotFoundException(m.format(self.packagename))
+        self.directory = self.wrap.directory
         self.dirname = os.path.join(self.subdir_root, self.directory)
 
         meson_file = os.path.join(self.dirname, 'meson.build')
@@ -241,11 +253,6 @@ class Resolver:
             if not os.path.isdir(self.dirname):
                 raise WrapException('Path already exists but is not a directory')
         else:
-            # A wrap file is required to download
-            if not self.wrap:
-                m = 'Subproject directory not found and {}.wrap file not found'
-                raise WrapNotFoundException(m.format(self.packagename))
-
             if self.wrap.type == 'file':
                 self.get_file()
             else:

@@ -3590,7 +3590,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # but only if this dependency is required. It is common to first check for a pkg-config,
             # then fallback to use find_library() and only afterward check again the dependency
             # with a fallback.
-            provider = self.environment.wrap_resolver.find_provider(name)
+            provider = self.environment.wrap_resolver.find_dep_provider(name)
             if provider:
                 kwargs['fallback'] = provider
                 has_fallback = True
