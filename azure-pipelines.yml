@@ -82,6 +82,7 @@ jobs:
         gcc-objc,^
         git,^
         gobject-introspection,^
+        gtk-doc,^
         libarchive13,^
         libboost-devel,^
         libglib2.0-devel,^
