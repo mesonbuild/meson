@@ -8,3 +8,5 @@ subdir('foobar1')
 subdir('foobar2')
 subdir('foobar3')
 subdir('foobar4')
+
+subdir('baz')

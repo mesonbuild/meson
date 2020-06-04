@@ -12,6 +12,7 @@ assert(gnome.gtkdoc_html_dir('foobar') == 'share/gtk-doc/html/foobar', 'Gtkdoc i
 inc = include_directories('include')
 
 subdir('include')
+subdir('src')
 
 # disable this test unless a bug fix for spaces in pathnames is present
 # https://bugzilla.gnome.org/show_bug.cgi?id=753145

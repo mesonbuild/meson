@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.1.2//EN"
+               "http://www.oasis-open.org/docbook/xml/4.1.2/docbookx.dtd">
+<book id="index" xmlns:xi="http://www.w3.org/2003/XInclude">
+  <bookinfo>
+    <title>Baz Reference Manual</title>
+    <releaseinfo>for Baz 1.0</releaseinfo>
+    <authorgroup>
+      <author>
+        <firstname>Testy</firstname>
+        <surname>McTestFace</surname>
+        <affiliation>
+          <address>
+            <email>unknown@example.com</email>
+          </address>
+        </affiliation>
+      </author>
+    </authorgroup>
+    <copyright>
+      <year>2020</year>
+      <holder>The Baz Organization</holder>
+    </copyright>
+  </bookinfo>
+
+  <reference id="baz">
+    <title>Baz library</title>
+    <partintro>
+      <para>
+        This documents the Baz library.
+      </para>
+    </partintro>
+    <xi:include href="xml/baz_trivial.xml"/>
+  </reference>
+</book>
