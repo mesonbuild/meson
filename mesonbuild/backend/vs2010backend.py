@@ -992,23 +992,23 @@ class Vs2010Backend(backends.Backend):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
             if isinstance(d, dependencies.OpenMPDependency):
-                d_compile_args = compiler.openmp_flags()
+                ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
             else:
                 d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
-            for arg in d_compile_args:
-                if arg.startswith(('-D', '/D')):
-                    define = arg[2:]
-                    # De-dup
-                    if define in target_defines:
-                        target_defines.remove(define)
-                    target_defines.append(define)
-                elif arg.startswith(('-I', '/I')):
-                    inc_dir = arg[2:]
-                    # De-dup
-                    if inc_dir not in target_inc_dirs:
-                        target_inc_dirs.append(inc_dir)
-                else:
-                    target_args.append(arg)
+                for arg in d_compile_args:
+                    if arg.startswith(('-D', '/D')):
+                        define = arg[2:]
+                        # De-dup
+                        if define in target_defines:
+                            target_defines.remove(define)
+                        target_defines.append(define)
+                    elif arg.startswith(('-I', '/I')):
+                        inc_dir = arg[2:]
+                        # De-dup
+                        if inc_dir not in target_inc_dirs:
+                            target_inc_dirs.append(inc_dir)
+                    else:
+                        target_args.append(arg)
 
         languages += gen_langs
         if len(target_args) > 0:
@@ -1100,14 +1100,14 @@ class Vs2010Backend(backends.Backend):
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 if isinstance(dep, dependencies.OpenMPDependency):
-                    extra_link_args.extend_direct(compiler.openmp_flags())
+                    ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
                 else:
                     extra_link_args.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         if isinstance(dep, dependencies.OpenMPDependency):
-                            extra_link_args.extend_direct(compiler.openmp_flags())
+                            ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
                         else:
                             extra_link_args.extend_direct(dep.get_link_args())
         # Add link args for c_* or cpp_* build options. Currently this only
