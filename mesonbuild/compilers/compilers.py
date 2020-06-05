@@ -1087,6 +1087,9 @@ class Compiler:
     def openmp_flags(self):
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
+    def openmp_link_flags(self):
+        return self.openmp_flags()
+
     def language_stdlib_only_link_flags(self):
         return []
 
