@@ -28,6 +28,7 @@ import textwrap
 from .. import mlog, mesonlib
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
 from ..environment import Environment
+from ..envconfig import get_env_var
 
 if T.TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
@@ -48,6 +49,8 @@ class CMakeExecutor:
         self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
         self.always_capture_stderr = True
         self.print_cmout = False
+        self.prefix_paths = []      # type: T.List[str]
+        self.extra_cmake_args = []  # type: T.List[str]
         if self.cmakebin is False:
             self.cmakebin = None
             return
@@ -59,6 +62,21 @@ class CMakeExecutor:
                 'is required')
             self.cmakebin = None
             return
+
+        self.prefix_paths = self.environment.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
+        env_pref_path = get_env_var(
+            self.for_machine,
+            self.environment.is_cross_build(),
+            'CMAKE_PREFIX_PATH')
+        if env_pref_path is not None:
+            env_pref_path = env_pref_path.split(os.pathsep)
+            env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
+            if not self.prefix_paths:
+                self.prefix_paths = []
+            self.prefix_paths += env_pref_path
+
+        if self.prefix_paths:
+            self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 
     def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple['ExternalProgram', str]:
         from ..dependencies.base import ExternalProgram
@@ -226,6 +244,7 @@ class CMakeExecutor:
         if env is None:
             env = os.environ
 
+        args = args + self.extra_cmake_args
         if disable_cache:
             return self._call_impl(args, build_dir, env)
 
@@ -361,6 +380,9 @@ class CMakeExecutor:
 
     def get_command(self) -> T.List[str]:
         return self.cmakebin.get_command()
+
+    def get_cmake_prefix_paths(self) -> T.List[str]:
+        return self.prefix_paths
 
     def machine_choice(self) -> MachineChoice:
         return self.for_machine

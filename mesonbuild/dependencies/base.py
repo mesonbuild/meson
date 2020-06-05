@@ -1085,21 +1085,7 @@ class CMakeDependency(ExternalDependency):
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
 
-        pref_path = self.env.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
-        env_pref_path = get_env_var(
-            self.for_machine,
-            self.env.is_cross_build(),
-            'CMAKE_PREFIX_PATH')
-        if env_pref_path is not None:
-            env_pref_path = env_pref_path.split(os.pathsep)
-            env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
-            if not pref_path:
-                pref_path = []
-            pref_path += env_pref_path
-        if pref_path:
-            cm_args.append('-DCMAKE_PREFIX_PATH={}'.format(';'.join(pref_path)))
-
-        if not self._preliminary_find_check(name, cm_path, pref_path, environment.machines[self.for_machine]):
+        if not self._preliminary_find_check(name, cm_path, self.cmakebin.get_cmake_prefix_paths(), environment.machines[self.for_machine]):
             mlog.debug('Preliminary CMake check failed. Aborting.')
             return
         self._detect_dep(name, modules, components, cm_args)
