@@ -473,9 +473,9 @@ class BoostDependency(ExternalDependency):
             libs = self.detect_libraries(i)
             if libs:
                 mlog.debug('  - found boost library dir: {}'.format(i))
-                # mlog.debug('  - raw library list:')
-                # for j in libs:
-                #     mlog.debug('    - {}'.format(j))
+                mlog.debug('  - raw library list:')
+                for j in libs:
+                    mlog.debug('    - {}'.format(j))
                 break
         libs = sorted(set(libs))
 
@@ -612,10 +612,16 @@ class BoostDependency(ExternalDependency):
         except (KeyError, IndexError, AttributeError):
             pass
 
+        mlog.debug('    - static: {}'.format(self.static))
+        mlog.debug('    - not explicit static: {}'.format(not self.explicit_static))
         libs = [x for x in libs if x.static == self.static or not self.explicit_static]
+        mlog.debug('    - mt: {}'.format(self.multithreading))
         libs = [x for x in libs if x.mt == self.multithreading]
+        mlog.debug('    - version: {}'.format(lib_vers))
         libs = [x for x in libs if x.version_matches(lib_vers)]
+        mlog.debug('    - arch: {}'.format(self.arch))
         libs = [x for x in libs if x.arch_matches(self.arch)]
+        mlog.debug('    - vscrt: {}'.format(vscrt))
         libs = [x for x in libs if x.vscrt_matches(vscrt)]
         libs = [x for x in libs if x.nvsuffix != 'dll']  # Only link to import libraries
 
