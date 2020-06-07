@@ -1108,7 +1108,7 @@ class CLikeCompiler:
                              'the compiler you are using. has_link_argument or '
                              'other similar method can be used instead.'
                              .format(arg))
-        code = 'int i;\n'
+        code = 'extern int i;\nint i;\n'
         return self.has_arguments(args, env, code, mode='compile')
 
     def has_multi_link_arguments(self, args, env):
