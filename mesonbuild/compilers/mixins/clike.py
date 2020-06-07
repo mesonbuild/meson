@@ -1008,7 +1008,7 @@ class CLikeCompiler:
         return value[:]
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
-        code = 'int main(void) { return 0; }'
+        code = 'int main(void) { return 0; }\n'
         return self.find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def find_framework_paths(self, env):
@@ -1117,7 +1117,7 @@ class CLikeCompiler:
         # false positive.
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
-        code = 'int main(void) { return 0; }'
+        code = 'int main(void) { return 0; }\n'
         return self.has_arguments(args, env, code, mode='link')
 
     @staticmethod
