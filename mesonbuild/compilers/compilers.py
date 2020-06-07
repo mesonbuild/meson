@@ -14,6 +14,7 @@
 
 import contextlib, os.path, re, tempfile
 import collections.abc
+from collections import deque
 import itertools
 import typing as T
 from functools import lru_cache
@@ -138,11 +139,15 @@ def is_llvm_ir(fname):
         fname = fname.fname
     return fname.split('.')[-1] == 'll'
 
+@lru_cache(maxsize=None)
+def cached_by_name(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in obj_suffixes
+
 def is_object(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
-    suffix = fname.split('.')[-1]
-    return suffix in obj_suffixes
+    return cached_by_name(fname)
 
 def is_library(fname):
     if hasattr(fname, 'fname'):
@@ -462,9 +467,47 @@ class CompilerArgs(collections.abc.MutableSequence):
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
         self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
-        self.__seen_args = set()
-        for arg in self.__container:
-            self.__seen_args.add(arg)
+        self.pre = deque()
+        self.post = deque()
+
+    # Flush the saved pre and post list into the __container list
+    #
+    # This correctly deduplicates the entries after _can_dedup definition
+    # Note: This function is designed to work without delete operations, as deletions are worsening the performance a lot.
+    def flush_pre_post(self):
+        pre_flush = deque()
+        pre_flush_set = set()
+        post_flush = deque()
+        post_flush_set = set()
+
+        #The two lists are here walked from the front to the back, in order to not need removals for deduplication
+        for a in reversed(self.pre):
+            dedup = self._can_dedup(a)
+            if a not in pre_flush_set:
+                pre_flush.appendleft(a)
+                if dedup == 2:
+                    pre_flush_set.add(a)
+        for a in reversed(self.post):
+            dedup = self._can_dedup(a)
+            if a not in post_flush_set:
+                post_flush.appendleft(a)
+                if dedup == 2:
+                    post_flush_set.add(a)
+
+        #pre and post will overwrite every element that is in the container
+        #only copy over args that are in __container but not in the post flush or pre flush set
+
+        for a in self.__container:
+            if a not in post_flush_set and a not in pre_flush_set:
+                pre_flush.append(a)
+
+        self.__container = list(pre_flush) + list(post_flush)
+        self.pre.clear()
+        self.post.clear()
+
+    def __iter__(self):
+        self.flush_pre_post()
+        return iter(self.__container);
 
     @T.overload                                # noqa: F811
     def __getitem__(self, index: int) -> str:  # noqa: F811
@@ -475,6 +518,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         pass
 
     def __getitem__(self, index):  # noqa: F811
+        self.flush_pre_post()
         return self.__container[index]
 
     @T.overload                                             # noqa: F811
@@ -486,24 +530,22 @@ class CompilerArgs(collections.abc.MutableSequence):
         pass
 
     def __setitem__(self, index, value) -> None:  # noqa: F811
+        self.flush_pre_post()
         self.__container[index] = value
-        for v in value:
-            self.__seen_args.add(v)
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
-        value = self.__container[index]
+        self.flush_pre_post()
         del self.__container[index]
-        if value in self.__seen_args and value in self.__container: # this is also honoring that you can have duplicated entries
-            self.__seen_args.remove(value)
 
     def __len__(self) -> int:
-        return len(self.__container)
+        return len(self.__container) + len(self.pre) + len(self.post)
 
     def insert(self, index: int, value: str) -> None:
+        self.flush_pre_post()
         self.__container.insert(index, value)
-        self.__seen_args.add(value)
 
     def copy(self) -> 'CompilerArgs':
+        self.flush_pre_post()
         return CompilerArgs(self.compiler, self.__container.copy())
 
     @classmethod
@@ -576,6 +618,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
         # shared libraries.
+        self.flush_pre_post()
         if copy:
             new = self.copy()
         else:
@@ -635,11 +678,11 @@ class CompilerArgs(collections.abc.MutableSequence):
         for absolute paths to libraries, etc, which can always be de-duped
         safely.
         '''
+        self.flush_pre_post()
         if os.path.isabs(arg):
             self.append(arg)
         else:
             self.__container.append(arg)
-            self.__seen_args.add(arg)
 
     def extend_direct(self, iterable: T.Iterable[str]) -> None:
         '''
@@ -647,6 +690,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         reordering or de-dup except for absolute paths where the order of
         include search directories is not relevant
         '''
+        self.flush_pre_post()
         for elem in iterable:
             self.append_direct(elem)
 
@@ -662,6 +706,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         self.extend_direct(lflags)
 
     def __add__(self, args: T.Iterable[str]) -> 'CompilerArgs':
+        self.flush_pre_post()
         new = self.copy()
         new += args
         return new
@@ -671,9 +716,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        this_round_added = set() # a dict that contains a value, when the value was added this round
-        pre = []   # type: T.List[str]
-        post = []  # type: T.List[str]
+        tmp_pre = deque()
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
         for arg in args:
@@ -683,37 +726,24 @@ class CompilerArgs(collections.abc.MutableSequence):
             dedup = self._can_dedup(arg)
             if dedup == 1:
                 # Argument already exists and adding a new instance is useless
-                if arg in self.__seen_args or arg in pre or arg in post:
+                if arg in self.__container or arg in self.pre or arg in self.post:
                     continue
-            should_prepend = self._should_prepend(arg)
-            if dedup == 2:
-                # Remove all previous occurrences of the arg and add it anew
-                if arg in self.__seen_args and arg not in this_round_added:  # if __seen_args contains arg as well as this_round_added, then its not yet part in self.
-                    self.remove(arg)
-                if should_prepend:
-                    if arg in pre:
-                        pre.remove(arg)
-                else:
-                    if arg in post:
-                        post.remove(arg)
-            if should_prepend:
-                pre.append(arg)
+            if self._should_prepend(arg):
+                tmp_pre.appendleft(arg)
             else:
-                post.append(arg)
-            self.__seen_args.add(arg)
-            this_round_added.add(arg)
-        # Insert at the beginning
-        self[:0] = pre
-        # Append to the end
-        self.__container += post
+                self.post.append(arg)
+        self.pre.extendleft(tmp_pre)
+        #pre and post is going to be merged later before a iter call
         return self
 
     def __radd__(self, args: T.Iterable[str]):
+        self.flush_pre_post()
         new = CompilerArgs(self.compiler, args)
         new += self
         return new
 
     def __eq__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+        self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
             return self.compiler == other.compiler and self.__container == other.__container
@@ -728,6 +758,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         self.__iadd__(args)
 
     def __repr__(self) -> str:
+        self.flush_pre_post()
         return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
 
 class Compiler:
