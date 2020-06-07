@@ -629,7 +629,6 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     return testresult
 
-
 def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
     tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
