@@ -2432,6 +2432,9 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(exe2)
 
     def test_internal_include_order(self):
+        if mesonbuild.environment.detect_msys2_arch() and ('MESON_RSP_THRESHOLD' in os.environ):
+            raise unittest.SkipTest('Test does not yet support gcc rsp files on msys2')
+
         testdir = os.path.join(self.common_test_dir, '134 include order')
         self.init(testdir)
         execmd = fxecmd = None

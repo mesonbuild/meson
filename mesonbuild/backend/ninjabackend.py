@@ -15,8 +15,10 @@ import typing as T
 import os
 import re
 import pickle
+import shlex
 import subprocess
 from collections import OrderedDict
+from enum import Enum, unique
 import itertools
 from pathlib import PurePath, Path
 from functools import lru_cache
@@ -28,9 +30,14 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
-from ..compilers import (Compiler, CompilerArgs, CCompiler, FortranCompiler,
-                         PGICCompiler, VisualStudioLikeCompiler)
-from ..linkers import ArLinker
+from ..compilers import (
+    Compiler, CompilerArgs, CCompiler,
+    DmdDCompiler,
+    FortranCompiler, PGICCompiler,
+    VisualStudioCsCompiler,
+    VisualStudioLikeCompiler,
+)
+from ..linkers import ArLinker, VisualStudioLinker
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unholder,
@@ -45,17 +52,66 @@ FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
 FORTRAN_USE_PAT = r"^\s*use,?\s*(?:non_intrinsic)?\s*(?:::)?\s*(\w+)"
 
+def cmd_quote(s):
+    # see: https://docs.microsoft.com/en-us/windows/desktop/api/shellapi/nf-shellapi-commandlinetoargvw#remarks
+
+    # backslash escape any existing double quotes
+    # any existing backslashes preceding a quote are doubled
+    s = re.sub(r'(\\*)"', lambda m: '\\' * (len(m.group(1)) * 2 + 1) + '"', s)
+    # any terminal backslashes likewise need doubling
+    s = re.sub(r'(\\*)$', lambda m: '\\' * (len(m.group(1)) * 2), s)
+    # and double quote
+    s = '"{}"'.format(s)
+
+    return s
+
+def gcc_rsp_quote(s):
+    # see: the function buildargv() in libiberty
+    #
+    # this differs from sh-quoting in that a backslash *always* escapes the
+    # following character, even inside single quotes.
+
+    s = s.replace('\\', '\\\\')
+
+    return shlex.quote(s)
+
+# How ninja executes command lines differs between Unix and Windows
+# (see https://ninja-build.org/manual.html#ref_rule_command)
 if mesonlib.is_windows():
-    # FIXME: can't use quote_arg on Windows just yet; there are a number of existing workarounds
-    # throughout the codebase that cumulatively make the current code work (see, e.g. Backend.escape_extra_args
-    # and NinjaBuildElement.write below) and need to be properly untangled before attempting this
-    quote_func = lambda s: '"{}"'.format(s)
-    execute_wrapper = ['cmd', '/c']
+    quote_func = cmd_quote
+    execute_wrapper = ['cmd', '/c']  # unused
     rmfile_prefix = ['del', '/f', '/s', '/q', '{}', '&&']
 else:
     quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
+
+def get_rsp_threshold():
+    '''Return a conservative estimate of the commandline size in bytes
+    above which a response file should be used.  May be overridden for
+    debugging by setting environment variable MESON_RSP_THRESHOLD.'''
+
+    if mesonlib.is_windows():
+        # Usually 32k, but some projects might use cmd.exe,
+        # and that has a limit of 8k.
+        limit = 8192
+    else:
+        # On Linux, ninja always passes the commandline as a single
+        # big string to /bin/sh, and the kernel limits the size of a
+        # single argument; see MAX_ARG_STRLEN
+        limit = 131072
+    # Be conservative
+    limit = limit / 2
+    return int(os.environ.get('MESON_RSP_THRESHOLD', limit))
+
+# a conservative estimate of the command-line length limit
+rsp_threshold = get_rsp_threshold()
+
+# ninja variables whose value should remain unquoted. The value of these ninja
+# variables (or variables we use them in) is interpreted directly by ninja
+# (e.g. the value of the depfile variable is a pathname that ninja will read
+# from, etc.), so it must not be shell quoted.
+raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep'}
 
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
@@ -73,6 +129,25 @@ Please report this error with a test case to the Meson bug tracker.'''.format(te
         raise MesonException(errmsg)
     return text
 
+@unique
+class Quoting(Enum):
+    both = 0
+    notShell = 1
+    notNinja = 2
+    none = 3
+
+class NinjaCommandArg:
+    def __init__(self, s, quoting = Quoting.both):
+        self.s = s
+        self.quoting = quoting
+
+    def __str__(self):
+        return self.s
+
+    @staticmethod
+    def list(l, q):
+        return [NinjaCommandArg(i, q) for i in l]
+
 class NinjaComment:
     def __init__(self, comment):
         self.comment = comment
@@ -86,49 +161,127 @@ class NinjaComment:
 
 class NinjaRule:
     def __init__(self, rule, command, args, description,
-                 rspable = False, deps = None, depfile = None, extra = None):
+                 rspable = False, deps = None, depfile = None, extra = None,
+                 rspfile_quote_style = 'gcc'):
+
+        def strToCommandArg(c):
+            if isinstance(c, NinjaCommandArg):
+                return c
+
+            # deal with common cases here, so we don't have to explicitly
+            # annotate the required quoting everywhere
+            if c == '&&':
+                # shell constructs shouldn't be shell quoted
+                return NinjaCommandArg(c, Quoting.notShell)
+            if c.startswith('$'):
+                var = re.search(r'\$\{?(\w*)\}?', c).group(1)
+                if var not in raw_names:
+                    # ninja variables shouldn't be ninja quoted, and their value
+                    # is already shell quoted
+                    return NinjaCommandArg(c, Quoting.none)
+                else:
+                    # shell quote the use of ninja variables whose value must
+                    # not be shell quoted (as it also used by ninja)
+                    return NinjaCommandArg(c, Quoting.notNinja)
+
+            return NinjaCommandArg(c)
+
         self.name = rule
-        self.command = command  # includes args which never go into a rspfile
-        self.args = args  # args which will go into a rspfile, if used
+        self.command = list(map(strToCommandArg, command))  # includes args which never go into a rspfile
+        self.args = list(map(strToCommandArg, args))  # args which will go into a rspfile, if used
         self.description = description
         self.deps = deps  # depstyle 'gcc' or 'msvc'
         self.depfile = depfile
         self.extra = extra
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
+        self.rsprefcount = 0
+        self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'gcc' or 'cl'
+
+        if self.depfile == '$DEPFILE':
+            self.depfile += '_UNQUOTED'
+
+    @staticmethod
+    def _quoter(x, qf = quote_func):
+        if isinstance(x, NinjaCommandArg):
+            if x.quoting == Quoting.none:
+                return x.s
+            elif x.quoting == Quoting.notNinja:
+                return qf(x.s)
+            elif x.quoting == Quoting.notShell:
+                return ninja_quote(x.s)
+            # fallthrough
+        return ninja_quote(qf(str(x)))
 
     def write(self, outfile):
-        if not self.refcount:
-            return
-
-        outfile.write('rule {}\n'.format(self.name))
-        if self.rspable:
-            outfile.write(' command = {} @$out.rsp\n'.format(' '.join(self.command)))
-            outfile.write(' rspfile = $out.rsp\n')
-            outfile.write(' rspfile_content = {}\n'.format(' '.join(self.args)))
+        if self.rspfile_quote_style == 'cl':
+            rspfile_quote_func = cmd_quote
         else:
-            outfile.write(' command = {}\n'.format(' '.join(self.command + self.args)))
-        if self.deps:
-            outfile.write(' deps = {}\n'.format(self.deps))
-        if self.depfile:
-            outfile.write(' depfile = {}\n'.format(self.depfile))
-        outfile.write(' description = {}\n'.format(self.description))
-        if self.extra:
-            for l in self.extra.split('\n'):
-                outfile.write(' ')
-                outfile.write(l)
-                outfile.write('\n')
-        outfile.write('\n')
+            rspfile_quote_func = gcc_rsp_quote
+
+        def rule_iter():
+            if self.refcount:
+                yield ''
+            if self.rsprefcount:
+                yield '_RSP'
+
+        for rsp in rule_iter():
+            outfile.write('rule {}{}\n'.format(self.name, rsp))
+            if rsp == '_RSP':
+                outfile.write(' command = {} @$out.rsp\n'.format(' '.join([self._quoter(x) for x in self.command])))
+                outfile.write(' rspfile = $out.rsp\n')
+                outfile.write(' rspfile_content = {}\n'.format(' '.join([self._quoter(x, rspfile_quote_func) for x in self.args])))
+            else:
+                outfile.write(' command = {}\n'.format(' '.join([self._quoter(x) for x in (self.command + self.args)])))
+            if self.deps:
+                outfile.write(' deps = {}\n'.format(self.deps))
+            if self.depfile:
+                outfile.write(' depfile = {}\n'.format(self.depfile))
+            outfile.write(' description = {}\n'.format(self.description))
+            if self.extra:
+                for l in self.extra.split('\n'):
+                    outfile.write(' ')
+                    outfile.write(l)
+                    outfile.write('\n')
+            outfile.write('\n')
+
+    def length_estimate(self, infiles, outfiles, elems):
+        # determine variables
+        # this order of actions only approximates ninja's scoping rules, as
+        # documented at: https://ninja-build.org/manual.html#ref_scope
+        ninja_vars = {}
+        for e in elems:
+            (name, value) = e
+            ninja_vars[name] = value
+        ninja_vars['deps'] = self.deps
+        ninja_vars['depfile'] = self.depfile
+        ninja_vars['in'] = infiles
+        ninja_vars['out'] = outfiles
+
+        # expand variables in command
+        command = ' '.join([self._quoter(x) for x in self.command + self.args])
+        expanded_command = ''
+        for m in re.finditer(r'(\${\w*})|(\$\w*)|([^$]*)', command):
+            chunk = m.group()
+            if chunk.startswith('$'):
+                chunk = chunk[1:]
+                chunk = re.sub(r'{(.*)}', r'\1', chunk)
+                chunk = ninja_vars.get(chunk, [])  # undefined ninja variables are empty
+                chunk = ' '.join(chunk)
+            expanded_command += chunk
+
+        # determine command length
+        return len(expanded_command)
 
 class NinjaBuildElement:
-    def __init__(self, all_outputs, outfilenames, rule, infilenames, implicit_outs=None):
+    def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
         self.implicit_outfilenames = implicit_outs or []
         if isinstance(outfilenames, str):
             self.outfilenames = [outfilenames]
         else:
             self.outfilenames = outfilenames
-        assert(isinstance(rule, str))
-        self.rule = rule
+        assert(isinstance(rulename, str))
+        self.rulename = rulename
         if isinstance(infilenames, str):
             self.infilenames = [infilenames]
         else:
@@ -159,6 +312,31 @@ class NinjaBuildElement:
             elems = [elems]
         self.elems.append((name, elems))
 
+        if name == 'DEPFILE':
+            self.elems.append((name + '_UNQUOTED', elems))
+
+    def _should_use_rspfile(self):
+        # 'phony' is a rule built-in to ninja
+        if self.rulename == 'phony':
+            return False
+
+        if not self.rule.rspable:
+            return False
+
+        infilenames = ' '.join([ninja_quote(i, True) for i in self.infilenames])
+        outfilenames = ' '.join([ninja_quote(i, True) for i in self.outfilenames])
+
+        return self.rule.length_estimate(infilenames,
+                                         outfilenames,
+                                         self.elems) >= rsp_threshold
+
+    def count_rule_references(self):
+        if self.rulename != 'phony':
+            if self._should_use_rspfile():
+                self.rule.rsprefcount += 1
+            else:
+                self.rule.refcount += 1
+
     def write(self, outfile):
         self.check_outputs()
         ins = ' '.join([ninja_quote(i, True) for i in self.infilenames])
@@ -166,7 +344,13 @@ class NinjaBuildElement:
         implicit_outs = ' '.join([ninja_quote(i, True) for i in self.implicit_outfilenames])
         if implicit_outs:
             implicit_outs = ' | ' + implicit_outs
-        line = 'build {}{}: {} {}'.format(outs, implicit_outs, self.rule, ins)
+        use_rspfile = self._should_use_rspfile()
+        if use_rspfile:
+            rulename = self.rulename + '_RSP'
+            mlog.log("Command line for building %s is long, using a response file" % self.outfilenames)
+        else:
+            rulename = self.rulename
+        line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
         if len(self.deps) > 0:
             line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
         if len(self.orderdeps) > 0:
@@ -180,11 +364,13 @@ class NinjaBuildElement:
         line = line.replace('\\', '/')
         outfile.write(line)
 
-        # ninja variables whose value should remain unquoted. The value of these
-        # ninja variables (or variables we use them in) is interpreted directly
-        # by ninja (e.g. the value of the depfile variable is a pathname that
-        # ninja will read from, etc.), so it must not be shell quoted.
-        raw_names = {'DEPFILE', 'DESC', 'pool', 'description', 'targetdep'}
+        if use_rspfile:
+            if self.rule.rspfile_quote_style == 'cl':
+                qf = cmd_quote
+            else:
+                qf = gcc_rsp_quote
+        else:
+            qf = quote_func
 
         for e in self.elems:
             (name, elems) = e
@@ -195,10 +381,7 @@ class NinjaBuildElement:
                 if not should_quote or i == '&&': # Hackety hack hack
                     quoter = ninja_quote
                 else:
-                    quoter = lambda x: ninja_quote(quote_func(x))
-                i = i.replace('\\', '\\\\')
-                if quote_func('') == '""':
-                    i = i.replace('"', '\\"')
+                    quoter = lambda x: ninja_quote(qf(x))
                 newelems.append(quoter(i))
             line += ' '.join(newelems)
             line += '\n'
@@ -350,10 +533,14 @@ int dummy;
     # http://clang.llvm.org/docs/JSONCompilationDatabase.html
     def generate_compdb(self):
         rules = []
+        # TODO: Rather than an explicit list here, rules could be marked in the
+        # rule store as being wanted in compdb
         for for_machine in MachineChoice:
             for lang in self.environment.coredata.compilers[for_machine]:
-                rules += [self.get_compiler_rule_name(lang, for_machine)]
-                rules += [self.get_pch_rule_name(lang, for_machine)]
+                rules += [ "%s%s" % (rule, ext) for rule in [self.get_compiler_rule_name(lang, for_machine)]
+                                                for ext in ['', '_RSP']]
+                rules += [ "%s%s" % (rule, ext) for rule in [self.get_pch_rule_name(lang, for_machine)]
+                                                for ext in ['', '_RSP']]
         compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
         ninja_compdb = [self.ninja_command, '-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
@@ -877,13 +1064,15 @@ int dummy;
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
 
-        c = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
+        c = self.environment.get_build_command() + \
             ['--internal',
              'regenerate',
-             ninja_quote(quote_func(self.environment.get_source_dir())),
-             ninja_quote(quote_func(self.environment.get_build_dir()))]
+             self.environment.get_source_dir(),
+             self.environment.get_build_dir(),
+             '--backend',
+             'ninja']
         self.add_rule(NinjaRule('REGENERATE_BUILD',
-                                c + ['--backend', 'ninja'], [],
+                                c, [],
                                 'Regenerating build files.',
                                 extra='generator = 1'))
 
@@ -900,11 +1089,15 @@ int dummy;
     def add_build(self, build):
         self.build_elements.append(build)
 
-        # increment rule refcount
-        if build.rule != 'phony':
-            self.ruledict[build.rule].refcount += 1
+        if build.rulename != 'phony':
+            # reference rule
+            build.rule = self.ruledict[build.rulename]
 
     def write_rules(self, outfile):
+        for b in self.build_elements:
+            if isinstance(b, NinjaBuildElement):
+                b.count_rule_references()
+
         for r in self.rules:
             r.write(outfile)
 
@@ -1558,7 +1751,7 @@ int dummy;
                 cmdlist = execute_wrapper + [c.format('$out') for c in rmfile_prefix]
             cmdlist += static_linker.get_exelist()
             cmdlist += ['$LINK_ARGS']
-            cmdlist += static_linker.get_output_args('$out')
+            cmdlist += NinjaCommandArg.list(static_linker.get_output_args('$out'), Quoting.none)
             description = 'Linking static target $out'
             if num_pools > 0:
                 pool = 'pool = link_pool'
@@ -1566,6 +1759,7 @@ int dummy;
                 pool = None
             self.add_rule(NinjaRule(rule, cmdlist, args, description,
                                     rspable=static_linker.can_linker_accept_rsp(),
+                                    rspfile_quote_style='cl' if isinstance(static_linker, VisualStudioLinker) else 'gcc',
                                     extra=pool))
 
     def generate_dynamic_link_rules(self):
@@ -1580,7 +1774,7 @@ int dummy;
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
-                args = ['$ARGS'] + compiler.get_linker_output_args('$out') + ['$in', '$LINK_ARGS']
+                args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
@@ -1588,12 +1782,14 @@ int dummy;
                     pool = None
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
+                                        rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
+                                                                     isinstance(compiler, DmdDCompiler)) else 'gcc',
                                         extra=pool))
 
-        args = [ninja_quote(quote_func(x)) for x in self.environment.get_build_command()] + \
+        args = self.environment.get_build_command() + \
             ['--internal',
              'symbolextractor',
-             ninja_quote(quote_func(self.environment.get_build_dir())),
+             self.environment.get_build_dir(),
              '$in',
              '$IMPLIB',
              '$out']
@@ -1605,31 +1801,28 @@ int dummy;
 
     def generate_java_compile_rule(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
-        command = invoc + ['$ARGS', '$in']
+        command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Java object $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_cs_compile_rule(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
-        command = invoc
+        command = compiler.get_exelist()
         args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out'
         self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=mesonlib.is_windows()))
+                                rspable=mesonlib.is_windows(),
+                                rspfile_quote_style='cl' if isinstance(compiler, VisualStudioCsCompiler) else 'gcc'))
 
     def generate_vala_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
-        command = invoc + ['$ARGS', '$in']
+        command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Vala source $in'
         self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
     def generate_rust_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        invoc = [ninja_quote(i) for i in compiler.get_exelist()]
-        command = invoc + ['$ARGS', '$in']
+        command = compiler.get_exelist() + ['$ARGS', '$in']
         description = 'Compiling Rust source $in'
         depfile = '$targetdep'
         depstyle = 'gcc'
@@ -1638,12 +1831,12 @@ int dummy;
 
     def generate_swift_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
-        full_exe = [ninja_quote(x) for x in self.environment.get_build_command()] + [
+        full_exe = self.environment.get_build_command() + [
             '--internal',
             'dirchanger',
             '$RUNDIR',
         ]
-        invoc = full_exe + [ninja_quote(i) for i in compiler.get_exelist()]
+        invoc = full_exe + compiler.get_exelist()
         command = invoc + ['$ARGS', '$in']
         description = 'Compiling Swift source $in'
         self.add_rule(NinjaRule(rule, command, [], description))
@@ -1663,8 +1856,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if self.created_llvm_ir_rule[compiler.for_machine]:
             return
         rule = self.get_compiler_rule_name('llvm_ir', compiler.for_machine)
-        command = [ninja_quote(i) for i in compiler.get_exelist()]
-        args = ['$ARGS'] + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
+        command = compiler.get_exelist()
+        args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling LLVM IR object $in'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp()))
@@ -1693,15 +1886,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if langname == 'fortran':
             self.generate_fortran_dep_hack(crstr)
         rule = self.get_compiler_rule_name(langname, compiler.for_machine)
-        depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
-        quoted_depargs = []
-        for d in depargs:
-            if d != '$out' and d != '$in':
-                d = quote_func(d)
-            quoted_depargs.append(d)
-
-        command = [ninja_quote(i) for i in compiler.get_exelist()]
-        args = ['$ARGS'] + quoted_depargs + compiler.get_output_args('$out') + compiler.get_compile_only_args() + ['$in']
+        depargs = NinjaCommandArg.list(compiler.get_dependency_gen_args('$out', '$DEPFILE'), Quoting.none)
+        command = compiler.get_exelist()
+        args = ['$ARGS'] + depargs + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling {} object $out'.format(compiler.get_display_language())
         if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
@@ -1711,6 +1898,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             depfile = '$DEPFILE'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp(),
+                                rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
+                                                             isinstance(compiler, DmdDCompiler)) else 'gcc',
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
@@ -1719,16 +1908,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         rule = self.compiler_to_pch_rule_name(compiler)
         depargs = compiler.get_dependency_gen_args('$out', '$DEPFILE')
 
-        quoted_depargs = []
-        for d in depargs:
-            if d != '$out' and d != '$in':
-                d = quote_func(d)
-            quoted_depargs.append(d)
         if isinstance(compiler, VisualStudioLikeCompiler):
             output = []
         else:
-            output = compiler.get_output_args('$out')
-        command = compiler.get_exelist() + ['$ARGS'] + quoted_depargs + output + compiler.get_compile_only_args() + ['$in']
+            output = NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
+        command = compiler.get_exelist() + ['$ARGS'] + depargs + output + compiler.get_compile_only_args() + ['$in']
         description = 'Precompiling header $in'
         if isinstance(compiler, VisualStudioLikeCompiler):
             deps = 'msvc'
