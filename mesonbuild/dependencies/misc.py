@@ -97,7 +97,8 @@ class OpenMPDependency(ExternalDependency):
             for name in header_names:
                 if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.is_found = True
-                    self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
+                    self.compile_args = self.clib_compiler.openmp_flags()
+                    self.link_args = self.clib_compiler.openmp_link_flags()
                     break
             if not self.is_found:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
