@@ -490,10 +490,10 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
     nativefile = test.path / 'nativefile.ini'
     crossfile = test.path / 'crossfile.ini'
 
-    if os.path.exists(test.path / 'nativefile.ini.in'):
+    if os.path.exists(str(test.path / 'nativefile.ini.in')):
         nativefile = format_parameter_file('nativefile.ini', test, test_build_dir)
 
-    if os.path.exists(test.path / 'crossfile.ini.in'):
+    if os.path.exists(str(test.path / 'crossfile.ini.in')):
         crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
 
     return nativefile, crossfile
