@@ -73,6 +73,7 @@ buildtarget_kwargs = set([
     'link_depends',
     'implicit_include_directories',
     'include_directories',
+    'include_symbols',
     'install',
     'install_rpath',
     'install_dir',
@@ -494,6 +495,8 @@ class BuildTarget(Target):
         self.external_deps = []
         self.include_dirs = []
         self.link_language = kwargs.get('link_language')
+        # Manually 'undefined' symbols
+        self.included_symbols = []
         self.link_targets = []
         self.link_whole_targets = []
         self.link_depends = []
@@ -852,6 +855,11 @@ just like those detected with the dependency() function.''')
 
         c_pchlist, cpp_pchlist, clist, cpplist, cudalist, cslist, valalist,  objclist, objcpplist, fortranlist, rustlist \
             = [extract_as_list(kwargs, c) for c in ['c_pch', 'cpp_pch', 'c_args', 'cpp_args', 'cuda_args', 'cs_args', 'vala_args', 'objc_args', 'objcpp_args', 'fortran_args', 'rust_args']]
+
+        self.included_symbols = extract_as_list(kwargs, 'include_symbols')
+        for i in self.included_symbols:
+            if not isinstance(i, str):
+                raise InvalidArguments('include_symbols arguments must be strings.')
 
         self.add_pch('c', c_pchlist)
         self.add_pch('cpp', cpp_pchlist)

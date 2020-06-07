@@ -342,7 +342,7 @@ def get_base_compile_args(options, compiler):
         pass
     return args
 
-def get_base_link_args(options, linker, is_shared_module):
+def get_base_link_args(options, linker, is_shared_module, has_included_symbols):
     args = []
     try:
         if options['b_lto'].value:
@@ -385,6 +385,16 @@ def get_base_link_args(options, linker, is_shared_module):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
+
+    # as_needed does not make sense with include_symbols or shared_module,
+    # -Wl,-dead_strip_dylibs is incompatible with bitcode
+    if as_needed and not has_included_symbols and not is_shared_module and not bitcode:
+        args += linker.get_asneeded_args()
+    else:
+        args += linker.get_noasneeded_args()
+
+    if as_needed and has_included_symbols:
+        mlog.warning('The b_asneeded option is ignored if there are include_symbols arguments')
 
     try:
         crt_val = options['b_vscrt'].value
@@ -1202,6 +1212,12 @@ class Compiler:
 
     def get_asneeded_args(self) -> T.List[str]:
         return self.linker.get_asneeded_args()
+
+    def get_noasneeded_args(self) -> T.List[str]:
+        return self.linker.get_noasneeded_args()
+
+    def get_include_symbols_for(self, args) -> T.List[str]:
+        return self.linker.get_include_symbols_for(args)
 
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
