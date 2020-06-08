@@ -75,7 +75,7 @@ class CMakeExecutor:
             mlog.debug('CMake binary for %s is not cached' % self.for_machine)
             for potential_cmakebin in find_external_program(
                     environment, self.for_machine, 'cmake', 'CMake',
-                    environment.default_cmake):
+                    environment.default_cmake, allow_default_for_cross=False):
                 version_if_ok = self.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
