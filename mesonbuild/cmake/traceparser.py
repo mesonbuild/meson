@@ -139,7 +139,7 @@ class CMakeTraceParser:
         if not self.requires_stderr():
             if not self.trace_file_path.exists and not self.trace_file_path.is_file():
                 raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
-            trace = self.trace_file_path.read_text()
+            trace = self.trace_file_path.read_text(errors='ignore')
         if not trace:
             raise CMakeException('CMake: The CMake trace was not provided or is empty')
 
