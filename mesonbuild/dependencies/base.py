@@ -444,7 +444,7 @@ class ConfigToolDependency(ExternalDependency):
         best_match = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools):
+                self.tool_name, self.tools, allow_default_for_cross=False):
             if not potential_bin.found():
                 continue
             tool = potential_bin.get_command()
@@ -568,9 +568,9 @@ class PkgConfigDependency(ExternalDependency):
         else:
             assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
             mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
-            for potential_pkgbin in find_external_program(self.env, self.for_machine, 'pkgconfig', 'Pkg-config', environment.default_pkgconfig):
-                mlog.debug('Trying pkg-config binary {} for machine {} at {}'
-                           .format(potential_pkgbin.name, self.for_machine, potential_pkgbin.command))
+            for potential_pkgbin in find_external_program(
+                    self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
+                    environment.default_pkgconfig, allow_default_for_cross=False):
                 version_if_ok = self.check_pkgconfig(potential_pkgbin)
                 if not version_if_ok:
                     continue
