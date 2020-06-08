@@ -545,10 +545,12 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
