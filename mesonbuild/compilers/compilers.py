@@ -1246,10 +1246,10 @@ def get_largefile_args(compiler):
     '''
     Enable transparent large-file-support for 32-bit UNIX systems
     '''
-    if not (compiler.info.is_windows() or compiler.info.is_darwin()):
+    if not (compiler.get_argument_syntax() == 'msvc' or compiler.info.is_darwin()):
         # Enable large-file support unconditionally on all platforms other
-        # than macOS and Windows. macOS is now 64-bit-only so it doesn't
-        # need anything special, and Windows doesn't have automatic LFS.
+        # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
+        # need anything special, and MSVC doesn't have automatic LFS.
         # You must use the 64-bit counterparts explicitly.
         # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
         # support for transparent LFS is available depending on the version of
