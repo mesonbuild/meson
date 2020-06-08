@@ -1,6 +1,6 @@
 module mod1
-  implicit none
+implicit none
 
-  integer, parameter :: modval1 = @ONE@
+integer, parameter :: modval1 = @ONE@
 
 end module mod1
