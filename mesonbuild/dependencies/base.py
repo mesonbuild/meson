@@ -419,8 +419,6 @@ class ConfigToolDependency(ExternalDependency):
             self.config = None
             return
         self.version = version
-        if getattr(self, 'finish_init', None):
-            self.finish_init(self)
 
     def _sanitize_version(self, version):
         """Remove any non-numeric, non-point version suffixes."""

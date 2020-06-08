@@ -272,8 +272,10 @@ class PcapDependencyConfigTool(ConfigToolDependency):
     tools = ['pcap-config']
     tool_name = 'pcap-config'
 
-    @staticmethod
-    def finish_init(self) -> None:
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
         self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
         self.link_args = self.get_config_value(['--libs'], 'link_args')
         self.version = self.get_pcap_lib_version()
@@ -285,6 +287,7 @@ class PcapDependencyConfigTool(ConfigToolDependency):
     def get_pcap_lib_version(self):
         # Since we seem to need to run a program to discover the pcap version,
         # we can't do that when cross-compiling
+        # FIXME: this should be handled if we have an exe_wrapper
         if not self.env.machines.matches_build_machine(self.for_machine):
             return None
 
@@ -300,10 +303,12 @@ class CupsDependencyConfigTool(ConfigToolDependency):
     tools = ['cups-config']
     tool_name = 'cups-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--ldflags', '--libs'], 'link_args')
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--ldflags', '--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
@@ -318,10 +323,12 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
     tools = ['libwmf-config']
     tool_name = 'libwmf-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():
@@ -333,11 +340,13 @@ class LibGCryptDependencyConfigTool(ConfigToolDependency):
     tools = ['libgcrypt-config']
     tool_name = 'libgcrypt-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-        ctdep.version = ctdep.get_config_value(['--version'], 'version')[0]
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
+        self.version = self.get_config_value(['--version'], 'version')[0]
 
     @staticmethod
     def get_methods():
@@ -349,11 +358,13 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
     tools = ['gpgme-config']
     tool_name = 'gpg-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
-        ctdep.version = ctdep.get_config_value(['--version'], 'version')[0]
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
+        self.version = self.get_config_value(['--version'], 'version')[0]
 
     @staticmethod
     def get_methods():
