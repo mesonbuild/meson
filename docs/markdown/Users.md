@@ -70,6 +70,7 @@ topic](https://github.com/topics/meson).
  - [Knot Resolver](https://gitlab.labs.nic.cz/knot/knot-resolver), Full caching DNS resolver implementation
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
+ - [Le](https://github.com/kirushyk/le), machine learning framework
  - [libcamera](https://git.linuxtv.org/libcamera.git/), a library to handle complex cameras on Linux, ChromeOS and Android
  - [Libdrm](https://gitlab.freedesktop.org/mesa/drm), a library for abstracting DRM kernel interfaces
  - [libeconf](https://github.com/openSUSE/libeconf), Enhanced config file parsing library, which merges config files placed in several locations into one
