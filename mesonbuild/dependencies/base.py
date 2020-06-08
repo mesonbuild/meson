@@ -78,7 +78,8 @@ class DependencyMethods(Enum):
 
 
 def find_external_program(env: Environment, for_machine: MachineChoice, name: str,
-                          display_name: str, default_names: T.List[str]) -> T.Generator['ExternalProgram', None, None]:
+                          display_name: str, default_names: T.List[str],
+                          allow_default_for_cross: bool = True) -> T.Generator['ExternalProgram', None, None]:
     """Find an external program, chcking the cross file plus any default options."""
     # Lookup in cross or machine file.
     potential_path = env.lookup_binary_entry(for_machine, name)
@@ -90,12 +91,14 @@ def find_external_program(env: Environment, for_machine: MachineChoice, name: st
         # stop returning options.
         return
     mlog.debug('{} binary missing from cross or native file, or env var undefined.'.format(display_name))
-    # Fallback on hard-coded defaults.
-    # TODO prefix this for the cross case instead of ignoring thing.
-    if env.machines.matches_build_machine(for_machine):
+    # Fallback on hard-coded defaults, if a default binary is allowed for use
+    # with cross targets, or if this is not a cross target
+    if allow_default_for_cross or not (for_machine is MachineChoice.HOST and env.is_cross_build(for_machine)):
         for potential_path in default_names:
             mlog.debug('Trying a default {} fallback at'.format(display_name), potential_path)
             yield ExternalProgram(potential_path, silent=True)
+    else:
+        mlog.debug('Default target is not allowed for cross use')
 
 
 class Dependency:
