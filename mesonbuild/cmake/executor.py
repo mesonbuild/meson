@@ -61,25 +61,7 @@ class CMakeExecutor:
             return
 
     def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple['ExternalProgram', str]:
-        from ..dependencies.base import ExternalProgram
-
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_cmakepath = environment.lookup_binary_entry(self.for_machine, 'cmake')
-            if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', self.for_machine, potential_cmakepath)
-                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(self.for_machine):
-                for potential_cmakepath in environment.default_cmake:
-                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
-                    yield ExternalProgram(potential_cmakepath, silent=True)
+        from ..dependencies.base import find_external_program
 
         # Only search for CMake the first time and store the result in the class
         # definition
@@ -89,10 +71,11 @@ class CMakeExecutor:
             mlog.debug('CMake binary for %s is cached.' % self.for_machine)
         else:
             assert CMakeExecutor.class_cmakebin[self.for_machine] is None
+
             mlog.debug('CMake binary for %s is not cached' % self.for_machine)
-            for potential_cmakebin in search():
-                mlog.debug('Trying CMake binary {} for machine {} at {}'
-                           .format(potential_cmakebin.name, self.for_machine, potential_cmakebin.command))
+            for potential_cmakebin in find_external_program(
+                    environment, self.for_machine, 'cmake', 'CMake',
+                    environment.default_cmake):
                 version_if_ok = self.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
