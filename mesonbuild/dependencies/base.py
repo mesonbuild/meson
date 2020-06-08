@@ -436,13 +436,14 @@ class ConfigToolDependency(ExternalDependency):
             return m.group(0).rstrip('.')
         return version
 
-    def find_config(self, versions=None, returncode: int = 0):
+    def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) \
+            -> T.Tuple[T.Optional[str], T.Optional[str]]:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
-        best_match = (None, None)
+        best_match = (None, None)  # type: T.Tuple[T.Optional[str], T.Optional[str]]
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
                 self.tool_name, self.tools, allow_default_for_cross=False):
