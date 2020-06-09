@@ -87,6 +87,27 @@ thread_dep = dependency('threads')
 executable(..., dependencies : thread_dep)
 ```
 
+## Determine the threading model
+
+*New in 0.55.0*
+
+If you need to know what the model of the threads are (pthreads vs win32
+threads for example), you can do this:
+
+```meson
+thread_dep = dependency('threads')
+model = thread_dep.get_variable(meson : 'model')
+if model == 'posix'
+  ...
+elif mode == 'win32'
+  ...
+else
+```
+
+The model will be one of `win32` for Windows threads, `posix` for POSIX
+threads, or an implementation specific string value if the threading model
+cannot be determined.
+
 ## Set extra compiler and linker flags from the outside (when e.g. building distro packages)
 
 The behavior is the same as with other build systems, with environment

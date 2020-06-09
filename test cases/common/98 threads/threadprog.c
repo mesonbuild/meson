@@ -1,5 +1,9 @@
 #if defined _WIN32
 
+#ifndef HAVE_WIN32_THREADS
+# error "Meson detected the wrong thread family"
+#endif
+
 #include<windows.h>
 #include<stdio.h>
 
@@ -17,7 +21,12 @@ int main(void) {
     printf("Stopped thread.\n");
     return 0;
 }
+
 #else
+
+#ifndef HAVE_POSIX_THREADS
+# error "Meson detected the wrong thread family"
+#endif
 
 #include<pthread.h>
 #include<stdio.h>
