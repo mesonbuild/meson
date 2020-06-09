@@ -721,11 +721,12 @@ class GnomeModule(ExtensionModule):
             if f.startswith(('-L', '-l', '--extra-library')):
                 yield f
 
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+    @FeatureNewKwargs('generate_gir', '0.55.0', ['fatal_warnings'])
+    @FeatureNewKwargs('generate_gir', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages', 'header', 'build_by_default'})
+                      'packages', 'header', 'build_by_default', 'fatal_warnings'})
     def generate_gir(self, state, args, kwargs):
         if not args:
             raise MesonException('generate_gir takes at least one argument')
@@ -797,6 +798,14 @@ class GnomeModule(ExtensionModule):
         if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), self.interpreter.subproject_dir, state.subproject)]
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
+
+        if '--warn-error' in scan_command:
+            mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument')
+        fatal_warnings = kwargs.get('fatal_warnings', False)
+        if not isinstance(fatal_warnings, bool):
+            raise MesonException('fatal_warnings keyword argument must be string.')
+        if fatal_warnings:
+            scan_command.append('--warn-error')
 
         scan_target = self._make_gir_target(state, girfile, scan_command, depends, kwargs)
 

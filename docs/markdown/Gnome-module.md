@@ -97,6 +97,7 @@ There are several keyword arguments. Many of these map directly to the
 * `link_with`: list of libraries to link with
 * `symbol_prefix`: the symbol prefix for the gir object, e.g. `gtk`,
   (*Since 0.43.0*) an ordered list of multiple prefixes is allowed
+* `fatal_warnings`: *Since 0.55.0* turn scanner warnings into fatal errors.
 
 Returns an array of two elements which are: `[gir_target,
 typelib_target]`
