@@ -350,6 +350,25 @@ class InternalTests(unittest.TestCase):
                          stat.S_IRWXU | stat.S_ISUID |
                          stat.S_IRGRP | stat.S_IXGRP)
 
+    def test_compiler_args_class_none_flush(self):
+        cargsfunc = mesonbuild.compilers.CompilerArgs
+        cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
+        a = cargsfunc(cc, ['-I.'])
+        #first we are checking if the tree construction deduplicates the correct -I argument
+        a += ['-I..']
+        a += ['-I./tests/']
+        a += ['-I./tests2/']
+        #think this here as assertion, we cannot apply it, otherwise the CompilerArgs would already flush the changes:
+        # assertEqual(a, ['-I.', '-I./tests2/', '-I./tests/', '-I..', '-I.'])
+        a += ['-I.']
+        a += ['-I.', '-I./tests/']
+        self.assertEqual(a, ['-I.', '-I./tests/', '-I./tests2/', '-I..'])
+
+        #then we are checking that when CompilerArgs already have a build container list, that the deduplication is taking the correct one
+        a += ['-I.', '-I./tests2/']
+        self.assertEqual(a, ['-I.', '-I./tests2/', '-I./tests/', '-I..'])
+
+
     def test_compiler_args_class(self):
         cargsfunc = mesonbuild.compilers.CompilerArgs
         cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())

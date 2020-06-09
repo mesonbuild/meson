@@ -481,10 +481,10 @@ class CompilerArgs(collections.abc.MutableSequence):
         post_flush_set = set()
 
         #The two lists are here walked from the front to the back, in order to not need removals for deduplication
-        for a in reversed(self.pre):
+        for a in self.pre:
             dedup = self._can_dedup(a)
             if a not in pre_flush_set:
-                pre_flush.appendleft(a)
+                pre_flush.append(a)
                 if dedup == 2:
                     pre_flush_set.add(a)
         for a in reversed(self.post):
