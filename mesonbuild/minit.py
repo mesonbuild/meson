@@ -139,7 +139,7 @@ def add_arguments(parser):
     parser.add_argument("-n", "--name", help="project name. default: name of current directory")
     parser.add_argument("-e", "--executable", help="executable name. default: project name")
     parser.add_argument("-d", "--deps", help="dependencies, comma-separated")
-    parser.add_argument("-l", "--language", choices=LANG_SUPPORTED, help="project language. default: autodetected based on source files")
+    parser.add_argument("-l", "--language", choices=sorted(LANG_SUPPORTED), help="project language. default: autodetected based on source files")
     parser.add_argument("-b", "--build", action='store_true', help="build after generation")
     parser.add_argument("--builddir", default='build', help="directory for build")
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")

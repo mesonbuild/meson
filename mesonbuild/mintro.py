@@ -80,7 +80,7 @@ def add_arguments(parser):
         flag = '--' + key.replace('_', '-')
         parser.add_argument(flag, action='store_true', dest=key, default=False, help=val.desc)
 
-    parser.add_argument('--backend', choices=cdata.backendlist, dest='backend', default='ninja',
+    parser.add_argument('--backend', choices=sorted(cdata.backendlist), dest='backend', default='ninja',
                         help='The backend to use for the --buildoptions introspection.')
     parser.add_argument('-a', '--all', action='store_true', dest='all', default=False,
                         help='Print all available information.')
