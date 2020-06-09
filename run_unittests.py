@@ -4706,104 +4706,49 @@ recommended as it is not supported on some platforms''')
         '''
         Test that all listed meson commands are documented in Commands.md.
         '''
-        positional_pattern = r'[a-z_]+'
-        option_name_pattern = r'[A-Za-z_\-\.]+'
-        option_value_pattern = r'[A-Z_\.]+'
-        option_pattern = (
-            r'-D option|'
-            r'(?:-{1,2}' + option_name_pattern + r'(?: '+ option_value_pattern + r')?)'            
-            r'(?:, --' + option_name_pattern + r'(?: '+ option_value_pattern + r')?)?'
-        )
-        command_pattern = r'[a-z_\-]+'
-
+        help_usage_start_pattern = re.compile(r'^usage:[\t ]*[\r\n]*', re.MULTILINE)
         help_positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        help_positional_pattern = re.compile(r'^(?:  |\t)(' + positional_pattern + r')(?:[ \t]+|$)', re.MULTILINE)
         help_options_start_pattern = re.compile(r'^optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        help_option_pattern = re.compile(r'^(?:  |\t)(' + option_pattern + r')', re.MULTILINE)
         help_commands_start_pattern = re.compile(r'^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+', re.MULTILINE)
-        help_command_pattern = re.compile(r'{((?:' + command_pattern + r',*)+?)}', re.MULTILINE|re.DOTALL)
 
         def get_next_start(iterators, end):
             return next((i.start() for i in iterators if i), end)
 
         def parse_help(help):
-            out = {
-                'positionals': set(),
-                'options': set(),
-                'commands': set(),
+            help_len = len(help)
+            usage = help_usage_start_pattern.search(help)
+            positionals = help_positional_start_pattern.search(help)
+            options = help_options_start_pattern.search(help)
+            commands = help_commands_start_pattern.search(help)
+
+            arguments_start = get_next_start([positionals, options, commands], None)
+            self.assertIsNotNone(arguments_start, 'Cmd command is missing argument list')
+
+            return {
+                'usage': (usage.end(), arguments_start),
+                'arguments': (arguments_start, help_len),
             }
 
-            help_len = len(help)
-            positionals_start = help_positional_start_pattern.search(help)
-            options_start = help_options_start_pattern.search(help)
-            commands_start = help_commands_start_pattern.search(help)
-
-            if positionals_start:
-                start = positionals_start.end()
-                end = get_next_start([options_start, commands_start], help_len)
-                out['positionals'] = set(i.group(1)
-                                         for i in help_positional_pattern.finditer(
-                                             help,
-                                             pos=start,
-                                             endpos=end))
-            if options_start:
-                start = options_start.end()
-                end = get_next_start([commands_start], help_len)
-                out['options'] = set(i.group(1)
-                                     for i in help_option_pattern.finditer(
-                                         help,
-                                         pos=start,
-                                         endpos=end))
-            if commands_start:
-                start = commands_start.end()
-                end = help_len
-                out['commands'] = set(help_command_pattern.findall(help, pos=start, endpos=end)[0].split(','))
-
-            return out
-
-        md_positional_start_pattern = re.compile(r'^Positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        ms_positional_pattern = re.compile(r'^- `*(' + positional_pattern + r')`:', re.MULTILINE)
-        md_options_start_pattern = re.compile(r'^Optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        md_option_pattern = re.compile(r'^- `(' + option_pattern + r')`:', re.MULTILINE)
-        md_commands_start_pattern = re.compile(r'^Commands:[\t ]*[\r\n]+', re.MULTILINE)
-        md_command_pattern = re.compile(r'^- `(' + command_pattern + r')`:', re.MULTILINE)
+        md_code_pattern = re.compile(r'^```[\r\n]*', re.MULTILINE)
+        md_usage_pattern = re.compile(r'^\$ ', re.MULTILINE)
 
         def parse_section(text, section_start, section_end):
-            out = {
-                'positionals': set(),
-                'options': {'-h, --help'},
-                'commands': set(),
+            matches = [i
+                       for i in md_code_pattern.finditer(text, pos=section_start, endpos=section_end)]
+            self.assertGreaterEqual(len(matches), 4, '.md command is missing usage description and/or argument list')
+
+            usage = md_usage_pattern.search(text, pos=matches[0].end(), endpos=matches[1].start())
+
+            return {
+                'usage': (usage.end(), matches[1].start()),
+                'arguments': (matches[2].end(), matches[3].start()),
             }
 
-            positionals_start = md_positional_start_pattern.search(text, pos=section_start, endpos=section_end)
-            options_start = md_options_start_pattern.search(text, pos=section_start, endpos=section_end)
-            commands_start = md_commands_start_pattern.search(text, pos=section_start, endpos=section_end)
-
-            if positionals_start:
-                start = positionals_start.end()
-                end = get_next_start([options_start, commands_start], section_end)
-                out['positionals'] = set(i.group(1)
-                                         for i in ms_positional_pattern.finditer(
-                                             text,
-                                             pos=start,
-                                             endpos=end))
-            if options_start:
-                start = options_start.end()
-                end = get_next_start([commands_start], section_end)
-                out['options'] = set(i.group(1)
-                                     for i in md_option_pattern.finditer(
-                                         text,
-                                         pos=start,
-                                         endpos=end)) | {'-h, --help'}
-            if commands_start:
-                start = commands_start.end()
-                end = section_end
-                out['commands'] = set(i.group(1)
-                                      for i in md_command_pattern.finditer(
-                                          text,
-                                          pos=start,
-                                          endpos=end))
-
+        def normalize_text(text):
+            out = re.sub(r'( {2,}|\t+)', r' ', text, flags=re.MULTILINE)
+            out = re.sub(r'\r\n+', r'\r', out, flags=re.MULTILINE)
+            out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE)
+            out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE)
             return out
 
         ## Get command sections
@@ -4832,22 +4777,21 @@ recommended as it is not supported on some platforms''')
         ## Validate command options
 
         for command in md_commands:
+            print('Current command: {}'.format(command))
+
             help_cmd_output = self._run(self.meson_command + [command, '--help'])
 
             parsed_help = parse_help(help_cmd_output)
             parsed_section = parse_section(md, md_command_sections[command][0], md_command_sections[command][1])
-            if parsed_help != parsed_section:
-                # for better error messages
-                print('Current command: {}'.format(command))
-                for k,v in parsed_help.items():
-                    if k not in parsed_section:
-                        parsed_section[k] = set()
-                    self.assertEqual(v, parsed_section[k])
-                for k,v in parsed_section.items():
-                    if k not in parsed_help:
-                        parsed_help[k] = set()
-                    self.assertEqual(parsed_help[k], v)
-                self.assertTrue(False, 'Should not reach here!')
+
+            help_usage = help_cmd_output[parsed_help['usage'][0]:parsed_help['usage'][1]]
+            help_arguments = help_cmd_output[parsed_help['arguments'][0]:parsed_help['arguments'][1]]
+
+            md_usage = md[parsed_section['usage'][0]:parsed_section['usage'][1]]
+            md_arguments = md[parsed_section['arguments'][0]:parsed_section['arguments'][1]]
+
+            self.assertEqual(normalize_text(help_usage), normalize_text(md_usage))
+            self.assertEqual(normalize_text(help_arguments), normalize_text(md_arguments))
 
 class FailureTests(BasePlatformTests):
     '''
