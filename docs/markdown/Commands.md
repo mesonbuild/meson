@@ -123,9 +123,17 @@ Most arguments are the same as in [`setup`](#setup).
 
 Note: reconfiguring project will not reset options to their default values (even if they were changed in `meson.build`).
 
-Examples:
-- `meson configure builddir`: list all available options.
-- `meson configure builddir -Doption=new_value`: change a single option
+#### Examples:
+
+List all available options:
+```
+meson configure builddir
+```
+
+Change value of a single option:
+```
+meson configure builddir -Doption=new_value
+```
 
 ### compile
 
@@ -151,7 +159,12 @@ optional arguments:
                                         be built.
 ```
 
-Example: `meson compile -C builddir`
+#### Examples:
+
+Build the project:
+```
+meson compile -C builddir
+```
 
 ### dist
 
@@ -190,7 +203,12 @@ prevents developers from doing accidental releases where the
 distributed archive does not match any commit in revision control
 (especially the one tagged for the release).
 
-Example: `meson dist -C builddir`
+#### Examples:
+
+Create a release archive:
+```
+meson dist -C builddir
+```
 
 ### init
 
@@ -231,7 +249,12 @@ optional arguments:
   --version VERSION                     project version. default: 0.1
 ```
 
-Example: `meson init -C sourcedir`
+#### Examples:
+
+Create a project in `sourcedir`:
+```
+meson init -C sourcedir
+```
 
 ### introspect
 
@@ -276,7 +299,12 @@ optional arguments:
                                         introspection commands)
 ```
 
-Example: `meson introspect builddir`
+#### Examples:
+
+Display basic information about a configured project in `builddir`:
+```
+meson introspect builddir
+```
 
 ### install
 
@@ -299,9 +327,17 @@ optional arguments:
 
 See [the installation documentation](Installing.md) for more info.
 
-Examples: 
-- `meson install -C builddir`.
-- `DESTDIR=/path/to/staging/area meson install -C builddir`
+#### Examples:
+
+Install project to `prefix` (see [`setup`](#setup)):
+```
+meson install -C builddir
+```
+
+Install project to `$DESTDIR/prefix`:
+```
+DESTDIR=/path/to/staging/area meson install -C builddir
+```
 
 ### rewrite
 
@@ -456,7 +492,12 @@ optional arguments:
 
 See [meson introduction page](Running-Meson.md#configuring-the-build-directory) for more info.
 
-Example: `meson setup builddir`
+#### Examples:
+
+Configures `builddir` with default values:
+```
+meson setup builddir
+```
 
 ### subprojects
 
@@ -538,7 +579,17 @@ optional arguments:
 
 See [the unit test documentation](Unit-tests.md) for more info.
 
-Example: `meson test -C builddir`
+#### Examples:
+
+Run tests for the project:
+```
+meson test -C builddir
+```
+
+Run only `specific_test_1` and `specific_test_2`:
+```
+meson test -C builddir specific_test_1 specific_test_2
+```
 
 ### wrap
 
