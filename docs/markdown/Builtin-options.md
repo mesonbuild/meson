@@ -55,16 +55,9 @@ particularly the paths section may be necessary.
 
 ### Core options
 
-Options that are labeled "per machine" in the table are set per machine.
-Prefixing the option with `build.` just affects the build machine configuration,
-while unprefixed just affects the host machine configuration, respectively.
-Using the option as-is with no prefix affects all machines. For example:
-
- - `build.pkg_config_path` controls the paths pkg-config will search for just
-   `native: true` dependencies (build machine).
-
- - `pkg_config_path` controls the paths pkg-config will search for just
-   `native: false` dependencies (host machine).
+Options that are labeled "per machine" in the table are set per machine. See
+the [specifying options per machine](#Specifying-options-per-machine) section
+for details.
 
 | Option                               | Default value | Description                                                    | Is per machine |
 | ------                               | ------------- | -----------                                                    | -------------- |
@@ -186,9 +179,9 @@ The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
 shell32, ole32, oleaut32, uuid, comdlg32, advapi32.
 
-c_args, cpp_args, c_link_args, and cpp_link_args only affect native builds,
-when cross compiling they will not be applied to binaries or libraries
-targeting the host system, only those being run on the build system.
+All these `<lang>_*` options are specified per machine. See below in the
+[specifying options per machine](#Specifying-options-per-machine) section on
+how to do this in cross builds.
 
 When using MSVC, `cpp_eh=none` will result in no exception flags being passed,
 while the `cpp_eh=[value]` will result in `/EH[value]`.
@@ -199,3 +192,25 @@ gcc-style compilers, nothing is passed (allowing exceptions to work), while
 Since *0.54.0* The `<lang>_thread_count` option can be used to control the
 value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other c/c++
 compiler supports this option.
+
+## Specifying options per machine
+
+Since *0.51.0*, some options are specified per machine rather than globally for
+all machine configurations. Prefixing the option with `build.` just affects the
+build machine configuration, while unprefixed just affects the host machine
+configuration, respectively. For example:
+
+ - `build.pkg_config_path` controls the paths pkg-config will search for just
+   `native: true` dependencies (build machine).
+
+ - `pkg_config_path` controls the paths pkg-config will search for just
+   `native: false` dependencies (host machine).
+
+This is useful for cross builds. In the native builds, build = host, and the
+unprefixed option alone will suffice.
+
+Prior to *0.51.0*, these options just effected native builds when specified on
+the command line, as there was no `build.` prefix. Similarly named fields in
+the `[properties]` section of the cross file would effect cross compilers, but
+the code paths were fairly different allowing differences in behavior to crop
+out.
