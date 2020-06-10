@@ -44,10 +44,6 @@ $ meson configure [-h] [--prefix PREFIX] [--bindir BINDIR]
 
 Reconfigures existing meson project.
 
-Examples:
-- `meson configure builddir`: list all available options.
-- `meson configure builddir -Doption=new_value`: change a single option
-
 ```
 positional arguments:
   builddir
@@ -127,6 +123,10 @@ Most arguments are the same as in [`setup`](#setup).
 
 Note: reconfiguring project will not reset options to their default values (even if they were changed in `meson.build`).
 
+Examples:
+- `meson configure builddir`: list all available options.
+- `meson configure builddir -Doption=new_value`: change a single option
+
 ### compile
 
 *(since 0.54.0)*
@@ -136,8 +136,6 @@ $ meson compile [-h] [-j JOBS] [-l LOAD_AVERAGE] [--clean] [-C BUILDDIR]
 ```
 
 Builds a default or specified target of a configured meson project.
-
-Example: `meson compile -C builddir`
 
 ```
 optional arguments:
@@ -153,6 +151,8 @@ optional arguments:
                                         be built.
 ```
 
+Example: `meson compile -C builddir`
+
 ### dist
 
 *(since 0.52.0)*
@@ -163,8 +163,6 @@ $ meson dist [-h] [-C WD] [--formats FORMATS] [--include-subprojects]
 ```
 
 Generates a release archive from the current source tree.
-
-Example: `meson dist -C builddir`
 
 ```
 optional arguments:
@@ -192,6 +190,8 @@ prevents developers from doing accidental releases where the
 distributed archive does not match any commit in revision control
 (especially the one tagged for the release).
 
+Example: `meson dist -C builddir`
+
 ### init
 
 *(since 0.45.0)*
@@ -205,8 +205,6 @@ $ meson init [-h] [-C WD] [-n NAME] [-e EXECUTABLE] [-d DEPS]
 ```
 
 Creates a basic set of build files based on a template.
-
-Example: `meson init -C sourcedir`
 
 ```
 positional arguments:
@@ -233,6 +231,8 @@ optional arguments:
   --version VERSION                     project version. default: 0.1
 ```
 
+Example: `meson init -C sourcedir`
+
 ### introspect
 
 ```
@@ -246,8 +246,6 @@ $ meson introspect [-h] [--ast] [--benchmarks] [--buildoptions]
 ```
 
 Displays information about a configured meson project.
-
-Example: `meson introspect builddir`
 
 ```
 positional arguments:
@@ -278,6 +276,8 @@ optional arguments:
                                         introspection commands)
 ```
 
+Example: `meson introspect builddir`
+
 ### install
 
 *(since 0.47.0)*
@@ -287,10 +287,6 @@ $ meson install [-h] [-C WD] [--no-rebuild] [--only-changed] [--quiet]
 ```
 
 Installs the project to the prefix specified in `setup`.
-
-Examples: 
-- `meson install -C builddir`.
-- `DESTDIR=/path/to/staging/area meson install -C builddir`
 
 ```
 optional arguments:
@@ -302,6 +298,10 @@ optional arguments:
 ```
 
 See [the installation documentation](Installing.md) for more info.
+
+Examples: 
+- `meson install -C builddir`.
+- `DESTDIR=/path/to/staging/area meson install -C builddir`
 
 ### rewrite
 
@@ -364,8 +364,6 @@ $ meson setup [-h] [--prefix PREFIX] [--bindir BINDIR] [--datadir DATADIR]
 The default meson command (invoked if there was no COMMAND supplied).
 
 Configures a build directory for the meson project.
-
-Example: `meson setup builddir`
 
 ```
 positional arguments:
@@ -458,6 +456,8 @@ optional arguments:
 
 See [meson introduction page](Running-Meson.md#configuring-the-build-directory) for more info.
 
+Example: `meson setup builddir`
+
 ### subprojects
 
 *(since 0.49.0)*
@@ -500,8 +500,6 @@ $ meson test [-h] [--repeat REPEAT] [--no-rebuild] [--gdb]
 
 Run tests for the configure meson project.
 
-Example: `meson test -C builddir`
-
 ```
 positional arguments:
   args                                  Optional list of tests to run
@@ -539,6 +537,8 @@ optional arguments:
 ```
 
 See [the unit test documentation](Unit-tests.md) for more info.
+
+Example: `meson test -C builddir`
 
 ### wrap
 
