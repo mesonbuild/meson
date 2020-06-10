@@ -184,19 +184,7 @@ class Conf:
         if not self.default_values_only:
             print('  Build dir ', self.build_dir)
 
-        dir_option_names = ['bindir',
-                            'datadir',
-                            'includedir',
-                            'infodir',
-                            'libdir',
-                            'libexecdir',
-                            'localedir',
-                            'localstatedir',
-                            'mandir',
-                            'prefix',
-                            'sbindir',
-                            'sharedstatedir',
-                            'sysconfdir']
+        dir_option_names = list(coredata.BUILTIN_DIR_OPTIONS)
         test_option_names = ['errorlogs',
                              'stdsplit']
         core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names + test_option_names]

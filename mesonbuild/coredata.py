@@ -1158,23 +1158,25 @@ class BuiltinOption(T.Generic[_T, _U]):
         cmdline_name = self.argparse_name_to_arg(prefix + name)
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
+
 # Update `docs/markdown/Builtin-options.md` after changing the options below
-builtin_options = OrderedDict([
-    # Directories
-    ('prefix',     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    ('bindir',     BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    ('datadir',    BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    ('includedir', BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    ('infodir',    BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
-    ('libdir',     BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    ('libexecdir', BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    ('localedir',  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+BUILTIN_DIR_OPTIONS = OrderedDict([
+    ('prefix',          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
+    ('bindir',          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
+    ('datadir',         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
+    ('includedir',      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
+    ('infodir',         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    ('libdir',          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    ('libexecdir',      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    ('localedir',       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
     ('localstatedir',   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
     ('mandir',          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
     ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
     ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
     ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
-    # Core options
+])  # type: OptionDictType
+
+BUILTIN_CORE_OPTIONS = OrderedDict([
     ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
     ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
@@ -1194,7 +1196,9 @@ builtin_options = OrderedDict([
     ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
     ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
-])
+])  # type: OptionDictType
+
+builtin_options = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
 builtin_options_per_machine = OrderedDict([
     ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
@@ -1230,3 +1234,4 @@ forbidden_target_names = {'clean': None,
                           'dist': None,
                           'distcheck': None,
                           }
+
