@@ -4749,6 +4749,7 @@ recommended as it is not supported on some platforms''')
             out = re.sub(r'\r\n+', r'\r', out, flags=re.MULTILINE)
             out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE)
             out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE)
+            out = re.sub(r'(--prefix PREFIX Installation prefix) \(default: .+?\)', r'\1', out, flags=re.MULTILINE|re.DOTALL)
             return out
 
         ## Get command sections

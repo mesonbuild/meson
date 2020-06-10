@@ -408,7 +408,7 @@ positional arguments:
 
 optional arguments:
   -h, --help                            show this help message and exit
-  --prefix PREFIX                       Installation prefix (default: c:/).
+  --prefix PREFIX                       Installation prefix (default: azaza:/).
   --bindir BINDIR                       Executable directory (default: bin).
   --datadir DATADIR                     Data file directory (default: share).
   --includedir INCLUDEDIR               Header file directory (default:
