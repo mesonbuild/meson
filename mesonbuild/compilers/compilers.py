@@ -377,9 +377,10 @@ def get_base_link_args(options, linker, is_shared_module):
         # -Wl,-dead_strip_dylibs is incompatible with bitcode
         args.extend(linker.get_asneeded_args())
 
-    # Apple's ld (the only one that supports bitcode) does not like any
-    # -undefined arguments at all, so don't pass these when using bitcode
+    # Apple's ld (the only one that supports bitcode) does not like -undefined
+    # arguments or -headerpad_max_install_names when bitcode is enabled
     if not bitcode:
+        args.extend(linker.headerpad_args())
         if (not is_shared_module and
                 option_enabled(linker.base_options, options, 'b_lundef')):
             args.extend(linker.no_undefined_link_args())
@@ -1202,6 +1203,9 @@ class Compiler:
 
     def get_asneeded_args(self) -> T.List[str]:
         return self.linker.get_asneeded_args()
+
+    def headerpad_args(self) -> T.List[str]:
+        return self.linker.headerpad_args()
 
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
