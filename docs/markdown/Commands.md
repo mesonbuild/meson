@@ -50,27 +50,19 @@ positional arguments:
 
 optional arguments:
   -h, --help                            show this help message and exit
-  --prefix PREFIX                       Installation prefix (default: c:/).
-  --bindir BINDIR                       Executable directory (default: bin).
-  --datadir DATADIR                     Data file directory (default: share).
-  --includedir INCLUDEDIR               Header file directory (default:
-                                        include).
-  --infodir INFODIR                     Info page directory (default:
-                                        share/info).
-  --libdir LIBDIR                       Library directory (default: lib).
-  --libexecdir LIBEXECDIR               Library executable directory (default:
-                                        libexec).
-  --localedir LOCALEDIR                 Locale data directory (default:
-                                        share/locale).
-  --localstatedir LOCALSTATEDIR         Localstate data directory (default:
-                                        var).
-  --mandir MANDIR                       Manual page directory (default:
-                                        share/man).
-  --sbindir SBINDIR                     System executable directory (default:
-                                        sbin).
-  --sharedstatedir SHAREDSTATEDIR       Architecture-independent data directory
-                                        (default: com).
-  --sysconfdir SYSCONFDIR               Sysconf data directory (default: etc).
+  --prefix PREFIX                       Installation prefix.
+  --bindir BINDIR                       Executable directory.
+  --datadir DATADIR                     Data file directory.
+  --includedir INCLUDEDIR               Header file directory.
+  --infodir INFODIR                     Info page directory.
+  --libdir LIBDIR                       Library directory.
+  --libexecdir LIBEXECDIR               Library executable directory.
+  --localedir LOCALEDIR                 Locale data directory.
+  --localstatedir LOCALSTATEDIR         Localstate data directory.
+  --mandir MANDIR                       Manual page directory.
+  --sbindir SBINDIR                     System executable directory.
+  --sharedstatedir SHAREDSTATEDIR       Architecture-independent data directory.
+  --sysconfdir SYSCONFDIR               Sysconf data directory.
   --auto-features {enabled,disabled,auto}
                                         Override value of all 'auto' features
                                         (default: auto).
@@ -408,27 +400,19 @@ positional arguments:
 
 optional arguments:
   -h, --help                            show this help message and exit
-  --prefix PREFIX                       Installation prefix (default: azaza:/).
-  --bindir BINDIR                       Executable directory (default: bin).
-  --datadir DATADIR                     Data file directory (default: share).
-  --includedir INCLUDEDIR               Header file directory (default:
-                                        include).
-  --infodir INFODIR                     Info page directory (default:
-                                        share/info).
-  --libdir LIBDIR                       Library directory (default: lib).
-  --libexecdir LIBEXECDIR               Library executable directory (default:
-                                        libexec).
-  --localedir LOCALEDIR                 Locale data directory (default:
-                                        share/locale).
-  --localstatedir LOCALSTATEDIR         Localstate data directory (default:
-                                        var).
-  --mandir MANDIR                       Manual page directory (default:
-                                        share/man).
-  --sbindir SBINDIR                     System executable directory (default:
-                                        sbin).
-  --sharedstatedir SHAREDSTATEDIR       Architecture-independent data directory
-                                        (default: com).
-  --sysconfdir SYSCONFDIR               Sysconf data directory (default: etc).
+  --prefix PREFIX                       Installation prefix.
+  --bindir BINDIR                       Executable directory.
+  --datadir DATADIR                     Data file directory.
+  --includedir INCLUDEDIR               Header file directory.
+  --infodir INFODIR                     Info page directory.
+  --libdir LIBDIR                       Library directory.
+  --libexecdir LIBEXECDIR               Library executable directory.
+  --localedir LOCALEDIR                 Locale data directory.
+  --localstatedir LOCALSTATEDIR         Localstate data directory.
+  --mandir MANDIR                       Manual page directory.
+  --sbindir SBINDIR                     System executable directory.
+  --sharedstatedir SHAREDSTATEDIR       Architecture-independent data directory.
+  --sysconfdir SYSCONFDIR               Sysconf data directory.
   --auto-features {enabled,disabled,auto}
                                         Override value of all 'auto' features
                                         (default: auto).

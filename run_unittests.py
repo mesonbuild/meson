@@ -4725,8 +4725,8 @@ recommended as it is not supported on some platforms''')
             self.assertIsNotNone(arguments_start, 'Cmd command is missing argument list')
 
             return {
-                'usage': (usage.end(), arguments_start),
-                'arguments': (arguments_start, help_len),
+                'usage': help[usage.end():arguments_start],
+                'arguments': help[arguments_start:help_len],
             }
 
         md_code_pattern = re.compile(r'^```[\r\n]*', re.MULTILINE)
@@ -4740,16 +4740,38 @@ recommended as it is not supported on some platforms''')
             usage = md_usage_pattern.search(text, pos=matches[0].end(), endpos=matches[1].start())
 
             return {
-                'usage': (usage.end(), matches[1].start()),
-                'arguments': (matches[2].end(), matches[3].start()),
+                'usage': text[usage.end():matches[1].start()],
+                'arguments': text[matches[2].end():matches[3].start()],
             }
 
         def normalize_text(text):
-            out = re.sub(r'( {2,}|\t+)', r' ', text, flags=re.MULTILINE)
-            out = re.sub(r'\r\n+', r'\r', out, flags=re.MULTILINE)
-            out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE)
-            out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE)
-            out = re.sub(r'(--prefix PREFIX Installation prefix) \(default: .+?\)', r'\1', out, flags=re.MULTILINE|re.DOTALL)
+            # clean up formatting
+            out = re.sub(r'( {2,}|\t+)', r' ', text, flags=re.MULTILINE) # replace whitespace chars with a single space
+            out = re.sub(r'\r\n+', r'\r', out, flags=re.MULTILINE) # replace newlines with a single linux EOL
+            out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE) # strip lines
+            out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE) # remove empty lines
+            return out
+            
+        def clean_dir_arguments(text):
+            # Remove platform specific defaults
+            args = [
+                'prefix',
+                'bindir',
+                'datadir',
+                'includedir',
+                'infodir',
+                'libdir',
+                'libexecdir',
+                'localedir',
+                'localstatedir',
+                'mandir',
+                'sbindir',
+                'sharedstatedir',
+                'sysconfdir'
+            ]
+            out = text
+            for a in args:
+                out = re.sub(r'(--' + a + r' .+?)[ |\n]\(default:.+?\)(\.)?', r'\1\2', out, flags=re.MULTILINE|re.DOTALL)
             return out
 
         ## Get command sections
@@ -4780,19 +4802,19 @@ recommended as it is not supported on some platforms''')
         for command in md_commands:
             print('Current command: {}'.format(command))
 
-            help_cmd_output = self._run(self.meson_command + [command, '--help'])
+            help_cmd_output = self._run(self.meson_command + [command, '--help'], override_envvars={'COLUMNS': '80'})
 
             parsed_help = parse_help(help_cmd_output)
-            parsed_section = parse_section(md, md_command_sections[command][0], md_command_sections[command][1])
+            parsed_section = parse_section(md, *md_command_sections[command])
 
-            help_usage = help_cmd_output[parsed_help['usage'][0]:parsed_help['usage'][1]]
-            help_arguments = help_cmd_output[parsed_help['arguments'][0]:parsed_help['arguments'][1]]
+            for p in [parsed_help, parsed_section]:
+                p['usage'] = normalize_text(p['usage'])
+                p['arguments'] = normalize_text(p['arguments'])
+            if command in ['setup', 'configure']:
+                parsed_help['arguments'] = clean_dir_arguments(parsed_help['arguments'])
 
-            md_usage = md[parsed_section['usage'][0]:parsed_section['usage'][1]]
-            md_arguments = md[parsed_section['arguments'][0]:parsed_section['arguments'][1]]
-
-            self.assertEqual(normalize_text(help_usage), normalize_text(md_usage))
-            self.assertEqual(normalize_text(help_arguments), normalize_text(md_arguments))
+            self.assertEqual(parsed_help['usage'], parsed_section['usage'])
+            self.assertEqual(parsed_help['arguments'], parsed_section['arguments'])
 
 class FailureTests(BasePlatformTests):
     '''
