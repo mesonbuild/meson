@@ -19,6 +19,7 @@ tests and so on. All output is in JSON for simple parsing.
 Currently only works for the Ninja backend. Others use generated
 project files and don't need this info."""
 
+import collections
 import json
 from . import build, coredata as cdata
 from . import mesonlib
@@ -61,18 +62,19 @@ def get_meson_introspection_types(coredata: T.Optional[cdata.CoreData] = None,
     else:
         benchmarkdata = testdata = installdata = None
 
-    return {
-        'ast': IntroCommand('Dump the AST of the meson file', no_bd=dump_ast),
-        'benchmarks': IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata)),
-        'buildoptions': IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source),
-        'buildsystem_files': IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter)),
-        'dependencies': IntroCommand('List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source),
-        'scan_dependencies': IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source),
-        'installed': IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata)),
-        'projectinfo': IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source),
-        'targets': IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source),
-        'tests': IntroCommand('List all unit tests', func=lambda: list_tests(testdata)),
-    }
+    # Enforce key order for argparse
+    return collections.OrderedDict([
+        ('ast', IntroCommand('Dump the AST of the meson file', no_bd=dump_ast)),
+        ('benchmarks', IntroCommand('List all benchmarks', func=lambda: list_benchmarks(benchmarkdata))),
+        ('buildoptions', IntroCommand('List all build options', func=lambda: list_buildoptions(coredata), no_bd=list_buildoptions_from_source)),
+        ('buildsystem_files', IntroCommand('List files that make up the build system', func=lambda: list_buildsystem_files(builddata, interpreter))),
+        ('dependencies', IntroCommand('List external dependencies', func=lambda: list_deps(coredata), no_bd=list_deps_from_source)),
+        ('scan_dependencies', IntroCommand('Scan for dependencies used in the meson.build file', no_bd=list_deps_from_source)),
+        ('installed', IntroCommand('List all installed files and directories', func=lambda: list_installed(installdata))),
+        ('projectinfo', IntroCommand('Information about projects', func=lambda: list_projinfo(builddata), no_bd=list_projinfo_from_source)),
+        ('targets', IntroCommand('List top level targets', func=lambda: list_targets(builddata, installdata, backend), no_bd=list_targets_from_source)),
+        ('tests', IntroCommand('List all unit tests', func=lambda: list_tests(testdata))),
+    ])
 
 def add_arguments(parser):
     intro_types = get_meson_introspection_types()
