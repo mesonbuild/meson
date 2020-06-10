@@ -5,6 +5,37 @@ documentation on the common values used by both, for the specific values of
 one or the other see the [cross compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
+## Data Types
+
+There are four basic data types in a machine file:
+- strings
+- arrays
+- booleans
+- integers
+
+A string is specified single quoted:
+```ini
+[section]
+option1 = 'false'
+option2 = '2'
+```
+
+An array is enclosed in square brackets, and must consist of strings or booleans
+```ini
+[section]
+option = ['value']
+```
+
+A boolean must be either `true` or `false`, and unquoted.
+```ini
+option = false
+```
+
+An integer must be either an unquoted numeric constant;
+```ini
+option = 42
+```
+
 ## Sections
 
 The following sections are allowed:
@@ -90,14 +121,16 @@ a = 'Hello'
 ### Binaries
 
 The binaries section contains a list of binaries. These can be used
-internally by meson, or by the `find_program` function:
+internally by meson, or by the `find_program` function.
+
+These values must be either strings or an array of strings
 
 Compilers and linkers are defined here using `<lang>` and `<lang>_ld`.
 `<lang>_ld` is special because it is compiler specific. For compilers like
 gcc and clang which are used to invoke the linker this is a value to pass to
 their "choose the linker" argument (-fuse-ld= in this case). For compilers
 like MSVC and Clang-Cl, this is the path to a linker for meson to invoke,
-such as `link.exe` or `lld-link.exe`. Support for ls is *new in 0.53.0*
+such as `link.exe` or `lld-link.exe`. Support for `ld` is *new in 0.53.0*
 
 *changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`, because it
 *regressed a large number of projects. in 0.53.0 the `ld` variable was used
@@ -115,8 +148,8 @@ llvm-config = '/usr/lib/llvm8/bin/llvm-config'
 Cross example:
 
 ```ini
-c = '/usr/bin/i586-mingw32msvc-gcc'
-cpp = '/usr/bin/i586-mingw32msvc-g++'
+c = ['ccache', '/usr/bin/i586-mingw32msvc-gcc']
+cpp = ['ccache', '/usr/bin/i586-mingw32msvc-g++']
 c_ld = 'gold'
 cpp_ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
@@ -140,7 +173,7 @@ An incomplete list of internally used programs that can be overridden here is:
 ### Paths and Directories
 
 As of 0.50.0 paths and directories such as libdir can be defined in the native
-file in a paths section
+and cross files in a paths section. These should be strings
 
 ```ini
 [paths]
@@ -186,7 +219,6 @@ build-tests = true
 build-tests = false
 ```
 
-
 ### Meson built-in options
 
 Meson built-in options can be set the same way:
@@ -230,9 +262,9 @@ An incomplete list of options is:
 ## Loading multiple machine files
 
 Native files allow layering (cross files can be layered since meson 0.52.0).
-More than one native file can be loaded, with values from a previous file being
+More than one file can be loaded, with values from a previous file being
 overridden by the next. The intention of this is not overriding, but to allow
-composing native files. This composition is done by passing the command line
+composing files. This composition is done by passing the command line
 argument multiple times:
 
 ```console
