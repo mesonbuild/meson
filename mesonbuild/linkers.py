@@ -436,6 +436,10 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         """Arguments to make all warnings errors."""
         return []
 
+    def headerpad_args(self) -> T.List[str]:
+        # Only used by the Apple linker
+        return []
+
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException('This linker does not support bitcode bundles')
 
@@ -650,8 +654,8 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def no_undefined_args(self) -> T.List[str]:
         return self._apply_prefix('-undefined,error')
 
-    def get_always_args(self) -> T.List[str]:
-        return self._apply_prefix('-headerpad_max_install_names') + super().get_always_args()
+    def headerpad_args(self) -> T.List[str]:
+        return self._apply_prefix('-headerpad_max_install_names')
 
     def bitcode_args(self) -> T.List[str]:
         return self._apply_prefix('-bitcode_bundle')
@@ -679,9 +683,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                          install_rpath: str) -> T.List[str]:
         if not rpath_paths and not install_rpath and not build_rpath:
             return []
-        # Ensure that there is enough space for install_name_tool in-place
-        # editing of large RPATHs
-        args = self._apply_prefix('-headerpad_max_install_names')
+        args = []
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
