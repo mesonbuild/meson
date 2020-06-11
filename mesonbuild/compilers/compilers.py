@@ -491,18 +491,18 @@ class CompilerArgs(collections.abc.MutableSequence):
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
         self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
-        self.pre = deque()
-        self.post = deque()
+        self.pre = deque()    # type: T.Deque[str]
+        self.post = deque()   # type: T.Deque[str]
 
     # Flush the saved pre and post list into the __container list
     #
     # This correctly deduplicates the entries after _can_dedup definition
     # Note: This function is designed to work without delete operations, as deletions are worsening the performance a lot.
-    def flush_pre_post(self):
-        pre_flush = deque()
-        pre_flush_set = set()
-        post_flush = deque()
-        post_flush_set = set()
+    def flush_pre_post(self) -> None:
+        pre_flush = deque()     # type: T.Deque[str]
+        pre_flush_set = set()   # type: T.Set[str]
+        post_flush = deque()    # type: T.Deque[str]
+        post_flush_set = set()  # type: T.Set[str]
 
         #The two lists are here walked from the front to the back, in order to not need removals for deduplication
         for a in self.pre:
@@ -529,9 +529,9 @@ class CompilerArgs(collections.abc.MutableSequence):
         self.pre.clear()
         self.post.clear()
 
-    def __iter__(self):
+    def __iter__(self) -> T.Iterator[str]:
         self.flush_pre_post()
-        return iter(self.__container);
+        return iter(self.__container)
 
     @T.overload                                # noqa: F811
     def __getitem__(self, index: int) -> str:  # noqa: F811
@@ -615,12 +615,10 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     @classmethod
     @lru_cache(maxsize=None)
-    def _should_prepend(cls, arg):
-        if arg.startswith(cls.prepend_prefixes):
-            return True
-        return False
+    def _should_prepend(cls, arg: str) -> bool:
+        return arg.startswith(cls.prepend_prefixes)
 
-    def need_to_split_linker_args(self):
+    def need_to_split_linker_args(self) -> bool:
         return isinstance(self.compiler, Compiler) and self.compiler.get_language() == 'd'
 
     def to_native(self, copy: bool = False) -> T.List[str]:
@@ -726,7 +724,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         Add two CompilerArgs while taking into account overriding of arguments
         and while preserving the order of arguments as much as possible
         '''
-        tmp_pre = deque()
+        tmp_pre = deque()  # type: T.Deque[str]
         if not isinstance(args, collections.abc.Iterable):
             raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
         for arg in args:
@@ -746,7 +744,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         #pre and post is going to be merged later before a iter call
         return self
 
-    def __radd__(self, args: T.Iterable[str]):
+    def __radd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
         self.flush_pre_post()
         new = CompilerArgs(self.compiler, args)
         new += self
