@@ -7818,6 +7818,9 @@ def convert_args(argv):
     test_list = []
     for arg in argv:
         if arg.startswith('-'):
+            if arg in ('-f', '--failfast'):
+                arg = '--exitfirst'
+            pytest_args.append(arg)
             continue
         # ClassName.test_name => 'ClassName and test_name'
         if '.' in arg:
