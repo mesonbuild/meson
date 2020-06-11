@@ -31,7 +31,6 @@ UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt']  # type: T.List
 # execinfo is a compiler lib on FreeBSD and NetBSD
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
     UNIXY_COMPILER_INTERNAL_LIBS.append('execinfo')
-SOREGEX = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 
 class Dedup(enum.Enum):
@@ -112,11 +111,11 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
                  iterable: T.Optional[T.Iterable[str]] = None):
         self.compiler = compiler
-        self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
+        self._container = list(iterable) if iterable is not None else []  # type: T.List[str]
         self.pre = collections.deque()    # type: T.Deque[str]
         self.post = collections.deque()   # type: T.Deque[str]
 
-    # Flush the saved pre and post list into the __container list
+    # Flush the saved pre and post list into the _container list
     #
     # This correctly deduplicates the entries after _can_dedup definition
     # Note: This function is designed to work without delete operations, as deletions are worsening the performance a lot.
@@ -141,19 +140,19 @@ class CompilerArgs(collections.abc.MutableSequence):
                     post_flush_set.add(a)
 
         #pre and post will overwrite every element that is in the container
-        #only copy over args that are in __container but not in the post flush or pre flush set
+        #only copy over args that are in _container but not in the post flush or pre flush set
 
-        for a in self.__container:
+        for a in self._container:
             if a not in post_flush_set and a not in pre_flush_set:
                 pre_flush.append(a)
 
-        self.__container = list(pre_flush) + list(post_flush)
+        self._container = list(pre_flush) + list(post_flush)
         self.pre.clear()
         self.post.clear()
 
     def __iter__(self) -> T.Iterator[str]:
         self.flush_pre_post()
-        return iter(self.__container)
+        return iter(self._container)
 
     @T.overload                                # noqa: F811
     def __getitem__(self, index: int) -> str:  # noqa: F811
@@ -165,7 +164,7 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __getitem__(self, index):  # noqa: F811
         self.flush_pre_post()
-        return self.__container[index]
+        return self._container[index]
 
     @T.overload                                             # noqa: F811
     def __setitem__(self, index: int, value: str) -> None:  # noqa: F811
@@ -177,22 +176,22 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __setitem__(self, index, value) -> None:  # noqa: F811
         self.flush_pre_post()
-        self.__container[index] = value
+        self._container[index] = value
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
         self.flush_pre_post()
-        del self.__container[index]
+        del self._container[index]
 
     def __len__(self) -> int:
-        return len(self.__container) + len(self.pre) + len(self.post)
+        return len(self._container) + len(self.pre) + len(self.post)
 
     def insert(self, index: int, value: str) -> None:
         self.flush_pre_post()
-        self.__container.insert(index, value)
+        self._container.insert(index, value)
 
     def copy(self) -> 'CompilerArgs':
         self.flush_pre_post()
-        return type(self)(self.compiler, self.__container.copy())
+        return type(self)(self.compiler, self._container.copy())
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -231,16 +230,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def _should_prepend(cls, arg: str) -> bool:
         return arg.startswith(cls.prepend_prefixes)
 
-    def need_to_split_linker_args(self) -> bool:
-        # XXX: gross
-        from .compilers import Compiler
-        return isinstance(self.compiler, Compiler) and self.compiler.get_language() == 'd'
-
     def to_native(self, copy: bool = False) -> T.List[str]:
-        # XXX: gross
-        from .compilers import Compiler
-        from .linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
-
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
         # needed by static libraries that are provided by object files or
@@ -250,54 +240,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             new = self.copy()
         else:
             new = self
-        # To proxy these arguments with D you need to split the
-        # arguments, thus you get `-L=-soname -L=lib.so` we don't
-        # want to put the lib in a link -roup
-        split_linker_args = self.need_to_split_linker_args()
-        # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
-        # all act like (or are) gnu ld
-        # TODO: this could probably be added to the DynamicLinker instead
-        if (isinstance(self.compiler, Compiler) and
-                self.compiler.linker is not None and
-                isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
-            group_start = -1
-            group_end = -1
-            is_soname = False
-            for i, each in enumerate(new):
-                if is_soname:
-                    is_soname = False
-                    continue
-                elif split_linker_args and '-soname' in each:
-                    is_soname = True
-                    continue
-                if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
-                   not SOREGEX.match(each):
-                    continue
-                group_end = i
-                if group_start < 0:
-                    # First occurrence of a library
-                    group_start = i
-            if group_start >= 0:
-                # Last occurrence of a library
-                new.insert(group_end + 1, '-Wl,--end-group')
-                new.insert(group_start, '-Wl,--start-group')
-        # Remove system/default include paths added with -isystem
-        if hasattr(self.compiler, 'get_default_include_dirs'):
-            default_dirs = self.compiler.get_default_include_dirs()
-            bad_idx_list = []  # type: T.List[int]
-            for i, each in enumerate(new):
-                # Remove the -isystem and the path if the path is a default path
-                if (each == '-isystem' and
-                        i < (len(new) - 1) and
-                        new[i + 1] in default_dirs):
-                    bad_idx_list += [i, i + 1]
-                elif each.startswith('-isystem=') and each[9:] in default_dirs:
-                    bad_idx_list += [i]
-                elif each.startswith('-isystem') and each[8:] in default_dirs:
-                    bad_idx_list += [i]
-            for i in reversed(bad_idx_list):
-                new.pop(i)
-        return self.compiler.unix_args_to_native(new.__container)
+        return self.compiler.unix_args_to_native(new._container)
 
     def append_direct(self, arg: str) -> None:
         '''
@@ -309,7 +252,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         if os.path.isabs(arg):
             self.append(arg)
         else:
-            self.__container.append(arg)
+            self._container.append(arg)
 
     def extend_direct(self, iterable: T.Iterable[str]) -> None:
         '''
@@ -353,7 +296,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             dedup = self._can_dedup(arg)
             if dedup is Dedup.UNIQUE:
                 # Argument already exists and adding a new instance is useless
-                if arg in self.__container or arg in self.pre or arg in self.post:
+                if arg in self._container or arg in self.pre or arg in self.post:
                     continue
             if self._should_prepend(arg):
                 tmp_pre.appendleft(arg)
@@ -373,9 +316,9 @@ class CompilerArgs(collections.abc.MutableSequence):
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
-            return self.compiler == other.compiler and self.__container == other.__container
+            return self.compiler == other.compiler and self._container == other._container
         elif isinstance(other, list):
-            return self.__container == other
+            return self._container == other
         return NotImplemented
 
     def append(self, arg: str) -> None:
@@ -386,4 +329,4 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __repr__(self) -> str:
         self.flush_pre_post()
-        return '{}({!r}, {!r})'.format(self.__name__, self.compiler, self.__container)
+        return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
