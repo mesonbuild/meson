@@ -88,7 +88,6 @@ There are several keyword arguments. Many of these map directly to the
   e.g. `Gtk`
 * `includes`: list of gir names to be included, can also be a GirTarget
 * `header`: *(Added 0.43.0)* name of main c header to include for the library, e.g. `glib.h`
-* `dependencies`: deps to use during introspection scanning
 * `include_directories`: extra include paths to look for gir files
 * `install`: if true, install the generated files
 * `install_dir_gir`: (*Added 0.35.0*) which directory to install the
