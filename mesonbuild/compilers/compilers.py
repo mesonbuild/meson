@@ -18,6 +18,7 @@ from collections import deque
 import itertools
 import typing as T
 from functools import lru_cache
+import enum
 
 from ..linkers import (
     GnuLikeDynamicLinkerMixin, LinkerEnvVarsMixin, SolarisDynamicLinker,
@@ -409,6 +410,28 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
+
+class Dedup(enum.Enum):
+
+    """What kind of deduplication can be done to compiler args.
+
+    OVERRIDEN - Whether an argument can be 'overridden' by a later argument.
+        For example, -DFOO defines FOO and -UFOO undefines FOO. In this case,
+        we can safely remove the previous occurrence and add a new one. The
+        same is true for include paths and library paths with -I and -L.
+    UNIQUE - Arguments that once specified cannot be undone, such as `-c` or
+        `-pipe`. New instances of these can be completely skipped.
+    NO_DEDUP - Whether it matters where or how many times on the command-line
+        a particular argument is present. This can matter for symbol
+        resolution in static or shared libraries, so we cannot de-dup or
+        reorder them.
+    """
+
+    NO_DEDUP = 0
+    UNIQUE = 1
+    OVERRIDEN = 2
+
+
 class CompilerArgs(collections.abc.MutableSequence):
     '''
     List-like class that manages a list of compiler arguments. Should be used
@@ -486,13 +509,13 @@ class CompilerArgs(collections.abc.MutableSequence):
             dedup = self._can_dedup(a)
             if a not in pre_flush_set:
                 pre_flush.append(a)
-                if dedup == 2:
+                if dedup is Dedup.OVERRIDEN:
                     pre_flush_set.add(a)
         for a in reversed(self.post):
             dedup = self._can_dedup(a)
             if a not in post_flush_set:
                 post_flush.appendleft(a)
-                if dedup == 2:
+                if dedup is Dedup.OVERRIDEN:
                     post_flush_set.add(a)
 
         #pre and post will overwrite every element that is in the container
@@ -551,29 +574,15 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     @classmethod
     @lru_cache(maxsize=None)
-    def _can_dedup(cls, arg):
-        '''
-        Returns whether the argument can be safely de-duped. This is dependent
-        on three things:
-
-        a) Whether an argument can be 'overridden' by a later argument.  For
-           example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
-           can safely remove the previous occurrence and add a new one. The same
-           is true for include paths and library paths with -I and -L. For
-           these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
-        b) Arguments that once specified cannot be undone, such as `-c` or
-           `-pipe`. New instances of these can be completely skipped. For these
-           we return `1`. See `dedup1_prefixes` and `dedup1_args`.
-        c) Whether it matters where or how many times on the command-line
-           a particular argument is present. This can matter for symbol
-           resolution in static or shared libraries, so we cannot de-dup or
-           reorder them. For these we return `0`. This is the default.
+    def _can_dedup(cls, arg: str) -> Dedup:
+        """Returns whether the argument can be safely de-duped.
 
         In addition to these, we handle library arguments specially.
-        With GNU ld, we surround library arguments with -Wl,--start/end-group
+        With GNU ld, we surround library arguments with -Wl,--start/end-gr -> Dedupoup
         to recursively search for symbols in the libraries. This is not needed
         with other linkers.
-        '''
+        """
+
         # A standalone argument must never be deduplicated because it is
         # defined by what comes _after_ it. Thus dedupping this:
         # -D FOO -D BAR
@@ -583,7 +592,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         # FOO -D BAR
         # both of which are invalid.
         if arg in cls.dedup2_prefixes:
-            return 0
+            return Dedup.NO_DEDUP
         if arg.startswith('-L='):
             # DMD and LDC proxy all linker arguments using -L=; in conjunction
             # with ld64 on macOS this can lead to command line arguments such
@@ -592,17 +601,17 @@ class CompilerArgs(collections.abc.MutableSequence):
             # spaces and quoting does not work. if we deduplicate these then
             # one of the -L=0 arguments will be removed and the version
             # argument will consume the next argument instead.
-            return 0
+            return Dedup.NO_DEDUP
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):
-            return 2
+            return Dedup.OVERRIDEN
         if arg in cls.dedup1_args or \
            arg.startswith(cls.dedup1_prefixes) or \
            arg.endswith(cls.dedup1_suffixes) or \
            re.search(cls.dedup1_regex, arg):
-            return 1
-        return 0
+            return Dedup.UNIQUE
+        return Dedup.NO_DEDUP
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -725,7 +734,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             # previous occurrence of it and adding a new one, or not adding the
             # new occurrence.
             dedup = self._can_dedup(arg)
-            if dedup == 1:
+            if dedup is Dedup.UNIQUE:
                 # Argument already exists and adding a new instance is useless
                 if arg in self.__container or arg in self.pre or arg in self.post:
                     continue
