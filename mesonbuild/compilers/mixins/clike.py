@@ -29,9 +29,10 @@ import subprocess
 import typing as T
 from pathlib import Path
 
+from ... import arglist
 from ... import mesonlib
-from ...mesonlib import LibType
 from ... import mlog
+from ...mesonlib import LibType
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
@@ -48,7 +49,7 @@ class CLikeCompiler:
     program_dirs_cache = {}
     find_library_cache = {}
     find_framework_cache = {}
-    internal_libs = compilers.unixy_compiler_internal_libs
+    internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
     def __init__(self, is_cross: bool, exe_wrapper: T.Optional[str] = None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -338,7 +339,7 @@ class CLikeCompiler:
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        cargs = compilers.CompilerArgs(self)
+        cargs = arglist.CompilerArgs(self)
         largs = []
         for d in dependencies:
             # Add compile flags needed by dependencies

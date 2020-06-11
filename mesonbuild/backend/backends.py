@@ -28,7 +28,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..compilers import CompilerArgs
+from ..arglist import CompilerArgs
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder

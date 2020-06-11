@@ -26,7 +26,7 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from .. import compilers
-from ..compilers import CompilerArgs
+from ..arglist import CompilerArgs
 from ..interpreter import Interpreter
 from ..mesonlib import (
     MesonException, File, python_command, replace_if_different

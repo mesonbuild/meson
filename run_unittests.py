@@ -357,7 +357,7 @@ class InternalTests(unittest.TestCase):
                          stat.S_IRGRP | stat.S_IXGRP)
 
     def test_compiler_args_class_none_flush(self):
-        cargsfunc = mesonbuild.compilers.CompilerArgs
+        cargsfunc = mesonbuild.arglist.CompilerArgs
         cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
         a = cargsfunc(cc, ['-I.'])
         #first we are checking if the tree construction deduplicates the correct -I argument
@@ -376,7 +376,7 @@ class InternalTests(unittest.TestCase):
 
 
     def test_compiler_args_class(self):
-        cargsfunc = mesonbuild.compilers.CompilerArgs
+        cargsfunc = mesonbuild.arglist.CompilerArgs
         cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
         # Test that empty initialization works
         a = cargsfunc(cc)
@@ -457,7 +457,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(l, ['-Lfoodir', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a'])
 
     def test_compiler_args_class_gnuld(self):
-        cargsfunc = mesonbuild.compilers.CompilerArgs
+        cargsfunc = mesonbuild.arglist.CompilerArgs
         ## Test --start/end-group
         linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,', [])
         gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
@@ -486,7 +486,7 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(l.to_native(copy=True), ['-Lfoo', '-Lfoodir', '-Wl,--start-group', '-lfoo', '-Lbardir', '-lbar', '-lbar', '/libbaz.a', '-Wl,--export-dynamic', '-Wl,-ldl', '-Wl,--end-group'])
 
     def test_compiler_args_remove_system(self):
-        cargsfunc = mesonbuild.compilers.CompilerArgs
+        cargsfunc = mesonbuild.arglist.CompilerArgs
         ## Test --start/end-group
         linker = mesonbuild.linkers.GnuDynamicLinker([], MachineChoice.HOST, 'fake', '-Wl,', [])
         gcc = mesonbuild.compilers.GnuCCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock(), linker=linker)
@@ -4757,7 +4757,7 @@ recommended as it is not supported on some platforms''')
             out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE) # strip lines
             out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE) # remove empty lines
             return out
-            
+
         def clean_dir_arguments(text):
             # Remove platform specific defaults
             args = [
