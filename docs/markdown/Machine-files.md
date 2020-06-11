@@ -8,9 +8,82 @@ environments](Native-environments.md).
 ## Sections
 
 The following sections are allowed:
+- constants
 - binaries
 - paths
 - properties
+
+### constants
+
+*Since 0.55.0*
+
+String and list concatenation is supported using the `+` operator, joining paths
+is supported using the `/` operator.
+Entries defined in the `[constants]` section can be used in any other section
+(they are always parsed first), entries in any other section can be used only
+within that same section and only after it has been defined.
+
+```ini
+[constants]
+toolchain = '/toolchain'
+common_flags = ['--sysroot=' + toolchain / 'sysroot']
+
+[properties]
+c_args = common_flags + ['-DSOMETHING']
+cpp_args = c_args + ['-DSOMETHING_ELSE']
+
+[binaries]
+c = toolchain / 'gcc'
+```
+
+This can be useful with cross file composition as well. A generic cross file
+could be composed with a platform specific file where constants are defined:
+```ini
+# aarch64.ini
+[constants]
+arch = 'aarch64-linux-gnu'
+```
+
+```ini
+# cross.ini
+[binaries]
+c = arch + '-gcc'
+cpp = arch + '-g++'
+strip = arch + '-strip'
+pkgconfig = arch + '-pkg-config'
+...
+```
+
+This can be used as `meson setup --cross-file aarch64.ini --cross-file cross.ini builddir`.
+
+Note that file composition happens before the parsing of values. The example
+below results in `b` being `'HelloWorld'`:
+```ini
+# file1.ini:
+[constants]
+a = 'Foo'
+b = a + 'World'
+```
+
+```ini
+#file2.ini:
+[constants]
+a = 'Hello'
+```
+
+The example below results in an error when file1.ini is included before file2.ini
+because `b` would be defined before `a`:
+```ini
+# file1.ini:
+[constants]
+b = a + 'World'
+```
+
+```ini
+#file2.ini:
+[constants]
+a = 'Hello'
+```
 
 ### Binaries
 

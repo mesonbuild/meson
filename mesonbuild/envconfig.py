@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, subprocess
+import os, subprocess
 import typing as T
 
 from . import mesonlib
@@ -82,33 +82,6 @@ CPU_FAMILES_64_BIT = [
     'wasm64',
     'x86_64',
 ]
-
-class MesonConfigFile:
-    @classmethod
-    def from_config_parser(cls, parser: configparser.ConfigParser) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
-        out = {}
-        # This is a bit hackish at the moment.
-        for s in parser.sections():
-            section = {}
-            for entry in parser[s]:
-                value = parser[s][entry]
-                # Windows paths...
-                value = value.replace('\\', '\\\\')
-                if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                    raise EnvironmentException('Malformed variable name {} in cross file..'.format(entry))
-                try:
-                    res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
-                except Exception:
-                    raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
-
-                for i in (res if isinstance(res, list) else [res]):
-                    if not isinstance(i, (str, int, bool)):
-                        raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
-
-                section[entry] = res
-
-            out[s] = section
-        return out
 
 def get_env_var_pair(for_machine: MachineChoice,
                      is_cross: bool,
