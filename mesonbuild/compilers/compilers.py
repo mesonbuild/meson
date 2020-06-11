@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
 import contextlib, os.path, re, tempfile
 import itertools
 import typing as T
@@ -401,7 +402,7 @@ class RunResult:
         self.stderr = stderr
 
 
-class Compiler:
+class Compiler(metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
@@ -624,6 +625,10 @@ class Compiler:
             args += self.get_preprocess_only_args()
         return args
 
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
+        """Return an appropriate CompilerArgs instance for this class."""
+        return CompilerArgs(self, args)
+
     @contextlib.contextmanager
     def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None):
         if extra_args is None:
@@ -642,7 +647,7 @@ class Compiler:
                     srcname = code.fname
 
                 # Construct the compiler command-line
-                commands = CompilerArgs(self)
+                commands = self.compiler_args()
                 commands.append(srcname)
                 # Preprocess mode outputs to stdout, so no output args
                 if mode != 'preprocess':

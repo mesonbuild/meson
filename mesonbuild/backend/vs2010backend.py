@@ -26,7 +26,6 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from .. import compilers
-from ..arglist import CompilerArgs
 from ..interpreter import Interpreter
 from ..mesonlib import (
     MesonException, File, python_command, replace_if_different
@@ -899,9 +898,9 @@ class Vs2010Backend(backends.Backend):
         #
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
-        file_args = dict((lang, CompilerArgs(comp)) for lang, comp in target.compilers.items())
-        file_defines = dict((lang, []) for lang in target.compilers)
-        file_inc_dirs = dict((lang, []) for lang in target.compilers)
+        file_args = {l: c.compiler_args() for l, c in target.compilers.items()}
+        file_defines = {l: [] for l in target.compilers}
+        file_inc_dirs = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
@@ -1084,7 +1083,7 @@ class Vs2010Backend(backends.Backend):
 
         # Linker options
         link = ET.SubElement(compiles, 'Link')
-        extra_link_args = CompilerArgs(compiler)
+        extra_link_args = compiler.compiler_args()
         # FIXME: Can these buildtype linker args be added as tags in the
         # vcxproj file (similar to buildtype compiler args) instead of in
         # AdditionalOptions?

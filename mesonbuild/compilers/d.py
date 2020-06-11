@@ -19,7 +19,6 @@ from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare,
 )
 
-from ..arglist import CompilerArgs
 from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
@@ -582,7 +581,7 @@ class DCompiler(Compiler):
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        args = CompilerArgs(self)
+        args = self.compiler_args()
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()

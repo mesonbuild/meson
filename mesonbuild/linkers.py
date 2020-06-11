@@ -17,6 +17,7 @@ import os
 import typing as T
 
 from . import mesonlib
+from .arglist import CompilerArgs
 from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
@@ -28,6 +29,9 @@ class StaticLinker:
 
     def __init__(self, exelist: T.List[str]):
         self.exelist = exelist
+
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
+        return CompilerArgs(self, args)
 
     def can_linker_accept_rsp(self) -> bool:
         """
