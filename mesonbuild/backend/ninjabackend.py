@@ -30,8 +30,9 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
+from ..arglist import CompilerArgs
 from ..compilers import (
-    Compiler, CompilerArgs, CCompiler,
+    Compiler, CCompiler,
     DmdDCompiler,
     FortranCompiler, PGICCompiler,
     VisualStudioCsCompiler,

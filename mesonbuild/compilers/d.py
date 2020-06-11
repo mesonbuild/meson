@@ -19,13 +19,13 @@ from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare,
 )
 
+from ..arglist import CompilerArgs
 from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
     d_ldc_buildtype_args,
     clike_debug_args,
     Compiler,
-    CompilerArgs,
 )
 from .mixins.gnu import GnuCompiler
 
