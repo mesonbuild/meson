@@ -1202,7 +1202,7 @@ int dummy;
         compiler = target.compilers['cs']
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
         deps = []
-        commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
+        commands = compiler.compiler_args(target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
         commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
         commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
@@ -2156,7 +2156,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_llvm_ir_compile(self, target, src):
         compiler = get_compiler_for_source(target.compilers.values(), src)
-        commands = CompilerArgs(compiler)
+        commands = compiler.compiler_args()
         # Compiler args for compiling this target
         commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
                                                     compiler)
@@ -2245,7 +2245,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         base_proxy = self.get_base_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
-        commands = CompilerArgs(compiler)
+        commands = compiler.compiler_args()
         # Start with symbol visibility.
         commands += compiler.gnu_symbol_visibility_args(target.gnu_symbol_visibility)
         # Add compiler args for compiling this target derived from 'base' build
@@ -2325,7 +2325,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = self._generate_single_compile(target, compiler, is_generated)
-        commands = CompilerArgs(commands.compiler, commands)
+        commands = commands.compiler.compiler_args(commands)
 
         # Create introspection information
         if is_generated is False:
@@ -2674,7 +2674,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         #
         # Once all the linker options have been passed, we will start passing
         # libraries and library paths from internal and external sources.
-        commands = CompilerArgs(linker)
+        commands = linker.compiler_args()
         # First, the trivial ones that are impossible to override.
         #
         # Add linker args for linking this target derived from 'base' build

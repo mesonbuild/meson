@@ -28,7 +28,6 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..arglist import CompilerArgs
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder
@@ -626,7 +625,7 @@ class Backend:
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
-        commands = CompilerArgs(compiler)
+        commands = compiler.compiler_args()
 
         copt_proxy = self.get_compiler_options_for_target(target)[compiler.language]
         # First, the trivial ones that are impossible to override.

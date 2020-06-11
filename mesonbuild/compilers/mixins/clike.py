@@ -32,12 +32,25 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
+from ...arglist import CompilerArgs
 from ...mesonlib import LibType
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+
+
+class CLikeCompilerArgs(CompilerArgs):
+    prepend_prefixes = ('-I', '-L')
+    dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
+
+    # NOTE: not thorough. A list of potential corner cases can be found in
+    # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
+
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
 
 
 class CLikeCompiler:
@@ -61,6 +74,9 @@ class CLikeCompiler:
             self.exe_wrapper = None
         else:
             self.exe_wrapper = exe_wrapper.get_command()
+
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
+        return CLikeCompilerArgs(self, args)
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -339,7 +355,7 @@ class CLikeCompiler:
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        cargs = arglist.CompilerArgs(self)
+        cargs = self.compiler_args()
         largs = []
         for d in dependencies:
             # Add compile flags needed by dependencies

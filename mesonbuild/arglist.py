@@ -21,9 +21,6 @@ import re
 import typing as T
 
 from . import mesonlib
-from .linkers import (
-    GnuLikeDynamicLinkerMixin, LinkerEnvVarsMixin, SolarisDynamicLinker,
-)
 
 if T.TYPE_CHECKING:
     from .linkers import StaticLinker
@@ -35,6 +32,7 @@ UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt']  # type: T.List
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
     UNIXY_COMPILER_INTERNAL_LIBS.append('execinfo')
 SOREGEX = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
+
 
 class Dedup(enum.Enum):
 
@@ -88,29 +86,28 @@ class CompilerArgs(collections.abc.MutableSequence):
     ['-Ifoo', '-Ibar', '-Ifez', '-Ibaz', '-Werror']
 
     '''
-    # NOTE: currently this class is only for C-like compilers, but it can be
-    # extended to other languages easily. Just move the following to the
-    # compiler class and initialize when self.compiler is set.
-
     # Arg prefixes that override by prepending instead of appending
-    prepend_prefixes = ('-I', '-L')
+    prepend_prefixes = ()  # type: T.Tuple[str, ...]
+
     # Arg prefixes and args that must be de-duped by returning 2
-    dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
-    dedup2_suffixes = ()
-    dedup2_args = ()
+    dedup2_prefixes = ()   # type: T.Tuple[str, ...]
+    dedup2_suffixes = ()   # type: T.Tuple[str, ...]
+    dedup2_args = ()       # type: T.Tuple[str, ...]
+
     # Arg prefixes and args that must be de-duped by returning 1
     #
     # NOTE: not thorough. A list of potential corner cases can be found in
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
-    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
+    dedup1_prefixes = ()  # type: T.Tuple[str, ...]
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')  # type: T.Tuple[str, ...]
     # Match a .so of the form path/to/libfoo.so.0.1.0
     # Only UNIX shared libraries require this. Others have a fixed extension.
     dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
-    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+    dedup1_args = ()  # type: T.Tuple[str, ...]
     # In generate_link() we add external libs without de-dup, but we must
     # *always* de-dup these because they're special arguments to the linker
-    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)
+    # TODO: these should probably move too
+    always_dedup_args = tuple('-l' + lib for lib in UNIXY_COMPILER_INTERNAL_LIBS)  # type : T.Tuple[str, ...]
 
     def __init__(self, compiler: T.Union['Compiler', 'StaticLinker'],
                  iterable: T.Optional[T.Iterable[str]] = None):
@@ -195,7 +192,7 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def copy(self) -> 'CompilerArgs':
         self.flush_pre_post()
-        return CompilerArgs(self.compiler, self.__container.copy())
+        return type(self)(self.compiler, self.__container.copy())
 
     @classmethod
     @lru_cache(maxsize=None)
@@ -217,15 +214,6 @@ class CompilerArgs(collections.abc.MutableSequence):
         # FOO -D BAR
         # both of which are invalid.
         if arg in cls.dedup2_prefixes:
-            return Dedup.NO_DEDUP
-        if arg.startswith('-L='):
-            # DMD and LDC proxy all linker arguments using -L=; in conjunction
-            # with ld64 on macOS this can lead to command line arguments such
-            # as: `-L=-compatibility_version -L=0 -L=current_version -L=0`.
-            # These cannot be combined, ld64 insists they must be passed with
-            # spaces and quoting does not work. if we deduplicate these then
-            # one of the -L=0 arguments will be removed and the version
-            # argument will consume the next argument instead.
             return Dedup.NO_DEDUP
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
@@ -251,6 +239,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def to_native(self, copy: bool = False) -> T.List[str]:
         # XXX: gross
         from .compilers import Compiler
+        from .linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 
         # Check if we need to add --start/end-group for circular dependencies
         # between static libraries, and for recursively searching for symbols
@@ -376,7 +365,7 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __radd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
         self.flush_pre_post()
-        new = CompilerArgs(self.compiler, args)
+        new = type(self)(self.compiler, args)
         new += self
         return new
 
@@ -397,4 +386,4 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __repr__(self) -> str:
         self.flush_pre_post()
-        return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
+        return '{}({!r}, {!r})'.format(self.__name__, self.compiler, self.__container)
