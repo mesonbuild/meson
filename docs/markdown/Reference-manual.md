@@ -2425,7 +2425,7 @@ an external dependency with the following methods:
    defaults to `'preserve'`.
 
  - `partial_dependency(compile_args : false, link_args : false, links
-   : false, includes : false, source : false)` *(Added 0.46.0)* returns
+   : false, includes : false, sources : false)` *(Added 0.46.0)* returns
    a new dependency object with the same name, version, found status,
    type name, and methods as the object that called it. This new
    object will only inherit other attributes from its parent as
