@@ -252,8 +252,7 @@ class CmakeModule(ExtensionModule):
         (ofile_path, ofile_fname) = os.path.split(os.path.join(state.subdir, '{}Config.cmake'.format(name)))
         ofile_abs = os.path.join(state.environment.build_dir, ofile_path, ofile_fname)
 
-        if 'install_dir' not in kwargs:
-            install_dir = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name)
+        install_dir = kwargs.get('install_dir', os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name))
         if not isinstance(install_dir, str):
             raise mesonlib.MesonException('"install_dir" must be a string.')
 
