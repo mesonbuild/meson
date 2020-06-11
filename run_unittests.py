@@ -3915,7 +3915,7 @@ recommended as it is not supported on some platforms''')
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
-                pkgconfig = r'{0}'
+                pkgconfig = '{0}'
 
                 [properties]
 
@@ -3945,7 +3945,7 @@ recommended as it is not supported on some platforms''')
                 pkgconfig = 'pkg-config'
 
                 [properties]
-                pkg_config_libdir = [r'{0}']
+                pkg_config_libdir = ['{0}']
 
                 [host_machine]
                 system = 'linux'
@@ -4903,6 +4903,36 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage-xml')
+
+    def test_cross_file_constants(self):
+        with temp_filename() as crossfile1, temp_filename() as crossfile2:
+            with open(crossfile1, 'w') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [constants]
+                    compiler = 'gcc'
+                    '''))
+            with open(crossfile2, 'w') as f:
+                f.write(textwrap.dedent(
+                    '''
+                    [constants]
+                    toolchain = '/toolchain/'
+                    common_flags = ['--sysroot=' + toolchain / 'sysroot']
+
+                    [properties]
+                    c_args = common_flags + ['-DSOMETHING']
+                    cpp_args = c_args + ['-DSOMETHING_ELSE']
+
+                    [binaries]
+                    c = toolchain / compiler
+                    '''))
+
+            values = mesonbuild.coredata.parse_machine_files([crossfile1, crossfile2])
+            self.assertEqual(values['binaries']['c'], '/toolchain/gcc')
+            self.assertEqual(values['properties']['c_args'],
+                             ['--sysroot=/toolchain/sysroot', '-DSOMETHING'])
+            self.assertEqual(values['properties']['cpp_args'],
+                             ['--sysroot=/toolchain/sysroot', '-DSOMETHING', '-DSOMETHING_ELSE'])
 
 class FailureTests(BasePlatformTests):
     '''

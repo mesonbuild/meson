@@ -27,7 +27,7 @@ from .mesonlib import (
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, Directories, MachineInfo, MesonConfigFile,
+    BinaryTable, Directories, MachineInfo,
     Properties, known_cpu_families,
 )
 from . import compilers
@@ -563,8 +563,7 @@ class Environment:
         ## Read in native file(s) to override build machine configuration
 
         if self.coredata.config_files is not None:
-            config = MesonConfigFile.from_config_parser(
-                coredata.load_configs(self.coredata.config_files))
+            config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
             paths.build = Directories(**config.get('paths', {}))
             properties.build = Properties(config.get('properties', {}))
@@ -572,8 +571,7 @@ class Environment:
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = MesonConfigFile.from_config_parser(
-                coredata.load_configs(self.coredata.cross_files))
+            config = coredata.parse_machine_files(self.coredata.cross_files)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
             if 'host_machine' in config:
