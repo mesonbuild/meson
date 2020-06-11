@@ -32,7 +32,7 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...arglist import CompilerArgs
+from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
@@ -40,8 +40,9 @@ from .visualstudio import VisualStudioLikeCompiler
 if T.TYPE_CHECKING:
     from ...environment import Environment
 
+SOREGEX = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
-class CLikeCompilerArgs(CompilerArgs):
+class CLikeCompilerArgs(arglist.CompilerArgs):
     prepend_prefixes = ('-I', '-L')
     dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
 
@@ -49,8 +50,57 @@ class CLikeCompilerArgs(CompilerArgs):
     # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
     dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
     dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-
     dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+
+    def to_native(self, copy: bool = False) -> T.List[str]:
+        # Check if we need to add --start/end-group for circular dependencies
+        # between static libraries, and for recursively searching for symbols
+        # needed by static libraries that are provided by object files or
+        # shared libraries.
+        self.flush_pre_post()
+        if copy:
+            new = self.copy()
+        else:
+            new = self
+        # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
+        # all act like (or are) gnu ld
+        # TODO: this could probably be added to the DynamicLinker instead
+        if isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker)):
+            group_start = -1
+            group_end = -1
+            for i, each in enumerate(new):
+                if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
+                   not SOREGEX.match(each):
+                    continue
+                group_end = i
+                if group_start < 0:
+                    # First occurrence of a library
+                    group_start = i
+            if group_start >= 0:
+                # Last occurrence of a library
+                new.insert(group_end + 1, '-Wl,--end-group')
+                new.insert(group_start, '-Wl,--start-group')
+        # Remove system/default include paths added with -isystem
+        if hasattr(self.compiler, 'get_default_include_dirs'):
+            default_dirs = self.compiler.get_default_include_dirs()
+            bad_idx_list = []  # type: T.List[int]
+            for i, each in enumerate(new):
+                # Remove the -isystem and the path if the path is a default path
+                if (each == '-isystem' and
+                        i < (len(new) - 1) and
+                        new[i + 1] in default_dirs):
+                    bad_idx_list += [i, i + 1]
+                elif each.startswith('-isystem=') and each[9:] in default_dirs:
+                    bad_idx_list += [i]
+                elif each.startswith('-isystem') and each[8:] in default_dirs:
+                    bad_idx_list += [i]
+            for i in reversed(bad_idx_list):
+                new.pop(i)
+        return self.compiler.unix_args_to_native(new._container)
+
+    def __repr__(self) -> str:
+        self.flush_pre_post()
+        return 'CLikeCompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
 
 
 class CLikeCompiler:
