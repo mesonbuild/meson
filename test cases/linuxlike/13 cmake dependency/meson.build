@@ -44,6 +44,8 @@ assert(depf2.found() == false, 'Invalid CMake targets should fail')
 # Try to find cmMesonTestDep in a custom prefix
 # setup_env.json is used by run_project_tests.py:_run_test to point to ./cmake_pref_env/
 depPrefEnv = dependency('cmMesonTestDep', required : true, method : 'cmake')
+depPrefEnv1 = dependency('cmMesonTestF1', required : true, method : 'cmake')
+depPrefEnv2 = dependency('cmMesonTestF2', required : true, method : 'cmake')
 
 # Try to find a dependency with a custom CMake module
 

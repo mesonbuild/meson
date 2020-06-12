@@ -1145,12 +1145,17 @@ class CMakeDependency(ExternalDependency):
         except MesonException:
             return None
 
+        def process_paths(l: T.List[str]) -> T.Set[str]:
+            l = [x.split(':') for x in l]
+            l = [x for sublist in l for x in sublist]
+            return set(l)
+
         # Extract the variables and sanity check them
-        root_paths = set(temp_parser.get_cmake_var('MESON_FIND_ROOT_PATH'))
-        root_paths.update(set(temp_parser.get_cmake_var('MESON_CMAKE_SYSROOT')))
+        root_paths = process_paths(temp_parser.get_cmake_var('MESON_FIND_ROOT_PATH'))
+        root_paths.update(process_paths(temp_parser.get_cmake_var('MESON_CMAKE_SYSROOT')))
         root_paths = sorted(root_paths)
         root_paths = list(filter(lambda x: os.path.isdir(x), root_paths))
-        module_paths = set(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
+        module_paths = process_paths(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
         rooted_paths = []
         for j in [Path(x) for x in root_paths]:
             for i in [Path(x) for x in module_paths]:
