@@ -186,23 +186,35 @@ class Resolver:
     def load_wraps(self):
         if not os.path.isdir(self.subdir_root):
             return
-        for f in os.listdir(self.subdir_root):
-            fname = os.path.join(self.subdir_root, f)
-            # Ignore not .wrap files, and reserved directories.
-            if (os.path.isfile(fname) and not fname.endswith('.wrap')) or \
-               f in ['packagecache', 'packagefiles']:
+        root, dirs, files = next(os.walk(self.subdir_root))
+        for i in files:
+            if not i.endswith('.wrap'):
                 continue
+            fname = os.path.join(self.subdir_root, i)
             wrap = PackageDefinition(fname)
-            # We could have added a dummy package definition for the directory,
-            # replace it now with the proper wrap. This happens if we already
-            # downloaded the subproject into 'foo-1.0' directory and we now found
-            # 'foo.wrap' file.
-            if wrap.directory in self.wraps:
-                del self.wraps[wrap.directory]
             self.wraps[wrap.name] = wrap
+            if wrap.directory in dirs:
+                dirs.remove(wrap.directory)
+        # Add dummy package definition for directories not associated with a wrap file.
+        for i in dirs:
+            if i in ['packagecache', 'packagefiles']:
+                continue
+            fname = os.path.join(self.subdir_root, i)
+            wrap = PackageDefinition(fname)
+            self.wraps[wrap.name] = wrap
+
+        for wrap in self.wraps.values():
             for k in wrap.provided_deps.keys():
+                if k in self.provided_deps:
+                    prev_wrap = self.provided_deps[k]
+                    m = 'Multiple wrap files provide {!r} dependency: {} and {}'
+                    raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
                 self.provided_deps[k] = wrap
             for k in wrap.provided_programs:
+                if k in self.provided_programs:
+                    prev_wrap = self.provided_programs[k]
+                    m = 'Multiple wrap files provide {!r} program: {} and {}'
+                    raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
                 self.provided_programs[k] = wrap
 
     def find_dep_provider(self, packagename: str):
