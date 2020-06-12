@@ -156,8 +156,19 @@ where `dependency_name` usually match the corresponding pkg-config name and
 `variable_name` is the name of a variable defined in the subproject that should
 be returned for that dependency.
 
-For example `glib.wrap` provides `glib-2.0`, `gobject-2.0` and `gio-2.0`. A wrap
-file for glib would look like:
+For example when using a recent enough version of glib that uses
+`meson.override_dependency()` to override `glib-2.0`, `gobject-2.0` and `gio-2.0`,
+a wrap file would look like:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+dependency_names = glib-2.0, gobject-2.0, gio-2.0
+```
+
+With older version of glib dependency variable names need to be specified:
 ```ini
 [wrap-git]
 url=https://gitlab.gnome.org/GNOME/glib.git
@@ -167,17 +178,6 @@ revision=glib-2-62
 glib-2.0=glib_dep
 gobject-2.0=gobject_dep
 gio-2.0=gio_dep
-```
-
-Alternatively, when using a recent enough version of glib that uses
-`meson.override_dependency()`:
-```ini
-[wrap-git]
-url=https://gitlab.gnome.org/GNOME/glib.git
-revision=glib-2-62
-
-[provide]
-dependency_names = glib-2.0, gobject-2.0, gio-2.0
 ```
 
 With such wrap file, `dependency('glib-2.0')` will automatically fallback to use
