@@ -8,5 +8,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR})
 add_definitions("-DDO_NOTHING_JUST_A_FLAG=1")
 
 add_library(cmModLib++ SHARED cmMod.cpp)
+target_compile_definitions(cmModLib++ PRIVATE MESON_MAGIC_FLAG=21)
+target_compile_definitions(cmModLib++ INTERFACE MESON_MAGIC_FLAG=42)
 include(GenerateExportHeader)
 generate_export_header(cmModLib++)
