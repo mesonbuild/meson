@@ -317,13 +317,6 @@ class ConverterTarget:
         tgt = trace.targets.get(self.cmake_name)
         if tgt:
             self.depends_raw = trace.targets[self.cmake_name].depends
-            if self.type.upper() == 'INTERFACE_LIBRARY':
-                props = tgt.properties
-
-                self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
-                self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
-                self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
-                self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
 
             # TODO refactor this copy paste from CMakeDependency for future releases
             reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-l?pthread)$')
@@ -341,6 +334,12 @@ class ConverterTarget:
                 otherDeps = []
                 libraries = []
                 mlog.debug(tgt)
+
+                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
+                    self.includes += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
+
+                if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
+                    self.link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
 
                 if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
                     self.public_compile_opts += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
