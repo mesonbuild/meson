@@ -3368,11 +3368,6 @@ int main(int argc, char **argv) {
         except EnvironmentException:
             pass
         try:
-            env.detect_swift_compiler(MachineChoice.HOST)
-            langs.append('swift')
-        except EnvironmentException:
-            pass
-        try:
             env.detect_d_compiler(MachineChoice.HOST)
             langs.append('d')
         except EnvironmentException:
@@ -3407,6 +3402,12 @@ int main(int argc, char **argv) {
             try:
                 env.detect_rust_compiler(MachineChoice.HOST)
                 langs.append('rust')
+            except EnvironmentException:
+                pass
+        if is_osx():
+            try:
+                env.detect_swift_compiler(MachineChoice.HOST)
+                langs.append('swift')
             except EnvironmentException:
                 pass
 
