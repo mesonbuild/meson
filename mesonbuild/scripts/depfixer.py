@@ -324,6 +324,15 @@ class Elf(DataSizes):
 
         if len(old_rpath) < len(new_rpath):
             sys.exit("New rpath must not be longer than the old one.")
+
+        # Clear the old rpath: if we're going to remove the entry, the path will
+        # remain in the binary, unused. However, it may diclose information,
+        # like the fact the binary was built with Meson, and the subprojects
+        # used. If we're going to change the rpath, we want to trim trailing
+        # junk (after the terminating \0), for the same reason.
+        self.bf.seek(rp_off)
+        self.bf.write(b'\0' * len(old_rpath))
+
         # The linker does read-only string deduplication. If there is a
         # string that shares a suffix with the rpath, they might get
         # dedupped. This means changing the rpath string might break something
@@ -335,9 +344,7 @@ class Elf(DataSizes):
         if not new_rpath:
             self.remove_rpath_entry(entrynum)
         else:
-            self.bf.seek(rp_off)
             self.bf.write(new_rpath)
-            self.bf.write(b'\0')
 
     def remove_rpath_entry(self, entrynum):
         sec = self.find_section(b'.dynamic')
