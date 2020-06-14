@@ -858,6 +858,18 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
         elif '/RTCs' in buildtype_args:
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+        # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
+        # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
+        if 'cpp' in target.compilers:
+            eh = self.environment.coredata.compiler_options[target.for_machine]['cpp']['eh']
+            if eh.value == 'a':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
+            elif eh.value == 's':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'SyncCThrow'
+            elif eh.value == 'none':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
+            else: # 'sc' or 'default'
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
         # End configuration
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
