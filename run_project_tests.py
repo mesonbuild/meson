@@ -669,11 +669,6 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
                 assert "val" in i
                 skip = False
 
-                # Add an empty matrix entry
-                if i['val'] is None:
-                    tmp_opts += [(None, False)]
-                    continue
-
                 # Skip the matrix entry if environment variable is present
                 if 'skip_on_env' in i:
                     for skip_env_var in i['skip_on_env']:
@@ -686,6 +681,11 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
                         if lang not in compiler_id_map or compiler_id_map[lang] not in id_list:
                             skip = True
                             break
+
+                # Add an empty matrix entry
+                if i['val'] is None:
+                    tmp_opts += [(None, skip)]
+                    continue
 
                 tmp_opts += [('{}={}'.format(key, i['val']), skip)]
 
