@@ -501,6 +501,12 @@ class Backend:
         target.rpath_dirs_to_remove.update([d.encode('utf8') for d in result])
         return tuple(result)
 
+    @staticmethod
+    def canonicalize_filename(fname):
+        for ch in ('/', '\\', ':'):
+            fname = fname.replace(ch, '_')
+        return fname
+
     def object_filename_from_source(self, target, source):
         assert isinstance(source, mesonlib.File)
         build_dir = self.environment.get_build_dir()
@@ -531,7 +537,7 @@ class Backend:
                 source = os.path.relpath(os.path.join(build_dir, rel_src),
                                          os.path.join(self.environment.get_source_dir(), target.get_subdir()))
         machine = self.environment.machines[target.for_machine]
-        return source.replace('/', '_').replace('\\', '_') + '.' + machine.get_object_suffix()
+        return self.canonicalize_filename(source) + '.' + machine.get_object_suffix()
 
     def determine_ext_objs(self, extobj, proj_dir_to_build_root):
         result = []
