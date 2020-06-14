@@ -461,12 +461,12 @@ class BoostDependency(ExternalDependency):
         # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
         assert(boost_root or boostroot)
 
-        for i in [boost_root, boostroot]:
-            if i:
-                raw_paths = i.split(os.pathsep)
+        for path, name in [(boost_root, 'BOOST_ROOT'), (boostroot, 'BOOSTROOT')]:
+            if path:
+                raw_paths = path.split(os.pathsep)
                 paths = [Path(x) for x in raw_paths]
                 if paths and any([not x.is_absolute() for x in paths]):
-                    raise DependencyException('Paths in {} must be absolute'.format(i))
+                    raise DependencyException('Paths in {} must be absolute'.format(name))
                 break
 
         self.check_and_set_roots(paths)
