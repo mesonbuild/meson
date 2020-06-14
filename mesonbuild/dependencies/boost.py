@@ -20,6 +20,7 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
+from ..envconfig import get_env_var
 from ..environment import Environment
 
 from .base import DependencyException, ExternalDependency, PkgConfigDependency
@@ -375,7 +376,8 @@ class BoostDependency(ExternalDependency):
             return
 
         # Next, look for paths in the environment
-        boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR', 'BOOST_ROOT', 'BOOSTROOT']]
+        boost_manual_env_list = ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR', 'BOOST_ROOT', 'BOOSTROOT']
+        boost_manual_env = [get_env_var(self.for_machine, self.env.is_cross_build, x) for x in boost_manual_env_list]
         if any(boost_manual_env):
             self.detect_boost_env()
             return
@@ -383,7 +385,7 @@ class BoostDependency(ExternalDependency):
         # Finally, look for paths from .pc files and from searching the filesystem
         self.detect_roots()
 
-    def check_and_set_roots(self, roots):
+    def check_and_set_roots(self, roots) -> None:
         roots = list(mesonlib.OrderedSet(roots))
         for j in roots:
             #   1. Look for the boost headers (boost/version.hpp)
@@ -401,7 +403,7 @@ class BoostDependency(ExternalDependency):
                 self.boost_root = j
                 break
 
-    def detect_boost_property_file(self, props):
+    def detect_boost_property_file(self, props) -> None:
         incdir = props.get('boost_includedir')
         libdir = props.get('boost_librarydir')
 
@@ -433,10 +435,13 @@ class BoostDependency(ExternalDependency):
         self.check_and_set_roots(paths)
 
     def detect_boost_env(self):
-        boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR']]
+        boost_includedir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_INCLUDEDIR')
+        boost_librarydir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_LIBRARYDIR')
+
+        boost_manual_env = [boost_includedir, boost_librarydir]
         if all(boost_manual_env):
-            inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
-            lib_dir = Path(os.environ['BOOST_LIBRARYDIR'])
+            inc_dir = Path(boost_includedir)
+            lib_dir = Path(boost_librarydir)
 
             if not inc_dir.is_absolute() or not lib_dir.is_absolute():
                 raise DependencyException('Paths given in BOOST_INCLUDEDIR and BOOST_LIBRARYDIR must be absolute')
@@ -450,12 +455,15 @@ class BoostDependency(ExternalDependency):
         elif any(boost_manual_env):
             raise DependencyException('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
 
-        # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
-        assert('BOOST_ROOT' in os.environ or 'BOOSTROOT' in os.environ)
+        boost_root = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_ROOT')
+        boostroot = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOSTROOT')
 
-        for i in ['BOOST_ROOT', 'BOOSTROOT']:
-            if i in os.environ:
-                raw_paths = os.environ[i].split(os.pathsep)
+        # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
+        assert(boost_root or boostroot)
+
+        for i in [boost_root, boostroot]:
+            if i:
+                raw_paths = i.split(os.pathsep)
                 paths = [Path(x) for x in raw_paths]
                 if paths and any([not x.is_absolute() for x in paths]):
                     raise DependencyException('Paths in {} must be absolute'.format(i))
