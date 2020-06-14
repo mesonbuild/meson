@@ -1974,7 +1974,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_filename = os.path.basename(src)
         else:
             src_filename = src
-        obj_basename = src_filename.replace('/', '_').replace('\\', '_')
+        obj_basename = self.canonicalize_filename(src_filename)
         rel_obj = os.path.join(self.get_target_private_dir(target), obj_basename)
         rel_obj += '.' + self.environment.machines[target.for_machine].get_object_suffix()
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
