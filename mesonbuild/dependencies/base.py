@@ -1087,8 +1087,9 @@ class CMakeDependency(ExternalDependency):
         # Setup the trace parser
         self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
 
+        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
-            CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info()
+            CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
         self.cmakeinfo = CMakeDependency.class_cmakeinfo[self.for_machine]
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
@@ -1098,10 +1099,8 @@ class CMakeDependency(ExternalDependency):
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
         cm_path = stringlistify(extract_as_list(kwargs, 'cmake_module_path'))
         cm_path = [x if os.path.isabs(x) else os.path.join(environment.get_source_dir(), x) for x in cm_path]
-        cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
         if cm_path:
             cm_args.append('-DCMAKE_MODULE_PATH=' + ';'.join(cm_path))
-
         if not self._preliminary_find_check(name, cm_path, self.cmakebin.get_cmake_prefix_paths(), environment.machines[self.for_machine]):
             mlog.debug('Preliminary CMake check failed. Aborting.')
             return
@@ -1112,7 +1111,7 @@ class CMakeDependency(ExternalDependency):
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _get_cmake_info(self):
+    def _get_cmake_info(self, cm_args):
         mlog.debug("Extracting basic cmake information")
         res = {}
 
@@ -1131,6 +1130,7 @@ class CMakeDependency(ExternalDependency):
 
             # Prepare options
             cmake_opts = temp_parser.trace_args() + ['.']
+            cmake_opts += cm_args
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
 
