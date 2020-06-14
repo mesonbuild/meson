@@ -432,7 +432,7 @@ sources in the build target:
 libfoo_gen_headers = custom_target('gen-headers', ..., output: 'foo-gen.h')
 libfoo_sources = files('foo-utils.c', 'foo-lib.c')
 # Add generated headers to the list of sources for the build target
-libfoo = library('foo', sources: libfoo_sources + libfoo_gen_headers.to_list())
+libfoo = library('foo', sources: [libfoo_sources + libfoo_gen_headers])
 ```
 
 Now let's say you have a new target that links to `libfoo`:
