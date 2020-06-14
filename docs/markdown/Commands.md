@@ -42,7 +42,7 @@ $ meson configure [-h] [--prefix PREFIX] [--bindir BINDIR]
                   [builddir]
 ```
 
-Reconfigures existing meson project.
+Changes options of a configured meson project.
 
 ```
 positional arguments:
@@ -135,7 +135,7 @@ meson configure builddir -Doption=new_value
 $ meson compile [-h] [-j JOBS] [-l LOAD_AVERAGE] [--clean] [-C BUILDDIR]
 ```
 
-Builds a default or specified target of a configured meson project.
+Builds a default or a specified target of a configured meson project.
 
 ```
 optional arguments:
@@ -389,9 +389,9 @@ $ meson setup [-h] [--prefix PREFIX] [--bindir BINDIR] [--datadir DATADIR]
               [builddir] [sourcedir]
 ```
 
-The default meson command (invoked if there was no COMMAND supplied).
-
 Configures a build directory for the meson project.
+
+This is the default meson command (invoked if there was no COMMAND supplied).
 
 ```
 positional arguments:
