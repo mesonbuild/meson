@@ -169,6 +169,8 @@ def download(wrap, repo_dir, options):
         mlog.log('  ->', mlog.red(str(e)))
 
 def foreach(wrap, repo_dir, options):
+    if options.type and wrap.type != options.type:
+        return
     mlog.log('Executing command in {}'.format(repo_dir))
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
@@ -223,6 +225,7 @@ def add_arguments(parser):
                    help=argparse.SUPPRESS)
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
+    p.add_argument('--type', default='', help='Restrict to subprojects of certain type (\'file\', \'git\', \'hg\', \'svn\')')
     p.set_defaults(subprojects_func=foreach)
 
 def run(options):
