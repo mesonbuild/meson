@@ -26,7 +26,6 @@ if T.TYPE_CHECKING:
     from .linkers import StaticLinker
     from .compilers import Compiler
 
-
 UNIXY_COMPILER_INTERNAL_LIBS = ['m', 'c', 'pthread', 'dl', 'rt']  # type: T.List[str]
 # execinfo is a compiler lib on FreeBSD and NetBSD
 if mesonlib.is_freebsd() or mesonlib.is_netbsd():
@@ -158,8 +157,8 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __getitem__(self, index: int) -> str:  # noqa: F811
         pass
 
-    @T.overload                                          # noqa: F811
-    def __getitem__(self, index: slice) -> T.List[str]:  # noqa: F811
+    @T.overload                                                     # noqa: F811
+    def __getitem__(self, index: slice) -> T.MutableSequence[str]:  # noqa: F811
         pass
 
     def __getitem__(self, index):  # noqa: F811
@@ -171,7 +170,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         pass
 
     @T.overload                                                       # noqa: F811
-    def __setitem__(self, index: slice, value: T.List[str]) -> None:  # noqa: F811
+    def __setitem__(self, index: slice, value: T.Iterable[str]) -> None:  # noqa: F811
         pass
 
     def __setitem__(self, index, value) -> None:  # noqa: F811
@@ -312,7 +311,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         new += self
         return new
 
-    def __eq__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __eq__(self, other: T.Any) -> T.Union[bool]:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):
