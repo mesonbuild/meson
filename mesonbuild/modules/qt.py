@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import shutil
 from .. import mlog
 from .. import build
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
@@ -59,7 +60,7 @@ class QtBaseModule(ExtensionModule):
             self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
             self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
 
-    def parse_qrc(self, state, rcc_file):
+    def qrc_nodes(self, state, rcc_file):
         if type(rcc_file) is str:
             abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
             rcc_dirname = os.path.dirname(abspath)
@@ -76,7 +77,16 @@ class QtBaseModule(ExtensionModule):
                     mlog.warning("malformed rcc file: ", os.path.join(state.subdir, rcc_file))
                     break
                 else:
-                    resource_path = child.text
+                    result.append(child.text)
+
+            return rcc_dirname, result
+        except Exception:
+            return []
+
+    def parse_qrc_deps(self, state, rcc_file):
+        rcc_dirname, nodes = self.qrc_nodes(state, rcc_file)
+        result = []
+        for resource_path in nodes:
                     # We need to guess if the pointed resource is:
                     #   a) in build directory -> implies a generated file
                     #   b) in source directory
@@ -100,9 +110,7 @@ class QtBaseModule(ExtensionModule):
                         # b)
                         else:
                             result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
-            return result
-        except Exception:
-            return []
+        return result
 
     @noPosargs
     @permittedKwargs({'method', 'required'})
@@ -142,7 +150,7 @@ class QtBaseModule(ExtensionModule):
             if args:
                 qrc_deps = []
                 for i in rcc_files:
-                    qrc_deps += self.parse_qrc(state, i)
+                    qrc_deps += self.parse_qrc_deps(state, i)
                 name = args[0]
                 rcc_kwargs = {'input': rcc_files,
                               'output': name + '.cpp',
@@ -152,7 +160,7 @@ class QtBaseModule(ExtensionModule):
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
-                    qrc_deps = self.parse_qrc(state, rcc_file)
+                    qrc_deps = self.parse_qrc_deps(state, rcc_file)
                     if type(rcc_file) is str:
                         basename = os.path.basename(rcc_file)
                     elif type(rcc_file) is File:
@@ -205,15 +213,42 @@ class QtBaseModule(ExtensionModule):
         return ModuleReturnValue(sources, sources)
 
     @FeatureNew('qt.compile_translations', '0.44.0')
-    @permittedKwargs({'ts_files', 'install', 'install_dir', 'build_by_default', 'method'})
+    @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['qresource'])
+    @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['rcc_extra_arguments'])
+    @permittedKwargs({'ts_files', 'qresource', 'rcc_extra_arguments', 'install', 'install_dir', 'build_by_default', 'method'})
     def compile_translations(self, state, args, kwargs):
-        ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in  ['ts_files', 'install_dir']]
+        ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in ['ts_files', 'install_dir']]
+        qresource = kwargs.get('qresource')
+        if qresource:
+            if ts_files:
+                raise MesonException('qt.compile_translations: Cannot specify both ts_files and qresource')
+            if os.path.dirname(qresource) != '':
+                raise MesonException('qt.compile_translations: qresource file name must not contain a subdirectory.')
+            qresource = File.from_built_file(state.subdir, qresource)
+            infile_abs = os.path.join(state.environment.source_dir, qresource.relative_name())
+            outfile_abs = os.path.join(state.environment.build_dir, qresource.relative_name())
+            os.makedirs(os.path.dirname(outfile_abs), exist_ok=True)
+            shutil.copy2(infile_abs, outfile_abs)
+            self.interpreter.add_build_def_file(infile_abs)
+
+            rcc_file, nodes = self.qrc_nodes(state, qresource)
+            for c in nodes:
+                if c.endswith('.qm'):
+                    ts_files.append(c.rstrip('.qm')+'.ts')
+                else:
+                    raise MesonException('qt.compile_translations: qresource can only contain ts files, found {}'.format(c))
+            results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs.get('rcc_extra_arguments', [])})
         self._detect_tools(state.environment, kwargs.get('method', 'auto'))
         translations = []
         for ts in ts_files:
             if not self.lrelease.found():
                 raise MesonException('qt.compile_translations: ' +
                                      self.lrelease.name + ' not found')
+            if qresource:
+                outdir = os.path.dirname(os.path.normpath(os.path.join(state.subdir, ts)))
+                ts = os.path.basename(ts)
+            else:
+                outdir = state.subdir
             cmd = [self.lrelease, '@INPUT@', '-qm', '@OUTPUT@']
             lrelease_kwargs = {'output': '@BASENAME@.qm',
                                'input': ts,
@@ -222,6 +257,9 @@ class QtBaseModule(ExtensionModule):
                                'command': cmd}
             if install_dir is not None:
                 lrelease_kwargs['install_dir'] = install_dir
-            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), state.subdir, state.subproject, lrelease_kwargs)
+            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), outdir, state.subproject, lrelease_kwargs)
             translations.append(lrelease_target)
-        return ModuleReturnValue(translations, translations)
+        if qresource:
+            return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])
+        else:
+            return ModuleReturnValue(translations, translations)
