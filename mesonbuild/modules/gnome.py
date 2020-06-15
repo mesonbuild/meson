@@ -803,7 +803,7 @@ class GnomeModule(ExtensionModule):
             mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument since v0.55')
         fatal_warnings = kwargs.get('fatal_warnings', False)
         if not isinstance(fatal_warnings, bool):
-            raise MesonException('fatal_warnings keyword argument must be string.')
+            raise MesonException('fatal_warnings keyword argument must be a boolean')
         if fatal_warnings:
             scan_command.append('--warn-error')
 
