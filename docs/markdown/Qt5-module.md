@@ -22,6 +22,12 @@ This method generates the necessary targets to build translation files with lrel
  - `install` when true, this target is installed during the install step (optional).
  - `install_dir` directory to install to (optional).
  - `build_by_default` when set to true, to have this target be built by default, that is, when invoking `meson compile`; the default value is false (optional).
+ - `qresource` rcc source file to extract ts_files from; cannot be used with ts_files kwarg. Available since v0.56.0.
+ - `rcc_extra_arguments`, any additional arguments to `rcc` (optional), when used with `qresource. Available since v0.56.0.
+
+Returns either: a list of custom targets for the compiled translations, or, if
+using a `qresource` file, a single custom target containing the processed
+source file, which should be passed to a main build target.
 
 ## has_tools
 
@@ -70,4 +76,15 @@ translations = qt5.compile_translations(ts_files : 'myTranslation_fr.ts', build_
 executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            include_directories: inc,
            dependencies : qt5_dep)
+```
+
+Sometimes, translations are embedded inside the binary using qresource files.
+In this case the ts files do not need to be explicitly listed. For example:
+
+```meson
+qt5 = import('qt5')
+qt5_dep = dependency('qt5', modules: ['Core', 'Gui'])
+lang_cpp = qt5.compile_translations(qresource: 'lang.qrc')
+executable('myprog', 'main.cpp', lang_cpp,
+           dependencies: qt5_dep)
 ```
