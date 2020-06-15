@@ -50,7 +50,7 @@ exe = executable('myexe', src)
 test('simple test', exe)
 ```
 
-Here we create a unit test called *simple test*, and which uses the built executable. When the tests are run with the `ninja test` command, the built executable is run. If it returns zero, the test passes. A non-zero return value indicates an error, which Meson will then report to the user.
+Here we create a unit test called *simple test*, and which uses the built executable. When the tests are run with the `meson test` command, the built executable is run. If it returns zero, the test passes. A non-zero return value indicates an error, which Meson will then report to the user.
 
 A note to Visual Studio users
 -----

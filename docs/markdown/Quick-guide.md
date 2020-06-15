@@ -93,8 +93,8 @@ are working on. The steps to take are very simple.
 ```console
 $ cd /path/to/source/root
 $ meson builddir && cd builddir
-$ ninja
-$ ninja test
+$ meson compile
+$ meson test
 ```
 
 The only thing to note is that you need to create a separate build
@@ -104,14 +104,14 @@ directory. This allows you to have multiple build trees with different
 configurations at the same time. This way generated files are not
 added into revision control by accident.
 
-To recompile after code changes, just type `ninja`. The build command
+To recompile after code changes, just type `meson compile`. The build command
 is always the same. You can do arbitrary changes to source code and
 build system files and Meson will detect those and will do the right
 thing. If you want to build optimized binaries, just use the argument
 `--buildtype=debugoptimized` when running Meson. It is recommended
 that you keep one build directory for unoptimized builds and one for
 optimized ones. To compile any given configuration, just go into the
-corresponding build directory and run `ninja`.
+corresponding build directory and run `meson compile`.
 
 Meson will automatically add compiler flags to enable debug
 information and compiler warnings (i.e. `-g` and `-Wall`). This means
@@ -128,9 +128,9 @@ build and install Meson projects are the following.
 ```console
 $ cd /path/to/source/root
 $ meson --prefix /usr --buildtype=plain builddir -Dc_args=... -Dcpp_args=... -Dc_link_args=... -Dcpp_link_args=...
-$ ninja -v -C builddir
-$ ninja -C builddir test
-$ DESTDIR=/path/to/staging/root ninja -C builddir install
+$ meson compile -C builddir
+$ meson test -C builddir
+$ DESTDIR=/path/to/staging/root meson install -C builddir
 ```
 
 The command line switch `--buildtype=plain` tells Meson not to add its
@@ -139,7 +139,7 @@ on used flags.
 
 This is very similar to other build systems. The only difference is
 that the `DESTDIR` variable is passed as an environment variable
-rather than as an argument to `ninja install`.
+rather than as an argument to `meson install`.
 
 As distro builds happen always from scratch, you might consider
 enabling [unity builds](Unity-builds.md) on your packages because they

@@ -227,8 +227,8 @@ in the `meson.build`.
 
 ## Tests
 
-Compilation and unit tests are done as usual by running the `ninja` and
-`ninja test` commands. A JSON formatted result log can be found in
+Compilation and unit tests are done as usual by running the `meson compile` and
+`meson test` commands. A JSON formatted result log can be found in
 `workspace/project/builddir/meson-logs/testlog.json`.
 
 When these tests fail, the user probably wants to run the failing test in a

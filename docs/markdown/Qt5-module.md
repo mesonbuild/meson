@@ -21,7 +21,7 @@ This method generates the necessary targets to build translation files with lrel
  - `ts_files`, the list of input translation files produced by Qt's lupdate tool.
  - `install` when true, this target is installed during the install step (optional).
  - `install_dir` directory to install to (optional).
- - `build_by_default` when set to true, to have this target be built by default, that is, when invoking plain ninja; the default value is false (optional).
+ - `build_by_default` when set to true, to have this target be built by default, that is, when invoking `meson compile`; the default value is false (optional).
 
 ## has_tools
 

@@ -9,12 +9,11 @@ from the source tree with the command `/path/to/source/meson.py`. Meson may
 also be installed in which case the command is simply `meson`. In this manual
 we only use the latter format for simplicity.
 
-Additionally, the invocation can pass options to meson. The list of options is
-documented [here](Builtin-options.md).
-
 At the time of writing only a command line version of Meson is available. This
 means that Meson must be invoked using the terminal. If you wish to use the
 MSVC compiler, you need to run Meson under "Visual Studio command prompt".
+
+All available meson commands are listed on the [commands reference page](Commands.md).
 
 ## Configuring the build directory
 
@@ -40,6 +39,9 @@ Meson then loads the build configuration file and writes the corresponding
 build backend in the build directory. By default Meson generates a *debug
 build*, which turns on basic warnings and debug information and disables
 compiler optimizations.
+
+Additionally, the invocation can pass options to meson. The list of options is
+documented [here](Builtin-options.md).
 
 You can specify a different type of build with the `--buildtype` command line
 argument. It can have one of the following values.
@@ -83,7 +85,7 @@ during configuration time. As an example, here is how you would use Meson to
 generate a Visual studio solution.
 
 ```sh
-meson setup <build dir> --backend=vs2010
+meson setup <build dir> --backend=vs
 ```
 
 You can then open the generated solution with Visual Studio and compile it in
@@ -105,9 +107,18 @@ linker arguments needed.
 
 ## Building from the source
 
-If you are not using an IDE, Meson uses the [Ninja build
-system](https://ninja-build.org/) to actually build the code. To start the
-build, simply type the following command.
+To start the build, simply type the following command.
+
+```sh
+meson compile -C builddir
+```
+
+See [`meson compile` description](Commands.md#compile) for more info.
+
+### Building directly with ninja
+
+By default Meson uses the [Ninja build system](https://ninja-build.org/) to 
+actually build the code. To start the build, simply type the following command.
 
 ```sh
 ninja -C builddir
@@ -133,19 +144,28 @@ Meson provides native support for running tests. The command to do that is
 simple.
 
 ```sh
-ninja -C builddir test
+meson test -C builddir
 ```
+
+See [`meson test` description](Commands.md#test) for more info.
 
 Meson does not force the use of any particular testing framework. You are free
 to use GTest, Boost Test, Check or even custom executables.
+
+Note: it can be also invoked directly with ninja with the following command:
+```sh
+ninja -C builddir test
+```
 
 ## Installing
 
 Installing the built software is just as simple.
 
 ```sh
-ninja -C builddir install
+meson install -C builddir
 ```
+
+See [`meson install` description](Commands.md#install) for more info.
 
 Note that Meson will only install build targets explicitly tagged as
 installable, as detailed in the [installing targets
@@ -157,7 +177,12 @@ Meson also supports the `DESTDIR` variable used in e.g. building packages. It
 is used like this:
 
 ```sh
-DESTDIR=/path/to/staging ninja -C builddir install
+DESTDIR=/path/to/staging meson install -C builddir
+```
+
+Note: it can be also invoked directly with ninja with the following command:
+```sh
+ninja -C builddir install
 ```
 
 ## Command line help

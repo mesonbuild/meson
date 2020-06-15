@@ -75,7 +75,7 @@ test machine. You can override this with the environment variable
 `MESON_TESTTHREADS` like this.
 
 ```console
-$ MESON_TESTTHREADS=5 ninja test
+$ MESON_TESTTHREADS=5 meson test
 ```
 
 ## Priorities
@@ -122,8 +122,7 @@ The goal of the meson test tool is to provide a simple way to run tests in a
 variety of different ways. The tool is designed to be run in the build
 directory.
 
-The simplest thing to do is just to run all tests, which is equivalent to
-running `ninja test`.
+The simplest thing to do is just to run all tests.
 
 ```console
 $ meson test
