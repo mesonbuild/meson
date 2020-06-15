@@ -347,7 +347,6 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     elif trial in {'ip30', 'ip35'}:
         trial = 'mips64'
 
-
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
     # reliable way to know is to check the compiler defines.
@@ -443,7 +442,7 @@ def machine_info_can_run(machine_info: MachineInfo):
         (machine_info.cpu_family == true_build_cpu_family) or \
         ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86'))
 
-def search_version(text):
+def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
     # stuff like this:
     # (Sourcery CodeBench Lite 2014.05-29) 4.8.3 20140320 (prerelease)
@@ -477,6 +476,13 @@ def search_version(text):
     match = version_regex.search(text)
     if match:
         return match.group(0)
+
+    # try a simpler regex that has like "blah 2020.01.100 foo" or "blah 2020.01 foo"
+    version_regex = re.compile(r"(\d{1,4}\.\d{1,4}\.?\d{0,4})")
+    match = version_regex.search(text)
+    if match:
+        return match.group(0)
+
     return 'unknown version'
 
 class Environment:
