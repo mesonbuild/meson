@@ -800,7 +800,7 @@ class GnomeModule(ExtensionModule):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
 
         if '--warn-error' in scan_command:
-            mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument')
+            mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument since v0.55')
         fatal_warnings = kwargs.get('fatal_warnings', False)
         if not isinstance(fatal_warnings, bool):
             raise MesonException('fatal_warnings keyword argument must be string.')
