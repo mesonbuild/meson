@@ -39,7 +39,7 @@ $ meson --prefix=/tmp/myapp.app \
         <other flags you might need>
 ```
 
-Now when we do `ninja install` the bundle is properly staged. If you
+Now when we do `meson install` the bundle is properly staged. If you
 have any resource files or data, you need to install them into
 `Contents/Resources` either by custom install commands or specifying
 more install paths to the Meson command.

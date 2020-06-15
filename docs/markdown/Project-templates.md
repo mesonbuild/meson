@@ -16,8 +16,8 @@ $ meson init --language=c --name=myproject --version=0.1
 ```
 
 This would create the build definitions for a helloworld type
-project. The result can be compiled as usual. For example compiling it
-with Ninja could be done like this:
+project. The result can be compiled as usual. For example it
+could be done like this:
 
 ```
 $ meson setup builddir

@@ -183,21 +183,7 @@ optional arguments:
   --no-tests             Do not build and test generated packages.
 ```
 
-This creates a file called `projectname-version.tar.xz` in the build
-tree subdirectory `meson-dist`. This archive contains the full
-contents of the latest commit in revision control including all the
-submodules (recursively). All revision control metadata is removed.
-Meson then takes
-this archive and tests that it works by doing a full compile + test +
-install cycle. If all these pass, Meson will then create a SHA-256
-checksum file next to the archive.
-
-**Note**: Meson behaviour is different from Autotools. The Autotools
-"dist" target packages up the current source tree. Meson packages
-the latest revision control commit. The reason for this is that it
-prevents developers from doing accidental releases where the
-distributed archive does not match any commit in revision control
-(especially the one tagged for the release).
+See [notes about creating releases](Creating-releases.md) for more info.
 
 #### Examples:
 
@@ -310,7 +296,7 @@ meson introspect builddir
 $ meson install [-h] [-C WD] [--no-rebuild] [--only-changed] [--quiet]
 ```
 
-Installs the project to the prefix specified in `setup`.
+Installs the project to the prefix specified in [`setup`](#setup).
 
 ```
 optional arguments:
@@ -325,7 +311,7 @@ See [the installation documentation](Installing.md) for more info.
 
 #### Examples:
 
-Install project to `prefix` (see [`setup`](#setup)):
+Install project to `prefix`:
 ```
 meson install -C builddir
 ```

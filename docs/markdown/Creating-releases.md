@@ -10,9 +10,17 @@ or zip format) of the source code. They do not contain any revision
 control metadata, only the source code.
 
 Meson provides a simple way of generating these. It consists of a
-single command:
+single command *(available since 0.52.0)*:
 
-    ninja dist
+```sh
+meson dist
+```
+
+or alternatively (on older meson versions with `ninja` backend):
+
+```sh
+ninja dist
+```
 
 This creates a file called `projectname-version.tar.xz` in the build
 tree subdirectory `meson-dist`. This archive contains the full

@@ -36,8 +36,8 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM YOUR/REPO:eoan > Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit .; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && ninja -C builddir test"; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && ninja -C builddir test; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run withgit /bin/sh -c "cd /root && TRAVIS=true CC=$CC CXX=$CXX meson builddir && meson test -C builddir"; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then SDKROOT=$(xcodebuild -version -sdk macosx Path) meson builddir && meson test -C builddir; fi
 ```
 
 ## CircleCi for Linux (with Docker)
@@ -69,7 +69,7 @@ jobs:
     steps:
       - checkout
       - run: meson setup builddir --backend ninja
-      - run: ninja -C builddir
+      - run: meson compile -C builddir
       - run: meson test -C builddir
 
   meson_debian_build:
@@ -77,7 +77,7 @@ jobs:
     steps:
       - checkout
       - run: meson setup builddir --backend ninja
-      - run: ninja -C builddir
+      - run: meson compile -C builddir
       - run: meson test -C builddir
 
   meson_fedora_build:
@@ -85,7 +85,7 @@ jobs:
     steps:
       - checkout
       - run: meson setup builddir --backend ninja
-      - run: ninja -C builddir
+      - run: meson compile -C builddir
       - run: meson test -C builddir
 
 workflows:
@@ -138,10 +138,10 @@ install:
 build_script:
   - cmd: echo Building on %arch% with %compiler%
   - cmd: meson --backend=ninja builddir
-  - cmd: ninja -C builddir
+  - cmd: meson compile -C builddir
 
 test_script:
-  - cmd: ninja -C builddir test
+  - cmd: meson test -C builddir
 ```
 
 ### Qt
@@ -187,8 +187,8 @@ install:
 
 script:
   - meson builddir
-  - ninja -C builddir
-  - ninja -C builddir test
+  - meson compile -C builddir
+  - meson test -C builddir
 ```
 
 ## GitHub Actions

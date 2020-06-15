@@ -23,9 +23,9 @@ as follows:
 
 | entry | value |
 | ----- | ----- |
-|build  | `ninja -C $(Configuration)` |
-|clean  | `ninja -C $(Configuration) clean` |
-|rebuild| `ninja -C $(Configuration) clean all|
+|build  | `meson compile -C $(Configuration)` |
+|clean  | `meson compile -C $(Configuration) --clean` |
+|rebuild| `meson compile -C $(Configuration) --clean && meson compile -C $(Configuration)` |
 |Output | `$(Configuration)\name_of_your_executable.exe|
 
 
