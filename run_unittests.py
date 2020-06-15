@@ -40,7 +40,7 @@ from contextlib import contextmanager
 from glob import glob
 from pathlib import (PurePath, Path)
 from distutils.dir_util import copy_tree
-import typing
+import typing as T
 
 import mesonbuild.mlog
 import mesonbuild.depfile
@@ -312,8 +312,14 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(searchfunc('1.2.3'), '1.2.3')
         self.assertEqual(searchfunc('foobar 2016.10.28 1.2.3'), '1.2.3')
         self.assertEqual(searchfunc('2016.10.28 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('foobar 2016.10.128'), 'unknown version')
-        self.assertEqual(searchfunc('2016.10.128'), 'unknown version')
+        self.assertEqual(searchfunc('foobar 2016.10.128'), '2016.10.128')
+        self.assertEqual(searchfunc('2016.10.128'), '2016.10.128')
+        self.assertEqual(searchfunc('2016.10'), '2016.10')
+        self.assertEqual(searchfunc('2016.10 1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('oops v1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('2016.oops 1.2.3'), '1.2.3')
+        self.assertEqual(searchfunc('2016.x'), 'unknown version')
+
 
     def test_mode_symbolic_to_bits(self):
         modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits
@@ -7768,7 +7774,7 @@ class CrossFileTests(BasePlatformTests):
     """
 
     def _cross_file_generator(self, *, needs_exe_wrapper: bool = False,
-                              exe_wrapper: typing.Optional[typing.List[str]] = None) -> str:
+                              exe_wrapper: T.Optional[T.List[str]] = None) -> str:
         if is_windows():
             raise unittest.SkipTest('Cannot run this test on non-mingw/non-cygwin windows')
         if is_sunos():
