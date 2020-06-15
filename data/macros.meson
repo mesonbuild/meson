@@ -22,13 +22,19 @@
         --wrap-mode=%{__meson_wrap_mode} \
         --auto-features=%{__meson_auto_features} \
         %{_vpath_srcdir} %{_vpath_builddir} \
-	%{nil}}
+        %{nil}}
 
 %meson_build \
-    %ninja_build -C %{_vpath_builddir}
+    %{shrink:%{__meson} compile \
+        -C %{_vpath_builddir} \
+        -j %{_smp_build_ncpus} \
+        %{nil}}
 
 %meson_install \
-    %ninja_install -C %{_vpath_builddir}
+    %{shrink:DESTDIR=%{buildroot} %{__meson} install \
+        -C %{_vpath_builddir} \
+        --no-rebuild \
+        %{nil}}
 
 %meson_test \
     %{shrink:%{__meson} test \
