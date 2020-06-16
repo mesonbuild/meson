@@ -778,11 +778,6 @@ class CoreData:
                 k = '{}:{}'.format(subproject, k)
             cmd_line_options[k] = v
 
-        # Override project default_options using conf files (cross or native)
-        for k, v in env.paths.host:
-            if v is not None:
-                cmd_line_options[k] = v
-
         from .compilers import all_languages
         # Report that [properties]c_args
         for lang in all_languages:

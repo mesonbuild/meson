@@ -27,7 +27,7 @@ from .mesonlib import (
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, Directories, MachineInfo,
+    BinaryTable, MachineInfo,
     Properties, known_cpu_families,
 )
 from . import compilers
@@ -548,11 +548,6 @@ class Environment:
         # Misc other properties about each machine.
         properties = PerMachineDefaultable()
 
-        # Store paths for native and cross build files. There is no target
-        # machine information here because nothing is installed for the target
-        # architecture, just the build and host architectures
-        paths = PerMachineDefaultable()
-
         # We only need one of these as project options are not per machine
         user_options = {}
 
@@ -580,11 +575,9 @@ class Environment:
                         project = ''
                     store[project] = config.get(section, {})
 
-
         if self.coredata.config_files is not None:
             config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
-            paths.build = Directories(**config.get('paths', {}))
             properties.build = Properties(config.get('properties', {}))
 
             # Don't run this if there are any cross files, we don't want to use
@@ -592,6 +585,9 @@ class Environment:
             if not self.coredata.cross_files:
                 load_options('project options', user_options)
             meson_options.build = {}
+            if config.get('paths') is not None:
+                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
+                load_options('paths', meson_options.build)
             load_options('built-in options', meson_options.build)
 
         ## Read in cross file(s) to override host machine configuration
@@ -604,9 +600,11 @@ class Environment:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
-            paths.host = Directories(**config.get('paths', {}))
             load_options('project options', user_options)
             meson_options.host = {}
+            if config.get('paths') is not None:
+                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
+                load_options('paths', meson_options.host)
             load_options('built-in options', meson_options.host)
 
         ## "freeze" now initialized configuration, and "save" to the class.
@@ -614,18 +612,8 @@ class Environment:
         self.machines = machines.default_missing()
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
-        self.paths = paths.default_missing()
         self.user_options = user_options
         self.meson_options = meson_options.default_missing()
-
-        # Ensure that no paths are passed via built-in options:
-        if '' in self.meson_options.host:
-            for each in coredata.BUILTIN_DIR_OPTIONS.keys():
-                # These are not per-subdirectory and probably never will be
-                if each in self.meson_options.host['']:
-                    raise EnvironmentException(
-                        'Invalid entry {} in [built-in options] section. '
-                        'Use the [paths] section instead.'.format(each))
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:

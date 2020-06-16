@@ -172,8 +172,10 @@ An incomplete list of internally used programs that can be overridden here is:
 
 ### Paths and Directories
 
+*Deprecated in 0.55.0* use the built-in section instead.
+
 As of 0.50.0 paths and directories such as libdir can be defined in the native
-and cross files in a paths section. These should be strings
+and cross files in a paths section. These should be strings.
 
 ```ini
 [paths]

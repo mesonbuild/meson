@@ -8151,6 +8151,40 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find c_args in build options?')
 
+    def test_builtin_options_paths(self):
+        # the properties section can have lang_args, and those need to be
+        # overwritten by the built-in options
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({
+            'built-in options': {'bindir': 'foo'},
+            'paths': {'bindir': 'bar'},
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'bindir':
+                self.assertEqual(each['value'], 'foo')
+                break
+        else:
+            self.fail('Did not find bindir in build options?')
+
+    def test_builtin_options_paths_legacy(self):
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({
+            'built-in options': {'default_library': 'static'},
+            'paths': {'bindir': 'bar'},
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'bindir':
+                self.assertEqual(each['value'], 'bar')
+                break
+        else:
+            self.fail('Did not find bindir in build options?')
+
 
 class CrossFileTests(BasePlatformTests):
 
