@@ -161,10 +161,16 @@ class UserComboOption(UserOption[str]):
 
     def validate_value(self, value):
         if value not in self.choices:
+            if isinstance(value, bool):
+                _type = 'boolean'
+            elif isinstance(value, (int, float)):
+                _type = 'number'
+            else:
+                _type = 'string'
             optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
-            raise MesonException('Value "{}" for combo option "{}" is not one of the choices.'
-                                 ' Possible choices are: {}.'.format(
-                                     value, self.description, optionsstring))
+            raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
+                                 ' Possible choices are (as string): {}.'.format(
+                                     value, _type, self.description, optionsstring))
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
