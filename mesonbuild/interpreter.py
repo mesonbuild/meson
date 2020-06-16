@@ -3572,7 +3572,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
         force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
-        forcefallback = (wrap_mode == WrapMode.forcefallback or name in force_fallback_for) and has_fallback
+        forcefallback = has_fallback and (wrap_mode == WrapMode.forcefallback or \
+                                          name in force_fallback_for or \
+                                          dirname in force_fallback_for)
         if name != '' and not forcefallback:
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not has_fallback
@@ -3625,11 +3627,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         return fbinfo
 
     def dependency_fallback(self, name, display_name, kwargs):
+        dirname, varname = self.get_subproject_infos(kwargs)
         required = kwargs.get('required', True)
 
         # Explicitly listed fallback preferences for specific subprojects
         # take precedence over wrap-mode
-        if name in self.coredata.get_builtin_option('force_fallback_for'):
+        force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+        if name in force_fallback_for or dirname in force_fallback_for:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback was forced for that specific subproject')
         elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
@@ -3646,7 +3650,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name))
-        dirname, varname = self.get_subproject_infos(kwargs)
         sp_kwargs = {
             'default_options': kwargs.get('default_options', []),
             'required': required,
