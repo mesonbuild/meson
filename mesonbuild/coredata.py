@@ -374,7 +374,7 @@ class CoreData:
         self.compiler_options = PerMachine(
             defaultdict(dict),
             defaultdict(dict),
-        ) # : PerMachine[T.defaultdict[str, OptionDictType]]
+        ) # type: PerMachine[T.defaultdict[str, OptionDictType]]
         self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
