@@ -34,6 +34,7 @@ $ meson configure [-h] [--prefix PREFIX] [--bindir BINDIR]
                   [--unity-size UNITY_SIZE] [--warnlevel {0,1,2,3}]
                   [--werror]
                   [--wrap-mode {default,nofallback,nodownload,forcefallback}]
+                  [--force-fallback-for FORCE_FALLBACK_FOR]
                   [--pkg-config-path PKG_CONFIG_PATH]
                   [--build.pkg-config-path BUILD.PKG_CONFIG_PATH]
                   [--cmake-prefix-path CMAKE_PREFIX_PATH]
@@ -90,6 +91,9 @@ optional arguments:
   --werror                              Treat warnings as errors
   --wrap-mode {default,nofallback,nodownload,forcefallback}
                                         Wrap mode (default: default).
+  --force-fallback-for FORCE_FALLBACK_FOR
+                                        Force fallback for those subprojects
+                                        (default: []).
   --pkg-config-path PKG_CONFIG_PATH     List of additional paths for pkg-config
                                         to search (default: []). (just for host
                                         machine)
@@ -379,6 +383,7 @@ $ meson setup [-h] [--prefix PREFIX] [--bindir BINDIR] [--datadir DATADIR]
               [--stdsplit] [--strip] [--unity {on,off,subprojects}]
               [--unity-size UNITY_SIZE] [--warnlevel {0,1,2,3}] [--werror]
               [--wrap-mode {default,nofallback,nodownload,forcefallback}]
+              [--force-fallback-for FORCE_FALLBACK_FOR]
               [--pkg-config-path PKG_CONFIG_PATH]
               [--build.pkg-config-path BUILD.PKG_CONFIG_PATH]
               [--cmake-prefix-path CMAKE_PREFIX_PATH]
@@ -440,6 +445,9 @@ optional arguments:
   --werror                              Treat warnings as errors
   --wrap-mode {default,nofallback,nodownload,forcefallback}
                                         Wrap mode (default: default).
+  --force-fallback-for FORCE_FALLBACK_FOR
+                                        Force fallback for those subprojects
+                                        (default: []).
   --pkg-config-path PKG_CONFIG_PATH     List of additional paths for pkg-config
                                         to search (default: []). (just for host
                                         machine)
