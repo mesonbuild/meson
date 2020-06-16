@@ -6127,6 +6127,37 @@ class LinuxlikeTests(BasePlatformTests):
         for v in installed.values():
             self.assertTrue('prog' in v or 'foo' in v)
 
+    def _file_contains(self, filename, needle):
+        with open(filename, 'rb') as f:
+            s = f.read()
+            return s.find(needle) > 0
+
+    def test_clean_rpath(self):
+        '''
+        Test that rpath area is fully cleaned out upon install.
+        '''
+        if is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+
+        testdir = os.path.join(self.unit_test_dir, '78 clean-rpath')
+        oldinstalldir = self.installdir
+
+        # Build an app that uses that installed library.
+        self.init(testdir)
+        self.build()
+        self.install()
+
+        installed_exe = os.path.join(self.installdir, 'usr/bin/main')
+        self.assertTrue(os.path.isfile(installed_exe))
+        # Installing wipes out the build directory from RPATH.
+        # Verify that it's really most completely gone.
+        # (Thanks to reproducible-builds.org, it's becoming safe to assert
+        # the build directory is not spuriously mentioned in stripped,
+        # installed binaries.)
+        needle = b'unityval-dirname'
+        os.system('cp %s /tmp/the-file' % installed_exe)
+        self.assertFalse(self._file_contains(installed_exe, needle))
+
     @skipIfNoPkgconfig
     def test_order_of_l_arguments(self):
         testdir = os.path.join(self.unit_test_dir, '8 -L -l order')
