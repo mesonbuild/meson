@@ -15,8 +15,6 @@ jobs:
 - job: vs2017
   pool:
     vmImage: VS2017-Win2016
-  variables:
-    CI_JOB_VS2017: 1
 
   strategy:
     matrix:
