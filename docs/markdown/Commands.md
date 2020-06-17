@@ -233,7 +233,7 @@ optional arguments:
   -e EXECUTABLE, --executable EXECUTABLE
                                         executable name. default: project name
   -d DEPS, --deps DEPS                  dependencies, comma-separated
-  -l {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust}, --language {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust}
+  -l {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,swift}, --language {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,swift}
                                         project language. default: autodetected
                                         based on source files
   -b, --build                           build after generation
