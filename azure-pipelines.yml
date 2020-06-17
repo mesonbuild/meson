@@ -45,6 +45,8 @@ jobs:
 - job: vs2019
   pool:
     vmImage: windows-2019
+  variables:
+    CI_JOB_VS2019: 1
 
   strategy:
     matrix:
