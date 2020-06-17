@@ -14,6 +14,7 @@
 from mesonbuild.templates.fortrantemplates import FortranProject
 from mesonbuild.templates.objcpptemplates import ObjCppProject
 from mesonbuild.templates.dlangtemplates import DlangProject
+from mesonbuild.templates.swifttemplates import SwiftProject
 from mesonbuild.templates.rusttemplates import RustProject
 from mesonbuild.templates.javatemplates import JavaProject
 from mesonbuild.templates.cudatemplates import CudaProject
@@ -31,6 +32,7 @@ def sameple_generator(options):
         'cuda': CudaProject,
         'objc': ObjCProject,
         'objcpp': ObjCppProject,
+        'swift': SwiftProject,
         'java': JavaProject,
         'd': DlangProject,
         'rust': RustProject,

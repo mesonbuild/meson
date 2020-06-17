@@ -33,7 +33,7 @@ from mesonbuild.templates.mesontemplates import create_meson_build
 
 FORTRAN_SUFFIXES = {'.f', '.for', '.F', '.f90', '.F90'}
 LANG_SUFFIXES = {'.c', '.cc', '.cpp', '.cs', '.cu', '.d', '.m', '.mm', '.rs', '.java'} | FORTRAN_SUFFIXES
-LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp'}
+LANG_SUPPORTED = {'c', 'cpp', 'cs', 'cuda', 'd', 'fortran', 'java', 'rust', 'objc', 'objcpp', 'swift'}
 
 DEFAULT_PROJECT = 'executable'
 DEFAULT_VERSION = '0.1'
@@ -124,6 +124,9 @@ def autodetect_options(options, sample: bool = False) -> None:
                 break
             if f.suffix == '.java':
                 options.language = 'java'
+                break
+            if f.suffix == '.swift':
+                options.language = 'swift'
                 break
         if not options.language:
             raise SystemExit("Can't autodetect language, please specify it with -l.")
