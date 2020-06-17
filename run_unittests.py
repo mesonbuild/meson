@@ -4830,6 +4830,8 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(parsed_help['arguments'], parsed_section['arguments'])
 
     def test_coverage(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
         gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
         if not gcovr_exe:
             raise unittest.SkipTest('gcovr not found, or too old')
@@ -4847,6 +4849,8 @@ recommended as it is not supported on some platforms''')
         self.run_target('coverage')
 
     def test_coverage_html(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
         gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
         if not gcovr_exe:
             raise unittest.SkipTest('gcovr not found, or too old')
@@ -4864,6 +4868,8 @@ recommended as it is not supported on some platforms''')
         self.run_target('coverage-html')
 
     def test_coverage_text(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
         gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
         if not gcovr_exe:
             raise unittest.SkipTest('gcovr not found, or too old')
@@ -4881,6 +4887,8 @@ recommended as it is not supported on some platforms''')
         self.run_target('coverage-text')
 
     def test_coverage_xml(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
         gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
         if not gcovr_exe:
             raise unittest.SkipTest('gcovr not found, or too old')
