@@ -14,23 +14,19 @@ Since a build directory is fully self contained and treats the source tree as a 
 
 The first thing to do is to set up the default build, that is, the one we are going to use over 90% of the time. In this we use the system compiler and build with debug enabled and no optimizations so it builds as fast as possible. This is the default project type for Meson, so setting it up is simple.
 
-    mkdir builddir
-    meson builddir
+    meson setup builddir
 
 Another common setup is to build with debug and optimizations to, for example, run performance tests. Setting this up is just as simple.
 
-    mkdir buildopt
-    meson --buildtype=debugoptimized buildopt
+    meson setup --buildtype=debugoptimized buildopt
 
 For systems where the default compiler is GCC, we would like to compile with Clang, too. So let's do that.
 
-    mkdir buildclang
-    CC=clang CXX=clang++ meson buildclang
+    CC=clang CXX=clang++ meson setup buildclang
 
 You can add cross builds, too. As an example, let's set up a Linux -> Windows cross compilation build using MinGW.
 
-    mkdir buildwine
-    meson --cross-file=mingw-cross.txt buildwine
+    meson setup --cross-file=mingw-cross.txt buildwine
 
 The cross compilation file sets up Wine so that not only can you compile your application, you can also run the unit test suite just by issuing the command `ninja test`.
 
@@ -41,8 +37,7 @@ To compile any of these build types, just cd into the corresponding build direct
 Separate build directories allows easy integration for various different kinds of tools. As an example, Clang comes with a static analyzer. It is meant to be run from scratch on a given source tree. The steps to run it with Meson are very simple.
 
     rm -rf buildscan
-    mkdir buildscan
-    scan-build meson buildscan
+    scan-build meson setup buildscan
     cd buildscan
     scan-build ninja
 
