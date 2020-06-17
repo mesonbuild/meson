@@ -4783,80 +4783,15 @@ recommended as it is not supported on some platforms''')
         '''
         Test that all listed meson commands are documented in Commands.md.
         '''
-        help_usage_start_pattern = re.compile(r'^usage:[\t ]*[\r\n]*', re.MULTILINE)
-        help_positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        help_options_start_pattern = re.compile(r'^optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
-        help_commands_start_pattern = re.compile(r'^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+', re.MULTILINE)
 
-        def get_next_start(iterators, end):
-            return next((i.start() for i in iterators if i), end)
-
-        def parse_help(help):
-            help_len = len(help)
-            usage = help_usage_start_pattern.search(help)
-            positionals = help_positional_start_pattern.search(help)
-            options = help_options_start_pattern.search(help)
-            commands = help_commands_start_pattern.search(help)
-
-            arguments_start = get_next_start([positionals, options, commands], None)
-            self.assertIsNotNone(arguments_start, 'Cmd command is missing argument list')
-
-            return {
-                'usage': help[usage.end():arguments_start],
-                'arguments': help[arguments_start:help_len],
-            }
-
-        md_code_pattern = re.compile(r'^```[\r\n]*', re.MULTILINE)
-        md_usage_pattern = re.compile(r'^\$ ', re.MULTILINE)
-
-        def parse_section(text, section_start, section_end):
-            matches = [i
-                       for i in md_code_pattern.finditer(text, pos=section_start, endpos=section_end)]
-            self.assertGreaterEqual(len(matches), 4, '.md command is missing usage description and/or argument list')
-
-            usage = md_usage_pattern.search(text, pos=matches[0].end(), endpos=matches[1].start())
-
-            return {
-                'usage': text[usage.end():matches[1].start()],
-                'arguments': text[matches[2].end():matches[3].start()],
-            }
-
-        def normalize_text(text):
-            # clean up formatting
-            out = re.sub(r'( {2,}|\t+)', r' ', text, flags=re.MULTILINE) # replace whitespace chars with a single space
-            out = re.sub(r'\r\n+', r'\r', out, flags=re.MULTILINE) # replace newlines with a single linux EOL
-            out = re.sub(r'(^ +| +$)', '', out, flags=re.MULTILINE) # strip lines
-            out = re.sub(r'(^\n)', '', out, flags=re.MULTILINE) # remove empty lines
-            return out
-
-        def clean_dir_arguments(text):
-            # Remove platform specific defaults
-            args = [
-                'prefix',
-                'bindir',
-                'datadir',
-                'includedir',
-                'infodir',
-                'libdir',
-                'libexecdir',
-                'localedir',
-                'localstatedir',
-                'mandir',
-                'sbindir',
-                'sharedstatedir',
-                'sysconfdir'
-            ]
-            out = text
-            for a in args:
-                out = re.sub(r'(--' + a + r' .+?)[ |\n]\(default:.+?\)(\.)?', r'\1\2', out, flags=re.MULTILINE|re.DOTALL)
-            return out
-
-        ## Get command sections
+        doc_path = 'docs/templates/Commands.md'
 
         md = None
-        with open('docs/markdown/Commands.md', encoding='utf-8') as f:
+        with open(doc_path, encoding='utf-8') as f:
             md = f.read()
         self.assertIsNotNone(md)
+
+        ## Get command sections
 
         section_pattern = re.compile(r'^### (.+)$', re.MULTILINE)
         md_command_section_matches = [i for i in section_pattern.finditer(md)]
@@ -4872,26 +4807,24 @@ recommended as it is not supported on some platforms''')
         help_output = self._run(self.meson_command + ['--help'])
         help_commands = set(c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(','))
 
-        self.assertEqual(md_commands | {'help'}, help_commands)
+        self.assertEqual(md_commands | {'help'}, help_commands, 'Doc file: `{}`'.format(doc_path))
 
-        ## Validate command options
+        ## Validate that each section has proper placeholders
+
+        def get_data_pattern(command):
+            return re.compile(
+                r'^```[\r\n]'
+                r'{{ cmd_help\[\'' + command + r'\'\]\[\'usage\'\] }}[\r\n]'
+                r'^```[\r\n]'
+                r'.*?'
+                r'^```[\r\n]'
+                r'{{ cmd_help\[\'' + command + r'\'\]\[\'arguments\'\] }}[\r\n]'
+                r'^```',
+                flags = re.MULTILINE|re.DOTALL)
 
         for command in md_commands:
-            print('Current command: {}'.format(command))
-
-            help_cmd_output = self._run(self.meson_command + [command, '--help'], override_envvars={'COLUMNS': '80'})
-
-            parsed_help = parse_help(help_cmd_output)
-            parsed_section = parse_section(md, *md_command_sections[command])
-
-            for p in [parsed_help, parsed_section]:
-                p['usage'] = normalize_text(p['usage'])
-                p['arguments'] = normalize_text(p['arguments'])
-            if command in ['setup', 'configure']:
-                parsed_help['arguments'] = clean_dir_arguments(parsed_help['arguments'])
-
-            self.assertEqual(parsed_help['usage'], parsed_section['usage'])
-            self.assertEqual(parsed_help['arguments'], parsed_section['arguments'])
+            m = get_data_pattern(command).search(md, pos=md_command_sections[command][0], endpos=md_command_sections[command][1])
+            self.assertIsNotNone(m, 'Command `{}` is missing placeholders for dynamic data. Doc file: `{}`'.format(command, doc_path))
 
     def test_coverage(self):
         if mesonbuild.environment.detect_msys2_arch():
