@@ -212,7 +212,8 @@ meson dist -C builddir
 
 ```
 $ meson init [-h] [-C WD] [-n NAME] [-e EXECUTABLE] [-d DEPS]
-             [-l {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,swift}] [-b]
+             [-l {c,cpp,cs,cuda,d,fortran,java,objc,objcpp,rust,swift}]
+             [-b]
              [--builddir BUILDDIR] [-f] [--type {executable,library}]
              [--version VERSION]
              [sourcefile [sourcefile ...]]
