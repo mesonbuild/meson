@@ -331,7 +331,7 @@ class Elf(DataSizes):
         # used. If we're going to change the rpath, we want to trim trailing
         # junk (after the terminating \0), for the same reason. We do this only
         # if rpath wasn't modified by setting LDFLAGS, link_args, etc'.
-        if set(old_rpath.split(b':')) == rpath_dirs_to_remove:
+        if not new_rpath and set(old_rpath.split(b':')) == rpath_dirs_to_remove:
             self.bf.seek(rp_off)
             self.bf.write(b'\0' * len(old_rpath))
 
