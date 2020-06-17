@@ -3436,6 +3436,12 @@ int main(int argc, char **argv) {
                 langs.append('rust')
             except EnvironmentException:
                 pass
+        if not is_windows():
+            try:
+                env.detect_swift_compiler(MachineChoice.HOST)
+                langs.append('swift')
+            except EnvironmentException:
+                pass
 
         for lang in langs:
             for target_type in ('executable', 'library'):
