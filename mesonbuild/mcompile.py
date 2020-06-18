@@ -54,6 +54,8 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path):
         cmd.extend(['-j', str(options.jobs)])
     if options.load_average > 0:
         cmd.extend(['-l', str(options.load_average)])
+    if options.verbose:
+        cmd.append('-v')
     if options.clean:
         cmd.append('clean')
     
@@ -74,8 +76,10 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path):
     
     if options.load_average:
         mlog.warning('Msbuild does not have a load-average switch, ignoring.')
+    if not options.verbose:
+        cmd.append('/v:minimal')
     if options.clean:
-        cmd.extend(['/t:Clean'])
+        cmd.append('/t:Clean')
     
     return cmd
     
@@ -107,6 +111,11 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         type=Path,
         default='.',
         help='The directory containing build files to be built.'
+    )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Show more verbose output.'
     )
 
 
