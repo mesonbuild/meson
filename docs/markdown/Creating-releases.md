@@ -23,7 +23,7 @@ takes this archive and tests that it works by doing a full
 then create a `SHA-256` checksum file next to the archive.
 
 
-## Autotools dist VS Meson build dist
+## Autotools dist VS Meson dist
 
 Meson behaviour is different from Autotools. The Autotools "dist"
 target packages up the current source tree. Meson packages the latest
