@@ -137,6 +137,7 @@ meson configure builddir -Doption=new_value
 
 ```
 $ meson compile [-h] [-j JOBS] [-l LOAD_AVERAGE] [--clean] [-C BUILDDIR]
+                [--verbose]
 ```
 
 Builds a default or a specified target of a configured meson project.
@@ -153,6 +154,7 @@ optional arguments:
   --clean                               Clean the build directory.
   -C BUILDDIR                           The directory containing build files to
                                         be built.
+  --verbose                             Show more verbose output.
 ```
 
 #### Examples:

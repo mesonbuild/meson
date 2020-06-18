@@ -359,3 +359,8 @@ target that has eight source files, Meson will generate two unity
 files each of which includes four source files. The old behaviour can
 be replicated by setting `unity_size` to a large value, such as 10000.
 
+## Verbose mode for `meson compile`
+
+The new option `--verbose` has been added to `meson compile` that will enable
+more verbose compilation logs. Note that for VS backend it means that logs will
+be less verbose by default (without `--verbose` option).
