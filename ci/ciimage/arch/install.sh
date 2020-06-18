@@ -17,7 +17,7 @@ pkgs=(
 )
 
 aur_pkgs=(scalapack)
-pip_pkgs=(hotdoc)
+pip_pkgs=(hotdoc gcovr)
 cleanup_pkgs=(go)
 
 AUR_USER=docker

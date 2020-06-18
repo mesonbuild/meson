@@ -18,6 +18,7 @@ pkgs=(
   qt4-linguist-tools
   python-dev
   libomp-dev
+  llvm lcov
   dub ldc
   mingw-w64 mingw-w64-tools nim
   libclang-dev
@@ -42,7 +43,7 @@ eatmydata apt-get -y build-dep meson
 eatmydata apt-get -y install "${pkgs[@]}"
 eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is special
 
-eatmydata python3 -m pip install hotdoc codecov jsonschema
+eatmydata python3 -m pip install hotdoc codecov gcovr jsonschema
 
 # dub stuff
 dub_fetch urld

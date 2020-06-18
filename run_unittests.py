@@ -4829,6 +4829,82 @@ recommended as it is not supported on some platforms''')
             self.assertEqual(parsed_help['usage'], parsed_section['usage'])
             self.assertEqual(parsed_help['arguments'], parsed_section['arguments'])
 
+    def test_coverage(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
+            raise unittest.SkipTest('gcovr not found, or too old')
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() == 'clang':
+            if not mesonbuild.environment.detect_llvm_cov():
+                raise unittest.SkipTest('llvm-cov not found')
+        if cc.get_id() == 'msvc':
+            raise unittest.SkipTest('Test only applies to non-MSVC compilers')
+        self.init(testdir, extra_args=['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage')
+
+    def test_coverage_html(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
+            raise unittest.SkipTest('gcovr not found, or too old')
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() == 'clang':
+            if not mesonbuild.environment.detect_llvm_cov():
+                raise unittest.SkipTest('llvm-cov not found')
+        if cc.get_id() == 'msvc':
+            raise unittest.SkipTest('Test only applies to non-MSVC compilers')
+        self.init(testdir, extra_args=['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage-html')
+
+    def test_coverage_text(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
+            raise unittest.SkipTest('gcovr not found, or too old')
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() == 'clang':
+            if not mesonbuild.environment.detect_llvm_cov():
+                raise unittest.SkipTest('llvm-cov not found')
+        if cc.get_id() == 'msvc':
+            raise unittest.SkipTest('Test only applies to non-MSVC compilers')
+        self.init(testdir, extra_args=['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage-text')
+
+    def test_coverage_xml(self):
+        if mesonbuild.environment.detect_msys2_arch():
+            raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
+        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
+        if not gcovr_exe:
+            raise unittest.SkipTest('gcovr not found, or too old')
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() == 'clang':
+            if not mesonbuild.environment.detect_llvm_cov():
+                raise unittest.SkipTest('llvm-cov not found')
+        if cc.get_id() == 'msvc':
+            raise unittest.SkipTest('Test only applies to non-MSVC compilers')
+        self.init(testdir, extra_args=['-Db_coverage=true'])
+        self.build()
+        self.run_tests()
+        self.run_target('coverage-xml')
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
@@ -6300,21 +6376,6 @@ class LinuxlikeTests(BasePlatformTests):
         compdb = self.get_compdb()
         for i in compdb:
             self.assertIn("-fsanitize=address", i["command"])
-
-    def test_coverage(self):
-        gcovr_exe, gcovr_new_rootdir = mesonbuild.environment.detect_gcovr()
-        if not gcovr_exe:
-            raise unittest.SkipTest('gcovr not found')
-        if not shutil.which('genhtml') and not gcovr_new_rootdir:
-            raise unittest.SkipTest('genhtml not found and gcovr is too old')
-        if 'clang' in os.environ.get('CC', ''):
-            # We need to use llvm-cov instead of gcovr with clang
-            raise unittest.SkipTest('Coverage does not work with clang right now, help wanted!')
-        testdir = os.path.join(self.common_test_dir, '1 trivial')
-        self.init(testdir, extra_args=['-Db_coverage=true'])
-        self.build()
-        self.run_tests()
-        self.run_target('coverage-html')
 
     def test_cross_find_program(self):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')

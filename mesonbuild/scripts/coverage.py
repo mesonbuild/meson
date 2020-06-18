@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild import environment
+from mesonbuild import environment, mesonlib
 
-import argparse, sys, os, subprocess, pathlib
+import argparse, sys, os, subprocess, pathlib, stat
 
-def coverage(outputs, source_root, subproject_root, build_root, log_dir):
+def coverage(outputs, source_root, subproject_root, build_root, log_dir, use_llvm_cov):
     outfiles = []
     exitcode = 0
 
-    (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe) = environment.find_coverage_tools()
+    (gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe) = environment.find_coverage_tools()
 
     # gcovr >= 4.2 requires a different syntax for out of source builds
     if gcovr_new_rootdir:
@@ -28,13 +28,18 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
     else:
         gcovr_base_cmd = [gcovr_exe, '-r', build_root]
 
+    if use_llvm_cov:
+        gcov_exe_args = ['--gcov-executable', llvm_cov_exe + ' gcov']
+    else:
+        gcov_exe_args = []
+
     if not outputs or 'xml' in outputs:
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
                                   ['-x',
                                    '-e', subproject_root,
-                                   '-o', os.path.join(log_dir, 'coverage.xml'),
-                                   ])
+                                   '-o', os.path.join(log_dir, 'coverage.xml')
+                                   ] + gcov_exe_args)
             outfiles.append(('Xml', pathlib.Path(log_dir, 'coverage.xml')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate Xml coverage report')
@@ -44,8 +49,8 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
         if gcovr_exe:
             subprocess.check_call(gcovr_base_cmd +
                                   ['-e', subproject_root,
-                                   '-o', os.path.join(log_dir, 'coverage.txt'),
-                                   ])
+                                   '-o', os.path.join(log_dir, 'coverage.txt')
+                                   ] + gcov_exe_args)
             outfiles.append(('Text', pathlib.Path(log_dir, 'coverage.txt')))
         elif outputs:
             print('gcovr >= 3.3 needed to generate text coverage report')
@@ -58,19 +63,34 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir):
             initial_tracefile = covinfo + '.initial'
             run_tracefile = covinfo + '.run'
             raw_tracefile = covinfo + '.raw'
+            if use_llvm_cov:
+                # Create a shim to allow using llvm-cov as a gcov tool.
+                if mesonlib.is_windows():
+                    llvm_cov_shim_path = os.path.join(log_dir, 'llvm-cov.bat')
+                    with open(llvm_cov_shim_path, 'w') as llvm_cov_bat:
+                        llvm_cov_bat.write('@"{}" gcov %*'.format(llvm_cov_exe))
+                else:
+                    llvm_cov_shim_path = os.path.join(log_dir, 'llvm-cov.sh')
+                    with open(llvm_cov_shim_path, 'w') as llvm_cov_sh:
+                        llvm_cov_sh.write('#!/usr/bin/env sh\nexec "{}" gcov $@'.format(llvm_cov_exe))
+                    os.chmod(llvm_cov_shim_path, os.stat(llvm_cov_shim_path).st_mode | stat.S_IEXEC)
+                gcov_tool_args = ['--gcov-tool', llvm_cov_shim_path]
+            else:
+                gcov_tool_args = []
             subprocess.check_call([lcov_exe,
                                    '--directory', build_root,
                                    '--capture',
                                    '--initial',
                                    '--output-file',
-                                   initial_tracefile])
+                                   initial_tracefile] +
+                                  gcov_tool_args)
             subprocess.check_call([lcov_exe,
                                    '--directory', build_root,
                                    '--capture',
                                    '--output-file', run_tracefile,
                                    '--no-checksum',
-                                   '--rc', 'lcov_branch_coverage=1',
-                                   ])
+                                   '--rc', 'lcov_branch_coverage=1'] +
+                                  gcov_tool_args)
             # Join initial and test results.
             subprocess.check_call([lcov_exe,
                                    '-a', initial_tracefile,
@@ -137,6 +157,8 @@ def run(args):
                         const='xml', help='generate Xml report')
     parser.add_argument('--html', dest='outputs', action='append_const',
                         const='html', help='generate Html report')
+    parser.add_argument('--use_llvm_cov', action='store_true',
+                        help='use llvm-cov')
     parser.add_argument('source_root')
     parser.add_argument('subproject_root')
     parser.add_argument('build_root')
@@ -144,7 +166,7 @@ def run(args):
     options = parser.parse_args(args)
     return coverage(options.outputs, options.source_root,
                     options.subproject_root, options.build_root,
-                    options.log_dir)
+                    options.log_dir, options.use_llvm_cov)
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

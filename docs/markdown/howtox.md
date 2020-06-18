@@ -155,8 +155,7 @@ $ ninja coverage-html (or coverage-xml)
 
 The coverage report can be found in the meson-logs subdirectory.
 
-Note: Currently, Meson does not support generating coverage reports
-with Clang.
+*New in 0.55.0* llvm-cov support for use with clang
 
 ## Add some optimization to debug builds
 
