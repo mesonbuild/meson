@@ -8,7 +8,7 @@ In addition to development, almost all projects provide periodical
 source releases. These are standalone packages (usually either in
 tar or zip format) of the source code. They do not contain any
 revision control metadata, only the source code.  Meson provides
-a simple way of generating these, with the meson dist command.
+a simple way of generating these, with the `meson dist` command.
 
 ```console
 meson dist
