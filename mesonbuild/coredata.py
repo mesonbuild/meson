@@ -751,34 +751,44 @@ class CoreData:
                          'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
 
         cmd_line_options = OrderedDict()
-        # Set default options as if they were passed to the command line.
-        # Subprojects can only define default for user options and not yielding
-        # builtin option.
-        from . import optinterpreter
-        for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items()):
-            if subproject:
-                if (k not in builtin_options or builtin_options[k].yielding) \
-                        and optinterpreter.is_invalid_name(k, log=False):
-                    continue
-            cmd_line_options[k] = v
 
-        # IF the subproject options comes from a machine file, then we need to
-        # set the option as subproject:option
-        if subproject:
-            for k, v in env.meson_options.host.get(subproject, {}).items():
+        from . import optinterpreter
+        from .compilers import all_languages
+        if not subproject:
+            # Set default options as if they were passed to the command line.
+            # Subprojects can only define default for user options and not yielding
+            # builtin option.
+            for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items()):
+                cmd_line_options[k] = v
+
+            # compiler options are always per-machine, but not per sub-project
+            if '' in env.meson_options.build:
+                for lang in all_languages:
+                    prefix = '{}_'.format(lang)
+                    for k in env.meson_options.build['']:
+                        if k.startswith(prefix):
+                            cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
+        else:
+            # If the subproject options comes from a machine file, then we need to
+            # set the option as subproject:option
+            for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items(),
+                              env.meson_options.host.get(subproject, {}).items()):
                 if (k not in builtin_options or builtin_options[k].yielding) \
                         and optinterpreter.is_invalid_name(k, log=False):
                     continue
                 cmd_line_options['{}:{}'.format(subproject, k)] = v
+        cmd_line_options.update(env.cmd_line_options)
+        env.cmd_line_options = cmd_line_options
+
+        options = OrderedDict()
 
         # load the values for user options out of the appropriate machine file,
         # then overload the command line
         for k, v in env.user_options.get(subproject, {}).items():
             if subproject:
                 k = '{}:{}'.format(subproject, k)
-            cmd_line_options[k] = v
+            options[k] = v
 
-        from .compilers import all_languages
         # Report that [properties]c_args
         for lang in all_languages:
             for args in ['{}_args'.format(lang), '{}_link_args'.format(lang)]:
@@ -791,28 +801,13 @@ class CoreData:
         # and per-machine, but when we do this will need to account for that.
         # For cross builds we need to get the build specifc options
         if env.meson_options.host != env.meson_options.build and subproject in env.meson_options.build:
+            if subproject:
+                template = '{s}:build.{k}'
+            else:
+                template = 'build.{k}'
             for k in builtin_options_per_machine.keys():
                 if k in env.meson_options.build[subproject]:
-                    cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
-
-            # compiler options are always per-machine
-            for lang in all_languages:
-                prefix = '{}_'.format(lang)
-                for k in env.meson_options.build[subproject]:
-                    if k.startswith(prefix):
-                        cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
-
-        # Override all the above defaults using the command-line arguments
-        # actually passed to use
-        cmd_line_options.update(env.cmd_line_options)
-        env.cmd_line_options = cmd_line_options
-
-        # Create a subset of cmd_line_options, keeping only options for this
-        # subproject. Also take builtin options if it's the main project.
-        # Language and backend specific options will be set later when adding
-        # languages and setting the backend (builtin options must be set first
-        # to know which backend we'll use).
-        options = OrderedDict()
+                    options[template.format(s=subproject, k=k)] = env.meson_options.build[subproject][k]
 
         # Some options default to environment variables if they are
         # unset, set those now. These will either be overwritten
@@ -846,7 +841,7 @@ class CoreData:
                 return text[len(prefix):]
             return text
 
-        for k, v in env.cmd_line_options.items():
+        for k, v in cmd_line_options.items():
             if subproject:
                 if not k.startswith(subproject + ':'):
                     continue
