@@ -100,6 +100,7 @@ set in the cross file.
 | rx                  | Renesas RX 32 bit MCU    |
 | s390                | IBM zSystem s390         |
 | s390x               | IBM zSystem s390x        |
+| sh4                 | SuperH SH-4              |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
 | wasm32              | 32 bit Webassembly       |
