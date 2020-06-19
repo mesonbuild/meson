@@ -82,14 +82,16 @@ set in the cross file.
 | arc                 | 32 bit ARC processor     |
 | arm                 | 32 bit ARM processor     |
 | avr                 | Atmel AVR processor      |
-| e2k                 | MCST Elbrus processor    |
 | c2000               | 32 bit C2000 processor   |
+| dspic               | 16 bit Microchip dsPIC   |
+| e2k                 | MCST Elbrus processor    |
 | ia64                | Itanium processor        |
 | m68k                | Motorola 68000 processor |
 | microblaze          | MicroBlaze processor     |
 | mips                | 32 bit MIPS processor    |
 | mips64              | 64 bit MIPS processor    |
 | parisc              | HP PA-RISC processor     |
+| pic24               | 16 bit Microchip PIC24   |
 | ppc                 | 32 bit PPC processors    |
 | ppc64               | 64 bit PPC processors    |
 | riscv32             | 32 bit RISC-V Open ISA   |
@@ -102,8 +104,6 @@ set in the cross file.
 | sparc64             | SPARC v9 processor       |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
-| pic24               | 16 bit Microchip PIC24   |
-| dspic               | 16 bit Microchip dsPIC   |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
 
