@@ -15,6 +15,7 @@ pkgs=(
   qt4-linguist-tools qt5-default qtbase5-private-dev
   python-dev
   libomp-dev
+  llvm lcov
   ldc
   libclang-dev
   libgcrypt20-dev
@@ -45,7 +46,7 @@ done
 # packages
 eatmydata apt-get -y install "${pkgs[@]}"
 
-eatmydata python3 -m pip install codecov jsonschema
+eatmydata python3 -m pip install codecov gcovr jsonschema
 
 # Install the ninja 0.10
 wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip

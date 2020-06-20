@@ -1,7 +1,0 @@
-{
-  "matrix": {
-    "options": {
-      "_": [{"val": null, "skip_on_env": ["CI_JOB_VS2017"]}]
-    }
-  }
-}

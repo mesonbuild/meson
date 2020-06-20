@@ -223,7 +223,7 @@ directory. Note that this is not for installing schemas and is only
 useful when running the application locally for example during tests.
 
 * `build_by_default`: causes, when set to true, to have this target be
-  built by default, that is, when invoking plain `ninja`, the default
+  built by default, that is, when invoking plain `meson compile`, the default
   value is true for all built target types
 * `depend_files`: files ([`string`](Reference-manual.md#string-object),
   [`files()`](Reference-manual.md#files), or
@@ -246,7 +246,7 @@ one XML file.
 * `annotations`: *(Added 0.43.0)* list of lists of 3 strings for the annotation for `'ELEMENT', 'KEY', 'VALUE'`
 * `docbook`: *(Added 0.43.0)* prefix to generate `'PREFIX'-NAME.xml` docbooks
 * `build_by_default`: causes, when set to true, to have this target be
-  built by default, that is, when invoking plain `ninja`, the default
+  built by default, that is, when invoking plain `meson compile`, the default
   value is true for all built target types
 * `install_dir`: (*Added 0.46.0*) location to install the header or
   bundle depending on previous options

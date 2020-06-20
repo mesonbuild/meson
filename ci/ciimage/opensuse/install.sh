@@ -7,7 +7,7 @@ source /ci/common.sh
 pkgs=(
   python3-setuptools python3-wheel python3-pip python3-pytest-xdist python3 python3-lxml
   ninja make git autoconf automake patch python3-Cython python3-jsonschema
-  elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl
+  elfutils gcc gcc-c++ gcc-fortran gcc-objc gcc-obj-c++ vala rust bison flex curl lcov
   mono-core gtkmm3-devel gtest gmock protobuf-devel wxGTK3-3_2-devel gobject-introspection-devel
   itstool gtk3-devel java-15-openjdk-devel gtk-doc llvm-devel clang-devel libSDL2-devel graphviz-devel zlib-devel zlib-devel-static
   #hdf5-devel netcdf-devel libscalapack2-openmpi3-devel libscalapack2-gnu-openmpi3-hpc-devel openmpi3-devel
@@ -26,7 +26,7 @@ zypper --non-interactive update
 
 # Install deps
 zypper install -y "${pkgs[@]}"
-python3 -m pip install hotdoc gobject PyGObject
+python3 -m pip install hotdoc gcovr gobject PyGObject
 
 echo 'export PKG_CONFIG_PATH="/usr/lib64/mpi/gcc/openmpi3/lib64/pkgconfig:$PKG_CONFIG_PATH"' >> /ci/env_vars.sh
 

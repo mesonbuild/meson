@@ -21,7 +21,7 @@ dnf -y upgrade
 
 # Install deps
 dnf -y install "${pkgs[@]}"
-python3 -m pip install hotdoc gobject PyGObject
+python3 -m pip install hotdoc gcovr gobject PyGObject
 
 # Cleanup
 dnf -y clean all

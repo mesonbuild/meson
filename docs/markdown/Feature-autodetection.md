@@ -34,6 +34,6 @@ also generated which will produce all 3 coverage report types, if
 possible.
 
 Note that generating any of the coverage reports described above
-requires the tests (i.e. `ninja test`) to finish running so the
+requires the tests (i.e. `meson test`) to finish running so the
 information about the functions that are called in the tests can be
 gathered for the report.

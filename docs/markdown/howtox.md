@@ -148,15 +148,14 @@ $ meson <other flags> -Db_coverage=true
 Then issue the following commands.
 
 ```console
-$ ninja
-$ ninja test
+$ meson compile
+$ meson test
 $ ninja coverage-html (or coverage-xml)
 ```
 
 The coverage report can be found in the meson-logs subdirectory.
 
-Note: Currently, Meson does not support generating coverage reports
-with Clang.
+*New in 0.55.0* llvm-cov support for use with clang
 
 ## Add some optimization to debug builds
 
@@ -209,8 +208,8 @@ operation. First we set up the project with profile measurements
 enabled and compile it.
 
 ```console
-$ meson  <Meson options, such as --buildtype=debugoptimized> -Db_pgo=generate
-$ ninja -C builddir
+$ meson setup <Meson options, such as --buildtype=debugoptimized> -Db_pgo=generate
+$ meson compile -C builddir
 ```
 
 Then we need to run the program with some representative input. This
@@ -221,7 +220,7 @@ information and rebuild.
 
 ```console
 $ meson configure -Db_pgo=use
-$ ninja
+$ meson compile
 ```
 
 After these steps the resulting binary is fully optimized.
