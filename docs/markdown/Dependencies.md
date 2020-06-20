@@ -177,6 +177,11 @@ Support for adding additional `COMPONENTS` for the CMake `find_package` lookup
 is provided with the `components` kwarg (*introduced in 0.54.0*). All specified
 componets will be passed directly to `find_package(COMPONENTS)`.
 
+Support for packages which require a specified version for CMake
+`find_package` to succeed is provided with the `cmake_package_version` kwarg
+(*introduced in 0.57.0*). The specified `cmake_package_version` will be
+passed directly as the second parameter to `find_package`.
+
 It is also possible to reuse existing `Find<name>.cmake` files with the
 `cmake_module_path` property. Using this property is equivalent to setting the
 `CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `cmake_module_path`

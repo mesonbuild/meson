@@ -1111,6 +1111,9 @@ class CMakeDependency(ExternalDependency):
         if self.cmakeinfo is None:
             raise self._gen_exception('Unable to obtain CMake system information')
 
+        package_version = kwargs.get('cmake_package_version', '')
+        if not isinstance(package_version, str):
+            raise DependencyException('Keyword "cmake_package_version" must be a string.')
         components = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'components'))]
         modules = [(x, True) for x in stringlistify(extract_as_list(kwargs, 'modules'))]
         modules += [(x, False) for x in stringlistify(extract_as_list(kwargs, 'optional_modules'))]
@@ -1121,7 +1124,7 @@ class CMakeDependency(ExternalDependency):
         if not self._preliminary_find_check(name, cm_path, self.cmakebin.get_cmake_prefix_paths(), environment.machines[self.for_machine]):
             mlog.debug('Preliminary CMake check failed. Aborting.')
             return
-        self._detect_dep(name, modules, components, cm_args)
+        self._detect_dep(name, package_version, modules, components, cm_args)
 
     def __repr__(self):
         s = '<{0} {1}: {2} {3}>'
@@ -1307,7 +1310,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]):
+    def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]):
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -1337,6 +1340,7 @@ class CMakeDependency(ExternalDependency):
             cmake_opts = []
             cmake_opts += ['-DNAME={}'.format(name)]
             cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts += ['-DVERSION={}'.format(package_version)]
             cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
             cmake_opts += args
             cmake_opts += self.traceparser.trace_args()

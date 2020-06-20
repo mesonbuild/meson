@@ -174,7 +174,11 @@ set(_packageName "${NAME}")
 string(TOUPPER "${_packageName}" PACKAGE_NAME)
 
 while(TRUE)
-  find_package("${NAME}" QUIET COMPONENTS ${COMPS})
+  if ("${VERSION}" STREQUAL "")
+    find_package("${NAME}" QUIET COMPONENTS ${COMPS})
+  else()
+    find_package("${NAME}" "${VERSION}" QUIET COMPONENTS ${COMPS})
+  endif()
 
   # ARCHS has to be set via the CMD interface
   if(${_packageName}_FOUND OR ${PACKAGE_NAME}_FOUND OR "${ARCHS}" STREQUAL "")
@@ -379,7 +383,7 @@ mesondata = {
     ),
     'dependencies/data/CMakeLists.txt': DataFile(
         Path('dependencies/data/CMakeLists.txt'),
-        '71a2d58381f912bbfb1c8709884d34d721f682edf2fca001e1f582f0bffd0da7',
+        '4dca24afa13e9311f0598a6ac29690490819bd7d82cfdaa0a2fe5eea3c0fa0d5',
         file_2_data_CMakeLists_txt,
     ),
     'cmake/data/preload.cmake': DataFile(
