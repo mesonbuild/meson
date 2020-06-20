@@ -64,6 +64,10 @@ if cm_vers.version_compare('>=3.15')
   test('testFlagSetTest2', testFlagSet2)
 endif
 
+# Try to find a dependency with a cmake module which requires a package version
+# test.json sets CMAKE_PREFIX_PATH to include ./cmake_pref_env/
+verdep1 = dependency('cmMesonVersionedTestDep', required : true, method : 'cmake', cmake_package_version : '3.0')
+
 # Try to compile a test that takes a dep and an include_directories
 
 cc = meson.get_compiler('c')

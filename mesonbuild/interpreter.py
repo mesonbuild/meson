@@ -2261,6 +2261,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'version',
                                    'private_headers',
                                    'cmake_args',
+                                   'cmake_package_version',
                                    'include_type',
                                    },
                     'declare_dependency': {'include_directories',
@@ -3497,6 +3498,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         elif name == 'openmp':
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
+    @FeatureNewKwargs('dependency', '0.55.0', ['cmake_package_version'])
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
     @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
     @FeatureNewKwargs('dependency', '0.50.0', ['not_found_message', 'cmake_module_path', 'cmake_args'])
