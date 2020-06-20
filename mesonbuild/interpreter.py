@@ -2946,6 +2946,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.is_subproject():
             optname = self.subproject + ':' + optname
 
+
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
                 dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
@@ -3031,8 +3032,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend)
 
-        options = {k: v for k, v in self.environment.cmd_line_options.items() if k.startswith('backend_')}
-        self.coredata.set_options(options)
+        if '' in self.environment.meson_options.host:
+            options = {k: v for k, v in self.environment.meson_options.host[''].items() if k.startswith('backend_')}
+            self.coredata.set_options(options)
 
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
@@ -3065,7 +3067,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         self.project_default_options = coredata.create_options_dict(self.project_default_options)
         if self.environment.first_invocation:
-            default_options = self.project_default_options
+            default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)
             self.coredata.init_builtins(self.subproject)
         else:

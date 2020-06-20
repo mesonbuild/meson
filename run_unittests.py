@@ -8030,7 +8030,7 @@ class NativeFileTests(BasePlatformTests):
         for opt, value in [('testoption', 'some other val'), ('other_one', True),
                            ('combo_opt', 'one'), ('array_opt', ['two']),
                            ('integer_opt', 0)]:
-            config = self.helper_create_native_file({'project options': {'sub:{}'.format(opt): value}})
+            config = self.helper_create_native_file({'sub:project options': {opt: value}})
             with self.assertRaises(subprocess.CalledProcessError) as cm:
                 self.init(testcase, extra_args=['--native-file', config])
                 self.assertRegex(cm.exception.stdout, r'Incorrect value to [a-z]+ option')
@@ -8075,6 +8075,19 @@ class NativeFileTests(BasePlatformTests):
                 break
         else:
             self.fail('Did not find werror in build options?')
+
+    def test_builtin_options_env_overrides_conf(self):
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        config = self.helper_create_native_file({'built-in options': {'pkg_config_path': '/foo'}})
+
+        self.init(testcase, extra_args=['--native-file', config], override_envvars={'PKG_CONFIG_PATH': '/bar'})
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'pkg_config_path':
+                self.assertEqual(each['value'], ['/bar'])
+                break
+        else:
+            self.fail('Did not find pkg_config_path in build options?')
 
     def test_builtin_options_subprojects(self):
         testcase = os.path.join(self.common_test_dir, '102 subproject subdir')
@@ -8165,6 +8178,22 @@ class NativeFileTests(BasePlatformTests):
         for each in configuration:
             if each['name'] == 'bindir':
                 self.assertEqual(each['value'], 'foo')
+                break
+        else:
+            self.fail('Did not find bindir in build options?')
+
+    def test_builtin_options_paths_legacy(self):
+        testcase = os.path.join(self.common_test_dir, '1 trivial')
+        config = self.helper_create_native_file({
+            'built-in options': {'default_library': 'static'},
+            'paths': {'bindir': 'bar'},
+        })
+
+        self.init(testcase, extra_args=['--native-file', config])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'bindir':
+                self.assertEqual(each['value'], 'bar')
                 break
         else:
             self.fail('Did not find bindir in build options?')
@@ -8431,7 +8460,15 @@ class CrossFileTests(BasePlatformTests):
         cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/cross/path', 'cpp_std': 'c++17'}})
         native = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/native/path', 'cpp_std': 'c++14'}})
 
-        self.init(testcase, extra_args=['--cross-file', cross, '--native-file', native])
+        # Ensure that PKG_CONFIG_PATH is not set in the environment
+        with mock.patch.dict('os.environ'):
+            for k in ['PKG_CONFIG_PATH', 'PKG_CONFIG_PATH_FOR_BUILD']:
+                try:
+                    del os.environ[k]
+                except KeyError:
+                    pass
+            self.init(testcase, extra_args=['--cross-file', cross, '--native-file', native])
+
         configuration = self.introspect('--buildoptions')
         found = 0
         for each in configuration:
@@ -8451,6 +8488,26 @@ class CrossFileTests(BasePlatformTests):
             if found == 4:
                 break
         self.assertEqual(found, 4, 'Did not find all sections.')
+
+    def test_builtin_options_env_overrides_conf(self):
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
+        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
+
+        self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross],
+                  override_envvars={'PKG_CONFIG_PATH': '/bar', 'PKG_CONFIG_PATH_FOR_BUILD': '/dir'})
+        configuration = self.introspect('--buildoptions')
+        found = 0
+        for each in configuration:
+            if each['name'] == 'pkg_config_path':
+                self.assertEqual(each['value'], ['/bar'])
+                found += 1
+            elif each['name'] == 'build.pkg_config_path':
+                self.assertEqual(each['value'], ['/dir'])
+                found += 1
+            if found == 2:
+                break
+        self.assertEqual(found, 2, 'Did not find all sections.')
 
 
 class TAPParserTests(unittest.TestCase):

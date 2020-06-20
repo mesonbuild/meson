@@ -20,10 +20,8 @@ from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
-    OrderedSet, default_libdir, default_libexecdir, default_prefix,
-    split_args
+    default_libdir, default_libexecdir, default_prefix, split_args
 )
-from .envconfig import get_env_var_pair
 from .wrap import WrapMode
 import ast
 import argparse
@@ -741,117 +739,54 @@ class CoreData:
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
-    def set_default_options(self, default_options: T.Mapping[str, str], subproject: str, env: 'Environment') -> None:
-        # Warn if the user is using two different ways of setting build-type
-        # options that override each other
-        if 'buildtype' in env.cmd_line_options and \
-           ('optimization' in env.cmd_line_options or 'debug' in env.cmd_line_options):
-            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
-                         'Using both is redundant since they override each other. '
-                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
-
-        cmd_line_options = OrderedDict()
-
-        from . import optinterpreter
-        from .compilers import all_languages
-        if not subproject:
-            # Set default options as if they were passed to the command line.
-            # Subprojects can only define default for user options and not yielding
-            # builtin option.
-            for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items()):
-                cmd_line_options[k] = v
-
-            # compiler options are always per-machine, but not per sub-project
-            if '' in env.meson_options.build:
-                for lang in all_languages:
-                    prefix = '{}_'.format(lang)
-                    for k in env.meson_options.build['']:
-                        if k.startswith(prefix):
-                            cmd_line_options['build.{}'.format(k)] = env.meson_options.build[subproject][k]
-        else:
-            # If the subproject options comes from a machine file, then we need to
-            # set the option as subproject:option
-            for k, v in chain(default_options.items(), env.meson_options.host.get('', {}).items(),
-                              env.meson_options.host.get(subproject, {}).items()):
-                if (k not in builtin_options or builtin_options[k].yielding) \
-                        and optinterpreter.is_invalid_name(k, log=False):
-                    continue
-                cmd_line_options['{}:{}'.format(subproject, k)] = v
-        cmd_line_options.update(env.cmd_line_options)
-        env.cmd_line_options = cmd_line_options
+    def set_default_options(self, default_options: 'T.OrderedDict[str, str]', subproject: str, env: 'Environment') -> None:
+        def make_key(key: str) -> str:
+            if subproject:
+                return '{}:{}'.format(subproject, key)
+            return key
 
         options = OrderedDict()
 
-        # load the values for user options out of the appropriate machine file,
-        # then overload the command line
-        for k, v in env.user_options.get(subproject, {}).items():
-            if subproject:
-                k = '{}:{}'.format(subproject, k)
-            options[k] = v
-
-        # Report that [properties]c_args
-        for lang in all_languages:
-            for args in ['{}_args'.format(lang), '{}_link_args'.format(lang)]:
-                msg = ('{} in the [properties] section of the machine file is deprecated, '
-                       'use the [built-in options] section.')
-                if args in env.properties.host or args in env.properties.build:
-                    mlog.deprecation(msg.format(args))
-
-        # Currently we don't support any options that are both per-subproject
-        # and per-machine, but when we do this will need to account for that.
-        # For cross builds we need to get the build specifc options
-        if env.meson_options.host != env.meson_options.build and subproject in env.meson_options.build:
-            if subproject:
-                template = '{s}:build.{k}'
+        # TODO: validate these
+        from .compilers import all_languages, base_options
+        lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
+        # split arguments that can be set now, and those that cannot so they
+        # can be set later, when they've been initialized.
+        for k, v in default_options.items():
+            if k.startswith(lang_prefixes):
+                lang, key = k.split('_', 1)
+                for machine in MachineChoice:
+                    if key not in env.compiler_options[machine][lang]:
+                         env.compiler_options[machine][lang][key] = v
+            elif k in base_options:
+                if not subproject and k not in env.base_options:
+                    env.base_options[k] = v
             else:
-                template = 'build.{k}'
-            for k in builtin_options_per_machine.keys():
-                if k in env.meson_options.build[subproject]:
-                    options[template.format(s=subproject, k=k)] = env.meson_options.build[subproject][k]
+                options[make_key(k)] = v
 
-        # Some options default to environment variables if they are
-        # unset, set those now. These will either be overwritten
-        # below, or they won't. These should only be set on the first run.
-        for for_machine in MachineChoice:
-            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), 'PKG_CONFIG_PATH')
-            if p_env_pair is not None:
-                p_env_var, p_env = p_env_pair
+        for k, v in chain(env.meson_options.host.get('', {}).items(),
+                          env.meson_options.host.get(subproject, {}).items()):
+            options[make_key(k)] = v
 
-                # PKG_CONFIG_PATH may contain duplicates, which must be
-                # removed, else a duplicates-in-array-option warning arises.
-                p_list = list(OrderedSet(p_env.split(':')))
+        for k, v in chain(env.meson_options.build.get('', {}).items(),
+                          env.meson_options.build.get(subproject, {}).items()):
+            if k in builtin_options_per_machine:
+                options[make_key('build.{}'.format(k))] = v
 
-                key = 'pkg_config_path'
-                if for_machine == MachineChoice.BUILD:
-                    key = 'build.' + key
+        options.update({make_key(k): v for k, v in env.user_options.get(subproject, {}).items()})
 
-                if env.first_invocation:
-                    options[key] = p_list
-                elif options.get(key, []) != p_list:
-                    mlog.warning(
-                        p_env_var +
-                        ' environment variable has changed '
-                        'between configurations, meson ignores this. '
-                        'Use -Dpkg_config_path to change pkg-config search '
-                        'path instead.'
-                    )
-
-        def remove_prefix(text, prefix):
-            if text.startswith(prefix):
-                return text[len(prefix):]
-            return text
-
-        for k, v in cmd_line_options.items():
-            if subproject:
-                if not k.startswith(subproject + ':'):
+        # Some options (namely the compiler options) are not preasant in
+        # coredata until the compiler is fully initialized. As such, we need to
+        # put those options into env.meson_options, only if they're not already
+        # in there, as the machine files and command line have precendence.
+        for k, v in default_options.items():
+            if k in builtin_options and not builtin_options[k].yielding:
+                continue
+            for machine in MachineChoice:
+                if machine is MachineChoice.BUILD and not self.is_cross_build():
                     continue
-            elif k not in builtin_options.keys() \
-                    and remove_prefix(k, 'build.') not in builtin_options_per_machine.keys():
-                if ':' in k:
-                    continue
-                if optinterpreter.is_invalid_name(k, log=False):
-                    continue
-            options[k] = v
+                if k not in env.meson_options[machine][subproject]:
+                    env.meson_options[machine][subproject][k] = v
 
         self.set_options(options, subproject=subproject)
 
@@ -867,24 +802,19 @@ class CoreData:
                 env.is_cross_build(),
                 env.properties[for_machine]).items():
             # prefixed compiler options affect just this machine
-            opt_prefix = for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
-            if user_k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[user_k])
+            if k in env.compiler_options[for_machine].get(lang, {}):
+                o.set_value(env.compiler_options[for_machine][lang][k])
             self.compiler_options[for_machine][lang].setdefault(k, o)
 
-    def process_new_compiler(self, lang: str, comp: T.Type['Compiler'], env: 'Environment') -> None:
+    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-        enabled_opts = []
 
         for k, o in comp.get_options().items():
             # prefixed compiler options affect just this machine
-            opt_prefix = comp.for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
-            if user_k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[user_k])
+            if k in env.compiler_options[comp.for_machine].get(lang, {}):
+                o.set_value(env.compiler_options[comp.for_machine][lang][k])
             self.compiler_options[comp.for_machine][lang].setdefault(k, o)
 
         enabled_opts = []
@@ -892,8 +822,8 @@ class CoreData:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.cmd_line_options:
-                oobj.set_value(env.cmd_line_options[optname])
+            if optname in env.base_options:
+                oobj.set_value(env.base_options[optname])
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
