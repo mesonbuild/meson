@@ -44,8 +44,8 @@ class DEFAULT_TYPES(Enum):
 INFO_MESSAGE = '''Sample project created. To build it run the
 following commands:
 
-meson builddir
-ninja -C builddir
+meson setup builddir
+meson compile -C builddir
 '''
 
 
