@@ -3177,8 +3177,9 @@ int main(int argc, char **argv) {
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted
         incdir = PurePath(prefix) / PurePath('include')
-        cargs = ['-I' + incdir.as_posix()]
-        self.assertEqual(foo_dep.get_compile_args(), cargs)
+        cargs = ['-I' + incdir.as_posix(), '-DLIBFOO']
+        # pkg-config and pkgconf does not respect the same order
+        self.assertEqual(sorted(foo_dep.get_compile_args()), sorted(cargs))
 
     def test_array_option_change(self):
         def get_opt():
