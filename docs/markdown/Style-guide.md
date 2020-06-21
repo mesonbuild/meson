@@ -13,7 +13,7 @@ Always spaces.
 
 ## Naming Variable
 
-The most consistent naming convention is the snack case. Let say you would
+The most consistent naming convention is the snake case. Let say you would
 like to refer to your executable so something like `my_exe` would work or
 just `exe`.
 
