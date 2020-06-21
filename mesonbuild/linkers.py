@@ -1098,6 +1098,13 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return args
         return self._apply_prefix('--whole-archive') + args + self._apply_prefix('--no-whole-archive')
 
+    def get_pie_args(self) -> T.List[str]:
+        # Available in Solaris 11.2 and later
+        return ['-z', 'type=pie']
+
+    def get_asneeded_args(self) -> T.List[str]:
+        return self._apply_prefix(['-z', 'ignore'])
+
     def no_undefined_args(self) -> T.List[str]:
         return ['-z', 'defs']
 
