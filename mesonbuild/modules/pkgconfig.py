@@ -372,18 +372,18 @@ class PkgConfigModule(ExtensionModule):
             if len(deps.priv_libs) > 0:
                 ofile.write('Libs.private: {}\n'.format(' '.join(generate_libs_flags(deps.priv_libs))))
 
-            def generate_compiler_flags():
-                cflags_buf = []
-                for f in deps.cflags:
-                    cflags_buf.append(self._escape(f))
-                return cflags_buf
-
-            cflags = generate_compiler_flags()
-            ofile.write('Cflags: ')
+            cflags = []
             if uninstalled:
-                ofile.write(' '.join(generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)))
-            elif not dataonly and cflags:
-                ofile.write('{}\n'.format(' '.join(cflags)))
+                cflags += generate_uninstalled_cflags(deps.pub_libs + deps.priv_libs)
+            else:
+                for d in subdirs:
+                    if d == '.':
+                        cflags.append('-I${includedir}')
+                    else:
+                        cflags.append(self._escape(PurePath('-I${includedir}') / d))
+            cflags += [self._escape(f) for f in deps.cflags]
+            if cflags and not dataonly:
+                ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
     @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
@@ -448,11 +448,6 @@ class PkgConfigModule(ExtensionModule):
             libraries = [mainlib] + libraries
 
         deps = DependenciesHelper(state, filebase)
-        for d in subdirs:
-            if d == '.':
-                deps.add_cflags(['-I${includedir}'])
-            else:
-                deps.add_cflags(self._escape(PurePath('-I${includedir}') / d))
         deps.add_pub_libs(libraries)
         deps.add_priv_libs(kwargs.get('libraries_private', []))
         deps.add_pub_reqs(kwargs.get('requires', []))
