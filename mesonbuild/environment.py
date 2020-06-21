@@ -451,7 +451,8 @@ def machine_info_can_run(machine_info: MachineInfo):
     true_build_cpu_family = detect_cpu_family({})
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
-        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86'))
+        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
+        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
 
 def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
