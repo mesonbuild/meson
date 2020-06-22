@@ -118,5 +118,6 @@ index.md
 		Using-multiple-build-directories.md
 		Vs-External.md
 	Contributing.md
+		MesonCI.md
 	legal.md
 	Videos.md
