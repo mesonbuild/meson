@@ -3585,13 +3585,15 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_dependency()
 
         has_fallback = 'fallback' in kwargs
-        if not has_fallback and name and required:
+        if not has_fallback and name:
             # Add an implicit fallback if we have a wrap file or a directory with the same name,
             # but only if this dependency is required. It is common to first check for a pkg-config,
             # then fallback to use find_library() and only afterward check again the dependency
-            # with a fallback.
+            # with a fallback. If the fallback has already been configured then we have to use it
+            # even if the dependency is not required.
             provider = self.environment.wrap_resolver.find_dep_provider(name)
-            if provider:
+            dirname = mesonlib.listify(provider)[0]
+            if provider and (required or dirname in self.subprojects):
                 kwargs['fallback'] = provider
                 has_fallback = True
 

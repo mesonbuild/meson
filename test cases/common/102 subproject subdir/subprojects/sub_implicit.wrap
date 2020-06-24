@@ -1,5 +1,6 @@
 [wrap-file]
 
 [provide]
+glib-2.0 = glib_dep
 dependency_names = sub_implicit_provide1
 sub_implicit_provide2 = sub_implicit_provide2_dep

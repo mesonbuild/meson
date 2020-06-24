@@ -40,3 +40,10 @@ assert(d.found(), 'Should implicitly fallback')
 # sub_implicit_provide2.
 d = dependency('sub_implicit_provide2')
 assert(d.found(), 'Should implicitly fallback')
+
+# sub_implicit.wrap provides glib-2.0 and we already configured that subproject,
+# so we must not return the system dependency here. Using glib-2.0 here because
+# some CI runners have it installed.
+d = dependency('glib-2.0', required : false)
+assert(d.found())
+assert(d.type_name() == 'internal')
