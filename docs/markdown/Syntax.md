@@ -16,9 +16,10 @@ statements* and *includes*.
 Usually one Meson statement takes just one line. There is no way to
 have multiple statements on one line as in e.g. *C*. Function and
 method calls' argument lists can be split over multiple lines. Meson
-will autodetect this case and do the right thing. In other cases you
-can get multi-line statements by ending the line with a `\`. Apart
-from line ending whitespace has no syntactic meaning.
+will autodetect this case and do the right thing.
+
+In other cases, *(added 0.50)* you can get multi-line statements by ending the
+line with a `\`.  Apart from line ending whitespace has no syntactic meaning.
 
 Variables
 --
@@ -135,6 +136,24 @@ str1 = 'abc'
 str2 = 'xyz'
 combined = str1 + '_' + str2 # combined is now abc_xyz
 ```
+
+#### String path building
+
+*(Added 0.49)*
+
+You can concatenate any two strings using `/` as an operator to build paths.
+This will always use `/` as the path separator on all platforms.
+
+```meson
+joined = '/usr/share' / 'projectname'    # => /usr/share/projectname
+joined = '/usr/local' / '/etc/name'      # => /etc/name
+
+joined = 'C:\\foo\\bar' / 'builddir'     # => C:/foo/bar/builddir
+joined = 'C:\\foo\\bar' / 'D:\\builddir' # => D:/builddir
+```
+
+Note that this is equivalent to using [`join_paths()`](Reference-manual.md#join_paths),
+which was obsoleted by this operator.
 
 #### Strings running over multiple lines
 
