@@ -2582,6 +2582,8 @@ class AllPlatformTests(BasePlatformTests):
                 self.assertIsInstance(linker, ar)
                 if is_osx():
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
+                elif is_sunos():
+                    self.assertIsInstance(cc.linker, (mesonbuild.linkers.SolarisDynamicLinker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, clangcl):
@@ -6770,6 +6772,11 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '52 ldflagdedup')
         if is_cygwin() or is_osx():
             raise unittest.SkipTest('Not applicable on Cygwin or OSX.')
+        env = get_fake_env()
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        linker = cc.linker
+        if not linker.export_dynamic_args(env):
+            raise unittest.SkipTest('Not applicable for linkers without --export-dynamic')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         max_count = 0
