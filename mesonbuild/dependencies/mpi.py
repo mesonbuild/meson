@@ -16,12 +16,10 @@ import functools
 import typing as T
 import os
 import re
-import shutil
 
 from .base import (DependencyMethods, PkgConfigDependency, factory_methods,
                    ConfigToolDependency, detect_compiler, ExternalDependency)
 from ..environment import detect_cpu_family
-from ..mesonlib import Popen_safe
 
 if T.TYPE_CHECKING:
     from .base import Dependency
@@ -41,8 +39,8 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
     # Only OpenMPI has pkg-config
-    # FIXME: account for case of Intel compiler using OpenMPI,
-    # which is less common but valid usage.
+    # NOTE: to use IntelMPI with GCC, use
+    #   dependency('mpi', method: 'config-tool') oherwise OpenMPI might get picked if present.
     if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
         pkg_name = None
         if language == 'c':
@@ -57,24 +55,41 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
     if DependencyMethods.CONFIG_TOOL in methods:
         nwargs = kwargs.copy()
 
-        if compiler_is_intel:
-            # Windows or Linux
-            if env.machines[for_machine].is_windows():
+        if env.machines[for_machine].is_windows():
+            if compiler_is_intel:
                 nwargs['version_arg'] = '-v'
                 nwargs['returncode_value'] = 3
 
-            if language == 'c':
-                tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
-            elif language == 'cpp':
-                tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
-            elif language == 'fortran':
-                tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
+                if language == 'c':
+                    tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
+                elif language == 'cpp':
+                    tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
+                elif language == 'fortran':
+                    tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
-            cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
-        elif not env.machines[for_machine].is_windows():
-            # OpenMPI is not available for Windows
-            # We try the environment variables for the tools first, but then
-            # fall back to the hardcoded names
+                cls_tools = [(IntelMPIConfigToolDependency, tool_names)]  # type: T.List[T.Tuple[T.Type[ConfigToolDependency], T.List[str]]]
+            else:
+                # OpenMPI is not available for Windows
+                # use MS-MPI, including for MSYS2
+                # MS-MPI compiler wrapper don't have version number, but MS-mpiexec has version
+                tool_names = ['mpiexec']
+
+                cls_tools = [(MSMPIConfigToolDependency, tool_names)]
+        else:
+            # Linux, MacOS: try the environment variables for the tools first;
+            # fall back to hardcoded names
+
+            # first, IntelMPI
+            # https://software.intel.com/content/www/us/en/develop/documentation/mpi-developer-reference-linux/top/command-reference/compilation-commands.html
+            if language == 'c':
+                tool_names = [os.environ.get('I_MPI_CC'), 'mpigcc']
+            elif language == 'cpp':
+                tool_names = [os.environ.get('I_MPI_CXX'), 'mpigxx']
+            elif language == 'fortran':
+                tool_names = [os.environ.get('I_MPI_F90'), 'mpif90']
+
+            cls_tools = [(IntelMPIConfigToolDependency, tool_names)]
+
             if language == 'c':
                 tool_names = [os.environ.get('MPICC'), 'mpicc']
             elif language == 'cpp':
@@ -83,24 +98,14 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
                 tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
-            cls = OpenMPIConfigToolDependency
-        else:
-            # Windows, try MS-MPI in particular for MSYS2
-            if language == 'c':
-                tool_names = ['mpicc']
-            elif language == 'cpp':
-                tool_names = ['mpic++', 'mpicxx']
-            elif language == 'fortran':
-                tool_names = ['mpifort', 'mpif90', 'mpif77']
+            cls_tools.append((OpenMPIConfigToolDependency, tool_names))
 
-            cls = MSMPIConfigToolDependency
-
-        tool_names = [t for t in tool_names if t]  # remove empty environment variables
-        assert tool_names
-
-        nwargs['tools'] = tool_names
-        candidates.append(functools.partial(
-            cls, tool_names[0], env, nwargs, language=language))
+        for cls, names in cls_tools:
+            assert names, 'no MPI wrapper found'
+            args = nwargs.copy()  # else candidates interfere with each other
+            args['tools'] = [t for t in names if t]
+            candidates.append(functools.partial(
+                cls, args['tools'][0], env, args, language=language))
 
     if DependencyMethods.SYSTEM in methods:
         candidates.append(functools.partial(
@@ -210,7 +215,7 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
 class MSMPIConfigToolDependency(_MPIConfigToolDependency):
     """Wrapper around MSYS2 MS-MPI mpicc et al"""
 
-    version_arg = '-show'  # dummy just to pass through factory without error
+    version_arg = '-help'
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
                  language: T.Optional[str] = None):
@@ -223,12 +228,8 @@ class MSMPIConfigToolDependency(_MPIConfigToolDependency):
         self.link_args = self._filter_link_args(args)
 
     def _sanitize_version(self, out: str) -> str:
-        # disregard dummy "out" input as MinGW + MS-MPI doesn't work like other platforms
-        if not shutil.which('mpiexec'):
-            return ''
-        p, out, err = Popen_safe(['mpiexec', '-help'])
         out = out.split('\n', 1)[0]
-        v = v = re.search(r'\d+.\d+.\d+.\d+', out)
+        v = re.search(r'\d+.\d+.\d+.\d+', out)
         if v:
             return v.group(0)
         return out

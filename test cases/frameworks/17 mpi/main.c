@@ -3,7 +3,12 @@
 
 int main(int argc, char **argv)
 {
-    int ier, flag;
+    int ier, flag, L;
+    char version[MPI_MAX_LIBRARY_VERSION_STRING];
+
+    MPI_Get_library_version(version, &L);
+    printf("%s", version);
+
     ier = MPI_Init(&argc, &argv);
     if (ier) {
         fprintf(stderr, "Unable to initialize MPI: %d\n", ier);

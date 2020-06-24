@@ -5,7 +5,11 @@ use mpi
 implicit none
 
 logical :: flag
-integer :: ier
+integer :: ier, L
+character(100) :: version
+
+call MPI_GET_LIBRARY_VERSION(version, L, ier)
+print *, 'MPI version ', version
 
 call MPI_Init(ier)
 
