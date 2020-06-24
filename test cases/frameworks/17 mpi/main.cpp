@@ -1,11 +1,11 @@
 #include <mpi.h>
-#include <stdio.h>
+#include <iostream>
 
 int main(int argc, char **argv)
 {
     MPI::Init(argc, argv);
     if (!MPI::Is_initialized()) {
-        printf("MPI did not initialize!\n");
+        std::cerr << "MPI did not initialize!\n";
         return 1;
     }
     MPI::Finalize();
