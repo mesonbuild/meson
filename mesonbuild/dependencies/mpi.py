@@ -16,10 +16,12 @@ import functools
 import typing as T
 import os
 import re
+import shutil
 
 from .base import (DependencyMethods, PkgConfigDependency, factory_methods,
                    ConfigToolDependency, detect_compiler, ExternalDependency)
 from ..environment import detect_cpu_family
+from ..mesonlib import Popen_safe
 
 if T.TYPE_CHECKING:
     from .base import Dependency
@@ -56,6 +58,7 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
         nwargs = kwargs.copy()
 
         if compiler_is_intel:
+            # Windows or Linux
             if env.machines[for_machine].is_windows():
                 nwargs['version_arg'] = '-v'
                 nwargs['returncode_value'] = 3
@@ -68,8 +71,8 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
             cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
-        else: # OpenMPI
-            #
+        elif not env.machines[for_machine].is_windows():
+            # OpenMPI is not available for Windows
             # We try the environment variables for the tools first, but then
             # fall back to the hardcoded names
             if language == 'c':
@@ -81,6 +84,16 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
             cls = OpenMPIConfigToolDependency
+        else:
+            # Windows, try MS-MPI in particular for MSYS2
+            if language == 'c':
+                tool_names = ['mpicc']
+            elif language == 'cpp':
+                tool_names = ['mpic++', 'mpicxx']
+            elif language == 'fortran':
+                tool_names = ['mpifort', 'mpif90', 'mpif77']
+
+            cls = MSMPIConfigToolDependency
 
         tool_names = [t for t in tool_names if t]  # remove empty environment variables
         assert tool_names
@@ -149,7 +162,6 @@ class _MPIConfigToolDependency(ConfigToolDependency):
 
 
 class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
-
     """Wrapper around Intel's mpiicc and friends."""
 
     version_arg = '-v'  # --version is not the same as -v
@@ -172,7 +184,6 @@ class IntelMPIConfigToolDependency(_MPIConfigToolDependency):
 
 
 class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
-
     """Wrapper around OpenMPI mpicc and friends."""
 
     version_arg = '--showme:version'
@@ -191,6 +202,33 @@ class OpenMPIConfigToolDependency(_MPIConfigToolDependency):
 
     def _sanitize_version(self, out: str) -> str:
         v = re.search(r'\d+.\d+.\d+', out)
+        if v:
+            return v.group(0)
+        return out
+
+
+class MSMPIConfigToolDependency(_MPIConfigToolDependency):
+    """Wrapper around MSYS2 MS-MPI mpicc et al"""
+
+    version_arg = '-show'  # dummy just to pass through factory without error
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any],
+                 language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language=language)
+        if not self.is_found:
+            return
+
+        args = self.get_config_value(['-show'], 'link and compile args')
+        self.compile_args = self._filter_compile_args(args)
+        self.link_args = self._filter_link_args(args)
+
+    def _sanitize_version(self, out: str) -> str:
+        # disregard dummy "out" input as MinGW + MS-MPI doesn't work like other platforms
+        if not shutil.which('mpiexec'):
+            return ''
+        p, out, err = Popen_safe(['mpiexec', '-help'])
+        out = out.split('\n', 1)[0]
+        v = v = re.search(r'\d+.\d+.\d+.\d+', out)
         if v:
             return v.group(0)
         return out
