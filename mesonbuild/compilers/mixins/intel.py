@@ -140,8 +140,8 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
     }  # type: T.Dict[str, T.List[str]]
 
     OPTIM_ARGS = {
-        '0': ['/O0'],
-        'g': ['/O0'],
+        '0': ['/Od'],
+        'g': ['/Od'],
         '1': ['/O1'],
         '2': ['/O2'],
         '3': ['/O3'],
