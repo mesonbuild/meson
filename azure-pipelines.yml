@@ -64,6 +64,7 @@ jobs:
   - template: ci/azure-steps.yml
 
 - job: cygwin
+  timeoutInMinutes: 120
   pool:
     vmImage: VS2017-Win2016
   strategy:
