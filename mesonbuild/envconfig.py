@@ -145,6 +145,24 @@ def get_env_var(for_machine: MachineChoice,
         var, value = ret
         return value
 
+def get_env_path(for_machine: MachineChoice,
+                is_cross: bool,
+                var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+    ret = get_env_var_pair(for_machine, is_cross, var_name)
+    if ret is None:
+        return None
+    else:
+        var, value = ret
+        mlog.debug(ret)
+        # Filter based on path seperator
+        if value.find(';'):
+            value = value.split(r';')
+        else:
+            value = value.split(r':')
+        # Filter out empty strings
+        value = [x for x in value if x]
+        return value
+
 class Properties:
     def __init__(
             self,
