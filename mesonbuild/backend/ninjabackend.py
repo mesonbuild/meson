@@ -32,7 +32,7 @@ from .. import dependencies
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import (
-    Compiler, CCompiler,
+    CCompiler,
     DmdDCompiler,
     FortranCompiler, PGICCompiler,
     VisualStudioCsCompiler,
@@ -47,6 +47,9 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 from ..interpreter import Interpreter
+
+if T.TYPE_CHECKING:
+    from ..compilers import Compiler
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -1596,11 +1599,11 @@ int dummy;
         return '{}_PCH{}'.format(lang, cls.get_rule_suffix(for_machine))
 
     @classmethod
-    def compiler_to_rule_name(cls, compiler: Compiler) -> str:
+    def compiler_to_rule_name(cls, compiler: "Compiler") -> str:
         return cls.get_compiler_rule_name(compiler.get_language(), compiler.for_machine)
 
     @classmethod
-    def compiler_to_pch_rule_name(cls, compiler: Compiler) -> str:
+    def compiler_to_pch_rule_name(cls, compiler: "Compiler") -> str:
         return cls.get_pch_rule_name(compiler.get_language(), compiler.for_machine)
 
     def swift_module_file_name(self, target):

@@ -23,7 +23,6 @@ from ..environment import detect_cpu_family
 
 if T.TYPE_CHECKING:
     from .base import Dependency
-    from ..compilers import Compiler
     from ..environment import Environment, MachineChoice
 
 
@@ -39,7 +38,9 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
     compiler = detect_compiler('mpi', env, for_machine, language)
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
-    # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
+    # Only OpenMPI has pkg-config
+    # FIXME: account for case of Intel compiler using OpenMPI,
+    # which is less common but valid usage.
     if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
         pkg_name = None
         if language == 'c':
@@ -67,7 +68,7 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
             cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
-        else: # OpenMPI, which doesn't work with intel
+        else: # OpenMPI
             #
             # We try the environment variables for the tools first, but then
             # fall back to the hardcoded names
