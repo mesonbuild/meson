@@ -47,3 +47,10 @@ assert(d.found(), 'Should implicitly fallback')
 d = dependency('glib-2.0', required : false)
 assert(d.found())
 assert(d.type_name() == 'internal')
+
+# sub_implicit.wrap provides gobject-2.0 and we already configured that subproject,
+# so we must not return the system dependency here. But since the subproject did
+# not override that dependency and its not required, not-found should be returned.
+# Using gobject-2.0 here because some CI runners have it installed.
+d = dependency('gobject-2.0', required : false)
+assert(not d.found())

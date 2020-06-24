@@ -3489,8 +3489,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                         raise DependencyException(m.format(display_name))
                     return DependencyHolder(cached_dep, self.subproject)
                 else:
-                    m = 'Subproject {} did not override dependency {}'
-                    raise DependencyException(m.format(subproj_path, display_name))
+                    if required:
+                        m = 'Subproject {} did not override dependency {}'
+                        raise DependencyException(m.format(subproj_path, display_name))
+                    mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                             mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+                    return self.notfound_dependency()
             if subproject.found():
                 self.verify_fallback_consistency(dirname, varname, cached_dep)
                 dep = self.subprojects[dirname].get_variable_method([varname], {})
