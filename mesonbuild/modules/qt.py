@@ -15,7 +15,7 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, extract_as_list, File, unholder
+from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
 from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
@@ -30,6 +30,7 @@ _QT_DEPS_LUT = {
 
 class QtBaseModule(ExtensionModule):
     tools_detected = False
+    rcc_supports_depfiles = False
 
     def __init__(self, interpreter, qt_version=5):
         ExtensionModule.__init__(self, interpreter)
@@ -46,6 +47,11 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
+            if version_compare(qt.version, '>=5.14.0'):
+                self.rcc_supports_depfiles = True
+            else:
+                mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
+                    mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
         else:
             suffix = '-qt{}'.format(self.qt_version)
             self.moc = NonExistingExternalProgram(name='moc' + suffix)
@@ -156,6 +162,9 @@ class QtBaseModule(ExtensionModule):
                                   'output': name + '.cpp',
                                   'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
                                   'depend_files': qrc_deps}
+                    if self.rcc_supports_depfiles:
+                        rcc_kwargs['depfile'] = name + '.d'
+                        rcc_kwargs['command'] += ['--depfile', '@DEPFILE@']
                     res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                     sources.append(res_target)
         if ui_files:
