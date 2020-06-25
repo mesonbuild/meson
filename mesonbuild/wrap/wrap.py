@@ -29,6 +29,7 @@ import typing as T
 
 from pathlib import Path
 from . import WrapMode
+from .. import coredata
 from ..mesonlib import git, GIT, ProgressBar, MesonException
 
 if T.TYPE_CHECKING:
@@ -329,7 +330,8 @@ class Resolver:
             raise WrapException('{} may be a WrapDB-impersonating URL'.format(urlstring))
         else:
             try:
-                resp = urllib.request.urlopen(urlstring, timeout=REQ_TIMEOUT)
+                req = urllib.request.Request(urlstring, headers={'User-Agent': 'mesonbuild/{}'.format(coredata.version)})
+                resp = urllib.request.urlopen(req, timeout=REQ_TIMEOUT)
             except urllib.error.URLError as e:
                 mlog.log(str(e))
                 raise WrapException('could not get {} is the internet available?'.format(urlstring))
