@@ -578,7 +578,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     # Do installation, if the backend supports it
     if install_commands:
-        env = os.environ.copy()
+        env = test.env.copy()
         env['DESTDIR'] = install_dir
         # Install with subprocess
         pi, o, e = Popen_safe(install_commands, cwd=test_build_dir, env=env)
@@ -588,7 +588,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
             return testresult
 
     # Clean with subprocess
-    env = os.environ.copy()
+    env = test.env.copy()
     pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
     testresult.add_step(BuildStep.clean, o, e)
     if pi.returncode != 0:
