@@ -126,6 +126,14 @@ enums5 = gnome.mkenums_simple('enums5', sources : 'meson-sample.h',
                               install_header : true,
                               decorator : 'MESON_EXPORT',
                               header_prefix : '#include "meson-decls.h"')
+
+conf = configuration_data()
+conf.set('ENUM_FILE', 'enums5.h')
+main = configure_file(
+  input : 'main.c',
+  output : 'main5.c',
+  configuration : conf)
+
 enumexe5 = executable('enumprog5', main, enums5, dependencies : gobj)
 
 # Generate template then use as input to mkenums
