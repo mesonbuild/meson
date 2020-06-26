@@ -983,9 +983,10 @@ class Vs2010Backend(backends.Backend):
                     else:
                         define = arg[2:]
                     # De-dup
-                    if define in file_defines[l]:
-                        file_defines[l].remove(define)
-                    file_defines[l].append(define)
+                    if define not in file_defines[l]:
+                        file_defines[l].append(define)
+                    if define not in target_defines: 
+                        target_defines.append(define)
                 elif arg.startswith(('-I', '/I')) or arg == '%(AdditionalIncludeDirectories)':
                     file_args[l].remove(arg)
                     # Don't escape the marker
@@ -996,6 +997,8 @@ class Vs2010Backend(backends.Backend):
                     # De-dup
                     if inc_dir not in file_inc_dirs[l]:
                         file_inc_dirs[l].append(inc_dir)
+                    if inc_dir not in target_inc_dirs:
+                        target_inc_dirs.append(inc_dir)
 
         # Split compile args needed to find external dependencies
         # Link args are added while generating the link command
@@ -1025,10 +1028,8 @@ class Vs2010Backend(backends.Backend):
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
-
-        target_inc_dirs.append('%(AdditionalIncludeDirectories)')
+        
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
-        target_defines.append('%(PreprocessorDefinitions)')
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
