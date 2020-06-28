@@ -281,6 +281,14 @@ is_new = version.version_compare('>=2.0')
 # Supports the following operators: '>', '<', '>=', '<=', '!=', '==', '='
 ```
 
+Meson version comparison conventions include:
+
+```meson
+'3.6'.version_compare('>=3.6.0') == false
+```
+
+It is best to be unambiguous and specify the full revision level to compare.
+
 ## Arrays
 
 Arrays are delimited by brackets. An array can contain an arbitrary number of objects of any type.
