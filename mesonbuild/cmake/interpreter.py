@@ -22,7 +22,7 @@ from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCo
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
-from .. import mlog
+from .. import mlog, mesonlib
 from ..environment import Environment
 from ..mesonlib import MachineChoice, OrderedSet, version_compare
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
@@ -1059,9 +1059,6 @@ class CMakeInterpreter:
         root_cb.lines += [function('project', [self.project_name] + self.languages)]
 
         # Add the run script for custom commands
-        run_script = pkg_resources.resource_filename('mesonbuild', 'cmake/data/run_ctgt.py')
-        run_script_var = 'ctgt_run_script'
-        root_cb.lines += [assign(run_script_var, function('find_program', [[run_script]], {'required': True}))]
 
         # Add the targets
         processing = []
@@ -1243,7 +1240,8 @@ class CMakeInterpreter:
 
             # Generate the command list
             command = []
-            command += [id_node(run_script_var)]
+            command += mesonlib.meson_command
+            command += ['--internal', 'cmake_run_ctgt']
             command += ['-o', '@OUTPUT@']
             if tgt.original_outputs:
                 command += ['-O'] + tgt.original_outputs
