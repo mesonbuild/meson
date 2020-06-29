@@ -4784,7 +4784,7 @@ recommended as it is not supported on some platforms''')
         Test that all listed meson commands are documented in Commands.md.
         '''
 
-        doc_path = 'docs/templates/Commands.md'
+        doc_path = 'docs/markdown_dynamic/Commands.md'
 
         md = None
         with open(doc_path, encoding='utf-8') as f:

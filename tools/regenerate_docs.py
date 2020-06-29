@@ -109,7 +109,7 @@ def get_commands_data(root_dir: Path):
     return cmd_data
 
 def regenerate_commands(root_dir: Path, output_dir: Path) -> None:
-    with open(root_dir/'docs'/'templates'/'Commands.md') as f:
+    with open(root_dir/'docs'/'markdown_dynamic'/'Commands.md') as f:
         template = f.read()
 
     cmd_data = get_commands_data(root_dir)
