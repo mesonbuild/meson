@@ -24,11 +24,14 @@ __all__ = [
     'CMakeTarget',
     'CMakeTraceLine',
     'CMakeTraceParser',
+    'SingleTargetOptions',
+    'TargetOptions',
     'parse_generator_expressions',
     'language_map',
+    'cmake_defines_to_args',
 ]
 
-from .common import CMakeException
+from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from .client import CMakeClient
 from .executor import CMakeExecutor
 from .fileapi import CMakeFileAPI
