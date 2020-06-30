@@ -12,7 +12,7 @@ e = executable('prog', 'testprog.c')
 test('name of test', e)
 ```
 
-You can add as many tests as you want. They are run with the command `ninja
+You can add as many tests as you want. They are run with the command `meson
 test`.
 
 Meson captures the output of all tests and writes it in the log file
