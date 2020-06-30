@@ -74,7 +74,7 @@ Now we are ready to build our code.
 
 ```
 $ cd builddir
-$ ninja
+$ meson compile
 ```
 
 Once that is done we can run the resulting binary.

@@ -28,7 +28,7 @@ the binaries `gcovr`, `lcov` and `genhtml`. If version 3.3 or higher
 of the first is found, targets called *coverage-text*, *coverage-xml*
 and *coverage-html* are generated. Alternatively, if the latter two
 are found, only the target *coverage-html* is generated. Coverage
-reports can then be produced simply by calling e.g. `ninja
+reports can then be produced simply by calling e.g. `meson compile
 coverage-xml`. As a convenience, a high-level *coverage* target is
 also generated which will produce all 3 coverage report types, if
 possible.

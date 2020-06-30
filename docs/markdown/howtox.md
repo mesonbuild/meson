@@ -150,7 +150,7 @@ Then issue the following commands.
 ```console
 $ meson compile
 $ meson test
-$ ninja coverage-html (or coverage-xml)
+$ meson compile coverage-html (or coverage-xml)
 ```
 
 The coverage report can be found in the meson-logs subdirectory.
@@ -190,14 +190,14 @@ test failures.
 Install scan-build and configure your project. Then do this:
 
 ```console
-$ ninja scan-build
+$ meson compile scan-build
 ```
 
 You can use the `SCANBUILD` environment variable to choose the
 scan-build executable.
 
 ```console
-$ SCANBUILD=<your exe> ninja scan-build
+$ SCANBUILD=<your exe> meson compile scan-build
 ```
 
 

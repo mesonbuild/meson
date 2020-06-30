@@ -29,7 +29,7 @@ run_target('inspector',
 Run targets are not run by default. To run it run the following command.
 
 ```console
-$ ninja inspector
+$ meson compile inspector
 ```
 
 All additional entries in `run_target`'s `command` array are passed unchanged to the inspector script, so you can do things like this:
