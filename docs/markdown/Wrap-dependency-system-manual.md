@@ -71,6 +71,7 @@ revision = head
 - `directory` - name of the subproject root directory, defaults to the name of the wrap.
 
 Since *0.55.0* those can be used in all wrap types, they were previously reserved to `wrap-file`:
+
 - `patch_url` - download url to retrieve an optional overlay archive
 - `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
 - `patch_filename` - filename of the downloaded overlay archive
@@ -105,7 +106,7 @@ of downloading the file, even if `--wrap-mode` option is set to
   valid value (such as a git tag) for the VCS's `checkout` command, or
   (for git) `head` to track upstream's default branch. Required.
 
-## Specific to wrap-git
+### Specific to wrap-git
 - `depth` - shallowly clone the repository to X number of commits. Note
   that git always allow shallowly cloning branches, but in order to
   clone commit ids shallowly, the server must support
@@ -137,6 +138,62 @@ put them somewhere where you can download them.
 
 Meson build patches are only supported for wrap-file mode. When using
 wrap-git, the repository must contain all Meson build definitions.
+
+## `provide` section
+
+*Since *0.55.0*
+
+Wrap files can define the dependencies it provides in the `[provide]` section.
+When a wrap file provides the dependency `foo` any call do `dependency('foo')`
+will automatically fallback to that subproject even if no `fallback` keyword
+argument is given. It is recommended for subprojects to call
+`meson.override_dependency('foo', foo_dep)`, dependency name can then be added into
+the special `dependency_names` entry which takes comma separated list of dependency
+names. For backward compatibility with subprojects that does not call
+`meson.override_dependency()`, the variable name can be provided in the wrap file
+with entries in the format `dependency_name = variable_name`,
+where `dependency_name` usually match the corresponding pkg-config name and
+`variable_name` is the name of a variable defined in the subproject that should
+be returned for that dependency.
+
+For example when using a recent enough version of glib that uses
+`meson.override_dependency()` to override `glib-2.0`, `gobject-2.0` and `gio-2.0`,
+a wrap file would look like:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+dependency_names = glib-2.0, gobject-2.0, gio-2.0
+```
+
+With older version of glib dependency variable names need to be specified:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+glib-2.0=glib_dep
+gobject-2.0=gobject_dep
+gio-2.0=gio_dep
+```
+
+With such wrap file, `dependency('glib-2.0')` will automatically fallback to use
+`glib.wrap` and return `glib_dep` variable from the subproject.
+
+Programs can also be provided by wrap files, with the `program_names` key:
+```ini
+[wrap-git]
+...
+
+[provide]
+program_names = myprog, otherprog
+```
+
+With such wrap file, `find_program('myprog')` will automatically fallback to use
+the subproject, assuming it uses `meson.override_find_program('myprog')`.
 
 ## Using wrapped projects
 

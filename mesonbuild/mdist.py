@@ -259,7 +259,7 @@ def run(options):
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
         for sub in b.subprojects:
-            _, directory = wrap.get_directory(subproject_dir, sub)
+            directory = wrap.get_directory(subproject_dir, sub)
             subprojects.append(os.path.join(b.subproject_dir, directory))
         extra_meson_args.append('-Dwrap_mode=nodownload')
 

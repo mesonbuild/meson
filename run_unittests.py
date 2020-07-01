@@ -4081,6 +4081,11 @@ recommended as it is not supported on some platforms''')
                     'version': '1.0'
                 },
                 {
+                    'descriptive_name': 'sub_implicit',
+                    'name': 'sub_implicit',
+                    'version': '1.0',
+                },
+                {
                     'descriptive_name': 'sub-novar',
                     'name': 'sub_novar',
                     'version': '1.0',
