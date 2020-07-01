@@ -24,5 +24,5 @@ class Qt4Module(QtBaseModule):
 
 def initialize(*args, **kwargs):
     mlog.warning('rcc dependencies will not work properly until this upstream issue is fixed:',
-                 mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
+                 mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
     return Qt4Module(*args, **kwargs)
