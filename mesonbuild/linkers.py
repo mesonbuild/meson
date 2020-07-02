@@ -927,6 +927,12 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
     def import_library_args(self, implibname: str) -> T.List[str]:
         return ['--symdefs=' + implibname]
 
+class QualcommLLVMDynamicLinker(LLVMDynamicLinker):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ARM Linker from Snapdragon LLVM ARM Compiler
+        self.id = 'ld.qcld'
 
 class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 

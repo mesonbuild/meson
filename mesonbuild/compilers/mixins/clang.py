@@ -113,6 +113,11 @@ class ClangCompiler(GnuLikeCompiler):
         # (and other gcc-like compilers) cannot. This is becuse clang (being
         # llvm based) is retargetable, while GCC is not.
         #
+
+        # qcld: Qualcomm Snapdragon linker, based on LLVM
+        if linker == 'qcld':
+            return  ['-fuse-ld=qcld']
+
         if shutil.which(linker):
             if not shutil.which(linker):
                 raise mesonlib.MesonException(

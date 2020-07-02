@@ -55,6 +55,7 @@ from .linkers import (
     GnuBFDDynamicLinker,
     GnuGoldDynamicLinker,
     LLVMDynamicLinker,
+    QualcommLLVMDynamicLinker,
     MSVCDynamicLinker,
     OptlinkDynamicLinker,
     PGIDynamicLinker,
@@ -1028,9 +1029,12 @@ class Environment:
             check_args += override
 
         _, o, e = Popen_safe(compiler + check_args)
-        v = search_version(o)
+        v = search_version(o + e)
         if o.startswith('LLD'):
             linker = LLVMDynamicLinker(
+                compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
+        elif 'Snapdragon' in e and 'LLVM' in e:
+            linker = QualcommLLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
             # The LLD MinGW frontend didn't respond to --version before version 9.0.0,
@@ -1227,7 +1231,7 @@ class Environment:
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     target, linker=linker)
-            if 'clang' in out:
+            if 'clang' in out or 'Clang' in out:
                 linker = None
 
                 defines = self.get_clang_compiler_defines(compiler)
