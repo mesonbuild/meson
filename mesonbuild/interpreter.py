@@ -3320,7 +3320,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
     def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None):
+                          required=True, silent=True, wanted='', search_dirs=None,
+                          version_func=None):
         args = mesonlib.listify(args)
 
         extra_info = []
@@ -3336,7 +3337,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             return progobj
 
         if wanted:
-            version = progobj.get_version(self)
+            if version_func:
+                version = version_func(progobj)
+            else:
+                version = progobj.get_version(self)
             is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
             if not is_found:
                 mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'),
