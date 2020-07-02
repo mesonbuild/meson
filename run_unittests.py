@@ -4789,6 +4789,9 @@ recommended as it is not supported on some platforms''')
         Test that all listed meson commands are documented in Commands.md.
         '''
 
+        # The docs directory is not in release tarballs.
+        if not os.path.isdir('docs'):
+            raise unittest.SkipTest('Doc directory does not exist.')
         doc_path = 'docs/markdown_dynamic/Commands.md'
 
         md = None
