@@ -888,8 +888,8 @@ class Environment:
             check_args += override
 
         _, o, e = Popen_safe(compiler + check_args)
-        v = search_version(o)
-        if o.startswith('LLD'):
+        v = search_version(o + e)
+        if o.startswith('LLD') or 'LLVM' in e:
             linker = LLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
@@ -1087,7 +1087,7 @@ class Environment:
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     target, linker=linker)
-            if 'clang' in out:
+            if 'clang' in out or 'Clang' in out:
                 linker = None
 
                 defines = self.get_clang_compiler_defines(compiler)
