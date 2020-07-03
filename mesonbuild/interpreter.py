@@ -3360,7 +3360,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         fallback = None
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-        if wrap_mode != WrapMode.nofallback:
+        if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
             return self.find_program_fallback(fallback, args, required, extra_info)
