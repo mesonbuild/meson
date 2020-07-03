@@ -643,6 +643,7 @@ class Environment:
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
+        self.wrap_resolver = None
 
     def create_new_coredata(self, options):
         # WARNING: Don't use any values from coredata in __init__. It gets
