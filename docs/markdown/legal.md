@@ -12,7 +12,7 @@ specific permission. It is not licensed under the same terms as the
 rest of the project.
 
 If you are a third party and want to use the Meson logo, you must
-first must obtain written permission from Jussi Pakkanen.
+first obtain written permission from Jussi Pakkanen.
 
 ## Website licensing
 
