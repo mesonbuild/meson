@@ -11,7 +11,7 @@ should be used for `foo`.
 ## Wrap file `provide` section
 
 Wrap files can define the dependencies it provides in the `[provide]` section.
-When a wrap file provides the dependency `foo` any call do `dependency('foo')`
+When `foo.wrap` provides the dependency `foo-1.0` any call do `dependency('foo-1.0')`
 will automatically fallback to that subproject even if no `fallback` keyword
 argument is given. See [Wrap documentation](Wrap-dependency-system-manual.md#provide_section).
 

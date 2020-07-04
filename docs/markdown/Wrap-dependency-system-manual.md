@@ -136,25 +136,60 @@ thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
 put them somewhere where you can download them.
 
-Meson build patches are only supported for wrap-file mode. When using
-wrap-git, the repository must contain all Meson build definitions.
+Prior to *0.55.0* Meson build patches were only supported for wrap-file mode.
+When using wrap-git, the repository must contain all Meson build definitions.
+Since *0.55.0* Meson build patches are supported for any wrap modes, including
+wrap-git.
 
 ## `provide` section
 
 *Since *0.55.0*
 
 Wrap files can define the dependencies it provides in the `[provide]` section.
-When a wrap file provides the dependency `foo` any call do `dependency('foo')`
-will automatically fallback to that subproject even if no `fallback` keyword
-argument is given. It is recommended for subprojects to call
-`meson.override_dependency('foo', foo_dep)`, dependency name can then be added into
-the special `dependency_names` entry which takes comma separated list of dependency
-names. For backward compatibility with subprojects that does not call
-`meson.override_dependency()`, the variable name can be provided in the wrap file
-with entries in the format `dependency_name = variable_name`,
-where `dependency_name` usually match the corresponding pkg-config name and
-`variable_name` is the name of a variable defined in the subproject that should
-be returned for that dependency.
+
+```
+[provide]
+dependency_names = foo-1.0
+```
+
+When a wrap file provides the dependency `foo-1.0`, as above, any call to
+`dependency('foo-1.0')` will automatically fallback to that subproject even if
+no `fallback` keyword argument is given. A wrap file named `foo.wrap` implicitly
+provides the dependency name `foo` even when the `[provide]` section is missing.
+
+Optional dependencies, like `dependency('foo-1.0', required: get_option('foo_opt'))`
+where `foo_opt` is a feature option set to `auto`, will not fallback to the
+subproject defined in the wrap file, for 2 reasons:
+- It allows for looking the dependency in other ways first, for example using
+  `cc.find_library('foo')`, and only fallback if that fails:
+```
+# this won't use fallback defined in foo.wrap
+foo_dep = dependency('foo-1.0', required: false)
+if not foo_dep.found()
+  foo_dep = cc.find_library('foo', has_headers: 'foo.h', required: false)
+  if not foo_dep.found()
+    # This will use the fallback
+    foo_dep = dependency('foo-1.0')
+    # or
+    foo_dep = dependency('foo-1.0', required: false, fallback: 'foo')
+  endif
+endif
+```
+- Sometimes not-found dependency is preferable to a fallback when the feature is
+  not explicitly requested by the user. In that case
+  `dependency('foo-1.0', required: get_option('foo_opt'))` will only fallback
+  when the user sets `foo_opt` to `enabled` instead of `auto`.
+
+If it is desired to fallback for an optional dependency, the `fallback` keyword
+argument must be passed explicitly. For example
+`dependency('foo-1.0', required: get_option('foo_opt'), fallback: 'foo')` will
+use the fallback even when `foo_opt` is set to `auto`.
+
+This mechanism assumes the subproject calls `meson.override_dependency('foo-1.0', foo_dep)`
+so Meson knows which dependency object should be used as fallback. Since that
+method was introduced in version *0.54.0*, as a transitional aid for projects
+that do not yet make use of it the variable name can be provided in the wrap file
+with entries in the format `foo-1.0 = foo_dep`.
 
 For example when using a recent enough version of glib that uses
 `meson.override_dependency()` to override `glib-2.0`, `gobject-2.0` and `gio-2.0`,
@@ -180,14 +215,8 @@ gobject-2.0=gobject_dep
 gio-2.0=gio_dep
 ```
 
-With such wrap file, `dependency('glib-2.0')` will automatically fallback to use
-`glib.wrap` and return `glib_dep` variable from the subproject.
-
 Programs can also be provided by wrap files, with the `program_names` key:
 ```ini
-[wrap-git]
-...
-
 [provide]
 program_names = myprog, otherprog
 ```
