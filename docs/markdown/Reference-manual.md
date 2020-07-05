@@ -461,6 +461,8 @@ arguments:
   and subproject registered the dependency using
   `meson.override_dependency('dependency_name', subproj_dep)`, or when the wrap
   file has `dependency_name` in its `[provide]` section.
+  See [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.
 - `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method`: defines the way the dependency is detected, the default is
