@@ -147,7 +147,7 @@ wrap-git.
 
 Wrap files can define the dependencies it provides in the `[provide]` section.
 
-```
+```ini
 [provide]
 dependency_names = foo-1.0
 ```
@@ -162,7 +162,8 @@ where `foo_opt` is a feature option set to `auto`, will not fallback to the
 subproject defined in the wrap file, for 2 reasons:
 - It allows for looking the dependency in other ways first, for example using
   `cc.find_library('foo')`, and only fallback if that fails:
-```
+
+```meson
 # this won't use fallback defined in foo.wrap
 foo_dep = dependency('foo-1.0', required: false)
 if not foo_dep.found()
@@ -175,6 +176,7 @@ if not foo_dep.found()
   endif
 endif
 ```
+
 - Sometimes not-found dependency is preferable to a fallback when the feature is
   not explicitly requested by the user. In that case
   `dependency('foo-1.0', required: get_option('foo_opt'))` will only fallback
