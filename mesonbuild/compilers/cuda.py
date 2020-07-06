@@ -77,6 +77,9 @@ class CudaCompiler(Compiler):
     def needs_static_linker(self):
         return False
 
+    def get_linker_lib_prefix(self) -> str:
+        return self.LINKER_PREFIX
+
     def get_always_args(self):
         return []
 
