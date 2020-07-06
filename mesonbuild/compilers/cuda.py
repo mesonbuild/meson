@@ -46,14 +46,33 @@ class CudaCompiler(Compiler):
 
     @classmethod
     def _to_host_flags(cls, flags, phase='compiler'):
-        return list(map(partial(cls._to_host_flag, phase=phase), flags))
+        # since version 6, GCC is *VERY* allergic to passing
+        # '-isystem/usr/include' on the command line, see for instance
+        #
+        #   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70129#c1
+        #
+        # and while nvcc doesn't care about this, the fact that
+        # it happily passes '-isystem/usr/include' to GCC for
+        # compiling host code means we need to filter it.
+        FILTER = frozenset(['-isystem/usr/include']) if phase == 'compiler' else frozenset()
+        prefiltered_flags = filter(lambda x: x not in FILTER, flags)
+        return list(map(partial(cls._to_host_flag, phase=phase), prefiltered_flags))
 
     @classmethod
     def _to_host_flag(cls, flag, phase):
         if not flag[0] in ['-', '/'] or flag[:2] in cls._universal_flags[phase]:
             return flag
 
-        return '-X{}={}'.format(phase, flag)
+        if phase == 'compiler':
+            TRANSLATE_ARGS = {}
+        else:
+            assert phase == 'linker'
+            # nvcc passes '-Xlinker=-pthread' straight to ld, which
+            # explodes without remapping to '-Xlinker=-lpthread', as
+            # -pthread is purely a GCC flag.
+            TRANSLATE_ARGS = {'-pthread': '-lpthread'}
+
+        return '-X{}={}'.format(phase, TRANSLATE_ARGS.get(flag, flag))
 
     def needs_static_linker(self):
         return False
