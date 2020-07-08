@@ -1182,7 +1182,7 @@ builtin_options = OrderedDict([
     ('strip',           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
     ('unity',           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
     ('unity_size',      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
-    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'])),
+    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], yielding=False)),
     ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
     ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
