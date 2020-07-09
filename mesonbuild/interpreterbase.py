@@ -1026,6 +1026,20 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
+        elif method_name == 'substring':
+            if len(posargs) > 2:
+                raise InterpreterException('substring() takes maximum two arguments.')
+            start = 0
+            end = len(obj)
+            if len (posargs) > 0:
+                if not isinstance(posargs[0], int):
+                    raise InterpreterException('substring() argument must be an int')
+                start = posargs[0]
+            if len (posargs) > 1:
+                if not isinstance(posargs[1], int):
+                    raise InterpreterException('substring() argument must be an int')
+                end = posargs[1]
+            return obj[start:end]
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def format_string(self, templ: str, args: T.List[TYPE_nvar]) -> str:
