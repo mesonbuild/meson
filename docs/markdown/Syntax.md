@@ -220,6 +220,26 @@ is_x86 = target.startswith('x86') # boolean value 'true'
 is_bsd = target.to_lower().endswith('bsd') # boolean value 'true'
 ```
 
+#### .substring()
+
+Since 0.56.0, you can extract a substring from a string.
+
+```meson
+# Similar to the Python str[start:end] syntax
+target = 'x86_FreeBSD'
+platform = target.substring(0, 3) # prefix string value 'x86'
+system = target.substring(4) # suffix string value 'FreeBSD'
+```
+
+The method accepts negative values where negative `start` is relative to the end of
+string `len(string) - start` as well as negative `end`.
+
+```meson
+string = 'foobar'
+target.substring(-5, -3) # => 'oo'
+target.substring(1, -1) # => 'ooba'
+```
+
 #### .split(), .join()
 
 ```meson

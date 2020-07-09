@@ -1977,6 +1977,9 @@ are immutable, all operations return their results as a new string.
 - `startswith(string)`: returns true if string starts with the string
   specified as the argument
 
+- `substring(start,end)` *(since 0.56.0)*: returns a substring specified from start to end.
+  Both `start` and `end` arguments are optional, so, for example, `'foobar'.substring()` will return `'foobar'`.
+
 - `strip()`: removes whitespace at the beginning and end of the string.
   *(since 0.43.0)* Optionally can take one positional string argument,
   and all characters in that string will be stripped.
