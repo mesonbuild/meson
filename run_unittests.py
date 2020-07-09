@@ -4635,6 +4635,10 @@ recommended as it is not supported on some platforms''')
                              no: NO
                       coma list: a, b, c
 
+              Plugins
+                 long coma list: alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
+                                 autodetect, avi
+
               Subprojects
                             sub: YES
                            sub2: NO Problem encountered: This subproject failed
