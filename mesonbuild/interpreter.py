@@ -1844,9 +1844,17 @@ class Summary:
                 if bool_yn and isinstance(i, bool):
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 else:
-                    formatted_values.append(i)
+                    formatted_values.append(str(i))
             self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
+
+    def text_len(self, v):
+        if isinstance(v, str):
+            return len(v)
+        elif isinstance(v, mlog.AnsiDecorator):
+            return len(v.text)
+        else:
+            raise RuntimeError('Expecting only strings or AnsiDecorator')
 
     def dump(self):
         mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
@@ -1859,12 +1867,28 @@ class Summary:
                 indent = self.max_key_len - len(k) + 3
                 end = ' ' if v else ''
                 mlog.log(' ' * indent, k + ':', end=end)
-                if list_sep is None:
-                    indent = self.max_key_len + 6
-                    list_sep = '\n' + ' ' * indent
-                mlog.log(*v, sep=list_sep)
+                indent = self.max_key_len + 6
+                self.dump_value(v, list_sep, indent)
         mlog.log('')  # newline
 
+    def dump_value(self, arr, list_sep, indent):
+        lines_sep = '\n' + ' ' * indent
+        if list_sep is None:
+            mlog.log(*arr, sep=lines_sep)
+            return
+        max_len = shutil.get_terminal_size().columns
+        line = []
+        line_len = indent
+        lines_sep = list_sep.rstrip() + lines_sep
+        for v in arr:
+            v_len = self.text_len(v) + len(list_sep)
+            if line and line_len + v_len > max_len:
+                mlog.log(*line, sep=list_sep, end=lines_sep)
+                line_len = indent
+                line = []
+            line.append(v)
+            line_len += v_len
+        mlog.log(*line, sep=list_sep)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
