@@ -1,0 +1,2 @@
+option('foo_bar', type : 'boolean', value : false)
+option('foo-bar', type : 'boolean', value : true)

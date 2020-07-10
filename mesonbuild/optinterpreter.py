@@ -27,6 +27,8 @@ forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', '
 reserved_prefixes = ['cross_']
 
 def is_invalid_name(name: str, *, log: bool = True) -> bool:
+    if '.' in name:
+        return True
     if name in forbidden_option_names:
         return True
     pref = name.split('_')[0] + '_'
@@ -55,8 +57,6 @@ def permitted_kwargs(permitted):
         return _inner
     return _wraps
 
-
-optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 @permitted_kwargs({'value', 'yield'})
 def StringParser(description, kwargs):
@@ -223,12 +223,15 @@ class OptionInterpreter:
         opt_name = posargs[0]
         if not isinstance(opt_name, str):
             raise OptionException('Positional argument must be a string.')
-        if optname_regex.search(opt_name) is not None:
-            raise OptionException('Option names can only contain letters, numbers or dashes.')
+        opt_name = mesonlib.normalize_option(opt_name)
         if is_invalid_name(opt_name):
             raise OptionException('Option name %s is reserved.' % opt_name)
+        if ':' in opt_name:
+            raise OptionException('Subproject options need to be defined in the subproject.')
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
+        if opt_name in self.options:
+            raise OptionException('Duplicate option %s.' % opt_name)
         opt = option_types[opt_type](opt_name, kwargs.pop('description', ''), kwargs)
         if opt.description == '':
             opt.description = opt_name

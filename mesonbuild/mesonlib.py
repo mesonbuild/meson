@@ -1721,3 +1721,11 @@ class OptionOverrideProxy:
             for option_name in opts:
                 result[option_name] = self._get_override(option_name, opts[option_name])
         return result
+
+optname_regex = re.compile('[^a-zA-Z0-9_:.]')
+
+def normalize_option(name : str) -> str:
+    name = name.replace('-', '_')
+    if optname_regex.search(name) is not None:
+        raise MesonException('Option name contains invalid characters: %s' % name)
+    return name
