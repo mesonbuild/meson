@@ -168,6 +168,13 @@ $ meson configure "-Doption=['a,b', 'c,d']"
 The inner values must always be single quotes and the outer ones
 double quotes.
 
+Since version 0.56, there exists special syntax for setting options to the
+values `enabled` and `disabled`, respectively:
+
+```console
+$ meson configure --enable-foo --disable-bar
+```
+
 To change values in subprojects prepend the name of the subproject and
 a colon:
 

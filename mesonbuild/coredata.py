@@ -1045,6 +1045,12 @@ def register_builtin_arguments(parser):
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
+    # These are non-options added purely for the --help output. They cannot
+    # actually be parsed because the arg expansion already replaces any options
+    # starting with --enable or --disable before they get passed to argparse
+    parser.add_argument('--enable-option', action='store_true', help='Same as -D option=enabled.')
+    parser.add_argument('--disable-option', action='store_true', help='Same as -D option=disabled.')
+
 def create_options_dict(options):
     result = OrderedDict()
     for o in options:

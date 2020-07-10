@@ -1170,6 +1170,19 @@ def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
             return None
     return expended_args
 
+def expand_features(args : T.Iterable[str]) -> T.List[str]:
+    expanded_args = []  # type: T.List[str]
+    for arg in args:
+        if arg.startswith('--enable-'):
+            name = arg[len('--enable-'):]
+            expanded_args.append('-D{0}=enabled'.format(name))
+        elif arg.startswith('--disable-'):
+            name = arg[len('--disable-'):]
+            expanded_args.append('-D{0}=disabled'.format(name))
+        else:
+            expanded_args.append(arg)
+    return expanded_args
+
 
 def partition(pred: T.Callable[[_T], object], iterable: T.Iterator[_T]) -> T.Tuple[T.Iterator[_T], T.Iterator[_T]]:
     """Use a predicate to partition entries into false entries and true
