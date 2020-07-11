@@ -451,9 +451,6 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException('This linker does not support bitcode bundles')
 
-    def get_debug_crt_args(self) -> T.List[str]:
-        return []
-
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
@@ -997,16 +994,6 @@ class VisualStudioLikeLinkerMixin:
 
     def invoked_by_compiler(self) -> bool:
         return not self.direct
-
-    def get_debug_crt_args(self) -> T.List[str]:
-        """Arguments needed to select a debug crt for the linker.
-
-        Sometimes we need to manually select the CRT (C runtime) to use with
-        MSVC. One example is when trying to link with static libraries since
-        MSVC won't auto-select a CRT for us in that case and will error out
-        asking us to select one.
-        """
-        return self._apply_prefix('/MDd')
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return self._apply_prefix(['/MACHINE:' + self.machine, '/OUT:' + outputname])

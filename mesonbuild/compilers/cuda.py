@@ -263,9 +263,6 @@ class CudaCompiler(Compiler):
     def get_depfile_suffix(self):
         return 'd'
 
-    def get_linker_debug_crt_args(self) -> T.List[str]:
-        return self._cook_link_args(self.host_compiler.get_linker_debug_crt_args())
-
     def get_buildtype_linker_args(self, buildtype):
         return self._cook_link_args(self.host_compiler.get_buildtype_linker_args(buildtype))
 
