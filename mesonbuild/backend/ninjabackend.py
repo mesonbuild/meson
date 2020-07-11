@@ -2155,11 +2155,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return linker.get_link_debugfile_args(outname)
 
     def generate_llvm_ir_compile(self, target, src):
+        base_proxy = self.get_base_options_for_target(target)
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = compiler.compiler_args()
         # Compiler args for compiling this target
-        commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
-                                                    compiler)
+        commands += compilers.get_base_compile_args(base_proxy, compiler)
         if isinstance(src, File):
             if src.is_built:
                 src_filename = os.path.join(src.subdir, src.fname)
