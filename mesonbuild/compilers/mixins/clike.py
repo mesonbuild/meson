@@ -366,9 +366,17 @@ class CLikeCompiler:
 
     def _get_basic_compiler_args(self, env, mode: str):
         cargs, largs = [], []
-        # Select a CRT if needed since we're linking
         if mode == 'link':
-            cargs += self.get_linker_debug_crt_args()
+            # Sometimes we need to manually select the CRT to use with MSVC.
+            # One example is when trying to do a compiler check that involves
+            # linking with static libraries since MSVC won't select a CRT for
+            # us in that case and will error out asking us to pick one.
+            try:
+                crt_val = env.coredata.base_options['b_vscrt'].value
+                buildtype = env.coredata.base_options['buildtype'].value
+                cargs += self.get_crt_compile_args(crt_val, buildtype)
+            except (KeyError, AttributeError):
+                pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
         sys_args = env.coredata.get_external_args(self.for_machine, self.language)

@@ -854,9 +854,6 @@ class Compiler(metaclass=abc.ABCMeta):
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
 
-    def get_linker_debug_crt_args(self) -> T.List[str]:
-        return self.linker.get_debug_crt_args()
-
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
 
