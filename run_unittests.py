@@ -2834,9 +2834,25 @@ class AllPlatformTests(BasePlatformTests):
             # fails sometimes.
             pass
 
-    def test_dist_hg(self):
+    def has_working_hg(self):
         if not shutil.which('hg'):
-            raise unittest.SkipTest('Mercurial not found')
+            return False
+        try:
+            # This check should not be necessary, but
+            # CI under macOS passes the above test even
+            # though Mercurial is not installed.
+            if subprocess.call(['hg', '--version'],
+                               stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL) != 0:
+                return False
+            return True
+        except FileNotFoundError:
+            return False
+
+
+    def test_dist_hg(self):
+        if not self.has_working_hg():
+            raise unittest.SkipTest('Mercurial not found or broken.')
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest('Dist is only supported with Ninja')
 
