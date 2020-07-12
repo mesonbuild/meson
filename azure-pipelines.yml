@@ -13,6 +13,7 @@ variables:
 jobs:
 
 - job: vs2017
+  timeoutInMinutes: 120
   pool:
     vmImage: VS2017-Win2016
 
@@ -41,6 +42,7 @@ jobs:
   - template: ci/azure-steps.yml
 
 - job: vs2019
+  timeoutInMinutes: 120
   pool:
     vmImage: windows-2019
 
