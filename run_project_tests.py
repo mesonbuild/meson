@@ -361,11 +361,10 @@ def _run_ci_include(args: T.List[str]) -> str:
     if not args:
         return 'At least one parameter required'
     try:
-        file_path = Path(args[0])
-        data = file_path.open(errors='ignore', encoding='utf-8').read()
+        data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
         return 'Included file {}:\n{}\n'.format(args[0], data)
     except Exception:
-        return 'Failed to open {} ({})'.format(args[0])
+        return 'Failed to open {}'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
