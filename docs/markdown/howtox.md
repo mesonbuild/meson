@@ -25,7 +25,7 @@ for the host platform in cross builds can only be specified with a cross file.
 There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
 
 
-## Set dynamic linker
+## Set linker
 
 *New in 0.53.0*
 
