@@ -10,14 +10,13 @@ if not cython.found()
   error('MESON_SKIP_TEST: Cython3 not found.')
 endif
 
-py3_dep = dependency('python3', required : false)
+py_mod = import('python')
+py3 = py_mod.find_installation()
+py3_dep = py3.dependency(required: false)
 if not py3_dep.found()
   error('MESON_SKIP_TEST: Python library not found.')
 endif
 
-py_mod = import('python')
-py3 = py_mod.find_installation()
-py3_dep = py3.dependency()
 subdir('libdir')
 
 test('cython tester',
