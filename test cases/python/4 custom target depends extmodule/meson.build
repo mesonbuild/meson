@@ -3,6 +3,10 @@ project('Python extension module', 'c',
 # Because Windows Python ships only with optimized libs,
 # we must build this project the same way.
 
+if meson.backend() != 'ninja'
+  error('MESON_SKIP_TEST: Ninja backend required')
+endif
+
 py_mod = import('python')
 py3 = py_mod.find_installation()
 py3_dep = py3.dependency(required : false)
