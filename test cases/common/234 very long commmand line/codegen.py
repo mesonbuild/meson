@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from pathlib import Path
 
-with open(sys.argv[2], 'w') as f:
-    print('int func{n}(void) {{ return {n}; }}'.format(n=sys.argv[1]), file=f)
+Path(sys.argv[2]).write_text(
+    'int func{n}(void) {{ return {n}; }}'.format(n=sys.argv[1]))

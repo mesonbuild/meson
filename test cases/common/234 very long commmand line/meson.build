@@ -6,6 +6,10 @@ if build_machine.system() == 'windows'
   # cmd.exe: 8kb
   # CreateProcess: 32kb
   limit = 32767
+  # NOTE: filename limit is 260 characters unless
+  # 1. Python >= 3.6 is being used
+  # 2. Windows 10 registry has been edited to enable long pathnaems
+  # ninja backend uses absolute filenames, so we ensure they don't exceed 260.
 elif build_machine.system() == 'cygwin'
   # cygwin-to-win32: see above
   # cygwin-to-cygwin: no limit?
@@ -18,20 +22,21 @@ else
   limit = 131072
 endif
 # Now exceed that limit, but not so far that the test takes too long.
-name = 'ALongFilenameMuchLongerThanIsNormallySeenAndReallyHardToReadThroughToTheEndAMooseOnceBitMySisterSheNowWorksAtLLamaFreshFarmsThisHasToBeSoLongThatWeExceed128KBWithoutCompilingTooManyFiles'
-namelen = 187
+namelen = 260
 nfiles = 50 + limit / namelen
 message('Expected link commandline length is approximately ' + '@0@'.format((nfiles * (namelen+28))))
 
-seq = run_command('seq.py', '1', '@0@'.format(nfiles)).stdout().strip().split('\n')
+seq = run_command('name_gen.py', nfiles.to_string(), meson.build_root()).stdout().strip().split('\n')
 
 sources = []
 codegen = find_program('codegen.py')
 
-foreach i : seq
-  sources += custom_target('codegen' + i,
-                           command: [codegen, i, '@OUTPUT@'],
-                           output: name + i + '.c')
+i=0
+foreach name : seq
+  sources += custom_target('codegen' + i.to_string(),
+                           command: [codegen, i.to_string(), '@OUTPUT@'],
+                           output: name + '.c')
+  i+=1
 endforeach
 
 shared_library('sharedlib', sources)
