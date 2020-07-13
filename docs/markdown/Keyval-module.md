@@ -1,5 +1,5 @@
 ---
-short-description: Unstable keyval module
+short-description: Keyval module
 authors:
     - name: Mark Schulte, Paolo Bonzini
       years: [2017, 2019]
@@ -23,7 +23,7 @@ chosen the configuration options), output a ".config" file.
 The module may be imported as follows:
 
 ``` meson
-keyval = import('unstable-keyval')
+keyval = import('keyval')
 ```
 
 The following functions will then be available as methods on the object

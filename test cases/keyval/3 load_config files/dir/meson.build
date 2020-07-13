@@ -1,5 +1,5 @@
 
-k = import('unstable-keyval')
+k = import('keyval')
 
 conf = k.load(files('config'))
 
