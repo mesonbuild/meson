@@ -1,6 +1,6 @@
 project('keyval builddir test')
 
-k = import('unstable-keyval')
+k = import('keyval')
 
 out_conf = configure_file(input: 'config', output: 'out-config', copy: true)
 conf = k.load(out_conf)
