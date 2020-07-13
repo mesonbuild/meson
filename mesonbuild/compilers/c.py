@@ -255,6 +255,15 @@ class PGICCompiler(PGICompiler, CCompiler):
         PGICompiler.__init__(self)
 
 
+class NvidiaHPC_CCompiler(PGICompiler, CCompiler):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        PGICompiler.__init__(self)
+        self.id = 'nvidia_hpc'
+
+
 class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
