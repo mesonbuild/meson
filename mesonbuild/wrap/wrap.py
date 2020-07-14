@@ -61,7 +61,10 @@ def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
 def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     if not GIT:
         return False
-    return git(cmd, workingdir, check=check).returncode == 0
+    try:
+        return git(cmd, workingdir, check=check).returncode == 0
+    except subprocess.CalledProcessError:
+        raise WrapException('Git command failed')
 
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
