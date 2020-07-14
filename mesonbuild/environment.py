@@ -930,9 +930,15 @@ class Environment:
                 cls = GnuBFDDynamicLinker
             linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         elif 'Solaris' in e or 'Solaris' in o:
+            for line in (o+e).split('\n'):
+                if 'ld: Software Generation Utilities' in line:
+                    v = line.split(':')[2].lstrip()
+                    break
+            else:
+                v = 'unknown version'
             linker = SolarisDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override,
-                version=search_version(e))
+                version=v)
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
         return linker

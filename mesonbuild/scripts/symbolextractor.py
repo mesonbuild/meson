@@ -124,9 +124,11 @@ def gnu_syms(libfilename: str, outfilename: str):
 def solaris_syms(libfilename: str, outfilename: str):
     # gnu_syms() works with GNU nm & readelf, not Solaris nm & elfdump
     origpath = os.environ['PATH']
-    os.environ['PATH'] = '/usr/gnu/bin:' + origpath
-    gnu_syms(libfilename, outfilename)
-    os.environ['PATH'] = origpath
+    try:
+        os.environ['PATH'] = '/usr/gnu/bin:' + origpath
+        gnu_syms(libfilename, outfilename)
+    finally:
+        os.environ['PATH'] = origpath
 
 def osx_syms(libfilename: str, outfilename: str):
     # Get the name of the library
