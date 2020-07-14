@@ -361,11 +361,10 @@ def _run_ci_include(args: T.List[str]) -> str:
     if not args:
         return 'At least one parameter required'
     try:
-        file_path = Path(args[0])
-        data = file_path.open(errors='ignore', encoding='utf-8').read()
+        data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
         return 'Included file {}:\n{}\n'.format(args[0], data)
     except Exception:
-        return 'Failed to open {} ({})'.format(args[0])
+        return 'Failed to open {}'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
@@ -939,7 +938,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
         TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         TestCategory('python3', 'python3', backend is not Backend.ninja),
-        TestCategory('python', 'python', backend is not Backend.ninja),
+        TestCategory('python', 'python'),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
         TestCategory('frameworks', 'frameworks'),
         TestCategory('nasm', 'nasm'),
