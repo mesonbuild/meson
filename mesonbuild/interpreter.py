@@ -2559,6 +2559,15 @@ class Interpreter(InterpreterBase):
                 except InvalidArguments:
                     pass
 
+    def import_module(self, modname):
+        if modname in self.modules:
+            return
+        try:
+            module = importlib.import_module('mesonbuild.modules.' + modname)
+        except ImportError:
+            raise InvalidArguments('Module "%s" does not exist' % (modname, ))
+        self.modules[modname] = module.initialize(self)
+
     @stringArgs
     @noKwargs
     def func_import(self, node, args, kwargs):
@@ -2567,14 +2576,15 @@ class Interpreter(InterpreterBase):
         modname = args[0]
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
-            mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
-            modname = 'unstable_' + plainname
-        if modname not in self.modules:
             try:
-                module = importlib.import_module('mesonbuild.modules.' + modname)
-            except ImportError:
-                raise InvalidArguments('Module "%s" does not exist' % (modname, ))
-            self.modules[modname] = module.initialize(self)
+                # check if stable module exists
+                self.import_module(plainname)
+                mlog.warning('Module %s is now stable, please use the %s module instead.' % (modname, plainname))
+                modname = plainname
+            except InvalidArguments:
+                mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
+                modname = 'unstable_' + plainname
+        self.import_module(modname)
         return ModuleHolder(modname, self.modules[modname], self)
 
     @stringArgs
