@@ -252,6 +252,16 @@ class InternalDependency(Dependency):
         self.ext_deps = ext_deps
         self.variables = variables
 
+    def __deepcopy__(self, memo: dict) -> 'InternalDependency':
+        result = self.__class__.__new__(self.__class__)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k in ['libraries', 'whole_libraries']:
+                setattr(result, k, copy.copy(v))
+            else:
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
+
     def get_pkgconfig_variable(self, variable_name, kwargs):
         raise DependencyException('Method "get_pkgconfig_variable()" is '
                                   'invalid for an internal dependency')
