@@ -14,5 +14,7 @@ allinone = custom_target('alltogether',
     output : 'alltogether.h',
     command : [catter, '@INPUT@', '@OUTPUT@'])
 
-executable('proggie', 'main.c', allinone)
+proggie = executable('proggie', 'main.c', allinone)
+
+test('proggie', proggie)
 

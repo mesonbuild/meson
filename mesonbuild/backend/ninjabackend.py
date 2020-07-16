@@ -972,6 +972,8 @@ int dummy;
         targets = self.build.get_targets().values()
         use_llvm_cov = False
         for target in targets:
+            if not hasattr(target, 'compilers'):
+                continue
             for compiler in target.compilers.values():
                 if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
                     use_llvm_cov = True
