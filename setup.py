@@ -37,10 +37,6 @@ packages = ['mesonbuild',
             'mesonbuild.scripts',
             'mesonbuild.templates',
             'mesonbuild.wrap']
-package_data = {
-    'mesonbuild.dependencies': ['data/CMakeLists.txt', 'data/CMakeListsLLVM.txt', 'data/CMakePathInfo.txt'],
-    'mesonbuild.cmake': ['data/run_ctgt.py', 'data/preload.cmake'],
-}
 data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems
@@ -51,6 +47,5 @@ if __name__ == '__main__':
     setup(name='meson',
           version=version,
           packages=packages,
-          package_data=package_data,
           entry_points=entries,
           data_files=data_files,)
