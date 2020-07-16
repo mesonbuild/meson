@@ -19,8 +19,9 @@ from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
-    MesonException, MachineChoice, PerMachine, OrderedSet,
-    default_libdir, default_libexecdir, default_prefix, split_args
+    MesonException, EnvironmentException, MachineChoice, PerMachine,
+    OrderedSet, default_libdir, default_libexecdir, default_prefix,
+    split_args
 )
 from .envconfig import get_env_var_pair
 from .wrap import WrapMode
