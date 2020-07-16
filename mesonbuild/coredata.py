@@ -20,7 +20,7 @@ from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, MachineChoice, PerMachine, OrderedSet,
-    default_libdir, default_libexecdir, default_prefix, split_args
+    default_libdir, default_libexecdir, default_prefix, split_args, normalize_option
 )
 from .envconfig import get_env_var_pair
 from .wrap import WrapMode
@@ -1035,6 +1035,13 @@ def save(obj, build_dir):
     os.replace(tempfilename, filename)
     return filename
 
+def option(arg):
+    opt_name, opt_val = arg.split('=', 1)
+    opt_name = normalize_option(opt_name)
+    if opt_val is None:
+        return opt_name
+    else:
+        return '{0}={1}'.format(opt_name, opt_val)
 
 def register_builtin_arguments(parser):
     for n, b in builtin_options.items():
@@ -1042,8 +1049,14 @@ def register_builtin_arguments(parser):
     for n, b in builtin_options_per_machine.items():
         b.add_to_argparse(n, parser, '', ' (just for host machine)')
         b.add_to_argparse(n, parser, 'build.', ' (just for build machine)')
-    parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
+    parser.add_argument('-D', action='append', type=option, dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
+
+    # These are non-options added purely for the --help output. They cannot
+    # actually be parsed because the arg expansion already replaces any options
+    # starting with --enable or --disable before they get passed to argparse
+    parser.add_argument('--enable-option', action='store_true', help='Same as -D option=enabled.')
+    parser.add_argument('--disable-option', action='store_true', help='Same as -D option=disabled.')
 
 def create_options_dict(options):
     result = OrderedDict()

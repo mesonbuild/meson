@@ -34,4 +34,8 @@ if get_option('neg_int_opt') != -3
   error('Incorrect value in negative integer option.')
 endif
 
+if get_option('normalize-this') != true
+  error('Incorrect value of normalized option.')
+endif
+
 assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')

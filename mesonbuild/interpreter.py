@@ -21,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep, unholder
+from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep, unholder, normalize_option
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -2956,6 +2956,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Having a colon in option name is forbidden, '
                                        'projects are not allowed to directly access '
                                        'options of other subprojects.')
+        optname = normalize_option(optname)
         opt = self.get_option_internal(optname)
         if isinstance(opt, coredata.UserFeatureOption):
             return FeatureOptionHolder(self.environment, optname, opt)

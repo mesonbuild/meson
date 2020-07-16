@@ -125,6 +125,7 @@ class CommandLineParser:
             parser = self.parser
 
         args = mesonlib.expand_arguments(args)
+        args = mesonlib.expand_features(args)
         options = parser.parse_args(args)
 
         try:

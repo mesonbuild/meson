@@ -1170,6 +1170,19 @@ def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
             return None
     return expended_args
 
+def expand_features(args : T.Iterable[str]) -> T.List[str]:
+    expanded_args = []  # type: T.List[str]
+    for arg in args:
+        if arg.startswith('--enable-'):
+            name = arg[len('--enable-'):]
+            expanded_args.append('-D{0}=enabled'.format(name))
+        elif arg.startswith('--disable-'):
+            name = arg[len('--disable-'):]
+            expanded_args.append('-D{0}=disabled'.format(name))
+        else:
+            expanded_args.append(arg)
+    return expanded_args
+
 
 def partition(pred: T.Callable[[_T], object], iterable: T.Iterator[_T]) -> T.Tuple[T.Iterator[_T], T.Iterator[_T]]:
     """Use a predicate to partition entries into false entries and true
@@ -1708,3 +1721,11 @@ class OptionOverrideProxy:
             for option_name in opts:
                 result[option_name] = self._get_override(option_name, opts[option_name])
         return result
+
+optname_regex = re.compile('[^a-zA-Z0-9_:.]')
+
+def normalize_option(name : str) -> str:
+    name = name.replace('-', '_')
+    if optname_regex.search(name) is not None:
+        raise MesonException('Option name contains invalid characters: %s' % name)
+    return name
