@@ -15,8 +15,6 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-import pkg_resources
-
 from .common import CMakeException, CMakeTarget, TargetOptions
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
 from .fileapi import CMakeFileAPI
@@ -25,6 +23,7 @@ from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
 from ..environment import Environment
 from ..mesonlib import MachineChoice, OrderedSet, version_compare
+from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
@@ -814,7 +813,7 @@ class CMakeInterpreter:
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
-        preload_file = pkg_resources.resource_filename('mesonbuild', 'cmake/data/preload.cmake')
+        preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
 
         # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
         # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
