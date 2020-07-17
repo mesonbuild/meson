@@ -174,7 +174,7 @@ jobs:
       displayName: Update MSYS2
     - script: |
         set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        if %compiler%==gcc ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-toolchain" ) else ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-clang" )
+        if %compiler%==gcc ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-toolchain" ) else ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-clang mingw-w64-$(MSYS2_ARCH)-compiler-rt" )
         %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S ^
         base-devel ^
         git ^
