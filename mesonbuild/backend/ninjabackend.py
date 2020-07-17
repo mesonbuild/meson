@@ -459,7 +459,7 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         # When used in cross compilation, the path separator is a
-        # backslash rather than a forward slash so handle both.
+        # forward slash rather than a backslash so handle both.
         matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|\/).*stdio.h$")
 
         def detect_prefix(out):
