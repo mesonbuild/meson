@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+from pathlib import Path
 import enum
 import json
 import os
@@ -455,10 +456,35 @@ class Backend:
                 args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
             except Exception:
                 pass
+        # Match rpath formats:
+        # -Wl,-rpath=
+        # -Wl,-rpath,
+        rpath_regex = re.compile(r'-Wl,-rpath[=,]([^,]+)')
+        # Match solaris style compat runpath formats:
+        # -Wl,-R
+        # -Wl,-R,
+        runpath_regex = re.compile(r'-Wl,-R[,]?([^,]+)')
+        # Match symbols formats:
+        # -Wl,--just-symbols=
+        # -Wl,--just-symbols,
+        symbols_regex = re.compile(r'-Wl,--just-symbols[=,]([^,]+)')
         for arg in args:
-            if arg.startswith('-Wl,-rpath='):
-                for dir in arg.replace('-Wl,-rpath=','').split(':'):
+            rpath_match = rpath_regex.match(arg)
+            if rpath_match:
+                for dir in rpath_match.group(1).split(':'):
                     dirs.add(dir)
+            runpath_match = runpath_regex.match(arg)
+            if runpath_match:
+                for dir in runpath_match.group(1).split(':'):
+                    # The symbols arg is an rpath if the path is a directory
+                    if Path(dir).is_dir():
+                        dirs.add(dir)
+            symbols_match = symbols_regex.match(arg)
+            if symbols_match:
+                for dir in symbols_match.group(1).split(':'):
+                    # Prevent usage of --just-symbols to specify rpath
+                    if Path(dir).is_dir():
+                        raise MesonException('Invalid arg for --just-symbols, {} is a directory.'.format(dir))
         return dirs
 
     def rpaths_for_bundled_shared_libraries(self, target, exclude_system=True):
