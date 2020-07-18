@@ -6423,19 +6423,34 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(yonder_dir)
         self.build()
         self.install(use_destdir=False)
-        self.new_builddir()
 
-        # Build an app that uses that installed library.
-        # Supply the rpath to the installed library via LDFLAGS
-        # (as systems like buildroot and guix are wont to do)
-        # and verify install preserves that rpath.
-        env = {'LDFLAGS': '-Wl,-rpath=' + yonder_libdir,
-               'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
-        self.init(testdir, override_envvars=env)
-        self.build()
-        self.install(use_destdir=False)
-        got_rpath = get_rpath(os.path.join(yonder_prefix, 'bin/rpathified'))
-        self.assertEqual(got_rpath, yonder_libdir)
+        # Since rpath has multiple valid formats we need to
+        # test that they are all properly used.
+        rpath_formats = [
+            ('-Wl,-rpath=', False),
+            ('-Wl,-rpath,', False),
+            ('-Wl,--just-symbols=', True),
+            ('-Wl,--just-symbols,', True),
+            ('-Wl,-R', False),
+            ('-Wl,-R,', False)
+        ]
+        for rpath_format, exception in rpath_formats:
+            # Build an app that uses that installed library.
+            # Supply the rpath to the installed library via LDFLAGS
+            # (as systems like buildroot and guix are wont to do)
+            # and verify install preserves that rpath.
+            self.new_builddir()
+            env = {'LDFLAGS': rpath_format + yonder_libdir,
+                   'PKG_CONFIG_PATH': os.path.join(yonder_libdir, 'pkgconfig')}
+            if exception:
+                with self.assertRaises(subprocess.CalledProcessError):
+                    self.init(testdir, override_envvars=env)
+                break
+            self.init(testdir, override_envvars=env)
+            self.build()
+            self.install(use_destdir=False)
+            got_rpath = get_rpath(os.path.join(yonder_prefix, 'bin/rpathified'))
+            self.assertEqual(got_rpath, yonder_libdir, rpath_format)
 
     @skip_if_not_base_option('b_sanitize')
     def test_pch_with_address_sanitizer(self):
