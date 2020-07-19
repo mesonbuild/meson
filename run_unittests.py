@@ -7030,6 +7030,13 @@ c = ['{0}']
         windows_proof_rmtree(os.path.join(testdir, 'subprojects', 'foo'))
         os.unlink(wrap_filename)
 
+    def test_no_rpath_for_static(self):
+        testdir = os.path.join(self.common_test_dir, '5 linkstatic')
+        self.init(testdir)
+        self.build()
+        build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
+        self.assertIsNone(build_rpath)
+
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that
