@@ -1,1 +1,1 @@
-int main() { return 0; }
+int stub(void) { return 0; }
