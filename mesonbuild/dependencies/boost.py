@@ -368,11 +368,11 @@ class BoostDependency(ExternalDependency):
         self.arch = environment.machines[self.for_machine].cpu_family
         self.arch = boost_arch_map.get(self.arch, None)
 
-        # First, look for paths specified in a property file
+        # First, look for paths specified in a machine file
         props = self.env.properties[self.for_machine]
         boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir'), props.get('boost_root')]
         if any(boost_property_env):
-            self.detect_boost_property_file(props)
+            self.detect_boost_machine_file(props)
             return
 
         # Next, look for paths in the environment
@@ -403,7 +403,7 @@ class BoostDependency(ExternalDependency):
                 self.boost_root = j
                 break
 
-    def detect_boost_property_file(self, props) -> None:
+    def detect_boost_machine_file(self, props) -> None:
         incdir = props.get('boost_includedir')
         libdir = props.get('boost_librarydir')
 
@@ -412,7 +412,7 @@ class BoostDependency(ExternalDependency):
             lib_dir = Path(props['boost_librarydir'])
 
             if not inc_dir.is_absolute() or not lib_dir.is_absolute():
-                raise DependencyException('Paths given for boost_includedir and boost_librarydir in property file must be absolute')
+                raise DependencyException('Paths given for boost_includedir and boost_librarydir in machine file must be absolute')
 
             mlog.debug('Trying to find boost with:')
             mlog.debug('  - boost_includedir = {}'.format(inc_dir))
@@ -421,7 +421,7 @@ class BoostDependency(ExternalDependency):
             return self.detect_split_root(inc_dir, lib_dir)
 
         elif incdir or libdir:
-            raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your properties file (one is not enough)')
+            raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your machine file (one is not enough)')
 
         rootdir = props.get('boost_root')
         # It shouldn't be possible to get here without something in boost_root
@@ -430,7 +430,7 @@ class BoostDependency(ExternalDependency):
         raw_paths = mesonlib.stringlistify(rootdir)
         paths = [Path(x) for x in raw_paths]
         if paths and any([not x.is_absolute() for x in paths]):
-            raise DependencyException('boost_root path given in property file must be absolute')
+            raise DependencyException('boost_root path given in machine file must be absolute')
 
         self.check_and_set_roots(paths)
 
