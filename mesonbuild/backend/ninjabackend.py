@@ -348,7 +348,7 @@ class NinjaBuildElement:
         use_rspfile = self._should_use_rspfile()
         if use_rspfile:
             rulename = self.rulename + '_RSP'
-            mlog.log("Command line for building %s is long, using a response file" % self.outfilenames)
+            mlog.debug("Command line for building %s is long, using a response file" % self.outfilenames)
         else:
             rulename = self.rulename
         line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
