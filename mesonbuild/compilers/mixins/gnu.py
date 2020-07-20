@@ -362,7 +362,7 @@ class GnuCompiler(GnuLikeCompiler):
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
-        with self._build_wrapper(code, env, args, None, mode, disable_cache=False, want_output=True) as p:
+        with self._build_wrapper(code, env, args, None, mode) as p:
             result = p.returncode == 0
             if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stde:
                 result = False
