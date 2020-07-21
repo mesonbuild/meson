@@ -41,6 +41,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
+from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist, version as meson_version
 
@@ -475,6 +476,28 @@ def create_deterministic_builddir(test: TestDef, use_tmpdir: bool) -> str:
     os.mkdir(abs_pathname)
     return abs_pathname
 
+def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str) -> Path:
+    confdata = ConfigurationData()
+    confdata.values = {'MESON_TEST_ROOT': (str(test.path.absolute()), 'base directory of current test')}
+
+    template = test.path / (file_basename + '.in')
+    destination = Path(test_build_dir) / file_basename
+    mesonlib.do_conf_file(str(template), str(destination), confdata, 'meson')
+
+    return destination
+
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
+    nativefile = test.path / 'nativefile.ini'
+    crossfile = test.path / 'crossfile.ini'
+
+    if os.path.exists(str(test.path / 'nativefile.ini.in')):
+        nativefile = format_parameter_file('nativefile.ini', test, test_build_dir)
+
+    if os.path.exists(str(test.path / 'crossfile.ini.in')):
+        crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
+
+    return nativefile, crossfile
+
 def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
     if test.skip:
         return None
@@ -497,8 +520,9 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
-    nativefile = test.path / 'nativefile.ini'
-    crossfile = test.path / 'crossfile.ini'
+
+    nativefile, crossfile = detect_parameter_files(test, test_build_dir)
+
     if nativefile.exists():
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():

@@ -288,8 +288,12 @@ You can call `dependency` multiple times with different modules and
 use those to link against your targets.
 
 If your boost headers or libraries are in non-standard locations you
-can set the BOOST_ROOT, BOOST_INCLUDEDIR, and/or BOOST_LIBRARYDIR
-environment variables.
+can set the `BOOST_ROOT`, or the `BOOST_INCLUDEDIR` and `BOOST_LIBRARYDIR`
+environment variables. *(added in 0.56.0)* You can also set these
+parameters as `boost_root`, `boost_include`, and `boost_librarydir` in your
+native or cross machine file. Note that machine file variables are
+preferred to environment variables, and that specifying any of these
+disables system-wide search for boost.
 
 You can set the argument `threading` to `single` to use boost
 libraries that have been compiled for single-threaded use instead.
