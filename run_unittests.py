@@ -5836,6 +5836,19 @@ class LinuxlikeTests(BasePlatformTests):
         out = self._run(cmd + ['--libs'], override_envvars=env).strip().split()
         self.assertEqual(out, ['-llibmain2', '-llibinternal'])
 
+        # See common/47 pkgconfig-gen/meson.build for description of the case this test
+        with open(os.path.join(privatedir1, 'simple2.pc')) as f:
+            content = f.read()
+            self.assertIn('Libs: -L${libdir} -lsimple2 -lz -lsimple1', content)
+
+        with open(os.path.join(privatedir1, 'simple3.pc')) as f:
+            content = f.read()
+            self.assertEqual(1, content.count('-lsimple3'))
+
+        with open(os.path.join(privatedir1, 'simple5.pc')) as f:
+            content = f.read()
+            self.assertNotIn('-lstat2', content)
+
     def test_pkgconfig_uninstalled(self):
         testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
         self.init(testdir)

@@ -1011,23 +1011,16 @@ This will become a hard error in a future Meson release.''')
     def get_extra_args(self, language):
         return self.extra_args.get(language, [])
 
-    def get_dependencies(self, exclude=None, for_pkgconfig=False):
+    def get_dependencies(self, exclude=None):
         transitive_deps = []
         if exclude is None:
             exclude = []
         for t in itertools.chain(self.link_targets, self.link_whole_targets):
             if t in transitive_deps or t in exclude:
                 continue
-            # When generating `Libs:` and `Libs.private:` lists in pkg-config
-            # files we don't want to include static libraries that we link_whole
-            # or are uninstalled (they're implicitly promoted to link_whole).
-            # But we still need to include their transitive dependencies,
-            # a static library we link_whole would itself link to a shared
-            # library or an installed static library.
-            if not for_pkgconfig or (not t.is_internal() and t not in self.link_whole_targets):
-                transitive_deps.append(t)
+            transitive_deps.append(t)
             if isinstance(t, StaticLibrary):
-                transitive_deps += t.get_dependencies(transitive_deps + exclude, for_pkgconfig)
+                transitive_deps += t.get_dependencies(transitive_deps + exclude)
         return transitive_deps
 
     def get_source_subdir(self):

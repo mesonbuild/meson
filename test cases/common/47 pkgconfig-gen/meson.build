@@ -1,5 +1,12 @@
 project('pkgconfig-gen', 'c')
 
+# Some CI runners does not have zlib, just skip them as we need some common
+# external dependency.
+cc = meson.get_compiler('c')
+if not cc.find_library('z', required: false).found()
+  error('MESON_SKIP_TEST: zlib missing')
+endif
+
 # First check we have pkg-config >= 0.29
 pkgconfig = find_program('pkg-config', required: false)
 if not pkgconfig.found()
@@ -59,3 +66,32 @@ pkgg.generate(
   version : libver,
   dataonly: true
 )
+
+# Regression test for 2 cases:
+# - link_whole from InternalDependency used to be ignored, but we should still
+#   recurse to add libraries they link to. In this case it must add `-lsimple1`
+#   in generated pc file.
+# - dependencies from InternalDependency used to be ignored. In this it must add
+#   `-lz` in generated pc file.
+simple1 = shared_library('simple1', 'simple.c')
+stat1 = static_library('stat1', 'simple.c', link_with: simple1)
+dep = declare_dependency(link_whole: stat1, dependencies: cc.find_library('z'))
+simple2 = library('simple2', 'simple.c')
+pkgg.generate(simple2, libraries: dep)
+
+# Regression test: as_system() does a deepcopy() of the InternalDependency object
+# which caused `-lsimple3` to be duplicated because generator used to compare
+# Target instances instead of their id.
+simple3 = shared_library('simple3', 'simple.c')
+dep1 = declare_dependency(link_with: simple3)
+dep2 = dep1.as_system()
+pkgg.generate(libraries: [dep1, dep2],
+  name: 'simple3',
+  description: 'desc')
+
+# Regression test: stat2 is both link_with and link_whole, it should not appear
+# in generated pc file.
+stat2 = static_library('stat2', 'simple.c', install: true)
+simple4 = library('simple4', 'simple.c', link_with: stat2)
+simple5 = library('simple5', 'simple5.c', link_with: simple4, link_whole: stat2)
+pkgg.generate(simple5)
