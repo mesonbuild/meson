@@ -69,7 +69,7 @@ def setup_console() -> None:
 log_dir = None               # type: T.Optional[str]
 log_file = None              # type: T.Optional[T.TextIO]
 log_fname = 'meson-log.txt'  # type: str
-log_depth = 0                # type: int
+log_depth = []               # type: T.List[str]
 log_timestamp_start = None   # type: T.Optional[float]
 log_fatal_warnings = False   # type: bool
 log_disable_stdout = False   # type: bool
@@ -209,8 +209,8 @@ def force_print(*args: str, **kwargs: T.Any) -> None:
     print(*args, **kwargs)
 
     raw = iostr.getvalue()
-    if log_depth > 0:
-        prepend = '|' * log_depth
+    if log_depth:
+        prepend = log_depth[-1] + '|'
         raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
 
     # _Something_ is going to get printed.
@@ -370,10 +370,10 @@ def format_list(input_list: T.List[str]) -> str:
         return ''
 
 @contextmanager
-def nested() -> T.Generator[None, None, None]:
+def nested(name: str = '') -> T.Generator[None, None, None]:
     global log_depth
-    log_depth += 1
+    log_depth.append(name)
     try:
         yield
     finally:
-        log_depth -= 1
+        log_depth.pop()
