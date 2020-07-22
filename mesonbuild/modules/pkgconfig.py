@@ -36,6 +36,7 @@ class DependenciesHelper:
         self.priv_reqs = []
         self.cflags = []
         self.version_reqs = {}
+        self.link_whole_targets = []
 
     def add_pub_libs(self, libs):
         libs, reqs, cflags = self._process_libs(libs, True)
@@ -130,10 +131,7 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    if public:
-                        self.add_pub_libs(obj.libraries)
-                    else:
-                        self.add_priv_libs(obj.libraries)
+                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public)
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
@@ -148,18 +146,44 @@ class DependenciesHelper:
                 processed_libs.append(obj)
             elif isinstance(obj, (build.SharedLibrary, build.StaticLibrary)):
                 processed_libs.append(obj)
-                if isinstance(obj, build.StaticLibrary) and public:
-                    self.add_pub_libs(obj.get_dependencies(for_pkgconfig=True))
-                    self.add_pub_libs(obj.get_external_deps())
-                else:
-                    self.add_priv_libs(obj.get_dependencies(for_pkgconfig=True))
-                    self.add_priv_libs(obj.get_external_deps())
+                # If there is a static library in `Libs:` all its deps must be
+                # public too, otherwise the generated pc file will never be
+                # usable without --static.
+                self._add_lib_dependencies(obj.link_targets,
+                                           obj.link_whole_targets,
+                                           obj.external_deps,
+                                           isinstance(obj, build.StaticLibrary) and public)
             elif isinstance(obj, str):
                 processed_libs.append(obj)
             else:
                 raise mesonlib.MesonException('library argument not a string, library or dependency object.')
 
         return processed_libs, processed_reqs, processed_cflags
+
+    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public):
+        add_libs = self.add_pub_libs if public else self.add_priv_libs
+        # Recursively add all linked libraries
+        for t in link_targets:
+            # Internal libraries (uninstalled static library) will be promoted
+            # to link_whole, treat them as such here.
+            if t.is_internal():
+                self._add_link_whole(t, public)
+            else:
+                add_libs([t])
+        for t in link_whole_targets:
+            self._add_link_whole(t, public)
+        # And finally its external dependencies
+        add_libs(external_deps)
+
+    def _add_link_whole(self, t, public):
+        # Don't include static libraries that we link_whole. But we still need to
+        # include their dependencies: a static library we link_whole
+        # could itself link to a shared library or an installed static library.
+        # Keep track of link_whole_targets so we can remove them from our
+        # lists in case a library is link_with and link_whole at the same time.
+        # See remove_dups() below.
+        self.link_whole_targets.append(t)
+        self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
 
     def add_version_reqs(self, name, version_reqs):
         if version_reqs:
@@ -196,6 +220,32 @@ class DependenciesHelper:
         return ', '.join(result)
 
     def remove_dups(self):
+        # Set of ids that have already been handled and should not be added any more
+        exclude = set()
+
+        # We can't just check if 'x' is excluded because we could have copies of
+        # the same SharedLibrary object for example.
+        def _ids(x):
+            if hasattr(x, 'generated_pc'):
+                yield x.generated_pc
+            if isinstance(x, build.Target):
+                yield x.get_id()
+            yield x
+
+        # Exclude 'x' in all its forms and return if it was already excluded
+        def _add_exclude(x):
+            was_excluded = False
+            for i in _ids(x):
+                if i in exclude:
+                    was_excluded = True
+                else:
+                    exclude.add(i)
+            return was_excluded
+
+        # link_whole targets are already part of other targets, exclude them all.
+        for t in self.link_whole_targets:
+            _add_exclude(t)
+
         def _fn(xs, libs=False):
             # Remove duplicates whilst preserving original order
             result = []
@@ -206,18 +256,20 @@ class DependenciesHelper:
                 cannot_dedup = libs and isinstance(x, str) and \
                     not x.startswith(('-l', '-L')) and \
                     x not in known_flags
-                if x not in result or cannot_dedup:
-                    result.append(x)
+                if not cannot_dedup and _add_exclude(x):
+                    continue
+                result.append(x)
             return result
-        self.pub_libs = _fn(self.pub_libs, True)
-        self.pub_reqs = _fn(self.pub_reqs)
-        self.priv_libs = _fn(self.priv_libs, True)
-        self.priv_reqs = _fn(self.priv_reqs)
-        self.cflags = _fn(self.cflags)
 
-        # Remove from private libs/reqs if they are in public already
-        self.priv_libs = [i for i in self.priv_libs if i not in self.pub_libs]
-        self.priv_reqs = [i for i in self.priv_reqs if i not in self.pub_reqs]
+        # Handle lists in priority order: public items can be excluded from
+        # private and Requires can excluded from Libs.
+        self.pub_reqs = _fn(self.pub_reqs)
+        self.pub_libs = _fn(self.pub_libs, True)
+        self.priv_reqs = _fn(self.priv_reqs)
+        self.priv_libs = _fn(self.priv_libs, True)
+        # Reset exclude list just in case some values can be both cflags and libs.
+        exclude = set()
+        self.cflags = _fn(self.cflags)
 
 class PkgConfigModule(ExtensionModule):
 
@@ -267,7 +319,6 @@ class PkgConfigModule(ExtensionModule):
     def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
                                 url, version, pcfile, conflicts, variables,
                                 uninstalled=False, dataonly=False):
-        deps.remove_dups()
         coredata = state.environment.get_coredata()
         if uninstalled:
             outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
@@ -459,6 +510,8 @@ class PkgConfigModule(ExtensionModule):
             compiler = state.environment.coredata.compilers.host.get('d')
             if compiler:
                 deps.add_cflags(compiler.get_feature_args({'versions': dversions}, None))
+
+        deps.remove_dups()
 
         def parse_variable_list(stringlist):
             reserved = ['prefix', 'libdir', 'includedir']
