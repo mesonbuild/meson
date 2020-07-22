@@ -7294,6 +7294,16 @@ c = ['{0}']
                     '''))
             self.init(d, override_envvars={'PKG_CONFIG_LIBDIR': privatedir})
 
+    def test_as_link_whole(self):
+        testdir = os.path.join(self.unit_test_dir, '79 as link whole')
+        self.init(testdir)
+        with open(os.path.join(self.privatedir, 'bar1.pc')) as f:
+            content = f.read()
+            self.assertIn('-lfoo', content)
+        with open(os.path.join(self.privatedir, 'bar2.pc')) as f:
+            content = f.read()
+            self.assertNotIn('-lfoo', content)
+
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that
     # check whether meson auto-detects it correctly.

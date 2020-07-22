@@ -2426,6 +2426,13 @@ an external dependency with the following methods:
    the value of `include_type` to `value`. The `value` argument is optional and
    defaults to `'preserve'`.
 
+ - `as_link_whole()` *Since 0.56.0* Only dependencies created with
+   `declare_dependency()`, returns a copy of the dependency object with all
+   link_with arguments changed to link_whole. This is useful for example for
+   fallback dependency from a subproject built with `default_library=static`.
+   Note that all `link_with` objects must be static libraries otherwise an error
+   will be raised when trying to `link_whole` a shared library.
+
  - `partial_dependency(compile_args : false, link_args : false, links
    : false, includes : false, sources : false)` *(since 0.46.0)*: returns
    a new dependency object with the same name, version, found status,
