@@ -295,6 +295,11 @@ class InternalDependency(Dependency):
             return val
         raise DependencyException('Could not get an internal variable and no default provided for {!r}'.format(self))
 
+    def generate_link_whole_dependency(self) -> T.Type['Dependency']:
+        new_dep = copy.deepcopy(self)
+        new_dep.whole_libraries += new_dep.libraries
+        new_dep.libraries = []
+        return new_dep
 
 class HasNativeKwarg:
     def __init__(self, kwargs):

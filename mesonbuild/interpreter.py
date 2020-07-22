@@ -431,6 +431,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
                              'partial_dependency': self.partial_dependency_method,
                              'include_type': self.include_type_method,
                              'as_system': self.as_system_method,
+                             'as_link_whole': self.as_link_whole_method,
                              })
 
     def found(self):
@@ -509,6 +510,15 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         if len(args) == 1:
             new_is_system = args[0]
         new_dep = self.held_object.generate_system_dependency(new_is_system)
+        return DependencyHolder(new_dep, self.subproject)
+
+    @FeatureNew('dep.as_link_whole', '0.56.0')
+    @permittedKwargs({})
+    @noPosargs
+    def as_link_whole_method(self, args, kwargs):
+        if not isinstance(self.held_object, InternalDependency):
+            raise InterpreterException('as_link_whole method is only supported on declare_dependency() objects')
+        new_dep = self.held_object.generate_link_whole_dependency()
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
