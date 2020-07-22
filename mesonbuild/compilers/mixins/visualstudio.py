@@ -114,7 +114,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # See: https://ninja-build.org/manual.html#_deps
     always_args = ['/nologo', '/showIncludes']
     warn_args = {
-        '0': ['/W1'],
+        '0': [],
         '1': ['/W2'],
         '2': ['/W3'],
         '3': ['/W4'],
