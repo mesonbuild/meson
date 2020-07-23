@@ -1139,16 +1139,15 @@ def check_format():
                       '.build',
                       '.md',
                       }
+    skip_dirs = {
+        '.dub',                         # external deps are here
+        '.pytest_cache',
+        'meson-logs', 'meson-private',
+        '.eggs', '_cache',              # e.g. .mypy_cache
+        'venv',                         # virtualenvs have DOS line endings
+    }
     for (root, _, filenames) in os.walk('.'):
-        if '.dub' in root: # external deps are here
-            continue
-        if '.pytest_cache' in root:
-            continue
-        if 'meson-logs' in root or 'meson-private' in root:
-            continue
-        if '__CMake_build' in root:
-            continue
-        if '.eggs' in root or '_cache' in root:  # e.g. .mypy_cache
+        if any([x in root for x in skip_dirs]):
             continue
         for fname in filenames:
             file = Path(fname)
@@ -1272,6 +1271,7 @@ if __name__ == '__main__':
         options.extra_args += ['--cross-file', options.cross_file]
 
     print('Meson build system', meson_version, 'Project Tests')
+    print('Using python', sys.version.split('\n')[0])
     setup_commands(options.backend)
     detect_system_compiler(options)
     print_tool_versions()
