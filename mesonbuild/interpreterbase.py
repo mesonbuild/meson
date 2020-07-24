@@ -330,7 +330,7 @@ class FeatureDeprecated(FeatureCheckBase):
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
-        # For deprecatoin checks we need to return the inverse of FeatureNew checks
+        # For deprecation checks we need to return the inverse of FeatureNew checks
         return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
 
     @staticmethod
