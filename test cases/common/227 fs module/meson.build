@@ -18,7 +18,9 @@ assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 is_git_checkout = fs.exists('../../../.git')
 
 if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
-  assert(fs.is_symlink('a_symlink'), 'Symlink not detected.')
+  symlink = meson.current_build_dir() / 'a_symlink'
+  run_command('ln', '-s', meson.current_source_dir() / 'meson.build', symlink)
+  assert(fs.is_symlink(symlink), 'Symlink not detected.')
   assert(not fs.is_symlink('meson.build'), 'Regular file detected as symlink.')
 endif
 
@@ -104,7 +106,7 @@ assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad c
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
 if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
-  assert(fs.is_samepath('a_symlink', 'meson.build'), 'symlink is_samepath fail')
+  assert(fs.is_samepath(symlink, 'meson.build'), 'symlink is_samepath fail')
 endif
 
 # parts of path
