@@ -962,6 +962,7 @@ class GnomeModule(ExtensionModule):
                 header_dirs.append(src_dir)
 
         args = ['--internal', 'gtkdoc',
+                '--prefix=' + state.environment.coredata.get_builtin_option('prefix'),
                 '--sourcedir=' + state.environment.get_source_dir(),
                 '--builddir=' + state.environment.get_build_dir(),
                 '--subdir=' + state.subdir,
