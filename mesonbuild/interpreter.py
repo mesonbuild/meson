@@ -2286,6 +2286,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                    'private_headers',
                                    'cmake_args',
                                    'include_type',
+                                   'dub_root_path'
                                    },
                     'declare_dependency': {'include_directories',
                                            'link_with',

@@ -117,3 +117,17 @@ provide dependencies. Adding dependencies from the [D package registry](https://
 is pretty straight forward. You can find how to do this in
 [Dependencies](Dependencies.md#some-notes-on-dub). You can also automatically
 generate a `dub.json` file as explained in [Dlang](Dlang-module.md#generate_dub_file).
+
+Example of using dub packages:
+```meson
+project('myapp', 'd')
+
+# library from registry must be fetched and builded
+mylib1_dep = dependency('mylib1', method: 'dub', version: '>= 1.2.0')
+
+# local library must be builded via `dub build --root=path/to/lib2`
+mylib2_dep = dependency('mylib2', method: 'dub', dub_root_path: 'path/to/lib2')
+
+myapp_src = ['app.d', 'alpha.d', 'beta.d']
+executable('myapp', myapp_src, dependencies: [mylib1_dep, mylib2_dep])
+```

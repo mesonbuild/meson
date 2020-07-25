@@ -188,13 +188,18 @@ Additional CMake parameters can be specified with the `cmake_args` property.
 ## Dub
 
 Please understand that meson is only able to find dependencies that
-exist in the local Dub repository. You need to manually fetch and
-build the target dependencies.
+exist in the local Dub repository or in local directory. You need to
+manually fetch and build the target dependencies.
 
 For `urld`.
 ```
 dub fetch urld
 dub build urld
+```
+
+For local directory 'mylib'.
+```
+dub build --root=path/to/mylib
 ```
 
 Other thing you need to keep in mind is that both meson and Dub need
