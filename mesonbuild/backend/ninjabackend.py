@@ -972,19 +972,22 @@ int dummy;
         targets = self.build.get_targets().values()
         use_llvm_cov = False
         for target in targets:
-            for compiler in target.compilers.values():
-                if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
-                    use_llvm_cov = True
-                    break
-        elem.add_item('COMMAND', self.environment.get_build_command() +
-                      ['--internal', 'coverage'] +
-                      outputs +
-                      [self.environment.get_source_dir(),
-                       os.path.join(self.environment.get_source_dir(),
-                                    self.build.get_subproject_dir()),
-                       self.environment.get_build_dir(),
-                       self.environment.get_log_dir()] +
-                      ['--use_llvm_cov'] if use_llvm_cov else [])
+            try:
+                for compiler in target.compilers.values():
+                    if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
+                        use_llvm_cov = True
+                        break
+                        elem.add_item('COMMAND', self.environment.get_build_command() +
+                          ['--internal', 'coverage'] +
+                          outputs +
+                          [self.environment.get_source_dir(),
+                           os.path.join(self.environment.get_source_dir(),
+                                        self.build.get_subproject_dir()),
+                           self.environment.get_build_dir(),
+                           self.environment.get_log_dir()] +
+                          ['--use_llvm_cov'] if use_llvm_cov else [])
+            except AttributeError:
+                continue
 
     def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
