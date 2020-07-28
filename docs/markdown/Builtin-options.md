@@ -17,7 +17,7 @@ by setting them inside `default_options` of `project()` in your `meson.build`.
 
 For legacy reasons `--warnlevel` is the cli argument for the `warning_level` option.
 
-They can also be edited after setup using `meson configure`.
+They can also be edited after setup using `meson configure -Doption=value`.
 
 Installation options are all relative to the prefix, except:
 
