@@ -1,0 +1,10 @@
+[wrap-file]
+version = '1.0'
+filename = 'project-' + version + '.tar.gz'
+source_url = 'http://foo.invalid/' / filename
+lead_directory_missing = true
+
+[provide]
+dependency_names = ['d1', 'd2'] + ['d3']
+program_names = 'prog1'
+d4 = 'varname'

@@ -855,13 +855,31 @@ class ConfigFileParser(configparser.ConfigParser):
                 raise MesonException('Failed to parse {}'.format(str(filenames)))
 
 class ConfigFileInterpreter():
-    def __init__(self, parser: ConfigFileParser):
+    def __init__(self, parser: ConfigFileParser, legacy=False):
         self.parser = parser
+        self.legacy = legacy
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
+        # Try to parse as if it is the new format (i.e. quoted values) and
+        # fallback to legacy mode if permitted. Legacy mode gets disabled when
+        # the first value gets parsed correctly or if [constants] section exists.
+        try:
+            self._parse()
+        except MesonException:
+            if legacy:
+                self._parse_legacy()
+            else:
+                raise
+
+    def _parse_legacy(self):
+        for section, values in self.parser.items():
+            self.sections[section] = {k: v for k, v in values.items()}
+
+    def _parse(self):
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
+            self.legacy = False
             self.constants.update(self._parse_section('constants'))
 
         for s in self.parser.sections():
@@ -886,6 +904,7 @@ class ConfigFileInterpreter():
                 raise EnvironmentException('Undefined constant {!r} in config file variable {!r}.'.format(e.args[0], entry))
             section[entry] = res
             self.scope[entry] = res
+            self.legacy = False
         return section
 
     def _evaluate_statement(self, node):
