@@ -843,15 +843,15 @@ class CoreData:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
-class CmdLineFileParser(configparser.ConfigParser):
+class ConfigFileParser(configparser.ConfigParser):
     def __init__(self):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
 
-class MachineFileParser():
+class ConfigFileInterpreter():
     def __init__(self, filenames: T.List[str]):
-        self.parser = CmdLineFileParser()
+        self.parser = ConfigFileParser()
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
@@ -871,16 +871,16 @@ class MachineFileParser():
         section = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                raise EnvironmentException('Malformed variable name {!r} in machine file.'.format(entry))
+                raise EnvironmentException('Malformed variable name {!r} in config file.'.format(entry))
             # Windows paths...
             value = value.replace('\\', '\\\\')
             try:
-                ast = mparser.Parser(value, 'machinefile').parse()
+                ast = mparser.Parser(value, 'configfile').parse()
                 res = self._evaluate_statement(ast.lines[0])
             except MesonException:
-                raise EnvironmentException('Malformed value in machine file variable {!r}.'.format(entry))
+                raise EnvironmentException('Malformed value in config file variable {!r}.'.format(entry))
             except KeyError as e:
-                raise EnvironmentException('Undefined constant {!r} in machine file variable {!r}.'.format(e.args[0], entry))
+                raise EnvironmentException('Undefined constant {!r} in config file variable {!r}.'.format(e.args[0], entry))
             section[entry] = res
             self.scope[entry] = res
         return section
@@ -909,7 +909,7 @@ class MachineFileParser():
         raise EnvironmentException('Unsupported node type')
 
 def parse_machine_files(filenames):
-    parser = MachineFileParser(filenames)
+    parser = ConfigFileInterpreter(filenames)
     return parser.sections
 
 def get_cmd_line_file(build_dir):
@@ -920,7 +920,7 @@ def read_cmd_line_file(build_dir, options):
     if not os.path.isfile(filename):
         return
 
-    config = CmdLineFileParser()
+    config = ConfigFileParser()
     config.read(filename)
 
     # Do a copy because config is not really a dict. options.cmd_line_options
@@ -942,7 +942,7 @@ def cmd_line_options_to_string(options):
 
 def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
+    config = ConfigFileParser()
 
     properties = OrderedDict()
     if options.cross_file:
@@ -957,7 +957,7 @@ def write_cmd_line_file(build_dir, options):
 
 def update_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
+    config = ConfigFileParser()
     config.read(filename)
     config['options'].update(cmd_line_options_to_string(options))
     with open(filename, 'w') as f:
