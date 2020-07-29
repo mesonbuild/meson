@@ -222,7 +222,7 @@ Once you have the cross file, starting a build is simple
 $ meson srcdir builddir --cross-file cross_file.txt
 ```
 
-Once configuration is done, compilation is started by invoking Ninja
+Once configuration is done, compilation is started by invoking `meson compile`
 in the usual way.
 
 ## Introspection and system checks

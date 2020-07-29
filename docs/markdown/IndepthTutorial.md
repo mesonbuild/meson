@@ -79,12 +79,12 @@ With these four files we are done. To configure, build and run the test suite, w
 
 ```console
 $ meson builddir && cd builddir
-$ ninja
-$ ninja test
+$ meson compile
+$ meson test
 ```
 
 To then install the project you only need one command.
 
 ```console
-$ ninja install
+$ meson install
 ```

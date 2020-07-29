@@ -250,7 +250,7 @@ def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
 
 def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
-               once: bool = False, **kwargs: T.Any) -> None:
+               once: bool = False, fatal: bool = True, **kwargs: T.Any) -> None:
     from .mesonlib import MesonException, relpath
 
     # The typing requirements here are non-obvious. Lists are invariant,
@@ -283,7 +283,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     global log_warnings_counter
     log_warnings_counter += 1
 
-    if log_fatal_warnings:
+    if log_fatal_warnings and fatal:
         raise MesonException("Fatal warnings enabled, aborting")
 
 def error(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:

@@ -117,6 +117,7 @@ format files
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
  - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk
+ - [Siril](https://gitlab.com/free-astro/siril), an image processing software for amateur astronomy
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
  - [Sysprof](https://git.gnome.org/browse/sysprof), a profiling tool

@@ -70,15 +70,21 @@ revision = head
 ## Accepted configuration properties for wraps
 - `directory` - name of the subproject root directory, defaults to the name of the wrap.
 
+Since *0.55.0* those can be used in all wrap types, they were previously reserved to `wrap-file`:
+
+- `patch_url` - download url to retrieve an optional overlay archive
+- `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
+- `patch_filename` - filename of the downloaded overlay archive
+- `patch_hash` - sha256 checksum of the downloaded overlay archive
+- `patch_directory` - *Since 0.55.0* Overlay directory, alternative to `patch_filename` in the case
+  files are local instead of a downloaded archive. The directory must be placed in
+  `subprojects/packagefiles`.
+
 ### Specific to wrap-file
 - `source_url` - download url to retrieve the wrap-file source archive
 - `source_fallback_url` - fallback URL to be used when download from `source_url` fails *Since: 0.55.0*
 - `source_filename` - filename of the downloaded source archive
 - `source_hash` - sha256 checksum of the downloaded source archive
-- `patch_url` - download url to retrieve an optional overlay archive
-- `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
-- `patch_filename` - filename of the downloaded overlay archive
-- `patch_hash` - sha256 checksum of the downloaded overlay archive
 - `lead_directory_missing` - for `wrap-file` create the leading
   directory name. Needed when the source file does not have a leading
   directory.
@@ -100,7 +106,7 @@ of downloading the file, even if `--wrap-mode` option is set to
   valid value (such as a git tag) for the VCS's `checkout` command, or
   (for git) `head` to track upstream's default branch. Required.
 
-## Specific to wrap-git
+### Specific to wrap-git
 - `depth` - shallowly clone the repository to X number of commits. Note
   that git always allow shallowly cloning branches, but in order to
   clone commit ids shallowly, the server must support
@@ -130,8 +136,95 @@ thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
 put them somewhere where you can download them.
 
-Meson build patches are only supported for wrap-file mode. When using
-wrap-git, the repository must contain all Meson build definitions.
+Prior to *0.55.0* Meson build patches were only supported for wrap-file mode.
+When using wrap-git, the repository must contain all Meson build definitions.
+Since *0.55.0* Meson build patches are supported for any wrap modes, including
+wrap-git.
+
+## `provide` section
+
+*Since *0.55.0*
+
+Wrap files can define the dependencies it provides in the `[provide]` section.
+
+```ini
+[provide]
+dependency_names = foo-1.0
+```
+
+When a wrap file provides the dependency `foo-1.0`, as above, any call to
+`dependency('foo-1.0')` will automatically fallback to that subproject even if
+no `fallback` keyword argument is given. A wrap file named `foo.wrap` implicitly
+provides the dependency name `foo` even when the `[provide]` section is missing.
+
+Optional dependencies, like `dependency('foo-1.0', required: get_option('foo_opt'))`
+where `foo_opt` is a feature option set to `auto`, will not fallback to the
+subproject defined in the wrap file, for 2 reasons:
+- It allows for looking the dependency in other ways first, for example using
+  `cc.find_library('foo')`, and only fallback if that fails:
+
+```meson
+# this won't use fallback defined in foo.wrap
+foo_dep = dependency('foo-1.0', required: false)
+if not foo_dep.found()
+  foo_dep = cc.find_library('foo', has_headers: 'foo.h', required: false)
+  if not foo_dep.found()
+    # This will use the fallback
+    foo_dep = dependency('foo-1.0')
+    # or
+    foo_dep = dependency('foo-1.0', required: false, fallback: 'foo')
+  endif
+endif
+```
+
+- Sometimes not-found dependency is preferable to a fallback when the feature is
+  not explicitly requested by the user. In that case
+  `dependency('foo-1.0', required: get_option('foo_opt'))` will only fallback
+  when the user sets `foo_opt` to `enabled` instead of `auto`.
+
+If it is desired to fallback for an optional dependency, the `fallback` keyword
+argument must be passed explicitly. For example
+`dependency('foo-1.0', required: get_option('foo_opt'), fallback: 'foo')` will
+use the fallback even when `foo_opt` is set to `auto`.
+
+This mechanism assumes the subproject calls `meson.override_dependency('foo-1.0', foo_dep)`
+so Meson knows which dependency object should be used as fallback. Since that
+method was introduced in version *0.54.0*, as a transitional aid for projects
+that do not yet make use of it the variable name can be provided in the wrap file
+with entries in the format `foo-1.0 = foo_dep`.
+
+For example when using a recent enough version of glib that uses
+`meson.override_dependency()` to override `glib-2.0`, `gobject-2.0` and `gio-2.0`,
+a wrap file would look like:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+dependency_names = glib-2.0, gobject-2.0, gio-2.0
+```
+
+With older version of glib dependency variable names need to be specified:
+```ini
+[wrap-git]
+url=https://gitlab.gnome.org/GNOME/glib.git
+revision=glib-2-62
+
+[provide]
+glib-2.0=glib_dep
+gobject-2.0=gobject_dep
+gio-2.0=gio_dep
+```
+
+Programs can also be provided by wrap files, with the `program_names` key:
+```ini
+[provide]
+program_names = myprog, otherprog
+```
+
+With such wrap file, `find_program('myprog')` will automatically fallback to use
+the subproject, assuming it uses `meson.override_find_program('myprog')`.
 
 ## Using wrapped projects
 

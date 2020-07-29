@@ -1844,9 +1844,17 @@ class Summary:
                 if bool_yn and isinstance(i, bool):
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
                 else:
-                    formatted_values.append(i)
+                    formatted_values.append(str(i))
             self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
+
+    def text_len(self, v):
+        if isinstance(v, str):
+            return len(v)
+        elif isinstance(v, mlog.AnsiDecorator):
+            return len(v.text)
+        else:
+            raise RuntimeError('Expecting only strings or AnsiDecorator')
 
     def dump(self):
         mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
@@ -1859,12 +1867,28 @@ class Summary:
                 indent = self.max_key_len - len(k) + 3
                 end = ' ' if v else ''
                 mlog.log(' ' * indent, k + ':', end=end)
-                if list_sep is None:
-                    indent = self.max_key_len + 6
-                    list_sep = '\n' + ' ' * indent
-                mlog.log(*v, sep=list_sep)
+                indent = self.max_key_len + 6
+                self.dump_value(v, list_sep, indent)
         mlog.log('')  # newline
 
+    def dump_value(self, arr, list_sep, indent):
+        lines_sep = '\n' + ' ' * indent
+        if list_sep is None:
+            mlog.log(*arr, sep=lines_sep)
+            return
+        max_len = shutil.get_terminal_size().columns
+        line = []
+        line_len = indent
+        lines_sep = list_sep.rstrip() + lines_sep
+        for v in arr:
+            v_len = self.text_len(v) + len(list_sep)
+            if line and line_len + v_len > max_len:
+                mlog.log(*line, sep=list_sep, end=lines_sep)
+                line_len = indent
+                line = []
+            line.append(v)
+            line_len += v_len
+        mlog.log(*line, sep=list_sep)
 
 class MesonMain(InterpreterObject):
     def __init__(self, build, interpreter):
@@ -2444,7 +2468,7 @@ class Interpreter(InterpreterBase):
 
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, Disabler)) or item is None:
+        elif isinstance(item, (int, str, bool, Disabler, InterpreterObject)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -2559,6 +2583,15 @@ class Interpreter(InterpreterBase):
                 except InvalidArguments:
                     pass
 
+    def import_module(self, modname):
+        if modname in self.modules:
+            return
+        try:
+            module = importlib.import_module('mesonbuild.modules.' + modname)
+        except ImportError:
+            raise InvalidArguments('Module "%s" does not exist' % (modname, ))
+        self.modules[modname] = module.initialize(self)
+
     @stringArgs
     @noKwargs
     def func_import(self, node, args, kwargs):
@@ -2567,14 +2600,15 @@ class Interpreter(InterpreterBase):
         modname = args[0]
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
-            mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
-            modname = 'unstable_' + plainname
-        if modname not in self.modules:
             try:
-                module = importlib.import_module('mesonbuild.modules.' + modname)
-            except ImportError:
-                raise InvalidArguments('Module "%s" does not exist' % (modname, ))
-            self.modules[modname] = module.initialize(self)
+                # check if stable module exists
+                self.import_module(plainname)
+                mlog.warning('Module %s is now stable, please use the %s module instead.' % (modname, plainname))
+                modname = plainname
+            except InvalidArguments:
+                mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
+                modname = 'unstable_' + plainname
+        self.import_module(modname)
         return ModuleHolder(modname, self.modules[modname], self)
 
     @stringArgs
@@ -2779,10 +2813,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                                            self.subproject_dir, dirname))
             return subproject
 
-        subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
-        r = wrap.Resolver(subproject_dir_abs, self.coredata.get_builtin_option('wrap_mode'), current_subproject=self.subproject)
+        r = self.environment.wrap_resolver
         try:
-            resolved = r.resolve(dirname, method)
+            resolved = r.resolve(dirname, method, self.subproject)
         except wrap.WrapException as e:
             subprojdir = os.path.join(self.subproject_dir, r.directory)
             if isinstance(e, wrap.WrapNotFoundException):
@@ -2798,7 +2831,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise e
 
         subdir = os.path.join(self.subproject_dir, resolved)
-        subdir_abs = os.path.join(subproject_dir_abs, resolved)
+        subdir_abs = os.path.join(self.environment.get_source_dir(), subdir)
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
@@ -2867,13 +2900,21 @@ external dependencies (including libraries) must go to "dependencies".''')
         with mlog.nested():
             new_build = self.build.copy()
             prefix = self.coredata.builtins['prefix'].value
+
+            from .modules.cmake import CMakeSubprojectOptions
+            options = kwargs.get('options', CMakeSubprojectOptions())
+            if not isinstance(options, CMakeSubprojectOptions):
+                raise InterpreterException('"options" kwarg must be CMakeSubprojectOptions'
+                                           ' object (created by cmake.subproject_options())')
+
             cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
+            cmake_options += options.cmake_options
             cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
-            ast = cm_int.pretend_to_be_meson()
+            ast = cm_int.pretend_to_be_meson(options.target_options)
 
             mlog.log()
             with mlog.nested():
@@ -3054,6 +3095,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.subproject_dir = spdirname
 
         self.build.subproject_dir = self.subproject_dir
+        if not self.is_subproject():
+            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+            subproject_dir_abs = os.path.join(self.environment.get_source_dir(), self.subproject_dir)
+            self.environment.wrap_resolver = wrap.Resolver(subproject_dir_abs, wrap_mode)
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
@@ -3185,13 +3230,13 @@ external dependencies (including libraries) must go to "dependencies".''')
         return success
 
     def should_skip_sanity_check(self, for_machine: MachineChoice) -> bool:
-        if for_machine != MachineChoice.HOST:
-            return False
-        if not self.environment.is_cross_build():
-            return False
         should = self.environment.properties.host.get('skip_sanity_check', False)
         if not isinstance(should, bool):
             raise InterpreterException('Option skip_sanity_check must be a boolean.')
+        if for_machine != MachineChoice.HOST and not should:
+            return False
+        if not self.environment.is_cross_build() and not should:
+            return False
         return should
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
@@ -3240,7 +3285,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return success
 
-    def program_from_file_for(self, for_machine, prognames, silent):
+    def program_from_file_for(self, for_machine, prognames):
         for p in unholder(prognames):
             if isinstance(p, mesonlib.File):
                 continue # Always points to a local (i.e. self generated) file.
@@ -3279,15 +3324,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             if progobj.found():
                 return progobj
 
-    def program_from_overrides(self, command_names, silent=False):
+    def program_from_overrides(self, command_names, extra_info):
         for name in command_names:
             if not isinstance(name, str):
                 continue
             if name in self.build.find_overrides:
                 exe = self.build.find_overrides[name]
-                if not silent:
-                    mlog.log('Program', mlog.bold(name), 'found:', mlog.green('YES'),
-                             '(overridden: %s)' % exe.description())
+                extra_info.append(mlog.blue('(overriden)'))
                 return ExternalProgramHolder(exe, self.subproject, self.backend)
         return None
 
@@ -3305,39 +3348,78 @@ external dependencies (including libraries) must go to "dependencies".''')
                                        % name)
         self.build.find_overrides[name] = exe
 
+    def notfound_program(self, args):
+        return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
+
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
     def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None):
-        if not isinstance(args, list):
-            args = [args]
+                          required=True, silent=True, wanted='', search_dirs=None,
+                          version_func=None):
+        args = mesonlib.listify(args)
 
-        progobj = self.program_from_overrides(args, silent=silent)
+        extra_info = []
+        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
         if progobj is None:
-            progobj = self.program_from_file_for(for_machine, args, silent=silent)
-        if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, silent=silent)
-        if progobj is None and args[0].endswith('python3'):
-            prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
-            progobj = ExternalProgramHolder(prog, self.subproject)
-        if required and (progobj is None or not progobj.found()):
-            raise InvalidArguments('Program(s) {!r} not found or not executable'.format(args))
-        if progobj is None:
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
-        # Only store successful lookups
-        self.store_name_lookups(args)
+            progobj = self.notfound_program(args)
+
+        if not progobj.found():
+            mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
+            if required:
+                m = 'Program {!r} not found'
+                raise InterpreterException(m.format(progobj.get_name()))
+            return progobj
+
         if wanted:
-            version = progobj.get_version(self)
+            if version_func:
+                version = version_func(progobj)
+            else:
+                version = progobj.get_version(self)
             is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
             if not is_found:
                 mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'),
-                         'found {!r} but need:'.format(version),
-                         ', '.join(["'{}'".format(e) for e in not_found]))
+                         'found', mlog.normal_cyan(version), 'but need:',
+                         mlog.bold(', '.join(["'{}'".format(e) for e in not_found])))
                 if required:
                     m = 'Invalid version of program, need {!r} {!r} found {!r}.'
-                    raise InvalidArguments(m.format(progobj.get_name(), not_found, version))
-                return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
+                    raise InterpreterException(m.format(progobj.get_name(), not_found, version))
+                return self.notfound_program(args)
+            extra_info.insert(0, mlog.normal_cyan(version))
+
+        # Only store successful lookups
+        self.store_name_lookups(args)
+        mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.green('YES'), *extra_info)
         return progobj
+
+    def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
+        progobj = self.program_from_overrides(args, extra_info)
+        if progobj:
+            return progobj
+
+        fallback = None
+        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+        if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
+            fallback = self.environment.wrap_resolver.find_program_provider(args)
+        if fallback and wrap_mode == WrapMode.forcefallback:
+            return self.find_program_fallback(fallback, args, required, extra_info)
+
+        progobj = self.program_from_file_for(for_machine, args)
+        if progobj is None:
+            progobj = self.program_from_system(args, search_dirs, silent=True)
+        if progobj is None and args[0].endswith('python3'):
+            prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
+            progobj = ExternalProgramHolder(prog, self.subproject) if prog.found() else None
+        if progobj is None and fallback and required:
+            progobj = self.find_program_fallback(fallback, args, required, extra_info)
+
+        return progobj
+
+    def find_program_fallback(self, fallback, args, required, extra_info):
+        mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
+                 mlog.bold(' '.join(args)))
+        sp_kwargs = { 'required': required }
+        self.do_subproject(fallback, 'meson', sp_kwargs)
+        return self.program_from_overrides(args, extra_info)
 
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
@@ -3351,7 +3433,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
+            return self.notfound_program(args)
 
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
@@ -3445,8 +3527,12 @@ external dependencies (including libraries) must go to "dependencies".''')
                         raise DependencyException(m.format(display_name))
                     return DependencyHolder(cached_dep, self.subproject)
                 else:
-                    m = 'Subproject {} did not override dependency {}'
-                    raise DependencyException(m.format(subproj_path, display_name))
+                    if required:
+                        m = 'Subproject {} did not override dependency {}'
+                        raise DependencyException(m.format(subproj_path, display_name))
+                    mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
+                             mlog.bold(subproj_path), 'found:', mlog.red('NO'))
+                    return self.notfound_dependency()
             if subproject.found():
                 self.verify_fallback_consistency(dirname, varname, cached_dep)
                 dep = self.subprojects[dirname].get_variable_method([varname], {})
@@ -3541,6 +3627,18 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_dependency()
 
         has_fallback = 'fallback' in kwargs
+        if not has_fallback and name:
+            # Add an implicit fallback if we have a wrap file or a directory with the same name,
+            # but only if this dependency is required. It is common to first check for a pkg-config,
+            # then fallback to use find_library() and only afterward check again the dependency
+            # with a fallback. If the fallback has already been configured then we have to use it
+            # even if the dependency is not required.
+            provider = self.environment.wrap_resolver.find_dep_provider(name)
+            dirname = mesonlib.listify(provider)[0]
+            if provider and (required or dirname in self.subprojects):
+                kwargs['fallback'] = provider
+                has_fallback = True
+
         if 'default_options' in kwargs and not has_fallback:
             mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
                          location=self.current_node)

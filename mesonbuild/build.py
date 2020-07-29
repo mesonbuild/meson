@@ -819,7 +819,8 @@ class BuildTarget(Target):
     def get_link_dep_subdirs(self):
         result = OrderedSet()
         for i in self.link_targets:
-            result.add(i.get_subdir())
+            if not isinstance(i, StaticLibrary):
+                result.add(i.get_subdir())
             result.update(i.get_link_dep_subdirs())
         return result
 

@@ -41,6 +41,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
+from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist, version as meson_version
 
@@ -361,11 +362,10 @@ def _run_ci_include(args: T.List[str]) -> str:
     if not args:
         return 'At least one parameter required'
     try:
-        file_path = Path(args[0])
-        data = file_path.open(errors='ignore', encoding='utf-8').read()
+        data = Path(args[0]).read_text(errors='ignore', encoding='utf-8')
         return 'Included file {}:\n{}\n'.format(args[0], data)
     except Exception:
-        return 'Failed to open {} ({})'.format(args[0])
+        return 'Failed to open {}'.format(args[0])
 
 ci_commands = {
     'ci_include': _run_ci_include
@@ -476,6 +476,28 @@ def create_deterministic_builddir(test: TestDef, use_tmpdir: bool) -> str:
     os.mkdir(abs_pathname)
     return abs_pathname
 
+def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str) -> Path:
+    confdata = ConfigurationData()
+    confdata.values = {'MESON_TEST_ROOT': (str(test.path.absolute()), 'base directory of current test')}
+
+    template = test.path / (file_basename + '.in')
+    destination = Path(test_build_dir) / file_basename
+    mesonlib.do_conf_file(str(template), str(destination), confdata, 'meson')
+
+    return destination
+
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
+    nativefile = test.path / 'nativefile.ini'
+    crossfile = test.path / 'crossfile.ini'
+
+    if os.path.exists(str(test.path / 'nativefile.ini.in')):
+        nativefile = format_parameter_file('nativefile.ini', test, test_build_dir)
+
+    if os.path.exists(str(test.path / 'crossfile.ini.in')):
+        crossfile = format_parameter_file('crossfile.ini', test, test_build_dir)
+
+    return nativefile, crossfile
+
 def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
     if test.skip:
         return None
@@ -498,8 +520,9 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
     if 'libdir' not in test.do_not_set_opts:
         gen_args += ['--libdir', 'lib']
     gen_args += [test.path.as_posix(), test_build_dir] + flags + extra_args
-    nativefile = test.path / 'nativefile.ini'
-    crossfile = test.path / 'crossfile.ini'
+
+    nativefile, crossfile = detect_parameter_files(test, test_build_dir)
+
     if nativefile.exists():
         gen_args.extend(['--native-file', nativefile.as_posix()])
     if crossfile.exists():
@@ -939,7 +962,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
         TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
         TestCategory('python3', 'python3', backend is not Backend.ninja),
-        TestCategory('python', 'python', backend is not Backend.ninja),
+        TestCategory('python', 'python'),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
         TestCategory('frameworks', 'frameworks'),
         TestCategory('nasm', 'nasm'),
@@ -1116,16 +1139,15 @@ def check_format():
                       '.build',
                       '.md',
                       }
+    skip_dirs = {
+        '.dub',                         # external deps are here
+        '.pytest_cache',
+        'meson-logs', 'meson-private',
+        '.eggs', '_cache',              # e.g. .mypy_cache
+        'venv',                         # virtualenvs have DOS line endings
+    }
     for (root, _, filenames) in os.walk('.'):
-        if '.dub' in root: # external deps are here
-            continue
-        if '.pytest_cache' in root:
-            continue
-        if 'meson-logs' in root or 'meson-private' in root:
-            continue
-        if '__CMake_build' in root:
-            continue
-        if '.eggs' in root or '_cache' in root:  # e.g. .mypy_cache
+        if any([x in root for x in skip_dirs]):
             continue
         for fname in filenames:
             file = Path(fname)
@@ -1249,6 +1271,7 @@ if __name__ == '__main__':
         options.extra_args += ['--cross-file', options.cross_file]
 
     print('Meson build system', meson_version, 'Project Tests')
+    print('Using python', sys.version.split('\n')[0])
     setup_commands(options.backend)
     detect_system_compiler(options)
     print_tool_versions()

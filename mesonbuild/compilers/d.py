@@ -25,7 +25,6 @@ from .compilers import (
     d_ldc_buildtype_args,
     clike_debug_args,
     Compiler,
-    CompilerArgs,
 )
 from .mixins.gnu import GnuCompiler
 
@@ -582,7 +581,7 @@ class DCompiler(Compiler):
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        args = CompilerArgs(self)
+        args = self.compiler_args()
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()

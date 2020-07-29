@@ -29,14 +29,78 @@ import subprocess
 import typing as T
 from pathlib import Path
 
+from ... import arglist
 from ... import mesonlib
-from ...mesonlib import LibType
 from ... import mlog
+from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
+from ...mesonlib import LibType
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+
+SOREGEX = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
+
+class CLikeCompilerArgs(arglist.CompilerArgs):
+    prepend_prefixes = ('-I', '-L')
+    dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
+
+    # NOTE: not thorough. A list of potential corner cases can be found in
+    # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
+    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
+    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
+    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
+
+    def to_native(self, copy: bool = False) -> T.List[str]:
+        # Check if we need to add --start/end-group for circular dependencies
+        # between static libraries, and for recursively searching for symbols
+        # needed by static libraries that are provided by object files or
+        # shared libraries.
+        self.flush_pre_post()
+        if copy:
+            new = self.copy()
+        else:
+            new = self
+        # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
+        # all act like (or are) gnu ld
+        # TODO: this could probably be added to the DynamicLinker instead
+        if isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker)):
+            group_start = -1
+            group_end = -1
+            for i, each in enumerate(new):
+                if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
+                   not SOREGEX.match(each):
+                    continue
+                group_end = i
+                if group_start < 0:
+                    # First occurrence of a library
+                    group_start = i
+            if group_start >= 0:
+                # Last occurrence of a library
+                new.insert(group_end + 1, '-Wl,--end-group')
+                new.insert(group_start, '-Wl,--start-group')
+        # Remove system/default include paths added with -isystem
+        if hasattr(self.compiler, 'get_default_include_dirs'):
+            default_dirs = self.compiler.get_default_include_dirs()
+            bad_idx_list = []  # type: T.List[int]
+            for i, each in enumerate(new):
+                # Remove the -isystem and the path if the path is a default path
+                if (each == '-isystem' and
+                        i < (len(new) - 1) and
+                        new[i + 1] in default_dirs):
+                    bad_idx_list += [i, i + 1]
+                elif each.startswith('-isystem=') and each[9:] in default_dirs:
+                    bad_idx_list += [i]
+                elif each.startswith('-isystem') and each[8:] in default_dirs:
+                    bad_idx_list += [i]
+            for i in reversed(bad_idx_list):
+                new.pop(i)
+        return self.compiler.unix_args_to_native(new._container)
+
+    def __repr__(self) -> str:
+        self.flush_pre_post()
+        return 'CLikeCompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
 
 
 class CLikeCompiler:
@@ -48,7 +112,7 @@ class CLikeCompiler:
     program_dirs_cache = {}
     find_library_cache = {}
     find_framework_cache = {}
-    internal_libs = compilers.unixy_compiler_internal_libs
+    internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
     def __init__(self, is_cross: bool, exe_wrapper: T.Optional[str] = None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
@@ -60,6 +124,9 @@ class CLikeCompiler:
             self.exe_wrapper = None
         else:
             self.exe_wrapper = exe_wrapper.get_command()
+
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
+        return CLikeCompilerArgs(self, args)
 
     def needs_static_linker(self):
         return True # When compiling static libraries, so yes.
@@ -299,9 +366,17 @@ class CLikeCompiler:
 
     def _get_basic_compiler_args(self, env, mode: str):
         cargs, largs = [], []
-        # Select a CRT if needed since we're linking
         if mode == 'link':
-            cargs += self.get_linker_debug_crt_args()
+            # Sometimes we need to manually select the CRT to use with MSVC.
+            # One example is when trying to do a compiler check that involves
+            # linking with static libraries since MSVC won't select a CRT for
+            # us in that case and will error out asking us to pick one.
+            try:
+                crt_val = env.coredata.base_options['b_vscrt'].value
+                buildtype = env.coredata.base_options['buildtype'].value
+                cargs += self.get_crt_compile_args(crt_val, buildtype)
+            except (KeyError, AttributeError):
+                pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
         sys_args = env.coredata.get_external_args(self.for_machine, self.language)
@@ -338,7 +413,7 @@ class CLikeCompiler:
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        cargs = compilers.CompilerArgs(self)
+        cargs = self.compiler_args()
         largs = []
         for d in dependencies:
             # Add compile flags needed by dependencies

@@ -121,6 +121,15 @@ def gnu_syms(libfilename: str, outfilename: str):
         result += [' '.join(entry)]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
+def solaris_syms(libfilename: str, outfilename: str):
+    # gnu_syms() works with GNU nm & readelf, not Solaris nm & elfdump
+    origpath = os.environ['PATH']
+    try:
+        os.environ['PATH'] = '/usr/gnu/bin:' + origpath
+        gnu_syms(libfilename, outfilename)
+    finally:
+        os.environ['PATH'] = origpath
+
 def osx_syms(libfilename: str, outfilename: str):
     # Get the name of the library
     output = call_tool('otool', ['-l', libfilename])
@@ -270,6 +279,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
             dummy_syms(outfilename)
+    elif mesonlib.is_sunos():
+        solaris_syms(libfilename, outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '

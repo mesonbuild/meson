@@ -9,7 +9,7 @@ if cppid == 'pgi'
 endif
 
 ss = import('sourceset')
-keyval = import('unstable-keyval')
+keyval = import('keyval')
 
 zlib = declare_dependency(compile_args: '-DZLIB=1')
 another = declare_dependency(compile_args: '-DANOTHER=1')

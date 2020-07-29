@@ -237,7 +237,7 @@ dependencies = [
     dependency('glib-2.0'),
     dependency('gobject-2.0'),
     meson.get_compiler('c').find_library('foo'),
-    meson.get_compiler('vala').find_library('foo', dir: vapi_dir),
+    meson.get_compiler('vala').find_library('foo', dirs: vapi_dir),
 ]
 
 sources = files('app.vala')

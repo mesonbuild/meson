@@ -12,7 +12,7 @@ e = executable('prog', 'testprog.c')
 test('name of test', e)
 ```
 
-You can add as many tests as you want. They are run with the command `ninja
+You can add as many tests as you want. They are run with the command `meson
 test`.
 
 Meson captures the output of all tests and writes it in the log file
@@ -75,7 +75,7 @@ test machine. You can override this with the environment variable
 `MESON_TESTTHREADS` like this.
 
 ```console
-$ MESON_TESTTHREADS=5 ninja test
+$ MESON_TESTTHREADS=5 meson test
 ```
 
 ## Priorities
@@ -122,8 +122,7 @@ The goal of the meson test tool is to provide a simple way to run tests in a
 variety of different ways. The tool is designed to be run in the build
 directory.
 
-The simplest thing to do is just to run all tests, which is equivalent to
-running `ninja test`.
+The simplest thing to do is just to run all tests.
 
 ```console
 $ meson test

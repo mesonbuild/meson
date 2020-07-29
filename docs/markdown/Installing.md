@@ -4,6 +4,18 @@ short-description: Installing targets
 
 # Installing
 
+Invoked via the [following command](Commands.md#install) *(available since 0.47.0)*:
+
+```sh
+meson install
+```
+
+or alternatively (on older meson versions with `ninja` backend):
+
+```sh
+ninja install
+```
+
 By default Meson will not install anything. Build targets can be
 installed by tagging them as installable in the definition.
 
@@ -97,15 +109,13 @@ packages. This is done with the `DESTDIR` environment variable and it
 is used just like with other build systems:
 
 ```console
-$ DESTDIR=/path/to/staging/area ninja install
+$ DESTDIR=/path/to/staging/area meson install
 ```
 
 ## Custom install behaviour
 
-The default install target (executed via, e.g., `ninja install`) does
-installing with reasonable default options. More control over the
-install behaviour can be achieved with the `meson install` command,
-that has been available since 0.47.0.
+Installation behaviour can be further customized using 
+additional arguments.
 
 For example, if you wish to install the current setup without
 rebuilding the code (which the default install target always does) and

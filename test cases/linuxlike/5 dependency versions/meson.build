@@ -31,10 +31,10 @@ dependency('somebrokenlib', version : '>=1.0', required : false)
 
 # Search for an external dependency that won't be found, but must later be
 # found via fallbacks
-somelibnotfound = dependency('somelib', required : false)
+somelibnotfound = dependency('somelib1', required : false)
 assert(somelibnotfound.found() == false, 'somelibnotfound was found?')
 # Find internal dependency without version
-somelibver = dependency('somelib',
+somelibver = dependency('somelib1',
   fallback : ['somelibnover', 'some_dep'])
 assert(somelibver.type_name() == 'internal', 'somelibver should be of type "internal", not ' + somelibver.type_name())
 # Find an internal dependency again with the same name and a specific version

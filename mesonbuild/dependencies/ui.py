@@ -229,22 +229,19 @@ class QtBaseDependency(ExternalDependency):
         bins = ['moc', 'uic', 'rcc', 'lrelease']
         found = {b: NonExistingExternalProgram(name='{}-{}'.format(b, self.name))
                  for b in bins}
+        wanted = '== {}'.format(self.version)
 
         def gen_bins():
             for b in bins:
                 if self.bindir:
                     yield os.path.join(self.bindir, b), b, False
+                # prefer the <tool>-qt<version> of the tool to the plain one, as we
+                # don't know what the unsuffixed one points to without calling it.
                 yield '{}-{}'.format(b, self.name), b, False
                 yield b, b, self.required if b != 'lrelease' else False
 
         for b, name, required in gen_bins():
             if found[name].found():
-                continue
-
-            # prefer the <tool>-qt<version> of the tool to the plain one, as we
-            # don't know what the unsuffixed one points to without calling it.
-            p = interp_obj.find_program_impl([b], silent=True, required=required).held_object
-            if not p.found():
                 continue
 
             if name == 'lrelease':
@@ -255,12 +252,18 @@ class QtBaseDependency(ExternalDependency):
                 arg = ['-v']
 
             # Ensure that the version of qt and each tool are the same
-            _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
-            if b.startswith('lrelease') or not self.version.startswith('4'):
-                care = out
-            else:
-                care = err
-            if mesonlib.version_compare(self.version, '== {}'.format(care.split(' ')[-1])):
+            def get_version(p):
+                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
+                if b.startswith('lrelease') or not self.version.startswith('4'):
+                    care = out
+                else:
+                    care = err
+                return care.split(' ')[-1].replace(')', '')
+
+            p = interp_obj.find_program_impl([b], required=required,
+                                             version_func=get_version,
+                                             wanted=wanted).held_object
+            if p.found():
                 found[name] = p
 
         return tuple([found[b] for b in bins])

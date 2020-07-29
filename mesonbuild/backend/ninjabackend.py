@@ -30,8 +30,9 @@ from .. import build
 from .. import mlog
 from .. import dependencies
 from .. import compilers
+from ..arglist import CompilerArgs
 from ..compilers import (
-    Compiler, CompilerArgs, CCompiler,
+    Compiler, CCompiler,
     DmdDCompiler,
     FortranCompiler, PGICCompiler,
     VisualStudioCsCompiler,
@@ -347,7 +348,7 @@ class NinjaBuildElement:
         use_rspfile = self._should_use_rspfile()
         if use_rspfile:
             rulename = self.rulename + '_RSP'
-            mlog.log("Command line for building %s is long, using a response file" % self.outfilenames)
+            mlog.debug("Command line for building %s is long, using a response file" % self.outfilenames)
         else:
             rulename = self.rulename
         line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
@@ -458,7 +459,7 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         # When used in cross compilation, the path separator is a
-        # backslash rather than a forward slash so handle both.
+        # forward slash rather than a backslash so handle both.
         matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|\/).*stdio.h$")
 
         def detect_prefix(out):
@@ -968,6 +969,15 @@ int dummy;
         self.processed_targets[target.get_id()] = True
 
     def generate_coverage_command(self, elem, outputs):
+        targets = self.build.get_targets().values()
+        use_llvm_cov = False
+        for target in targets:
+            if not hasattr(target, 'compilers'):
+                continue
+            for compiler in target.compilers.values():
+                if compiler.get_id() == 'clang' and not compiler.info.is_darwin():
+                    use_llvm_cov = True
+                    break
         elem.add_item('COMMAND', self.environment.get_build_command() +
                       ['--internal', 'coverage'] +
                       outputs +
@@ -975,7 +985,8 @@ int dummy;
                        os.path.join(self.environment.get_source_dir(),
                                     self.build.get_subproject_dir()),
                        self.environment.get_build_dir(),
-                       self.environment.get_log_dir()])
+                       self.environment.get_log_dir()] +
+                      ['--use_llvm_cov'] if use_llvm_cov else [])
 
     def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
@@ -1193,7 +1204,7 @@ int dummy;
         compiler = target.compilers['cs']
         rel_srcs = [os.path.normpath(s.rel_to_builddir(self.build_to_src)) for s in src_list]
         deps = []
-        commands = CompilerArgs(compiler, target.extra_args.get('cs', []))
+        commands = compiler.compiler_args(target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
         commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
         commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
@@ -2146,11 +2157,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return linker.get_link_debugfile_args(outname)
 
     def generate_llvm_ir_compile(self, target, src):
+        base_proxy = self.get_base_options_for_target(target)
         compiler = get_compiler_for_source(target.compilers.values(), src)
-        commands = CompilerArgs(compiler)
+        commands = compiler.compiler_args()
         # Compiler args for compiling this target
-        commands += compilers.get_base_compile_args(self.environment.coredata.base_options,
-                                                    compiler)
+        commands += compilers.get_base_compile_args(base_proxy, compiler)
         if isinstance(src, File):
             if src.is_built:
                 src_filename = os.path.join(src.subdir, src.fname)
@@ -2236,7 +2247,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         base_proxy = self.get_base_options_for_target(target)
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
-        commands = CompilerArgs(compiler)
+        commands = compiler.compiler_args()
         # Start with symbol visibility.
         commands += compiler.gnu_symbol_visibility_args(target.gnu_symbol_visibility)
         # Add compiler args for compiling this target derived from 'base' build
@@ -2316,7 +2327,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         compiler = get_compiler_for_source(target.compilers.values(), src)
         commands = self._generate_single_compile(target, compiler, is_generated)
-        commands = CompilerArgs(commands.compiler, commands)
+        commands = commands.compiler.compiler_args(commands)
 
         # Create introspection information
         if is_generated is False:
@@ -2665,7 +2676,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         #
         # Once all the linker options have been passed, we will start passing
         # libraries and library paths from internal and external sources.
-        commands = CompilerArgs(linker)
+        commands = linker.compiler_args()
         # First, the trivial ones that are impossible to override.
         #
         # Add linker args for linking this target derived from 'base' build

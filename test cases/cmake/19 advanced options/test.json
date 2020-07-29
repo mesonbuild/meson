@@ -1,0 +1,8 @@
+{
+  "installed": [
+    {"type": "exe", "file": "usr/bin/cm_testEXE"}
+  ],
+  "tools": {
+    "cmake": ">=3.11"
+  }
+}

@@ -22,8 +22,8 @@ Meson build scripts as identifiers for variable.
 Let say you would like to refer to your `executable` so something
 like `my_exe`.
 
-Developers tend to recognize snake case values more quickly
-than camel case.
+Developers tend to recognize snake case values more quickly than
+camel case.
 
 ## Naming options
 

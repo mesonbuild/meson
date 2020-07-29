@@ -56,6 +56,8 @@ C_FUNC_ATTRIBUTES = {
         'int foo(const char * p, ...) __attribute__((format(printf, 1, 2)));',
     'format_arg':
         'char * foo(const char * p) __attribute__((format_arg(1)));',
+    'force_align_arg_pointer':
+        '__attribute__((force_align_arg_pointer)) int foo(void) { return 0; }',
     'gnu_inline':
         'inline __attribute__((gnu_inline)) int foo(void) { return 0; }',
     'hot':

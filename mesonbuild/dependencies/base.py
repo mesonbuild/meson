@@ -29,8 +29,6 @@ import typing as T
 from enum import Enum
 from pathlib import Path, PurePath
 
-import pkg_resources
-
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
@@ -40,6 +38,7 @@ from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
+from ..mesondata import mesondata
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import CompilerType  # noqa: F401
@@ -251,6 +250,16 @@ class InternalDependency(Dependency):
         self.sources = sources
         self.ext_deps = ext_deps
         self.variables = variables
+
+    def __deepcopy__(self, memo: dict) -> 'InternalDependency':
+        result = self.__class__.__new__(self.__class__)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k in ['libraries', 'whole_libraries']:
+                setattr(result, k, copy.copy(v))
+            else:
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
 
     def get_pkgconfig_variable(self, variable_name, kwargs):
         raise DependencyException('Method "get_pkgconfig_variable()" is '
@@ -1512,8 +1521,7 @@ class CMakeDependency(ExternalDependency):
         build_dir = self._get_build_dir()
 
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
-        # Per the warning in pkg_resources, this is *not* a path and os.path and Pathlib are *not* safe to use here.
-        cmake_txt = pkg_resources.resource_string('mesonbuild', 'dependencies/data/' + cmake_file).decode()
+        cmake_txt = mesondata['dependencies/data/' + cmake_file].data
 
         # In general, some Fortran CMake find_package() also require C language enabled,
         # even if nothing from C is directly used. An easy Fortran example that fails

@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import mlog
+from . import mlog, mparser
 import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
-    MesonException, MachineChoice, PerMachine, OrderedSet,
-    default_libdir, default_libexecdir, default_prefix, split_args
+    MesonException, EnvironmentException, MachineChoice, PerMachine,
+    OrderedSet, default_libdir, default_libexecdir, default_prefix,
+    split_args
 )
 from .envconfig import get_env_var_pair
 from .wrap import WrapMode
@@ -38,7 +39,7 @@ if T.TYPE_CHECKING:
 
     OptionDictType = T.Dict[str, 'UserOption[T.Any]']
 
-version = '0.54.999'
+version = '0.55.999'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
 
 default_yielding = False
@@ -228,14 +229,6 @@ class UserFeatureOption(UserComboOption):
 
     def is_auto(self):
         return self.value == 'auto'
-
-
-def load_configs(filenames: T.List[str]) -> configparser.ConfigParser:
-    """Load configuration files from a named subdirectory."""
-    config = configparser.ConfigParser(interpolation=None)
-    config.read(filenames)
-    return config
-
 
 if T.TYPE_CHECKING:
     CacheKeyType = T.Tuple[T.Tuple[T.Any, ...], ...]
@@ -870,14 +863,77 @@ class CoreData:
 
     def emit_base_options_warnings(self, enabled_opts: list):
         if 'b_bitcode' in enabled_opts:
-            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.')
-            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.')
+            mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
+            mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
 class CmdLineFileParser(configparser.ConfigParser):
     def __init__(self):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
+
+class MachineFileParser():
+    def __init__(self, filenames: T.List[str]):
+        self.parser = CmdLineFileParser()
+        self.constants = {'True': True, 'False': False}
+        self.sections = {}
+
+        self.parser.read(filenames)
+
+        # Parse [constants] first so they can be used in other sections
+        if self.parser.has_section('constants'):
+            self.constants.update(self._parse_section('constants'))
+
+        for s in self.parser.sections():
+            if s == 'constants':
+                continue
+            self.sections[s] = self._parse_section(s)
+
+    def _parse_section(self, s):
+        self.scope = self.constants.copy()
+        section = {}
+        for entry, value in self.parser.items(s):
+            if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
+                raise EnvironmentException('Malformed variable name {!r} in machine file.'.format(entry))
+            # Windows paths...
+            value = value.replace('\\', '\\\\')
+            try:
+                ast = mparser.Parser(value, 'machinefile').parse()
+                res = self._evaluate_statement(ast.lines[0])
+            except MesonException:
+                raise EnvironmentException('Malformed value in machine file variable {!r}.'.format(entry))
+            except KeyError as e:
+                raise EnvironmentException('Undefined constant {!r} in machine file variable {!r}.'.format(e.args[0], entry))
+            section[entry] = res
+            self.scope[entry] = res
+        return section
+
+    def _evaluate_statement(self, node):
+        if isinstance(node, (mparser.StringNode)):
+            return node.value
+        elif isinstance(node, mparser.BooleanNode):
+            return node.value
+        elif isinstance(node, mparser.NumberNode):
+            return node.value
+        elif isinstance(node, mparser.ArrayNode):
+            return [self._evaluate_statement(arg) for arg in node.args.arguments]
+        elif isinstance(node, mparser.IdNode):
+            return self.scope[node.value]
+        elif isinstance(node, mparser.ArithmeticNode):
+            l = self._evaluate_statement(node.left)
+            r = self._evaluate_statement(node.right)
+            if node.operation == 'add':
+                if (isinstance(l, str) and isinstance(r, str)) or \
+                   (isinstance(l, list) and isinstance(r, list)):
+                    return l + r
+            elif node.operation == 'div':
+                if isinstance(l, str) and isinstance(r, str):
+                    return os.path.join(l, r)
+        raise EnvironmentException('Unsupported node type')
+
+def parse_machine_files(filenames):
+    parser = MachineFileParser(filenames)
+    return parser.sections
 
 def get_cmd_line_file(build_dir):
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
@@ -1126,7 +1182,7 @@ builtin_options = OrderedDict([
     ('strip',           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
     ('unity',           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
     ('unity_size',      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
-    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'])),
+    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], yielding=False)),
     ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
     ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),

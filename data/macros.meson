@@ -28,6 +28,7 @@
     %{shrink:%{__meson} compile \
         -C %{_vpath_builddir} \
         -j %{_smp_build_ncpus} \
+        --verbose \
         %{nil}}
 
 %meson_install \

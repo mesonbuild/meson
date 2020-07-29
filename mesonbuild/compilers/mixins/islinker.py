@@ -110,9 +110,6 @@ class BasicLinkerIsCompilerMixin:
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
-    def get_linker_debug_crt_args(self) -> T.List[str]:
-        return []
-
     def get_asneeded_args(self) -> T.List[str]:
         return []
 

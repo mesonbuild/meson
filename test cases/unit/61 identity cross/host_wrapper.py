@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
-import subprocess, sys
+import subprocess, sys, platform
 
-subprocess.call(["cc", "-DEXTERNAL_HOST"] + sys.argv[1:])
+# Meson does not yet support Studio cc on Solaris, only gcc or clang
+if platform.system() == 'SunOS':
+    cc = 'gcc'
+else:
+    cc = 'cc'
+
+subprocess.call([cc, "-DEXTERNAL_HOST"] + sys.argv[1:])

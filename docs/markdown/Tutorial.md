@@ -74,7 +74,7 @@ Now we are ready to build our code.
 
 ```
 $ cd builddir
-$ ninja
+$ meson compile
 ```
 
 Once that is done we can run the resulting binary.
@@ -124,12 +124,12 @@ or the like. Instead we just type the exact same command as if we were
 rebuilding our code without any build system changes.
 
 ```
-$ ninja
+$ meson compile
 ```
 
 Once you have set up your build directory the first time, you don't
 ever need to run the `meson` command again. You always just run
-`ninja`. Meson will automatically detect when you have done changes to
+`meson compile`. Meson will automatically detect when you have done changes to
 build definitions and will take care of everything so users don't have
 to care. In this case the following output is produced.
 
