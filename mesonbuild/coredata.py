@@ -844,18 +844,21 @@ class CoreData:
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
 class ConfigFileParser(configparser.ConfigParser):
-    def __init__(self):
+    def __init__(self, filenames=None):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
+        if filenames:
+            try:
+                self.read(filenames)
+            except configparser.Error:
+                raise MesonException('Failed to parse {}'.format(str(filenames)))
 
 class ConfigFileInterpreter():
-    def __init__(self, filenames: T.List[str]):
-        self.parser = ConfigFileParser()
+    def __init__(self, parser: ConfigFileParser):
+        self.parser = parser
         self.constants = {'True': True, 'False': False}
         self.sections = {}
-
-        self.parser.read(filenames)
 
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
@@ -909,8 +912,8 @@ class ConfigFileInterpreter():
         raise EnvironmentException('Unsupported node type')
 
 def parse_machine_files(filenames):
-    parser = ConfigFileInterpreter(filenames)
-    return parser.sections
+    config = ConfigFileParser(filenames)
+    return ConfigFileInterpreter(config).sections
 
 def get_cmd_line_file(build_dir):
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
@@ -920,8 +923,7 @@ def read_cmd_line_file(build_dir, options):
     if not os.path.isfile(filename):
         return
 
-    config = ConfigFileParser()
-    config.read(filename)
+    config = ConfigFileParser(filename)
 
     # Do a copy because config is not really a dict. options.cmd_line_options
     # overrides values from the file.
@@ -957,8 +959,7 @@ def write_cmd_line_file(build_dir, options):
 
 def update_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = ConfigFileParser()
-    config.read(filename)
+    config = ConfigFileParser(filename)
     config['options'].update(cmd_line_options_to_string(options))
     with open(filename, 'w') as f:
         config.write(f)

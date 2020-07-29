@@ -24,7 +24,6 @@ import tempfile
 import stat
 import subprocess
 import sys
-import configparser
 import typing as T
 
 from pathlib import Path
@@ -123,11 +122,7 @@ class PackageDefinition:
             raise WrapException('Directory key must be a name and not a path')
 
     def parse_wrap(self, fname: str):
-        try:
-            self.config = configparser.ConfigParser(interpolation=None)
-            self.config.read(fname)
-        except configparser.Error:
-            raise WrapException('Failed to parse {}'.format(self.basename))
+        self.config = coredata.ConfigFileParser(fname)
         self.parse_wrap_section()
         self.parse_provide_section()
 
