@@ -908,7 +908,7 @@ class ConfigFileInterpreter():
                     return l + r
             elif node.operation == 'div':
                 if isinstance(l, str) and isinstance(r, str):
-                    return os.path.join(l, r)
+                    return os.path.join(l, r).replace('\\', '/')
         raise EnvironmentException('Unsupported node type')
 
 def parse_machine_files(filenames):
