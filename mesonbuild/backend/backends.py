@@ -261,7 +261,10 @@ class Backend:
         return self.build_to_src
 
     def get_target_private_dir(self, target):
-        return os.path.join(self.get_target_filename(target) + '.p')
+        if isinstance(target, build.CustomTarget): #custom targets can have more than one output, do not call get target filename in order to prevent a warning
+            return os.path.join(self.get_target_dir(target), target.get_id() + '.p')
+        else:
+            return os.path.join(self.get_target_filename(target) + '.p')
 
     def get_target_private_dir_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
