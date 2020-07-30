@@ -3122,8 +3122,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.add_languages(args, required, self.machine_from_native_kwarg(kwargs))
         else:
             # absent 'native' means 'both' for backwards compatibility
-            mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
-                         location=self.current_node)
+            tv = FeatureNew.get_target_version(self.subproject)
+            if FeatureNew.check_version(tv, '0.54.0'):
+                mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
+                             location=self.current_node)
+
             success = self.add_languages(args, False, MachineChoice.BUILD)
             success &= self.add_languages(args, required, MachineChoice.HOST)
             return success

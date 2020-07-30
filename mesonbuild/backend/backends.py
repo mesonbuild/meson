@@ -184,9 +184,9 @@ class Backend:
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
 
-    def get_target_filename(self, t):
+    def get_target_filename(self, t, *, warn_multi_output: bool = True):
         if isinstance(t, build.CustomTarget):
-            if len(t.get_outputs()) != 1:
+            if warn_multi_output and len(t.get_outputs()) != 1:
                 mlog.warning('custom_target {!r} has more than one output! '
                              'Using the first one.'.format(t.name))
             filename = t.get_outputs()[0]
@@ -262,7 +262,7 @@ class Backend:
         return self.build_to_src
 
     def get_target_private_dir(self, target):
-        return os.path.join(self.get_target_filename(target) + '.p')
+        return os.path.join(self.get_target_filename(target, warn_multi_output=False) + '.p')
 
     def get_target_private_dir_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_private_dir(target))
