@@ -5054,6 +5054,28 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
 
+    @unittest.skipUnless(is_linux(), 'Requires ASM compiler currently only available on Linux CI runners')
+    def test_nostdlib(self):
+        testdir = os.path.join(self.unit_test_dir, '79 nostdlib')
+        machinefile = os.path.join(self.builddir, 'machine.txt')
+        with open(machinefile, 'w') as f:
+            f.write(textwrap.dedent('''
+                [properties]
+                c_stdlib = 'mylibc'
+                '''))
+
+        # Test native C stdlib
+        self.meson_native_file = machinefile
+        self.init(testdir)
+        self.build()
+
+        # Test cross C stdlib
+        self.new_builddir()
+        self.meson_native_file = None
+        self.meson_cross_file = machinefile
+        self.init(testdir)
+        self.build()
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

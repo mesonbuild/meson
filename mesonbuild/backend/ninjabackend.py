@@ -2088,12 +2088,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
-    def get_cross_stdlib_args(self, target, compiler):
-        if self.environment.machines.matches_build_machine(target.for_machine):
-            return []
-        if not self.environment.properties.host.has_stdlib(compiler.language):
-            return []
-        return compiler.get_no_stdinc_args()
+    def get_no_stdlib_args(self, target, compiler):
+        if compiler.language in self.build.stdlibs[target.for_machine]:
+            return compiler.get_no_stdinc_args()
+        return []
+
+    def get_no_stdlib_link_args(self, target, linker):
+        if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
+            return linker.get_no_stdlib_link_args()
+        return []
 
     def get_compile_debugfile_args(self, compiler, target, objfile):
         # The way MSVC uses PDB files is documented exactly nowhere so
@@ -2520,14 +2523,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
 
-    def get_cross_stdlib_link_args(self, target, linker):
-        if isinstance(target, build.StaticLibrary) or \
-           self.environment.machines.matches_build_machine(target.for_machine):
-            return []
-        if not self.environment.properties.host.has_stdlib(linker.language):
-            return []
-        return linker.get_no_stdlib_link_args()
-
     def get_import_filename(self, target):
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
@@ -2689,7 +2684,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                      linker,
                                                      isinstance(target, build.SharedModule))
         # Add -nostdlib if needed; can't be overridden
-        commands += self.get_cross_stdlib_link_args(target, linker)
+        commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.

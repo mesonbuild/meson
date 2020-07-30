@@ -10,4 +10,4 @@ endian = 'little'
 
 [properties]
 
-c_stdlib = ['mylibc', 'mylibc_dep'] # Subproject name, dependency name
+c_stdlib = 'mylibc' # Subproject name

@@ -2572,21 +2572,25 @@ class Interpreter(InterpreterBase):
         return self.variables
 
     def check_stdlibs(self):
-        for for_machine in MachineChoice:
+        machine_choices = [MachineChoice.HOST]
+        if self.coredata.is_cross_build():
+            machine_choices.append(MachineChoice.BUILD)
+        for for_machine in machine_choices:
             props = self.build.environment.properties[for_machine]
             for l in self.coredata.compilers[for_machine].keys():
                 try:
                     di = mesonlib.stringlistify(props.get_stdlib(l))
-                    if len(di) != 2:
-                        raise InterpreterException('Stdlib definition for %s should have exactly two elements.'
-                                                   % l)
-                    projname, depname = di
-                    subproj = self.do_subproject(projname, 'meson', {})
-                    self.build.stdlibs.host[l] = subproj.get_variable_method([depname], {})
                 except KeyError:
-                    pass
-                except InvalidArguments:
-                    pass
+                    continue
+                if len(di) == 1:
+                    FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject)
+                kwargs = {'fallback': di,
+                          'native': for_machine is MachineChoice.BUILD,
+                          'force_fallback': True,
+                          }
+                name = display_name = l + '_stdlib'
+                dep = self.dependency_impl(name, display_name, kwargs)
+                self.build.stdlibs[for_machine][l] = dep
 
     def import_module(self, modname):
         if modname in self.modules:
@@ -3682,9 +3686,11 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
         force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+        force_fallback = kwargs.get('force_fallback', False)
         forcefallback = has_fallback and (wrap_mode == WrapMode.forcefallback or \
                                           name in force_fallback_for or \
-                                          dirname in force_fallback_for)
+                                          dirname in force_fallback_for or \
+                                          force_fallback)
         if name != '' and not forcefallback:
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not has_fallback
@@ -4786,8 +4792,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs, self.environment, kwargs)
         target.project_version = self.project_version
 
-        if not self.environment.machines.matches_build_machine(for_machine):
-            self.add_cross_stdlib_info(target)
+        self.add_stdlib_info(target)
         l = targetholder(target, self)
         self.add_target(name, l.held_object)
         self.project_args_frozen = True
@@ -4811,23 +4816,19 @@ This will become a hard error in the future.''', location=self.current_node)
             kwargs['d_import_dirs'] = cleaned_items
 
     def get_used_languages(self, target):
-        result = {}
+        result = set()
         for i in target.sources:
-            # TODO other platforms
-            for lang, c in self.coredata.compilers.host.items():
+            for lang, c in self.coredata.compilers[target.for_machine].items():
                 if c.can_compile(i):
-                    result[lang] = True
+                    result.add(lang)
                     break
         return result
 
-    def add_cross_stdlib_info(self, target):
-        if target.for_machine != MachineChoice.HOST:
-            return
+    def add_stdlib_info(self, target):
         for l in self.get_used_languages(target):
-            props = self.environment.properties.host
-            if props.has_stdlib(l) \
-                    and self.subproject != props.get_stdlib(l)[0]:
-                target.add_deps(self.build.stdlibs.host[l])
+            dep = self.build.stdlibs[target.for_machine].get(l, None)
+            if dep:
+                target.add_deps(dep)
 
     def check_sources_exist(self, subdir, sources):
         for s in sources:
