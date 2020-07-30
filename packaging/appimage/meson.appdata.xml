@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+	<id>meson</id>
+	<metadata_license>CC0-1.0</metadata_license>
+	<project_license>Apache-2.0</project_license>
+	<name>Meson</name>
+	<summary>The Meson Build System </summary>
+	<description>
+		<p>Meson is an open source build system meant to be both extremely fast, and, even more importantly, as user friendly as possible.
+
+The main design point of Meson is that every moment a developer spends writing or debugging build definitions is a second wasted. So is every second spent waiting for the build system to actually start compiling code.</p>
+	</description>
+	<launchable type="desktop-id">meson.desktop</launchable>
+	<url type="homepage">https://mesonbuild.com</url>
+	<screenshots>
+		<screenshot type="default">
+			<image>https://raw.githubusercontent.com/mesonbuild/meson/master/graphics/meson_logo_big.png</image>
+		</screenshot>
+	</screenshots>
+	<provides>
+		<id>meson.desktop</id>
+	</provides>
+</component>

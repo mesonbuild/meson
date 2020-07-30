@@ -1,0 +1,12 @@
+[wrap-file]
+directory = libfuse-fuse-2.9.9
+source_url = https://github.com/libfuse/libfuse/archive/refs/tags/fuse-2.9.9.tar.gz
+source_filename = fuse-2.9.9.tar.gz
+source_hash = e57a24721177c3b3dd71cb9239ca46b4dee283db9388d48f7ccd256184982194
+patch_filename = fuse_2.9.9-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/fuse_2.9.9-1/get_patch
+patch_hash = 62d8b30e494a465751124fdbec1fe0476cbbc65ffd7c865b16da7dba2b4a63a1
+
+[provide]
+fuse = libfuse_dep
+

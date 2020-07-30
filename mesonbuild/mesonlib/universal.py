@@ -152,7 +152,9 @@ project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str
 
 from glob import glob
 
-if os.path.basename(sys.executable) == 'meson.exe':
+if 'MESON_PYTHON_BIN' in os.environ:
+    python_command = shlex.split(os.environ['MESON_PYTHON_BIN'])
+elif os.path.basename(sys.executable) == 'meson.exe':
     # In Windows and using the MSI installed executable.
     python_command = [sys.executable, 'runpython']
 else:
@@ -219,7 +221,9 @@ def set_meson_command(mainfile: str) -> None:
     global _meson_command
     # On UNIX-like systems `meson` is a Python script
     # On Windows `meson` and `meson.exe` are wrapper exes
-    if not mainfile.endswith('.py'):
+    if 'MESON_COMMAND' in os.environ:
+        _meson_command = shlex.split(os.environ['MESON_COMMAND'])
+    elif not mainfile.endswith('.py'):
         _meson_command = [mainfile]
     elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
         # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain

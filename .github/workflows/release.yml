@@ -1,0 +1,33 @@
+name: Release
+
+# Run on all tags
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  runtime_builder:
+    name: Runtime ${{ matrix.cfg.id }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cfg:
+          - { id: x86_64   }
+          - { id: i386     }
+    env:
+      NONINTERACTIVE: 1
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Building ${{ matrix.cfg.id }} Meson runtime
+        run: ./packaging/appimage/build_${{ matrix.cfg.id }}.sh
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: appimage/meson-${{ matrix.cfg.id }}.runtime
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: ${{ github.ref }}

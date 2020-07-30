@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Meson
+Comment=The Meson Build System
+Exec=meson
+Icon=meson
+Terminal=true
+Categories=Development;

@@ -1,0 +1,4 @@
+[wrap-git]
+
+url      = https://github.com/mensinda/squashfuse.git
+revision = meson
