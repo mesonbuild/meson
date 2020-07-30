@@ -268,7 +268,7 @@ invocation to use in your cross file is the following:
 
 ```ini
 [properties]
-c_stdlib = ['mylibc', 'mylibc_dep'] # Subproject name, dependency name
+c_stdlib = ['mylibc', 'mylibc_dep'] # Subproject name, variable name
 ```
 
 This specifies that C standard library is provided in the Meson
@@ -276,6 +276,18 @@ subproject `mylibc` in internal dependency variable `mylibc_dep`. It
 is used on every cross built C target in the entire source tree
 (including subprojects) and the standard library is disabled. The
 build definitions of these targets do not need any modification.
+
+Note that it is supported for any language, not only `c`, using `<lang>_stdlib`
+property.
+
+Since *0.56.0* the variable name parameter is no longer required as long as the
+subproject calls `meson.override_dependency('c_stdlib', mylibc_dep)`.
+The above example becomes:
+
+```ini
+[properties]
+c_stdlib = 'mylibc'
+```
 
 ## Changing cross file settings
 

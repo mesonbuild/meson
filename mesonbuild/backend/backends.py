@@ -657,7 +657,7 @@ class Backend:
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
-        commands += self.get_cross_stdlib_args(target, compiler)
+        commands += self.get_no_stdlib_args(target, compiler)
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
         # Only add warning-flags by default if the buildtype enables it, and if
