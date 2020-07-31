@@ -5014,7 +5014,7 @@ recommended as it is not supported on some platforms''')
     def test_wrap_git(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             srcdir = os.path.join(tmpdir, 'src')
-            shutil.copytree(os.path.join(self.unit_test_dir, '78 wrap-git'), srcdir)
+            shutil.copytree(os.path.join(self.unit_test_dir, '81 wrap-git'), srcdir)
             upstream = os.path.join(srcdir, 'subprojects', 'wrap_git_upstream')
             upstream_uri = Path(upstream).as_uri()
             _git_init(upstream)
@@ -6473,7 +6473,7 @@ class LinuxlikeTests(BasePlatformTests):
         if is_osx():
             raise unittest.SkipTest('Global RPATHs via LDFLAGS not yet supported on MacOS (does anybody need it?)')
 
-        testdir = os.path.join(self.unit_test_dir, '77 global-rpath')
+        testdir = os.path.join(self.unit_test_dir, '80 global-rpath')
         oldinstalldir = self.installdir
 
         # Build and install an external library without DESTDIR.
@@ -6846,7 +6846,7 @@ class LinuxlikeTests(BasePlatformTests):
         oldinstalldir = self.installdir
 
         # Build and install both external libraries without DESTDIR
-        val1dir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'val1')
+        val1dir = os.path.join(self.unit_test_dir, '77 pkgconfig prefixes', 'val1')
         val1prefix = os.path.join(oldinstalldir, 'val1')
         self.prefix = val1prefix
         self.installdir = val1prefix
@@ -6857,7 +6857,7 @@ class LinuxlikeTests(BasePlatformTests):
 
         env1 = {}
         env1['PKG_CONFIG_PATH'] = os.path.join(val1prefix, self.libdir, 'pkgconfig')
-        val2dir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'val2')
+        val2dir = os.path.join(self.unit_test_dir, '77 pkgconfig prefixes', 'val2')
         val2prefix = os.path.join(oldinstalldir, 'val2')
         self.prefix = val2prefix
         self.installdir = val2prefix
@@ -6869,7 +6869,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Build, install, and run the client program
         env2 = {}
         env2['PKG_CONFIG_PATH'] = os.path.join(val2prefix, self.libdir, 'pkgconfig')
-        testdir = os.path.join(self.unit_test_dir, '76 pkgconfig prefixes', 'client')
+        testdir = os.path.join(self.unit_test_dir, '77 pkgconfig prefixes', 'client')
         testprefix = os.path.join(oldinstalldir, 'client')
         self.prefix = testprefix
         self.installdir = testprefix
@@ -7180,7 +7180,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
     def test_cross_libdir_subproject(self):
         # Guard against a regression where calling "subproject"
         # would reset the value of libdir to its default value.
-        testdir = os.path.join(self.unit_test_dir, '76 subdir libdir')
+        testdir = os.path.join(self.unit_test_dir, '78 subdir libdir')
         self.init(testdir, extra_args=['--libdir=fuf'])
         for i in self.introspect('--buildoptions'):
             if i['name'] == 'libdir':
@@ -8017,7 +8017,7 @@ class NativeFileTests(BasePlatformTests):
         self.init(testcase, extra_args=['--native-file', config, '-Dother_one=false'])
 
     def test_user_options_subproject(self):
-        testcase = os.path.join(self.unit_test_dir, '75 user options for subproject')
+        testcase = os.path.join(self.unit_test_dir, '79 user options for subproject')
 
         s = os.path.join(testcase, 'subprojects')
         if not os.path.exists(s):
