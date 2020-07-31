@@ -48,7 +48,7 @@ The following sections are allowed:
 
 ### constants
 
-*Since 0.55.0*
+*Since 0.56.0*
 
 String and list concatenation is supported using the `+` operator, joining paths
 is supported using the `/` operator.
@@ -172,7 +172,7 @@ An incomplete list of internally used programs that can be overridden here is:
 
 ### Paths and Directories
 
-*Deprecated in 0.55.0* use the built-in section instead.
+*Deprecated in 0.56.0* use the built-in section instead.
 
 As of 0.50.0 paths and directories such as libdir can be defined in the native
 and cross files in a paths section. These should be strings.
@@ -196,13 +196,13 @@ In addition to special data that may be specified in cross files, this
 section may contain random key value pairs accessed using the
 `meson.get_external_property()`, or `meson.get_cross_property()`.
 
-*Changed in 0.55.0* putting `<lang>_args` and `<lang>_link_args` in the
+*Changed in 0.56.0* putting `<lang>_args` and `<lang>_link_args` in the
 properties section has been deprecated, and should be put in the built-in
 options section.
 
 ### Project specific options
 
-*New in 0.55.0*
+*New in 0.56.0*
 
 Path options are not allowed, those must be set in the `[paths]` section.
 
