@@ -182,7 +182,7 @@ class CudaCompiler(Compiler):
 
     def _to_host_compiler_options(self, options):
         overrides = {name: opt.value for name, opt in options.copy().items()}
-        return OptionOverrideProxy(overrides, self.host_compiler.get_options())
+        return OptionOverrideProxy(overrides, '', self.host_compiler.get_options())
 
     def get_option_compile_args(self, options):
         args = []

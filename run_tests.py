@@ -112,6 +112,7 @@ class FakeBuild:
 class FakeCompilerOptions:
     def __init__(self):
         self.value = []
+        self.yielding = True
 
 def get_fake_options(prefix=''):
     opts = argparse.Namespace()

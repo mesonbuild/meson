@@ -147,7 +147,7 @@ class IntrospectionInterpreter(AstInterpreter):
                     continue
                 lang = lang.lower()
                 if lang not in self.coredata.compilers[for_machine]:
-                    self.environment.detect_compiler_for(lang, for_machine)
+                    self.environment.detect_compiler_for(lang, for_machine, self.subproject)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         args = self.flatten_args(args)

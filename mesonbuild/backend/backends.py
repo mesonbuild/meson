@@ -202,12 +202,13 @@ class Backend:
 
     def get_base_options_for_target(self, target):
         return OptionOverrideProxy(target.option_overrides,
+                                   target.subproject,
                                    self.environment.coredata.builtins,
                                    self.environment.coredata.base_options)
 
     def get_compiler_options_for_target(self, target):
         comp_reg = self.environment.coredata.compiler_options[target.for_machine]
-        return OptionOverrideProxy(target.option_overrides, comp_reg)
+        return OptionOverrideProxy(target.option_overrides, target.subproject, comp_reg)
 
     def get_option_for_target(self, option_name, target):
         if option_name in target.option_overrides:

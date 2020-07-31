@@ -780,7 +780,7 @@ def have_objc_compiler(use_tmp: bool) -> bool:
             return False
         if not objc_comp:
             return False
-        env.coredata.process_new_compiler('objc', objc_comp, env)
+        env.coredata.process_new_compiler('objc', objc_comp, env, subproject='')
         try:
             objc_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:
@@ -796,7 +796,7 @@ def have_objcpp_compiler(use_tmp: bool) -> bool:
             return False
         if not objcpp_comp:
             return False
-        env.coredata.process_new_compiler('objcpp', objcpp_comp, env)
+        env.coredata.process_new_compiler('objcpp', objcpp_comp, env, subproject='')
         try:
             objcpp_comp.sanity_check(env.get_scratch_dir(), env)
         except mesonlib.MesonException:

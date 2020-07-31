@@ -675,7 +675,7 @@ class CoreData:
                         .with_traceback(sys.exc_info()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-    def get_lang_option(self, for_machine, lang, optname):
+    def get_lang_option(self, for_machine, lang, optname, subproject=''):
         return self.compiler_options[for_machine][lang + '_' + optname].value
 
     def get_external_args(self, for_machine: MachineChoice, lang):

@@ -1135,7 +1135,7 @@ class CompilerHolder(InterpreterObject):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             for_machine = Interpreter.machine_from_native_kwarg(kwargs)
-            opts = self.environment.coredata.compiler_options[for_machine]
+            opts = mesonlib.OptionOverrideProxy({}, self.subproject, self.environment.coredata.compiler_options[for_machine])
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
                 args += self.compiler.get_option_link_args(opts)

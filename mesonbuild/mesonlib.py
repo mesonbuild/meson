@@ -1701,15 +1701,22 @@ class OptionOverrideProxy:
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
 
-    def __init__(self, overrides: T.Dict[str, T.Any], *options: 'OptionDictType'):
+    def __init__(self, overrides: T.Dict[str, T.Any], subproject: str, *options: 'OptionDictType'):
         self.overrides = overrides
+        self.subproject = subproject
         self.options = options
 
     def __getitem__(self, option_name: str) -> T.Any:
+        raw_optname = optname = option_name
+        if self.subproject:
+            optname = self.subproject + ':' + optname
         for opts in self.options:
-            if option_name in opts:
-                return self._get_override(option_name, opts[option_name])
-        raise KeyError('Option not found', option_name)
+            v = opts.get(optname)
+            if v is None or v.yielding:
+                v = opts.get(raw_optname)
+            if v is not None:
+                return self._get_override(raw_optname, v)
+        raise KeyError('Option not found', raw_optname)
 
     def _get_override(self, option_name: str, base_opt: 'UserOption[T.Any]') -> T.Union[OptionProxy[T.Any], 'UserOption[T.Any]']:
         if option_name in self.overrides:
