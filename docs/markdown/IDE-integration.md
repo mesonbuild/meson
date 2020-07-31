@@ -25,7 +25,8 @@ With this command meson will configure the project and also generate
 introspection information that is stored in `intro-*.json` files in the
 `meson-info` directory. The introspection dump will be automatically updated
 when meson is (re)configured, or the build options change. Thus, an IDE can
-watch for changes in this directory to know when something changed.
+watch for changes in this directory to know when something changed. Note that
+`meson-info.json` guaranteed to be the last file written.
 
 The `meson-info` directory should contain the following files:
 
