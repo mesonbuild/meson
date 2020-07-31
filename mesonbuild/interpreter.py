@@ -3257,14 +3257,17 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
         success = True
+        machine_name = for_machine.get_lower_case_name()
         for lang in sorted(args, key=compilers.sort_clink):
-            clist = self.coredata.compilers[for_machine]
-            machine_name = for_machine.get_lower_case_name()
-            if lang in clist:
-                comp = clist[lang]
+            comp = self.coredata.compilers[for_machine].get(lang)
+            if comp:
+                # The compiler could have been processed for another subprojet,
+                # we still need to ensure per subproject compiler options are
+                # processed.
+                self.coredata.process_new_compiler(lang, comp, self.environment, self.subproject)
             else:
                 try:
-                    comp = self.environment.detect_compiler_for(lang, for_machine)
+                    comp = self.environment.detect_compiler_for(lang, for_machine, self.subproject)
                     if comp is None:
                         raise InvalidArguments('Tried to use unknown language "%s".' % lang)
                     if self.should_skip_sanity_check(for_machine):

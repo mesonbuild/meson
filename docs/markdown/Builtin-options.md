@@ -194,6 +194,8 @@ Since *0.54.0* The `<lang>_thread_count` option can be used to control the
 value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other c/c++
 compiler supports this option.
 
+Since *0.56.0* compiler options can be set per subproject, see below.
+
 ## Specifying options per machine
 
 Since *0.51.0*, some options are specified per machine rather than globally for
@@ -233,4 +235,6 @@ The value is overriden in this order:
 - Value from subproject() default_options if set
 - Value from command line if set
 
-Since 0.56.0 `warning_level` can also be defined per subproject.
+Since 0.56.0 `warning_level` and compiler options can also be defined per
+subproject. Note that this does not include `<lang>_args` and `<lang>_link_args`
+(e.g. `c_args`, `c_link_args`) which are still global options.

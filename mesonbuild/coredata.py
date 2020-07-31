@@ -789,16 +789,22 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def add_compiler_options(self, options, for_machine, env):
+    def add_compiler_options(self, options, for_machine, env, subproject=''):
         # prefixed compiler options affect just this machine
         opt_prefix = for_machine.get_prefix()
         for k, o in options.items():
-            optname = opt_prefix + k
+            raw_optname = optname = opt_prefix + k
+            if subproject and not o.yielding:
+                optname = subproject + ':' + optname
             value = env.raw_options.get(optname)
+            if value is None:
+                value = env.raw_options.get(raw_optname)
             if value is not None:
                 o.set_value(value)
             optname = optname.replace(opt_prefix, '')
+            raw_optname = raw_optname.replace(opt_prefix, '')
             self.compiler_options[for_machine].setdefault(optname, o)
+            self.compiler_options[for_machine].setdefault(raw_optname, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -808,11 +814,11 @@ class CoreData:
                                                env.is_cross_build())
         self.add_compiler_options(options, for_machine, env)
 
-    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
+    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment', subproject: str) -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-        self.add_compiler_options(comp.get_options(), comp.for_machine, env)
+        self.add_compiler_options(comp.get_options(), comp.for_machine, env, subproject)
 
         enabled_opts = []
         for optname in comp.base_options:
