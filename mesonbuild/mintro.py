@@ -243,22 +243,18 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     add_keys(core_options, 'core')
     add_keys(coredata.builtins_per_machine.host, 'core', machine='host')
     add_keys(
-        {'build.' + k: o for k, o in coredata.builtins_per_machine.build.items()},
+        coredata.insert_build_prefix_dict(coredata.builtins_per_machine.build),
         'core',
         machine='build',
     )
     add_keys(coredata.backend_options, 'backend')
     add_keys(coredata.base_options, 'base')
-    add_keys(
-        dict(coredata.flatten_lang_iterator(coredata.compiler_options.host.items())),
+    add_keys(coredata.compiler_options.host,
         'compiler',
         machine='host',
     )
     add_keys(
-        {
-            'build.' + k: o for k, o in
-            coredata.flatten_lang_iterator(coredata.compiler_options.build.items())
-        },
+        coredata.insert_build_prefix_dict(coredata.compiler_options.build),
         'compiler',
         machine='build',
     )

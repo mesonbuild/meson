@@ -17,7 +17,7 @@ import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     default_libdir, default_libexecdir, default_prefix, split_args
@@ -376,13 +376,10 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.builtins = {} # type: OptionDictType
-        self.builtins_per_machine = PerMachine({}, {})
+        self.builtins_per_machine = PerMachine({}, {})  # type: PerMachine[OptionDictType]
         self.backend_options = {} # type: OptionDictType
         self.user_options = {} # type: OptionDictType
-        self.compiler_options = PerMachine(
-            defaultdict(dict),
-            defaultdict(dict),
-        ) # type: PerMachine[T.defaultdict[str, OptionDictType]]
+        self.compiler_options = PerMachine({}, {}) # type: PerMachine[OptionDictType]
         self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
@@ -628,36 +625,20 @@ class CoreData:
         self.builtins['buildtype'].set_value(mode)
 
     @classmethod
-    def get_prefixed_options_per_machine(
-        cls,
-        options_per_machine # : PerMachine[T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        return cls._flatten_pair_iterator(
-            (for_machine.get_prefix(), options_per_machine[for_machine])
-            for for_machine in iter(MachineChoice)
-        )
-
-    @classmethod
-    def flatten_lang_iterator(
-        cls,
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        return cls._flatten_pair_iterator((lang + '_', opts) for lang, opts in outer)
-
-    @staticmethod
-    def _flatten_pair_iterator(
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        for k0, v0 in outer:
-            for k1, v1 in v0.items():
-                yield (k0 + k1, v1)
-
-    @classmethod
     def insert_build_prefix(cls, k):
         idx = k.find(':')
         if idx < 0:
             return 'build.' + k
         return k[:idx + 1] + 'build.' + k[idx + 1:]
+
+    @classmethod
+    def insert_build_prefix_dict(cls, options):
+        return {cls.insert_build_prefix(k): o for k, o in options.items()}
+
+    @classmethod
+    def get_prefixed_options_per_machine(cls, options_per_machine):
+        return {**options_per_machine.host,
+                **cls.insert_build_prefix_dict(options_per_machine.build)}
 
     @classmethod
     def is_per_machine_option(cls, optname):
@@ -672,11 +653,11 @@ class CoreData:
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield self.backend_options
         yield self.user_options
-        yield dict(self.flatten_lang_iterator(self.get_prefixed_options_per_machine(self.compiler_options)))
+        yield self.get_prefixed_options_per_machine(self.compiler_options)
         yield self.base_options
 
     def _get_all_builtin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield dict(self.get_prefixed_options_per_machine(self.builtins_per_machine))
+        yield self.get_prefixed_options_per_machine(self.builtins_per_machine)
         yield self.builtins
 
     def get_all_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
@@ -694,11 +675,14 @@ class CoreData:
                         .with_traceback(sys.exc_info()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
+    def get_lang_option(self, for_machine, lang, optname):
+        return self.compiler_options[for_machine][lang + '_' + optname].value
+
     def get_external_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang]['args'].value
+        return self.get_lang_option(for_machine, lang, 'args')
 
     def get_external_link_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang]['link_args'].value
+        return self.get_lang_option(for_machine, lang, 'link_args')
 
     def merge_user_options(self, options):
         for (name, value) in options.items():
@@ -728,11 +712,9 @@ class CoreData:
         assert(not self.is_cross_build())
         for k, o in self.builtins_per_machine.host.items():
             self.builtins_per_machine.build[k].set_value(o.value)
-        for lang, host_opts in self.compiler_options.host.items():
-            build_opts = self.compiler_options.build[lang]
-            for k, o in host_opts.items():
-                if k in build_opts:
-                    build_opts[k].set_value(o.value)
+        for k, o in self.compiler_options.host.items():
+            if k in self.compiler_options.build:
+                self.compiler_options.build[k].set_value(o.value)
 
     def set_options(self, options, *, subproject='', warn_unknown=True):
         if not self.is_cross_build():
@@ -807,15 +789,16 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def add_compiler_options(self, options, lang, for_machine, env):
+    def add_compiler_options(self, options, for_machine, env):
         # prefixed compiler options affect just this machine
         opt_prefix = for_machine.get_prefix()
         for k, o in options.items():
-            optname = opt_prefix + lang + '_' + k
+            optname = opt_prefix + k
             value = env.raw_options.get(optname)
             if value is not None:
                 o.set_value(value)
-            self.compiler_options[for_machine][lang].setdefault(k, o)
+            optname = optname.replace(opt_prefix, '')
+            self.compiler_options[for_machine].setdefault(optname, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -823,13 +806,13 @@ class CoreData:
         from .compilers import compilers
         options = compilers.get_global_options(lang, comp, for_machine,
                                                env.is_cross_build())
-        self.add_compiler_options(options, lang, for_machine, env)
+        self.add_compiler_options(options, for_machine, env)
 
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
+        self.add_compiler_options(comp.get_options(), comp.for_machine, env)
 
         enabled_opts = []
         for optname in comp.base_options:

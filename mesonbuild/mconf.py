@@ -195,12 +195,9 @@ class Conf:
 
         core_options = self.split_options_per_subproject(core_options)
         host_compiler_options = self.split_options_per_subproject(
-            dict(self.coredata.flatten_lang_iterator(
-                self.coredata.compiler_options.host.items())))
+            self.coredata.compiler_options.host)
         build_compiler_options = self.split_options_per_subproject(
-            dict(self.coredata.flatten_lang_iterator(
-                (self.coredata.insert_build_prefix(k), o)
-                for k, o in self.coredata.compiler_options.build.items())))
+            self.coredata.insert_build_prefix_dict(self.coredata.compiler_options.build))
         project_options = self.split_options_per_subproject(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
@@ -208,7 +205,8 @@ class Conf:
         self.print_options('Core options', core_options[''])
         self.print_options('', self.coredata.builtins_per_machine.host)
         if show_build_options:
-            self.print_options('', {self.coredata.insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
+            self.print_options('',
+                self.coredata.insert_build_prefix_dict(self.coredata.builtins_per_machine.build))
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
         self.print_options('Compiler options', host_compiler_options.get('', {}))

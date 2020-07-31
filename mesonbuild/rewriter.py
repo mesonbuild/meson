@@ -466,11 +466,10 @@ class Rewriter:
         options = {
             **cdata.builtins,
             **cdata.builtins_per_machine.host,
-            **{'build.' + k: o for k, o in cdata.builtins_per_machine.build.items()},
+            **cdata.get_prefixed_options_per_machine(cdata.builtins_per_machine),
             **cdata.backend_options,
             **cdata.base_options,
-            **(dict(cdata.flatten_lang_iterator(cdata.compiler_options.host.items()))),
-            **{'build.' + k: o for k, o in cdata.flatten_lang_iterator(cdata.compiler_options.build.items())},
+            **cdata.get_prefixed_options_per_machine(cdata.compiler_options),
             **cdata.user_options,
         }
 

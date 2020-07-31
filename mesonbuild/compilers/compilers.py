@@ -951,27 +951,19 @@ def get_global_options(lang: str,
                        for_machine: MachineChoice,
                        is_cross: bool) -> T.Dict[str, coredata.UserOption]:
     """Retreive options that apply to all compilers for a given language."""
-    description = 'Extra arguments passed to the {}'.format(lang)
-    opts = {
-        'args': coredata.UserArrayOption(
-            description + ' compiler',
-            [], split_args=True, user_input=True, allow_dups=True),
-        'link_args': coredata.UserArrayOption(
-            description + ' linker',
-            [], split_args=True, user_input=True, allow_dups=True),
-    }
-
     # Get from env vars.
     compile_args, link_args = get_args_from_envvars(
         lang,
         for_machine,
         is_cross,
         comp.INVOKES_LINKER)
-
-    for k, o in opts.items():
-        if k == 'args':
-            o.set_value(compile_args)
-        elif k == 'link_args':
-            o.set_value(link_args)
-
+    description = 'Extra arguments passed to the {}'.format(lang)
+    opts = {
+        lang + '_args': coredata.UserArrayOption(
+            description + ' compiler',
+            compile_args, split_args=True, user_input=True, allow_dups=True),
+        lang + '_link_args': coredata.UserArrayOption(
+            description + ' linker',
+            link_args, split_args=True, user_input=True, allow_dups=True),
+    }
     return opts

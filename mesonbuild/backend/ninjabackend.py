@@ -2762,7 +2762,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(self.environment.coredata.compiler_options[target.for_machine][linker.get_language()])
+            commands += linker.get_option_link_args(self.get_compiler_options_for_target(target))
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))

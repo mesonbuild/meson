@@ -563,10 +563,10 @@ class ConverterTarget:
 
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
-        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
-        if not lang_opts or 'std' not in lang_opts:
+        o = self.env.coredata.compiler_options.build.get(lang + '_std')
+        if o is None:
             return []
-        return lang_opts['std'].choices
+        return o.choices
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target

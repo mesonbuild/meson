@@ -1135,7 +1135,7 @@ class CompilerHolder(InterpreterObject):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             for_machine = Interpreter.machine_from_native_kwarg(kwargs)
-            opts = self.environment.coredata.compiler_options[for_machine][self.compiler.language]
+            opts = self.environment.coredata.compiler_options[for_machine]
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
                 args += self.compiler.get_option_link_args(opts)
@@ -2954,9 +2954,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
-                dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
-                dict(self.coredata.flatten_lang_iterator(
-                    self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options))),
+                self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine),
+                self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options),
         ]:
             v = opts.get(optname)
             if v is None or v.yielding:

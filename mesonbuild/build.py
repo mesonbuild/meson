@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from functools import lru_cache
 import copy
 import hashlib
@@ -31,7 +31,7 @@ from .mesonlib import (
     get_filenames_templates_dict, substitute_values, has_path_sep, unholder
 )
 from .compilers import (
-    Compiler, all_languages, is_object, clink_langs, sort_clink, lang_suffixes,
+    Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
     is_known_suffix
 )
 from .linkers import StaticLinker
@@ -364,8 +364,7 @@ a hard error in the future.'''.format(name))
         self.for_machine = for_machine
         self.install = False
         self.build_always_stale = False
-        self.option_overrides_base = {}
-        self.option_overrides_compiler = defaultdict(dict)
+        self.option_overrides = {}
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
@@ -454,16 +453,7 @@ a hard error in the future.'''.format(name))
             # For backward compatibility, if build_by_default is not explicitly
             # set, use the value of 'install' if it's enabled.
             self.build_by_default = True
-
-        option_overrides = self.parse_overrides(kwargs)
-
-        for k, v in option_overrides.items():
-            if '_' in k:
-               lang, k2 = k.split('_', 1)
-               if lang in all_languages:
-                   self.option_overrides_compiler[lang][k2] = v
-                   continue
-            self.option_overrides_base[k] = v
+        self.option_overrides = self.parse_overrides(kwargs)
 
     def parse_overrides(self, kwargs) -> dict:
         result = {}
