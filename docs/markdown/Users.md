@@ -56,6 +56,7 @@ topic](https://github.com/topics/meson).
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [GVfs](https://git.gnome.org/browse/gvfs/), a userspace virtual filesystem designed to work with the I/O abstraction of GIO
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
+ - [HarfBuzz](https://github.com/harfbuzz/harfbuzz), a text shaping engine
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://gitlab.freedesktop.org/drm/igt-gpu-tools), Linux kernel graphics driver test suite
