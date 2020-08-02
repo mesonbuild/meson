@@ -8,14 +8,14 @@ cpp = 'clang++'
 ar = 'ar'
 strip = 'strip'
 
-[properties]
-root = '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer'
-
+[built-in options]
 c_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 cpp_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 c_link_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 cpp_link_args = ['-arch', 'armv7', '-miphoneos-version-min=8.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS8.4.sdk']
 
+[properties]
+root = '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer'
 has_function_printf = true
 has_function_hfkerhisadf = false
 

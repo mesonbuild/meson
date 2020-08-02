@@ -5,6 +5,37 @@ documentation on the common values used by both, for the specific values of
 one or the other see the [cross compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
+## Data Types
+
+There are four basic data types in a machine file:
+- strings
+- arrays
+- booleans
+- integers
+
+A string is specified single quoted:
+```ini
+[section]
+option1 = 'false'
+option2 = '2'
+```
+
+An array is enclosed in square brackets, and must consist of strings or booleans
+```ini
+[section]
+option = ['value']
+```
+
+A boolean must be either `true` or `false`, and unquoted.
+```ini
+option = false
+```
+
+An integer must be either an unquoted numeric constant;
+```ini
+option = 42
+```
+
 ## Sections
 
 The following sections are allowed:
@@ -12,10 +43,12 @@ The following sections are allowed:
 - binaries
 - paths
 - properties
+- project options
+- built-in options
 
 ### constants
 
-*Since 0.55.0*
+*Since 0.56.0*
 
 String and list concatenation is supported using the `+` operator, joining paths
 is supported using the `/` operator.
@@ -88,14 +121,16 @@ a = 'Hello'
 ### Binaries
 
 The binaries section contains a list of binaries. These can be used
-internally by meson, or by the `find_program` function:
+internally by meson, or by the `find_program` function.
+
+These values must be either strings or an array of strings
 
 Compilers and linkers are defined here using `<lang>` and `<lang>_ld`.
 `<lang>_ld` is special because it is compiler specific. For compilers like
 gcc and clang which are used to invoke the linker this is a value to pass to
 their "choose the linker" argument (-fuse-ld= in this case). For compilers
 like MSVC and Clang-Cl, this is the path to a linker for meson to invoke,
-such as `link.exe` or `lld-link.exe`. Support for ls is *new in 0.53.0*
+such as `link.exe` or `lld-link.exe`. Support for `ld` is *new in 0.53.0*
 
 *changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`, because it
 *regressed a large number of projects. in 0.53.0 the `ld` variable was used
@@ -113,8 +148,8 @@ llvm-config = '/usr/lib/llvm8/bin/llvm-config'
 Cross example:
 
 ```ini
-c = '/usr/bin/i586-mingw32msvc-gcc'
-cpp = '/usr/bin/i586-mingw32msvc-g++'
+c = ['ccache', '/usr/bin/i586-mingw32msvc-gcc']
+cpp = ['ccache', '/usr/bin/i586-mingw32msvc-g++']
 c_ld = 'gold'
 cpp_ld = 'gold'
 ar = '/usr/i586-mingw32msvc/bin/ar'
@@ -137,8 +172,10 @@ An incomplete list of internally used programs that can be overridden here is:
 
 ### Paths and Directories
 
+*Deprecated in 0.56.0* use the built-in section instead.
+
 As of 0.50.0 paths and directories such as libdir can be defined in the native
-file in a paths section
+and cross files in a paths section. These should be strings.
 
 ```ini
 [paths]
@@ -157,21 +194,79 @@ command line will override any options in the native file. For example, passing
 
 In addition to special data that may be specified in cross files, this
 section may contain random key value pairs accessed using the
-`meson.get_external_property()`
+`meson.get_external_property()`, or `meson.get_cross_property()`.
 
-## Properties
+*Changed in 0.56.0* putting `<lang>_args` and `<lang>_link_args` in the
+properties section has been deprecated, and should be put in the built-in
+options section.
 
-*New for native files in 0.54.0*
+### Project specific options
 
-The properties section can contain any variable you like, and is accessed via
-`meson.get_external_property`, or `meson.get_cross_property`.
+*New in 0.56.0*
+
+Path options are not allowed, those must be set in the `[paths]` section.
+
+Being able to set project specific options in a cross or native file can be
+done using the `[project options]` section of the specific file (if doing a
+cross build the options from the native file will be ignored)
+
+For setting options in subprojects use the `[<subproject>:project options]`
+section instead.
+
+```ini
+[project options]
+build-tests = true
+
+[zlib:project options]
+build-tests = false
+```
+
+### Meson built-in options
+
+Meson built-in options can be set the same way:
+
+```ini
+[built-in options]
+c_std = 'c99'
+```
+
+You can set some meson built-in options on a per-subproject basis, such as
+`default_library` and `werror`. The order of precedence is:
+1) Command line
+2) Machine file
+3) Build system definitions
+
+```ini
+[zlib:built-in options]
+default_library = 'static'
+werror = false
+```
+
+Options set on a per-subproject basis will inherit the
+option from the parent if the parent has a setting but the subproject
+doesn't, even when there is a default set meson language.
+
+```ini
+[built-in options]
+default_library = 'static'
+```
+
+will make subprojects use default_library as static.
+
+Some options can be set on a per-machine basis (in other words, the value of
+the build machine can be different than the host machine in a cross compile).
+In these cases the values from both a cross file and a native file are used.
+
+An incomplete list of options is:
+- pkg_config_path
+- cmake_prefix_path
 
 ## Loading multiple machine files
 
 Native files allow layering (cross files can be layered since meson 0.52.0).
-More than one native file can be loaded, with values from a previous file being
+More than one file can be loaded, with values from a previous file being
 overridden by the next. The intention of this is not overriding, but to allow
-composing native files. This composition is done by passing the command line
+composing files. This composition is done by passing the command line
 argument multiple times:
 
 ```console

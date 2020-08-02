@@ -12,7 +12,7 @@
 # Armcc is only available in toolchain version 5.
 # Armclang is only available in toolchain version 6.
 # Start shell with /opt/arm/developmentstudio-2019.0/bin/suite_exec zsh
-# Now the compilers will work. 
+# Now the compilers will work.
 
 [binaries]
 # we could set exe_wrapper = qemu-arm-static but to test the case
@@ -24,8 +24,7 @@ ar = '/opt/arm/developmentstudio-2019.0/sw/ARMCompiler6.12/bin/armar'
 #strip = '/usr/arm-linux-gnueabihf/bin/strip'
 #pkgconfig = '/usr/bin/arm-linux-gnueabihf-pkg-config'
 
-[properties]
-
+[built-in options]
 c_args = ['--target=aarch64-arm-none-eabi']
 
 [host_machine]

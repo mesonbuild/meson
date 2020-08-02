@@ -14,6 +14,8 @@ endian = 'little'
 
 [properties]
 needs_exe_wrapper = true
+
+[built-in options]
 c_args = [
     '-c',
     '-mcpu=33EP64MC203',

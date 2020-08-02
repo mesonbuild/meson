@@ -20,10 +20,8 @@ from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
-    OrderedSet, default_libdir, default_libexecdir, default_prefix,
-    split_args
+    default_libdir, default_libexecdir, default_prefix, split_args
 )
-from .envconfig import get_env_var_pair
 from .wrap import WrapMode
 import ast
 import argparse
@@ -161,10 +159,16 @@ class UserComboOption(UserOption[str]):
 
     def validate_value(self, value):
         if value not in self.choices:
+            if isinstance(value, bool):
+                _type = 'boolean'
+            elif isinstance(value, (int, float)):
+                _type = 'number'
+            else:
+                _type = 'string'
             optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
-            raise MesonException('Value "{}" for combo option "{}" is not one of the choices.'
-                                 ' Possible choices are: {}.'.format(
-                                     value, self.description, optionsstring))
+            raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
+                                 ' Possible choices are (as string): {}.'.format(
+                                     value, _type, self.description, optionsstring))
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
@@ -361,15 +365,15 @@ class CoreData:
         self.install_guid = str(uuid.uuid4()).upper()
         self.target_guids = {}
         self.version = version
-        self.builtins = {} # : OptionDictType
+        self.builtins = {} # type: OptionDictType
         self.builtins_per_machine = PerMachine({}, {})
-        self.backend_options = {} # : OptionDictType
-        self.user_options = {} # : OptionDictType
+        self.backend_options = {} # type: OptionDictType
+        self.user_options = {} # type: OptionDictType
         self.compiler_options = PerMachine(
             defaultdict(dict),
             defaultdict(dict),
-        ) # : PerMachine[T.defaultdict[str, OptionDictType]]
-        self.base_options = {} # : OptionDictType
+        ) # type: PerMachine[T.defaultdict[str, OptionDictType]]
+        self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())
 
@@ -377,6 +381,7 @@ class CoreData:
         host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()
+
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')
         self.builtin_options_libdir_cross_fixup()
@@ -734,87 +739,54 @@ class CoreData:
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
-    def set_default_options(self, default_options, subproject, env):
-        # Warn if the user is using two different ways of setting build-type
-        # options that override each other
-        if 'buildtype' in env.cmd_line_options and \
-           ('optimization' in env.cmd_line_options or 'debug' in env.cmd_line_options):
-            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
-                         'Using both is redundant since they override each other. '
-                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
-        cmd_line_options = OrderedDict()
-        # Set project default_options as if they were passed to the cmdline.
-        # Subprojects can only define default for user options and not yielding
-        # builtin option.
-        from . import optinterpreter
-        for k, v in default_options.items():
+    def set_default_options(self, default_options: 'T.OrderedDict[str, str]', subproject: str, env: 'Environment') -> None:
+        def make_key(key: str) -> str:
             if subproject:
-                if (k not in builtin_options or builtin_options[k].yielding) \
-                        and optinterpreter.is_invalid_name(k, log=False):
-                    continue
-                k = subproject + ':' + k
-            cmd_line_options[k] = v
+                return '{}:{}'.format(subproject, key)
+            return key
 
-        # Override project default_options using conf files (cross or native)
-        for k, v in env.paths.host:
-            if v is not None:
-                cmd_line_options[k] = v
-
-        # Override all the above defaults using the command-line arguments
-        # actually passed to us
-        cmd_line_options.update(env.cmd_line_options)
-        env.cmd_line_options = cmd_line_options
-
-        # Create a subset of cmd_line_options, keeping only options for this
-        # subproject. Also take builtin options if it's the main project.
-        # Language and backend specific options will be set later when adding
-        # languages and setting the backend (builtin options must be set first
-        # to know which backend we'll use).
         options = OrderedDict()
 
-        # Some options default to environment variables if they are
-        # unset, set those now. These will either be overwritten
-        # below, or they won't. These should only be set on the first run.
-        for for_machine in MachineChoice:
-            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), 'PKG_CONFIG_PATH')
-            if p_env_pair is not None:
-                p_env_var, p_env = p_env_pair
+        # TODO: validate these
+        from .compilers import all_languages, base_options
+        lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
+        # split arguments that can be set now, and those that cannot so they
+        # can be set later, when they've been initialized.
+        for k, v in default_options.items():
+            if k.startswith(lang_prefixes):
+                lang, key = k.split('_', 1)
+                for machine in MachineChoice:
+                    if key not in env.compiler_options[machine][lang]:
+                         env.compiler_options[machine][lang][key] = v
+            elif k in base_options:
+                if not subproject and k not in env.base_options:
+                    env.base_options[k] = v
+            else:
+                options[make_key(k)] = v
 
-                # PKG_CONFIG_PATH may contain duplicates, which must be
-                # removed, else a duplicates-in-array-option warning arises.
-                p_list = list(OrderedSet(p_env.split(':')))
+        for k, v in chain(env.meson_options.host.get('', {}).items(),
+                          env.meson_options.host.get(subproject, {}).items()):
+            options[make_key(k)] = v
 
-                key = 'pkg_config_path'
-                if for_machine == MachineChoice.BUILD:
-                    key = 'build.' + key
+        for k, v in chain(env.meson_options.build.get('', {}).items(),
+                          env.meson_options.build.get(subproject, {}).items()):
+            if k in builtin_options_per_machine:
+                options[make_key('build.{}'.format(k))] = v
 
-                if env.first_invocation:
-                    options[key] = p_list
-                elif options.get(key, []) != p_list:
-                    mlog.warning(
-                        p_env_var +
-                        ' environment variable has changed '
-                        'between configurations, meson ignores this. '
-                        'Use -Dpkg_config_path to change pkg-config search '
-                        'path instead.'
-                    )
+        options.update({make_key(k): v for k, v in env.user_options.get(subproject, {}).items()})
 
-        def remove_prefix(text, prefix):
-            if text.startswith(prefix):
-                return text[len(prefix):]
-            return text
-
-        for k, v in env.cmd_line_options.items():
-            if subproject:
-                if not k.startswith(subproject + ':'):
+        # Some options (namely the compiler options) are not preasant in
+        # coredata until the compiler is fully initialized. As such, we need to
+        # put those options into env.meson_options, only if they're not already
+        # in there, as the machine files and command line have precendence.
+        for k, v in default_options.items():
+            if k in builtin_options and not builtin_options[k].yielding:
+                continue
+            for machine in MachineChoice:
+                if machine is MachineChoice.BUILD and not self.is_cross_build():
                     continue
-            elif k not in builtin_options.keys() \
-                    and remove_prefix(k, 'build.') not in builtin_options_per_machine.keys():
-                if ':' in k:
-                    continue
-                if optinterpreter.is_invalid_name(k, log=False):
-                    continue
-            options[k] = v
+                if k not in env.meson_options[machine][subproject]:
+                    env.meson_options[machine][subproject][k] = v
 
         self.set_options(options, subproject=subproject)
 
@@ -830,24 +802,19 @@ class CoreData:
                 env.is_cross_build(),
                 env.properties[for_machine]).items():
             # prefixed compiler options affect just this machine
-            opt_prefix = for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
-            if user_k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[user_k])
+            if k in env.compiler_options[for_machine].get(lang, {}):
+                o.set_value(env.compiler_options[for_machine][lang][k])
             self.compiler_options[for_machine][lang].setdefault(k, o)
 
-    def process_new_compiler(self, lang: str, comp: T.Type['Compiler'], env: 'Environment') -> None:
+    def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-        enabled_opts = []
 
         for k, o in comp.get_options().items():
             # prefixed compiler options affect just this machine
-            opt_prefix = comp.for_machine.get_prefix()
-            user_k = opt_prefix + lang + '_' + k
-            if user_k in env.cmd_line_options:
-                o.set_value(env.cmd_line_options[user_k])
+            if k in env.compiler_options[comp.for_machine].get(lang, {}):
+                o.set_value(env.compiler_options[comp.for_machine][lang][k])
             self.compiler_options[comp.for_machine][lang].setdefault(k, o)
 
         enabled_opts = []
@@ -855,8 +822,8 @@ class CoreData:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.cmd_line_options:
-                oobj.set_value(env.cmd_line_options[optname])
+            if optname in env.base_options:
+                oobj.set_value(env.base_options[optname])
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
@@ -1150,23 +1117,25 @@ class BuiltinOption(T.Generic[_T, _U]):
         cmdline_name = self.argparse_name_to_arg(prefix + name)
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
+
 # Update `docs/markdown/Builtin-options.md` after changing the options below
-builtin_options = OrderedDict([
-    # Directories
-    ('prefix',     BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    ('bindir',     BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    ('datadir',    BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    ('includedir', BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    ('infodir',    BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
-    ('libdir',     BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    ('libexecdir', BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    ('localedir',  BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+BUILTIN_DIR_OPTIONS = OrderedDict([
+    ('prefix',          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
+    ('bindir',          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
+    ('datadir',         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
+    ('includedir',      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
+    ('infodir',         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    ('libdir',          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    ('libexecdir',      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    ('localedir',       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
     ('localstatedir',   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
     ('mandir',          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
     ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
     ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
     ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
-    # Core options
+])  # type: OptionDictType
+
+BUILTIN_CORE_OPTIONS = OrderedDict([
     ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
     ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
     ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
@@ -1186,7 +1155,9 @@ builtin_options = OrderedDict([
     ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
     ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
     ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
-])
+])  # type: OptionDictType
+
+builtin_options = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
 builtin_options_per_machine = OrderedDict([
     ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
@@ -1222,3 +1193,4 @@ forbidden_target_names = {'clean': None,
                           'dist': None,
                           'distcheck': None,
                           }
+

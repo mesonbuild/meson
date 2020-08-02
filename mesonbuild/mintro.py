@@ -200,19 +200,7 @@ def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Di
 def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     optlist = []  # type: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]
 
-    dir_option_names = ['bindir',
-                        'datadir',
-                        'includedir',
-                        'infodir',
-                        'libdir',
-                        'libexecdir',
-                        'localedir',
-                        'localstatedir',
-                        'mandir',
-                        'prefix',
-                        'sbindir',
-                        'sharedstatedir',
-                        'sysconfdir']
+    dir_option_names = list(cdata.BUILTIN_DIR_OPTIONS)
     test_option_names = ['errorlogs',
                          'stdsplit']
     core_option_names = [k for k in coredata.builtins if k not in dir_option_names + test_option_names]
