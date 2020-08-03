@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "test cases/failing/54 wrong shared crate type/meson.build:7:0: ERROR: Crate type \"staticlib\" invalid for dynamic libraries; must be \"dylib\" or \"cdylib\""
+    }
+  ]
+}

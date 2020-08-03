@@ -213,7 +213,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
     unpacked_src_dir = unpacked_files[0]
     with open(os.path.join(bld_root, 'meson-info', 'intro-buildoptions.json')) as boptions:
         meson_command += ['-D{name}={value}'.format(**o) for o in json.load(boptions)
-                          if o['name'] not in ['backend', 'install_umask']]
+                          if o['name'] not in ['backend', 'install_umask', 'buildtype']]
     meson_command += extra_meson_args
 
     ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin)
@@ -259,7 +259,7 @@ def run(options):
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
         for sub in b.subprojects:
-            _, directory = wrap.get_directory(subproject_dir, sub)
+            directory = wrap.get_directory(subproject_dir, sub)
             subprojects.append(os.path.join(b.subproject_dir, directory))
         extra_meson_args.append('-Dwrap_mode=nodownload')
 

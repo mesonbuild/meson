@@ -40,15 +40,32 @@ def _windows_ansi() -> bool:
     # original behavior
     return bool(kernel.SetConsoleMode(stdout, mode.value | 0x4) or os.environ.get('ANSICON'))
 
-def setup_console() -> bool:
+def colorize_console() -> bool:
+    _colorize_console = getattr(sys.stdout, 'colorize_console', None)  # type: bool
+    if _colorize_console is not None:
+        return _colorize_console
+
     try:
         if platform.system().lower() == 'windows':
-            return os.isatty(sys.stdout.fileno()) and _windows_ansi()
-        return os.isatty(sys.stdout.fileno()) and os.environ.get('TERM') != 'dumb'
+            _colorize_console = os.isatty(sys.stdout.fileno()) and _windows_ansi()
+        else:
+            _colorize_console = os.isatty(sys.stdout.fileno()) and os.environ.get('TERM', 'dumb') != 'dumb'
     except Exception:
-        return False
+        _colorize_console = False
 
-colorize_console = setup_console()
+    sys.stdout.colorize_console = _colorize_console  # type: ignore[attr-defined]
+    return _colorize_console
+
+def setup_console():
+    # on Windows, a subprocess might call SetConsoleMode() on the console
+    # connected to stdout and turn off ANSI escape processing. Call this after
+    # running a subprocess to ensure we turn it on again.
+    if platform.system().lower() == 'windows':
+        try:
+            delattr(sys.stdout, 'colorize_console')
+        except AttributeError:
+            pass
+
 log_dir = None               # type: T.Optional[str]
 log_file = None              # type: T.Optional[T.TextIO]
 log_fname = 'meson-log.txt'  # type: str
@@ -204,7 +221,7 @@ def log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
         log_file.flush()
-    if colorize_console:
+    if colorize_console():
         arr = process_markup(args, True)
     if not log_errors_only or is_error:
         force_print(*arr, **kwargs)
@@ -233,7 +250,7 @@ def get_error_location_string(fname: str, lineno: str) -> str:
     return '{}:{}:'.format(fname, lineno)
 
 def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
-               once: bool = False, **kwargs: T.Any) -> None:
+               once: bool = False, fatal: bool = True, **kwargs: T.Any) -> None:
     from .mesonlib import MesonException, relpath
 
     # The typing requirements here are non-obvious. Lists are invariant,
@@ -266,7 +283,7 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
     global log_warnings_counter
     log_warnings_counter += 1
 
-    if log_fatal_warnings:
+    if log_fatal_warnings and fatal:
         raise MesonException("Fatal warnings enabled, aborting")
 
 def error(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:

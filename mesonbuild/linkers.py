@@ -17,6 +17,7 @@ import os
 import typing as T
 
 from . import mesonlib
+from .arglist import CompilerArgs
 from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
@@ -28,6 +29,9 @@ class StaticLinker:
 
     def __init__(self, exelist: T.List[str]):
         self.exelist = exelist
+
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
+        return CompilerArgs(self, args)
 
     def can_linker_accept_rsp(self) -> bool:
         """
@@ -56,8 +60,8 @@ class StaticLinker:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
@@ -149,6 +153,10 @@ class ArLinker(StaticLinker):
             self.std_args = ['csrD']
         else:
             self.std_args = ['csr']
+        self.can_rsp = '@<' in stdo
+
+    def can_linker_accept_rsp(self) -> bool:
+        return self.can_rsp
 
     def get_std_link_args(self) -> T.List[str]:
         return self.std_args
@@ -436,16 +444,17 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         """Arguments to make all warnings errors."""
         return []
 
+    def headerpad_args(self) -> T.List[str]:
+        # Only used by the Apple linker
+        return []
+
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException('This linker does not support bitcode bundles')
 
-    def get_debug_crt_args(self) -> T.List[str]:
-        return []
-
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
@@ -551,12 +560,12 @@ class GnuLikeDynamicLinkerMixin:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         m = env.machines[self.for_machine]
         if m.is_windows() or m.is_cygwin():
-            return []
+            return ([], set())
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
+            return ([], set())
         args = []
         origin_placeholder = '$ORIGIN'
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
@@ -564,9 +573,14 @@ class GnuLikeDynamicLinkerMixin:
         # is *very* allergic to duplicate -delete_rpath arguments
         # when calling depfixer on installation.
         all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        rpath_dirs_to_remove = set()
+        for p in all_paths:
+            rpath_dirs_to_remove.add(p.encode('utf8'))
         # Build_rpath is used as-is (it is usually absolute).
         if build_rpath != '':
             all_paths.add(build_rpath)
+            for p in build_rpath.split(':'):
+                rpath_dirs_to_remove.add(p.encode('utf8'))
 
         # TODO: should this actually be "for (dragonfly|open)bsd"?
         if mesonlib.is_dragonflybsd() or mesonlib.is_openbsd():
@@ -590,7 +604,7 @@ class GnuLikeDynamicLinkerMixin:
 
         # TODO: should this actually be "for solaris/sunos"?
         if mesonlib.is_sunos():
-            return args
+            return (args, rpath_dirs_to_remove)
 
         # Rpaths to use while linking must be absolute. These are not
         # written to the binary. Needed only with GNU ld:
@@ -610,7 +624,7 @@ class GnuLikeDynamicLinkerMixin:
         for p in rpath_paths:
             args.extend(self._apply_prefix('-rpath-link,' + os.path.join(build_dir, p)))
 
-        return args
+        return (args, rpath_dirs_to_remove)
 
 
 class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
@@ -650,8 +664,8 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def no_undefined_args(self) -> T.List[str]:
         return self._apply_prefix('-undefined,error')
 
-    def get_always_args(self) -> T.List[str]:
-        return self._apply_prefix('-headerpad_max_install_names') + super().get_always_args()
+    def headerpad_args(self) -> T.List[str]:
+        return self._apply_prefix('-headerpad_max_install_names')
 
     def bitcode_args(self) -> T.List[str]:
         return self._apply_prefix('-bitcode_bundle')
@@ -676,12 +690,10 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
-        # Ensure that there is enough space for install_name_tool in-place
-        # editing of large RPATHs
-        args = self._apply_prefix('-headerpad_max_install_names')
+            return ([], set())
+        args = []
         # @loader_path is the equivalent of $ORIGIN on macOS
         # https://stackoverflow.com/q/26280738
         origin_placeholder = '@loader_path'
@@ -692,12 +704,15 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         for rp in all_paths:
             args.extend(self._apply_prefix('-rpath,' + rp))
 
-        return args
+        return (args, set())
 
 
 class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
 
     """Representation of GNU ld.bfd and ld.gold."""
+
+    def get_accepts_rsp(self) -> bool:
+        return True;
 
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
@@ -760,6 +775,11 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     def get_asneeded_args(self) -> T.List[str]:
         return []
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
 
 class CcrxDynamicLinker(DynamicLinker):
@@ -834,8 +854,8 @@ class Xc16DynamicLinker(DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
-        return []
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
 
 class C2000DynamicLinker(DynamicLinker):
@@ -907,6 +927,12 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
     def import_library_args(self, implibname: str) -> T.List[str]:
         return ['--symdefs=' + implibname]
 
+class QualcommLLVMDynamicLinker(LLVMDynamicLinker):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # ARM Linker from Snapdragon LLVM ARM Compiler
+        self.id = 'ld.qcld'
 
 class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
@@ -933,10 +959,10 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not env.machines[self.for_machine].is_windows():
-            return ['-R' + os.path.join(build_dir, p) for p in rpath_paths]
-        return []
+            return (['-R' + os.path.join(build_dir, p) for p in rpath_paths], set())
+        return ([], set())
 
 
 class PGIStaticLinker(StaticLinker):
@@ -974,16 +1000,6 @@ class VisualStudioLikeLinkerMixin:
 
     def invoked_by_compiler(self) -> bool:
         return not self.direct
-
-    def get_debug_crt_args(self) -> T.List[str]:
-        """Arguments needed to select a debug crt for the linker.
-
-        Sometimes we need to manually select the CRT (C runtime) to use with
-        MSVC. One example is when trying to link with static libraries since
-        MSVC won't auto-select a CRT for us in that case and will error out
-        asking us to select one.
-        """
-        return self._apply_prefix('/MDd')
 
     def get_output_args(self, outputname: str) -> T.List[str]:
         return self._apply_prefix(['/MACHINE:' + self.machine, '/OUT:' + outputname])
@@ -1075,6 +1091,19 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return args
         return self._apply_prefix('--whole-archive') + args + self._apply_prefix('--no-whole-archive')
 
+    def get_pie_args(self) -> T.List[str]:
+        # Available in Solaris 11.2 and later
+        pc, stdo, stde = mesonlib.Popen_safe(self.exelist + self._apply_prefix('-zhelp'))
+        for line in (stdo + stde).split('\n'):
+            if '-z type' in line:
+                if 'pie' in line:
+                    return ['-z', 'type=pie']
+                break
+        return []
+
+    def get_asneeded_args(self) -> T.List[str]:
+        return self._apply_prefix(['-z', 'ignore'])
+
     def no_undefined_args(self) -> T.List[str]:
         return ['-z', 'defs']
 
@@ -1086,9 +1115,9 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         if not rpath_paths and not install_rpath and not build_rpath:
-            return []
+            return ([], set())
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
         if build_rpath != '':
@@ -1103,7 +1132,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return self._apply_prefix('-rpath,{}'.format(paths))
+        return (self._apply_prefix('-rpath,{}'.format(paths)), set())
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],

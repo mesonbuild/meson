@@ -28,6 +28,7 @@ import textwrap
 from .. import mlog, mesonlib
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
 from ..environment import Environment
+from ..envconfig import get_env_var
 
 if T.TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
@@ -48,6 +49,8 @@ class CMakeExecutor:
         self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
         self.always_capture_stderr = True
         self.print_cmout = False
+        self.prefix_paths = []      # type: T.List[str]
+        self.extra_cmake_args = []  # type: T.List[str]
         if self.cmakebin is False:
             self.cmakebin = None
             return
@@ -60,26 +63,23 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple['ExternalProgram', str]:
-        from ..dependencies.base import ExternalProgram
+        self.prefix_paths = self.environment.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
+        env_pref_path = get_env_var(
+            self.for_machine,
+            self.environment.is_cross_build(),
+            'CMAKE_PREFIX_PATH')
+        if env_pref_path is not None:
+            env_pref_path = re.split(r':|;', env_pref_path)
+            env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
+            if not self.prefix_paths:
+                self.prefix_paths = []
+            self.prefix_paths += env_pref_path
 
-        # Create an iterator of options
-        def search():
-            # Lookup in cross or machine file.
-            potential_cmakepath = environment.lookup_binary_entry(self.for_machine, 'cmake')
-            if potential_cmakepath is not None:
-                mlog.debug('CMake binary for %s specified from cross file, native file, or env var as %s.', self.for_machine, potential_cmakepath)
-                yield ExternalProgram.from_entry('cmake', potential_cmakepath)
-                # We never fallback if the user-specified option is no good, so
-                # stop returning options.
-                return
-            mlog.debug('CMake binary missing from cross or native file, or env var undefined.')
-            # Fallback on hard-coded defaults.
-            # TODO prefix this for the cross case instead of ignoring thing.
-            if environment.machines.matches_build_machine(self.for_machine):
-                for potential_cmakepath in environment.default_cmake:
-                    mlog.debug('Trying a default CMake fallback at', potential_cmakepath)
-                    yield ExternalProgram(potential_cmakepath, silent=True)
+        if self.prefix_paths:
+            self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
+
+    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple['ExternalProgram', str]:
+        from ..dependencies.base import find_external_program
 
         # Only search for CMake the first time and store the result in the class
         # definition
@@ -89,10 +89,11 @@ class CMakeExecutor:
             mlog.debug('CMake binary for %s is cached.' % self.for_machine)
         else:
             assert CMakeExecutor.class_cmakebin[self.for_machine] is None
+
             mlog.debug('CMake binary for %s is not cached' % self.for_machine)
-            for potential_cmakebin in search():
-                mlog.debug('Trying CMake binary {} for machine {} at {}'
-                           .format(potential_cmakebin.name, self.for_machine, potential_cmakebin.command))
+            for potential_cmakebin in find_external_program(
+                    environment, self.for_machine, 'cmake', 'CMake',
+                    environment.default_cmake, allow_default_for_cross=False):
                 version_if_ok = self.check_cmake(potential_cmakebin)
                 if not version_if_ok:
                     continue
@@ -132,7 +133,7 @@ class CMakeExecutor:
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
-        cmvers = re.sub(r'\s*cmake version\s*', '', out.split('\n')[0]).strip()
+        cmvers = re.search(r'(cmake|cmake3)\s*version\s*([\d.]+)', out).group(2)
         return cmvers
 
     def set_exec_mode(self, print_cmout: T.Optional[bool] = None, always_capture_stderr: T.Optional[bool] = None) -> None:
@@ -226,6 +227,7 @@ class CMakeExecutor:
         if env is None:
             env = os.environ
 
+        args = args + self.extra_cmake_args
         if disable_cache:
             return self._call_impl(args, build_dir, env)
 
@@ -361,6 +363,9 @@ class CMakeExecutor:
 
     def get_command(self) -> T.List[str]:
         return self.cmakebin.get_command()
+
+    def get_cmake_prefix_paths(self) -> T.List[str]:
+        return self.prefix_paths
 
     def machine_choice(self) -> MachineChoice:
         return self.for_machine

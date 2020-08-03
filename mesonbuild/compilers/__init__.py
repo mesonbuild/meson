@@ -48,7 +48,6 @@ __all__ = [
     'ClangObjCPPCompiler',
     'ClangClCCompiler',
     'ClangClCPPCompiler',
-    'CompilerArgs',
     'CPPCompiler',
     'DCompiler',
     'DmdDCompiler',
@@ -123,7 +122,6 @@ from .compilers import (
     is_known_suffix,
     lang_suffixes,
     sort_clink,
-    CompilerArgs,
 )
 from .c import (
     CCompiler,

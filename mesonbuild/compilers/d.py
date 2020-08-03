@@ -25,7 +25,6 @@ from .compilers import (
     d_ldc_buildtype_args,
     clike_debug_args,
     Compiler,
-    CompilerArgs,
 )
 from .mixins.gnu import GnuCompiler
 
@@ -220,7 +219,7 @@ class DmdLikeCompilerMixin:
 
     def build_rpath_args(self, env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
         if self.info.is_windows():
-            return []
+            return ([], set())
 
         # GNU ld, solaris ld, and lld acting like GNU ld
         if self.linker.id.startswith('ld'):
@@ -228,15 +227,16 @@ class DmdLikeCompilerMixin:
             # do directly, each argument -rpath and the value to rpath, need to be
             # split into two separate arguments both prefaced with the -L=.
             args = []
-            for r in super().build_rpath_args(
-                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath):
+            (rpath_args, rpath_dirs_to_remove) = super().build_rpath_args(
+                    env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
+            for r in rpath_args:
                 if ',' in r:
                     a, b = r.split(',', maxsplit=1)
                     args.append(a)
                     args.append(self.LINKER_PREFIX + b)
                 else:
                     args.append(r)
-            return args
+            return (args, rpath_dirs_to_remove)
 
         return super().build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
@@ -581,7 +581,7 @@ class DCompiler(Compiler):
         elif not isinstance(dependencies, list):
             dependencies = [dependencies]
         # Collect compiler arguments
-        args = CompilerArgs(self)
+        args = self.compiler_args()
         for d in dependencies:
             # Add compile flags needed by dependencies
             args += d.get_compile_args()
@@ -645,7 +645,8 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt', 'b_coverage']
+        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic',
+                             'b_vscrt', 'b_coverage', 'b_pgo', 'b_ndebug']
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -684,6 +685,9 @@ class GnuDCompiler(GnuCompiler, DCompiler):
             return args
         return args + ['-shared-libphobos']
 
+    def get_disable_assert_args(self):
+        return ['-frelease']
+
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -691,7 +695,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                  info: 'MachineInfo', arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'llvm'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -733,6 +737,9 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
             return args
         return args + ['-link-defaultlib-shared']
 
+    def get_disable_assert_args(self) -> T.List[str]:
+        return ['--release']
+
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -740,7 +747,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                  info: 'MachineInfo', arch, **kwargs):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
         self.id = 'dmd'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt']
+        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
     def get_colorout_args(self, colortype):
         if colortype == 'always':
@@ -803,3 +810,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         if self.info.is_windows():
             return args
         return args + ['-defaultlib=phobos2', '-debuglib=phobos2']
+
+    def get_disable_assert_args(self) -> T.List[str]:
+        return ['-release']

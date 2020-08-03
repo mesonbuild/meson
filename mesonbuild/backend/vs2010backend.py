@@ -26,7 +26,6 @@ from .. import build
 from .. import dependencies
 from .. import mlog
 from .. import compilers
-from ..compilers import CompilerArgs
 from ..interpreter import Interpreter
 from ..mesonlib import (
     MesonException, File, python_command, replace_if_different
@@ -97,6 +96,9 @@ class Vs2010Backend(backends.Backend):
         self.windows_target_platform_version = None
         self.subdirs = {}
         self.handled_target_deps = {}
+
+    def get_target_private_dir(self, target):
+        return os.path.join(self.get_target_dir(target), target.get_id())
 
     def generate_custom_generator_commands(self, target, parent_node):
         generator_output_files = []
@@ -591,10 +593,8 @@ class Vs2010Backend(backends.Backend):
         raise MesonException('Could not guess language from source file %s.' % src)
 
     def add_pch(self, pch_sources, lang, inc_cl):
-        if len(pch_sources) <= 1:
-            # We only need per file precompiled headers if we have more than 1 language.
-            return
-        self.use_pch(pch_sources, lang, inc_cl)
+        if lang in pch_sources:
+            self.use_pch(pch_sources, lang, inc_cl)
 
     def create_pch(self, pch_sources, lang, inc_cl):
         pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
@@ -602,6 +602,8 @@ class Vs2010Backend(backends.Backend):
         self.add_pch_files(pch_sources, lang, inc_cl)
 
     def use_pch(self, pch_sources, lang, inc_cl):
+        pch = ET.SubElement(inc_cl, 'PrecompiledHeader')
+        pch.text = 'Use'
         header = self.add_pch_files(pch_sources, lang, inc_cl)
         pch_include = ET.SubElement(inc_cl, 'ForcedIncludeFiles')
         pch_include.text = header + ';%(ForcedIncludeFiles)'
@@ -821,12 +823,12 @@ class Vs2010Backend(backends.Backend):
         clconf = ET.SubElement(compiles, 'ClCompile')
         # CRT type; debug or release
         if vscrt_type.value == 'from_buildtype':
-            if self.buildtype == 'debug' or self.buildtype == 'debugoptimized':
+            if self.buildtype == 'debug':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
-                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreaded'
+                ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
         elif vscrt_type.value == 'mdd':
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
@@ -855,6 +857,18 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
         elif '/RTCs' in buildtype_args:
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
+        # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
+        # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
+        if 'cpp' in target.compilers:
+            eh = self.environment.coredata.compiler_options[target.for_machine]['cpp']['eh']
+            if eh.value == 'a':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Async'
+            elif eh.value == 's':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'SyncCThrow'
+            elif eh.value == 'none':
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'false'
+            else: # 'sc' or 'default'
+                ET.SubElement(clconf, 'ExceptionHandling').text = 'Sync'
         # End configuration
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.props')
         generated_files, custom_target_output_files, generated_files_include_dirs = self.generate_custom_generator_commands(target, root)
@@ -884,9 +898,9 @@ class Vs2010Backend(backends.Backend):
         #
         # file_args is also later split out into defines and include_dirs in
         # case someone passed those in there
-        file_args = dict((lang, CompilerArgs(comp)) for lang, comp in target.compilers.items())
-        file_defines = dict((lang, []) for lang in target.compilers)
-        file_inc_dirs = dict((lang, []) for lang in target.compilers)
+        file_args = {l: c.compiler_args() for l, c in target.compilers.items()}
+        file_defines = {l: [] for l in target.compilers}
+        file_inc_dirs = {l: [] for l in target.compilers}
         # The order in which these compile args are added must match
         # generate_single_compile() and generate_basic_compiler_args()
         for l, comp in target.compilers.items():
@@ -989,23 +1003,23 @@ class Vs2010Backend(backends.Backend):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
             if isinstance(d, dependencies.OpenMPDependency):
-                d_compile_args = compiler.openmp_flags()
+                ET.SubElement(clconf, 'OpenMPSupport').text = 'true'
             else:
                 d_compile_args = compiler.unix_args_to_native(d.get_compile_args())
-            for arg in d_compile_args:
-                if arg.startswith(('-D', '/D')):
-                    define = arg[2:]
-                    # De-dup
-                    if define in target_defines:
-                        target_defines.remove(define)
-                    target_defines.append(define)
-                elif arg.startswith(('-I', '/I')):
-                    inc_dir = arg[2:]
-                    # De-dup
-                    if inc_dir not in target_inc_dirs:
-                        target_inc_dirs.append(inc_dir)
-                else:
-                    target_args.append(arg)
+                for arg in d_compile_args:
+                    if arg.startswith(('-D', '/D')):
+                        define = arg[2:]
+                        # De-dup
+                        if define in target_defines:
+                            target_defines.remove(define)
+                        target_defines.append(define)
+                    elif arg.startswith(('-I', '/I')):
+                        inc_dir = arg[2:]
+                        # De-dup
+                        if inc_dir not in target_inc_dirs:
+                            target_inc_dirs.append(inc_dir)
+                    else:
+                        target_args.append(arg)
 
         languages += gen_langs
         if len(target_args) > 0:
@@ -1046,12 +1060,10 @@ class Vs2010Backend(backends.Backend):
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
         if self.environment.coredata.base_options.get('b_pch', False):
-            pch_node = ET.SubElement(clconf, 'PrecompiledHeader')
             for lang in [Language.C, Language.CPP]:
                 pch = target.get_pch(lang)
                 if not pch:
                     continue
-                pch_node.text = 'Use'
                 if compiler.id == 'msvc':
                     if len(pch) == 1:
                         # Auto generate PCH.
@@ -1065,17 +1077,13 @@ class Vs2010Backend(backends.Backend):
                     # I don't know whether its relevant but let's handle other compilers
                     # used with a vs backend
                     pch_sources[lang] = [pch[0], None, lang, None]
-        if len(pch_sources) == 1:
-            # If there is only 1 language with precompiled headers, we can use it for the entire project, which
-            # is cleaner than specifying it for each source file.
-            self.use_pch(pch_sources, list(pch_sources)[0], clconf)
 
         resourcecompile = ET.SubElement(compiles, 'ResourceCompile')
         ET.SubElement(resourcecompile, 'PreprocessorDefinitions')
 
         # Linker options
         link = ET.SubElement(compiles, 'Link')
-        extra_link_args = CompilerArgs(compiler)
+        extra_link_args = compiler.compiler_args()
         # FIXME: Can these buildtype linker args be added as tags in the
         # vcxproj file (similar to buildtype compiler args) instead of in
         # AdditionalOptions?
@@ -1103,14 +1111,14 @@ class Vs2010Backend(backends.Backend):
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 if isinstance(dep, dependencies.OpenMPDependency):
-                    extra_link_args.extend_direct(compiler.openmp_flags())
+                    ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
                 else:
                     extra_link_args.extend_direct(dep.get_link_args())
             for d in target.get_dependencies():
                 if isinstance(d, build.StaticLibrary):
                     for dep in d.get_external_deps():
                         if isinstance(dep, dependencies.OpenMPDependency):
-                            extra_link_args.extend_direct(compiler.openmp_flags())
+                            ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
                         else:
                             extra_link_args.extend_direct(dep.get_link_args())
         # Add link args for c_* or cpp_* build options. Currently this only
@@ -1198,7 +1206,8 @@ class Vs2010Backend(backends.Backend):
         # /nologo
         ET.SubElement(link, 'SuppressStartupBanner').text = 'true'
         # /release
-        ET.SubElement(link, 'SetChecksum').text = 'true'
+        if not self.environment.coredata.get_builtin_option('debug'):
+            ET.SubElement(link, 'SetChecksum').text = 'true'
 
         meson_file_group = ET.SubElement(root, 'ItemGroup')
         ET.SubElement(meson_file_group, 'None', Include=os.path.join(proj_to_src_dir, build_filename))

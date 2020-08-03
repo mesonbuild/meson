@@ -1,4 +1,4 @@
-project('python sample', 'c')
+project('python sample')
 
 py_mod = import('python')
 py = py_mod.find_installation('python3')
@@ -12,6 +12,7 @@ py_purelib = py.get_path('purelib')
 if not py_purelib.endswith('site-packages')
   error('Python3 purelib path seems invalid? ' + py_purelib)
 endif
+message('Python purelib path:', py_purelib)
 
 # could be 'lib64' or 'Lib' on some systems
 py_platlib = py.get_path('platlib')

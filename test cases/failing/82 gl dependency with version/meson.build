@@ -2,7 +2,7 @@ project('gl dependency with version', 'c')
 
 host_system = host_machine.system()
 if host_system != 'windows' and host_system != 'darwin'
-  error('Test only fails on Windows and OSX')
+  error('MESON_SKIP_TEST: test only fails on Windows and OSX')
 endif
 
 # gl dependency found via system method doesn't have a meaningful version to check

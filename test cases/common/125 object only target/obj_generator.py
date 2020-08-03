@@ -13,6 +13,8 @@ if __name__ == '__main__':
     ofile = sys.argv[3]
     if compiler.endswith('cl'):
         cmd = [compiler, '/nologo', '/MDd', '/Fo' + ofile, '/c', ifile]
+    elif sys.platform == 'sunos5':
+        cmd = [compiler, '-fpic', '-c', ifile, '-o', ofile]
     else:
         cmd = [compiler, '-c', ifile, '-o', ofile]
     sys.exit(subprocess.call(cmd))

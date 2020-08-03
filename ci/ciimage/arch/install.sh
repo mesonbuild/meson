@@ -12,12 +12,12 @@ pkgs=(
   itstool gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
   doxygen vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf valgrind cmake netcdf-fortran openmpi nasm gnustep-base gettext
-  python-jsonschema
+  python-jsonschema python-lxml
   # cuda
 )
 
 aur_pkgs=(scalapack)
-pip_pkgs=(hotdoc)
+pip_pkgs=(hotdoc gcovr)
 cleanup_pkgs=(go)
 
 AUR_USER=docker

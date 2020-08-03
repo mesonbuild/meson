@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 
 from storer import Storer
-import sys
 
 s = Storer()
 
 if s.get_value() != 0:
-    print('Initial value incorrect.')
-    sys.exit(1)
+    raise SystemExit('Initial value incorrect.')
 
 s.set_value(42)
 
 if s.get_value() != 42:
-    print('Setting value failed.')
-    sys.exit(1)
+    raise SystemExit('Setting value failed.')
 
 try:
     s.set_value('not a number')
-    print('Using wrong argument type did not fail.')
-    sys.exit(1)
+    raise SystemExit('Using wrong argument type did not fail.')
 except TypeError:
     pass

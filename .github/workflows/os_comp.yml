@@ -11,7 +11,7 @@ jobs:
     name: Ubuntu 16.04
     runs-on: ubuntu-16.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Install Dependencies
       run: |
         sudo apt update -yq
@@ -39,9 +39,10 @@ jobs:
           - { name: CUDA (on Arch),   id: cuda     }
           - { name: Fedora,           id: fedora   }
           - { name: OpenSUSE,         id: opensuse }
+          - { name: Ubuntu Bionic,    id: bionic   }
     container: mesonbuild/${{ matrix.cfg.id }}:latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Run tests
       # All environment variables are stored inside the docker image in /ci/env_vars.sh
       # They are defined in the `env` section in each image.json. CI_ARGS should be set

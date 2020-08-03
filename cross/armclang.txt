@@ -7,7 +7,7 @@ cpp = 'armclang'
 ar = 'armar'
 strip = 'armar'
 
-[properties]
+[built-in options]
 # The '--target', '-mcpu' options with the appropriate values should be mentioned
 # to cross compile c/c++ code with armclang.
 c_args      = ['--target=arm-arm-none-eabi', '-mcpu=cortex-m0plus']

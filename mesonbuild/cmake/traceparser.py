@@ -64,6 +64,7 @@ class CMakeTarget:
             return
         for key, val in self.properties.items():
             self.properties[key] = [x.strip() for x in val]
+            assert all([';' not in x for x in self.properties[key]])
 
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name):
@@ -138,7 +139,7 @@ class CMakeTraceParser:
         if not self.requires_stderr():
             if not self.trace_file_path.exists and not self.trace_file_path.is_file():
                 raise CMakeException('CMake: Trace file "{}" not found'.format(str(self.trace_file_path)))
-            trace = self.trace_file_path.read_text()
+            trace = self.trace_file_path.read_text(errors='ignore')
         if not trace:
             raise CMakeException('CMake: The CMake trace was not provided or is empty')
 
@@ -574,10 +575,10 @@ class CMakeTraceParser:
                 continue
 
             if mode in ['INTERFACE', 'LINK_INTERFACE_LIBRARIES', 'PUBLIC', 'LINK_PUBLIC']:
-                interface += [i]
+                interface += i.split(';')
 
             if mode in ['PUBLIC', 'PRIVATE', 'LINK_PRIVATE']:
-                private += [i]
+                private += i.split(';')
 
         if paths:
             interface = self._guess_files(interface)
@@ -655,30 +656,45 @@ class CMakeTraceParser:
 
         # Try joining file paths that contain spaces
 
-        reg_start = re.compile(r'^([A-Za-z]:)?/.*/[^./]+$')
+        reg_start = re.compile(r'^([A-Za-z]:)?/(.*/)*[^./]+$')
         reg_end = re.compile(r'^.*\.[a-zA-Z]+$')
 
         fixed_list = []  # type: T.List[str]
         curr_str = None  # type: T.Optional[str]
+        path_found = False # type: bool
 
         for i in broken_list:
             if curr_str is None:
                 curr_str = i
+                path_found = False
             elif os.path.isfile(curr_str):
                 # Abort concatenation if curr_str is an existing file
                 fixed_list += [curr_str]
                 curr_str = i
+                path_found = False
             elif not reg_start.match(curr_str):
                 # Abort concatenation if curr_str no longer matches the regex
                 fixed_list += [curr_str]
                 curr_str = i
-            elif reg_end.match(i) or os.path.exists('{} {}'.format(curr_str, i)):
+                path_found = False
+            elif reg_end.match(i):
                 # File detected
                 curr_str = '{} {}'.format(curr_str, i)
                 fixed_list += [curr_str]
                 curr_str = None
+                path_found = False
+            elif os.path.exists('{} {}'.format(curr_str, i)):
+                # Path detected
+                curr_str = '{} {}'.format(curr_str, i)
+                path_found = True
+            elif path_found:
+                # Add path to fixed_list after ensuring the whole path is in curr_str
+                fixed_list += [curr_str]
+                curr_str = i
+                path_found = False
             else:
                 curr_str = '{} {}'.format(curr_str, i)
+                path_found = False
 
         if curr_str:
             fixed_list += [curr_str]

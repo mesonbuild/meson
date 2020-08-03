@@ -214,6 +214,18 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lgfortran', '-lm']
 
+    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
+        '''
+        Derived from mixins/clike.py:has_header, but without C-style usage of
+        __has_include which breaks with GCC-Fortran 10:
+        https://github.com/mesonbuild/meson/issues/7017
+        '''
+        fargs = {'prefix': prefix, 'header': hname}
+        code = '{prefix}\n#include <{header}>'
+        return self.compiles(code.format(**fargs), env, extra_args=extra_args,
+                             dependencies=dependencies, mode='preprocess', disable_cache=disable_cache)
+
+
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
@@ -412,7 +424,7 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
                  **kwargs):
         FortranCompiler.__init__(self, exelist, version, for_machine,
                                  is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, [])
         self.id = 'flang'
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mlog
 from .qt import QtBaseModule
 
 
@@ -23,6 +22,4 @@ class Qt4Module(QtBaseModule):
 
 
 def initialize(*args, **kwargs):
-    mlog.warning('rcc dependencies will not work properly until this upstream issue is fixed:',
-                 mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'))
     return Qt4Module(*args, **kwargs)

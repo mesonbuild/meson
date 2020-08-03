@@ -15,8 +15,8 @@
 import os
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, Popen_safe, extract_as_list, File, unholder
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
+from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
+from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -30,49 +30,34 @@ _QT_DEPS_LUT = {
 
 class QtBaseModule(ExtensionModule):
     tools_detected = False
+    rcc_supports_depfiles = False
 
     def __init__(self, interpreter, qt_version=5):
         ExtensionModule.__init__(self, interpreter)
         self.snippets.add('has_tools')
         self.qt_version = qt_version
 
-    def _detect_tools(self, env, method):
+    def _detect_tools(self, env, method, required=True):
         if self.tools_detected:
             return
-        mlog.log('Detecting Qt{version} tools'.format(version=self.qt_version))
-        # FIXME: We currently require QtX to exist while importing the module.
-        # We should make it gracefully degrade and not create any targets if
-        # the import is marked as 'optional' (not implemented yet)
-        kwargs = {'required': 'true', 'modules': 'Core', 'silent': 'true', 'method': method}
-        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
-        # Get all tools and then make sure that they are the right version
-        self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
-        # Moc, uic and rcc write their version strings to stderr.
-        # Moc and rcc return a non-zero result when doing so.
-        # What kind of an idiot thought that was a good idea?
-        for compiler, compiler_name in ((self.moc, "Moc"), (self.uic, "Uic"), (self.rcc, "Rcc"), (self.lrelease, "lrelease")):
-            if compiler.found():
-                # Workaround since there is no easy way to know which tool/version support which flag
-                for flag in ['-v', '-version']:
-                    p, stdout, stderr = Popen_safe(compiler.get_command() + [flag])[0:3]
-                    if p.returncode == 0:
-                        break
-                stdout = stdout.strip()
-                stderr = stderr.strip()
-                if 'Qt {}'.format(self.qt_version) in stderr:
-                    compiler_ver = stderr
-                elif 'version {}.'.format(self.qt_version) in stderr:
-                    compiler_ver = stderr
-                elif ' {}.'.format(self.qt_version) in stdout:
-                    compiler_ver = stdout
-                else:
-                    raise MesonException('{name} preprocessor is not for Qt {version}. Output:\n{stdo}\n{stderr}'.format(
-                        name=compiler_name, version=self.qt_version, stdo=stdout, stderr=stderr))
-                mlog.log(' {}:'.format(compiler_name.lower()), mlog.green('YES'), '({path}, {version})'.format(
-                    path=compiler.get_path(), version=compiler_ver.split()[-1]))
-            else:
-                mlog.log(' {}:'.format(compiler_name.lower()), mlog.red('NO'))
         self.tools_detected = True
+        mlog.log('Detecting Qt{version} tools'.format(version=self.qt_version))
+        kwargs = {'required': required, 'modules': 'Core', 'method': method}
+        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
+        if qt.found():
+            # Get all tools and then make sure that they are the right version
+            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
+            if version_compare(qt.version, '>=5.14.0'):
+                self.rcc_supports_depfiles = True
+            else:
+                mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
+                    mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
+        else:
+            suffix = '-qt{}'.format(self.qt_version)
+            self.moc = NonExistingExternalProgram(name='moc' + suffix)
+            self.uic = NonExistingExternalProgram(name='uic' + suffix)
+            self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
+            self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
 
     def parse_qrc(self, state, rcc_file):
         if type(rcc_file) is str:
@@ -128,7 +113,7 @@ class QtBaseModule(ExtensionModule):
         if disabled:
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        self._detect_tools(state.environment, method)
+        self._detect_tools(state.environment, method, required=False)
         for tool in (self.moc, self.uic, self.rcc, self.lrelease):
             if not tool.found():
                 if required:
@@ -177,6 +162,9 @@ class QtBaseModule(ExtensionModule):
                                   'output': name + '.cpp',
                                   'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
                                   'depend_files': qrc_deps}
+                    if self.rcc_supports_depfiles:
+                        rcc_kwargs['depfile'] = name + '.d'
+                        rcc_kwargs['command'] += ['--depfile', '@DEPFILE@']
                     res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
                     sources.append(res_target)
         if ui_files:

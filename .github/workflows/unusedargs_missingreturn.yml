@@ -55,7 +55,11 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: pip install ninja pefile
+    # ninja==1.10 pypi release didn't ship with windows binaries, which causes
+    # pip to try to build it which fails on Windows. Pin the previous version
+    # for now. We can update once that's fixed.
+    # https://pypi.org/project/ninja/1.10.0/#files
+    - run: pip install ninja==1.9.0.post1 pefile
     - run: python run_project_tests.py --only platform-windows
       env:
         CI: "1"

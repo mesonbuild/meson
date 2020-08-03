@@ -12,8 +12,7 @@ cpu_family = 'c2000'
 cpu = 'c28x'
 endian = 'little'
 
-[properties]
-needs_exe_wrapper = true
+[built-in options]
 c_args = [
     '-v28',
     '-ml',
@@ -24,3 +23,6 @@ c_link_args = [
     '\f28004x_flash.cmd']
 cpp_args = []
 cpp_link_args = []
+
+[properties]
+needs_exe_wrapper = true

@@ -41,8 +41,10 @@ _U = T.TypeVar('_U')
 
 have_fcntl = False
 have_msvcrt = False
+# TODO: this is such a hack, this really should be either in coredata or in the
+# interpreter
 # {subproject: project_meson_version}
-project_meson_versions = {}  # type: T.Dict[str, str]
+project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
 
 try:
     import fcntl
@@ -395,6 +397,9 @@ class PerMachine(T.Generic[_T]):
             unfreeze.host = None
         return unfreeze
 
+    def __repr__(self) -> str:
+        return 'PerMachine({!r}, {!r})'.format(self.build, self.host)
+
 
 class PerThreeMachine(PerMachine[_T]):
     """Like `PerMachine` but includes `target` too.
@@ -427,6 +432,9 @@ class PerThreeMachine(PerMachine[_T]):
     def matches_build_machine(self, machine: MachineChoice) -> bool:
         return self.build == self[machine]
 
+    def __repr__(self) -> str:
+        return 'PerThreeMachine({!r}, {!r}, {!r})'.format(self.build, self.host, self.target)
+
 
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
@@ -444,6 +452,9 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
         if freeze.host is None:
             freeze.host = freeze.build
         return freeze
+
+    def __repr__(self) -> str:
+        return 'PerMachineDefaultable({!r}, {!r})'.format(self.build, self.host)
 
 
 class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
@@ -465,6 +476,9 @@ class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Option
         if freeze.target is None:
             freeze.target = freeze.host
         return freeze
+
+    def __repr__(self) -> str:
+        return 'PerThreeMachineDefaultable({!r}, {!r}, {!r})'.format(self.build, self.host, self.target)
 
 
 class Language(Enum):
@@ -584,6 +598,8 @@ def is_netbsd() -> bool:
 def is_freebsd() -> bool:
     return platform.system().lower() == 'freebsd'
 
+def is_irix() -> bool:
+    return platform.system().startswith('irix')
 
 def is_hurd() -> bool:
     return platform.system().lower() == 'gnu'
@@ -619,20 +635,24 @@ def darwin_get_object_archs(objpath: str) -> T.List[str]:
     return stdo.split()
 
 
-def detect_vcs(source_dir: str) -> T.Optional[T.Dict[str, str]]:
+def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
     vcs_systems = [
         dict(name = 'git',        cmd = 'git', repo_dir = '.git', get_rev = 'git describe --dirty=+', rev_regex = '(.*)', dep = '.git/logs/HEAD'),
         dict(name = 'mercurial',  cmd = 'hg',  repo_dir = '.hg',  get_rev = 'hg id -i',               rev_regex = '(.*)', dep = '.hg/dirstate'),
         dict(name = 'subversion', cmd = 'svn', repo_dir = '.svn', get_rev = 'svn info',               rev_regex = 'Revision: (.*)', dep = '.svn/wc.db'),
         dict(name = 'bazaar',     cmd = 'bzr', repo_dir = '.bzr', get_rev = 'bzr revno',              rev_regex = '(.*)', dep = '.bzr'),
     ]
-    # FIXME: this is much cleaner with pathlib.Path
-    segs = source_dir.replace('\\', '/').split('/')
-    for i in range(len(segs), -1, -1):
-        curdir = '/'.join(segs[:i])
+    if isinstance(source_dir, str):
+        source_dir = Path(source_dir)
+
+    parent_paths_and_self = collections.deque(source_dir.parents)
+    # Prepend the source directory to the front so we can check it;
+    # source_dir.parents doesn't include source_dir
+    parent_paths_and_self.appendleft(source_dir)
+    for curdir in parent_paths_and_self:
         for vcs in vcs_systems:
-            if os.path.isdir(os.path.join(curdir, vcs['repo_dir'])) and shutil.which(vcs['cmd']):
-                vcs['wc_dir'] = curdir
+            if Path.is_dir(curdir.joinpath(vcs['repo_dir'])) and shutil.which(vcs['cmd']):
+                vcs['wc_dir'] = str(curdir)
                 return vcs
     return None
 
@@ -804,7 +824,7 @@ def default_libdir() -> str:
                 return 'lib/' + archpath
         except Exception:
             pass
-    if is_freebsd():
+    if is_freebsd() or is_irix():
         return 'lib'
     if os.path.isdir('/usr/lib64') and not os.path.islink('/usr/lib64'):
         return 'lib64'
@@ -1610,6 +1630,16 @@ def relpath(path: str, start: str) -> str:
     except (TypeError, ValueError):
         return path
 
+def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
+    # Check wheter a path is within the root directory root
+    try:
+        if resolve:
+            path.resolve().relative_to(root.resolve())
+        else:
+            path.relative_to(root)
+    except ValueError:
+        return False
+    return True
 
 class LibType(Enum):
 

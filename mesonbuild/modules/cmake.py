@@ -14,12 +14,28 @@
 import re
 import os, os.path, pathlib
 import shutil
+import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 
 from .. import build, dependencies, mesonlib, mlog
-from ..interpreterbase import permittedKwargs, FeatureNew, stringArgs, InterpreterObject, ObjectHolder, noPosargs
+from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder
+from ..interpreterbase import (
+    InterpreterObject,
+    ObjectHolder,
+
+    FeatureNew,
+    FeatureNewKwargs,
+    FeatureDeprecatedKwargs,
+
+    stringArgs,
+    permittedKwargs,
+    noPosargs,
+    noKwargs,
+
+    InvalidArguments,
+)
 
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
@@ -82,40 +98,105 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
         assert(all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']]))
         return res
 
-    @permittedKwargs({})
+    @noKwargs
+    @stringArgs
     def get_variable(self, args, kwargs):
         return self.held_object.get_variable_method(args, kwargs)
 
-    @permittedKwargs({})
+    @noKwargs
+    @stringArgs
     def dependency(self, args, kwargs):
         info = self._args_to_info(args)
         return self.get_variable([info['dep']], kwargs)
 
-    @permittedKwargs({})
+    @noKwargs
+    @stringArgs
     def include_directories(self, args, kwargs):
         info = self._args_to_info(args)
         return self.get_variable([info['inc']], kwargs)
 
-    @permittedKwargs({})
+    @noKwargs
+    @stringArgs
     def target(self, args, kwargs):
         info = self._args_to_info(args)
         return self.get_variable([info['tgt']], kwargs)
 
-    @permittedKwargs({})
+    @noKwargs
+    @stringArgs
     def target_type(self, args, kwargs):
         info = self._args_to_info(args)
         return info['func']
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     def target_list(self, args, kwargs):
         return self.held_object.cm_interpreter.target_list()
 
     @noPosargs
-    @permittedKwargs({})
+    @noKwargs
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
     def found_method(self, args, kwargs):
         return self.held_object is not None
+
+
+class CMakeSubprojectOptions(InterpreterObject):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cmake_options = []  # type: T.List[str]
+        self.target_options = TargetOptions()
+
+        self.methods.update(
+            {
+                'add_cmake_defines': self.add_cmake_defines,
+                'set_override_option': self.set_override_option,
+                'set_install': self.set_install,
+                'append_compile_args': self.append_compile_args,
+                'append_link_args': self.append_link_args,
+                'clear': self.clear,
+            }
+        )
+
+    def _get_opts(self, kwargs: dict) -> SingleTargetOptions:
+        if 'target' in kwargs:
+            return self.target_options[kwargs['target']]
+        return self.target_options.global_options
+
+    @noKwargs
+    def add_cmake_defines(self, args, kwargs) -> None:
+        self.cmake_options += cmake_defines_to_args(args)
+
+    @stringArgs
+    @permittedKwargs({'target'})
+    def set_override_option(self, args, kwargs) -> None:
+        if len(args) != 2:
+            raise InvalidArguments('set_override_option takes exactly 2 positional arguments')
+        self._get_opts(kwargs).set_opt(args[0], args[1])
+
+    @permittedKwargs({'target'})
+    def set_install(self, args, kwargs) -> None:
+        if len(args) != 1 or not isinstance(args[0], bool):
+            raise InvalidArguments('set_install takes exactly 1 boolean argument')
+        self._get_opts(kwargs).set_install(args[0])
+
+    @stringArgs
+    @permittedKwargs({'target'})
+    def append_compile_args(self, args, kwargs) -> None:
+        if len(args) < 2:
+            raise InvalidArguments('append_compile_args takes at least 2 positional arguments')
+        self._get_opts(kwargs).append_args(args[0], args[1:])
+
+    @stringArgs
+    @permittedKwargs({'target'})
+    def append_link_args(self, args, kwargs) -> None:
+        if not args:
+            raise InvalidArguments('append_link_args takes at least 1 positional argument')
+        self._get_opts(kwargs).append_link_args(args)
+
+    @noPosargs
+    @noKwargs
+    def clear(self, args, kwargs) -> None:
+        self.cmake_options.clear()
+        self.target_options = TargetOptions()
 
 
 class CmakeModule(ExtensionModule):
@@ -252,8 +333,7 @@ class CmakeModule(ExtensionModule):
         (ofile_path, ofile_fname) = os.path.split(os.path.join(state.subdir, '{}Config.cmake'.format(name)))
         ofile_abs = os.path.join(state.environment.build_dir, ofile_path, ofile_fname)
 
-        if 'install_dir' not in kwargs:
-            install_dir = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name)
+        install_dir = kwargs.get('install_dir', os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name))
         if not isinstance(install_dir, str):
             raise mesonlib.MesonException('"install_dir" must be a string.')
 
@@ -287,16 +367,27 @@ class CmakeModule(ExtensionModule):
         return res
 
     @FeatureNew('subproject', '0.51.0')
-    @permittedKwargs({'cmake_options', 'required'})
+    @FeatureNewKwargs('subproject', '0.55.0', ['options'])
+    @FeatureDeprecatedKwargs('subproject', '0.55.0', ['cmake_options'])
+    @permittedKwargs({'cmake_options', 'required', 'options'})
     @stringArgs
     def subproject(self, interpreter, state, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
+        if 'cmake_options' in kwargs and 'options' in kwargs:
+            raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
         subp = interpreter.do_subproject(dirname, 'cmake', kwargs)
         if not subp.held_object:
             return subp
         return CMakeSubprojectHolder(subp, dirname)
+
+    @FeatureNew('subproject_options', '0.55.0')
+    @noKwargs
+    @noPosargs
+    def subproject_options(self, state, args, kwargs) -> ModuleReturnValue:
+        opts = CMakeSubprojectOptions()
+        return ModuleReturnValue(opts, [])
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)

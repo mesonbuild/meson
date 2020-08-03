@@ -97,9 +97,9 @@ class Conf:
             else:
                 print('{0:{width[0]}} {1:{width[1]}} {3}'.format(*line, width=col_widths))
 
-    def split_options_per_subproject(self, options_iter):
+    def split_options_per_subproject(self, options):
         result = {}
-        for k, o in options_iter:
+        for k, o in options.items():
             subproject = ''
             if ':' in k:
                 subproject, optname = k.split(':')
@@ -184,19 +184,7 @@ class Conf:
         if not self.default_values_only:
             print('  Build dir ', self.build_dir)
 
-        dir_option_names = ['bindir',
-                            'datadir',
-                            'includedir',
-                            'infodir',
-                            'libdir',
-                            'libexecdir',
-                            'localedir',
-                            'localstatedir',
-                            'mandir',
-                            'prefix',
-                            'sbindir',
-                            'sharedstatedir',
-                            'sysconfdir']
+        dir_option_names = list(coredata.BUILTIN_DIR_OPTIONS)
         test_option_names = ['errorlogs',
                              'stdsplit']
         core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names + test_option_names]
@@ -211,15 +199,12 @@ class Conf:
                 return 'build.' + k
             return k[:idx + 1] + 'build.' + k[idx + 1:]
 
-        core_options = self.split_options_per_subproject(core_options.items())
-        host_compiler_options = self.split_options_per_subproject(
-            self.coredata.flatten_lang_iterator(
-                self.coredata.compiler_options.host.items()))
+        core_options = self.split_options_per_subproject(core_options)
         build_compiler_options = self.split_options_per_subproject(
-            (insert_build_prefix(k), o)
-            for k, o in self.coredata.flatten_lang_iterator(
-                self.coredata.compiler_options.build.items()))
-        project_options = self.split_options_per_subproject(self.coredata.user_options.items())
+            dict((insert_build_prefix(k), o)
+                for k, o in self.coredata.flatten_lang_iterator(
+                    self.coredata.compiler_options.build.items())))
+        project_options = self.split_options_per_subproject(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')

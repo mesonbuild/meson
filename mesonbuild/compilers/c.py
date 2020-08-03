@@ -86,9 +86,10 @@ class ClangCCompiler(ClangCompiler, CCompiler):
     _C18_VERSION = '>=8.0.0'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines: T.Optional[T.List[str]] = None, **kwargs):
         CCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

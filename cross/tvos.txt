@@ -8,13 +8,14 @@ cpp = 'clang++'
 ar = 'ar'
 strip = 'strip'
 
-[properties]
-root = '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer'
-
+[built-in options]
 c_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
 cpp_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
 c_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
 cpp_link_args = ['-arch', 'arm64', '-mtvos-version-min=12.0', '-isysroot', '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS.sdk']
+
+[properties]
+root = '/Applications/Xcode.app/Contents/Developer/Platforms/AppleTVOS.platform/Developer'
 
 has_function_printf = true
 has_function_hfkerhisadf = false

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
 import tempfile
 import unittest
@@ -23,6 +22,8 @@ import zipapp
 from pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
+from mesonbuild.coredata import version as meson_version
+
 
 def get_pypath():
     import sysconfig
@@ -128,6 +129,10 @@ class CommandTests(unittest.TestCase):
         os.environ['PYTHONPATH'] = os.path.join(str(pylibdir), '')
         os.environ['PATH'] = str(bindir) + os.pathsep + os.environ['PATH']
         self._run(python_command + ['setup.py', 'install', '--prefix', str(prefix)])
+        # Fix importlib-metadata by appending all dirs in pylibdir
+        PYTHONPATHS = [pylibdir] + [x for x in pylibdir.iterdir()]
+        PYTHONPATHS = [os.path.join(str(x), '') for x in PYTHONPATHS]
+        os.environ['PYTHONPATH'] = os.pathsep.join(PYTHONPATHS)
         # Check that all the files were installed correctly
         self.assertTrue(bindir.is_dir())
         self.assertTrue(pylibdir.is_dir())
@@ -195,4 +200,5 @@ class CommandTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    sys.exit(unittest.main(buffer=True))
+    print('Meson build system', meson_version, 'Command Tests')
+    raise SystemExit(unittest.main(buffer=True))

@@ -16,10 +16,11 @@ import re
 import functools
 import typing as T
 
-from . import mparser
+from . import compilers
 from . import coredata
 from . import mesonlib
-from . import compilers
+from . import mparser
+from .interpreterbase import FeatureNew
 
 forbidden_option_names = set(coredata.builtin_options.keys())
 forbidden_prefixes = [lang.get_lower_case_name() + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
@@ -170,12 +171,21 @@ class OptionInterpreter:
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
                 raise OptionException('Token after "-" is not a number')
+            FeatureNew.single_use('negative numbers in meson_options.txt', '0.54.1', self.subproject)
             return -res
         elif isinstance(arg, mparser.NotNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, bool):
                 raise OptionException('Token after "not" is not a a boolean')
+            FeatureNew.single_use('negation ("not") in meson_options.txt', '0.54.1', self.subproject)
             return not res
+        elif isinstance(arg, mparser.ArithmeticNode):
+            l = self.reduce_single(arg.left)
+            r = self.reduce_single(arg.right)
+            if not (arg.operation == 'add' and isinstance(l, str) and isinstance(r, str)):
+                raise OptionException('Only string concatenation with the "+" operator is allowed')
+            FeatureNew.single_use('string concatenation in meson_options.txt', '0.55.0', self.subproject)
+            return l + r
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
@@ -200,11 +210,8 @@ class OptionInterpreter:
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
 
-        # FIXME: Cannot use FeatureNew while parsing options because we parse
-        # it before reading options in project(). See func_project() in
-        # interpreter.py
-        #if 'yield' in kwargs:
-        #    FeatureNew('option yield', '0.45.0').use(self.subproject)
+        if 'yield' in kwargs:
+           FeatureNew.single_use('option yield', '0.45.0', self.subproject)
 
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')

@@ -56,6 +56,7 @@ topic](https://github.com/topics/meson).
  - [GtkDApp](https://gitlab.com/csoriano/GtkDApp), an application template for developing Flatpak apps with Gtk+ and D
  - [GVfs](https://git.gnome.org/browse/gvfs/), a userspace virtual filesystem designed to work with the I/O abstraction of GIO
  - [Hardcode-Tray](https://github.com/bil-elmoussaoui/Hardcode-Tray), fixes hardcoded tray icons in Linux
+ - [HarfBuzz](https://github.com/harfbuzz/harfbuzz), a text shaping engine
  - [HelenOS](http://helenos.org), a portable microkernel-based multiserver operating system
  - [HexChat](https://github.com/hexchat/hexchat), a cross-platform IRC client in C
  - [IGT](https://gitlab.freedesktop.org/drm/igt-gpu-tools), Linux kernel graphics driver test suite
@@ -70,8 +71,10 @@ topic](https://github.com/topics/meson).
  - [Knot Resolver](https://gitlab.labs.nic.cz/knot/knot-resolver), Full caching DNS resolver implementation
  - [Ksh](https://github.com/att/ast), a Korn Shell
  - [Lc0](https://github.com/LeelaChessZero/lc0), LeelaChessZero is a UCI-compliant chess engine designed to play chess via neural network
+ - [Le](https://github.com/kirushyk/le), machine learning framework
  - [libcamera](https://git.linuxtv.org/libcamera.git/), a library to handle complex cameras on Linux, ChromeOS and Android
  - [Libdrm](https://gitlab.freedesktop.org/mesa/drm), a library for abstracting DRM kernel interfaces
+ - [libeconf](https://github.com/openSUSE/libeconf), Enhanced config file parsing library, which merges config files placed in several locations into one
  - [Libepoxy](https://github.com/anholt/libepoxy/), a library for handling OpenGL function pointer management
  - [libfuse](https://github.com/libfuse/libfuse), the reference implementation of the Linux FUSE (Filesystem in Userspace) interface
  - [Libgit2-glib](https://git.gnome.org/browse/libgit2-glib), a GLib wrapper for libgit2
@@ -115,6 +118,7 @@ format files
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
  - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk
+ - [Siril](https://gitlab.com/free-astro/siril), an image processing software for amateur astronomy
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
  - [Sysprof](https://git.gnome.org/browse/sysprof), a profiling tool
@@ -124,6 +128,7 @@ format files
  - [Terminology](https://github.com/billiob/terminology), a terminal emulator based on the Enlightenment Foundation Libraries
  - [Tilix](https://github.com/gnunn1/tilix), a tiling terminal emulator for Linux using GTK+ 3
  - [Tizonia](https://github.com/tizonia/tizonia-openmax-il), a command-line cloud music player for Linux with support for Spotify, Google Play Music, YouTube, SoundCloud, TuneIn, Plex servers and Chromecast devices
+ - [Vala Language Server](https://github.com/benwaffle/vala-language-server), code intelligence engine for the Vala and Genie programming languages
  - [Valum](https://github.com/valum-framework/valum), a micro web framework written in Vala
  - [Venom](https://github.com/naxuroqa/Venom), a modern Tox client for the GNU/Linux desktop
  - [VMAF](https://github.com/Netflix/vmaf) (by Netflix), a perceptual video quality assessment based on multi-method fusion

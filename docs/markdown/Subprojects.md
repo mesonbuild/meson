@@ -212,6 +212,9 @@ the following command-line options:
     calls, and those are meant to be used for sources that cannot be
     provided by the system, such as copylibs.
 
+    This option may be overriden by `--force-fallback-for` for specific
+    dependencies.
+
 * **--wrap-mode=forcefallback**
 
     Meson will not look at the system for any dependencies which have
@@ -219,6 +222,41 @@ the following command-line options:
     them. This is useful when you want to test your fallback setup, or
     want to specifically build against the library sources provided by
     your subprojects.
+
+* **--force-fallback-for=list,of,dependencies**
+
+    Meson will not look at the system for any dependencies listed there,
+    provided a fallback was supplied when the dependency was declared.
+
+    This option takes precedence over `--wrap-mode=nofallback`, and when
+    used in combination with `--wrap-mode=nodownload` will only work
+    if the dependency has already been downloaded.
+
+    This is useful when your project has many fallback dependencies,
+    but you only want to build against the library sources for a few
+    of them.
+
+    **Warning**: This could lead to mixing system and subproject version of the
+    same library in the same process. Take this case as example:
+    - Libraries `glib-2.0` and `gstreamer-1.0` are installed on your system.
+    - `gstreamer-1.0` depends on `glib-2.0`, pkg-config file `gstreamer-1.0.pc`
+      has `Requires: glib-2.0`.
+    - In your application build definition you do:
+      ```meson
+      executable('app', ...,
+        dependencies: [
+          dependency('glib-2.0', fallback: 'glib'),
+          dependency('gstreamer-1.0', fallback: 'gstreamer')],
+      )
+      ```
+    - You configure with `--force-fallback-for=glib`.
+    This result in linking to two different versions of library `glib-2.0`
+    because `dependency('glib-2.0', fallback: 'glib')` will return the
+    subproject dependency, but `dependency('gstreamer-1.0', fallback: 'gstreamer')`
+    will not fallback and return the system dependency, including `glib-2.0`
+    library. To avoid that situation, every dependency that itself depend on
+    `glib-2.0` must also be forced to fallback, in this case with
+    `--force-fallback-for=glib,gsteamer`.
 
 ## Download subprojects
 

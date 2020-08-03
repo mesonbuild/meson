@@ -84,7 +84,7 @@ class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  **kwargs):
         ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, [])
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 import tachyon
-import sys
 
 result = tachyon.phaserize('shoot')
 
 if not isinstance(result, int):
-    print('Returned result not an integer.')
-    sys.exit(1)
+    raise SystemExit('Returned result not an integer.')
 
 if result != 1:
-    print('Returned result {} is not 1.'.format(result))
-    sys.exit(1)
+    raise SystemExit('Returned result {} is not 1.'.format(result))

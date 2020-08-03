@@ -43,10 +43,10 @@ export_modules = False
 class BoostLibrary():
     def __init__(self, name: str, shared: T.List[str], static: T.List[str], single: T.List[str], multi: T.List[str]):
         self.name = name
-        self.shared = shared
-        self.static = static
-        self.single = single
-        self.multi = multi
+        self.shared = sorted(set(shared))
+        self.static = sorted(set(static))
+        self.single = sorted(set(single))
+        self.multi = sorted(set(multi))
 
     def __lt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
         if isinstance(other, BoostLibrary):
@@ -99,15 +99,35 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
     cmds = raw.split(';')              # Commands always terminate with a ; (I hope)
     cmds = [x.strip() for x in cmds]   # Some cleanup
 
+    project_usage_requirements: T.List[str] = []
+
     # "Parse" the relevant sections
     for i in cmds:
         parts = i.split(' ')
-        parts = [x for x in parts if x not in ['', ':']]
+        parts = [x for x in parts if x not in ['']]
         if not parts:
             continue
 
-        # Parese libraries
-        if parts[0] in ['lib', 'boost-lib']:
+        # Parse project
+        if parts[0] in ['project']:
+            attributes: T.Dict[str, T.List[str]] = {}
+            curr: T.Optional[str] = None
+
+            for j in parts:
+                if j == ':':
+                    curr = None
+                elif curr is None:
+                    curr = j
+                else:
+                    if curr not in attributes:
+                        attributes[curr] = []
+                    attributes[curr] += [j]
+
+            if 'usage-requirements' in attributes:
+                project_usage_requirements = attributes['usage-requirements']
+
+        # Parse libraries
+        elif parts[0] in ['lib', 'boost-lib']:
             assert len(parts) >= 2
 
             # Get and check the library name
@@ -117,28 +137,36 @@ def get_libraries(jamfile: Path) -> T.List[BoostLibrary]:
             if not lname.startswith('boost_'):
                 continue
 
+            # Count `:` to only select the 'usage-requirements'
+            # See https://boostorg.github.io/build/manual/master/index.html#bbv2.main-target-rule-syntax
+            colon_counter = 0
+            usage_requirements: T.List[str] = []
+            for j in parts:
+                if j == ':':
+                    colon_counter += 1
+                elif colon_counter >= 4:
+                    usage_requirements += [j]
+
             # Get shared / static defines
             shared: T.List[str] = []
             static: T.List[str] = []
             single: T.List[str] = []
             multi: T.List[str] = []
-            for j in parts:
+            for j in usage_requirements + project_usage_requirements:
                 m1 = re.match(r'<link>shared:<define>(.*)', j)
                 m2 = re.match(r'<link>static:<define>(.*)', j)
                 m3 = re.match(r'<threading>single:<define>(.*)', j)
                 m4 = re.match(r'<threading>multi:<define>(.*)', j)
 
                 if m1:
-                    shared += [m1.group(1)]
+                    shared += [f'-D{m1.group(1)}']
                 if m2:
-                    static += [m2.group(1)]
+                    static += [f'-D{m2.group(1)}']
                 if m3:
-                    single += [m3.group(1)]
+                    single +=[f'-D{m3.group(1)}']
                 if m4:
-                    multi += [m4.group(1)]
+                    multi += [f'-D{m4.group(1)}']
 
-            shared = [f'-D{x}' for x in shared]
-            static = [f'-D{x}' for x in static]
             libs += [BoostLibrary(lname, shared, static, single, multi)]
 
     return libs

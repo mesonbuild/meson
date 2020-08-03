@@ -16,6 +16,7 @@ import os, platform, re, sys, shutil, subprocess
 import tempfile
 import shlex
 import typing as T
+import collections
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker
@@ -27,12 +28,14 @@ from .mesonlib import (
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, Directories, MachineInfo, MesonConfigFile,
-    Properties, known_cpu_families,
+    BinaryTable, MachineInfo,
+    Properties, known_cpu_families, get_env_var_pair,
 )
 from . import compilers
 from .compilers import (
     Compiler,
+    all_languages,
+    base_options,
     is_assembly,
     is_header,
     is_library,
@@ -52,6 +55,7 @@ from .linkers import (
     GnuBFDDynamicLinker,
     GnuGoldDynamicLinker,
     LLVMDynamicLinker,
+    QualcommLLVMDynamicLinker,
     MSVCDynamicLinker,
     OptlinkDynamicLinker,
     PGIDynamicLinker,
@@ -134,8 +138,17 @@ def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
         return gcovr_exe, mesonlib.version_compare(found, '>=' + new_rootdir_version)
     return None, None
 
+def detect_llvm_cov():
+    tools = get_llvm_tool_names('llvm-cov')
+    for tool in tools:
+        if mesonlib.exe_exists([tool, '--version']):
+            return tool
+    return None
+
 def find_coverage_tools():
     gcovr_exe, gcovr_new_rootdir = detect_gcovr()
+
+    llvm_cov_exe = detect_llvm_cov()
 
     lcov_exe = 'lcov'
     genhtml_exe = 'genhtml'
@@ -145,7 +158,7 @@ def find_coverage_tools():
     if not mesonlib.exe_exists([genhtml_exe, '--version']):
         genhtml_exe = None
 
-    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe
+    return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe
 
 def detect_ninja(version: str = '1.7', log: bool = False) -> str:
     r = detect_ninja_command_and_version(version, log)
@@ -332,6 +345,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'x86'
     elif trial == 'bepc':
         trial = 'x86'
+    elif trial == 'arm64':
+        trial = 'aarch64'
     elif trial.startswith('arm') or trial.startswith('earm'):
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
@@ -344,6 +359,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'sparc64'
     elif trial in {'mipsel', 'mips64el'}:
         trial = trial.rstrip('el')
+    elif trial in {'ip30', 'ip35'}:
+        trial = 'mips64'
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only
@@ -438,9 +455,10 @@ def machine_info_can_run(machine_info: MachineInfo):
     true_build_cpu_family = detect_cpu_family({})
     return \
         (machine_info.cpu_family == true_build_cpu_family) or \
-        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86'))
+        ((true_build_cpu_family == 'x86_64') and (machine_info.cpu_family == 'x86')) or \
+        ((true_build_cpu_family == 'aarch64') and (machine_info.cpu_family == 'arm'))
 
-def search_version(text):
+def search_version(text: str) -> str:
     # Usually of the type 4.1.4 but compiler output may contain
     # stuff like this:
     # (Sourcery CodeBench Lite 2014.05-29) 4.8.3 20140320 (prerelease)
@@ -474,6 +492,13 @@ def search_version(text):
     match = version_regex.search(text)
     if match:
         return match.group(0)
+
+    # try a simpler regex that has like "blah 2020.01.100 foo" or "blah 2020.01 foo"
+    version_regex = re.compile(r"(\d{1,4}\.\d{1,4}\.?\d{0,4})")
+    match = version_regex.search(text)
+    if match:
+        return match.group(0)
+
     return 'unknown version'
 
 class Environment:
@@ -527,10 +552,11 @@ class Environment:
         # Misc other properties about each machine.
         properties = PerMachineDefaultable()
 
-        # Store paths for native and cross build files. There is no target
-        # machine information here because nothing is installed for the target
-        # architecture, just the build and host architectures
-        paths = PerMachineDefaultable()
+        # We only need one of these as project options are not per machine
+        user_options = collections.defaultdict(dict)  # type: T.DefaultDict[str, T.Dict[str, object]]
+
+        # meson builtin options, as passed through cross or native files
+        meson_options = PerMachineDefaultable()  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
 
         ## Setup build machine defaults
 
@@ -542,34 +568,169 @@ class Environment:
         binaries.build = BinaryTable()
         properties.build = Properties()
 
+        # meson base options
+        _base_options = {}  # type: T.Dict[str, object]
+
+        # Per language compiler arguments
+        compiler_options = PerMachineDefaultable()  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
+        compiler_options.build = collections.defaultdict(dict)
+
         ## Read in native file(s) to override build machine configuration
 
+        def load_options(tag: str, store: T.Dict[str, T.Any]) -> None:
+            for section in config.keys():
+                if section.endswith(tag):
+                    if ':' in section:
+                        project = section.split(':')[0]
+                    else:
+                        project = ''
+                    store[project].update(config.get(section, {}))
+
+        def split_base_options(mopts: T.DefaultDict[str, T.Dict[str, object]]) -> None:
+            for k, v in list(mopts.get('', {}).items()):
+                if k in base_options:
+                    _base_options[k] = v
+                    del mopts[k]
+
+        lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
+        def split_compiler_options(mopts: T.DefaultDict[str, T.Dict[str, object]], machine: MachineChoice) -> None:
+            for k, v in list(mopts.get('', {}).items()):
+                if k.startswith(lang_prefixes):
+                    lang, key = k.split('_', 1)
+                    if compiler_options[machine] is None:
+                        compiler_options[machine] = collections.defaultdict(dict)
+                    if lang not in compiler_options[machine]:
+                        compiler_options[machine][lang] = collections.defaultdict(dict)
+                    compiler_options[machine][lang][key] = v
+                    del mopts[''][k]
+
+        def move_compiler_options(properties: Properties, compopts: T.Dict[str, T.DefaultDict[str, object]]) -> None:
+            for k, v in properties.properties.copy().items():
+                for lang in all_languages:
+                    if k == '{}_args'.format(lang):
+                        if 'args' not in compopts[lang]:
+                            compopts[lang]['args'] = v
+                        else:
+                            mlog.warning('Ignoring {}_args in [properties] section for those in the [built-in options]'.format(lang))
+                    elif k == '{}_link_args'.format(lang):
+                        if 'link_args' not in compopts[lang]:
+                            compopts[lang]['link_args'] = v
+                        else:
+                            mlog.warning('Ignoring {}_link_args in [properties] section in favor of the [built-in options] section.')
+                    else:
+                        continue
+                    mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
+                    del properties.properties[k]
+                    break
+
         if self.coredata.config_files is not None:
-            config = MesonConfigFile.from_config_parser(
-                coredata.load_configs(self.coredata.config_files))
+            config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
-            paths.build = Directories(**config.get('paths', {}))
             properties.build = Properties(config.get('properties', {}))
+
+            # Don't run this if there are any cross files, we don't want to use
+            # the native values if we're doing a cross build
+            if not self.coredata.cross_files:
+                load_options('project options', user_options)
+            meson_options.build = collections.defaultdict(dict)
+            if config.get('paths') is not None:
+                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
+                load_options('paths', meson_options.build)
+            load_options('built-in options', meson_options.build)
+            if not self.coredata.cross_files:
+                split_base_options(meson_options.build)
+            split_compiler_options(meson_options.build, MachineChoice.BUILD)
+            move_compiler_options(properties.build, compiler_options.build)
 
         ## Read in cross file(s) to override host machine configuration
 
         if self.coredata.cross_files:
-            config = MesonConfigFile.from_config_parser(
-                coredata.load_configs(self.coredata.cross_files))
+            config = coredata.parse_machine_files(self.coredata.cross_files)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
             if 'host_machine' in config:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
-            paths.host = Directories(**config.get('paths', {}))
+            load_options('project options', user_options)
+            meson_options.host = collections.defaultdict(dict)
+            compiler_options.host = collections.defaultdict(dict)
+            if config.get('paths') is not None:
+                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
+                load_options('paths', meson_options.host)
+            load_options('built-in options', meson_options.host)
+            split_base_options(meson_options.host)
+            split_compiler_options(meson_options.host, MachineChoice.HOST)
+            move_compiler_options(properties.host, compiler_options.host)
 
         ## "freeze" now initialized configuration, and "save" to the class.
 
         self.machines = machines.default_missing()
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
-        self.paths = paths.default_missing()
+        self.user_options = user_options
+        self.meson_options = meson_options.default_missing()
+        self.base_options = _base_options
+        self.compiler_options = compiler_options.default_missing()
+
+        # Some options default to environment variables if they are
+        # unset, set those now.
+
+        for for_machine in MachineChoice:
+            p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), 'PKG_CONFIG_PATH')
+            if p_env_pair is not None:
+                p_env_var, p_env = p_env_pair
+
+                # PKG_CONFIG_PATH may contain duplicates, which must be
+                # removed, else a duplicates-in-array-option warning arises.
+                p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+
+                key = 'pkg_config_path'
+
+                if self.first_invocation:
+                    # Environment variables override config
+                    self.meson_options[for_machine][''][key] = p_list
+                elif self.meson_options[for_machine][''].get(key, []) != p_list:
+                    mlog.warning(
+                        p_env_var,
+                        'environment variable does not match configured',
+                        'between configurations, meson ignores this.',
+                        'Use -Dpkg_config_path to change pkg-config search',
+                        'path instead.'
+                    )
+
+        # Read in command line and populate options
+        # TODO: validate all of this
+        all_builtins = set(coredata.builtin_options) | set(coredata.builtin_options_per_machine) | set(coredata.builtin_dir_noprefix_options)
+        for k, v in options.cmd_line_options.items():
+            try:
+                subproject, k = k.split(':')
+            except ValueError:
+                subproject = ''
+            if k in base_options:
+                self.base_options[k] = v
+            elif k.startswith(lang_prefixes):
+                lang, key = k.split('_', 1)
+                self.compiler_options.host[lang][key] = v
+            elif k in all_builtins or k.startswith('backend_'):
+                self.meson_options.host[subproject][k] = v
+            elif k.startswith('build.'):
+                k = k.lstrip('build.')
+                if k in coredata.builtin_options_per_machine:
+                    if self.meson_options.build is None:
+                        self.meson_options.build = collections.defaultdict(dict)
+                    self.meson_options.build[subproject][k] = v
+            else:
+                assert not k.startswith('build.')
+                self.user_options[subproject][k] = v
+
+        # Warn if the user is using two different ways of setting build-type
+        # options that override each other
+        if meson_options.build and 'buildtype' in meson_options.build[''] and \
+           ('optimization' in meson_options.build[''] or 'debug' in meson_options.build['']):
+            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
+                         'Using both is redundant since they override each other. '
+                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
@@ -577,8 +738,6 @@ class Environment:
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
         else:
             self.exe_wrapper = None
-
-        self.cmd_line_options = options.cmd_line_options.copy()
 
         # List of potential compilers.
         if mesonlib.is_windows():
@@ -625,6 +784,7 @@ class Environment:
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
+        self.wrap_resolver = None
 
     def create_new_coredata(self, options):
         # WARNING: Don't use any values from coredata in __init__. It gets
@@ -635,8 +795,8 @@ class Environment:
         self.coredata.meson_command = mesonlib.meson_command
         self.first_invocation = True
 
-    def is_cross_build(self) -> bool:
-        return self.coredata.is_cross_build()
+    def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
+        return self.coredata.is_cross_build(when_building_for)
 
     def dump_coredata(self):
         return coredata.save(self.coredata, self.get_build_dir())
@@ -725,6 +885,28 @@ class Environment:
         major = generation_and_major[1:]
         minor = defines.get('__LCC_MINOR__', '0')
         return dot.join((generation, major, minor))
+
+    @staticmethod
+    def get_clang_compiler_defines(compiler):
+        """
+        Get the list of Clang pre-processor defines
+        """
+        args = compiler + ['-E', '-dM', '-']
+        p, output, error = Popen_safe(args, write='', stdin=subprocess.PIPE)
+        if p.returncode != 0:
+            raise EnvironmentException('Unable to get clang pre-processor defines:\n' + output + error)
+        defines = {}
+        for line in output.split('\n'):
+            if not line:
+                continue
+            d, *rest = line.split(' ', 2)
+            if d != '#define':
+                continue
+            if len(rest) == 1:
+                defines[rest] = True
+            if len(rest) == 2:
+                defines[rest[0]] = rest[1]
+        return defines
 
     def _get_compilers(self, lang, for_machine):
         '''
@@ -847,9 +1029,12 @@ class Environment:
             check_args += override
 
         _, o, e = Popen_safe(compiler + check_args)
-        v = search_version(o)
+        v = search_version(o + e)
         if o.startswith('LLD'):
             linker = LLVMDynamicLinker(
+                compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
+        elif 'Snapdragon' in e and 'LLVM' in e:
+            linker = QualcommLLVMDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)  # type: DynamicLinker
         elif e.startswith('lld-link: '):
             # The LLD MinGW frontend didn't respond to --version before version 9.0.0,
@@ -889,9 +1074,15 @@ class Environment:
                 cls = GnuBFDDynamicLinker
             linker = cls(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
         elif 'Solaris' in e or 'Solaris' in o:
+            for line in (o+e).split('\n'):
+                if 'ld: Software Generation Utilities' in line:
+                    v = line.split(':')[2].lstrip()
+                    break
+            else:
+                v = 'unknown version'
             linker = SolarisDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override,
-                version=search_version(e))
+                version=v)
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
         return linker
@@ -899,7 +1090,7 @@ class Environment:
     def _detect_c_or_cpp_compiler(self, lang: Language, for_machine: MachineChoice) -> Compiler:
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(lang, for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         for compiler in compilers:
@@ -985,12 +1176,15 @@ class Environment:
             if 'Emscripten' in out:
                 cls = EmscriptenCCompiler if lang == Language.C else EmscriptenCPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
-                # emcc cannot be queried to get the version out of it (it
-                # ignores -Wl,--version and doesn't have an alternative).
-                # Further, wasm-id *is* lld and will return `LLD X.Y.Z` if you
-                # call `wasm-ld --version`, but a special version of lld that
-                # takes different options.
-                p, o, _ = Popen_safe(['wasm-ld', '--version'])
+
+                # emcc requires a file input in order to pass arguments to the
+                # linker. It'll exit with an error code, but still print the
+                # linker version. Old emcc versions ignore -Wl,--version completely,
+                # however. We'll report "unknown version" in that case.
+                with tempfile.NamedTemporaryFile(suffix='.c') as f:
+                    cmd = compiler + [cls.LINKER_PREFIX + "--version", f.name]
+                    _, o, _ = Popen_safe(cmd)
+
                 linker = WASMDynamicLinker(
                     compiler, for_machine, cls.LINKER_PREFIX,
                     [], version=search_version(o))
@@ -1037,8 +1231,10 @@ class Environment:
                 return cls(
                     compiler, version, for_machine, is_cross, info, exe_wrap,
                     target, linker=linker)
-            if 'clang' in out:
+            if 'clang' in out or 'Clang' in out:
                 linker = None
+
+                defines = self.get_clang_compiler_defines(compiler)
 
                 # Even if the for_machine is darwin, we could be using vanilla
                 # clang.
@@ -1060,7 +1256,7 @@ class Environment:
 
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
-                    exe_wrap, full_version=full_version, linker=linker)
+                    exe_wrap, defines, full_version=full_version, linker=linker)
 
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
@@ -1149,7 +1345,7 @@ class Environment:
 
     def detect_cuda_compiler(self, for_machine):
         popen_exceptions = {}
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         compilers, ccache, exe_wrap = self._get_compilers(Language.CUDA, for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
@@ -1189,7 +1385,7 @@ class Environment:
     def detect_fortran_compiler(self, for_machine: MachineChoice):
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(Language.FORTRAN, for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         for compiler in compilers:
             if isinstance(compiler, str):
@@ -1308,7 +1504,7 @@ class Environment:
     def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(Language.OBJC if objc else Language.OBJCPP, for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         for compiler in compilers:
@@ -1399,7 +1595,7 @@ class Environment:
 
     def detect_vala_compiler(self, for_machine):
         exelist = self.lookup_binary_entry(for_machine, Language.VALA)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback
@@ -1419,7 +1615,7 @@ class Environment:
     def detect_rust_compiler(self, for_machine):
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers(Language.RUST, for_machine)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
         cc = self.detect_c_compiler(for_machine)
@@ -1510,7 +1706,7 @@ class Environment:
             arch = 'x86_mscoff'
 
         popen_exceptions = {}
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         results, ccache, exe_wrap = self._get_compilers(Language.D, for_machine)
         for exelist in results:
             # Search for a D compiler.
@@ -1601,7 +1797,7 @@ class Environment:
 
     def detect_swift_compiler(self, for_machine):
         exelist = self.lookup_binary_entry(for_machine, Language.SWIFT)
-        is_cross = not self.machines.matches_build_machine(for_machine)
+        is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback

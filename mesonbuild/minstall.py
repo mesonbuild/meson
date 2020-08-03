@@ -512,7 +512,7 @@ class Installer:
             if file_copied:
                 self.did_install_something = True
                 try:
-                    depfixer.fix_rpath(outname, install_rpath, final_path,
+                    depfixer.fix_rpath(outname, t.rpath_dirs_to_remove, install_rpath, final_path,
                                        install_name_mappings, verbose=False)
                 except SystemExit as e:
                     if isinstance(e.code, int) and e.code == 0:

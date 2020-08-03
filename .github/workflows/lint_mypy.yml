@@ -19,7 +19,8 @@ jobs:
     - uses: actions/setup-python@v1
       with:
         python-version: '3.x'
-    - run: python -m pip install pylint
+    # pylint version constraint can be removed when https://github.com/PyCQA/pylint/issues/3524 is resolved
+    - run: python -m pip install pylint==2.4.4
     - run: pylint mesonbuild
 
   mypy:
@@ -30,4 +31,4 @@ jobs:
       with:
         python-version: '3.x'
     - run: python -m pip install mypy
-    - run: mypy --follow-imports=skip mesonbuild/interpreterbase.py mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/mintro.py mesonbuild/mparser.py mesonbuild/msetup.py mesonbuild/ast mesonbuild/wrap tools/ mesonbuild/modules/fs.py mesonbuild/dependencies/boost.py mesonbuild/dependencies/mpi.py mesonbuild/dependencies/hdf5.py mesonbuild/compilers/mixins/intel.py mesonbuild/mlog.py mesonbuild/mcompile.py mesonbuild/mesonlib.py
+    - run: mypy --follow-imports=skip mesonbuild/interpreterbase.py mesonbuild/mtest.py mesonbuild/minit.py mesonbuild/mintro.py mesonbuild/mparser.py mesonbuild/msetup.py mesonbuild/ast mesonbuild/wrap tools/ mesonbuild/modules/fs.py mesonbuild/dependencies/boost.py mesonbuild/dependencies/mpi.py mesonbuild/dependencies/hdf5.py mesonbuild/compilers/mixins/intel.py mesonbuild/mlog.py mesonbuild/mcompile.py mesonbuild/mesonlib.py mesonbuild/arglist.py

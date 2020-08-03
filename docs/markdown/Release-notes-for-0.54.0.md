@@ -14,7 +14,7 @@ If it set to 0 then the PTHREAD_POOL_SIZE option will not be passed.
 
 ## Introduce dataonly for the pkgconfig module
 This allows users to disable writing out the inbuilt variables to
-the pkg-config file as they might actualy not be required.
+the pkg-config file as they might actually not be required.
 
 One reason to have this is for architecture-independent pkg-config
 files in projects which also have architecture-dependent outputs.
@@ -359,3 +359,8 @@ target that has eight source files, Meson will generate two unity
 files each of which includes four source files. The old behaviour can
 be replicated by setting `unity_size` to a large value, such as 10000.
 
+## Verbose mode for `meson compile`
+
+The new option `--verbose` has been added to `meson compile` that will enable
+more verbose compilation logs. Note that for VS backend it means that logs will
+be less verbose by default (without `--verbose` option).

@@ -114,7 +114,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # See: https://ninja-build.org/manual.html#_deps
     always_args = ['/nologo', '/showIncludes']
     warn_args = {
-        '0': ['/W1'],
+        '0': [],
         '1': ['/W2'],
         '2': ['/W3'],
         '3': ['/W4'],
@@ -207,6 +207,9 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     def openmp_flags(self) -> T.List[str]:
         return ['/openmp']
+
+    def openmp_link_flags(self) -> T.List[str]:
+        return []
 
     # FIXME, no idea what these should be.
     def thread_flags(self, env: 'Environment') -> T.List[str]:

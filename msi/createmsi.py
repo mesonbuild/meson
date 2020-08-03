@@ -13,10 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 '''
-    This script is for generating MSI packages
-    for Windows users.
+This script is for generating MSI packages
+for Windows users.
 '''
+
 import subprocess
 import shutil
 import uuid
@@ -78,12 +80,8 @@ class PackageGenerator:
         self.bytesize = 32 if '32' in platform.architecture()[0] else 64
         self.final_output = 'meson-{}-{}.msi'.format(self.version, self.bytesize)
         self.staging_dirs = ['dist', 'dist2']
-        if self.bytesize == 64:
-            self.progfile_dir = 'ProgramFiles64Folder'
-            redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
-        else:
-            self.progfile_dir = 'ProgramFilesFolder'
-            redist_glob = 'C:\\Program Files*\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\*\\MergeModules\\Microsoft_VC142_CRT_x86.msm'
+        self.progfile_dir = 'ProgramFiles64Folder'
+        redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
         trials = glob(redist_glob)
         if len(trials) != 1:
             sys.exit('Could not find unique MSM setup:' + '\n'.join(trials))

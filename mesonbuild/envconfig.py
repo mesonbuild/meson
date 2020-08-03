@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import configparser, os, subprocess
+import os, subprocess
 import typing as T
 
 from . import mesonlib
@@ -40,7 +40,9 @@ known_cpu_families = (
     'alpha',
     'arc',
     'arm',
+    'avr',
     'c2000',
+    'dspic',
     'e2k',
     'ia64',
     'm68k',
@@ -48,6 +50,7 @@ known_cpu_families = (
     'mips',
     'mips64',
     'parisc',
+    'pic24',
     'ppc',
     'ppc64',
     'riscv32',
@@ -56,14 +59,13 @@ known_cpu_families = (
     'rx',
     's390',
     's390x',
+    'sh4',
     'sparc',
     'sparc64',
-    'pic24',
-    'dspic',
     'wasm32',
     'wasm64',
     'x86',
-    'x86_64'
+    'x86_64',
 )
 
 # It would feel more natural to call this "64_BIT_CPU_FAMILES", but
@@ -81,33 +83,6 @@ CPU_FAMILES_64_BIT = [
     'x86_64',
 ]
 
-class MesonConfigFile:
-    @classmethod
-    def from_config_parser(cls, parser: configparser.ConfigParser) -> T.Dict[str, T.Dict[str, T.Dict[str, str]]]:
-        out = {}
-        # This is a bit hackish at the moment.
-        for s in parser.sections():
-            section = {}
-            for entry in parser[s]:
-                value = parser[s][entry]
-                # Windows paths...
-                value = value.replace('\\', '\\\\')
-                if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                    raise EnvironmentException('Malformed variable name {} in cross file..'.format(entry))
-                try:
-                    res = eval(value, {'__builtins__': None}, {'true': True, 'false': False})
-                except Exception:
-                    raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
-
-                for i in (res if isinstance(res, list) else [res]):
-                    if not isinstance(i, (str, int, bool)):
-                        raise EnvironmentException('Malformed value in cross file variable {}.'.format(entry))
-
-                section[entry] = res
-
-            out[s] = section
-        return out
-
 def get_env_var_pair(for_machine: MachineChoice,
                      is_cross: bool,
                      var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
@@ -121,7 +96,7 @@ def get_env_var_pair(for_machine: MachineChoice,
         # ones.
         ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
         # Always just the unprefixed host verions
-        ([] if is_cross else [var_name]),
+        [var_name]
     )[for_machine]
     for var in candidates:
         value = os.environ.get(var)
@@ -298,6 +273,10 @@ class MachineInfo:
         """
         return self.system == 'gnu'
 
+    def is_irix(self) -> bool:
+        """Machine is IRIX?"""
+        return self.system.startswith('irix')
+
     # Various prefixes and suffixes for import libraries, shared libraries,
     # static libraries, and executables.
     # Versioning is added to these names in the backends as-needed.
@@ -428,43 +407,3 @@ class BinaryTable:
         if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):
             command = None
         return command
-
-class Directories:
-
-    """Data class that holds information about directories for native and cross
-    builds.
-    """
-
-    def __init__(self, bindir: T.Optional[str] = None, datadir: T.Optional[str] = None,
-                 includedir: T.Optional[str] = None, infodir: T.Optional[str] = None,
-                 libdir: T.Optional[str] = None, libexecdir: T.Optional[str] = None,
-                 localedir: T.Optional[str] = None, localstatedir: T.Optional[str] = None,
-                 mandir: T.Optional[str] = None, prefix: T.Optional[str] = None,
-                 sbindir: T.Optional[str] = None, sharedstatedir: T.Optional[str] = None,
-                 sysconfdir: T.Optional[str] = None):
-        self.bindir = bindir
-        self.datadir = datadir
-        self.includedir = includedir
-        self.infodir = infodir
-        self.libdir = libdir
-        self.libexecdir = libexecdir
-        self.localedir = localedir
-        self.localstatedir = localstatedir
-        self.mandir = mandir
-        self.prefix = prefix
-        self.sbindir = sbindir
-        self.sharedstatedir = sharedstatedir
-        self.sysconfdir = sysconfdir
-
-    def __contains__(self, key: str) -> bool:
-        return hasattr(self, key)
-
-    def __getitem__(self, key: str) -> T.Optional[str]:
-        # Mypy can't figure out what to do with getattr here, so we'll case for it
-        return T.cast(T.Optional[str], getattr(self, key))
-
-    def __setitem__(self, key: str, value: T.Optional[str]) -> None:
-        setattr(self, key, value)
-
-    def __iter__(self) -> T.Iterator[T.Tuple[str, str]]:
-        return iter(self.__dict__.items())

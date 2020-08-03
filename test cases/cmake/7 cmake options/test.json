@@ -1,0 +1,9 @@
+{
+  "matrix": {
+    "options": {
+      "cmake_prefix_path": [
+        { "val": ["val1", "val2"] }
+      ]
+    }
+  }
+}

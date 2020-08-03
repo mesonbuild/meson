@@ -13,6 +13,7 @@ variables:
 jobs:
 
 - job: vs2017
+  timeoutInMinutes: 120
   pool:
     vmImage: VS2017-Win2016
 
@@ -22,6 +23,7 @@ jobs:
           arch: x86
           compiler: msvc2017
           backend: ninja
+          MESON_RSP_THRESHOLD: 0
         vc2017x64vs:
           arch: x64
           compiler: msvc2017
@@ -40,6 +42,7 @@ jobs:
   - template: ci/azure-steps.yml
 
 - job: vs2019
+  timeoutInMinutes: 120
   pool:
     vmImage: windows-2019
 
@@ -63,6 +66,7 @@ jobs:
   - template: ci/azure-steps.yml
 
 - job: cygwin
+  timeoutInMinutes: 120
   pool:
     vmImage: VS2017-Win2016
   strategy:
@@ -82,6 +86,7 @@ jobs:
         gcc-objc,^
         git,^
         gobject-introspection,^
+        gtk-doc,^
         libarchive13,^
         libboost-devel,^
         libglib2.0-devel,^
@@ -89,9 +94,15 @@ jobs:
         libjsoncpp19,^
         librhash0,^
         libuv1,^
+        libxml2,^
+        libxml2-devel,^
+        libxslt,^
+        libxslt-devel,^
         ninja,^
         python2-devel,^
         python3-devel,^
+        python3-libxml2,^
+        python3-libxslt,^
         python36-pip,^
         vala,^
         wget,^
@@ -100,8 +111,8 @@ jobs:
       displayName: Install Dependencies
     - script: |
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
-        env.exe -- python3 -m pip --disable-pip-version-check install pefile pytest-xdist jsonschema
-      displayName: pip install pefile pytest-xdist jsonschema
+        env.exe -- python3 -m pip --disable-pip-version-check install gcovr pefile pytest-xdist jsonschema
+      displayName: pip install gcovr pefile pytest-xdist jsonschema
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
@@ -138,6 +149,7 @@ jobs:
       gccx64ninja:
         MSYSTEM: MINGW64
         MSYS2_ARCH: x86_64
+        MESON_RSP_THRESHOLD: 0
         compiler: gcc
       clangx64ninja:
         MSYSTEM: MINGW64
@@ -151,7 +163,13 @@ jobs:
       displayName: Install MSYS2
     - script: |
         set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syyuu
+        # Remove this line when https://github.com/msys2/MSYS2-packages/pull/2022 is merged
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Sy dash
+        echo Updating msys2
+        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu || echo system update failed, ignoring
+        echo Killing all msys2 processes
+        taskkill /F /FI "MODULES eq msys-2.0.dll"
+        echo Updating msys2 (again)
         %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu
       displayName: Update MSYS2
     - script: |
@@ -162,14 +180,17 @@ jobs:
         git ^
         mercurial ^
         mingw-w64-$(MSYS2_ARCH)-cmake ^
+        mingw-w64-$(MSYS2_ARCH)-lcov ^
+        mingw-w64-$(MSYS2_ARCH)-libxml2 ^
         mingw-w64-$(MSYS2_ARCH)-ninja ^
         mingw-w64-$(MSYS2_ARCH)-pkg-config ^
         mingw-w64-$(MSYS2_ARCH)-python2 ^
         mingw-w64-$(MSYS2_ARCH)-python3 ^
+        mingw-w64-$(MSYS2_ARCH)-python3-lxml ^
         mingw-w64-$(MSYS2_ARCH)-python3-setuptools ^
         mingw-w64-$(MSYS2_ARCH)-python3-pip ^
         %TOOLCHAIN%
-        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install pefile jsonschema"
+        %MSYS2_ROOT%\usr\bin\bash -lc "python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile"
       displayName: Install Dependencies
     - script: |
         set BOOST_ROOT=

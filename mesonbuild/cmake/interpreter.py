@@ -15,16 +15,15 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-import pkg_resources
-
-from .common import CMakeException, CMakeTarget
+from .common import CMakeException, CMakeTarget, TargetOptions
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
-from .. import mlog
+from .. import mlog, mesonlib
 from ..environment import Environment
 from ..mesonlib import Language, MachineChoice, OrderedSet, version_compare
+from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
@@ -289,7 +288,17 @@ class ConverterTarget:
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
                 if m:
-                    self.override_options += ['{}_std={}'.format(i, m.group(2))]
+                    std = m.group(2)
+                    supported = self._all_lang_stds(i)
+                    if std not in supported:
+                        mlog.warning(
+                            'Unknown {0}_std "{1}" -> Ignoring. Try setting the project-'
+                            'level {0}_std if build errors occur. Known '
+                            '{0}_stds are: {2}'.format(i, std, ' '.join(supported)),
+                            once=True
+                        )
+                        continue
+                    self.override_options += ['{}_std={}'.format(i, std)]
                 elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
                     self.pie = True
                 elif j in blacklist_compiler_flags:
@@ -307,13 +316,6 @@ class ConverterTarget:
         tgt = trace.targets.get(self.cmake_name)
         if tgt:
             self.depends_raw = trace.targets[self.cmake_name].depends
-            if self.type.upper() == 'INTERFACE_LIBRARY':
-                props = tgt.properties
-
-                self.includes += props.get('INTERFACE_INCLUDE_DIRECTORIES', [])
-                self.public_compile_opts += props.get('INTERFACE_COMPILE_DEFINITIONS', [])
-                self.public_compile_opts += props.get('INTERFACE_COMPILE_OPTIONS', [])
-                self.link_flags += props.get('INTERFACE_LINK_OPTIONS', [])
 
             # TODO refactor this copy paste from CMakeDependency for future releases
             reg_is_lib = re.compile(r'^(-l[a-zA-Z0-9_]+|-l?pthread)$')
@@ -332,6 +334,12 @@ class ConverterTarget:
                 libraries = []
                 mlog.debug(tgt)
 
+                if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
+                    self.includes += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
+
+                if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
+                    self.link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
+
                 if 'INTERFACE_COMPILE_DEFINITIONS' in tgt.properties:
                     self.public_compile_opts += ['-D' + re.sub('^-D', '', x) for x in tgt.properties['INTERFACE_COMPILE_DEFINITIONS'] if x]
 
@@ -346,8 +354,15 @@ class ConverterTarget:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                if 'RELEASE' in cfgs:
-                    cfg = 'RELEASE'
+                is_debug = self.env.coredata.get_builtin_option('debug');
+                if is_debug:
+                    if 'DEBUG' in cfgs:
+                        cfg = 'DEBUG'
+                    elif 'RELEASE' in cfgs:
+                        cfg = 'RELEASE'
+                else:
+                    if 'RELEASE' in cfgs:
+                        cfg = 'RELEASE'
 
                 if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properties:
                     libraries += [x for x in tgt.properties['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
@@ -538,6 +553,13 @@ class ConverterTarget:
         for exts in lang_suffixes.values():
             suffixes += [x for x in exts]
         return suffixes
+
+    @lru_cache(maxsize=None)
+    def _all_lang_stds(self, lang: str) -> T.List[str]:
+        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
+        if not lang_opts or 'std' not in lang_opts:
+            return []
+        return lang_opts['std'].choices
 
     def process_inter_target_dependencies(self):
         # Move the dependencies from all transfer_dependencies_from to the target
@@ -791,7 +813,7 @@ class CMakeInterpreter:
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
-        preload_file = pkg_resources.resource_filename('mesonbuild', 'cmake/data/preload.cmake')
+        preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
 
         # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
         # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
@@ -970,7 +992,7 @@ class CMakeInterpreter:
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
-    def pretend_to_be_meson(self) -> CodeBlockNode:
+    def pretend_to_be_meson(self, options: TargetOptions) -> CodeBlockNode:
         if not self.project_name:
             raise CMakeException('CMakeInterpreter was not analysed')
 
@@ -1036,9 +1058,6 @@ class CMakeInterpreter:
         root_cb.lines += [function('project', [self.project_name] + self.languages)]
 
         # Add the run script for custom commands
-        run_script = pkg_resources.resource_filename('mesonbuild', 'cmake/data/run_ctgt.py')
-        run_script_var = 'ctgt_run_script'
-        root_cb.lines += [assign(run_script_var, function('find_program', [[run_script]], {'required': True}))]
 
         # Add the targets
         processing = []
@@ -1134,21 +1153,26 @@ class CMakeInterpreter:
             dep_var = '{}_dep'.format(tgt.name)
             tgt_var = tgt.name
 
+            install_tgt = options.get_install(tgt.cmake_name, tgt.install)
+
             # Generate target kwargs
             tgt_kwargs = {
-                'build_by_default': tgt.install,
-                'link_args': tgt.link_flags + tgt.link_libraries,
+                'build_by_default': install_tgt,
+                'link_args': options.get_link_args(tgt.cmake_name, tgt.link_flags + tgt.link_libraries),
                 'link_with': link_with,
                 'include_directories': id_node(inc_var),
-                'install': tgt.install,
-                'install_dir': tgt.install_dir,
-                'override_options': tgt.override_options,
+                'install': install_tgt,
+                'override_options': options.get_override_options(tgt.cmake_name, tgt.override_options),
                 'objects': [method(x, 'extract_all_objects') for x in objec_libs],
             }
 
+            # Only set if installed and only override if it is set
+            if install_tgt and tgt.install_dir:
+                tgt_kwargs['install_dir'] = tgt.install_dir
+
             # Handle compiler args
             for key, val in tgt.compile_opts.items():
-                tgt_kwargs['{}_args'.format(key)] = val
+                tgt_kwargs['{}_args'.format(key)] = options.get_compile_args(tgt.cmake_name, key, val)
 
             # Handle -fPCI, etc
             if tgt_func == 'executable':
@@ -1220,7 +1244,8 @@ class CMakeInterpreter:
 
             # Generate the command list
             command = []
-            command += [id_node(run_script_var)]
+            command += mesonlib.meson_command
+            command += ['--internal', 'cmake_run_ctgt']
             command += ['-o', '@OUTPUT@']
             if tgt.original_outputs:
                 command += ['-O'] + tgt.original_outputs

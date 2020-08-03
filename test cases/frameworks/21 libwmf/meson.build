@@ -1,7 +1,7 @@
 project('libwmf test', 'c')
 
 wm = find_program('libwmf-config', required : false)
-if not wm.found()
+if not wm.found() or meson.is_cross_build()
   error('MESON_SKIP_TEST: libwmf-config not installed')
 endif
 

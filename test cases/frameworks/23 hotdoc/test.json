@@ -314,5 +314,8 @@
     {"type": "file", "file": "usr/share/doc/foobar/html/assets/fonts/dumped.trie"},
     {"type": "file", "file": "usr/share/doc/foobar/html/assets/images/home.svg"},
     {"type": "file", "file": "usr/share/doc/foobar/html/assets/images/dumped.trie"}
-  ]
+  ],
+  "tools": {
+    "hotdoc": ">=0.1.0"
+  }
 }

@@ -113,10 +113,22 @@ def gnu_syms(libfilename: str, outfilename: str):
             continue
         line_split = line.split()
         entry = line_split[0:2]
-        if len(line_split) >= 4:
+        # Store the size of symbols pointing to data objects so we relink
+        # when those change, which is needed because of copy relocations
+        # https://github.com/mesonbuild/meson/pull/7132#issuecomment-628353702
+        if line_split[1].upper() in ('B', 'G', 'D') and len(line_split) >= 4:
             entry += [line_split[3]]
         result += [' '.join(entry)]
     write_if_changed('\n'.join(result) + '\n', outfilename)
+
+def solaris_syms(libfilename: str, outfilename: str):
+    # gnu_syms() works with GNU nm & readelf, not Solaris nm & elfdump
+    origpath = os.environ['PATH']
+    try:
+        os.environ['PATH'] = '/usr/gnu/bin:' + origpath
+        gnu_syms(libfilename, outfilename)
+    finally:
+        os.environ['PATH'] = origpath
 
 def osx_syms(libfilename: str, outfilename: str):
     # Get the name of the library
@@ -137,6 +149,23 @@ def osx_syms(libfilename: str, outfilename: str):
         dummy_syms(outfilename)
         return
     result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
+    write_if_changed('\n'.join(result) + '\n', outfilename)
+
+def openbsd_syms(libfilename: str, outfilename: str):
+    # Get the name of the library
+    output = call_tool('readelf', ['-d', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    result = [x for x in output.split('\n') if 'SONAME' in x]
+    assert(len(result) <= 1)
+    # Get a list of all symbols exported
+    output = call_tool('nm', ['-D', '-P', '-g', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    # U = undefined (cope with the lack of --defined-only option)
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n') if x and not x.endswith('U ')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
 def cygwin_syms(impfilename: str, outfilename: str):
@@ -234,6 +263,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         gnu_syms(libfilename, outfilename)
     elif mesonlib.is_osx():
         osx_syms(libfilename, outfilename)
+    elif mesonlib.is_openbsd():
+        openbsd_syms(libfilename, outfilename)
     elif mesonlib.is_windows():
         if os.path.isfile(impfilename):
             windows_syms(impfilename, outfilename)
@@ -248,6 +279,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
             # No import library. Not sure how the DLL is being used, so just
             # rebuild everything that links to it every time.
             dummy_syms(outfilename)
+    elif mesonlib.is_sunos():
+        solaris_syms(libfilename, outfilename)
     else:
         if not os.path.exists(TOOL_WARNING_FILE):
             mlog.warning('Symbol extracting has not been implemented for this '

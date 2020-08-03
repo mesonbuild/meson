@@ -17,7 +17,7 @@ by setting them inside `default_options` of `project()` in your `meson.build`.
 
 For legacy reasons `--warnlevel` is the cli argument for the `warning_level` option.
 
-They can also be edited after setup using `meson configure`.
+They can also be edited after setup using `meson configure -Doption=value`.
 
 Installation options are all relative to the prefix, except:
 
@@ -55,37 +55,31 @@ particularly the paths section may be necessary.
 
 ### Core options
 
-Options that are labeled "per machine" in the table are set per machine.
-Prefixing the option with `build.` just affects the build machine configuration,
-while unprefixed just affects the host machine configuration, respectively.
-Using the option as-is with no prefix affects all machines. For example:
+Options that are labeled "per machine" in the table are set per machine. See
+the [specifying options per machine](#Specifying-options-per-machine) section
+for details.
 
- - `build.pkg_config_path` controls the paths pkg-config will search for just
-   `native: true` dependencies (build machine).
-
- - `pkg_config_path` controls the paths pkg-config will search for just
-   `native: false` dependencies (host machine).
-
-| Option                               | Default value | Description                                                    | Is per machine |
-| ------                               | ------------- | -----------                                                    | -------------- |
-| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             |
-| backend {ninja, vs,<br>vs2010, vs2015, vs2017, vs2019, xcode} | ninja | Backend to use                                | no             |
-| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             |
-| debug                                | true          | Debug                                                          | no             |
-| default_library {shared, static, both} | shared      | Default library type                                           | no             |
-| errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             |
-| install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             |
-| layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             |
-| optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no             |
-| pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes            |
-| cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes            |
-| stdsplit                             | true          | Split stdout and stderr in test logs                           | no             |
-| strip                                | false         | Strip targets on install                                       | no             |
-| unity {on, off, subprojects}         | off           | Unity build                                                    | no             |
-| unity_size {>=2}                     | 4             | Unity file block size                                          | no             |
-| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             |
-| werror                               | false         | Treat warnings as errors                                       | no             |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             |
+| Option                               | Default value | Description                                                    | Is per machine | Is per subproject |
+| ------                               | ------------- | -----------                                                    | -------------- | ----------------- |
+| auto_features {enabled, disabled, auto} | auto       | Override value of all 'auto' features                          | no             | no                |
+| backend {ninja, vs,<br>vs2010, vs2015, vs2017, vs2019, xcode} | ninja | Backend to use                                | no             | no                |
+| buildtype {plain, debug,<br>debugoptimized, release, minsize, custom} | debug |  Build type to use                    | no             | no                |
+| debug                                | true          | Debug                                                          | no             | no                |
+| default_library {shared, static, both} | shared      | Default library type                                           | no             | yes               |
+| errorlogs                            | true          | Whether to print the logs from failing tests.                  | no             | no                |
+| install_umask {preserve, 0000-0777}  | 022           | Default umask to apply on permissions of installed files       | no             | no                |
+| layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             | no                |
+| optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no             | no                |
+| pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
+| cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes            | no                |
+| stdsplit                             | true          | Split stdout and stderr in test logs                           | no             | no                |
+| strip                                | false         | Strip targets on install                                       | no             | no                |
+| unity {on, off, subprojects}         | off           | Unity build                                                    | no             | no                |
+| unity_size {>=2}                     | 4             | Unity file block size                                          | no             | no                |
+| warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             | yes               |
+| werror                               | false         | Treat warnings as errors                                       | no             | yes               |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             | no                |
+| force_fallback_for                   | []            | Force fallback for those dependencies                          | no             | no                |
 
 <a name="build-type-options"></a>
 For setting optimization levels and toggling debug, you can either set the
@@ -186,9 +180,9 @@ The default values of `c_winlibs` and `cpp_winlibs` are in compiler-specific
 argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
 shell32, ole32, oleaut32, uuid, comdlg32, advapi32.
 
-c_args, cpp_args, c_link_args, and cpp_link_args only affect native builds,
-when cross compiling they will not be applied to binaries or libraries
-targeting the host system, only those being run on the build system.
+All these `<lang>_*` options are specified per machine. See below in the
+[specifying options per machine](#Specifying-options-per-machine) section on
+how to do this in cross builds.
 
 When using MSVC, `cpp_eh=none` will result in no exception flags being passed,
 while the `cpp_eh=[value]` will result in `/EH[value]`.
@@ -199,3 +193,44 @@ gcc-style compilers, nothing is passed (allowing exceptions to work), while
 Since *0.54.0* The `<lang>_thread_count` option can be used to control the
 value passed to `-s PTHREAD_POOL_SIZE` when using emcc. No other c/c++
 compiler supports this option.
+
+## Specifying options per machine
+
+Since *0.51.0*, some options are specified per machine rather than globally for
+all machine configurations. Prefixing the option with `build.` just affects the
+build machine configuration, while unprefixed just affects the host machine
+configuration, respectively. For example:
+
+ - `build.pkg_config_path` controls the paths pkg-config will search for just
+   `native: true` dependencies (build machine).
+
+ - `pkg_config_path` controls the paths pkg-config will search for just
+   `native: false` dependencies (host machine).
+
+This is useful for cross builds. In the native builds, build = host, and the
+unprefixed option alone will suffice.
+
+Prior to *0.51.0*, these options just effected native builds when specified on
+the command line, as there was no `build.` prefix. Similarly named fields in
+the `[properties]` section of the cross file would effect cross compilers, but
+the code paths were fairly different allowing differences in behavior to crop
+out.
+
+## Specifying options per subproject
+
+Since *0.54.0* `default_library` and `werror` built-in options can be defined
+per subproject. This is useful for example when building shared libraries in the
+main project, but static link a subproject, or when the main project must build
+with no warnings but some subprojects cannot.
+
+Most of the time this would be used either by the parent project by setting
+subproject's default_options (e.g. `subproject('foo', default_options: 'default_library=static')`),
+or by the user using the command line `-Dfoo:default_library=static`.
+
+The value is overriden in this order:
+- Value from parent project
+- Value from subproject's default_options if set
+- Value from subproject() default_options if set
+- Value from command line if set
+
+Since 0.56.0 `warning_level` can also be defined per subproject.

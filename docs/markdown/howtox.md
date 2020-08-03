@@ -25,7 +25,7 @@ for the host platform in cross builds can only be specified with a cross file.
 There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
 
 
-## Set dynamic linker
+## Set linker
 
 *New in 0.53.0*
 
@@ -148,15 +148,14 @@ $ meson <other flags> -Db_coverage=true
 Then issue the following commands.
 
 ```console
-$ ninja
-$ ninja test
-$ ninja coverage-html (or coverage-xml)
+$ meson compile
+$ meson test
+$ meson compile coverage-html (or coverage-xml)
 ```
 
 The coverage report can be found in the meson-logs subdirectory.
 
-Note: Currently, Meson does not support generating coverage reports
-with Clang.
+*New in 0.55.0* llvm-cov support for use with clang
 
 ## Add some optimization to debug builds
 
@@ -191,14 +190,14 @@ test failures.
 Install scan-build and configure your project. Then do this:
 
 ```console
-$ ninja scan-build
+$ meson compile scan-build
 ```
 
 You can use the `SCANBUILD` environment variable to choose the
 scan-build executable.
 
 ```console
-$ SCANBUILD=<your exe> ninja scan-build
+$ SCANBUILD=<your exe> meson compile scan-build
 ```
 
 
@@ -209,8 +208,8 @@ operation. First we set up the project with profile measurements
 enabled and compile it.
 
 ```console
-$ meson  <Meson options, such as --buildtype=debugoptimized> -Db_pgo=generate
-$ ninja -C builddir
+$ meson setup <Meson options, such as --buildtype=debugoptimized> -Db_pgo=generate
+$ meson compile -C builddir
 ```
 
 Then we need to run the program with some representative input. This
@@ -221,7 +220,7 @@ information and rebuild.
 
 ```console
 $ meson configure -Db_pgo=use
-$ ninja
+$ meson compile
 ```
 
 After these steps the resulting binary is fully optimized.
@@ -260,3 +259,28 @@ The `cmake_module_path` property is only needed for custom CMake scripts. System
 wide CMake scripts are found automatically.
 
 More information can be found [here](Dependencies.md#cmake)
+
+## Get a default not-found dependency?
+
+```meson
+null_dep = dependency('', required : false)
+```
+
+This can be used in cases where you want a default value, but might override it
+later.
+
+```meson
+# Not needed on Windows!
+my_dep = dependency('', required : false)
+if host_machine.system() in ['freebsd', 'netbsd', 'openbsd', 'dragonfly']
+  my_dep = dependency('some dep', required : false)
+elif host_machine.system() == 'linux'
+  my_dep = dependency('some other dep', required : false)
+endif
+
+executable(
+  'myexe',
+  my_sources,
+  deps : [my_dep]
+)
+```

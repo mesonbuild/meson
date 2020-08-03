@@ -174,7 +174,7 @@ contents of an additional file into the CI log on failure.
 Projects needed by unit tests are in the `test cases/unit`
 subdirectory. They are not run as part of `./run_project_tests.py`.
 
-#### Configuring project tests
+### Configuring project tests
 
 The (optional) `test.json` file, in the root of a test case, is used
 for configuring the test. All of the following root entries in the `test.json`
@@ -209,17 +209,20 @@ Exanple `test.json`:
       { "opt1": "qwert", "opt2": "false" },
       { "opt1": "bad"                    }
     ]
+  },
+  "tools": {
+    "cmake": ">=3.11"
   }
 }
 ```
 
-##### env
+#### env
 
 The `env` key contains a dictionary which specifies additional
 environment variables to be set during the configure step of the test. `@ROOT@`
 is replaced with the absolute path of the source directory.
 
-##### installed
+#### installed
 
 The `installed` dict contains a list of dicts, describing which files are expected
 to be installed. Each dict contains the following keys:
@@ -277,7 +280,7 @@ the platform matches. The following values for `platform` are currently supporte
 | `cygwin`   | Matches when the platform is cygwin                                  |
 | `!cygwin`  | Not `cygwin`                                                         |
 
-##### matrix
+#### matrix
 
 The `matrix` section can be used to define a test matrix to run project tests
 with different meson options.
@@ -318,11 +321,39 @@ The above example will produce the following matrix entries:
 - `opt1=qwert`
 - `opt1=qwert opt2=true`
 
-##### do_not_set_opts
+#### do_not_set_opts
 
 Currently supported values are:
 - `prefix`
 - `libdir`
+
+#### tools
+
+This section specifies a dict of tool requirements in a simple key-value format.
+If a tool is specified, it has to be present in the environment, and the version
+requirement must be fulfilled. Otherwise, the entire test is skipped (including
+every element in the test matrix).
+
+#### stdout
+
+The `stdout` key contains a list of dicts, describing the expected stdout.
+
+Each dict contains the following keys:
+
+- `line`
+- `match` (optional)
+
+Each item in the list is matched, in order, against the remaining actual stdout
+lines, after any previous matches. If the actual stdout is exhausted before
+every item in the list is matched, the expected output has not been seen, and
+the test has failed.
+
+The `match` element of the dict determines how the `line` element is matched:
+
+| Type      | Description             |
+| --------  | ----------------------- |
+| `literal` | Literal match (default) |
+| `re`      | regex match             |
 
 ### Skipping integration tests
 

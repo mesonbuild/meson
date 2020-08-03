@@ -107,7 +107,7 @@ class WindowsModule(ExtensionModule):
                 'a MinGW bug: https://sourceware.org/bugzilla/show_bug.cgi?id=4933'
             for arg in extra_args:
                 if ' ' in arg:
-                    mlog.warning(m.format(arg))
+                    mlog.warning(m.format(arg), fatal=False)
 
         res_targets = []
 

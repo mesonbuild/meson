@@ -86,7 +86,7 @@ class MesonApp:
                     # will cause a crash
                     for l in os.listdir(self.build_dir):
                         l = os.path.join(self.build_dir, l)
-                        if os.path.isdir(l):
+                        if os.path.isdir(l) and not os.path.islink(l):
                             mesonlib.windows_proof_rmtree(l)
                         else:
                             mesonlib.windows_proof_rm(l)

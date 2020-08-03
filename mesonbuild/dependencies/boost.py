@@ -20,9 +20,10 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
+from ..envconfig import get_env_var
 from ..environment import Environment
 
-from .base import (DependencyException, ExternalDependency)
+from .base import DependencyException, ExternalDependency, PkgConfigDependency
 from .misc import threads_factory
 
 # On windows 3 directory layouts are supported:
@@ -163,8 +164,8 @@ class BoostLibraryFile():
         if not tags:
             return
 
-        # Without any tags mt is assumed, however, an absents of mt in the name
-        # with tags present indicates that the lib was build without mt support
+        # Without any tags mt is assumed, however, an absence of mt in the name
+        # with tags present indicates that the lib was built without mt support
         self.mt = False
         for i in tags:
             if i == 'mt':
@@ -189,13 +190,13 @@ class BoostLibraryFile():
     def __lt__(self, other: T.Any) -> bool:
         if isinstance(other, BoostLibraryFile):
             return (
-                self.mod_name, self.version_lib, self.arch, self.static,
+                self.mod_name, self.static, self.version_lib, self.arch,
                 not self.mt, not self.runtime_static,
                 not self.debug, self.runtime_debug, self.python_debug,
                 self.stlport, self.deprecated_iostreams,
                 self.name,
             ) < (
-                other.mod_name, other.version_lib, other.arch, other.static,
+                other.mod_name, other.static, other.version_lib, other.arch,
                 not other.mt, not other.runtime_static,
                 not other.debug, other.runtime_debug, other.python_debug,
                 other.stlport, other.deprecated_iostreams,
@@ -344,6 +345,7 @@ class BoostDependency(ExternalDependency):
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
         self.boost_root = None
+        self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
         self.modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
@@ -366,36 +368,27 @@ class BoostDependency(ExternalDependency):
         self.arch = environment.machines[self.for_machine].cpu_family
         self.arch = boost_arch_map.get(self.arch, None)
 
-        # Prefere BOOST_INCLUDEDIR and BOOST_LIBRARYDIR if preset
-        boost_manual_env = [x in os.environ for x in ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR']]
-        if all(boost_manual_env):
-            inc_dir = Path(os.environ['BOOST_INCLUDEDIR'])
-            lib_dir = Path(os.environ['BOOST_LIBRARYDIR'])
-            mlog.debug('Trying to find boost with:')
-            mlog.debug('  - BOOST_INCLUDEDIR = {}'.format(inc_dir))
-            mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
-
-            boost_inc_dir = None
-            for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
-                if j.is_file():
-                    boost_inc_dir = self._include_dir_from_version_header(j)
-                    break
-            if not boost_inc_dir:
-                self.is_found = False
-                return
-
-            self.is_found = self.run_check([boost_inc_dir], [lib_dir])
+        # First, look for paths specified in a machine file
+        props = self.env.properties[self.for_machine]
+        boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir'), props.get('boost_root')]
+        if any(boost_property_env):
+            self.detect_boost_machine_file(props)
             return
-        elif any(boost_manual_env):
-            mlog.warning('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
 
-        # A) Detect potential boost root directories (uses also BOOST_ROOT env var)
-        roots = self.detect_roots()
+        # Next, look for paths in the environment
+        boost_manual_env_list = ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR', 'BOOST_ROOT', 'BOOSTROOT']
+        boost_manual_env = [get_env_var(self.for_machine, self.env.is_cross_build, x) for x in boost_manual_env_list]
+        if any(boost_manual_env):
+            self.detect_boost_env()
+            return
+
+        # Finally, look for paths from .pc files and from searching the filesystem
+        self.detect_roots()
+
+    def check_and_set_roots(self, roots) -> None:
         roots = list(mesonlib.OrderedSet(roots))
-
-        # B) Foreach candidate
         for j in roots:
-            #   1. Look for the boost headers (boost/version.pp)
+            #   1. Look for the boost headers (boost/version.hpp)
             mlog.debug('Checking potential boost root {}'.format(j.as_posix()))
             inc_dirs = self.detect_inc_dirs(j)
             inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
@@ -410,11 +403,88 @@ class BoostDependency(ExternalDependency):
                 self.boost_root = j
                 break
 
+    def detect_boost_machine_file(self, props) -> None:
+        incdir = props.get('boost_includedir')
+        libdir = props.get('boost_librarydir')
+
+        if incdir and libdir:
+            inc_dir = Path(props['boost_includedir'])
+            lib_dir = Path(props['boost_librarydir'])
+
+            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                raise DependencyException('Paths given for boost_includedir and boost_librarydir in machine file must be absolute')
+
+            mlog.debug('Trying to find boost with:')
+            mlog.debug('  - boost_includedir = {}'.format(inc_dir))
+            mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
+
+            return self.detect_split_root(inc_dir, lib_dir)
+
+        elif incdir or libdir:
+            raise DependencyException('Both boost_includedir *and* boost_librarydir have to be set in your machine file (one is not enough)')
+
+        rootdir = props.get('boost_root')
+        # It shouldn't be possible to get here without something in boost_root
+        assert(rootdir)
+
+        raw_paths = mesonlib.stringlistify(rootdir)
+        paths = [Path(x) for x in raw_paths]
+        if paths and any([not x.is_absolute() for x in paths]):
+            raise DependencyException('boost_root path given in machine file must be absolute')
+
+        self.check_and_set_roots(paths)
+
+    def detect_boost_env(self):
+        boost_includedir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_INCLUDEDIR')
+        boost_librarydir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_LIBRARYDIR')
+
+        boost_manual_env = [boost_includedir, boost_librarydir]
+        if all(boost_manual_env):
+            inc_dir = Path(boost_includedir)
+            lib_dir = Path(boost_librarydir)
+
+            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
+                raise DependencyException('Paths given in BOOST_INCLUDEDIR and BOOST_LIBRARYDIR must be absolute')
+
+            mlog.debug('Trying to find boost with:')
+            mlog.debug('  - BOOST_INCLUDEDIR = {}'.format(inc_dir))
+            mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
+
+            return self.detect_split_root(inc_dir, lib_dir)
+
+        elif any(boost_manual_env):
+            raise DependencyException('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
+
+        boost_root = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_ROOT')
+        boostroot = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOSTROOT')
+
+        # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
+        assert(boost_root or boostroot)
+
+        for path, name in [(boost_root, 'BOOST_ROOT'), (boostroot, 'BOOSTROOT')]:
+            if path:
+                raw_paths = path.split(os.pathsep)
+                paths = [Path(x) for x in raw_paths]
+                if paths and any([not x.is_absolute() for x in paths]):
+                    raise DependencyException('Paths in {} must be absolute'.format(name))
+                break
+
+        self.check_and_set_roots(paths)
+
     def run_check(self, inc_dirs: T.List[BoostIncludeDir], lib_dirs: T.List[Path]) -> bool:
+        mlog.debug('  - potential library dirs: {}'.format([x.as_posix() for x in lib_dirs]))
+        mlog.debug('  - potential include dirs: {}'.format([x.path.as_posix() for x in inc_dirs]))
+
         #   2. Find all boost libraries
         libs = []  # type: T.List[BoostLibraryFile]
         for i in lib_dirs:
-            libs += self.detect_libraries(i)
+            libs = self.detect_libraries(i)
+            if libs:
+                mlog.debug('  - found boost library dir: {}'.format(i))
+                # mlog.debug('  - raw library list:')
+                # for j in libs:
+                #     mlog.debug('    - {}'.format(j))
+                break
         libs = sorted(set(libs))
 
         modules = ['boost_' + x for x in self.modules]
@@ -422,9 +492,6 @@ class BoostDependency(ExternalDependency):
             mlog.debug('  - found boost {} include dir: {}'.format(inc.version, inc.path))
             f_libs = self.filter_libraries(libs, inc.version_lib)
 
-            # mlog.debug('  - raw library list:')
-            # for j in libs:
-            #     mlog.debug('    - {}'.format(j))
             mlog.debug('  - filtered library list:')
             for j in f_libs:
                 mlog.debug('    - {}'.format(j))
@@ -499,6 +566,19 @@ class BoostDependency(ExternalDependency):
         return [self._include_dir_from_version_header(x) for x in candidates]
 
     def detect_lib_dirs(self, root: Path) -> T.List[Path]:
+        # First check the system include paths. Only consider those within the
+        # given root path
+        system_dirs_t = self.clib_compiler.get_library_dirs(self.env)
+        system_dirs = [Path(x) for x in system_dirs_t]
+        system_dirs = [x.resolve() for x in system_dirs if x.exists()]
+        system_dirs = [x for x in system_dirs if mesonlib.path_is_in_root(x, root)]
+        system_dirs = list(mesonlib.OrderedSet(system_dirs))
+
+        if system_dirs:
+            return system_dirs
+
+        # No system include paths were found --> fall back to manually looking
+        # for library dirs in root
         dirs = []     # type: T.List[Path]
         subdirs = []  # type: T.List[Path]
         for i in root.iterdir():
@@ -510,7 +590,25 @@ class BoostDependency(ExternalDependency):
             for j in i.iterdir():
                 if j.is_dir() and j.name.endswith('-linux-gnu'):
                     subdirs += [j]
-        return dirs + subdirs
+
+        # Filter out paths that don't match the target arch to avoid finding
+        # the wrong libraries. See https://github.com/mesonbuild/meson/issues/7110
+        if not self.arch:
+            return dirs + subdirs
+
+        arch_list_32 = ['32', 'i386']
+        arch_list_64 = ['64']
+
+        raw_list = dirs + subdirs
+        no_arch = [x for x in raw_list if not any([y in x.name for y in arch_list_32 + arch_list_64])]
+
+        matching_arch = []  # type: T.List[Path]
+        if '32' in self.arch:
+            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_32])]
+        elif '64' in self.arch:
+            matching_arch = [x for x in raw_list if any([y in x.name for y in arch_list_64])]
+
+        return sorted(matching_arch) + sorted(no_arch)
 
     def filter_libraries(self, libs: T.List[BoostLibraryFile], lib_vers: str) -> T.List[BoostLibraryFile]:
         # MSVC is very picky with the library tags
@@ -522,7 +620,13 @@ class BoostDependency(ExternalDependency):
         except (KeyError, IndexError, AttributeError):
             pass
 
-        libs = [x for x in libs if x.static == self.static]
+        # mlog.debug('    - static: {}'.format(self.static))
+        # mlog.debug('    - not explicit static: {}'.format(not self.explicit_static))
+        # mlog.debug('    - mt: {}'.format(self.multithreading))
+        # mlog.debug('    - version: {}'.format(lib_vers))
+        # mlog.debug('    - arch: {}'.format(self.arch))
+        # mlog.debug('    - vscrt: {}'.format(vscrt))
+        libs = [x for x in libs if x.static == self.static or not self.explicit_static]
         libs = [x for x in libs if x.mt == self.multithreading]
         libs = [x for x in libs if x.version_matches(lib_vers)]
         libs = [x for x in libs if x.arch_matches(self.arch)]
@@ -554,18 +658,37 @@ class BoostDependency(ExternalDependency):
             libs += [BoostLibraryFile(i)]
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
-    def detect_roots(self) -> T.List[Path]:
+    def detect_split_root(self, inc_dir, lib_dir) -> None:
+        boost_inc_dir = None
+        for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
+            if j.is_file():
+                boost_inc_dir = self._include_dir_from_version_header(j)
+                break
+        if not boost_inc_dir:
+            self.is_found = False
+            return
+
+        self.is_found = self.run_check([boost_inc_dir], [lib_dir])
+
+    def detect_roots(self) -> None:
         roots = []  # type: T.List[Path]
 
-        # Add roots from the environment
-        for i in ['BOOST_ROOT', 'BOOSTROOT']:
-            if i in os.environ:
-                raw_paths = os.environ[i].split(os.pathsep)
-                paths = [Path(x) for x in raw_paths]
-                if paths and any([not x.is_absolute() for x in paths]):
-                    raise DependencyException('Paths in {} must be absolute'.format(i))
-                roots += paths
-                return roots  # Do not add system paths if BOOST_ROOT is present
+        # Try getting the BOOST_ROOT from a boost.pc if it exists. This primarily
+        # allows BoostDependency to find boost from Conan. See #5438
+        try:
+            boost_pc = PkgConfigDependency('boost', self.env, {'required': False})
+            if boost_pc.found():
+                boost_root = boost_pc.get_pkgconfig_variable('prefix', {'default': None})
+                if boost_root:
+                    roots += [Path(boost_root)]
+        except DependencyException:
+            pass
+
+        # Add roots from system paths
+        inc_paths = [Path(x) for x in self.clib_compiler.get_default_include_dirs()]
+        inc_paths = [x.parent for x in inc_paths if x.exists()]
+        inc_paths = [x.resolve() for x in inc_paths]
+        roots += inc_paths
 
         # Add system paths
         if self.env.machines[self.for_machine].is_windows():
@@ -588,8 +711,6 @@ class BoostDependency(ExternalDependency):
             roots += [x for x in candidates if x.name.lower().startswith('boost') and x.is_dir()]
         else:
             tmp = []  # type: T.List[Path]
-            # Add unix paths
-            tmp += [Path(x).parent for x in self.clib_compiler.get_default_include_dirs()]
 
             # Homebrew
             brew_boost = Path('/usr/local/Cellar/boost')
@@ -607,7 +728,7 @@ class BoostDependency(ExternalDependency):
             tmp = [x.resolve() for x in tmp]
             roots += tmp
 
-        return roots
+        self.check_and_set_roots(roots)
 
     def log_details(self) -> str:
         res = ''
@@ -637,11 +758,8 @@ class BoostDependency(ExternalDependency):
         return BoostIncludeDir(hfile.parents[1], int(m.group(1)))
 
     def _extra_compile_args(self) -> T.List[str]:
-        args = []  # type: T.List[str]
-        args += ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
-        if not self.static:
-            args += ['-DBOOST_ALL_DYN_LINK']
-        return args
+        # BOOST_ALL_DYN_LINK should not be required with the known defines below
+        return ['-DBOOST_ALL_NO_LIB']  # Disable automatic linking
 
 
 # See https://www.boost.org/doc/libs/1_72_0/more/getting_started/unix-variants.html#library-naming
@@ -665,9 +783,9 @@ boost_arch_map = {
 ####      ---- BEGIN GENERATED ----      ####
 #                                           #
 # Generated with tools/boost_names.py:
-#  - boost version:   1.72.0
-#  - modules found:   158
-#  - libraries found: 42
+#  - boost version:   1.73.0
+#  - modules found:   159
+#  - libraries found: 43
 #
 
 class BoostLibrary():
@@ -690,16 +808,16 @@ class BoostModule():
 boost_libraries = {
     'boost_atomic': BoostLibrary(
         name='boost_atomic',
-        shared=[],
-        static=[],
+        shared=['-DBOOST_ATOMIC_DYN_LINK=1'],
+        static=['-DBOOST_ATOMIC_STATIC_LINK=1'],
         single=[],
         multi=[],
     ),
     'boost_chrono': BoostLibrary(
         name='boost_chrono',
-        shared=['-DBOOST_ALL_DYN_LINK=1'],
-        static=['-DBOOST_All_STATIC_LINK=1'],
-        single=[],
+        shared=['-DBOOST_CHRONO_DYN_LINK=1'],
+        static=['-DBOOST_CHRONO_STATIC_LINK=1'],
+        single=['-DBOOST_CHRONO_THREAD_DISABLED'],
         multi=[],
     ),
     'boost_container': BoostLibrary(
@@ -711,28 +829,28 @@ boost_libraries = {
     ),
     'boost_context': BoostLibrary(
         name='boost_context',
-        shared=[],
+        shared=['-DBOOST_CONTEXT_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_contract': BoostLibrary(
         name='boost_contract',
-        shared=[],
-        static=[],
-        single=[],
+        shared=['-DBOOST_CONTRACT_DYN_LINK'],
+        static=['-DBOOST_CONTRACT_STATIC_LINK'],
+        single=['-DBOOST_CONTRACT_DISABLE_THREADS'],
         multi=[],
     ),
     'boost_coroutine': BoostLibrary(
         name='boost_coroutine',
-        shared=[],
+        shared=['-DBOOST_COROUTINES_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_date_time': BoostLibrary(
         name='boost_date_time',
-        shared=[],
+        shared=['-DBOOST_DATE_TIME_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
@@ -746,14 +864,14 @@ boost_libraries = {
     ),
     'boost_fiber': BoostLibrary(
         name='boost_fiber',
-        shared=[],
+        shared=['-DBOOST_FIBERS_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_fiber_numa': BoostLibrary(
         name='boost_fiber_numa',
-        shared=[],
+        shared=['-DBOOST_FIBERS_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
@@ -767,84 +885,91 @@ boost_libraries = {
     ),
     'boost_graph': BoostLibrary(
         name='boost_graph',
-        shared=['-DBOOST_GRAPH_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_iostreams': BoostLibrary(
         name='boost_iostreams',
-        shared=['-DBOOST_IOSTREAMS_DYN_LINK=1', '-DBOOST_IOSTREAMS_DYN_LINK=1'],
+        shared=['-DBOOST_IOSTREAMS_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_locale': BoostLibrary(
         name='boost_locale',
-        shared=['-DBOOST_LOCALE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_log': BoostLibrary(
         name='boost_log',
-        shared=['-DBOOST_LOG_DLL', '-DBOOST_LOG_DYN_LINK=1'],
+        shared=['-DBOOST_LOG_DYN_LINK=1'],
         static=[],
-        single=['BOOST_LOG_NO_THREADS'],
+        single=['-DBOOST_LOG_NO_THREADS'],
         multi=[],
     ),
     'boost_log_setup': BoostLibrary(
         name='boost_log_setup',
-        shared=['-DBOOST_LOG_DYN_LINK=1', '-DBOOST_LOG_SETUP_DLL', '-DBOOST_LOG_SETUP_DYN_LINK=1'],
+        shared=['-DBOOST_LOG_SETUP_DYN_LINK=1'],
         static=[],
-        single=['BOOST_LOG_NO_THREADS'],
+        single=['-DBOOST_LOG_NO_THREADS'],
         multi=[],
     ),
     'boost_math_c99': BoostLibrary(
         name='boost_math_c99',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_math_c99f': BoostLibrary(
         name='boost_math_c99f',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_math_c99l': BoostLibrary(
         name='boost_math_c99l',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_math_tr1': BoostLibrary(
         name='boost_math_tr1',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_math_tr1f': BoostLibrary(
         name='boost_math_tr1f',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_math_tr1l': BoostLibrary(
         name='boost_math_tr1l',
-        shared=['-DBOOST_MATH_TR1_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_mpi': BoostLibrary(
         name='boost_mpi',
-        shared=['-DBOOST_MPI_DYN_LINK=1'],
+        shared=[],
+        static=[],
+        single=[],
+        multi=[],
+    ),
+    'boost_nowide': BoostLibrary(
+        name='boost_nowide',
+        shared=['-DBOOST_NOWIDE_DYN_LINK=1'],
         static=[],
         single=[],
         multi=[],
@@ -865,63 +990,63 @@ boost_libraries = {
     ),
     'boost_random': BoostLibrary(
         name='boost_random',
-        shared=[],
+        shared=['-DBOOST_RANDOM_DYN_LINK'],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_regex': BoostLibrary(
         name='boost_regex',
-        shared=['-DBOOST_REGEX_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_serialization': BoostLibrary(
         name='boost_serialization',
-        shared=['-DBOOST_SERIALIZATION_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_addr2line': BoostLibrary(
         name='boost_stacktrace_addr2line',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_backtrace': BoostLibrary(
         name='boost_stacktrace_backtrace',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_basic': BoostLibrary(
         name='boost_stacktrace_basic',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_noop': BoostLibrary(
         name='boost_stacktrace_noop',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_windbg': BoostLibrary(
         name='boost_stacktrace_windbg',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
     ),
     'boost_stacktrace_windbg_cached': BoostLibrary(
         name='boost_stacktrace_windbg_cached',
-        shared=['-DBOOST_STACKTRACE_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],
@@ -942,8 +1067,8 @@ boost_libraries = {
     ),
     'boost_thread': BoostLibrary(
         name='boost_thread',
-        shared=['-DBOOST_THREAD_USE_DLL=1'],
-        static=['-DBOOST_THREAD_USE_LIB=1'],
+        shared=['-DBOOST_THREAD_BUILD_DLL=1', '-DBOOST_THREAD_USE_DLL=1'],
+        static=['-DBOOST_THREAD_BUILD_LIB=1', '-DBOOST_THREAD_USE_LIB=1'],
         single=[],
         multi=[],
     ),
@@ -956,7 +1081,7 @@ boost_libraries = {
     ),
     'boost_type_erasure': BoostLibrary(
         name='boost_type_erasure',
-        shared=[],
+        shared=['-DBOOST_TYPE_ERASURE_DYN_LINK'],
         static=[],
         single=[],
         multi=[],
@@ -977,7 +1102,7 @@ boost_libraries = {
     ),
     'boost_wserialization': BoostLibrary(
         name='boost_wserialization',
-        shared=['-DBOOST_SERIALIZATION_DYN_LINK=1'],
+        shared=[],
         static=[],
         single=[],
         multi=[],

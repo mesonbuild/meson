@@ -31,9 +31,11 @@ from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency, NonExistingExternalProgram
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
+from .base import find_external_program
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import ExternalProgram
 
 
 class GLDependencySystem(ExternalDependency):
@@ -227,22 +229,19 @@ class QtBaseDependency(ExternalDependency):
         bins = ['moc', 'uic', 'rcc', 'lrelease']
         found = {b: NonExistingExternalProgram(name='{}-{}'.format(b, self.name))
                  for b in bins}
+        wanted = '== {}'.format(self.version)
 
         def gen_bins():
             for b in bins:
                 if self.bindir:
                     yield os.path.join(self.bindir, b), b, False
+                # prefer the <tool>-qt<version> of the tool to the plain one, as we
+                # don't know what the unsuffixed one points to without calling it.
                 yield '{}-{}'.format(b, self.name), b, False
                 yield b, b, self.required if b != 'lrelease' else False
 
         for b, name, required in gen_bins():
             if found[name].found():
-                continue
-
-            # prefer the <tool>-qt<version> of the tool to the plain one, as we
-            # don't know what the unsuffixed one points to without calling it.
-            p = interp_obj.find_program_impl([b], silent=True, required=required).held_object
-            if not p.found():
                 continue
 
             if name == 'lrelease':
@@ -253,12 +252,18 @@ class QtBaseDependency(ExternalDependency):
                 arg = ['-v']
 
             # Ensure that the version of qt and each tool are the same
-            _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
-            if b.startswith('lrelease') or not self.version.startswith('4'):
-                care = out
-            else:
-                care = err
-            if mesonlib.version_compare(self.version, '== {}'.format(care.split(' ')[-1])):
+            def get_version(p):
+                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
+                if b.startswith('lrelease') or not self.version.startswith('4'):
+                    care = out
+                else:
+                    care = err
+                return care.split(' ')[-1].replace(')', '')
+
+            p = interp_obj.find_program_impl([b], required=required,
+                                             version_func=get_version,
+                                             wanted=wanted).held_object
+            if p.found():
                 found[name] = p
 
         return tuple([found[b] for b in bins])
@@ -324,10 +329,9 @@ class QtBaseDependency(ExternalDependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def search_qmake(self):
+    def search_qmake(self) -> T.Generator['ExternalProgram', None, None]:
         for qmake in ('qmake-' + self.name, 'qmake'):
-            for potential_qmake in self.search_tool(qmake, 'QMake', [qmake]):
-                yield potential_qmake
+            yield from find_external_program(self.env, self.for_machine, qmake, 'QMake', [qmake])
 
     def _qmake_detect(self, mods, kwargs):
         for qmake in self.search_qmake():
@@ -406,6 +410,9 @@ class QtBaseDependency(ExternalDependency):
             if libfile:
                 libfile = libfile[0]
             else:
+                mlog.log("Could not find:", module,
+                         self.qtpkgname + module + modules_lib_suffix,
+                         'in', libdir)
                 self.is_found = False
                 break
             self.link_args.append(libfile)
@@ -426,6 +433,20 @@ class QtBaseDependency(ExternalDependency):
         if self.env.machines[self.for_machine].is_darwin():
             if is_debug:
                 suffix += '_debug'
+        if mesonlib.version_compare(self.version, '>= 5.14.0'):
+            if self.env.machines[self.for_machine].is_android():
+                cpu_family = self.env.machines[self.for_machine].cpu_family
+                if cpu_family == 'x86':
+                    suffix += '_x86'
+                elif cpu_family == 'x86_64':
+                    suffix += '_x86_64'
+                elif cpu_family == 'arm':
+                    suffix += '_armeabi-v7a'
+                elif cpu_family == 'aarch64':
+                    suffix += '_arm64-v8a'
+                else:
+                    mlog.warning('Android target arch {!r} for Qt5 is unknown, '
+                                 'module detection may not work'.format(cpu_family))
         return suffix
 
     def _link_with_qtmain(self, is_debug, libdir):
@@ -528,10 +549,12 @@ class SDL2DependencyConfigTool(ConfigToolDependency):
     tools = ['sdl2-config']
     tool_name = 'sdl2-config'
 
-    @staticmethod
-    def finish_init(ctdep):
-        ctdep.compile_args = ctdep.get_config_value(['--cflags'], 'compile_args')
-        ctdep.link_args = ctdep.get_config_value(['--libs'], 'link_args')
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, environment, kwargs)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
     def get_methods():

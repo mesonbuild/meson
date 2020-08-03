@@ -12,19 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import abc
 import contextlib, os.path, re, tempfile
-import collections.abc
 import itertools
 import typing as T
 from functools import lru_cache
 
-from ..linkers import (
-    GnuLikeDynamicLinkerMixin, LinkerEnvVarsMixin, SolarisDynamicLinker,
-    StaticLinker,
-)
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
+from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, Language, MachineChoice, MesonException,
     Popen_safe, split_args
@@ -32,6 +29,7 @@ from ..mesonlib import (
 from ..envconfig import (
     Properties, get_env_var
 )
+from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..coredata import OptionDictType
@@ -52,7 +50,7 @@ lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
     Language.C: ('c',),
-    Language.CPP: ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx'),
+    Language.CPP: ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino'),
     Language.CUDA: ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
@@ -113,11 +111,6 @@ cflags_mapping = {
     Language.RUST: 'RUSTFLAGS',
 }
 
-unixy_compiler_internal_libs = ('m', 'c', 'pthread', 'dl', 'rt')
-# execinfo is a compiler lib on FreeBSD and NetBSD
-if mesonlib.is_freebsd() or mesonlib.is_netbsd():
-    unixy_compiler_internal_libs += ('execinfo',)
-
 # All these are only for C-linkable languages; see `clink_langs` above.
 
 def sort_clink(lang):
@@ -153,11 +146,15 @@ def is_llvm_ir(fname):
         fname = fname.fname
     return fname.split('.')[-1] == 'll'
 
+@lru_cache(maxsize=None)
+def cached_by_name(fname):
+    suffix = fname.split('.')[-1]
+    return suffix in obj_suffixes
+
 def is_object(fname):
     if hasattr(fname, 'fname'):
         fname = fname.fname
-    suffix = fname.split('.')[-1]
-    return suffix in obj_suffixes
+    return cached_by_name(fname)
 
 def is_library(fname):
     if hasattr(fname, 'fname'):
@@ -201,7 +198,7 @@ rust_buildtype_args = {'plain': [],
 d_gdc_buildtype_args = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-finline-functions'],
-                        'release': ['-frelease', '-finline-functions'],
+                        'release': ['-finline-functions'],
                         'minsize': [],
                         'custom': [],
                         }
@@ -209,7 +206,7 @@ d_gdc_buildtype_args = {'plain': [],
 d_ldc_buildtype_args = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-enable-inlining', '-Hkeep-all-bodies'],
-                        'release': ['-release', '-enable-inlining', '-Hkeep-all-bodies'],
+                        'release': ['-enable-inlining', '-Hkeep-all-bodies'],
                         'minsize': [],
                         'custom': [],
                         }
@@ -217,7 +214,7 @@ d_ldc_buildtype_args = {'plain': [],
 d_dmd_buildtype_args = {'plain': [],
                         'debug': [],
                         'debugoptimized': ['-inline'],
-                        'release': ['-release', '-inline'],
+                        'release': ['-inline'],
                         'minsize': [],
                         'custom': [],
                         }
@@ -335,7 +332,7 @@ def get_base_compile_args(options, compiler):
         if (options['b_ndebug'].value == 'true' or
                 (options['b_ndebug'].value == 'if-release' and
                  options['buildtype'].value in {'release', 'plain'})):
-            args += ['-DNDEBUG']
+            args += compiler.get_disable_assert_args()
     except KeyError:
         pass
     # This does not need a try...except
@@ -387,9 +384,10 @@ def get_base_link_args(options, linker, is_shared_module):
         # -Wl,-dead_strip_dylibs is incompatible with bitcode
         args.extend(linker.get_asneeded_args())
 
-    # Apple's ld (the only one that supports bitcode) does not like any
-    # -undefined arguments at all, so don't pass these when using bitcode
+    # Apple's ld (the only one that supports bitcode) does not like -undefined
+    # arguments or -headerpad_max_install_names when bitcode is enabled
     if not bitcode:
+        args.extend(linker.headerpad_args())
         if (not is_shared_module and
                 option_enabled(linker.base_options, options, 'b_lundef')):
             args.extend(linker.no_undefined_link_args())
@@ -418,334 +416,8 @@ class RunResult:
         self.stdout = stdout
         self.stderr = stderr
 
-class CompilerArgs(collections.abc.MutableSequence):
-    '''
-    List-like class that manages a list of compiler arguments. Should be used
-    while constructing compiler arguments from various sources. Can be
-    operated with ordinary lists, so this does not need to be used
-    everywhere.
 
-    All arguments must be inserted and stored in GCC-style (-lfoo, -Idir, etc)
-    and can converted to the native type of each compiler by using the
-    .to_native() method to which you must pass an instance of the compiler or
-    the compiler class.
-
-    New arguments added to this class (either with .append(), .extend(), or +=)
-    are added in a way that ensures that they override previous arguments.
-    For example:
-
-    >>> a = ['-Lfoo', '-lbar']
-    >>> a += ['-Lpho', '-lbaz']
-    >>> print(a)
-    ['-Lpho', '-Lfoo', '-lbar', '-lbaz']
-
-    Arguments will also be de-duped if they can be de-duped safely.
-
-    Note that because of all this, this class is not commutative and does not
-    preserve the order of arguments if it is safe to not. For example:
-    >>> ['-Ifoo', '-Ibar'] + ['-Ifez', '-Ibaz', '-Werror']
-    ['-Ifez', '-Ibaz', '-Ifoo', '-Ibar', '-Werror']
-    >>> ['-Ifez', '-Ibaz', '-Werror'] + ['-Ifoo', '-Ibar']
-    ['-Ifoo', '-Ibar', '-Ifez', '-Ibaz', '-Werror']
-
-    '''
-    # NOTE: currently this class is only for C-like compilers, but it can be
-    # extended to other languages easily. Just move the following to the
-    # compiler class and initialize when self.compiler is set.
-
-    # Arg prefixes that override by prepending instead of appending
-    prepend_prefixes = ('-I', '-L')
-    # Arg prefixes and args that must be de-duped by returning 2
-    dedup2_prefixes = ('-I', '-isystem', '-L', '-D', '-U')
-    dedup2_suffixes = ()
-    dedup2_args = ()
-    # Arg prefixes and args that must be de-duped by returning 1
-    #
-    # NOTE: not thorough. A list of potential corner cases can be found in
-    # https://github.com/mesonbuild/meson/pull/4593#pullrequestreview-182016038
-    dedup1_prefixes = ('-l', '-Wl,-l', '-Wl,--export-dynamic')
-    dedup1_suffixes = ('.lib', '.dll', '.so', '.dylib', '.a')
-    # Match a .so of the form path/to/libfoo.so.0.1.0
-    # Only UNIX shared libraries require this. Others have a fixed extension.
-    dedup1_regex = re.compile(r'([\/\\]|\A)lib.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
-    dedup1_args = ('-c', '-S', '-E', '-pipe', '-pthread')
-    # In generate_link() we add external libs without de-dup, but we must
-    # *always* de-dup these because they're special arguments to the linker
-    always_dedup_args = tuple('-l' + lib for lib in unixy_compiler_internal_libs)
-
-    def __init__(self, compiler: T.Union['Compiler', StaticLinker],
-                 iterable: T.Optional[T.Iterable[str]] = None):
-        self.compiler = compiler
-        self.__container = list(iterable) if iterable is not None else []  # type: T.List[str]
-        self.__seen_args = set()
-        for arg in self.__container:
-            self.__seen_args.add(arg)
-
-    @T.overload                                # noqa: F811
-    def __getitem__(self, index: int) -> str:  # noqa: F811
-        pass
-
-    @T.overload                                          # noqa: F811
-    def __getitem__(self, index: slice) -> T.List[str]:  # noqa: F811
-        pass
-
-    def __getitem__(self, index):  # noqa: F811
-        return self.__container[index]
-
-    @T.overload                                             # noqa: F811
-    def __setitem__(self, index: int, value: str) -> None:  # noqa: F811
-        pass
-
-    @T.overload                                                       # noqa: F811
-    def __setitem__(self, index: slice, value: T.List[str]) -> None:  # noqa: F811
-        pass
-
-    def __setitem__(self, index, value) -> None:  # noqa: F811
-        self.__container[index] = value
-        for v in value:
-            self.__seen_args.add(v)
-
-    def __delitem__(self, index: T.Union[int, slice]) -> None:
-        value = self.__container[index]
-        del self.__container[index]
-        if value in self.__seen_args and value in self.__container: # this is also honoring that you can have duplicated entries
-          self.__seen_args.remove(value)
-
-    def __len__(self) -> int:
-        return len(self.__container)
-
-    def insert(self, index: int, value: str) -> None:
-        self.__container.insert(index, value)
-        self.__seen_args.add(value)
-
-    def copy(self) -> 'CompilerArgs':
-        return CompilerArgs(self.compiler, self.__container.copy())
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def _can_dedup(cls, arg):
-        '''
-        Returns whether the argument can be safely de-duped. This is dependent
-        on three things:
-
-        a) Whether an argument can be 'overridden' by a later argument.  For
-           example, -DFOO defines FOO and -UFOO undefines FOO. In this case, we
-           can safely remove the previous occurrence and add a new one. The same
-           is true for include paths and library paths with -I and -L. For
-           these we return `2`. See `dedup2_prefixes` and `dedup2_args`.
-        b) Arguments that once specified cannot be undone, such as `-c` or
-           `-pipe`. New instances of these can be completely skipped. For these
-           we return `1`. See `dedup1_prefixes` and `dedup1_args`.
-        c) Whether it matters where or how many times on the command-line
-           a particular argument is present. This can matter for symbol
-           resolution in static or shared libraries, so we cannot de-dup or
-           reorder them. For these we return `0`. This is the default.
-
-        In addition to these, we handle library arguments specially.
-        With GNU ld, we surround library arguments with -Wl,--start/end-group
-        to recursively search for symbols in the libraries. This is not needed
-        with other linkers.
-        '''
-        # A standalone argument must never be deduplicated because it is
-        # defined by what comes _after_ it. Thus dedupping this:
-        # -D FOO -D BAR
-        # would yield either
-        # -D FOO BAR
-        # or
-        # FOO -D BAR
-        # both of which are invalid.
-        if arg in cls.dedup2_prefixes:
-            return 0
-        if arg.startswith('-L='):
-            # DMD and LDC proxy all linker arguments using -L=; in conjunction
-            # with ld64 on macOS this can lead to command line arguments such
-            # as: `-L=-compatibility_version -L=0 -L=current_version -L=0`.
-            # These cannot be combined, ld64 insists they must be passed with
-            # spaces and quoting does not work. if we deduplicate these then
-            # one of the -L=0 arguments will be removed and the version
-            # argument will consume the next argument instead.
-            return 0
-        if arg in cls.dedup2_args or \
-           arg.startswith(cls.dedup2_prefixes) or \
-           arg.endswith(cls.dedup2_suffixes):
-            return 2
-        if arg in cls.dedup1_args or \
-           arg.startswith(cls.dedup1_prefixes) or \
-           arg.endswith(cls.dedup1_suffixes) or \
-           re.search(cls.dedup1_regex, arg):
-            return 1
-        return 0
-
-    @classmethod
-    @lru_cache(maxsize=None)
-    def _should_prepend(cls, arg):
-        if arg.startswith(cls.prepend_prefixes):
-            return True
-        return False
-
-    def need_to_split_linker_args(self):
-        return isinstance(self.compiler, Compiler) and self.compiler.get_language() == Language.D
-
-    def to_native(self, copy: bool = False) -> T.List[str]:
-        # Check if we need to add --start/end-group for circular dependencies
-        # between static libraries, and for recursively searching for symbols
-        # needed by static libraries that are provided by object files or
-        # shared libraries.
-        if copy:
-            new = self.copy()
-        else:
-            new = self
-        # To proxy these arguments with D you need to split the
-        # arguments, thus you get `-L=-soname -L=lib.so` we don't
-        # want to put the lib in a link -roup
-        split_linker_args = self.need_to_split_linker_args()
-        # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
-        # all act like (or are) gnu ld
-        # TODO: this could probably be added to the DynamicLinker instead
-        if (isinstance(self.compiler, Compiler) and
-                self.compiler.linker is not None and
-                isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker))):
-            group_start = -1
-            group_end = -1
-            is_soname = False
-            for i, each in enumerate(new):
-                if is_soname:
-                    is_soname = False
-                    continue
-                elif split_linker_args and '-soname' in each:
-                    is_soname = True
-                    continue
-                if not each.startswith(('-Wl,-l', '-l')) and not each.endswith('.a') and \
-                   not soregex.match(each):
-                    continue
-                group_end = i
-                if group_start < 0:
-                    # First occurrence of a library
-                    group_start = i
-            if group_start >= 0:
-                # Last occurrence of a library
-                new.insert(group_end + 1, '-Wl,--end-group')
-                new.insert(group_start, '-Wl,--start-group')
-        # Remove system/default include paths added with -isystem
-        if hasattr(self.compiler, 'get_default_include_dirs'):
-            default_dirs = self.compiler.get_default_include_dirs()
-            bad_idx_list = []  # type: T.List[int]
-            for i, each in enumerate(new):
-                # Remove the -isystem and the path if the path is a default path
-                if (each == '-isystem' and
-                        i < (len(new) - 1) and
-                        new[i + 1] in default_dirs):
-                    bad_idx_list += [i, i + 1]
-                elif each.startswith('-isystem=') and each[9:] in default_dirs:
-                    bad_idx_list += [i]
-                elif each.startswith('-isystem') and each[8:] in default_dirs:
-                    bad_idx_list += [i]
-            for i in reversed(bad_idx_list):
-                new.pop(i)
-        return self.compiler.unix_args_to_native(new.__container)
-
-    def append_direct(self, arg: str) -> None:
-        '''
-        Append the specified argument without any reordering or de-dup except
-        for absolute paths to libraries, etc, which can always be de-duped
-        safely.
-        '''
-        if os.path.isabs(arg):
-            self.append(arg)
-        else:
-            self.__container.append(arg)
-            self.__seen_args.add(arg)
-
-    def extend_direct(self, iterable: T.Iterable[str]) -> None:
-        '''
-        Extend using the elements in the specified iterable without any
-        reordering or de-dup except for absolute paths where the order of
-        include search directories is not relevant
-        '''
-        for elem in iterable:
-            self.append_direct(elem)
-
-    def extend_preserving_lflags(self, iterable: T.Iterable[str]) -> None:
-        normal_flags = []
-        lflags = []
-        for i in iterable:
-            if i not in self.always_dedup_args and (i.startswith('-l') or i.startswith('-L')):
-                lflags.append(i)
-            else:
-                normal_flags.append(i)
-        self.extend(normal_flags)
-        self.extend_direct(lflags)
-
-    def __add__(self, args: T.Iterable[str]) -> 'CompilerArgs':
-        new = self.copy()
-        new += args
-        return new
-
-    def __iadd__(self, args: T.Iterable[str]) -> 'CompilerArgs':
-        '''
-        Add two CompilerArgs while taking into account overriding of arguments
-        and while preserving the order of arguments as much as possible
-        '''
-        this_round_added = set() # a dict that contains a value, when the value was added this round
-        pre = []   # type: T.List[str]
-        post = []  # type: T.List[str]
-        if not isinstance(args, collections.abc.Iterable):
-            raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
-        for arg in args:
-            # If the argument can be de-duped, do it either by removing the
-            # previous occurrence of it and adding a new one, or not adding the
-            # new occurrence.
-            dedup = self._can_dedup(arg)
-            if dedup == 1:
-                # Argument already exists and adding a new instance is useless
-                if arg in self.__seen_args or arg in pre or arg in post:
-                    continue
-            should_prepend = self._should_prepend(arg)
-            if dedup == 2:
-                # Remove all previous occurrences of the arg and add it anew
-                if arg in self.__seen_args and arg not in this_round_added: #if __seen_args contains arg as well as this_round_added, then its not yet part in self.
-                    self.remove(arg)
-                if should_prepend:
-                    if arg in pre:
-                        pre.remove(arg)
-                else:
-                    if arg in post:
-                        post.remove(arg)
-            if should_prepend:
-                pre.append(arg)
-            else:
-                post.append(arg)
-            self.__seen_args.add(arg)
-            this_round_added.add(arg)
-        # Insert at the beginning
-        self[:0] = pre
-        # Append to the end
-        self.__container += post
-        return self
-
-    def __radd__(self, args: T.Iterable[str]):
-        new = CompilerArgs(self.compiler, args)
-        new += self
-        return new
-
-    def __eq__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
-        # Only allow equality checks against other CompilerArgs and lists instances
-        if isinstance(other, CompilerArgs):
-            return self.compiler == other.compiler and self.__container == other.__container
-        elif isinstance(other, list):
-            return self.__container == other
-        return NotImplemented
-
-    def append(self, arg: str) -> None:
-        self.__iadd__([arg])
-
-    def extend(self, args: T.Iterable[str]) -> None:
-        self.__iadd__(args)
-
-    def __repr__(self) -> str:
-        return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self.__container)
-
-class Compiler:
+class Compiler(metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
     ignore_libs = ()
@@ -968,8 +640,12 @@ class Compiler:
             args += self.get_preprocess_only_args()
         return args
 
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
+        """Return an appropriate CompilerArgs instance for this class."""
+        return CompilerArgs(self, args)
+
     @contextlib.contextmanager
-    def compile(self, code, extra_args=None, *, mode='link', want_output=False, temp_dir=None):
+    def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None):
         if extra_args is None:
             extra_args = []
         try:
@@ -986,7 +662,7 @@ class Compiler:
                     srcname = code.fname
 
                 # Construct the compiler command-line
-                commands = CompilerArgs(self)
+                commands = self.compiler_args()
                 commands.append(srcname)
                 # Preprocess mode outputs to stdout, so no output args
                 if mode != 'preprocess':
@@ -1092,7 +768,7 @@ class Compiler:
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
-                         install_rpath: str) -> T.List[str]:
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
@@ -1101,6 +777,9 @@ class Compiler:
 
     def openmp_flags(self):
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
+
+    def openmp_link_flags(self):
+        return self.openmp_flags()
 
     def language_stdlib_only_link_flags(self):
         return []
@@ -1151,7 +830,7 @@ class Compiler:
     def remove_linkerlike_args(self, args):
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
-        rm_next = ('-L',)
+        rm_next = ('-L', '-framework',)
         ret = []
         iargs = iter(args)
         for arg in iargs:
@@ -1184,11 +863,11 @@ class Compiler:
     def get_asneeded_args(self) -> T.List[str]:
         return self.linker.get_asneeded_args()
 
+    def headerpad_args(self) -> T.List[str]:
+        return self.linker.headerpad_args()
+
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
-
-    def get_linker_debug_crt_args(self) -> T.List[str]:
-        return self.linker.get_debug_crt_args()
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
@@ -1219,15 +898,18 @@ class Compiler:
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
+    def get_disable_assert_args(self) -> T.List[str]:
+        return []
+
 
 def get_largefile_args(compiler):
     '''
     Enable transparent large-file-support for 32-bit UNIX systems
     '''
-    if not (compiler.info.is_windows() or compiler.info.is_darwin()):
+    if not (compiler.get_argument_syntax() == 'msvc' or compiler.info.is_darwin()):
         # Enable large-file support unconditionally on all platforms other
-        # than macOS and Windows. macOS is now 64-bit-only so it doesn't
-        # need anything special, and Windows doesn't have automatic LFS.
+        # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
+        # need anything special, and MSVC doesn't have automatic LFS.
         # You must use the 64-bit counterparts explicitly.
         # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
         # support for transparent LFS is available depending on the version of

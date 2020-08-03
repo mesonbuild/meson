@@ -11,6 +11,12 @@ Meson build files.
 
 Always spaces.
 
+## Naming Variable
+
+The most consistent naming convention is the snake case. Let say you would
+like to refer to your executable so something like `my_exe` would work or
+just `exe`.
+
 ## Naming options
 
 There are two ways of naming project options. As an example for

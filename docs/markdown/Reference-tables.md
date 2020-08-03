@@ -81,14 +81,17 @@ set in the cross file.
 | alpha               | DEC Alpha processor      |
 | arc                 | 32 bit ARC processor     |
 | arm                 | 32 bit ARM processor     |
-| e2k                 | MCST Elbrus processor    |
+| avr                 | Atmel AVR processor      |
 | c2000               | 32 bit C2000 processor   |
+| dspic               | 16 bit Microchip dsPIC   |
+| e2k                 | MCST Elbrus processor    |
 | ia64                | Itanium processor        |
 | m68k                | Motorola 68000 processor |
 | microblaze          | MicroBlaze processor     |
 | mips                | 32 bit MIPS processor    |
 | mips64              | 64 bit MIPS processor    |
 | parisc              | HP PA-RISC processor     |
+| pic24               | 16 bit Microchip PIC24   |
 | ppc                 | 32 bit PPC processors    |
 | ppc64               | 64 bit PPC processors    |
 | riscv32             | 32 bit RISC-V Open ISA   |
@@ -97,12 +100,11 @@ set in the cross file.
 | rx                  | Renesas RX 32 bit MCU    |
 | s390                | IBM zSystem s390         |
 | s390x               | IBM zSystem s390x        |
+| sh4                 | SuperH SH-4              |
 | sparc               | 32 bit SPARC             |
 | sparc64             | SPARC v9 processor       |
 | wasm32              | 32 bit Webassembly       |
 | wasm64              | 64 bit Webassembly       |
-| pic24               | 16 bit Microchip PIC24   |
-| dspic               | 16 bit Microchip dsPIC   |
 | x86                 | 32 bit x86 processor     |
 | x86_64              | 64 bit x86 processor     |
 
@@ -120,6 +122,7 @@ These are provided by the `.system()` method call.
 
 | Value               | Comment                         |
 | -----               | -------                         |
+| android             | By convention only, subject to change |
 | cygwin              | The Cygwin environment for Windows |
 | darwin              | Either OSX or iOS |
 | dragonfly           | DragonFly BSD |
@@ -153,6 +156,10 @@ These are the parameter names for passing language specific arguments to your bu
 | Rust          | rust_args     | rust_link_args    |
 | Vala          | vala_args     | vala_link_args    |
 
+All these `<lang>_*` options are specified per machine. See in [specifying
+options per machine](Builtin-options.md#Specifying-options-per-machine) for on
+how to do this in cross builds.
+
 ## Compiler and linker flag environment variables
 
 These environment variables will be used to modify the compiler and
@@ -175,6 +182,10 @@ instead.
 | RUSTFLAGS | Flags for the Rust compiler              |
 | LDFLAGS   | The linker flags, used for all languages |
 
+N.B. these settings are specified per machine, and so the environment varibles
+actually come in pairs. See the [environment variables per
+machine](#Environment-variables-per-machine) section for details.
+
 ## Function Attributes
 
 These are the parameters names that are supported using
@@ -187,55 +198,58 @@ These values are supported using the GCC style `__attribute__` annotations,
 which are supported by GCC, Clang, and other compilers.
 
 
-| Name                 |
-|----------------------|
-| alias                |
-| aligned              |
-| alloc_size           |
-| always_inline        |
-| artificial           |
-| cold                 |
-| const                |
-| constructor          |
-| constructor_priority |
-| deprecated           |
-| destructor           |
-| error                |
-| externally_visible   |
-| fallthrough          |
-| flatten              |
-| format               |
-| format_arg           |
-| gnu_inline           |
-| hot                  |
-| ifunc                |
-| malloc               |
-| noclone              |
-| noinline             |
-| nonnull              |
-| noreturn             |
-| nothrow              |
-| optimize             |
-| packed               |
-| pure                 |
-| returns_nonnull      |
-| unused               |
-| used                 |
-| visibility*          |
-| visibility:default†  |
-| visibility:hidden†   |
-| visibility:internal† |
-| visibility:protected†|
-| warning              |
-| warn_unused_result   |
-| weak                 |
-| weakreaf             |
+| Name                     |
+|--------------------------|
+| alias                    |
+| aligned                  |
+| alloc_size               |
+| always_inline            |
+| artificial               |
+| cold                     |
+| const                    |
+| constructor              |
+| constructor_priority     |
+| deprecated               |
+| destructor               |
+| error                    |
+| externally_visible       |
+| fallthrough              |
+| flatten                  |
+| format                   |
+| format_arg               |
+| force_align_arg_pointer³ |
+| gnu_inline               |
+| hot                      |
+| ifunc                    |
+| malloc                   |
+| noclone                  |
+| noinline                 |
+| nonnull                  |
+| noreturn                 |
+| nothrow                  |
+| optimize                 |
+| packed                   |
+| pure                     |
+| returns_nonnull          |
+| unused                   |
+| used                     |
+| visibility*              |
+| visibility:default†      |
+| visibility:hidden†       |
+| visibility:internal†     |
+| visibility:protected†    |
+| warning                  |
+| warn_unused_result       |
+| weak                     |
+| weakreaf                 |
 
 \* *Changed in 0.52.0* the "visibility" target no longer includes
 "protected", which is not present in Apple's clang.
 
 † *New in 0.52.0* These split visibility attributes are preferred to the plain
 "visibility" as they provide narrower checks.
+
+³ *New in 0.55.0*
 
 ### MSVC __declspec
 
@@ -265,6 +279,10 @@ These are the values that can be passed to `dependency` function's
 
 ## Compiler and Linker selection variables
 
+N.B. these settings are specified per machine, and so the environment varibles
+actually come in pairs. See the [environment variables per
+machine](#Environment-variables-per-machine) section for details.
+
 | Language      | Compiler | Linker    | Note                                        |
 |---------------|----------|-----------|---------------------------------------------|
 | C             | CC       | CC_LD     |                                             |
@@ -278,5 +296,28 @@ These are the values that can be passed to `dependency` function's
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 
 *The old environment variales are still supported, but are deprecated and will
-be removed in a future version of meson.
+be removed in a future version of meson.*
 
+## Environment variables per machine
+
+Since *0.54.0*, Following Autotool and other legacy build systems, environment
+variables that affect machine-specific settings come in pairs: for every bare
+environment variable `FOO`, there is a suffixed `FOO_FOR_BUILD`, where `FOO`
+just affects the host machine configuration, while `FOO_FOR_BUILD` just affects
+the build machine configuration. For example:
+
+ - `PKG_CONFIG_PATH_FOR_BUILD` controls the paths pkg-config will search for
+   just `native: true` dependencies (build machine).
+
+ - `PKG_CONFIG_PATH` controls the paths pkg-config will search for just
+   `native: false` dependencies (host machine).
+
+This mirrors the `build.` prefix used for (built-in) meson options, which has
+the same meaning.
+
+This is useful for cross builds. In the native builds, build = host, and the
+unsuffixed environment variables alone will suffice.
+
+Prior to *0.54.0*, there was no `_FOR_BUILD`-suffixed variables, and most
+environment variables only effected native machine configurations, though this
+wasn't consistent (e.g. `PKG_CONFIG_PATH` still affected cross builds).

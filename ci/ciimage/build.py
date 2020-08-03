@@ -71,6 +71,9 @@ class Builder(BuilderBase):
         for key, val in self.image_def.env.items():
             out_data += f'export {key}="{val}"\n'
 
+        # Also add /ci to PATH
+        out_data += 'export PATH="/ci:$PATH"\n'
+
         out_file.write_text(out_data)
 
         # make it executable
@@ -157,7 +160,7 @@ class ImageTester(BuilderBase):
 
             test_cmd = [
                 self.docker, 'run', '--rm', '-t', 'meson_test_image',
-                '/usr/bin/bash', '-c', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
+                '/bin/bash', '-c', 'source /ci/env_vars.sh; cd meson; ./run_tests.py $CI_ARGS'
             ]
             if subprocess.run(test_cmd).returncode != 0:
                 raise RuntimeError('Running tests failed')

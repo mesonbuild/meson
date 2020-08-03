@@ -155,10 +155,11 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
 class ClangCPPCompiler(ClangCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+                 is_cross, info: 'MachineInfo', exe_wrapper=None,
+                 defines : T.Optional[T.List[str]] = None, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self)
+        ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,
@@ -238,7 +239,9 @@ class EmscriptenCPPCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCPPCompile
 class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, exe_wrapper, **kwargs)
+        CPPCompiler.__init__(self, exelist=exelist, version=version,
+                                  for_machine=for_machine, is_cross=is_cross,
+                                  info=info, exe_wrapper=exe_wrapper, **kwargs)
         ArmclangCompiler.__init__(self)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
@@ -574,7 +577,7 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
                  is_cross: bool, info: 'MachineInfo', exe_wrap, target, **kwargs):
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrap, **kwargs)
         MSVCCompiler.__init__(self, target)
-        self.base_options = ['b_pch', 'b_vscrt'] # FIXME add lto, pgo and the like
+        self.base_options = ['b_pch', 'b_vscrt', 'b_ndebug'] # FIXME add lto, pgo and the like
         self.id = 'msvc'
 
     def get_options(self):

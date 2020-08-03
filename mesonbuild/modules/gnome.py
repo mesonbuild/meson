@@ -32,8 +32,8 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
     join_args, unholder,
 )
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
+from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -43,20 +43,6 @@ from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewK
 gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
-
-@functools.lru_cache(maxsize=None)
-def gir_has_option(intr_obj, option):
-    try:
-        g_ir_scanner = intr_obj.find_program_impl('g-ir-scanner')
-        # Handle overridden g-ir-scanner
-        if isinstance(getattr(g_ir_scanner, "held_object", g_ir_scanner), interpreter.OverrideProgram):
-            assert option in ['--extra-library', '--sources-top-dirs']
-            return True
-
-        opts = Popen_safe(g_ir_scanner.get_command() + ['--help'], stderr=subprocess.STDOUT)[1]
-        return option in opts
-    except (MesonException, FileNotFoundError, subprocess.CalledProcessError):
-        return False
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
@@ -303,7 +289,7 @@ class GnomeModule(ExtensionModule):
                 link_command.append('-L' + d)
                 if include_rpath:
                     link_command.append('-Wl,-rpath,' + d)
-        if gir_has_option(self.interpreter, '--extra-library') and use_gir_args:
+        if use_gir_args and self._gir_has_option('--extra-library'):
             link_command.append('--extra-library=' + lib.name)
         else:
             link_command.append('-l' + lib.name)
@@ -321,6 +307,10 @@ class GnomeModule(ExtensionModule):
         deps = mesonlib.unholder(mesonlib.listify(deps))
 
         for dep in deps:
+            if isinstance(dep, Dependency):
+                girdir = dep.get_variable(pkgconfig='girdir', internal='girdir', default_value='')
+                if girdir:
+                    gi_includes.update([girdir])
             if isinstance(dep, InternalDependency):
                 cflags.update(dep.get_compile_args())
                 cflags.update(get_include_args(dep.include_directories))
@@ -371,11 +361,6 @@ class GnomeModule(ExtensionModule):
                         external_ldflags_nodedup += [lib, next(ldflags)]
                     else:
                         external_ldflags.update([lib])
-
-                if isinstance(dep, PkgConfigDependency):
-                    girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
-                    if girdir:
-                        gi_includes.update([girdir])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
                 cflags.update(get_include_args(dep.get_include_dirs()))
                 depends.append(dep)
@@ -383,7 +368,7 @@ class GnomeModule(ExtensionModule):
                 mlog.log('dependency {!r} not handled to build gir files'.format(dep))
                 continue
 
-        if gir_has_option(self.interpreter, '--extra-library') and use_gir_args:
+        if use_gir_args and self._gir_has_option('--extra-library'):
             def fix_ldflags(ldflags):
                 fixed_ldflags = OrderedSet()
                 for ldflag in ldflags:
@@ -417,15 +402,37 @@ class GnomeModule(ExtensionModule):
         return girtarget
 
     def _get_gir_dep(self, state):
-        try:
-            gir_dep = self.gir_dep or PkgConfigDependency('gobject-introspection-1.0',
-                                                          state.environment,
-                                                          {'native': True})
-            pkgargs = gir_dep.get_compile_args()
-        except Exception:
-            raise MesonException('gobject-introspection dependency was not found, gir cannot be generated.')
+        if not self.gir_dep:
+            kwargs = {'native': True, 'required': True}
+            holder = self.interpreter.func_dependency(state.current_node, ['gobject-introspection-1.0'], kwargs)
+            self.gir_dep = holder.held_object
+            giscanner = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-scanner')
+            if giscanner is not None:
+                self.giscanner = ExternalProgram.from_entry('g-ir-scanner', giscanner)
+            elif self.gir_dep.type_name == 'pkgconfig':
+                self.giscanner = ExternalProgram('g_ir_scanner', self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {}))
+            else:
+                self.giscanner = self.interpreter.find_program_impl('g-ir-scanner')
+            gicompiler = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-compiler')
+            if gicompiler is not None:
+                self.gicompiler = ExternalProgram.from_entry('g-ir-compiler', gicompiler)
+            elif self.gir_dep.type_name == 'pkgconfig':
+                self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
+            else:
+                self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
+        return self.gir_dep, self.giscanner, self.gicompiler
 
-        return gir_dep, pkgargs
+    @functools.lru_cache(maxsize=None)
+    def _gir_has_option(self, option):
+        exe = self.giscanner
+        if hasattr(exe, 'held_object'):
+            exe = exe.held_object
+        if isinstance(exe, interpreter.OverrideProgram):
+            # Handle overridden g-ir-scanner
+            assert option in ['--extra-library', '--sources-top-dirs']
+            return True
+        p, o, e = Popen_safe(exe.get_command() + ['--help'], stderr=subprocess.STDOUT)
+        return p.returncode == 0 and option in o
 
     def _scan_header(self, kwargs):
         ret = []
@@ -688,11 +695,10 @@ class GnomeModule(ExtensionModule):
                                               source.get_subdir())
                         if subdir not in typelib_includes:
                             typelib_includes.append(subdir)
-            elif isinstance(dep, PkgConfigDependency):
-                girdir = dep.get_pkgconfig_variable("girdir", {'default': ''})
+            if isinstance(dep, Dependency):
+                girdir = dep.get_variable(pkgconfig='girdir', internal='girdir', default_value='')
                 if girdir and girdir not in typelib_includes:
                     typelib_includes.append(girdir)
-
         return typelib_includes
 
     def _get_external_args_for_langs(self, state, langs):
@@ -715,11 +721,12 @@ class GnomeModule(ExtensionModule):
             if f.startswith(('-L', '-l', '--extra-library')):
                 yield f
 
-    @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
+    @FeatureNewKwargs('generate_gir', '0.55.0', ['fatal_warnings'])
+    @FeatureNewKwargs('generate_gir', '0.40.0', ['build_by_default'])
     @permittedKwargs({'sources', 'nsversion', 'namespace', 'symbol_prefix', 'identifier_prefix',
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
-                      'packages', 'header', 'build_by_default'})
+                      'packages', 'header', 'build_by_default', 'fatal_warnings'})
     def generate_gir(self, state, args, kwargs):
         if not args:
             raise MesonException('generate_gir takes at least one argument')
@@ -731,42 +738,25 @@ class GnomeModule(ExtensionModule):
         if len(girtargets) > 1 and any([isinstance(el, build.Executable) for el in girtargets]):
             raise MesonException('generate_gir only accepts a single argument when one of the arguments is an executable')
 
-        self.gir_dep, pkgargs = self._get_gir_dep(state)
-        # find_program is needed in the case g-i is built as subproject.
-        # In that case it uses override_find_program so the gobject utilities
-        # can be used from the build dir instead of from the system.
-        # However, GObject-introspection provides the appropriate paths to
-        # these utilities via pkg-config, so it would be best to use the
-        # results from pkg-config when possible.
-        gi_util_dirs_check = [state.environment.get_build_dir(), state.environment.get_source_dir()]
-        giscanner = self.interpreter.find_program_impl('g-ir-scanner')
-        if giscanner.found():
-            giscanner_path = giscanner.get_command()[0]
-            if not any(x in giscanner_path for x in gi_util_dirs_check):
-                giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
-        else:
-            giscanner = self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {})
+        gir_dep, giscanner, gicompiler = self._get_gir_dep(state)
 
-        gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
-        if gicompiler.found():
-            gicompiler_path = gicompiler.get_command()[0]
-            if not any(x in gicompiler_path for x in gi_util_dirs_check):
-                gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
-        else:
-            gicompiler = self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {})
-
-        ns = kwargs.pop('namespace')
-        nsversion = kwargs.pop('nsversion')
+        ns = kwargs.get('namespace')
+        if not ns:
+            raise MesonException('Missing "namespace" keyword argument')
+        nsversion = kwargs.get('nsversion')
+        if not nsversion:
+            raise MesonException('Missing "nsversion" keyword argument')
         libsources = mesonlib.extract_as_list(kwargs, 'sources', pop=True)
         girfile = '%s-%s.gir' % (ns, nsversion)
         srcdir = os.path.join(state.environment.get_source_dir(), state.subdir)
         builddir = os.path.join(state.environment.get_build_dir(), state.subdir)
-        depends = [] + girtargets
+        depends = gir_dep.sources + girtargets
         gir_inc_dirs = []
         langs_compilers = self._get_girtargets_langs_compilers(girtargets)
         cflags, internal_ldflags, external_ldflags = self._get_langs_compilers_flags(state, langs_compilers)
         deps = self._get_gir_targets_deps(girtargets)
         deps += mesonlib.unholder(extract_as_list(kwargs, 'dependencies', pop=True))
+        deps += [gir_dep]
         typelib_includes = self._gather_typelib_includes_and_update_depends(state, deps, depends)
         # ldflags will be misinterpreted by gir scanner (showing
         # spurious dependencies) but building GStreamer fails if they
@@ -781,7 +771,6 @@ class GnomeModule(ExtensionModule):
         inc_dirs = self._scan_inc_dirs(kwargs)
 
         scan_command = [giscanner]
-        scan_command += pkgargs
         scan_command += ['--no-libtool']
         scan_command += ['--namespace=' + ns, '--nsversion=' + nsversion]
         scan_command += ['--warn-all']
@@ -806,9 +795,17 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
         scan_command += list(external_ldflags)
 
-        if gir_has_option(self.interpreter, '--sources-top-dirs'):
+        if self._gir_has_option('--sources-top-dirs'):
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_source_dir(), self.interpreter.subproject_dir, state.subproject)]
             scan_command += ['--sources-top-dirs', os.path.join(state.environment.get_build_dir(), self.interpreter.subproject_dir, state.subproject)]
+
+        if '--warn-error' in scan_command:
+            mlog.deprecation('Passing --warn-error is deprecated in favor of "fatal_warnings" keyword argument since v0.55')
+        fatal_warnings = kwargs.get('fatal_warnings', False)
+        if not isinstance(fatal_warnings, bool):
+            raise MesonException('fatal_warnings keyword argument must be a boolean')
+        if fatal_warnings:
+            scan_command.append('--warn-error')
 
         scan_target = self._make_gir_target(state, girfile, scan_command, depends, kwargs)
 
@@ -846,6 +843,8 @@ class GnomeModule(ExtensionModule):
         return ModuleReturnValue(target_g, [target_g])
 
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
+    @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
+                             'Use a LINGUAS file in the source directory instead')
     def yelp(self, state, args, kwargs):
         if len(args) < 1:
             raise MesonException('Yelp requires a project id')
@@ -860,11 +859,6 @@ class GnomeModule(ExtensionModule):
         source_str = '@@'.join(sources)
 
         langs = mesonlib.stringlistify(kwargs.pop('languages', []))
-        if langs:
-            mlog.deprecation('''The "languages" argument of gnome.yelp() is deprecated.
-Use a LINGUAS file in the sources directory instead.
-This will become a hard error in the future.''')
-
         media = mesonlib.stringlistify(kwargs.pop('media', []))
         symlinks = kwargs.pop('symlink_media', True)
 

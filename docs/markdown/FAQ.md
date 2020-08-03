@@ -51,7 +51,7 @@ $ /path/to/meson.py <options>
 After this you don't have to care about invoking Meson any more. It
 remembers where it was originally invoked from and calls itself
 appropriately. As a user the only thing you need to do is to `cd` into
-your build directory and invoke `ninja`.
+your build directory and invoke `meson compile`.
 
 ## Why can't I specify target files with a wildcard?
 
@@ -432,7 +432,7 @@ sources in the build target:
 libfoo_gen_headers = custom_target('gen-headers', ..., output: 'foo-gen.h')
 libfoo_sources = files('foo-utils.c', 'foo-lib.c')
 # Add generated headers to the list of sources for the build target
-libfoo = library('foo', sources: libfoo_sources + libfoo_gen_headers)
+libfoo = library('foo', sources: [libfoo_sources + libfoo_gen_headers])
 ```
 
 Now let's say you have a new target that links to `libfoo`:

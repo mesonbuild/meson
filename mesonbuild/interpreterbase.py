@@ -18,6 +18,7 @@
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
+import abc
 import os, copy, re
 import collections.abc
 from functools import wraps
@@ -212,17 +213,17 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
-class FeatureCheckBase:
+class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
-    # Class variable, shared across all instances
-    #
-    # Format: {subproject: {feature_version: set(feature_names)}}
+    # In python 3.6 we can just forward declare this, but in 3.5 we can't
+    # This will be overwritten by the subclasses by necessity
     feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
 
-    def __init__(self, feature_name: str, version: str):
+    def __init__(self, feature_name: str, version: str, extra_message: T.Optional[str] = None):
         self.feature_name = feature_name  # type: str
         self.feature_version = version    # type: str
+        self.extra_message = extra_message or ''  # type: str
 
     @staticmethod
     def get_target_version(subproject: str) -> str:
@@ -231,13 +232,18 @@ class FeatureCheckBase:
             return ''
         return mesonlib.project_meson_versions[subproject]
 
+    @staticmethod
+    @abc.abstractmethod
+    def check_version(target_version: str, feature_Version: str) -> bool:
+        pass
+
     def use(self, subproject: str) -> None:
         tv = self.get_target_version(subproject)
         # No target version
         if tv == '':
             return
         # Target version is new enough
-        if mesonlib.version_compare_condition_with_min(tv, self.feature_version):
+        if self.check_version(tv, self.feature_version):
             return
         # Feature is too new for target version, register it
         if subproject not in self.feature_registry:
@@ -280,41 +286,86 @@ class FeatureCheckBase:
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
+    @classmethod
+    def single_use(cls, feature_name: str, version: str, subproject: str,
+                   extra_message: T.Optional[str] = None) -> None:
+        """Oneline version that instantiates and calls use()."""
+        cls(feature_name, version, extra_message).use(subproject)
+
+
 class FeatureNew(FeatureCheckBase):
     """Checks for new features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        return mesonlib.version_compare_condition_with_min(target_version, feature_version)
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         return 'Project specifies a minimum meson_version \'{}\' but uses features which were added in newer versions:'.format(tv)
 
     def log_usage_warning(self, tv: str) -> None:
-        mlog.warning('Project targeting \'{}\' but tried to use feature introduced '
-                     'in \'{}\': {}'.format(tv, self.feature_version, self.feature_name))
+        args = [
+            'Project targeting', "'{}'".format(tv),
+            'but tried to use feature introduced in',
+            "'{}':".format(self.feature_version),
+            '{}.'.format(self.feature_name),
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args)
 
 class FeatureDeprecated(FeatureCheckBase):
     """Checks for deprecated features"""
+
+    # Class variable, shared across all instances
+    #
+    # Format: {subproject: {feature_version: set(feature_names)}}
+    feature_registry = {}  # type: T.ClassVar[T.Dict[str, T.Dict[str, T.Set[str]]]]
+
+    @staticmethod
+    def check_version(target_version: str, feature_version: str) -> bool:
+        # For deprecation checks we need to return the inverse of FeatureNew checks
+        return not mesonlib.version_compare_condition_with_min(target_version, feature_version)
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
         return 'Deprecated features used:'
 
     def log_usage_warning(self, tv: str) -> None:
-        mlog.deprecation('Project targeting \'{}\' but tried to use feature '
-                         'deprecated since \'{}\': {}'
-                         ''.format(tv, self.feature_version, self.feature_name))
+        args = [
+            'Project targeting', "'{}'".format(tv),
+            'but tried to use feature deprecated since',
+            "'{}':".format(self.feature_version),
+            '{}.'.format(self.feature_name),
+        ]
+        if self.extra_message:
+            args.append(self.extra_message)
+        mlog.warning(*args)
 
 
-class FeatureCheckKwargsBase:
-    def __init__(self, feature_name: str, feature_version: str, kwargs: T.List[str]):
+class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
+
+    @property
+    @abc.abstractmethod
+    def feature_check_class(self) -> T.Type[FeatureCheckBase]:
+        pass
+
+    def __init__(self, feature_name: str, feature_version: str,
+                 kwargs: T.List[str], extra_message: T.Optional[str] = None):
         self.feature_name = feature_name
         self.feature_version = feature_version
         self.kwargs = kwargs
+        self.extra_message = extra_message
 
     def __call__(self, f):
         @wraps(f)
         def wrapped(*wrapped_args, **wrapped_kwargs):
-            # Which FeatureCheck class to invoke
-            FeatureCheckClass = self.feature_check_class
             kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
             if subproject is None:
                 raise AssertionError('{!r}'.format(wrapped_args))
@@ -322,7 +373,8 @@ class FeatureCheckKwargsBase:
                 if arg not in kwargs:
                     continue
                 name = arg + ' arg in ' + self.feature_name
-                FeatureCheckClass(name, self.feature_version).use(subproject)
+                self.feature_check_class.single_use(
+                        name, self.feature_version, subproject, self.extra_message)
             return f(*wrapped_args, **wrapped_kwargs)
         return wrapped
 
@@ -532,7 +584,7 @@ class InterpreterBase:
         self.argument_depth += 1
         for key, value in kwargs.items():
             if not isinstance(key, mparser.StringNode):
-                FeatureNew('Dictionary entry using non literal key', '0.53.0').use(self.subproject)
+                FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
             assert isinstance(key, mparser.BaseNode)  # All keys must be nodes due to resolve_key_nodes=False
             str_key = self.evaluate_statement(key)
             if not isinstance(str_key, str):
@@ -819,7 +871,7 @@ The result of this is undefined and will become a hard error in a future Meson r
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[TYPE_var]:
         func_name = node.func_name
         (posargs, kwargs) = self.reduce_arguments(node.args)
-        if is_disabled(posargs, kwargs) and func_name != 'set_variable' and func_name != 'is_disabler':
+        if is_disabled(posargs, kwargs) and func_name not in {'get_variable', 'set_variable', 'is_disabler'}:
             return Disabler()
         if func_name in self.funcs:
             func = self.funcs[func_name]
@@ -974,6 +1026,20 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
             return mesonlib.version_compare(obj, cmpr)
+        elif method_name == 'substring':
+            if len(posargs) > 2:
+                raise InterpreterException('substring() takes maximum two arguments.')
+            start = 0
+            end = len(obj)
+            if len (posargs) > 0:
+                if not isinstance(posargs[0], int):
+                    raise InterpreterException('substring() argument must be an int')
+                start = posargs[0]
+            if len (posargs) > 1:
+                if not isinstance(posargs[1], int):
+                    raise InterpreterException('substring() argument must be an int')
+                end = posargs[1]
+            return obj[start:end]
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def format_string(self, templ: str, args: T.List[TYPE_nvar]) -> str:

@@ -113,8 +113,7 @@ class AstVisitor:
         self.visit_default_func(node)
         for i in node.ifs:
             i.accept(self)
-        if node.elseblock:
-            node.elseblock.accept(self)
+        node.elseblock.accept(self)
 
     def visit_UMinusNode(self, node: mparser.UMinusNode) -> None:
         self.visit_default_func(node)
