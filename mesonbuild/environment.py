@@ -518,6 +518,11 @@ class Environment:
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
+            except coredata.MesonVersionMismatchException as e:
+                # This is routine, but tell the user the update happened
+                mlog.log('Regenerating configuration from scratch:', str(e))
+                coredata.read_cmd_line_file(self.build_dir, options)
+                self.create_new_coredata(options)
             except MesonException as e:
                 # If we stored previous command line options, we can recover from
                 # a broken/outdated coredata.
