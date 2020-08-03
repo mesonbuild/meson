@@ -22,7 +22,7 @@ from . import mesonlib
 from . import mparser
 from .interpreterbase import FeatureNew
 
-forbidden_option_names = set(coredata.builtin_options.keys())
+forbidden_option_names = set(coredata.BUILTIN_OPTIONS.keys())
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
 reserved_prefixes = ['cross_']
 

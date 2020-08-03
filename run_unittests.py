@@ -1372,8 +1372,8 @@ class DataTests(unittest.TestCase):
             found_entries |= options
 
         self.assertEqual(found_entries, set([
-            *mesonbuild.coredata.builtin_options.keys(),
-            *mesonbuild.coredata.builtin_options_per_machine.keys()
+            *mesonbuild.coredata.BUILTIN_OPTIONS.keys(),
+            *mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE.keys()
         ]))
 
         # Check that `buildtype` table inside `Core options` matches how
@@ -3037,7 +3037,7 @@ int main(int argc, char **argv) {
         test. Needs to be a unit test because it accesses Meson internals.
         '''
         testdir = os.path.join(self.common_test_dir, '154 reserved targets')
-        targets = mesonbuild.coredata.forbidden_target_names
+        targets = mesonbuild.coredata.FORBIDDEN_TARGET_NAMES
         # We don't actually define a target with this name
         targets.pop('build.ninja')
         # Remove this to avoid multiple entries with the same name

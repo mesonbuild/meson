@@ -4685,7 +4685,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         if name.startswith('meson-'):
             raise InvalidArguments("Target names starting with 'meson-' are reserved "
                                    "for Meson's internal use. Please rename.")
-        if name in coredata.forbidden_target_names:
+        if name in coredata.FORBIDDEN_TARGET_NAMES:
             raise InvalidArguments("Target name '%s' is reserved for Meson's "
                                    "internal use. Please rename." % name)
         # To permit an executable and a shared library to have the
