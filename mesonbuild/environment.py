@@ -701,7 +701,7 @@ class Environment:
 
         # Read in command line and populate options
         # TODO: validate all of this
-        all_builtins = set(coredata.builtin_options) | set(coredata.builtin_options_per_machine) | set(coredata.builtin_dir_noprefix_options)
+        all_builtins = set(coredata.BUILTIN_OPTIONS) | set(coredata.BUILTIN_OPTIONS_PER_MACHINE) | set(coredata.builtin_dir_noprefix_options)
         for k, v in options.cmd_line_options.items():
             try:
                 subproject, k = k.split(':')
@@ -716,7 +716,7 @@ class Environment:
                 self.meson_options.host[subproject][k] = v
             elif k.startswith('build.'):
                 k = k.lstrip('build.')
-                if k in coredata.builtin_options_per_machine:
+                if k in coredata.BUILTIN_OPTIONS_PER_MACHINE:
                     if self.meson_options.build is None:
                         self.meson_options.build = collections.defaultdict(dict)
                     self.meson_options.build[subproject][k] = v

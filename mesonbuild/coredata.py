@@ -450,7 +450,7 @@ class CoreData:
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            builtin_options['libdir'].default = 'lib'
+            BUILTIN_OPTIONS['libdir'].default = 'lib'
 
     def sanitize_prefix(self, prefix):
         prefix = os.path.expanduser(prefix)
@@ -506,10 +506,10 @@ class CoreData:
 
     def init_builtins(self, subproject: str):
         # Create builtin options with default values
-        for key, opt in builtin_options.items():
+        for key, opt in BUILTIN_OPTIONS.items():
             self.add_builtin_option(self.builtins, key, opt, subproject)
         for for_machine in iter(MachineChoice):
-            for key, opt in builtin_options_per_machine.items():
+            for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
                 self.add_builtin_option(self.builtins_per_machine[for_machine], key, opt, subproject)
 
     def add_builtin_option(self, opts_map, key, opt, subproject):
@@ -714,7 +714,7 @@ class CoreData:
             self.builtins['prefix'].set_value(prefix)
             for key in builtin_dir_noprefix_options:
                 if key not in options:
-                    self.builtins[key].set_value(builtin_options[key].prefixed_default(key, prefix))
+                    self.builtins[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
         unknown_options = []
         for k, v in options.items():
@@ -770,7 +770,7 @@ class CoreData:
 
         for k, v in chain(env.meson_options.build.get('', {}).items(),
                           env.meson_options.build.get(subproject, {}).items()):
-            if k in builtin_options_per_machine:
+            if k in BUILTIN_OPTIONS_PER_MACHINE:
                 options[make_key('build.{}'.format(k))] = v
 
         options.update({make_key(k): v for k, v in env.user_options.get(subproject, {}).items()})
@@ -780,7 +780,7 @@ class CoreData:
         # put those options into env.meson_options, only if they're not already
         # in there, as the machine files and command line have precendence.
         for k, v in default_options.items():
-            if k in builtin_options and not builtin_options[k].yielding:
+            if k in BUILTIN_OPTIONS and not BUILTIN_OPTIONS[k].yielding:
                 continue
             for machine in MachineChoice:
                 if machine is MachineChoice.BUILD and not self.is_cross_build():
@@ -1005,9 +1005,9 @@ def save(obj, build_dir):
 
 
 def register_builtin_arguments(parser):
-    for n, b in builtin_options.items():
+    for n, b in BUILTIN_OPTIONS.items():
         b.add_to_argparse(n, parser, '', '')
-    for n, b in builtin_options_per_machine.items():
+    for n, b in BUILTIN_OPTIONS_PER_MACHINE.items():
         b.add_to_argparse(n, parser, '', ' (just for host machine)')
         b.add_to_argparse(n, parser, 'build.', ' (just for build machine)')
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
@@ -1028,9 +1028,9 @@ def parse_cmd_line_options(args):
 
     # Merge builtin options set with --option into the dict.
     for name in chain(
-            builtin_options.keys(),
-            ('build.' + k for k in builtin_options_per_machine.keys()),
-            builtin_options_per_machine.keys(),
+            BUILTIN_OPTIONS.keys(),
+            ('build.' + k for k in BUILTIN_OPTIONS_PER_MACHINE.keys()),
+            BUILTIN_OPTIONS_PER_MACHINE.keys(),
     ):
         value = getattr(args, name, None)
         if value is not None:
@@ -1157,9 +1157,9 @@ BUILTIN_CORE_OPTIONS = OrderedDict([
     ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
 ])  # type: OptionDictType
 
-builtin_options = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
+BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-builtin_options_per_machine = OrderedDict([
+BUILTIN_OPTIONS_PER_MACHINE = OrderedDict([
     ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
     ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
@@ -1172,7 +1172,7 @@ builtin_dir_noprefix_options = {
     'sharedstatedir': {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
 }
 
-forbidden_target_names = {'clean': None,
+FORBIDDEN_TARGET_NAMES = {'clean': None,
                           'clean-ctlist': None,
                           'clean-gcno': None,
                           'clean-gcda': None,
