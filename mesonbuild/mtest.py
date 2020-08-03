@@ -489,7 +489,7 @@ class TestRun:
                 failed = True
             elif isinstance(i, TAPParser.Test):
                 results.append(i.result)
-                if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL}:
+                if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL, TestResult.SKIP}:
                     failed = True
             elif isinstance(i, TAPParser.Error):
                 results.append(TestResult.ERROR)
