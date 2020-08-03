@@ -30,8 +30,8 @@ if T.TYPE_CHECKING:
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
-    language = kwargs.get('language', 'c')
-    if language not in {'c', 'cpp', 'fortran'}:
+    language = kwargs.get('language', Language.C)
+    if language not in {Language.C, Language.CPP, Language.FORTRAN}:
         # OpenMPI doesn't work without any other languages
         return []
 
@@ -42,11 +42,11 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
     # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers
     if DependencyMethods.PKGCONFIG in methods and not compiler_is_intel:
         pkg_name = None
-        if language == 'c':
+        if language == Language.C:
             pkg_name = 'ompi-c'
-        elif language == 'cpp':
+        elif language == Language.CPP:
             pkg_name = 'ompi-cxx'
-        elif language == 'fortran':
+        elif language == Language.FORTRAN:
             pkg_name = 'ompi-fort'
         candidates.append(functools.partial(
             PkgConfigDependency, pkg_name, env, kwargs, language=language))
@@ -59,11 +59,11 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 nwargs['version_arg'] = '-v'
                 nwargs['returncode_value'] = 3
 
-            if language == 'c':
+            if language == Language.C:
                 tool_names = [os.environ.get('I_MPI_CC'), 'mpiicc']
-            elif language == 'cpp':
+            elif language == Language.CPP:
                 tool_names = [os.environ.get('I_MPI_CXX'), 'mpiicpc']
-            elif language == 'fortran':
+            elif language == Language.FORTRAN:
                 tool_names = [os.environ.get('I_MPI_F90'), 'mpiifort']
 
             cls = IntelMPIConfigToolDependency  # type: T.Type[ConfigToolDependency]
@@ -71,11 +71,11 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
             #
             # We try the environment variables for the tools first, but then
             # fall back to the hardcoded names
-            if language == 'c':
+            if language == Language.C:
                 tool_names = [os.environ.get('MPICC'), 'mpicc']
-            elif language == 'cpp':
+            elif language == Language.CPP:
                 tool_names = [os.environ.get('MPICXX'), 'mpic++', 'mpicxx', 'mpiCC']
-            elif language == 'fortran':
+            elif language == Language.FORTRAN:
                 tool_names = [os.environ.get(e) for e in ['MPIFC', 'MPIF90', 'MPIF77']]
                 tool_names.extend(['mpifort', 'mpif90', 'mpif77'])
 
@@ -104,8 +104,8 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         """
         result = []
         multi_args = ('-I', )
-        if self.language == 'fortran':
-            fc = self.env.coredata.compilers[self.for_machine]['fortran']
+        if self.language == Language.FORTRAN:
+            fc = self.env.coredata.compilers[self.for_machine][Language.FORTRAN]
             multi_args += fc.get_module_incdir_args()
 
         include_next = False
@@ -203,7 +203,7 @@ class MSMPIDependency(ExternalDependency):
                  language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
         # MSMPI only supports the C API
-        if language not in {'c', 'fortran', None}:
+        if language not in {Language.C, Language.FORTRAN, None}:
             self.is_found = False
             return
         # MSMPI is only for windows, obviously
@@ -227,5 +227,5 @@ class MSMPIDependency(ExternalDependency):
         self.is_found = True
         self.link_args = ['-l' + os.path.join(libdir, 'msmpi')]
         self.compile_args = ['-I' + incdir, '-I' + os.path.join(incdir, post)]
-        if self.language == 'fortran':
+        if self.language == Language.FORTRAN:
             self.link_args.append('-l' + os.path.join(libdir, 'msmpifec'))

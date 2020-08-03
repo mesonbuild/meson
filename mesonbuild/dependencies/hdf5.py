@@ -26,14 +26,14 @@ from .base import (DependencyException, DependencyMethods, ExternalDependency, E
 class HDF5Dependency(ExternalDependency):
 
     def __init__(self, environment, kwargs):
-        language = kwargs.get('language', 'c')
+        language = kwargs.get('language', Language.C)
         super().__init__('hdf5', environment, kwargs, language=language)
         kwargs['required'] = False
         kwargs['silent'] = True
         self.is_found = False
         methods = listify(self.methods)
 
-        if language not in ('c', 'cpp', 'fortran'):
+        if language not in (Language.C, Language.CPP, Language.FORTRAN):
             raise DependencyException('Language {} is not supported with HDF5.'.format(language))
 
         if set([DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]).intersection(methods):
@@ -74,9 +74,9 @@ class HDF5Dependency(ExternalDependency):
                     # additionally, some pkgconfig HDF5 HL files are malformed so let's be sure to find HL anyway
                     if lpath.is_file():
                         hl = []
-                        if language == 'cpp':
+                        if language == Language.CPP:
                             hl += ['_hl_cpp', '_cpp']
-                        elif language == 'fortran':
+                        elif language == Language.FORTRAN:
                             hl += ['_hl_fortran', 'hl_fortran', '_fortran']
                         hl += ['_hl']  # C HL library, always needed
 
@@ -97,11 +97,11 @@ class HDF5Dependency(ExternalDependency):
                 return
 
         if DependencyMethods.AUTO in methods:
-            wrappers = {'c': 'h5cc', 'cpp': 'h5c++', 'fortran': 'h5fc'}
+            wrappers = {Language.C: 'h5cc', Language.CPP: 'h5c++', Language.FORTRAN: 'h5fc'}
             comp_args = []
             link_args = []
             # have to always do C as well as desired language
-            for lang in set([language, 'c']):
+            for lang in set([language, Language.C]):
                 prog = ExternalProgram(wrappers[lang], silent=True)
                 if not prog.found():
                     return

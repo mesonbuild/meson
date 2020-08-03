@@ -21,7 +21,10 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep, unholder
+from .mesonlib import (
+    FileMode, Language, MachineChoice, Popen_safe,
+    listify, extract_as_list, has_path_sep, unholder,
+)
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -2082,12 +2085,13 @@ class MesonMain(InterpreterObject):
     def get_compiler_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
-        cname = args[0]
+        cname = Language.from_lower_case_name(args[0])
+        if cname is None:
+            raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
         for_machine = Interpreter.machine_from_native_kwarg(kwargs)
         clist = self.interpreter.coredata.compilers[for_machine]
-        if cname in clist:
-            return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
-        raise InterpreterException('Tried to access compiler for unspecified language "%s".' % cname)
+        assert cname in clist
+        return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
 
     @noPosargs
     @permittedKwargs({})
@@ -2950,8 +2954,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
                 dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
-                dict(self.coredata.flatten_lang_iterator(
-                    self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options))),
+                dict(self.coredata.flatten_lang_iterator_per_machine(self.coredata.compiler_options)),
         ]:
             v = opts.get(optname)
             if v is None or v.yielding:
@@ -3253,8 +3256,11 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
 
         success = True
-        for lang in sorted(args, key=compilers.sort_clink):
-            lang = lang.lower()
+        for lang_str in sorted(args, key=compilers.sort_clink):
+            lang_str = lang_str.lower()
+            lang = Language.from_lower_case_name(lang_str)
+            if lang is None:
+                raise InvalidArguments('Tried to use unknown language "%s".' % lang_str)
             clist = self.coredata.compilers[for_machine]
             machine_name = for_machine.get_lower_case_name()
             if lang in clist:
@@ -3262,8 +3268,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 try:
                     comp = self.environment.detect_compiler_for(lang, for_machine)
-                    if comp is None:
-                        raise InvalidArguments('Tried to use unknown language "%s".' % lang)
+                    # lang is our enum, not string, should have compiler.
+                    assert comp is not None
                     if self.should_skip_sanity_check(for_machine):
                         mlog.log_once('Cross compiler sanity tests disabled via the cross file.')
                     else:

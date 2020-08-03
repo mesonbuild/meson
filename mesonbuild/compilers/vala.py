@@ -16,7 +16,7 @@ import os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, version_compare
+from ..mesonlib import EnvironmentException, Language, MachineChoice, version_compare
 
 from .compilers import Compiler
 
@@ -25,7 +25,7 @@ if T.TYPE_CHECKING:
 
 class ValaCompiler(Compiler):
 
-    language = 'vala'
+    language = Language.VALA
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo'):

@@ -18,9 +18,14 @@ from functools import partial
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy, is_windows, LibType
-from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
-                        cuda_debug_args)
+from ..mesonlib import (
+    EnvironmentException, Language, LibType, MachineChoice, OptionOverrideProxy,
+    Popen_safe, is_windows
+)
+from .compilers import (
+    Compiler, cuda_buildtype_args, cuda_optimization_args,
+    cuda_debug_args
+)
 
 if T.TYPE_CHECKING:
     from ..environment import Environment  # noqa: F401
@@ -30,7 +35,7 @@ if T.TYPE_CHECKING:
 class CudaCompiler(Compiler):
 
     LINKER_PREFIX = '-Xlinker='
-    language = 'cuda'
+    language = Language.CUDA
 
     _universal_flags = {'compiler': ['-I', '-D', '-U', '-E'], 'linker': ['-l', '-L']}
 

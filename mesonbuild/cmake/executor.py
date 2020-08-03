@@ -252,7 +252,7 @@ class CMakeExecutor:
         fallback = os.path.realpath(__file__)  # A file used as a fallback wehen everything else fails
         compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
 
-        def make_abs(exe: str, lang: str) -> str:
+        def make_abs(exe: str, lang: Language) -> str:
             if os.path.isabs(exe):
                 return exe
 
@@ -262,7 +262,7 @@ class CMakeExecutor:
                 p = fallback
             return p
 
-        def choose_compiler(lang: str) -> T.Tuple[str, str]:
+        def choose_compiler(lang: Language) -> T.Tuple[str, str]:
             exe_list = []
             if lang in compilers:
                 exe_list = compilers[lang].get_exelist()
@@ -282,9 +282,9 @@ class CMakeExecutor:
                 mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
                 return fallback, ''
 
-        c_comp, c_launcher = choose_compiler('c')
-        cxx_comp, cxx_launcher = choose_compiler('cpp')
-        fortran_comp, fortran_launcher = choose_compiler('fortran')
+        c_comp, c_launcher = choose_compiler(Language.C)
+        cxx_comp, cxx_launcher = choose_compiler(Language.CPP)
+        fortran_comp, fortran_launcher = choose_compiler(Language.FORTRAN)
 
         # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
         c_comp = c_comp.replace('\\', '/')

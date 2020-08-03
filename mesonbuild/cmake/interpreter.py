@@ -22,7 +22,7 @@ from .executor import CMakeExecutor
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
 from ..environment import Environment
-from ..mesonlib import MachineChoice, OrderedSet, version_compare
+from ..mesonlib import Language, MachineChoice, OrderedSet, version_compare
 from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
@@ -76,15 +76,15 @@ backend_generator_map = {
 }
 
 language_map = {
-    'c': 'C',
-    'cpp': 'CXX',
-    'cuda': 'CUDA',
-    'objc': 'OBJC',
-    'objcpp': 'OBJCXX',
-    'cs': 'CSharp',
-    'java': 'Java',
-    'fortran': 'Fortran',
-    'swift': 'Swift',
+    Language.C: 'C',
+    Language.CPP: 'CXX',
+    Language.CUDA: 'CUDA',
+    Language.OBJC: 'OBJC',
+    Language.OBJCPP: 'OBJCXX',
+    Language.CS: 'CSharp',
+    Language.JAVA: 'Java',
+    Language.FORTRAN: 'Fortran',
+    Language.SWIFT: 'Swift',
 }
 
 target_type_map = {
@@ -252,7 +252,7 @@ class ConverterTarget:
         for i in target.files:
             # Determine the meson language
             lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
-            lang = lang_cmake_to_meson.get(i.language.lower(), 'c')
+            lang = lang_cmake_to_meson.get(i.language.lower(), Language.C)
             if lang not in self.languages:
                 self.languages += [lang]
             if lang not in self.compile_opts:
@@ -280,7 +280,7 @@ class ConverterTarget:
 
     def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
         # Detect setting the C and C++ standard
-        for i in ['c', 'cpp']:
+        for i in [Language.C, Language.CPP]:
             if i not in self.compile_opts:
                 continue
 

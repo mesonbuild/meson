@@ -49,7 +49,7 @@ def get_shared_library_suffix(environment, for_machine: MachineChoice):
 
 class GTestDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs, language=Language.CPP)
         self.main = kwargs.get('main', False)
         self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
@@ -119,7 +119,7 @@ class GTestDependencyPC(PkgConfigDependency):
 
 class GMockDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs, language=Language.CPP)
         self.main = kwargs.get('main', False)
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
@@ -214,7 +214,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
         # It's necessary for LLVM <= 3.8 to use the C++ linker. For 3.9 and 4.0
         # the C linker works fine if only using the C API.
-        super().__init__(name, environment, kwargs, language='cpp')
+        super().__init__(name, environment, kwargs, language=Language.CPP)
         self.provided_modules = []
         self.required_modules = set()
         self.module_details = []
@@ -251,7 +251,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
               "-L IBPATH:...", if we're using an msvc like compilers convert
               that to "/LIBPATH", otherwise to "-L ..."
         """
-        cpp = self.env.coredata.compilers[self.for_machine]['cpp']
+        cpp = self.env.coredata.compilers[self.for_machine][Language.CPP]
 
         new_args = []
         for arg in args:
@@ -391,7 +391,7 @@ class LLVMDependencyCMake(CMakeDependency):
     def __init__(self, name: str, env, kwargs):
         self.llvm_modules = stringlistify(extract_as_list(kwargs, 'modules'))
         self.llvm_opt_modules = stringlistify(extract_as_list(kwargs, 'optional_modules'))
-        super().__init__(name, env, kwargs, language='cpp')
+        super().__init__(name, env, kwargs, language=Language.CPP)
 
         # Cmake will always create a statically linked binary, so don't use
         # cmake if dynamic is required

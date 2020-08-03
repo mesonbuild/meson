@@ -15,7 +15,7 @@
 import subprocess, os.path
 import typing as T
 
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
+from ..mesonlib import EnvironmentException, Language, MachineChoice, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -33,7 +33,7 @@ rust_optimization_args = {'0': [],
 class RustCompiler(Compiler):
 
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
-    language = 'rust'
+    language = Language.RUST
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):

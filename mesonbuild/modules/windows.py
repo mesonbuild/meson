@@ -33,7 +33,7 @@ class ResourceCompilerType(enum.Enum):
 class WindowsModule(ExtensionModule):
 
     def detect_compiler(self, compilers):
-        for l in ('c', 'cpp'):
+        for l in (Language.C, Language.CPP):
             if l in compilers:
                 return compilers[l]
         raise MesonException('Resource compilation requires a C or C++ compiler.')

@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import typing as T
 
-from ..mesonlib import EnvironmentException, MachineChoice
+from ..mesonlib import EnvironmentException, Language, MachineChoice
 from .compilers import Compiler, java_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
 
@@ -26,7 +26,7 @@ if T.TYPE_CHECKING:
 
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
-    language = 'java'
+    language = Language.JAVA
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  info: 'MachineInfo'):

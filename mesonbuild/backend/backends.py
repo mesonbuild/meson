@@ -30,8 +30,8 @@ from .. import dependencies
 from .. import mesonlib
 from .. import mlog
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
-    classify_unity_sources, unholder
+    File, Language, MachineChoice, MesonException, OrderedSet,
+    OptionOverrideProxy, classify_unity_sources, unholder,
 )
 
 if T.TYPE_CHECKING:
@@ -704,7 +704,7 @@ class Backend:
             if not dep.found():
                 continue
 
-            if compiler.language == 'vala':
+            if compiler.language == Language.VALA:
                 if isinstance(dep, dependencies.PkgConfigDependency):
                     if dep.name == 'glib-2.0' and dep.version_reqs is not None:
                         for req in dep.version_reqs:
@@ -713,7 +713,7 @@ class Backend:
                                 break
                     commands += ['--pkg', dep.name]
                 elif isinstance(dep, dependencies.ExternalLibrary):
-                    commands += dep.get_link_args('vala')
+                    commands += dep.get_link_args(Language.VALA)
             else:
                 commands += compiler.get_dependency_compile_args(dep)
             # Qt needs -fPIC for executables
@@ -723,7 +723,7 @@ class Backend:
             # For 'automagic' deps: Boost and GTest. Also dependency('threads').
             # pkg-config puts the thread flags itself via `Cflags:`
         # Fortran requires extra include directives.
-        if compiler.language == 'fortran':
+        if compiler.language == Language.FORTRAN:
             for lt in target.link_targets:
                 priv_dir = self.get_target_private_dir(lt)
                 commands += compiler.get_include_args(priv_dir, False)
@@ -737,7 +737,7 @@ class Backend:
             arg = self.get_target_filename_for_linking(d)
             if not arg:
                 continue
-            if compiler.get_language() == 'd':
+            if compiler.get_language() == Language.D:
                 arg = '-Wl,' + arg
             else:
                 arg = compiler.get_linker_lib_prefix() + arg

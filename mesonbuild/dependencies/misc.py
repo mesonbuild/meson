@@ -38,14 +38,14 @@ if T.TYPE_CHECKING:
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
-    language = kwargs.get('language', 'c')
-    if language not in ('c', 'cpp', 'fortran'):
+    language = kwargs.get('language', Language.C)
+    if language not in (Language.C, Language.CPP, Language.FORTRAN):
         raise DependencyException('Language {} is not supported with NetCDF.'.format(language))
 
     candidates = []  # type: T.List['DependencyType']
 
     if DependencyMethods.PKGCONFIG in methods:
-        if language == 'fortran':
+        if language == Language.FORTRAN:
             pkg = 'netcdf-fortran'
         else:
             pkg = 'netcdf'

@@ -15,7 +15,7 @@
 import subprocess, os.path
 import typing as T
 
-from ..mesonlib import EnvironmentException, MachineChoice
+from ..mesonlib import EnvironmentException, Language, MachineChoice
 
 from .compilers import Compiler, swift_buildtype_args, clike_debug_args
 
@@ -33,7 +33,7 @@ swift_optimization_args = {'0': [],
 class SwiftCompiler(Compiler):
 
     LINKER_PREFIX = ['-Xlinker']
-    language = 'swift'
+    language = Language.SWIFT
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', **kwargs):

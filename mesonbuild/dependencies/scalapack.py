@@ -134,7 +134,7 @@ class MKLPkgConfigDependency(PkgConfigDependency):
 
     def _set_cargs(self):
         env = None
-        if self.language == 'fortran':
+        if self.language == Language.FORTRAN:
             # gfortran doesn't appear to look in system paths for INCLUDE files,
             # so don't allow pkg-config to suppress -I flags for system paths
             env = os.environ.copy()

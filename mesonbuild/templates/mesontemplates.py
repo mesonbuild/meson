@@ -39,7 +39,7 @@ def create_meson_build(options):
                          'supported only for project type "executable".\n'
                          'Run meson init in an empty directory to create a sample project.')
     default_options = ['warning_level=3']
-    if options.language == 'cpp':
+    if options.language == Language.CPP:
         # This shows how to set this very common option.
         default_options += ['cpp_std=c++14']
     # If we get a meson.build autoformatter one day, this code could
@@ -52,7 +52,7 @@ def create_meson_build(options):
         depspec += ',\n              '.join("dependency('{}')".format(x)
                                             for x in options.deps.split(','))
         depspec += '],'
-    if options.language != 'java':
+    if options.language != Language.JAVA:
         content = meson_executable_template.format(project_name=options.name,
                                                    language=options.language,
                                                    version=options.version,

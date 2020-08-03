@@ -19,7 +19,7 @@ import typing as T
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import Language, MesonException, MachineChoice, version_compare
 
 from ..linkers import LinkerEnvVarsMixin
 from .compilers import (
@@ -60,7 +60,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
         except KeyError:
             raise MesonException('Unknown function attribute "{}"'.format(name))
 
-    language = 'cpp'
+    language = Language.CPP
 
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrap: T.Optional[str] = None, **kwargs):

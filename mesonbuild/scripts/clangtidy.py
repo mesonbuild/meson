@@ -21,7 +21,7 @@ from ..compilers import lang_suffixes
 
 def manual_clangformat(srcdir_name, builddir_name):
     srcdir = pathlib.Path(srcdir_name)
-    suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
+    suffixes = set(lang_suffixes[Language.C]).union(set(lang_suffixes[Language.CPP]))
     suffixes.add('h')
     futures = []
     returncode = 0
