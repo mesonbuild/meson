@@ -35,8 +35,6 @@ from .envconfig import (
 from . import compilers
 from .compilers import (
     Compiler,
-    all_languages,
-    base_options,
     is_assembly,
     is_header,
     is_library,
@@ -582,12 +580,6 @@ class Environment:
         # CMake toolchain variables
         cmakevars = PerMachineDefaultable()  # type: PerMachineDefaultable[CMakeVariables]
 
-        # We only need one of these as project options are not per machine
-        user_options = collections.defaultdict(dict)  # type: T.DefaultDict[str, T.Dict[str, object]]
-
-        # meson builtin options, as passed through cross or native files
-        meson_options = PerMachineDefaultable()  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
-
         ## Setup build machine defaults
 
         # Will be fully initialized later using compilers later.
@@ -598,80 +590,21 @@ class Environment:
         binaries.build = BinaryTable()
         properties.build = Properties()
 
-        # meson base options
-        _base_options = {}  # type: T.Dict[str, object]
-
-        # Per language compiler arguments
-        compiler_options = PerMachineDefaultable()  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
-        compiler_options.build = collections.defaultdict(dict)
+        # Unparsed options as given by the user in machine files, command line,
+        # and project()'s default_options. Keys are in the command line format:
+        # "[<subproject>:][build.]option_name".
+        # Note that order matters because of 'buildtype', if it is after
+        # 'optimization' and 'debug' keys, it override them.
+        self.raw_options = collections.OrderedDict() # type: collections.OrderedDict[str, str]
 
         ## Read in native file(s) to override build machine configuration
-
-        def load_options(tag: str, store: T.Dict[str, T.Any]) -> None:
-            for section in config.keys():
-                if section.endswith(tag):
-                    if ':' in section:
-                        project = section.split(':')[0]
-                    else:
-                        project = ''
-                    store[project].update(config.get(section, {}))
-
-        def split_base_options(mopts: T.DefaultDict[str, T.Dict[str, object]]) -> None:
-            for k, v in list(mopts.get('', {}).items()):
-                if k in base_options:
-                    _base_options[k] = v
-                    del mopts[k]
-
-        lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
-        def split_compiler_options(mopts: T.DefaultDict[str, T.Dict[str, object]], machine: MachineChoice) -> None:
-            for k, v in list(mopts.get('', {}).items()):
-                if k.startswith(lang_prefixes):
-                    lang, key = k.split('_', 1)
-                    if compiler_options[machine] is None:
-                        compiler_options[machine] = collections.defaultdict(dict)
-                    if lang not in compiler_options[machine]:
-                        compiler_options[machine][lang] = collections.defaultdict(dict)
-                    compiler_options[machine][lang][key] = v
-                    del mopts[''][k]
-
-        def move_compiler_options(properties: Properties, compopts: T.Dict[str, T.DefaultDict[str, object]]) -> None:
-            for k, v in properties.properties.copy().items():
-                for lang in all_languages:
-                    if k == '{}_args'.format(lang):
-                        if 'args' not in compopts[lang]:
-                            compopts[lang]['args'] = v
-                        else:
-                            mlog.warning('Ignoring {}_args in [properties] section for those in the [built-in options]'.format(lang))
-                    elif k == '{}_link_args'.format(lang):
-                        if 'link_args' not in compopts[lang]:
-                            compopts[lang]['link_args'] = v
-                        else:
-                            mlog.warning('Ignoring {}_link_args in [properties] section in favor of the [built-in options] section.')
-                    else:
-                        continue
-                    mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
-                    del properties.properties[k]
-                    break
 
         if self.coredata.config_files is not None:
             config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
-
-            # Don't run this if there are any cross files, we don't want to use
-            # the native values if we're doing a cross build
-            if not self.coredata.cross_files:
-                load_options('project options', user_options)
-            meson_options.build = collections.defaultdict(dict)
-            if config.get('paths') is not None:
-                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
-                load_options('paths', meson_options.build)
-            load_options('built-in options', meson_options.build)
-            if not self.coredata.cross_files:
-                split_base_options(meson_options.build)
-            split_compiler_options(meson_options.build, MachineChoice.BUILD)
-            move_compiler_options(properties.build, compiler_options.build)
+            self.load_machine_file_options(config, properties.build)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -684,16 +617,10 @@ class Environment:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
-            load_options('project options', user_options)
-            meson_options.host = collections.defaultdict(dict)
-            compiler_options.host = collections.defaultdict(dict)
-            if config.get('paths') is not None:
-                mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
-                load_options('paths', meson_options.host)
-            load_options('built-in options', meson_options.host)
-            split_base_options(meson_options.host)
-            split_compiler_options(meson_options.host, MachineChoice.HOST)
-            move_compiler_options(properties.host, compiler_options.host)
+            # Keep only per machine options from the native file and prefix them
+            # with "build.". The cross file takes precedence over all other options.
+            self.keep_per_machine_options()
+            self.load_machine_file_options(config, properties.host)
 
         ## "freeze" now initialized configuration, and "save" to the class.
 
@@ -701,66 +628,17 @@ class Environment:
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
-        self.user_options = user_options
-        self.meson_options = meson_options.default_missing()
-        self.base_options = _base_options
-        self.compiler_options = compiler_options.default_missing()
 
-        # Some options default to environment variables if they are
-        # unset, set those now.
+        # Environment options override those from cross/native files
+        self.set_options_from_env()
 
-        for for_machine in MachineChoice:
-            p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), 'PKG_CONFIG_PATH')
-            if p_env_pair is not None:
-                p_env_var, p_env = p_env_pair
-
-                # PKG_CONFIG_PATH may contain duplicates, which must be
-                # removed, else a duplicates-in-array-option warning arises.
-                p_list = list(mesonlib.OrderedSet(p_env.split(':')))
-
-                key = 'pkg_config_path'
-
-                if self.first_invocation:
-                    # Environment variables override config
-                    self.meson_options[for_machine][''][key] = p_list
-                elif self.meson_options[for_machine][''].get(key, []) != p_list:
-                    mlog.warning(
-                        p_env_var,
-                        'environment variable does not match configured',
-                        'between configurations, meson ignores this.',
-                        'Use -Dpkg_config_path to change pkg-config search',
-                        'path instead.'
-                    )
-
-        # Read in command line and populate options
-        # TODO: validate all of this
-        all_builtins = set(coredata.BUILTIN_OPTIONS) | set(coredata.BUILTIN_OPTIONS_PER_MACHINE) | set(coredata.builtin_dir_noprefix_options)
-        for k, v in options.cmd_line_options.items():
-            try:
-                subproject, k = k.split(':')
-            except ValueError:
-                subproject = ''
-            if k in base_options:
-                self.base_options[k] = v
-            elif k.startswith(lang_prefixes):
-                lang, key = k.split('_', 1)
-                self.compiler_options.host[lang][key] = v
-            elif k in all_builtins or k.startswith('backend_'):
-                self.meson_options.host[subproject][k] = v
-            elif k.startswith('build.'):
-                k = k.lstrip('build.')
-                if k in coredata.BUILTIN_OPTIONS_PER_MACHINE:
-                    if self.meson_options.build is None:
-                        self.meson_options.build = collections.defaultdict(dict)
-                    self.meson_options.build[subproject][k] = v
-            else:
-                assert not k.startswith('build.')
-                self.user_options[subproject][k] = v
+        # Command line options override those from cross/native files
+        self.raw_options.update(options.cmd_line_options)
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
-        if meson_options.build and 'buildtype' in meson_options.build[''] and \
-           ('optimization' in meson_options.build[''] or 'debug' in meson_options.build['']):
+        if 'buildtype' in self.raw_options and \
+           ('optimization' in self.raw_options or 'debug' in self.raw_options):
             mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
                          'Using both is redundant since they override each other. '
                          'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
@@ -818,6 +696,57 @@ class Environment:
         self.default_cmake = ['cmake']
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver = None
+
+    def load_machine_file_options(self, config, properties):
+        paths = config.get('paths')
+        if paths:
+            mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
+            self.raw_options.update(paths)
+        deprecated_properties = set()
+        for lang in compilers.all_languages:
+            deprecated_properties.add(lang + '_args')
+            deprecated_properties.add(lang + '_link_args')
+        for k, v in properties.properties.copy().items():
+            if k in deprecated_properties:
+                mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
+                self.raw_options[k] = v
+                del properties.properties[k]
+        for section, values in config.items():
+            prefix = ''
+            if ':' in section:
+                subproject, section = section.split(':')
+                prefix = subproject + ':'
+            if section in ['project options', 'built-in options']:
+                self.raw_options.update({prefix + k: v for k, v in values.items()})
+
+    def keep_per_machine_options(self):
+        per_machine_options = {}
+        for optname, value in self.raw_options.items():
+            if self.coredata.is_per_machine_option(optname):
+                build_optname = self.coredata.insert_build_prefix(optname)
+                per_machine_options[build_optname] = value
+        self.raw_options = per_machine_options
+
+    def set_options_from_env(self):
+        for for_machine in MachineChoice:
+            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), 'PKG_CONFIG_PATH')
+            if p_env_pair is not None:
+                p_env_var, p_env = p_env_pair
+
+                # PKG_CONFIG_PATH may contain duplicates, which must be
+                # removed, else a duplicates-in-array-option warning arises.
+                p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+
+                key = 'pkg_config_path'
+                if for_machine == MachineChoice.BUILD:
+                    key = 'build.' + key
+
+                # Take env vars only on first invocation, if the env changes when
+                # reconfiguring it gets ignored.
+                # FIXME: We should remember if we took the value from env to warn
+                # if it changes on future invocations.
+                if self.first_invocation:
+                    self.raw_options[key] = p_list
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets

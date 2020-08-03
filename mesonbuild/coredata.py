@@ -658,6 +658,23 @@ class CoreData:
             for k1, v1 in v0.items():
                 yield (k0 + k1, v1)
 
+    @classmethod
+    def insert_build_prefix(cls, k):
+        idx = k.find(':')
+        if idx < 0:
+            return 'build.' + k
+        return k[:idx + 1] + 'build.' + k[idx + 1:]
+
+    @classmethod
+    def is_per_machine_option(cls, optname):
+        if optname in BUILTIN_OPTIONS_PER_MACHINE:
+            return True
+        from .compilers import compilers
+        for lang_prefix in [lang + '_' for lang in compilers.all_languages]:
+            if optname.startswith(lang_prefix):
+                return True
+        return False
+
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield self.backend_options
         yield self.user_options
@@ -766,90 +783,75 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options: 'T.OrderedDict[str, str]', subproject: str, env: 'Environment') -> None:
-        def make_key(key: str) -> str:
+        # Preserve order: if env.raw_options has 'buildtype' it must come after
+        # 'optimization' if it is in default_options.
+        raw_options = OrderedDict()
+        for k, v in default_options.items():
             if subproject:
-                return '{}:{}'.format(subproject, key)
-            return key
+                k = subproject + ':' + k
+            raw_options[k] = v
+        raw_options.update(env.raw_options)
+        env.raw_options = raw_options
 
+        # Create a subset of raw_options, keeping only project and builtin
+        # options for this subproject.
+        # Language and backend specific options will be set later when adding
+        # languages and setting the backend (builtin options must be set first
+        # to know which backend we'll use).
         options = OrderedDict()
 
-        # TODO: validate these
-        from .compilers import all_languages, base_options
-        lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
-        # split arguments that can be set now, and those that cannot so they
-        # can be set later, when they've been initialized.
-        for k, v in default_options.items():
-            if k.startswith(lang_prefixes):
-                lang, key = k.split('_', 1)
-                for machine in MachineChoice:
-                    if key not in env.compiler_options[machine][lang]:
-                        env.compiler_options[machine][lang][key] = v
-            elif k in base_options:
-                if not subproject and k not in env.base_options:
-                    env.base_options[k] = v
-            else:
-                options[make_key(k)] = v
-
-        for k, v in chain(env.meson_options.host.get('', {}).items(),
-                          env.meson_options.host.get(subproject, {}).items()):
-            options[make_key(k)] = v
-
-        for k, v in chain(env.meson_options.build.get('', {}).items(),
-                          env.meson_options.build.get(subproject, {}).items()):
-            if k in BUILTIN_OPTIONS_PER_MACHINE:
-                options[make_key('build.{}'.format(k))] = v
-
-        options.update({make_key(k): v for k, v in env.user_options.get(subproject, {}).items()})
-
-        # Some options (namely the compiler options) are not preasant in
-        # coredata until the compiler is fully initialized. As such, we need to
-        # put those options into env.meson_options, only if they're not already
-        # in there, as the machine files and command line have precendence.
-        for k, v in default_options.items():
-            if k in BUILTIN_OPTIONS and not BUILTIN_OPTIONS[k].yielding:
-                continue
-            for machine in MachineChoice:
-                if machine is MachineChoice.BUILD and not self.is_cross_build():
+        from . import optinterpreter
+        for k, v in env.raw_options.items():
+            raw_optname = k
+            if subproject:
+                # Subproject: skip options for other subprojects
+                if not k.startswith(subproject + ':'):
                     continue
-                if k not in env.meson_options[machine][subproject]:
-                    env.meson_options[machine][subproject][k] = v
+                raw_optname = k.split(':')[1]
+            elif ':' in k:
+                # Main prject: skip options for subprojects
+                continue
+            # Skip base, compiler, and backend options, they are handled when
+            # adding languages and setting backend.
+            if (k not in self.builtins and
+                k not in self.get_prefixed_options_per_machine(self.builtins_per_machine) and
+                optinterpreter.is_invalid_name(raw_optname, log=False)):
+                continue
+            options[k] = v
 
         self.set_options(options, subproject=subproject)
+
+    def add_compiler_options(self, options, lang, for_machine, env):
+        # prefixed compiler options affect just this machine
+        opt_prefix = for_machine.get_prefix()
+        for k, o in options.items():
+            optname = opt_prefix + lang + '_' + k
+            value = env.raw_options.get(optname)
+            if value is not None:
+                o.set_value(value)
+            self.compiler_options[for_machine][lang].setdefault(k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
-
-        for k, o in compilers.get_global_options(
-                lang,
-                comp,
-                for_machine,
-                env.is_cross_build(),
-                env.properties[for_machine]).items():
-            # prefixed compiler options affect just this machine
-            if k in env.compiler_options[for_machine].get(lang, {}):
-                o.set_value(env.compiler_options[for_machine][lang][k])
-            self.compiler_options[for_machine][lang].setdefault(k, o)
+        options = compilers.get_global_options(lang, comp, for_machine,
+                                               env.is_cross_build())
+        self.add_compiler_options(options, lang, for_machine, env)
 
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers
 
         self.compilers[comp.for_machine][lang] = comp
-
-        for k, o in comp.get_options().items():
-            # prefixed compiler options affect just this machine
-            if k in env.compiler_options[comp.for_machine].get(lang, {}):
-                o.set_value(env.compiler_options[comp.for_machine][lang][k])
-            self.compiler_options[comp.for_machine][lang].setdefault(k, o)
+        self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
 
         enabled_opts = []
         for optname in comp.base_options:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.base_options:
-                oobj.set_value(env.base_options[optname])
+            if optname in env.raw_options:
+                oobj.set_value(env.raw_options[optname])
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
