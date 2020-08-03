@@ -45,6 +45,16 @@ default_yielding = False
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
+class MesonVersionMismatchException(MesonException):
+    '''Build directory generated with Meson version incompatible with current version'''
+    def __init__(self, old_version, current_version):
+        super().__init__('Build directory has been generated with Meson version {}, '
+                         'which is incompatible with current version {}.'
+                         .format(old_version, current_version))
+        self.old_version = old_version
+        self.current_version = current_version
+
+
 class UserOption(T.Generic[_T]):
     def __init__(self, description, choices, yielding):
         super().__init__()
@@ -982,9 +992,7 @@ def load(build_dir):
     if not isinstance(obj, CoreData):
         raise MesonException(load_fail_msg)
     if major_versions_differ(obj.version, version):
-        raise MesonException('Build directory has been generated with Meson version %s, '
-                             'which is incompatible with current version %s.\n' %
-                             (obj.version, version))
+        raise MesonVersionMismatchException(obj.version, version)
     return obj
 
 def save(obj, build_dir):
