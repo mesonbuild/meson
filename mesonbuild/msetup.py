@@ -240,7 +240,6 @@ class MesonApp:
             raise
 
 def run(options) -> int:
-    coredata.parse_cmd_line_options(options)
     app = MesonApp(options)
     app.generate()
     return 0

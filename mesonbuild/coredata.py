@@ -1023,24 +1023,6 @@ def create_options_dict(options):
         result[key] = value
     return result
 
-def parse_cmd_line_options(args):
-    args.cmd_line_options = create_options_dict(args.projectoptions)
-
-    # Merge builtin options set with --option into the dict.
-    for name in chain(
-            builtin_options.keys(),
-            ('build.' + k for k in builtin_options_per_machine.keys()),
-            builtin_options_per_machine.keys(),
-    ):
-        value = getattr(args, name, None)
-        if value is not None:
-            if name in args.cmd_line_options:
-                cmdline_name = BuiltinOption.argparse_name_to_arg(name)
-                raise MesonException(
-                    'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
-            args.cmd_line_options[name] = value
-            delattr(args, name)
-
 
 _U = T.TypeVar('_U', bound=UserOption[_T])
 

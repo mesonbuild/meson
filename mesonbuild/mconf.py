@@ -243,7 +243,6 @@ class Conf:
             print_default_values_warning()
 
 def run(options):
-    coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
     c = None
     try:
