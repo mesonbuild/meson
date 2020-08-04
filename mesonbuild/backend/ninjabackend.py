@@ -1955,9 +1955,11 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             source_target_dir = os.path.join(self.build_to_src, override_subdir)
         else:
             source_target_dir = self.get_target_source_dir(target)
-        relout = self.get_target_private_dir(target)
-        args = [x.replace("@SOURCE_DIR@", self.build_to_src).replace("@BUILD_DIR@", relout)
-                for x in args]
+        args = [x.replace("@SOURCE_DIR@", self.build_to_src) for x in args]
+        need_relout = any(("@BUILD_DIR@" in x for x in args))
+        if need_relout:
+            relout = self.get_target_private_dir(target)
+            args = [x.replace("@BUILD_DIR@", relout) for x in args]
         args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
         args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                 for x in args]
