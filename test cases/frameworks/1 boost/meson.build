@@ -54,7 +54,11 @@ python3module = shared_library('python3_module', ['python_module.cpp'], dependen
 test('Boost linktest', linkexe)
 test('Boost UTF test', unitexe)
 test('Boost nomod', nomodexe)
-test('Boost extralib test', extralibexe)
+if host_machine.system() != 'darwin' or s
+  # Segfaults on macOS with dynamic linking since Boost 1.73
+  # https://github.com/mesonbuild/meson/issues/7535
+  test('Boost extralib test', extralibexe)
+endif
 
 # explicitly use the correct python interpreter so that we don't have to provide two different python scripts that have different shebang lines
 python2interpreter = find_program(python2.path(), required: false, disabler: true)
