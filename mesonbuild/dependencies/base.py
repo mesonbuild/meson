@@ -112,9 +112,10 @@ class Dependency:
             raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
         return kwargs['include_type']
 
-    def __init__(self, type_name, kwargs):
+    def __init__(self, type_name, for_machine, kwargs):
         self.name = "null"
         self.version = None
+        self.for_machine = for_machine
         self.language = None # None means C-like
         self.is_found = False
         self.type_name = type_name
@@ -237,9 +238,9 @@ class Dependency:
         return new_dep
 
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries,
+    def __init__(self, version, for_machine: MachineChoice, incdirs, compile_args, link_args, libraries,
                  whole_libraries, sources, ext_deps, variables: T.Dict[str, T.Any]):
-        super().__init__('internal', {})
+        super().__init__('internal', for_machine, {})
         self.version = version
         self.is_found = True
         self.include_directories = incdirs
@@ -282,7 +283,7 @@ class InternalDependency(Dependency):
             compile_args=compile_args, link_args=link_args, links=links,
             includes=includes, sources=sources) for d in self.ext_deps]
         return InternalDependency(
-            self.version, final_includes, final_compile_args,
+            self.version, final_includes, self.for_machine, final_compile_args,
             final_link_args, final_libraries, final_whole_libraries,
             final_sources, final_deps, self.variables)
 
@@ -305,7 +306,9 @@ class HasNativeKwarg:
 
 class ExternalDependency(Dependency, HasNativeKwarg):
     def __init__(self, type_name, environment, kwargs, language: T.Optional[str] = None):
-        Dependency.__init__(self, type_name, kwargs)
+        # Is this dependency to be run on the build platform?
+        HasNativeKwarg.__init__(self, kwargs)
+        Dependency.__init__(self, type_name, self.for_machine, kwargs)
         self.env = environment
         self.name = type_name # default
         self.is_found = False
@@ -318,8 +321,6 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.static = kwargs.get('static', False)
         if not isinstance(self.static, bool):
             raise DependencyException('Static keyword must be boolean')
-        # Is this dependency to be run on the build platform?
-        HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
     def get_compiler(self):
@@ -388,8 +389,8 @@ class ExternalDependency(Dependency, HasNativeKwarg):
 
 
 class NotFoundDependency(Dependency):
-    def __init__(self, environment):
-        super().__init__('not-found', {})
+    def __init__(self, environment, for_machine):
+        super().__init__('not-found', for_machine, {})
         self.env = environment
         self.name = 'not-found'
         self.is_found = False
@@ -1787,13 +1788,23 @@ class DubDependency(ExternalDependency):
 
 class ExternalProgram:
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    # An 'ExternalProgram' always runs on the build machine
-    for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+                 # This is the machine where the program runs, not the machine
+                 # it outputs data for, if it is a compiler. (It's the
+                 # program's host platform, not it's target platform.)
+                 #
+                 # This can be confusing. For example, if we `lookup_entry` a
+                 # program with Machine.HOST (meaning get it from cross file in
+                 # cross build) it would still be turned into a
+                 # `ExternalProgram(..., for_machine = MachineChoice.BUILD)`
+                 # because `[binaries]` from the cross file still run on the
+                 # build machine.
+                 for_machine: MachineChoice = MachineChoice.BUILD,
                  silent: bool = False, search_dir: T.Optional[str] = None,
                  extra_search_dirs: T.Optional[T.List[str]] = None):
         self.name = name
+        self.for_machine = for_machine
         if command is not None:
             self.command = listify(command)
             if mesonlib.is_windows():
@@ -2401,7 +2412,7 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Dependency "%s" not found' % (name) +
                                   (', tried %s' % (tried) if tried else ''))
 
-    return NotFoundDependency(env)
+    return NotFoundDependency(env, for_machine)
 
 
 def _build_external_dependency_list(name: str, env: Environment, for_machine: MachineChoice,

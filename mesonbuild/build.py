@@ -151,8 +151,8 @@ class Build:
         self.stdlibs = PerMachine({}, {})
         self.test_setups = {}                         # type: T.Dict[str, TestSetup]
         self.test_setup_default_name = None
-        self.find_overrides = {}
-        self.searched_programs = set() # The list of all programs that have been searched for.
+        self.find_overrides = PerMachine({}, {})
+        self.searched_programs = PerMachine(set(), set()) # The list of all programs that have been searched for.
         self.dependency_overrides = PerMachine({}, {})
 
     def copy(self):
@@ -1065,11 +1065,13 @@ This will become a hard error in a future Meson release.''')
                     self.link_whole(l)
                 if dep.get_compile_args() or dep.get_link_args():
                     # Those parts that are external.
-                    extpart = dependencies.InternalDependency('undefined',
-                                                              [],
-                                                              dep.get_compile_args(),
-                                                              dep.get_link_args(),
-                                                              [], [], [], [], {})
+                    extpart = dependencies.InternalDependency(
+                        'undefined', dep.for_machine,
+                        [],
+                        dep.get_compile_args(),
+                        dep.get_link_args(),
+                        [], [], [], [], {},
+                    )
                     self.external_deps.append(extpart)
                 # Deps of deps.
                 self.add_deps(dep.ext_deps)

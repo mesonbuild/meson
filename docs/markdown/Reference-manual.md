@@ -1870,6 +1870,13 @@ the following methods.
   check is passed to `find_program` for a program that has been overridden with
   an executable, the current project version is used.
 
+  *(Since 0.55)* Takes an optional `native` keyword argument, and programs for
+  the build and host platforms are overridden separately. This makes the
+  feature safe for cross, e.g. during bootstrapping scenarios one is using a
+  preinstalled native version of the current program being built to provide a
+  `native: true` executable. The override and the `native` keyword argument
+  must match during a cross build.
+
   If `program` is an `executable`, it cannot be used during configure.
 
 - `override_dependency(name, dep_object)` *(since 0.54.0)*:
@@ -1879,6 +1886,9 @@ the following methods.
   `native` keyword arguments. Doing this in a subproject allows the parent
   project to retrieve the dependency without having to know the dependency
   variable name: `dependency(name, fallback : subproject_name)`.
+
+  *(Since 0.55)* The override and the `native` keyword argument must match
+  during a cross build.
 
 - `project_version()`: returns the version string specified in
   `project` function call.
