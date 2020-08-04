@@ -7,17 +7,11 @@ fs = import('fs')
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 
-# When one creates a source release with sdist, Python
-# does not store symlinks in the archive as native symlinks.
-# Thus the extracted archive does not contain them either.
-# Sadly this means that we can only execute the symlink test when
-# running from a git checkout because otherwise we'd need to
-# do postprocessing on the generated archive before actual release.
-# That is both nonstandard an error prone and having symlinks in
-# the archive would probably break on Windows anyway.
-is_git_checkout = fs.exists('../../../.git')
-
-if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
+if not is_windows and build_machine.system() != 'cygwin'
+  # Symlinks on Windows have specific requirements including:
+  # * Meson running under Python >= 3.8
+  # * Windows user permissions to create symlinks, and/or Windows in Developer mode
+  # so at this time the symlink test is skipped for Windows.
   symlink = meson.current_build_dir() / 'a_symlink'
   run_command('ln', '-s', meson.current_source_dir() / 'meson.build', symlink)
   assert(fs.is_symlink(symlink), 'Symlink not detected.')
@@ -105,7 +99,7 @@ assert(fs.is_samepath(meson.source_root(), 'subdir/..'), 'is_samepath not detect
 assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad comparison')
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
-if not is_windows and build_machine.system() != 'cygwin' and is_git_checkout
+if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.is_samepath(symlink, 'meson.build'), 'symlink is_samepath fail')
 endif
 
