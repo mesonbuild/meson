@@ -267,29 +267,33 @@ class CMakeExecutor:
                 p = fallback
             return p
 
-        def choose_compiler(lang: str) -> T.Tuple[str, str]:
+        def choose_compiler(lang: str) -> T.Tuple[str, str, str, str]:
+            comp_obj = None
             exe_list = []
             if lang in compilers:
-                exe_list = compilers[lang].get_exelist()
+                comp_obj = compilers[lang]
             else:
                 try:
                     comp_obj = self.environment.compiler_from_language(lang, MachineChoice.BUILD)
-                    if comp_obj is not None:
-                        exe_list = comp_obj.get_exelist()
                 except Exception:
                     pass
 
+            if comp_obj is not None:
+                exe_list = comp_obj.get_exelist()
+                comp_id = comp_obj.get_id().upper()
+                comp_version = comp_obj.version.upper()
+
             if len(exe_list) == 1:
-                return make_abs(exe_list[0], lang), ''
+                return make_abs(exe_list[0], lang), '', comp_id, comp_version
             elif len(exe_list) == 2:
-                return make_abs(exe_list[1], lang), make_abs(exe_list[0], lang)
+                return make_abs(exe_list[1], lang), make_abs(exe_list[0], lang), comp_id, comp_version
             else:
                 mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
-                return fallback, ''
+                return fallback, '', 'GNU', ''
 
-        c_comp, c_launcher = choose_compiler('c')
-        cxx_comp, cxx_launcher = choose_compiler('cpp')
-        fortran_comp, fortran_launcher = choose_compiler('fortran')
+        c_comp, c_launcher, c_id, c_version = choose_compiler('c')
+        cxx_comp, cxx_launcher, cxx_id, cxx_version = choose_compiler('cpp')
+        fortran_comp, fortran_launcher, _, _ = choose_compiler('fortran')
 
         # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
         c_comp = c_comp.replace('\\', '/')
@@ -311,34 +315,42 @@ class CMakeExecutor:
         fortran_comp_file = comp_dir / 'CMakeFortranCompiler.cmake'
 
         if c_comp and not c_comp_file.is_file():
+            is_gnu = '1' if c_id == 'GNU' else ''
             c_comp_file.write_text(textwrap.dedent('''\
                 # Fake CMake file to skip the boring and slow stuff
                 set(CMAKE_C_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
                 set(CMAKE_C_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
-                set(CMAKE_C_COMPILER_ID "GNU") # Pretend we have found GCC
-                set(CMAKE_COMPILER_IS_GNUCC 1)
+                set(CMAKE_COMPILER_IS_GNUCC {})
+                set(CMAKE_C_COMPILER_ID "{}")
+                set(CMAKE_C_COMPILER_VERSION "{}")
                 set(CMAKE_C_COMPILER_LOADED 1)
+                set(CMAKE_C_COMPILER_FORCED 1)
                 set(CMAKE_C_COMPILER_WORKS TRUE)
                 set(CMAKE_C_ABI_COMPILED TRUE)
                 set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
                 set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
                 set(CMAKE_SIZEOF_VOID_P "{}")
-            '''.format(c_comp, c_launcher, ctypes.sizeof(ctypes.c_voidp))))
+            '''.format(c_comp, c_launcher, is_gnu, c_id, c_version,
+                       ctypes.sizeof(ctypes.c_voidp))))
 
         if cxx_comp and not cxx_comp_file.is_file():
+            is_gnu = '1' if cxx_id == 'GNU' else ''
             cxx_comp_file.write_text(textwrap.dedent('''\
                 # Fake CMake file to skip the boring and slow stuff
                 set(CMAKE_CXX_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
                 set(CMAKE_CXX_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
-                set(CMAKE_CXX_COMPILER_ID "GNU") # Pretend we have found GCC
-                set(CMAKE_COMPILER_IS_GNUCXX 1)
+                set(CMAKE_COMPILER_IS_GNUCXX {})
+                set(CMAKE_CXX_COMPILER_ID "{}")
+                set(CMAKE_CXX_COMPILER_VERSION "{}")
                 set(CMAKE_CXX_COMPILER_LOADED 1)
+                set(CMAKE_CXX_COMPILER_FORCED 1)
                 set(CMAKE_CXX_COMPILER_WORKS TRUE)
                 set(CMAKE_CXX_ABI_COMPILED TRUE)
                 set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
                 set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
                 set(CMAKE_SIZEOF_VOID_P "{}")
-            '''.format(cxx_comp, cxx_launcher, ctypes.sizeof(ctypes.c_voidp))))
+            '''.format(cxx_comp, cxx_launcher, is_gnu, cxx_id, cxx_version,
+                       ctypes.sizeof(ctypes.c_voidp))))
 
         if fortran_comp and not fortran_comp_file.is_file():
             fortran_comp_file.write_text(textwrap.dedent('''\
