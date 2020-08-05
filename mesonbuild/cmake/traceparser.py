@@ -269,6 +269,7 @@ class CMakeTraceParser:
         args = list(tline.args) # Make a working copy
 
         # Make sure the exe is imported
+        is_imported = True
         if 'IMPORTED' not in args:
             return self._gen_exception('add_executable', 'non imported executables are not supported', tline)
 
@@ -277,7 +278,7 @@ class CMakeTraceParser:
         if len(args) < 1:
             return self._gen_exception('add_executable', 'requires at least 1 argument', tline)
 
-        self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {})
+        self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {}, tline=tline, imported=is_imported)
 
     def _cmake_add_library(self, tline: CMakeTraceLine):
         # DOC: https://cmake.org/cmake/help/latest/command/add_library.html

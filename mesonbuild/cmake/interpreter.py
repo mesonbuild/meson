@@ -651,7 +651,7 @@ class ConverterCustomTarget:
     def __repr__(self) -> str:
         return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
 
-    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, all_outputs: T.List[str]) -> None:
+    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, all_outputs: T.List[str], trace: CMakeTraceParser) -> None:
         # Default the working directory to ${CMAKE_CURRENT_BINARY_DIR}
         if not self.working_dir:
             self.working_dir = self.current_bin_dir.as_posix()
@@ -694,7 +694,18 @@ class ConverterCustomTarget:
                 if not j:
                     continue
                 target = output_target_map.executable(j)
-                cmd += [target] if target else [j]
+                if target:
+                    cmd += [target]
+                    continue
+                elif j in trace.targets:
+                    trace_tgt = trace.targets[j]
+                    if trace_tgt.type == 'EXECUTABLE' and 'IMPORTED_LOCATION' in trace_tgt.properties:
+                        cmd += trace_tgt.properties['IMPORTED_LOCATION']
+                        continue
+                    mlog.debug('CMake: Found invalid CMake target "{}" --> ignoring \n{}'.format(j, trace_tgt))
+
+                # Fallthrough on error
+                cmd += [j]
 
             commands += [cmd]
         self.command = commands
@@ -969,7 +980,7 @@ class CMakeInterpreter:
         object_libs = []
         custom_target_outputs = []  # type: T.List[str]
         for i in self.custom_targets:
-            i.postprocess(self.output_target_map, self.src_dir, self.subdir, custom_target_outputs)
+            i.postprocess(self.output_target_map, self.src_dir, self.subdir, custom_target_outputs, self.trace)
         for i in self.targets:
             i.postprocess(self.output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
             if i.type == 'OBJECT_LIBRARY':
