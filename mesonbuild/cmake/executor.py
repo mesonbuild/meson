@@ -69,7 +69,12 @@ class CMakeExecutor:
             self.environment.is_cross_build(),
             'CMAKE_PREFIX_PATH')
         if env_pref_path is not None:
-            env_pref_path = re.split(r':|;', env_pref_path)
+            if mesonlib.is_windows():
+                # Cannot split on ':' on Windows because its in the drive letter
+                env_pref_path = env_pref_path.split(os.pathsep)
+            else:
+                # https://github.com/mesonbuild/meson/issues/7294
+                env_pref_path = re.split(r':|;', env_pref_path)
             env_pref_path = [x for x in env_pref_path if x]  # Filter out empty strings
             if not self.prefix_paths:
                 self.prefix_paths = []
