@@ -1,6 +1,6 @@
 # We use Python3 as it's the only thing guaranteed to be available on any platform Meson can run on (unlike Zlib in linuxlike/13 cmake dependency).
 
-project('user CMake find_package module using cmake_module_path',
+project('user CMake find_package module using cmake_module_path', ['c', 'cpp'],
   meson_version: '>= 0.55.0')
 
 if not find_program('cmake', required: false).found()
