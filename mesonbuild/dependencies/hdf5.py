@@ -105,7 +105,8 @@ class HDF5Dependency(ExternalDependency):
                 prog = ExternalProgram(wrappers[lang], silent=True)
                 if not prog.found():
                     return
-                cmd = prog.get_command() + ['-show']
+                shlib_arg = '-noshlib' if kwargs.get('static', False) else '-shlib'
+                cmd = prog.get_command() + [shlib_arg, '-show']
                 p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
                 if p.returncode != 0:
                     mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
