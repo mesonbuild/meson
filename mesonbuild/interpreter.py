@@ -3209,6 +3209,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return should
 
     def add_languages_for(self, args, required, for_machine: MachineChoice):
+        args = [a.lower() for a in args]
         langs = set(self.coredata.compilers[for_machine].keys())
         langs.update(args)
         if 'vala' in langs:
@@ -3217,7 +3218,6 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
-            lang = lang.lower()
             clist = self.coredata.compilers[for_machine]
             machine_name = for_machine.get_lower_case_name()
             if lang in clist:
