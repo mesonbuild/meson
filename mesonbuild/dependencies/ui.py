@@ -234,13 +234,13 @@ class QtBaseDependency(ExternalDependency):
         def gen_bins():
             for b in bins:
                 if self.bindir:
-                    yield os.path.join(self.bindir, b), b, False
+                    yield os.path.join(self.bindir, b), b
                 # prefer the <tool>-qt<version> of the tool to the plain one, as we
                 # don't know what the unsuffixed one points to without calling it.
-                yield '{}-{}'.format(b, self.name), b, False
-                yield b, b, self.required if b != 'lrelease' else False
+                yield '{}-{}'.format(b, self.name), b
+                yield b, b
 
-        for b, name, required in gen_bins():
+        for b, name in gen_bins():
             if found[name].found():
                 continue
 
@@ -260,7 +260,7 @@ class QtBaseDependency(ExternalDependency):
                     care = err
                 return care.split(' ')[-1].replace(')', '')
 
-            p = interp_obj.find_program_impl([b], required=required,
+            p = interp_obj.find_program_impl([b], required=False,
                                              version_func=get_version,
                                              wanted=wanted).held_object
             if p.found():
