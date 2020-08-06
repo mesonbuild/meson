@@ -353,6 +353,26 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
                            info, exe_wrap, **kwargs)
         MSVCCompiler.__init__(self, target)
 
+    def get_options(self):
+        opts = super().get_options()
+        c_stds = ['none', 'c89', 'c99', 'c11']
+        opts.update({
+            'std': coredata.UserComboOption(
+                'C language standard to use',
+                c_stds,
+                'none',
+            ),
+        })
+        return opts
+
+    def get_option_compile_args(self, options):
+        args = []
+        std = options['std']
+        # As of MVSC 16.7, /std:c11 is the only valid C standard option.
+        if std.value in {'c11'}:
+            args.append('/std:' + std.value)
+        return args
+
 
 class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
