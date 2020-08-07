@@ -53,6 +53,10 @@ def update_git(wrap, repo_dir, options):
         mlog.log('  -> Not used.')
         return
     revision = wrap.get('revision')
+    if not revision:
+        # It could be a detached git submodule for example.
+        mlog.log('  -> No revision specified.')
+        return
     branch = git_output(['branch', '--show-current'], repo_dir).strip()
     if branch == '':
         try:
@@ -145,6 +149,9 @@ def checkout(wrap, repo_dir, options):
     if wrap.type != 'git' or not os.path.isdir(repo_dir):
         return
     branch_name = options.branch_name if options.branch_name else wrap.get('revision')
+    if not branch_name:
+        # It could be a detached git submodule for example.
+        return
     cmd = ['checkout', branch_name, '--']
     if options.b:
         cmd.insert(1, '-b')
