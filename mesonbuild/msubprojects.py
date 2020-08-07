@@ -3,7 +3,7 @@ import argparse
 
 from . import mlog
 from .mesonlib import git, Popen_safe
-from .wrap.wrap import API_ROOT, PackageDefinition, Resolver, WrapException
+from .wrap.wrap import API_ROOT, Resolver, WrapException
 from .wrap import wraptool
 
 def update_wrapdb_file(wrap, repo_dir, options):
@@ -189,6 +189,8 @@ def foreach(wrap, repo_dir, options):
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
+
+def add_subprojects_argument(p):
     p.add_argument('subprojects', nargs='*',
                    help='List of subprojects (default: all)')
 
@@ -200,6 +202,7 @@ def add_arguments(parser):
     p.add_argument('--rebase', default=False, action='store_true',
                    help='Rebase your branch on top of wrap\'s revision (git only)')
     add_common_arguments(p)
+    add_subprojects_argument(p)
     p.set_defaults(subprojects_func=update)
 
     p = subparsers.add_parser('checkout', help='Checkout a branch (git only)')
@@ -208,12 +211,14 @@ def add_arguments(parser):
     p.add_argument('branch_name', nargs='?',
                    help='Name of the branch to checkout or create (default: revision set in wrap file)')
     add_common_arguments(p)
+    add_subprojects_argument(p)
     p.set_defaults(subprojects_func=checkout)
 
     p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. ' +
                                                'Already downloaded subprojects are not modified. ' +
                                                'This can be used to pre-fetch all subprojects and avoid downloads during configure.')
     add_common_arguments(p)
+    add_subprojects_argument(p)
     p.set_defaults(subprojects_func=download)
 
     p = subparsers.add_parser('foreach', help='Execute a command in each subproject directory.')
@@ -221,8 +226,8 @@ def add_arguments(parser):
                    help='Command to execute in each subproject directory')
     p.add_argument('args', nargs=argparse.REMAINDER,
                    help=argparse.SUPPRESS)
-    p.add_argument('--sourcedir', default='.',
-                   help='Path to source directory')
+    add_common_arguments(p)
+    p.set_defaults(subprojects=[])
     p.set_defaults(subprojects_func=foreach)
 
 def run(options):
@@ -234,22 +239,12 @@ def run(options):
     if not os.path.isdir(subprojects_dir):
         mlog.log('Directory', mlog.bold(src_dir), 'does not seem to have subprojects.')
         return 0
-    files = []
-    if hasattr(options, 'subprojects'):
-        for name in options.subprojects:
-            f = os.path.join(subprojects_dir, name + '.wrap')
-            if not os.path.isfile(f):
-                mlog.error('Subproject', mlog.bold(name), 'not found.')
-                return 1
-            else:
-                files.append(f)
-    if not files:
-        for f in os.listdir(subprojects_dir):
-            if f.endswith('.wrap'):
-                files.append(os.path.join(subprojects_dir, f))
-    for f in files:
-        wrap = PackageDefinition(f)
-        directory = wrap.values.get('directory', wrap.name)
-        repo_dir = os.path.join(subprojects_dir, directory)
-        options.subprojects_func(wrap, repo_dir, options)
+    r = Resolver(subprojects_dir)
+    if options.subprojects:
+        wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
+    else:
+        wraps = r.wraps.values()
+    for wrap in wraps:
+        dirname = os.path.join(subprojects_dir, wrap.directory)
+        options.subprojects_func(wrap, dirname, options)
     return 0
