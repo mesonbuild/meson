@@ -157,6 +157,9 @@ def checkout(wrap, repo_dir, options):
         cmd.insert(1, '-b')
     mlog.log('Checkout {} in {}...'.format(branch_name, wrap.name))
     try:
+        # Stash any pending changes. Don't use git_output() here because we want
+        # the user to see his changes have been saved.
+        git(['stash'], repo_dir, check=True, universal_newlines=True)
         git_output(cmd, repo_dir)
         git_show(repo_dir)
     except subprocess.CalledProcessError as e:
