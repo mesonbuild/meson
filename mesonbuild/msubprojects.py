@@ -189,6 +189,9 @@ def foreach(wrap, repo_dir, options):
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
+    p.add_argument('--type', default='',
+                   choices=['file', 'git', 'hg', 'svn'],
+                   help='Only subprojects of given type (default: all)')
 
 def add_subprojects_argument(p):
     p.add_argument('subprojects', nargs='*',
@@ -245,6 +248,8 @@ def run(options):
     else:
         wraps = r.wraps.values()
     for wrap in wraps:
+        if options.type and wrap.type != options.type:
+            continue
         dirname = os.path.join(subprojects_dir, wrap.directory)
         options.subprojects_func(wrap, dirname, options)
     return 0
