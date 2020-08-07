@@ -45,10 +45,73 @@ def git_output(cmd, workingdir):
     return git(cmd, workingdir, check=True, universal_newlines=True,
                stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
 
+def git_stash(workingdir):
+    # Don't pipe stdout here because we want the user to see his changes have
+    # been saved.
+    git(['stash'], workingdir, check=True, universal_newlines=True)
+
 def git_show(repo_dir):
     commit_message = git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
     parts = [s.strip() for s in commit_message.split('\n')]
     mlog.log('  ->', mlog.yellow(parts[0]), mlog.red(parts[1]), parts[2], mlog.blue(parts[3]))
+
+def git_rebase(repo_dir, revision):
+    try:
+        git_output(['-c', 'rebase.autoStash=true', 'rebase', 'FETCH_HEAD'], repo_dir)
+    except subprocess.CalledProcessError as e:
+        out = e.output.strip()
+        mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'onto', mlog.bold(revision))
+        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(str(e)))
+        return False
+    return True
+
+def git_reset(repo_dir, revision):
+    try:
+        # Stash local changes, commits can always be found back in reflog, to
+        # avoid any data lost by mistake.
+        git_stash(repo_dir)
+        git_output(['reset', '--hard', 'FETCH_HEAD'], repo_dir)
+    except subprocess.CalledProcessError as e:
+        out = e.output.strip()
+        mlog.log('  -> Could not reset', mlog.bold(repo_dir), 'to', mlog.bold(revision))
+        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(str(e)))
+        return False
+    return True
+
+def git_checkout(repo_dir, revision, create=False):
+    cmd = ['checkout', revision, '--']
+    if create:
+        cmd.insert('-b', 1)
+    try:
+        # Stash local changes, commits can always be found back in reflog, to
+        # avoid any data lost by mistake.
+        git_stash(repo_dir)
+        git_output(cmd, repo_dir)
+    except subprocess.CalledProcessError as e:
+        out = e.output.strip()
+        mlog.log('  -> Could not checkout', mlog.bold(revision), 'in', mlog.bold(repo_dir))
+        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(str(e)))
+        return False
+    return True
+
+def git_checkout_and_reset(repo_dir, revision):
+    # revision could be a branch that already exists but is outdated, so we still
+    # have to reset after the checkout.
+    success = git_checkout(repo_dir, revision)
+    if success:
+        success = git_reset(repo_dir, revision)
+    return success
+
+def git_checkout_and_rebase(repo_dir, revision):
+    # revision could be a branch that already exists but is outdated, so we still
+    # have to rebase after the checkout.
+    success = git_checkout(repo_dir, revision)
+    if success:
+        success = git_rebase(repo_dir, revision)
+    return success
 
 def update_git(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
@@ -60,48 +123,36 @@ def update_git(wrap, repo_dir, options):
         mlog.log('  -> No revision specified.')
         return True
     branch = git_output(['branch', '--show-current'], repo_dir).strip()
+    # Fetch only the revision we need, this avoids fetching useless branches and
+    # is needed for http case were new remote branches wouldn't be discovered
+    # otherwise. After this command, FETCH_HEAD is the revision we want.
+    git_output(['fetch', 'origin', revision], repo_dir)
     if branch == '':
-        try:
-            # We are currently in detached mode, just checkout the new revision
-            git_output(['fetch'], repo_dir)
-            git_output(['checkout', revision], repo_dir)
-        except subprocess.CalledProcessError as e:
-            out = e.output.strip()
-            mlog.log('  -> Could not checkout revision', mlog.cyan(revision))
-            mlog.log(mlog.red(out))
-            mlog.log(mlog.red(str(e)))
-            return False
-    elif branch == revision:
-        try:
-            # We are in the same branch, pull latest commits
-            git_output(['-c', 'rebase.autoStash=true', 'pull', '--rebase'], repo_dir)
-        except subprocess.CalledProcessError as e:
-            out = e.output.strip()
-            mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
-            mlog.log(mlog.red(out))
-            mlog.log(mlog.red(str(e)))
-            return False
-    else:
-        # We are in another branch, probably user created their own branch and
-        # we should rebase it on top of wrap's branch.
-        if options.rebase:
-            try:
-                git_output(['fetch'], repo_dir)
-                git_output(['-c', 'rebase.autoStash=true', 'rebase', revision], repo_dir)
-            except subprocess.CalledProcessError as e:
-                out = e.output.strip()
-                mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
-                mlog.log(mlog.red(out))
-                mlog.log(mlog.red(str(e)))
-                return False
+        # We are currently in detached mode
+        if options.reset:
+            success = git_checkout_and_reset(repo_dir, revision)
         else:
-            mlog.log('  -> Target revision is', mlog.bold(revision), 'but currently in branch is', mlog.bold(ret), '\n' +
-                     '     To rebase your branch on top of', mlog.bold(revision), 'use', mlog.bold('--rebase'), 'option.')
-            return True
+            success = git_checkout_and_rebase(repo_dir, revision)
+    elif branch == revision:
+        # We are in the same branch. A reset could still be needed in the case
+        # a force push happened on remote repository.
+        if options.reset:
+            success = git_reset(repo_dir, revision)
+        else:
+            success = git_rebase(repo_dir, revision)
+    else:
+        # We are in another branch, either the user created their own branch and
+        # we should rebase it, or revision changed in the wrap file and we need
+        # to checkout the new branch.
+        if options.reset:
+            success = git_checkout_and_reset(repo_dir, revision)
+        else:
+            success = git_rebase(repo_dir, revision)
 
-    git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
-    git_show(repo_dir)
-    return True
+    if success:
+        git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
+        git_show(repo_dir)
+    return success
 
 def update_hg(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
@@ -158,21 +209,11 @@ def checkout(wrap, repo_dir, options):
     if not branch_name:
         # It could be a detached git submodule for example.
         return True
-    cmd = ['checkout', branch_name, '--']
-    if options.b:
-        cmd.insert(1, '-b')
     mlog.log('Checkout {} in {}...'.format(branch_name, wrap.name))
-    try:
-        # Stash any pending changes. Don't use git_output() here because we want
-        # the user to see his changes have been saved.
-        git(['stash'], repo_dir, check=True, universal_newlines=True)
-        git_output(cmd, repo_dir)
+    if git_checkout(repo_dir, branch_name, create=options.b):
         git_show(repo_dir)
-    except subprocess.CalledProcessError as e:
-        out = e.output.strip()
-        mlog.log('  -> ', mlog.red(out))
-        return False
-    return True
+        return True
+    return False
 
 def download(wrap, repo_dir, options):
     mlog.log('Download {}...'.format(wrap.name))
@@ -222,8 +263,11 @@ def add_arguments(parser):
     subparsers.required = True
 
     p = subparsers.add_parser('update', help='Update all subprojects from wrap files')
-    p.add_argument('--rebase', default=False, action='store_true',
-                   help='Rebase your branch on top of wrap\'s revision (git only)')
+    p.add_argument('--rebase', default=True, action='store_true',
+                   help='Rebase your branch on top of wrap\'s revision. ' + \
+                        'Deprecated, it is now the default behaviour. (git only)')
+    p.add_argument('--reset', default=False, action='store_true',
+                   help='Checkout wrap\'s revision and hard reset to that commit. (git only)')
     add_common_arguments(p)
     add_subprojects_argument(p)
     p.set_defaults(subprojects_func=update)
