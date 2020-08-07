@@ -12,7 +12,7 @@ def update_wrapdb_file(wrap, repo_dir, options):
     new_branch, new_revision = wraptool.get_latest_version(wrap.name)
     if new_branch == branch and new_revision == revision:
         mlog.log('  -> Up to date.')
-        return
+        return True
     wraptool.update_wrap_file(wrap.filename, wrap.name, new_branch, new_revision)
     msg = ['  -> New wrap file downloaded.']
     # Meson reconfigure won't use the new wrap file as long as the source
@@ -21,11 +21,12 @@ def update_wrapdb_file(wrap, repo_dir, options):
     if os.path.isdir(repo_dir):
         msg += ['To use it, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure')]
     mlog.log(*msg)
+    return True
 
 def update_file(wrap, repo_dir, options):
     patch_url = wrap.values.get('patch_url', '')
     if patch_url.startswith(API_ROOT):
-        update_wrapdb_file(wrap, repo_dir, options)
+        return update_wrapdb_file(wrap, repo_dir, options)
     elif not os.path.isdir(repo_dir):
         # The subproject is not needed, or it is a tarball extracted in
         # 'libfoo-1.0' directory and the version has been bumped and the new
@@ -38,6 +39,7 @@ def update_file(wrap, repo_dir, options):
         # version.
         mlog.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.\n' +
                  '     In that case, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure'))
+    return True
 
 def git_output(cmd, workingdir):
     return git(cmd, workingdir, check=True, universal_newlines=True,
@@ -51,12 +53,12 @@ def git_show(repo_dir):
 def update_git(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
-        return
+        return True
     revision = wrap.get('revision')
     if not revision:
         # It could be a detached git submodule for example.
         mlog.log('  -> No revision specified.')
-        return
+        return True
     branch = git_output(['branch', '--show-current'], repo_dir).strip()
     if branch == '':
         try:
@@ -68,7 +70,7 @@ def update_git(wrap, repo_dir, options):
             mlog.log('  -> Could not checkout revision', mlog.cyan(revision))
             mlog.log(mlog.red(out))
             mlog.log(mlog.red(str(e)))
-            return
+            return False
     elif branch == revision:
         try:
             # We are in the same branch, pull latest commits
@@ -78,7 +80,7 @@ def update_git(wrap, repo_dir, options):
             mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
             mlog.log(mlog.red(out))
             mlog.log(mlog.red(str(e)))
-            return
+            return False
     else:
         # We are in another branch, probably user created their own branch and
         # we should rebase it on top of wrap's branch.
@@ -91,19 +93,20 @@ def update_git(wrap, repo_dir, options):
                 mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'please fix and try again.')
                 mlog.log(mlog.red(out))
                 mlog.log(mlog.red(str(e)))
-                return
+                return False
         else:
             mlog.log('  -> Target revision is', mlog.bold(revision), 'but currently in branch is', mlog.bold(ret), '\n' +
                      '     To rebase your branch on top of', mlog.bold(revision), 'use', mlog.bold('--rebase'), 'option.')
-            return
+            return True
 
     git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
     git_show(repo_dir)
+    return True
 
 def update_hg(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
-        return
+        return True
     revno = wrap.get('revision')
     if revno.lower() == 'tip':
         # Failure to do pull is not a fatal error,
@@ -114,16 +117,17 @@ def update_hg(wrap, repo_dir, options):
         if subprocess.call(['hg', 'checkout', revno], cwd=repo_dir) != 0:
             subprocess.check_call(['hg', 'pull'], cwd=repo_dir)
             subprocess.check_call(['hg', 'checkout', revno], cwd=repo_dir)
+    return True
 
 def update_svn(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
-        return
+        return True
     revno = wrap.get('revision')
     p, out, _ = Popen_safe(['svn', 'info', '--show-item', 'revision', repo_dir])
     current_revno = out
     if current_revno == revno:
-        return
+        return True
     if revno.lower() == 'head':
         # Failure to do pull is not a fatal error,
         # because otherwise you can't develop without
@@ -131,27 +135,29 @@ def update_svn(wrap, repo_dir, options):
         subprocess.call(['svn', 'update'], cwd=repo_dir)
     else:
         subprocess.check_call(['svn', 'update', '-r', revno], cwd=repo_dir)
+    return True
 
 def update(wrap, repo_dir, options):
     mlog.log('Updating {}...'.format(wrap.name))
     if wrap.type == 'file':
-        update_file(wrap, repo_dir, options)
+        return update_file(wrap, repo_dir, options)
     elif wrap.type == 'git':
-        update_git(wrap, repo_dir, options)
+        return update_git(wrap, repo_dir, options)
     elif wrap.type == 'hg':
-        update_hg(wrap, repo_dir, options)
+        return update_hg(wrap, repo_dir, options)
     elif wrap.type == 'svn':
-        update_svn(wrap, repo_dir, options)
+        return update_svn(wrap, repo_dir, options)
     else:
         mlog.log('  -> Cannot update', wrap.type, 'subproject')
+    return True
 
 def checkout(wrap, repo_dir, options):
     if wrap.type != 'git' or not os.path.isdir(repo_dir):
-        return
+        return True
     branch_name = options.branch_name if options.branch_name else wrap.get('revision')
     if not branch_name:
         # It could be a detached git submodule for example.
-        return
+        return True
     cmd = ['checkout', branch_name, '--']
     if options.b:
         cmd.insert(1, '-b')
@@ -165,24 +171,28 @@ def checkout(wrap, repo_dir, options):
     except subprocess.CalledProcessError as e:
         out = e.output.strip()
         mlog.log('  -> ', mlog.red(out))
+        return False
+    return True
 
 def download(wrap, repo_dir, options):
     mlog.log('Download {}...'.format(wrap.name))
     if os.path.isdir(repo_dir):
         mlog.log('  -> Already downloaded')
-        return
+        return True
     try:
         r = Resolver(os.path.dirname(repo_dir))
         r.resolve(wrap.name, 'meson')
         mlog.log('  -> done')
     except WrapException as e:
         mlog.log('  ->', mlog.red(str(e)))
+        return False
+    return True
 
 def foreach(wrap, repo_dir, options):
     mlog.log('Executing command in {}'.format(repo_dir))
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
-        return
+        return True
     try:
         out = subprocess.check_output([options.command] + options.args,
                                       stderr=subprocess.STDOUT,
@@ -193,8 +203,8 @@ def foreach(wrap, repo_dir, options):
         out = e.output.decode()
         mlog.log('  -> ', mlog.red(err_message))
         mlog.log(out, end='')
-    except Exception as e:
-        mlog.log('  -> ', mlog.red(str(e)))
+        return False
+    return True
 
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
@@ -257,9 +267,15 @@ def run(options):
         wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
     else:
         wraps = r.wraps.values()
+    failures = []
     for wrap in wraps:
         if options.type and wrap.type != options.type:
             continue
         dirname = os.path.join(subprojects_dir, wrap.directory)
-        options.subprojects_func(wrap, dirname, options)
-    return 0
+        if not options.subprojects_func(wrap, dirname, options):
+            failures.append(wrap.name)
+    if failures:
+        m = 'Please check logs above as command failed in some subprojects which could have been left in conflict state: '
+        m += ', '.join(failures)
+        mlog.warning(m)
+    return len(failures)
