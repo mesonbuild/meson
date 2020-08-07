@@ -113,6 +113,7 @@ local -a meson_commands=(
   '--stdsplit=[split stdout and stderr in test logs]' \
   '--errorlogs=[prints the logs from failing tests]' \
   '--cross-file=[cross-compilation environment description]:cross file:_files' \
+  '--native-file=[build machine compilation environment description]:native file:_files' \
   '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes" \
   ":$firstd directory:_directories" \
   "::$secondd directory:_directories" \
