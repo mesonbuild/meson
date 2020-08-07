@@ -8153,9 +8153,10 @@ class NativeFileTests(BasePlatformTests):
                 found += 1
         self.assertEqual(found, 4, 'Did not find all three sections')
 
+    @unittest.skipIf(is_windows(), 'Test uses c++98 not recognized by msvc')
     def test_builtin_options_subprojects_overrides_buildfiles(self):
         # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
-        testcase = os.path.join(self.common_test_dir, '230 persubproject options')
+        testcase = os.path.join(self.linuxlike_test_dir, '16 persubproject options')
         config = self.helper_create_native_file({'sub2:built-in options': {'default_library': 'shared'}})
 
         with self.assertRaises(subprocess.CalledProcessError) as cm:
@@ -8164,7 +8165,7 @@ class NativeFileTests(BasePlatformTests):
 
     def test_builtin_options_subprojects_dont_inherits_parent_override(self):
         # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
-        testcase = os.path.join(self.common_test_dir, '230 persubproject options')
+        testcase = os.path.join(self.linuxlike_test_dir, '16 persubproject options')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
         self.init(testcase, extra_args=['--native-file', config])
 
