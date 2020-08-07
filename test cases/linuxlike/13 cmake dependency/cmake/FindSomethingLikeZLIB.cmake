@@ -4,6 +4,9 @@ include(CMakeFindDependencyMacro)
 include(CheckCXXSourceRuns)
 include(CheckCSourceRuns)
 
+# Do something stupid (see https://github.com/mesonbuild/meson/issues/7501)
+set("")
+
 check_cxx_source_runs(
 "
 #include <iostream>

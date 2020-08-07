@@ -74,7 +74,7 @@ class CMakeGeneratorTarget(CMakeTarget):
         self.working_dir = None  # type: T.Optional[str]
 
 class CMakeTraceParser:
-    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = False):
+    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = True):
         self.vars = {}     # type: T.Dict[str, T.List[str]]
         self.targets = {}  # type: T.Dict[str, CMakeTarget]
 
