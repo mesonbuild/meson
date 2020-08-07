@@ -53,8 +53,8 @@ def update_git(wrap, repo_dir, options):
         mlog.log('  -> Not used.')
         return
     revision = wrap.get('revision')
-    ret = git_output(['rev-parse', '--abbrev-ref', 'HEAD'], repo_dir).strip()
-    if ret == 'HEAD':
+    branch = git_output(['branch', '--show-current'], repo_dir).strip()
+    if branch == '':
         try:
             # We are currently in detached mode, just checkout the new revision
             git_output(['fetch'], repo_dir)
@@ -65,7 +65,7 @@ def update_git(wrap, repo_dir, options):
             mlog.log(mlog.red(out))
             mlog.log(mlog.red(str(e)))
             return
-    elif ret == revision:
+    elif branch == revision:
         try:
             # We are in the same branch, pull latest commits
             git_output(['-c', 'rebase.autoStash=true', 'pull', '--rebase'], repo_dir)
