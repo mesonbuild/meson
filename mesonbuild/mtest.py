@@ -206,7 +206,7 @@ class TAPParser:
         explanation = explanation.strip() if explanation else None
         if directive is not None:
             directive = directive.upper()
-            if directive == 'SKIP':
+            if directive.startswith('SKIP'):
                 if ok:
                     yield self.Test(num, name, TestResult.SKIP, explanation)
                     return
