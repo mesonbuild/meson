@@ -279,7 +279,7 @@ class ConverterTarget:
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
     def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
-        # Detect setting the C and C++ standard
+        # Detect setting the C and C++ standard and do additional compiler args manipulation
         for i in ['c', 'cpp']:
             if i not in self.compile_opts:
                 continue
@@ -287,6 +287,7 @@ class ConverterTarget:
             temp = []
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
+                ctgt = output_target_map.generated(j)
                 if m:
                     std = m.group(2)
                     supported = self._all_lang_stds(i)
@@ -301,6 +302,12 @@ class ConverterTarget:
                     self.override_options += ['{}_std={}'.format(i, std)]
                 elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
                     self.pie = True
+                elif isinstance(ctgt, ConverterCustomTarget):
+                    # Sometimes projects pass generated source files as compiler
+                    # flags. Add these as generated sources to ensure that the
+                    # corresponding custom target is run.2
+                    self.generated += [j]
+                    temp += [j]
                 elif j in blacklist_compiler_flags:
                     pass
                 else:

@@ -134,6 +134,16 @@ add_custom_target(args_test_cmd
 )
 add_custom_target(macro_name_cmd COMMAND macro_name)
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  message(STATUS "Running the -include test case on macro_name")
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyInc.hpp"
+    COMMAND mycpy "${CMAKE_CURRENT_SOURCE_DIR}/cpyInc.hpp.am" "${CMAKE_CURRENT_BINARY_DIR}/cpyInc.hpp"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyInc.hpp.am"
+  )
+  target_compile_options(macro_name PUBLIC -DTEST_CMD_INCLUDE -include "${CMAKE_CURRENT_BINARY_DIR}/cpyInc.hpp")
+endif()
+
 # Only executable targets are replaced in the command
 # all other target names are kept as is
 add_custom_target(clang-format COMMAND clang-format -i cmMod.cpp)
