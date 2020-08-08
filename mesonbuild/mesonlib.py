@@ -515,6 +515,8 @@ def is_irix() -> bool:
 def is_hurd() -> bool:
     return platform.system().lower() == 'gnu'
 
+def is_qnx() -> bool:
+    return platform.system().lower() == 'qnx'
 
 def exe_exists(arglist: T.List[str]) -> bool:
     try:

@@ -333,7 +333,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd():
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx():
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
