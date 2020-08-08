@@ -92,7 +92,9 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
         tgt = args[0]
         res = self.held_object.cm_interpreter.target_info(tgt)
         if res is None:
-            raise InterpreterException('The CMake target {} does not exist'.format(tgt))
+            raise InterpreterException('The CMake target {} does not exist\n'.format(tgt) +
+                                       '  Use the following command in your meson.build to list all available targets:\n\n' +
+                                       '    message(\'CMaket targets:\\n - \' + \'\\n - \'.join(<cmake_subproject>.target_list()))')
 
         # Make sure that all keys are present (if not this is a bug)
         assert(all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']]))
