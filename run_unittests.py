@@ -8119,7 +8119,7 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find werror in build options?')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
         config = self.helper_create_native_file({'built-in options': {'pkg_config_path': '/foo'}})
 
@@ -8127,7 +8127,7 @@ class NativeFileTests(BasePlatformTests):
         configuration = self.introspect('--buildoptions')
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/foo'])
                 break
         else:
             self.fail('Did not find pkg_config_path in build options?')
@@ -8532,10 +8532,10 @@ class CrossFileTests(BasePlatformTests):
                 break
         self.assertEqual(found, 4, 'Did not find all sections.')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
-        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
-        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
+        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/native'}})
+        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/cross'}})
 
         self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross],
                   override_envvars={'PKG_CONFIG_PATH': '/bar', 'PKG_CONFIG_PATH_FOR_BUILD': '/dir'})
@@ -8543,10 +8543,10 @@ class CrossFileTests(BasePlatformTests):
         found = 0
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/cross'])
                 found += 1
             elif each['name'] == 'build.pkg_config_path':
-                self.assertEqual(each['value'], ['/dir'])
+                self.assertEqual(each['value'], ['/native'])
                 found += 1
             if found == 2:
                 break
