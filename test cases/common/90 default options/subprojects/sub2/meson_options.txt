@@ -1,0 +1,1 @@
+option('test_option2', type : 'boolean', value : true, description : 'Test option. Superproject overrides default to "false"')
