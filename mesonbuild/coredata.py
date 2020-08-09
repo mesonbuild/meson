@@ -773,7 +773,7 @@ class CoreData:
         # 'optimization' if it is in default_options.
         raw_options = OrderedDict()
         for k, v in default_options.items():
-            if subproject:
+            if subproject and ':' not in k:
                 k = subproject + ':' + k
             raw_options[k] = v
         raw_options.update(env.raw_options)
