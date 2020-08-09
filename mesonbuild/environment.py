@@ -629,11 +629,11 @@ class Environment:
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
 
-        # Environment options override those from cross/native files
-        self.set_options_from_env()
-
         # Command line options override those from cross/native files
         self.raw_options.update(options.cmd_line_options)
+
+        # Take default value from env if not set in cross/native files or command line.
+        self.set_default_options_from_env()
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
@@ -727,7 +727,7 @@ class Environment:
                 per_machine_options[build_optname] = value
         self.raw_options = per_machine_options
 
-    def set_options_from_env(self):
+    def set_default_options_from_env(self):
         for for_machine in MachineChoice:
             p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), 'PKG_CONFIG_PATH')
             if p_env_pair is not None:
@@ -746,7 +746,7 @@ class Environment:
                 # FIXME: We should remember if we took the value from env to warn
                 # if it changes on future invocations.
                 if self.first_invocation:
-                    self.raw_options[key] = p_list
+                    self.raw_options.setdefault(key, p_list)
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
