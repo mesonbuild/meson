@@ -8162,14 +8162,11 @@ class NativeFileTests(BasePlatformTests):
             self.init(testcase, extra_args=['--native-file', config])
             self.assertIn(cm.exception.stdout, 'Parent should override default_library')
 
-    def test_builtin_options_subprojects_inherits_parent_override(self):
+    def test_builtin_options_subprojects_dont_inherits_parent_override(self):
         # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
         testcase = os.path.join(self.common_test_dir, '230 persubproject options')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
-
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testcase, extra_args=['--native-file', config])
-            self.assertIn(cm.exception.stdout, 'Parent should override default_library')
+        self.init(testcase, extra_args=['--native-file', config])
 
     def test_builtin_options_compiler_properties(self):
         # the properties section can have lang_args, and those need to be
