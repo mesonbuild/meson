@@ -735,7 +735,9 @@ class CoreData:
         for k, v in options.items():
             if k.startswith('build.'):
                 k = k.split('.', 1)[1]
-            res[k] = v
+                res.setdefault(k, v)
+            else:
+                res[k] = v
         return res
 
     def copy_build_options_from_regular_ones(self):
