@@ -4,6 +4,7 @@ project('default options', 'cpp', 'c', default_options : [
   'cpp_std=c++11',
   'cpp_eh=none',
   'warning_level=3',
+  'sub1:test_option=false',
   ])
 
 assert(get_option('buildtype') == 'debugoptimized', 'Build type default value wrong.')
@@ -28,3 +29,5 @@ assert(w_level == '3', 'warning level "' + w_level + '" instead of "3"')
 #   assert(not cc.compiles('int foobar;'), 'Default arg not used in test.')
 #   assert(cc.compiles('int foobar;', no_builtin_args : true), 'No_builtin did not disable builtins.')
 # endif
+
+subproject('sub1')
