@@ -1141,6 +1141,38 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return self._apply_prefix('-soname,{}{}.{}{}'.format(prefix, shlib_name, suffix, sostr))
 
 
+class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+
+    """Sys-V derived linker used on AIX"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__('ld.aix', *args, **kwargs)
+
+    def get_always_args(self) -> T.List[str]:
+        return self._apply_prefix(['-bsvr4', '-bnoipath', '-bbigtoc']) + super().get_always_args()
+
+    def no_undefined_args(self) -> T.List[str]:
+        return self._apply_prefix(['-z', 'defs'])
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return self._apply_prefix(['-z', 'nodefs'])
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        all_paths = mesonlib.OrderedSet(['/opt/freeware/lib']) # for libgcc_s.a
+        for p in rpath_paths:
+            all_paths.add(os.path.join(build_dir, p))
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+        if install_rpath != '':
+            all_paths.add(install_rpath)
+        return (self._apply_prefix([x for p in all_paths for x in ('-R', p)]), set())
+
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
+        return ['-pthread']
+
+
 class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Digital Mars dynamic linker for windows."""

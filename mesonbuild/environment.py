@@ -61,6 +61,7 @@ from .linkers import (
     PGIDynamicLinker,
     PGIStaticLinker,
     SolarisDynamicLinker,
+    AIXDynamicLinker,
     XilinkDynamicLinker,
     CudaLinker,
     VisualStudioLikeLinkerMixin,
@@ -1092,6 +1093,14 @@ class Environment:
             linker = SolarisDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override,
                 version=v)
+        elif 'ld: 0706-012 The -- flag is not recognized' in e:
+            if isinstance(comp_class.LINKER_PREFIX, str):
+                _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-V'] + extra_args)
+            else:
+                _, _, e = Popen_safe(compiler + comp_class.LINKER_PREFIX + ['-V'] + extra_args)
+            linker = AIXDynamicLinker(
+                compiler, for_machine, comp_class.LINKER_PREFIX, override,
+                version=search_version(e))
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
         return linker
