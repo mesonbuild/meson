@@ -530,6 +530,9 @@ def is_hurd() -> bool:
 def is_qnx() -> bool:
     return platform.system().lower() == 'qnx'
 
+def is_aix() -> bool:
+    return platform.system().lower() == 'aix'
+
 def exe_exists(arglist: T.List[str]) -> bool:
     try:
         if subprocess.run(arglist, timeout=10).returncode == 0:
