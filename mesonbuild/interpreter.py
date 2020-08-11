@@ -3671,7 +3671,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         # a higher level project, try to use it first.
         if has_fallback:
             dirname, varname = self.get_subproject_infos(kwargs)
-            if dirname in self.subprojects:
+            sub = self.subprojects.get(dirname)
+            if sub and sub.found():
                 return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
