@@ -7127,6 +7127,24 @@ c = ['{0}']
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
         self.assertIsNone(build_rpath)
 
+    def test_lookup_system_after_broken_fallback(self):
+        # Just to generate libfoo.pc so we can test system dependency lookup.
+        testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
+        self.init(testdir)
+        privatedir = self.privatedir
+
+        # Write test project where the first dependency() returns not-found
+        # because 'broken' subproject does not exit, but that should not prevent
+        # the 2nd dependency() to lookup on system.
+        self.new_builddir()
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, 'meson.build'), 'w') as f:
+                f.write(textwrap.dedent('''\
+                    project('test')
+                    dependency('notfound', fallback: 'broken', required: false)
+                    dependency('libfoo', fallback: 'broken', required: true)
+                    '''))
+            self.init(d, override_envvars={'PKG_CONFIG_LIBDIR': privatedir})
 
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that
