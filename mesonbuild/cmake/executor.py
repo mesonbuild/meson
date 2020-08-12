@@ -35,6 +35,31 @@ if T.TYPE_CHECKING:
 
 TYPE_result = T.Tuple[int, T.Optional[str], T.Optional[str]]
 
+MESON_TO_CMAKE_MAPPING = {
+    'arm':          'ARMCC',
+    'armclang':     'ARMClang',
+    'clang':        'Clang',
+    'clang-cl':     'MSVC',
+    'flang':        'Flang',
+    'g95':          'G95',
+    'gcc':          'GNU',
+    'intel':        'Intel',
+    'intel-cl':     'MSVC',
+    'msvc':         'MSVC',
+    'pathscale':    'PathScale',
+    'pgi':          'PGI',
+    'sun':          'SunPro',
+}
+
+def meson_compiler_to_cmake_id(cobj):
+    # cland and apple clang both map to 'clang' in meson, so we need to look at
+    # the linker that's being used
+    if cobj.linker.get_id() == 'ld64':
+        return 'AppleClang'
+    # If no mapping, try GNU and hope that the build files don't care
+    return MESON_TO_CMAKE_MAPPING.get(cobj.get_id(), 'GNU')
+
+
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
@@ -280,7 +305,7 @@ class CMakeExecutor:
 
             if comp_obj is not None:
                 exe_list = comp_obj.get_exelist()
-                comp_id = comp_obj.get_id().upper()
+                comp_id = meson_compiler_to_cmake_id(comp_obj)
                 comp_version = comp_obj.version.upper()
 
             if len(exe_list) == 1:
