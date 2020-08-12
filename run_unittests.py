@@ -5025,6 +5025,14 @@ recommended as it is not supported on some platforms''')
             self.build()
             self.run_tests()
 
+    def test_multi_output_custom_target_no_warning(self):
+        testdir = os.path.join(self.common_test_dir, '235 custom_target source')
+
+        out = self.init(testdir)
+        self.assertNotRegex(out, 'WARNING:.*Using the first one.')
+        self.build()
+        self.run_tests()
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
