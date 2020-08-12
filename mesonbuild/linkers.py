@@ -247,6 +247,18 @@ class C2000Linker(StaticLinker):
         return ['-r']
 
 
+class AIXArLinker(ArLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        StaticLinker.__init__(self, exelist)
+        self.id = 'aixar'
+        self.std_args = ['-csr', '-Xany']
+
+    def can_linker_accept_rsp(self) -> bool:
+        # AIXAr can't accept arguments using the @rsp syntax
+        return False
+
+
 def prepare_rpaths(raw_rpaths: str, build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
     # because otherwise they have different length depending on the build

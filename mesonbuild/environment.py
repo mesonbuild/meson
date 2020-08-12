@@ -19,7 +19,7 @@ import typing as T
 import collections
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -1940,7 +1940,7 @@ class Environment:
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('Usage'): # AIX
-                return ArLinker(linker)
+                return AIXArLinker(linker)
             if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
