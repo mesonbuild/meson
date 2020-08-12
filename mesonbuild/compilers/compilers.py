@@ -21,13 +21,9 @@ from functools import lru_cache
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
-from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args
-)
-from ..envconfig import (
-    Properties, get_env_var
+    Popen_safe
 )
 from ..arglist import CompilerArgs
 
@@ -79,22 +75,7 @@ for _l in clink_langs + ('vala',):
 clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))
 
-# Languages that should use LDFLAGS arguments when linking.
-languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}
-# Languages that should use CPPFLAGS arguments when linking.
-languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
-
-# Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'cuda': 'CUFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS',
-                  'rust': 'RUSTFLAGS'}
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
@@ -536,11 +517,6 @@ class Compiler(metaclass=abc.ABCMeta):
         """
         return []
 
-    def get_linker_args_from_envvars(self,
-                                     for_machine: MachineChoice,
-                                     is_cross: bool) -> T.List[str]:
-        return self.linker.get_args_from_envvars(for_machine, is_cross)
-
     def get_options(self) -> T.Dict[str, coredata.UserOption]:
         return {}
 
@@ -909,74 +885,17 @@ def get_largefile_args(compiler):
     return []
 
 
-def get_args_from_envvars(lang: str,
-                          for_machine: MachineChoice,
-                          is_cross: bool,
-                          use_linker_args: bool) -> T.Tuple[T.List[str], T.List[str]]:
-    """
-    Returns a tuple of (compile_flags, link_flags) for the specified language
-    from the inherited environment
-    """
-    if lang not in cflags_mapping:
-        return [], []
-
-    compile_flags = []  # type: T.List[str]
-    link_flags = []     # type: T.List[str]
-
-    env_compile_flags = get_env_var(for_machine, is_cross, cflags_mapping[lang])
-    if env_compile_flags is not None:
-        compile_flags += split_args(env_compile_flags)
-
-    # Link flags (same for all languages)
-    if lang in languages_using_ldflags:
-        link_flags += LinkerEnvVarsMixin.get_args_from_envvars(for_machine, is_cross)
-    if use_linker_args:
-        # When the compiler is used as a wrapper around the linker (such as
-        # with GCC and Clang), the compile flags can be needed while linking
-        # too. This is also what Autotools does. However, we don't want to do
-        # this when the linker is stand-alone such as with MSVC C/C++, etc.
-        link_flags = compile_flags + link_flags
-
-    # Pre-processor flags for certain languages
-    if lang in languages_using_cppflags:
-        env_preproc_flags = get_env_var(for_machine, is_cross, 'CPPFLAGS')
-        if env_preproc_flags is not None:
-            compile_flags += split_args(env_preproc_flags)
-
-    return compile_flags, link_flags
-
-
-def get_global_options(lang: str,
-                       comp: T.Type[Compiler],
-                       for_machine: MachineChoice,
-                       is_cross: bool,
-                       properties: Properties) -> T.Dict[str, coredata.UserOption]:
+def get_global_options(lang: str, comp: T.Type[Compiler], for_machine: MachineChoice,
+                       env: 'Environment') -> T.Dict[str, coredata.UserOption]:
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
-    opts = {
+    return {
         'args': coredata.UserArrayOption(
             description + ' compiler',
-            [], split_args=True, user_input=True, allow_dups=True),
+            env.compiler_options[for_machine][lang].get('args', []),
+            split_args=True, user_input=True, allow_dups=True),
         'link_args': coredata.UserArrayOption(
             description + ' linker',
-            [], split_args=True, user_input=True, allow_dups=True),
+            env.compiler_options[for_machine][lang].get('link_args', []),
+            split_args=True, user_input=True, allow_dups=True),
     }
-
-    # Get from env vars.
-    compile_args, link_args = get_args_from_envvars(
-        lang,
-        for_machine,
-        is_cross,
-        comp.INVOKES_LINKER)
-
-    for k, o in opts.items():
-        user_k = lang + '_' + k
-        if user_k in properties:
-            # Get from configuration files.
-            o.set_value(properties[user_k])
-        elif k == 'args':
-            o.set_value(compile_args)
-        elif k == 'link_args':
-            o.set_value(link_args)
-
-    return opts

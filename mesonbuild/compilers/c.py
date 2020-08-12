@@ -17,7 +17,6 @@ import typing as T
 
 from .. import coredata
 from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
-from ..linkers import LinkerEnvVarsMixin
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
@@ -149,7 +148,7 @@ class AppleClangCCompiler(ClangCCompiler):
     _C18_VERSION = '>=11.0.0'
 
 
-class EmscriptenCCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCCompiler):
+class EmscriptenCCompiler(EmscriptenMixin, ClangCCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
         if not is_cross:

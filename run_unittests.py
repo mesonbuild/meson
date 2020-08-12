@@ -8119,7 +8119,7 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find werror in build options?')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
         config = self.helper_create_native_file({'built-in options': {'pkg_config_path': '/foo'}})
 
@@ -8127,7 +8127,7 @@ class NativeFileTests(BasePlatformTests):
         configuration = self.introspect('--buildoptions')
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/foo'])
                 break
         else:
             self.fail('Did not find pkg_config_path in build options?')
@@ -8532,7 +8532,7 @@ class CrossFileTests(BasePlatformTests):
                 break
         self.assertEqual(found, 4, 'Did not find all sections.')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
         config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
         cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
@@ -8543,10 +8543,10 @@ class CrossFileTests(BasePlatformTests):
         found = 0
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/foo'])
                 found += 1
             elif each['name'] == 'build.pkg_config_path':
-                self.assertEqual(each['value'], ['/dir'])
+                self.assertEqual(each['value'], ['/foo'])
                 found += 1
             if found == 2:
                 break
@@ -8854,7 +8854,7 @@ def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
     # environment, for example when doing a package build.
-    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.compilers.compilers.cflags_mapping.values())
+    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.environment.COMPILER_OPTS_TO_ENV.values())
     for v in varnames:
         if v in os.environ:
             del os.environ[v]

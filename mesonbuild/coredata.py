@@ -805,12 +805,7 @@ class CoreData:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
 
-        for k, o in compilers.get_global_options(
-                lang,
-                comp,
-                for_machine,
-                env.is_cross_build(),
-                env.properties[for_machine]).items():
+        for k, o in compilers.get_global_options(lang, comp, for_machine, env).items():
             # prefixed compiler options affect just this machine
             if k in env.compiler_options[for_machine].get(lang, {}):
                 o.set_value(env.compiler_options[for_machine][lang][k])
