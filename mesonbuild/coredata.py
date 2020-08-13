@@ -763,7 +763,9 @@ class CoreData:
         # split arguments that can be set now, and those that cannot so they
         # can be set later, when they've been initialized.
         for k, v in default_options.items():
-            if k.startswith(lang_prefixes):
+            if ':' in k:
+                continue
+            elif k.startswith(lang_prefixes):
                 lang, key = k.split('_', 1)
                 for machine in MachineChoice:
                     if key not in env.compiler_options[machine][lang]:
@@ -792,11 +794,20 @@ class CoreData:
         for k, v in default_options.items():
             if k in BUILTIN_OPTIONS and not BUILTIN_OPTIONS[k].yielding:
                 continue
+
+            subp = subproject
+            if ':' in k:
+                # We don't honor subproject options from one subproject to
+                # another, only from the superproject
+                if subproject:
+                    continue
+
+                subp, k = k.split(':')
             for machine in MachineChoice:
                 if machine is MachineChoice.BUILD and not self.is_cross_build():
                     continue
-                if k not in env.meson_options[machine][subproject]:
-                    env.meson_options[machine][subproject][k] = v
+                if k not in env.meson_options[machine][subp]:
+                    env.meson_options[machine][subp][k] = v
 
         self.set_options(options, subproject=subproject)
 
