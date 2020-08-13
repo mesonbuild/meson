@@ -907,7 +907,7 @@ class TestHarness:
         if result.res is TestResult.FAIL:
             result_str += ' ' + returncode_to_status(result.returncode)
         if not self.options.quiet or result.res not in ok_statuses:
-            if result.res not in ok_statuses and mlog.colorize_console:
+            if result.res not in ok_statuses and mlog.colorize_console():
                 if result.res in bad_statuses:
                     self.collected_failures.append(result_str)
                     decorator = mlog.red
