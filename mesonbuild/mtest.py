@@ -124,7 +124,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('--test-args', default=[], type=split_args,
                         help='Arguments to pass to the specified test(s) or all tests')
     parser.add_argument('args', nargs='*',
-                        help='Optional list of tests to run')
+                        help='Optional list of test names to run. "testname" to run all tests with that name, '
+                        '"subprojname:testname" to specifically run "testname" from "subprojname", '
+                        '"subprojname:" to run all tests defined by "subprojname".')
 
 
 def returncode_to_status(retcode: int) -> str:
@@ -1039,6 +1041,28 @@ class TestHarness:
                 TestHarness.test_in_suites(test, self.options.include_suites)) and not
                 TestHarness.test_in_suites(test, self.options.exclude_suites))
 
+    def tests_from_args(self, tests: T.List[TestSerialisation]) -> T.Generator[TestSerialisation, None, None]:
+        '''
+        Allow specifying test names like "meson test foo1 foo2", where test('foo1', ...)
+
+        Also support specifying the subproject to run tests from like
+        "meson test subproj:" (all tests inside subproj) or "meson test subproj:foo1"
+        to run foo1 inside subproj. Coincidentally also "meson test :foo1" to
+        run all tests with that name across all subprojects, which is
+        identical to "meson test foo1"
+        '''
+        for arg in self.options.args:
+            if ':' in arg:
+                subproj, name = arg.split(':', maxsplit=1)
+            else:
+                subproj, name = '', arg
+            for t in tests:
+                if subproj and t.project_name != subproj:
+                    continue
+                if name and t.name != name:
+                    continue
+                yield t
+
     def get_tests(self) -> T.List[TestSerialisation]:
         if not self.tests:
             print('No tests defined.')
@@ -1052,9 +1076,8 @@ class TestHarness:
         else:
             tests = self.tests
 
-        # allow specifying test names like "meson test foo1 foo2", where test('foo1', ...)
         if self.options.args:
-            tests = [t for t in tests if t.name in self.options.args]
+            tests = list(self.tests_from_args(tests))
 
         if not tests:
             print('No suitable tests defined.')

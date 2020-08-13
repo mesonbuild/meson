@@ -4074,8 +4074,13 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def add_test(self, node, args, kwargs, is_base_test):
         if len(args) != 2:
             raise InterpreterException('test expects 2 arguments, {} given'.format(len(args)))
-        if not isinstance(args[0], str):
+        name = args[0]
+        if not isinstance(name, str):
             raise InterpreterException('First argument of test must be a string.')
+        if ':' in name:
+            mlog.deprecation('":" is not allowed in test name "{}", it has been replaced with "_"'.format(name),
+                             location=node)
+            name = name.replace(':', '_')
         exe = args[1]
         if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
             if isinstance(exe, mesonlib.File):
@@ -4120,14 +4125,14 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         priority = kwargs.get('priority', 0)
         if not isinstance(priority, int):
             raise InterpreterException('Keyword argument priority must be an integer.')
-        t = Test(args[0], prj, suite, exe.held_object, depends, par, cmd_args,
+        t = Test(name, prj, suite, exe.held_object, depends, par, cmd_args,
                  env, should_fail, timeout, workdir, protocol, priority)
         if is_base_test:
             self.build.tests.append(t)
-            mlog.debug('Adding test', mlog.bold(args[0], True))
+            mlog.debug('Adding test', mlog.bold(name, True))
         else:
             self.build.benchmarks.append(t)
-            mlog.debug('Adding benchmark', mlog.bold(args[0], True))
+            mlog.debug('Adding benchmark', mlog.bold(name, True))
 
     @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_headers'])
