@@ -43,6 +43,7 @@ from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
+from .mesonlib import Popen_safe, Popen_communicate
 from .backend.backends import TestProtocol
 
 if T.TYPE_CHECKING:
@@ -690,11 +691,12 @@ class SingleTestRunner:
                 gtestname = '{}:{}'.format(self.test.workdir, self.test.name)
             extra_cmd.append('--gtest_output=xml:{}'.format(gtestname))
 
-        p = subprocess.Popen(cmd + extra_cmd,
+        p, _, _ = Popen_safe(cmd + extra_cmd,
                              stdout=stdout,
                              stderr=stderr,
                              env=self.env,
                              cwd=self.test.workdir,
+                             communicate=False,
                              preexec_fn=preexec_fn if not is_windows() else None)
         timed_out = False
         kill_test = False
@@ -705,7 +707,7 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout
         try:
-            p.communicate(timeout=timeout)
+            Popen_communicate(p, timeout=timeout)
         except subprocess.TimeoutExpired:
             if self.options.verbose:
                 print('{} time out (After {} seconds)'.format(self.test.name, timeout))
@@ -745,18 +747,18 @@ class SingleTestRunner:
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
                 try:
-                    p.communicate(timeout=0.5)
+                    Popen_communicate(p, timeout=0.5)
                 except subprocess.TimeoutExpired:
                     _send_signal_to_process_group(p.pid, signal.SIGKILL)
             try:
-                p.communicate(timeout=1)
+                Popen_communicate(p, timeout=1)
             except subprocess.TimeoutExpired:
                 # An earlier kill attempt has not worked for whatever reason.
                 # Try to kill it one last time with a direct call.
                 # If the process has spawned children, they will remain around.
                 p.kill()
                 try:
-                    p.communicate(timeout=1)
+                    Popen_communicate(p, timeout=1)
                 except subprocess.TimeoutExpired:
                     additional_error = 'Test process could not be killed.'
             except ValueError:

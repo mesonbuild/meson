@@ -1197,39 +1197,19 @@ def partition(pred: T.Callable[[_T], object], iterable: T.Iterator[_T]) -> T.Tup
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
-               stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-               stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-               **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+def _stdout_is_utf8():
     import locale
     encoding = locale.getpreferredencoding()
-    # Redirect stdin to DEVNULL otherwise the command run by us here might mess
-    # up the console and ANSI colors will stop working on Windows.
-    if 'stdin' not in kwargs:
-        kwargs['stdin'] = subprocess.DEVNULL
     if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
-        p, o, e = Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
-    else:
-        p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
-                             stdout=stdout, stderr=stderr, **kwargs)
-        o, e = p.communicate(write)
-    # Sometimes the command that we run will call another command which will be
-    # without the above stdin workaround, so set the console mode again just in
-    # case.
-    mlog.setup_console()
-    return p, o, e
+        return False
+    return True
 
-
-def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
-                      stdout: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-                      stderr: T.Union[T.BinaryIO, int] = subprocess.PIPE,
-                      **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
-    p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
-                         stdout=stdout, stderr=stderr, **kwargs)
-    input_ = None  # type: T.Optional[bytes]
-    if write is not None:
-        input_ = write.encode('utf-8')
-    o, e = p.communicate(input_)
+def Popen_communicate(p: subprocess.Popen, write: T.Optional[T.Union[str, bytes]] = None,
+                      **kwargs: T.Any) -> T.Tuple[str, str]:
+    o, e = p.communicate(write, **kwargs)
+    if _stdout_is_utf8():
+        return o, e
+    # If not utf-8, need to decode stdout + stderr
     if o is not None:
         if sys.stdout.encoding:
             o = o.decode(encoding=sys.stdout.encoding, errors='replace').replace('\r\n', '\n')
@@ -1240,6 +1220,46 @@ def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
             e = e.decode(encoding=sys.stderr.encoding, errors='replace').replace('\r\n', '\n')
         else:
             e = e.decode(errors='replace').replace('\r\n', '\n')
+    return o, e
+
+def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
+               stdout: T.Union[T.BinaryIO, T.IO, int] = subprocess.PIPE,
+               stderr: T.Union[T.BinaryIO, T.IO, int] = subprocess.PIPE,
+               communicate: bool = True,
+               **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+    # Redirect stdin to DEVNULL otherwise the command run by us here might mess
+    # up the console and ANSI colors will stop working on Windows.
+    if 'stdin' not in kwargs:
+        kwargs['stdin'] = subprocess.DEVNULL
+    if not _stdout_is_utf8():
+        p, o, e = Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr,
+                                    communicate=communicate, **kwargs)
+    else:
+        p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
+                             stdout=stdout, stderr=stderr, **kwargs)
+        o, e = None, None
+        if communicate:
+            o, e = Popen_communicate(p, write=write)
+    # Sometimes the command that we run will call another command which will be
+    # without the above stdin workaround, so set the console mode again just in
+    # case.
+    mlog.setup_console()
+    return p, o, e
+
+
+def Popen_safe_legacy(args: T.List[str], write: T.Optional[str] = None,
+                      stdout: T.Union[T.BinaryIO, T.IO, int] = subprocess.PIPE,
+                      stderr: T.Union[T.BinaryIO, T.IO, int] = subprocess.PIPE,
+                      communicate: bool = True,
+                      **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+    p = subprocess.Popen(args, universal_newlines=False, close_fds=False,
+                         stdout=stdout, stderr=stderr, **kwargs)
+    input_ = None  # type: T.Optional[bytes]
+    if write is not None:
+        input_ = write.encode('utf-8')
+    o, e = None, None
+    if communicate:
+        o, e = Popen_communicate(p, write=input_)
     return p, o, e
 
 
