@@ -139,6 +139,7 @@ COMPILER_OPTS_TO_ENV = {
 
 OTHER_OPTS_TO_ENV = {
     'pkg_config_path': 'PKG_CONFIG_PATH',
+    'cmake_prefix_path': 'CMAKE_PREFIX_PATH',
 }  # type: T.Dict[str, str]
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
@@ -649,9 +650,13 @@ class Environment:
                 if p_env_pair is not None:
                     p_env_var, p_env = p_env_pair
 
+                    if mesonlib.is_windows():
+                        splitter = lambda p: p.split(';')
+                    else:
+                        splitter = lambda p: re.split(r':|;', p)
                     # PKG_CONFIG_PATH may contain duplicates, which must be
                     # removed, else a duplicates-in-array-option warning arises.
-                    p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+                    p_list = list(mesonlib.OrderedSet(splitter(p_env)))
 
                     # Environment variables override config
                     meson_options[for_machine][''][key] = p_list
