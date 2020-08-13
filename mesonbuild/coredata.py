@@ -800,9 +800,11 @@ class CoreData:
                 # We don't honor subproject options from one subproject to
                 # another, only from the superproject
                 if subproject:
+                    mlog.debug('Ignoring options for a subproject set in a different subproject.')
                     continue
 
                 subp, k = k.split(':')
+                mlog.deprecation('Setting subproject options in a super project\'s default options.', once=True)
             for machine in MachineChoice:
                 if machine is MachineChoice.BUILD and not self.is_cross_build():
                     continue
