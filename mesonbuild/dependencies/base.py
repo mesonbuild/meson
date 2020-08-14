@@ -1616,7 +1616,10 @@ class DubDependency(ExternalDependency):
         arch = self.compiler.arch
 
         # Ask dub for the package
-        ret, res = self._call_dubbin(['describe', name, '--arch=' + arch])
+        cmdargs = ['describe', name, '--arch=' + arch]
+        if 'dub_root_path' in kwargs:
+            cmdargs.append('--root='+kwargs.get('dub_root_path'))
+        ret, res = self._call_dubbin(cmdargs)
 
         if ret != 0:
             self.is_found = False
