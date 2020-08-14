@@ -5094,6 +5094,11 @@ recommended as it is not supported on some platforms''')
         self.init(testdir)
         self.build()
 
+    def test_meson_version_compare(self):
+        testdir = os.path.join(self.unit_test_dir, '82 meson version compare')
+        out = self.init(testdir)
+        self.assertNotRegex(out, r'WARNING')
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically

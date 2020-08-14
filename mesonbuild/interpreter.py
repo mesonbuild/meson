@@ -30,7 +30,7 @@ from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, str
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
-from .interpreterbase import ObjectHolder
+from .interpreterbase import ObjectHolder, MesonVersionString
 from .modules import ModuleReturnValue
 from .cmake import CMakeInterpreter
 from .backend.backends import TestProtocol
@@ -2172,7 +2172,7 @@ class MesonMain(InterpreterObject):
     @noPosargs
     @permittedKwargs({})
     def version_method(self, args, kwargs):
-        return coredata.version
+        return MesonVersionString(coredata.version)
 
     @noPosargs
     @permittedKwargs({})

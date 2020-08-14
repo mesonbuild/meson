@@ -54,6 +54,9 @@ TYPE_var = T.Union[TYPE_elementary, list, dict, InterpreterObject, ObjectHolder]
 TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
 TYPE_nkwargs = T.Dict[T.Union[mparser.BaseNode, str], TYPE_nvar]
 
+class MesonVersionString(str):
+    pass
+
 # Decorators for method calls.
 
 def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
@@ -451,6 +454,11 @@ class InterpreterBase:
         # Current node set during a function call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node = None  # type: mparser.BaseNode
+        # This is set to `version_string` when this statement is evaluated:
+        # meson.version().compare_version(version_string)
+        # If it was part of a if-clause, it is used to temporally override the
+        # current meson version target within that if-block.
+        self.tmp_meson_version = None # type: str
 
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
@@ -606,13 +614,22 @@ class InterpreterBase:
     def evaluate_if(self, node: mparser.IfClauseNode) -> T.Optional[Disabler]:
         assert(isinstance(node, mparser.IfClauseNode))
         for i in node.ifs:
+            # Reset self.tmp_meson_version to know if it gets set during this
+            # statement evaluation.
+            self.tmp_meson_version = None
             result = self.evaluate_statement(i.condition)
             if isinstance(result, Disabler):
                 return result
             if not(isinstance(result, bool)):
                 raise InvalidCode('If clause {!r} does not evaluate to true or false.'.format(result))
             if result:
-                self.evaluate_codeblock(i.block)
+                prev_meson_version = mesonlib.project_meson_versions[self.subproject]
+                if self.tmp_meson_version:
+                    mesonlib.project_meson_versions[self.subproject] = self.tmp_meson_version
+                try:
+                    self.evaluate_codeblock(i.block)
+                finally:
+                    mesonlib.project_meson_versions[self.subproject] = prev_meson_version
                 return None
         if not isinstance(node.elseblock, mparser.EmptyNode):
             self.evaluate_codeblock(node.elseblock)
@@ -1023,6 +1040,8 @@ The result of this is undefined and will become a hard error in a future Meson r
             cmpr = posargs[0]
             if not isinstance(cmpr, str):
                 raise InterpreterException('Version_compare() argument must be a string.')
+            if isinstance(obj, MesonVersionString):
+                self.tmp_meson_version = cmpr
             return mesonlib.version_compare(obj, cmpr)
         elif method_name == 'substring':
             if len(posargs) > 2:
