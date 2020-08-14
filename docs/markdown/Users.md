@@ -97,6 +97,7 @@ format files
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
  - [OcherBook](https://github.com/ccoffing/OcherBook), an open source book reader for Kobo devices
  - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
+ - [Owl Chess](https://github.com/michaelbrockus/chess), a chess game written in Rust
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project.
