@@ -109,6 +109,7 @@ format files
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
  - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
+ - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style.
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
  - [Playerctl](https://github.com/acrisci/playerctl), mpris command-line controller and library for spotify, vlc, audacious, bmp, cmus, and others
