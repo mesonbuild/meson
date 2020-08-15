@@ -2267,7 +2267,7 @@ The following keyword arguments can be used:
   some symbols to be exposed on Linux, and it should be passed via
   `args` keyword argument, see below). Supported by the methods
   `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
-  `check_header`, `has_header`, `has_header_symbol`.
+  `check_header`, `has_header`, `has_header_symbol`, `get_define`
 
 **Note:** These compiler checks do not use compiler arguments added with
 `add_*_arguments()`, via `-Dlang_args` on the command-line, or through
