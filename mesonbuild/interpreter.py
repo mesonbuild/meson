@@ -1637,8 +1637,13 @@ class CompilerHolder(InterpreterObject):
             libtype = mesonlib.LibType.STATIC if kwargs['static'] else mesonlib.LibType.SHARED
         linkargs = self.compiler.find_library(libname, self.environment, search_dirs, libtype)
         if required and not linkargs:
-            raise InterpreterException(
-                '{} library {!r} not found'.format(self.compiler.get_display_language(), libname))
+            if libtype == mesonlib.LibType.PREFER_SHARED:
+                libtype = 'shared or static'
+            else:
+                libtype = libtype.name.lower()
+            raise InterpreterException('{} {} library {!r} not found'
+                                       .format(self.compiler.get_display_language(),
+                                               libtype, libname))
         lib = dependencies.ExternalLibrary(libname, linkargs, self.environment,
                                            self.compiler.language)
         return ExternalLibraryHolder(lib, self.subproject)
