@@ -986,7 +986,7 @@ int dummy;
                                     self.build.get_subproject_dir()),
                        self.environment.get_build_dir(),
                        self.environment.get_log_dir()] +
-                      ['--use_llvm_cov'] if use_llvm_cov else [])
+                       (['--use_llvm_cov'] if use_llvm_cov else []))
 
     def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')

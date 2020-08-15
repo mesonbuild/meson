@@ -4881,6 +4881,18 @@ recommended as it is not supported on some platforms''')
             m = get_data_pattern(command).search(md, pos=md_command_sections[command][0], endpos=md_command_sections[command][1])
             self.assertIsNotNone(m, 'Command `{}` is missing placeholders for dynamic data. Doc file: `{}`'.format(command, doc_path))
 
+    def _check_coverage_files(self, types=('text', 'xml', 'html')):
+        covdir = Path(self.builddir) / 'meson-logs'
+        files = []
+        if 'text' in types:
+            files.append('coverage.txt')
+        if 'xml' in types:
+            files.append('coverage.xml')
+        if 'html' in types:
+            files.append('coveragereport/index.html')
+        for f in files:
+            self.assertTrue((covdir / f).is_file(), msg='{} is not a file'.format(f))
+
     def test_coverage(self):
         if mesonbuild.environment.detect_msys2_arch():
             raise unittest.SkipTest('Skipped due to problems with coverage on MSYS2')
@@ -4899,6 +4911,7 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage')
+        self._check_coverage_files()
 
     def test_coverage_complex(self):
         if mesonbuild.environment.detect_msys2_arch():
@@ -4918,6 +4931,7 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage')
+        self._check_coverage_files()
 
     def test_coverage_html(self):
         if mesonbuild.environment.detect_msys2_arch():
@@ -4937,6 +4951,7 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage-html')
+        self._check_coverage_files(['html'])
 
     def test_coverage_text(self):
         if mesonbuild.environment.detect_msys2_arch():
@@ -4956,6 +4971,7 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage-text')
+        self._check_coverage_files(['text'])
 
     def test_coverage_xml(self):
         if mesonbuild.environment.detect_msys2_arch():
@@ -4975,6 +4991,7 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
         self.run_target('coverage-xml')
+        self._check_coverage_files(['xml'])
 
     def test_cross_file_constants(self):
         with temp_filename() as crossfile1, temp_filename() as crossfile2:
