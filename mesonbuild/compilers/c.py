@@ -84,6 +84,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
 
     _C17_VERSION = '>=6.0.0'
     _C18_VERSION = '>=8.0.0'
+    _C2X_VERSION = '>=9.0.0'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
@@ -108,6 +109,9 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         if version_compare(self.version, self._C18_VERSION):
             c_stds += ['c18']
             g_stds += ['gnu18']
+        if version_compare(self.version, self._C2X_VERSION):
+            c_stds += ['c2x']
+            g_stds += ['gnu2x']
         opts.update({
             'std': coredata.UserComboOption(
                 'C language standard to use',
@@ -147,6 +151,7 @@ class AppleClangCCompiler(ClangCCompiler):
 
     _C17_VERSION = '>=10.0.0'
     _C18_VERSION = '>=11.0.0'
+    _C2X_VERSION = '>=11.0.0'
 
 
 class EmscriptenCCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCCompiler):
@@ -195,6 +200,10 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
 
 class GnuCCompiler(GnuCompiler, CCompiler):
+
+    _C18_VERSION = '>=8.0.0'
+    _C2X_VERSION = '>=9.0.0'
+
     def __init__(self, exelist, version, for_machine: MachineChoice,
                  is_cross, info: 'MachineInfo', exe_wrapper=None,
                  defines=None, **kwargs):
@@ -211,10 +220,12 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         opts = CCompiler.get_options(self)
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
-        v = '>=8.0.0'
-        if version_compare(self.version, v):
+        if version_compare(self.version, self._C18_VERSION):
             c_stds += ['c17', 'c18']
             g_stds += ['gnu17', 'gnu18']
+        if version_compare(self.version, self._C2X_VERSION):
+            c_stds += ['c2x']
+            g_stds += ['gnu2x']
         opts.update({
             'std': coredata.UserComboOption(
                 'C language standard to use',
