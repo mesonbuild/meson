@@ -111,8 +111,8 @@ jobs:
       displayName: Install Dependencies
     - script: |
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
-        env.exe -- python3 -m pip --disable-pip-version-check install gcovr pefile pytest-xdist jsonschema
-      displayName: pip install gcovr pefile pytest-xdist jsonschema
+        env.exe -- python3 -m pip --disable-pip-version-check install gcovr pefile jsonschema
+      displayName: "pip install gcovr pefile jsonschema (pytest-xdist broken, skipped: CHECK ME AGAIN)"
     - script: |
         set BOOST_ROOT=
         set PATH=%CYGWIN_ROOT%\bin;%SYSTEMROOT%\system32
