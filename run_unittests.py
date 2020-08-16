@@ -6533,7 +6533,7 @@ class LinuxlikeTests(BasePlatformTests):
             if exception:
                 with self.assertRaises(subprocess.CalledProcessError):
                     self.init(testdir, override_envvars=env)
-                break
+                continue
             self.init(testdir, override_envvars=env)
             self.build()
             self.install(use_destdir=False)
