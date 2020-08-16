@@ -126,6 +126,7 @@ from .compilers import (
     is_library,
     is_known_suffix,
     lang_suffixes,
+    languages_using_ldflags,
     sort_clink,
 )
 from .c import (
