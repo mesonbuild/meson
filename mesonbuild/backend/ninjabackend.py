@@ -265,18 +265,20 @@ class NinjaRule:
 
         # expand variables in command
         command = ' '.join([self._quoter(x) for x in self.command + self.args])
-        expanded_command = ''
-        for m in re.finditer(r'(\${\w*})|(\$\w*)|([^$]*)', command):
-            chunk = m.group()
-            if chunk.startswith('$'):
-                chunk = chunk[1:]
-                chunk = re.sub(r'{(.*)}', r'\1', chunk)
-                chunk = ninja_vars.get(chunk, [])  # undefined ninja variables are empty
-                chunk = ' '.join(chunk)
-            expanded_command += chunk
+        estimate = len(command)
+        for m in re.finditer(r'(\${\w*}|\$\w*)?[^$]*', command):
+            if m.start(1) != -1:
+                estimate -= m.end(1) - m.start(1) + 1
+                chunk = m.group(1)
+                if chunk[1] == '{':
+                    chunk = chunk[2:-1]
+                else:
+                    chunk = chunk[1:]
+                chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
+                estimate += len(' '.join(chunk))
 
         # determine command length
-        return len(expanded_command)
+        return estimate
 
 class NinjaBuildElement:
     def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
