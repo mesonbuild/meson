@@ -655,6 +655,12 @@ class CMakeTraceParser:
         if self.trace_format != 'human':
             return broken_list
 
+        mlog.log_once(
+            'Detected version of CMake',
+            mlog.bold(self.cmake_version), 'is below 3.17.',
+            'This can cause problems in the build, see https://mesonbuild.com/CMake-module.html#additional-hints.'
+        )
+
         # Try joining file paths that contain spaces
 
         reg_start = re.compile(r'^([A-Za-z]:)?/(.*/)*[^./]+$')

@@ -237,3 +237,11 @@ myProject.cmake.in:
 
 set(MYVAR VAR)
 ```
+
+### Additional hints
+
+Meson needs to parse the CMake build files in certain cases to mimic its behaviour, for example for the CMake function: `add_custom_command`.
+It therefore executes CMake and interprets its output.
+Before CMake 3.17, this output is ambiguous in some cases.
+Meson therefore needs to guess the correct meaning and may fail in doing this.
+If you encounter this problem, the recommended way is to upgrade CMake to a minimum version of 3.17.
