@@ -386,10 +386,9 @@ class NinjaBuildElement:
             newelems = []
             for i in elems:
                 if not should_quote or i == '&&': # Hackety hack hack
-                    quoter = ninja_quote
+                    newelems.append(ninja_quote(i))
                 else:
-                    quoter = lambda x: ninja_quote(qf(x))
-                newelems.append(quoter(i))
+                    newelems.append(ninja_quote(qf(i)))
             line += ' '.join(newelems)
             line += '\n'
             outfile.write(line)
