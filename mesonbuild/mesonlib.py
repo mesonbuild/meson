@@ -242,6 +242,7 @@ class File:
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
+        self.hash = hash((is_built, subdir, fname))
 
     def __str__(self) -> str:
         return self.relative_name()
@@ -291,10 +292,12 @@ class File:
     def __eq__(self, other) -> bool:
         if not isinstance(other, File):
             return NotImplemented
+        if self.hash != other.hash:
+            return False
         return (self.fname, self.subdir, self.is_built) == (other.fname, other.subdir, other.is_built)
 
     def __hash__(self) -> int:
-        return hash((self.fname, self.subdir, self.is_built))
+        return self.hash
 
     @lru_cache(maxsize=None)
     def relative_name(self) -> str:
