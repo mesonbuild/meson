@@ -3663,7 +3663,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                                    'version\n requirements use the \'version\' keyword argument instead.')
 
         identifier, cached_dep = self._find_cached_dep(name, display_name, kwargs)
-        if cached_dep:
+        if cached_dep and name not in self.coredata.get_builtin_option('force_fallback_for'):
             if has_fallback:
                 dirname, varname = self.get_subproject_infos(kwargs)
                 self.verify_fallback_consistency(dirname, varname, cached_dep)
