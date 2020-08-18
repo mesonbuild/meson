@@ -8538,8 +8538,8 @@ class CrossFileTests(BasePlatformTests):
 
     def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
-        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo', 'cpp_args': ['-Wno-foo']}})
-        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo', 'cpp_args': ['-Wno-bar']}})
+        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo', 'cpp_args': ['-W']}})
+        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo', 'cpp_args': ['-W']}})
 
         self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross],
                   override_envvars={'PKG_CONFIG_PATH': '/bar', 'PKG_CONFIG_PATH_FOR_BUILD': '/dir',
@@ -8554,10 +8554,10 @@ class CrossFileTests(BasePlatformTests):
                 self.assertEqual(each['value'], ['/foo'])
                 found += 1
             elif each['name'] == 'cpp_args':
-                self.assertEqual(each['value'], ['-Wno-bar'])
+                self.assertEqual(each['value'], ['-W'])
                 found += 1
             elif each['name'] == 'build.cpp_args':
-                self.assertEqual(each['value'], ['-Wno-foo'])
+                self.assertEqual(each['value'], ['-W'])
                 found += 1
             if found == 4:
                 break
