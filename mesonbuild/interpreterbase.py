@@ -810,9 +810,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         assert(isinstance(node, mparser.PlusAssignmentNode))
         varname = node.var_name
         addition = self.evaluate_statement(node.value)
-        if is_disabler(addition):
-            self.set_variable(varname, addition)
-            return
+
         # Remember that all variables are immutable. We must always create a
         # full new variable and then assign it.
         old_variable = self.get_variable(varname)
@@ -836,7 +834,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             new_value = {**old_variable, **addition}
         # Add other data types here.
         else:
-            raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints ')
+            raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints')
         self.set_variable(varname, new_value)
 
     def evaluate_indexing(self, node: mparser.IndexNode) -> TYPE_var:
