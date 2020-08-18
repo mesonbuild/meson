@@ -29,13 +29,18 @@ from .. import mlog, mesonlib
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
 from ..environment import Environment
 from ..envconfig import get_env_var
+from ..compilers import (
+    AppleClangCCompiler, AppleClangCPPCompiler, AppleClangObjCCompiler,
+    AppleClangObjCPPCompiler
+)
 
 if T.TYPE_CHECKING:
     from ..dependencies.base import ExternalProgram
+    from ..compilers import Compiler
 
 TYPE_result = T.Tuple[int, T.Optional[str], T.Optional[str]]
 
-MESON_TO_CMAKE_MAPPING = {
+_MESON_TO_CMAKE_MAPPING = {
     'arm':          'ARMCC',
     'armclang':     'ARMClang',
     'clang':        'Clang',
@@ -51,13 +56,21 @@ MESON_TO_CMAKE_MAPPING = {
     'sun':          'SunPro',
 }
 
-def meson_compiler_to_cmake_id(cobj):
-    # cland and apple clang both map to 'clang' in meson, so we need to look at
-    # the linker that's being used
-    if cobj.linker.get_id() == 'ld64':
+def meson_compiler_to_cmake_id(cobj: 'Compiler') -> str:
+    """Translate meson compiler's into CMAKE compiler ID's.
+
+    Most of these can be handled by a simple table lookup, with a few
+    exceptions.
+
+    Clang and Apple's Clang are both identified as "clang" by meson. To make
+    things more complicated gcc and vanilla clang both use Apple's ld64 on
+    macOS. The only way to know for sure is to do an isinstance() check.
+    """
+    if isinstance(cobj, (AppleClangCCompiler, AppleClangCPPCompiler,
+                         AppleClangObjCCompiler, AppleClangObjCPPCompiler)):
         return 'AppleClang'
     # If no mapping, try GNU and hope that the build files don't care
-    return MESON_TO_CMAKE_MAPPING.get(cobj.get_id(), 'GNU')
+    return _MESON_TO_CMAKE_MAPPING.get(cobj.get_id(), 'GNU')
 
 
 class CMakeExecutor:
