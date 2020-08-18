@@ -8907,12 +8907,11 @@ def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
     return version_compare(compiler.version, minver)
 
 
-def unset_envs():
+def unset_envs() -> None:
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
     # environment, for example when doing a package build.
-    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.environment.COMPILER_OPTS_TO_ENV.values())
-    for v in varnames:
+    for v in (e[0] for e in mesonbuild.environment.COMPILER_OPTS_TO_ENV):
         if v in os.environ:
             del os.environ[v]
 

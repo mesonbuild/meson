@@ -892,10 +892,8 @@ def get_global_options(lang: str, comp: T.Type[Compiler], for_machine: MachineCh
     return {
         'args': coredata.UserArrayOption(
             description + ' compiler',
-            env.compiler_options[for_machine][lang].get('args', []),
-            split_args=True, user_input=True, allow_dups=True),
+            [], split_args=True, user_input=True, allow_dups=True),
         'link_args': coredata.UserArrayOption(
             description + ' linker',
-            env.compiler_options[for_machine][lang].get('link_args', []),
-            split_args=True, user_input=True, allow_dups=True),
+            [], split_args=True, user_input=True, allow_dups=True),
     }

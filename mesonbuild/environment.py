@@ -124,23 +124,24 @@ build_filename = 'meson.build'
 
 CompilersDict = T.Dict[str, Compiler]
 
-COMPILER_OPTS_TO_ENV = {
-    'c': 'CFLAGS',
-    'cpp': 'CXXFLAGS',
-    'cuda': 'CUFLAGS',
-    'objc': 'OBJCFLAGS',
-    'objcpp': 'OBJCXXFLAGS',
-    'fortran': 'FFLAGS',
-    'd': 'DFLAGS',
-    'vala': 'VALAFLAGS',
-    'rust': 'RUSTFLAGS',
-    'pkg_config_path': 'PKG_CONFIG_PATH',
-}  # type: T.Dict[str, str]
+COMPILER_OPTS_TO_ENV = [
+    ('CFLAGS', ['c']),
+    ('CXXFLAGS', ['cpp']),
+    ('CUFLAGS', ['cuda']),
+    ('OBJCFLAGS', ['objc']),
+    ('OBJCXXFLAGS', ['objcpp']),
+    ('FFLAGS', ['fortran']),
+    ('DFLAGS', ['d']),
+    ('VALAFLAGS', ['vala']),
+    ('RUSTFLAGS', ['rust']),
+    ('CPPFLAGS', ['c', 'cpp', 'objc', 'obcpp']),
+    ('LDFLAGS', ['objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda']),
+]  # type: T.List[T.Tuple[str, T.List[str]]]
 
-OTHER_OPTS_TO_ENV = {
-    'pkg_config_path': 'PKG_CONFIG_PATH',
-    'cmake_prefix_path': 'CMAKE_PREFIX_PATH',
-}  # type: T.Dict[str, str]
+PATH_OPTS_TO_ENV = [
+    ('pkg_config_path', 'PKG_CONFIG_PATH'),
+    ('cmake_prefix_path', 'CMAKE_PREFIX_PATH'),
+]  # type: T.List[T.Tuple[str, str]]
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
@@ -578,7 +579,7 @@ class Environment:
         # We only need one of these as project options are not per machine
         user_options = collections.defaultdict(dict)  # type: T.DefaultDict[str, T.Dict[str, object]]
 
-        # meson builtin options, as passed through cross or native files
+        # meson builtin options, per machine, stored as {project: {option: # value}}
         meson_options = PerMachineDefaultable(
             collections.defaultdict(dict), collections.defaultdict(dict))  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
 
@@ -595,7 +596,7 @@ class Environment:
         # meson base options
         _base_options = {}  # type: T.Dict[str, object]
 
-        # Per language compiler arguments
+        # Arguments to the compiler, per machine, stored as {language: {option: value}}
         compiler_options = PerMachineDefaultable(
             collections.defaultdict(dict),
             collections.defaultdict(dict))  # type: PerMachineDefaultable[T.DefaultDict[str, T.Dict[str, object]]]
@@ -645,46 +646,37 @@ class Environment:
                     break
 
         def read_env_vars(for_machine: MachineChoice) -> None:
-            for key, envkey in OTHER_OPTS_TO_ENV.items():
+            for key, envkey in PATH_OPTS_TO_ENV:
                 p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), envkey)
                 if p_env_pair is not None:
                     p_env_var, p_env = p_env_pair
 
+                    # Cmake can always use either `:` or `;` as the seperator due to
+                    # it's stringly typed lists. For pkg-config there's no harm
+                    # in using `;` on Linux, and it should be used on Windows.
+                    # For windows however, we cannot use `:`, due to the
+                    # potential to split a drive letter, ie: C:\foo
                     if mesonlib.is_windows():
                         splitter = lambda p: p.split(';')
                     else:
                         splitter = lambda p: re.split(r':|;', p)
-                    # PKG_CONFIG_PATH may contain duplicates, which must be
-                    # removed, else a duplicates-in-array-option warning arises.
+
+                    # duplicates must be removed, else a duplicates-in-array-option warning arises.
                     p_list = list(mesonlib.OrderedSet(splitter(p_env)))
 
                     # Environment variables override config
                     meson_options[for_machine][''][key] = p_list
 
-            for key, envkey in COMPILER_OPTS_TO_ENV.items():
+            for envkey, langs in COMPILER_OPTS_TO_ENV:
                 p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), envkey)
+                key = 'link_args' if envkey == 'LDFLAGS' else 'args'
                 if p_env_pair is not None:
                     p_env = p_env_pair[1]
-
-                    # Environment variables override config
-                    compiler_options[for_machine][key]['args'] = split_args(p_env)
-
-            # Handle CPPFLAGS, which are only relavent for a couple of languages
-            p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), 'CPPFLAGS')
-            if p_env_pair is not None:
-                p_env = split_args(p_env_pair[1])
-                for l in ['c', 'cpp', 'objc', 'objcpp']:
-                    # If the compiler args were set from the environment extend
-                    # them with CPPFLAGS, if they came from somewhere else
-                    # replace them.
-                    compiler_options[for_machine][l]['args'] = p_env
-
-            p_env_pair = get_env_var_pair(for_machine, self.coredata.is_cross_build(), 'LDFLAGS')
-            if p_env_pair is not None:
-                p_env = split_args(p_env_pair[1])
-                for l in ['objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda']:
-                    compiler_options[for_machine][l]['link_args'] = p_env
-
+                    for l in langs:
+                        # This makes CPPFLAGS easier
+                        if key not in compiler_options[for_machine][l]:
+                            compiler_options[for_machine][l][key] = []
+                        compiler_options[for_machine][l][key].extend(split_args(p_env))
 
         # Environment variables are only read on first invocation
         if self.first_invocation:
@@ -730,6 +722,8 @@ class Environment:
             split_compiler_options(meson_options.host, MachineChoice.HOST)
             move_compiler_options(properties.host, compiler_options.host)
 
+        # If we didn't actually set anything, turn these back to None for
+        # .default_mising().
         if not meson_options.host:
             meson_options.host = None
         if not compiler_options.host:
