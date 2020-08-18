@@ -92,3 +92,8 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+
+class AppleClangObjCCompiler(ClangObjCCompiler):
+
+    """Handle the differences between Apple's clang and vanilla clang."""

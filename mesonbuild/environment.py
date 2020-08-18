@@ -74,6 +74,8 @@ from .compilers import (
     ArmclangCPPCompiler,
     AppleClangCCompiler,
     AppleClangCPPCompiler,
+    AppleClangObjCCompiler,
+    AppleClangObjCPPCompiler,
     ClangCCompiler,
     ClangCPPCompiler,
     ClangObjCCompiler,
@@ -1506,7 +1508,7 @@ class Environment:
     def detect_objcpp_compiler(self, for_machine: MachineInfo) -> 'Compiler':
         return self._detect_objc_or_objcpp_compiler(for_machine, False)
 
-    def _detect_objc_or_objcpp_compiler(self, for_machine: MachineInfo, objc: bool) -> 'Compiler':
+    def _detect_objc_or_objcpp_compiler(self, for_machine: MachineChoice, objc: bool) -> 'Compiler':
         popen_exceptions = {}
         compilers, ccache, exe_wrap = self._get_compilers('objc' if objc else 'objcpp', for_machine)
         is_cross = self.is_cross_build(for_machine)
@@ -1535,7 +1537,10 @@ class Environment:
                     exe_wrap, defines, linker=linker)
             if 'clang' in out:
                 linker = None
-                comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
+                if 'Apple' in out:
+                    comp = AppleClangObjCCompiler if objc else AppleClangObjCPPCompiler
+                else:
+                    comp = ClangObjCCompiler if objc else ClangObjCPPCompiler
                 if 'windows' in out or self.machines[for_machine].is_windows():
                     # If we're in a MINGW context this actually will use a gnu style ld
                     try:
