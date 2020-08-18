@@ -880,7 +880,6 @@ int dummy;
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
         meson_exe_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                  for_machine=target.for_machine,
                                                   extra_bdeps=target.get_transitive_build_target_deps(),
                                                   capture=ofilenames[0] if target.capture else None)
         if meson_exe_cmd:

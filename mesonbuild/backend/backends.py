@@ -351,18 +351,11 @@ class Backend:
         return obj_list
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
-                             for_machine=MachineChoice.BUILD,
                              extra_bdeps=None, capture=None, force_serialize=False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         import hashlib
-        machine = self.environment.machines[for_machine]
-        if machine.is_windows() or machine.is_cygwin():
-            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
-        else:
-            extra_paths = []
-
         if isinstance(exe, dependencies.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
@@ -372,6 +365,12 @@ class Backend:
         else:
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
+
+        machine = self.environment.machines[exe_for_machine]
+        if machine.is_windows() or machine.is_cygwin():
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
+        else:
+            extra_paths = []
 
         is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
         if is_cross_built and self.environment.need_exe_wrapper():
