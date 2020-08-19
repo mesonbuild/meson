@@ -5054,7 +5054,8 @@ recommended as it is not supported on some platforms''')
         self.build()
         self.run_tests()
 
-    @unittest.skipUnless(is_linux(), 'Requires ASM compiler currently only available on Linux CI runners')
+    @unittest.skipUnless(is_linux() and (re.search('^i.86$|^x86$|^x64$|^x86_64$|^amd64$', platform.processor()) is not None),
+        'Requires ASM compiler for x86 or x86_64 platform currently only available on Linux CI runners')
     def test_nostdlib(self):
         testdir = os.path.join(self.unit_test_dir, '79 nostdlib')
         machinefile = os.path.join(self.builddir, 'machine.txt')
