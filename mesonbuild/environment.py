@@ -568,9 +568,7 @@ class Environment:
         # Unparsed options as given by the user in machine files, command line,
         # and project()'s default_options. Keys are in the command line format:
         # "[<subproject>:][build.]option_name".
-        # Note that order matters because of 'buildtype', if it is after
-        # 'optimization' and 'debug' keys, it override them.
-        self.raw_options = collections.OrderedDict() # type: collections.OrderedDict[str, str]
+        self.raw_options = {} # type: T.Dict[str, str]
 
         ## Read in native file(s) to override build machine configuration
 
@@ -607,13 +605,14 @@ class Environment:
         # Environment options override those from cross/native files
         self.set_default_options_from_env()
 
-        # Warn if the user is using two different ways of setting build-type
-        # options that override each other
-        if 'buildtype' in self.raw_options and \
-           ('optimization' in self.raw_options or 'debug' in self.raw_options):
-            mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
-                         'Using both is redundant since they override each other. '
-                         'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
+        # Rewrite 'buildtype' as 'debug' + 'optimization' pair in self.raw_options.
+        # At this stage we only loaded machine files and command line options.
+        # Since passing options in machine files is a new feature we can make
+        # this fatal without breaking backward compatibility. However this turns
+        # a previous warning into a hard error in the case user pass both
+        # -Dbuildtype and -Doptimization or -Ddebug on the command line which
+        # should not be too common and would often be a trap anyway.
+        self.remove_buildtype(self.raw_options)
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
@@ -719,6 +718,36 @@ class Environment:
                 # if it changes on future invocations.
                 if self.first_invocation:
                     self.raw_options.setdefault(key, p_list)
+
+    def remove_buildtype(self, raw_options):
+        buildtype = raw_options.pop('buildtype', None)
+        if not buildtype:
+            return
+
+        if 'optimization' in raw_options or 'debug' in raw_options:
+            raise EnvironmentException('"buildtype" option and "optimization" + "debug" are mutually exclusive. '
+                                       'Using both is redundant since they override each other. '
+                                       'See: https://mesonbuild.com/Builtin-options.html#build-type-options')
+
+        if buildtype == 'plain':
+            optimization = '0'
+            debug = 'false'
+        elif buildtype == 'debug':
+            optimization = '0'
+            debug = 'true'
+        elif buildtype == 'debugoptimized':
+            optimization = '2'
+            debug = 'true'
+        elif buildtype == 'release':
+            optimization = '3'
+            debug = 'false'
+        elif buildtype == 'minsize':
+            optimization = 's'
+            debug = 'true'
+        else:
+            raise EnvironmentException('Unknown buildtype value {!r}'.format(buildtype))
+        raw_options['debug'] = debug
+        raw_options['optimization'] = optimization
 
     def create_new_coredata(self, options):
         # WARNING: Don't use any values from coredata in __init__. It gets

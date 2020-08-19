@@ -576,10 +576,10 @@ class CoreData:
         else:
             return False
         opt.set_value(value)
-        # Make sure that buildtype matches other settings.
-        if optname == 'buildtype':
-            self.set_others_from_buildtype(value)
-        else:
+        # buildtype cannot be set explicitly, it must have been rewrote as
+        # debug+optimization pair when collecting Environment.raw_options.
+        assert(optname != 'buildtype'):
+        if optname in ['debug', 'optimization']:
             self.set_buildtype_from_others()
         return True
 
@@ -587,28 +587,6 @@ class CoreData:
         res = self._try_set_builtin_option(optname, value)
         if not res:
             raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
-
-    def set_others_from_buildtype(self, value):
-        if value == 'plain':
-            opt = '0'
-            debug = False
-        elif value == 'debug':
-            opt = '0'
-            debug = True
-        elif value == 'debugoptimized':
-            opt = '2'
-            debug = True
-        elif value == 'release':
-            opt = '3'
-            debug = False
-        elif value == 'minsize':
-            opt = 's'
-            debug = True
-        else:
-            assert(value == 'custom')
-            return
-        self.builtins['optimization'].set_value(opt)
-        self.builtins['debug'].set_value(debug)
 
     def set_buildtype_from_others(self):
         opt = self.builtins['optimization'].value
@@ -769,22 +747,23 @@ class CoreData:
             self.copy_build_options_from_regular_ones()
 
     def set_default_options(self, default_options: 'T.OrderedDict[str, str]', subproject: str, env: 'Environment') -> None:
-        # Preserve order: if env.raw_options has 'buildtype' it must come after
-        # 'optimization' if it is in default_options.
-        raw_options = OrderedDict()
+        # Rewrite 'buildtype' as 'debug' + 'optimization' pair in default_options.
+        # This turns a previous warning into a hard error in the case both
+        # 'buildtype' and 'optimization' or 'debug' are in default_options which
+        # should not be too common and would often be a trap anyway.
+        env.remove_buildtype(default_options)
+
         for k, v in default_options.items():
             if subproject and ':' not in k:
                 k = subproject + ':' + k
-            raw_options[k] = v
-        raw_options.update(env.raw_options)
-        env.raw_options = raw_options
+            env.raw_options.setdefault(k, v)
 
         # Create a subset of raw_options, keeping only project and builtin
         # options for this subproject.
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
-        options = OrderedDict()
+        options = {}
 
         from . import optinterpreter
         for k, v in env.raw_options.items():

@@ -2951,6 +2951,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.is_subproject():
             optname = self.subproject + ':' + optname
 
+        if raw_optname == 'buildtype':
+            mlog.deprecation('Getting the buildtype option is deprecated, debug and/or optimization options should be used instead.')
 
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
