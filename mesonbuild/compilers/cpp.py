@@ -365,9 +365,20 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
                                 **kwargs)
         ElbrusCompiler.__init__(self)
 
-    # It does not support c++/gnu++ 17 and 1z, but still does support 0x, 1y, and gnu++98.
     def get_options(self):
         opts = CPPCompiler.get_options(self)
+
+        cpp_stds = [
+            'none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
+            'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y',
+        ]
+
+        if version_compare(self.version, '>=1.24.00'):
+            cpp_stds += [ 'c++1z', 'c++17', 'gnu++1z', 'gnu++17' ]
+
+        if version_compare(self.version, '>=1.25.00'):
+            cpp_stds += [ 'c++2a', 'gnu++2a' ]
+
         opts.update({
             'eh': coredata.UserComboOption(
                 'C++ exception handling type.',
@@ -376,10 +387,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
             ),
             'std': coredata.UserComboOption(
                 'C++ language standard to use',
-                [
-                    'none', 'c++98', 'c++03', 'c++0x', 'c++11', 'c++14', 'c++1y',
-                    'gnu++98', 'gnu++03', 'gnu++0x', 'gnu++11', 'gnu++14', 'gnu++1y',
-                ],
+                cpp_stds,
                 'none',
             ),
             'debugstl': coredata.UserBooleanOption(
