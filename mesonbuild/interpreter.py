@@ -4368,8 +4368,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if len(inputs_abs) != 1:
                 raise InterpreterException('Exactly one input file must be given in copy mode')
             os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
-            shutil.copyfile(inputs_abs[0], ofile_abs)
-            shutil.copystat(inputs_abs[0], ofile_abs)
+            shutil.copy2(inputs_abs[0], ofile_abs)
         else:
             # Not reachable
             raise AssertionError

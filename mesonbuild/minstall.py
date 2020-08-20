@@ -270,11 +270,9 @@ class Installer:
                 # Remove this entire branch when changing the behaviour to duplicate
                 # symlinks rather than copying what they point to.
                 print(symlink_warning)
-                shutil.copyfile(from_file, to_file)
-                shutil.copystat(from_file, to_file)
+                shutil.copy2(from_file, to_file)
         else:
-            shutil.copyfile(from_file, to_file)
-            shutil.copystat(from_file, to_file)
+            shutil.copy2(from_file, to_file)
         selinux_updates.append(to_file)
         append_to_log(self.lf, to_file)
         return True

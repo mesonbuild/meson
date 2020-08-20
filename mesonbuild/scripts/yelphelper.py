@@ -68,8 +68,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
             infile = os.path.join(srcdir if lang == 'C' else blddir, lang, source)
             outfile = os.path.join(indir, source)
             mlog.log('Installing %s to %s' % (infile, outfile))
-            shutil.copyfile(infile, outfile)
-            shutil.copystat(infile, outfile)
+            shutil.copy2(infile, outfile)
         for m in media:
             infile = os.path.join(srcdir, lang, m)
             outfile = os.path.join(indir, m)
