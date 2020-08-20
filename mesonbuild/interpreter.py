@@ -2754,6 +2754,12 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.subprojects[dirname] = sub
         return sub
 
+    def get_subproject(self, dirname):
+        sub = self.subprojects.get(dirname)
+        if sub and sub.found():
+            return sub
+        return None
+
     def do_subproject(self, dirname: str, method: str, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -3477,7 +3483,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return DependencyHolder(NotFoundDependency(self.environment), self.subproject)
 
     def verify_fallback_consistency(self, dirname, varname, cached_dep):
-        subi = self.subprojects.get(dirname)
+        subi = self.get_subproject(dirname)
         if not cached_dep or not varname or not subi or not cached_dep.found():
             return
         dep = subi.get_variable_method([varname], {})
@@ -3609,7 +3615,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             # even if the dependency is not required.
             provider = self.environment.wrap_resolver.find_dep_provider(name)
             dirname = mesonlib.listify(provider)[0]
-            if provider and (required or dirname in self.subprojects):
+            if provider and (required or self.get_subproject(dirname)):
                 kwargs['fallback'] = provider
                 has_fallback = True
 
@@ -3639,8 +3645,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # a higher level project, try to use it first.
         if has_fallback:
             dirname, varname = self.get_subproject_infos(kwargs)
-            sub = self.subprojects.get(dirname)
-            if sub and sub.found():
+            if self.get_subproject(dirname):
                 return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
