@@ -83,8 +83,7 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
                                pkgname + '.mo')
         tempfile = outfile + '.tmp'
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
-        shutil.copyfile(srcfile, tempfile)
-        shutil.copystat(srcfile, tempfile)
+        shutil.copy2(srcfile, tempfile)
         os.replace(tempfile, outfile)
         print('Installing %s to %s' % (srcfile, outfile))
     return 0
