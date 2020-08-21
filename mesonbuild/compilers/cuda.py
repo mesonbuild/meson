@@ -161,7 +161,7 @@ class CudaCompiler(Compiler):
             mlog.debug('cudaGetDeviceCount() returned ' + stde)
 
     def has_header_symbol(self, hname, symbol, prefix, env, extra_args=None, dependencies=None):
-        result, cached = super().has_header_symbol(hname, symbol, prefix, env, extra_args, dependencies)
+        result, cached = super().has_header_symbol(hname, symbol, prefix, env, extra_args=extra_args, dependencies=dependencies)
         if result:
             return True, cached
         if extra_args is None:
@@ -171,7 +171,7 @@ class CudaCompiler(Compiler):
         #include <{header}>
         using {symbol};
         int main(void) {{ return 0; }}'''
-        return self.compiles(t.format(**fargs), env, extra_args, dependencies)
+        return self.compiles(t.format(**fargs), env, extra_args=extra_args, dependencies=dependencies)
 
     def get_options(self):
         opts = super().get_options()

@@ -34,6 +34,8 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import CompilerType
     from .interpreterbase import ObjectHolder
 
+    FileOrString = T.Union['File', str]
+
 _T = T.TypeVar('_T')
 _U = T.TypeVar('_U')
 
