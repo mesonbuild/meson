@@ -74,6 +74,7 @@ lookup based on OpenStreetMap data
 format files
  - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
+ - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [Mesa](https://gitlab.freedesktop.org/mesa/mesa/), an open source graphics driver project
@@ -98,6 +99,7 @@ format files
  - [Playerctl](https://github.com/acrisci/playerctl), mpris command-line controller and library for spotify, vlc, audacious, bmp, cmus, and others
  - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [SSHFS](https://github.com/libfuse/sshfs), allows you to mount a remote filesystem using SFTP
  - [sway](https://github.com/swaywm/sway), i3-compatible Wayland compositor
