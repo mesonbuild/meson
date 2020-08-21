@@ -335,4 +335,4 @@ removal of a key) are unlikely and will be announced in the release notes.
 - [Meson Cmake Wrapper](https://github.com/prozum/meson-cmake-wrapper) (for cmake IDEs) (currently unmaintained !!)
 - [Meson-UI](https://github.com/michaelbadcrumble/meson-ui) (Meson build GUI)
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
-- [asabil.meson](https://open-vsx.org/extension/asabil/meson) extention for VS Code/Codium
+- [asabil.meson](https://open-vsx.org/extension/asabil/meson) extension for VS Code/Codium
