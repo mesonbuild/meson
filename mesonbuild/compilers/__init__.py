@@ -36,6 +36,8 @@ __all__ = [
 
     'AppleClangCCompiler',
     'AppleClangCPPCompiler',
+    'AppleClangObjCCompiler',
+    'AppleClangObjCPPCompiler',
     'ArmCCompiler',
     'ArmCPPCompiler',
     'ArmclangCCompiler',
@@ -189,11 +191,13 @@ from .fortran import (
 from .java import JavaCompiler
 from .objc import (
     ObjCCompiler,
+    AppleClangObjCCompiler,
     ClangObjCCompiler,
     GnuObjCCompiler,
 )
 from .objcpp import (
     ObjCPPCompiler,
+    AppleClangObjCPPCompiler,
     ClangObjCPPCompiler,
     GnuObjCPPCompiler,
 )
