@@ -114,13 +114,17 @@ rsp_threshold = get_rsp_threshold()
 # from, etc.), so it must not be shell quoted.
 raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep'}
 
+NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
+NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
+
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
-        qcs = ('$', ' ', ':')
+        quote_re = NINJA_QUOTE_BUILD_PAT
     else:
-        qcs = ('$', ' ')
-    for char in qcs:
-        text = text.replace(char, '$' + char)
+        quote_re = NINJA_QUOTE_VAR_PAT
+    # Fast path for when no quoting is necessary
+    if not quote_re.search(text):
+        return text
     if '\n' in text:
         errmsg = '''Ninja does not support newlines in rules. The content was:
 
@@ -128,7 +132,7 @@ def ninja_quote(text, is_build_line=False):
 
 Please report this error with a test case to the Meson bug tracker.'''.format(text)
         raise MesonException(errmsg)
-    return text
+    return quote_re.sub(r'$\g<0>', text)
 
 @unique
 class Quoting(Enum):
@@ -261,18 +265,20 @@ class NinjaRule:
 
         # expand variables in command
         command = ' '.join([self._quoter(x) for x in self.command + self.args])
-        expanded_command = ''
-        for m in re.finditer(r'(\${\w*})|(\$\w*)|([^$]*)', command):
-            chunk = m.group()
-            if chunk.startswith('$'):
-                chunk = chunk[1:]
-                chunk = re.sub(r'{(.*)}', r'\1', chunk)
-                chunk = ninja_vars.get(chunk, [])  # undefined ninja variables are empty
-                chunk = ' '.join(chunk)
-            expanded_command += chunk
+        estimate = len(command)
+        for m in re.finditer(r'(\${\w*}|\$\w*)?[^$]*', command):
+            if m.start(1) != -1:
+                estimate -= m.end(1) - m.start(1) + 1
+                chunk = m.group(1)
+                if chunk[1] == '{':
+                    chunk = chunk[2:-1]
+                else:
+                    chunk = chunk[1:]
+                chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
+                estimate += len(' '.join(chunk))
 
         # determine command length
-        return len(expanded_command)
+        return estimate
 
 class NinjaBuildElement:
     def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
@@ -380,10 +386,9 @@ class NinjaBuildElement:
             newelems = []
             for i in elems:
                 if not should_quote or i == '&&': # Hackety hack hack
-                    quoter = ninja_quote
+                    newelems.append(ninja_quote(i))
                 else:
-                    quoter = lambda x: ninja_quote(qf(x))
-                newelems.append(quoter(i))
+                    newelems.append(ninja_quote(qf(i)))
             line += ' '.join(newelems)
             line += '\n'
             outfile.write(line)

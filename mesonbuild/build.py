@@ -774,6 +774,7 @@ class BuildTarget(Target):
 
     def extract_objects(self, srclist):
         obj_src = []
+        sources_set = set(self.sources)
         for src in srclist:
             if isinstance(src, str):
                 src = File(False, self.subdir, src)
@@ -782,7 +783,7 @@ class BuildTarget(Target):
             else:
                 raise MesonException('Object extraction arguments must be strings or Files.')
             # FIXME: It could be a generated source
-            if src not in self.sources:
+            if src not in sources_set:
                 raise MesonException('Tried to extract unknown source {}.'.format(src))
             obj_src.append(src)
         return ExtractedObjects(self, obj_src)
