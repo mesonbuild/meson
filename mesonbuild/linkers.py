@@ -712,7 +712,7 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
     """Representation of GNU ld.bfd and ld.gold."""
 
     def get_accepts_rsp(self) -> bool:
-        return True;
+        return True
 
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
@@ -964,6 +964,8 @@ class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return (['-R' + os.path.join(build_dir, p) for p in rpath_paths], set())
         return ([], set())
 
+NvidiaHPC_DynamicLinker = PGIDynamicLinker
+
 
 class PGIStaticLinker(StaticLinker):
     def __init__(self, exelist: T.List[str]):
@@ -976,6 +978,8 @@ class PGIStaticLinker(StaticLinker):
 
     def get_output_args(self, target: str) -> T.List[str]:
         return [target]
+
+NvidiaHPC_StaticLinker = PGIStaticLinker
 
 
 class VisualStudioLikeLinkerMixin:

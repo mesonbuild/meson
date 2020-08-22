@@ -25,6 +25,7 @@ These are return values of the `get_id` (Compiler family) and
 | mono      | Xamarin C# compiler              |                 |
 | msvc      | Microsoft Visual Studio          | msvc            |
 | nagfor    | The NAG Fortran compiler         |                 |
+| nvidia_hpc| NVidia HPC SDK compilers         |                 |
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |

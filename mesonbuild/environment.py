@@ -58,6 +58,8 @@ from .linkers import (
     QualcommLLVMDynamicLinker,
     MSVCDynamicLinker,
     OptlinkDynamicLinker,
+    NvidiaHPC_DynamicLinker,
+    NvidiaHPC_StaticLinker,
     PGIDynamicLinker,
     PGIStaticLinker,
     SolarisDynamicLinker,
@@ -105,6 +107,9 @@ from .compilers import (
     NAGFortranCompiler,
     Open64FortranCompiler,
     PathScaleFortranCompiler,
+    NvidiaHPC_CCompiler,
+    NvidiaHPC_CPPCompiler,
+    NvidiaHPC_FortranCompiler,
     PGICCompiler,
     PGICPPCompiler,
     PGIFortranCompiler,
@@ -768,11 +773,11 @@ class Environment:
                 self.default_objc = []
                 self.default_objcpp = []
             else:
-                self.default_c = ['cc', 'gcc', 'clang', 'pgcc', 'icc']
-                self.default_cpp = ['c++', 'g++', 'clang++', 'pgc++', 'icpc']
+                self.default_c = ['cc', 'gcc', 'clang', 'nvc', 'pgcc', 'icc']
+                self.default_cpp = ['c++', 'g++', 'clang++', 'nvc++', 'pgc++', 'icpc']
                 self.default_objc = ['cc', 'gcc', 'clang']
                 self.default_objcpp = ['c++', 'g++', 'clang++']
-            self.default_fortran = ['gfortran', 'flang', 'pgfortran', 'ifort', 'g95']
+            self.default_fortran = ['gfortran', 'flang', 'nvfortran', 'pgfortran', 'ifort', 'g95']
             self.default_cs = ['mcs', 'csc']
         self.default_d = ['ldc2', 'ldc', 'gdc', 'dmd']
         self.default_java = ['javac']
@@ -1303,6 +1308,13 @@ class Environment:
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
                     info, exe_wrap, linker=linker)
+            if 'NVIDIA Compilers and Tools' in out:
+                cls = NvidiaHPC_CCompiler if lang == 'c' else NvidiaHPC_CPPCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                linker = NvidiaHPC_DynamicLinker(compiler, for_machine, cls.LINKER_PREFIX, [], version=version)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross,
+                    info, exe_wrap, linker=linker)
             if '(ICC)' in out:
                 cls = IntelCCompiler if lang == 'c' else IntelCPPCompiler
                 l = self._guess_nix_linker(compiler, cls, for_machine)
@@ -1467,6 +1479,15 @@ class Environment:
 
                 if 'PGI Compilers' in out:
                     cls = PGIFortranCompiler
+                    self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                    linker = PGIDynamicLinker(compiler, for_machine,
+                                              cls.LINKER_PREFIX, [], version=version)
+                    return cls(
+                        compiler, version, for_machine, is_cross, info, exe_wrap,
+                        full_version=full_version, linker=linker)
+
+                if 'NVIDIA Compilers and Tools' in out:
+                    cls = NvidiaHPC_FortranCompiler
                     self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                     linker = PGIDynamicLinker(compiler, for_machine,
                                               cls.LINKER_PREFIX, [], version=version)
