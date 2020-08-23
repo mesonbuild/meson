@@ -307,17 +307,20 @@ class Elf(DataSizes):
         self.bf.seek(rp_off)
 
         old_rpath = self.read_str()
-        new_rpaths = []
+        # Some rpath entries may come from multiple sources.
+        # Only add each one once.
+        new_rpaths = OrderedSet()
         if new_rpath:
-            new_rpaths.append(new_rpath)
+            new_rpaths.add(new_rpath)
         if old_rpath:
             # Filter out build-only rpath entries
             # added by get_link_dep_subdirs() or
             # specified by user with build_rpath.
-            for dir in old_rpath.split(b':'):
-                if not (dir in rpath_dirs_to_remove or
-                        dir == (b'X' * len(dir))):
-                    new_rpaths.append(dir)
+            for rpath_dir in old_rpath.split(b':'):
+                if not (rpath_dir in rpath_dirs_to_remove or
+                        rpath_dir == (b'X' * len(rpath_dir))):
+                    if rpath_dir:
+                        new_rpaths.add(rpath_dir)
 
         # Prepend user-specified new entries while preserving the ones that came from pkgconfig etc.
         new_rpath = b':'.join(new_rpaths)
