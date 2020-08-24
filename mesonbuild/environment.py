@@ -174,8 +174,10 @@ def detect_ninja(version: str = '1.7', log: bool = False) -> str:
 def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) -> (str, str):
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
+        ninja_args = shlex.split(n)
+        ninja_version_args = ninja_args + ['--version']
         try:
-            p, found = Popen_safe([n, '--version'])[0:2]
+            p, found = Popen_safe(ninja_version_args)[0:2]
         except (FileNotFoundError, PermissionError):
             # Doesn't exist in PATH or isn't executable
             continue
@@ -183,7 +185,7 @@ def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) ->
         # Perhaps we should add a way for the caller to know the failure mode
         # (not found or too old)
         if p.returncode == 0 and mesonlib.version_compare(found, '>=' + version):
-            n = shutil.which(n)
+            n = shutil.which(ninja_args[-1])
             if log:
                 name = os.path.basename(n)
                 if name.endswith('-' + found):
@@ -193,7 +195,7 @@ def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) ->
                 if name == 'samu':
                     name = 'samurai'
                 mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
-            return (n, found)
+            return (ninja_args, found)
 
 def get_llvm_tool_names(tool: str) -> T.List[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with
