@@ -15,6 +15,7 @@ modules = [
   # specific files
   'mesonbuild/arglist.py',
   'mesonbuild/compilers/compilers.py',
+  'mesonbuild/compilers/mixins/arm.py',
   # 'mesonbuild/compilers/mixins/intel.py',
   # 'mesonbuild/coredata.py',
   'mesonbuild/dependencies/boost.py',
