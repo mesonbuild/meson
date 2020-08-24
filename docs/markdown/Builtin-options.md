@@ -11,9 +11,10 @@ universal options, base options, compiler options.
 ## Universal options
 
 A list of these options can be found by running `meson --help`. All
-these can be set by passing to `meson` (aka `meson setup`) in any of
-these ways: `--option=value`, `--option value`, `-Doption=value`, or
+these can be set by passing `-Doption=value` to `meson` (aka `meson setup`), or
 by setting them inside `default_options` of `project()` in your `meson.build`.
+Some options can also be set by `--option=value`, or `--option value`--- a list
+is shown by running `meson setup --help`.
 
 For legacy reasons `--warnlevel` is the cli argument for the `warning_level` option.
 
@@ -101,7 +102,9 @@ All other combinations of `debug` and `optimization` set `buildtype` to `'custom
 
 ## Base options
 
-These are set in the same way as universal options, but cannot be shown in the
+These are set in the same way as universal options, either by `-Doption=value`, 
+or by setting them inside `default_options` of `project()` in your `meson.build`.
+However, they cannot be shown in the
 output of `meson --help` because they depend on both the current platform and
 the compiler that will be selected. The only way to see them is to setup
 a builddir and then run `meson configure` on it with no options.
@@ -155,7 +158,8 @@ embedded because `-Wl,-bitcode_bundle` is incompatible with both `-bundle` and
 
 Same caveats as base options above.
 
-The following options are available. Note that both the options themselves and
+The following options are available. They can be set by passing `-Doption=value`
+to `meson`. Note that both the options themselves and
 the possible values they can take will depend on the target platform or
 compiler being used:
 
