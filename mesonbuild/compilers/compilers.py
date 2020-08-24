@@ -512,27 +512,27 @@ class Compiler(metaclass=abc.ABCMeta):
         return self.default_suffix
 
     def get_define(self, dname: str, prefix: str, env: 'Environment',
-                   extra_args: T.Sequence[str], dependencies: T.Sequence['Dependency'],
+                   extra_args: T.List[str], dependencies: T.List['Dependency'],
                    disable_cache: bool = False) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
                     guess: T.Optional[int], prefix: str, env: 'Environment',
-                    extra_args: T.Sequence[str], dependencies: T.Sequence['Dependency']) -> int:
+                    extra_args: T.List[str], dependencies: T.List['Dependency']) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
-    def compute_parameters_with_absolute_paths(self, parameter_list: T.Sequence[str],
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename: str, membernames: T.Sequence[str],
+    def has_members(self, typename: str, membernames: T.Iterable[str],
                     prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.Sequence[str]] = None,
-                    dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+                    extra_args: T.Optional[T.Iterable[str]] = None,
+                    dependencies: T.Optional[T.Iterable['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
-                 extra_args: T.Sequence[str], *,
+                 extra_args: T.List[str], *,
                  dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
@@ -632,14 +632,14 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
     def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Sequence[T.Union[T.Sequence[str], str]] = None,
+                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
     def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Sequence[T.Union[T.Sequence[str], str]] = None,
+              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
@@ -686,8 +686,10 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 
     def get_library_naming(self, env: 'Environment', libtype: LibType,
-                           strict: bool = False) -> T.Tuple[str, ...]:
-        return ()
+                           strict: bool = False) -> T.Optional[T.Tuple[str, ...]]:
+        raise EnvironmentException(
+            'Language {} does not support get_library_naming.'.format(
+                self.get_display_language()))
 
     def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         return []
@@ -728,9 +730,11 @@ class Compiler(metaclass=abc.ABCMeta):
         return CompilerArgs(self, args)
 
     @contextlib.contextmanager
-    def compile(self, code: 'mesonlib.FileOrString', extra_args: T.Optional[T.List[str]] = None,
+    def compile(self, code: 'mesonlib.FileOrString',
+                extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
                 *, mode: str = 'link', want_output: bool = False,
                 temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+        # TODO: there isn't really any reason for this to be a contextmanager
         if extra_args is None:
             extra_args = []
         try:
@@ -787,9 +791,11 @@ class Compiler(metaclass=abc.ABCMeta):
 
     @contextlib.contextmanager
     def cached_compile(self, code: str, cdata: coredata.CoreData, *,
-                       extra_args: T.Optional[T.List[str]] = None,
+                       extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
                        mode: str = 'link',
                        temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+        # TODO: There's isn't really any reason for this to be a context manager
+
         # Calculate the key
         textra_args = tuple(extra_args) if extra_args is not None else tuple()  # type: T.Tuple[str, ...]
         key = (tuple(self.exelist), self.version, code, textra_args, mode)  # type: coredata.CompilerCheckCacheKey
@@ -994,27 +1000,38 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_preprocess_only_args(self) -> T.List[str]:
         raise EnvironmentError('This compiler does not have a preprocessor')
 
+    def get_default_include_dirs(self) -> T.List[str]:
+        return []
 
-def get_largefile_args(compiler: Compiler) -> T.List[str]:
-    '''
-    Enable transparent large-file-support for 32-bit UNIX systems
-    '''
-    if not (compiler.get_argument_syntax() == 'msvc' or compiler.info.is_darwin()):
-        # Enable large-file support unconditionally on all platforms other
-        # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
-        # need anything special, and MSVC doesn't have automatic LFS.
-        # You must use the 64-bit counterparts explicitly.
-        # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
-        # support for transparent LFS is available depending on the version of
-        # Bionic: https://github.com/android/platform_bionic#32-bit-abi-bugs
-        # https://code.google.com/p/android/issues/detail?id=64613
-        #
-        # If this breaks your code, fix it! It's been 20+ years!
-        return ['-D_FILE_OFFSET_BITS=64']
-        # We don't enable -D_LARGEFILE64_SOURCE since that enables
-        # transitionary features and must be enabled by programs that use
-        # those features explicitly.
-    return []
+    def get_largefile_args(self) -> T.List[str]:
+        '''Enable transparent large-file-support for 32-bit UNIX systems'''
+        if not (self.get_argument_syntax() == 'msvc' or self.info.is_darwin()):
+            # Enable large-file support unconditionally on all platforms other
+            # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
+            # need anything special, and MSVC doesn't have automatic LFS.
+            # You must use the 64-bit counterparts explicitly.
+            # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
+            # support for transparent LFS is available depending on the version of
+            # Bionic: https://github.com/android/platform_bionic#32-bit-abi-bugs
+            # https://code.google.com/p/android/issues/detail?id=64613
+            #
+            # If this breaks your code, fix it! It's been 20+ years!
+            return ['-D_FILE_OFFSET_BITS=64']
+            # We don't enable -D_LARGEFILE64_SOURCE since that enables
+            # transitionary features and must be enabled by programs that use
+            # those features explicitly.
+        return []
+
+    def get_library_dirs(self, env: 'Environment',
+                         elf_class: T.Optional[int] = None) -> T.List[str]:
+        return []
+
+    def find_framework_paths(self, env: 'Environment') -> T.List[str]:
+        raise EnvironmentException('{} does not support find_framework_paths'.format(self.id))
+
+    def attribute_check_func(self, name: str) -> str:
+        raise EnvironmentException('{} does not support attribute checks'.format(self.id))
+
 
 
 def get_args_from_envvars(lang: str,
