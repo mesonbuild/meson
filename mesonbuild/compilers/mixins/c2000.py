@@ -47,7 +47,12 @@ c2000_debug_args = {
 
 
 class C2000Compiler:
-    def __init__(self):
+
+    if T.TYPE_CHECKING:
+        is_cross = True
+        can_compile_suffixes = set()  # type: T.Set[str]
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('c2000 supports only cross-compilation.')
         self.id = 'c2000'
