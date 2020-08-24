@@ -47,7 +47,12 @@ ccrx_debug_args = {
 
 
 class CcrxCompiler:
-    def __init__(self):
+
+    if T.TYPE_CHECKING:
+        is_cross = True
+        can_compile_suffixes = set()  # type: T.Set[str]
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
         self.id = 'ccrx'

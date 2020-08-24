@@ -17,6 +17,7 @@ modules = [
   'mesonbuild/compilers/compilers.py',
   'mesonbuild/compilers/mixins/arm.py',
   'mesonbuild/compilers/mixins/c2000.py',
+  'mesonbuild/compilers/mixins/ccrx.py',
   # 'mesonbuild/compilers/mixins/intel.py',
   # 'mesonbuild/coredata.py',
   'mesonbuild/dependencies/boost.py',
