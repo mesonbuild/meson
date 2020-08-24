@@ -1,4 +1,4 @@
-# Copyright 2012-2019 The Meson development team
+# Copyright 2012-2020 Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 """Representations specific to the arm family of compilers."""
 
 import os
-import re
 import typing as T
 
 from ... import mesonlib
+from ...linkers import ArmClangDynamicLinker
 from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
 if T.TYPE_CHECKING:
+    from ...envconfig import MachineChoice
     from ...environment import Environment
 
 arm_buildtype_args = {
@@ -63,8 +64,14 @@ armclang_optimization_args = {
 
 
 class ArmCompiler:
-    # Functionality that is common to all ARM family compilers.
-    def __init__(self):
+
+    """Functionality that is common to all ARM family compilers."""
+
+    if T.TYPE_CHECKING:
+        is_cross = True
+        can_compile_suffixes = set()  # type: T.Set[str]
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
         self.id = 'arm'
@@ -127,31 +134,22 @@ class ArmCompiler:
 
 
 class ArmclangCompiler:
-    def __init__(self):
+
+    if T.TYPE_CHECKING:
+        can_compile_suffixes = set()  # type: T.Set[str]
+        is_cross = True
+        version = '0'
+        linker = ArmClangDynamicLinker(MachineChoice.HOST, version='1.2.3')
+
+        def get_pch_name(self, name: str) -> str: ...
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink' is available in path
-        self.linker_exe = 'armlink'
-        args = '--vsn'
-        try:
-            p, stdo, stderr = mesonlib.Popen_safe(self.linker_exe, args)
-        except OSError as e:
-            err_msg = 'Unknown linker\nRunning "{0}" gave \n"{1}"'.format(' '.join([self.linker_exe] + [args]), e)
-            raise mesonlib.EnvironmentException(err_msg)
-        # Verify the armlink version
-        ver_str = re.search('.*Component.*', stdo)
-        if ver_str:
-            ver_str = ver_str.group(0)
-        else:
-            raise mesonlib.EnvironmentException('armlink version string not found')
-        assert ver_str  # makes mypy happy
-        # Using the regular expression from environment.search_version,
-        # which is used for searching compiler version
-        version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
-        linker_ver = re.search(version_regex, ver_str)
-        if linker_ver:
-            linker_ver = linker_ver.group(0)
-        if not mesonlib.version_compare(self.version, '==' + linker_ver):
+        if not isinstance(self.linker, ArmClangDynamicLinker):
+            raise mesonlib.EnvironmentException('Unsupported Linker {}, must be armlink'.format(self.linker.exelist))
+        if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
