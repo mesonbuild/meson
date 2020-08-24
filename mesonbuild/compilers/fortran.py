@@ -143,7 +143,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
         code = 'stop; end program'
-        return self.find_library_impl(libname, env, extra_dirs, code, libtype)
+        return self._find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def has_multi_arguments(self, args: T.Sequence[str], env):
         for arg in args[:]:
