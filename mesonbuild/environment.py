@@ -19,7 +19,7 @@ import typing as T
 import collections
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -63,6 +63,7 @@ from .linkers import (
     PGIDynamicLinker,
     PGIStaticLinker,
     SolarisDynamicLinker,
+    AIXDynamicLinker,
     XilinkDynamicLinker,
     CudaLinker,
     VisualStudioLikeLinkerMixin,
@@ -345,7 +346,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     """
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx():
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -385,6 +386,10 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         # ATM there is no 64 bit userland for PA-RISC. Thus always
         # report it as 32 bit for simplicity.
         trial = 'parisc'
+    elif trial == 'ppc':
+        # AIX always returns powerpc, check here for 64-bit
+        if any_compiler_has_define(compilers, '__64BIT__'):
+            trial = 'ppc64'
 
     if trial not in known_cpu_families:
         mlog.warning('Unknown CPU family {!r}, please report this at '
@@ -396,7 +401,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
 def detect_cpu(compilers: CompilersDict):
     if mesonlib.is_windows():
         trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd():
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
         trial = platform.processor().lower()
     else:
         trial = platform.machine().lower()
@@ -1096,6 +1101,14 @@ class Environment:
             linker = SolarisDynamicLinker(
                 compiler, for_machine, comp_class.LINKER_PREFIX, override,
                 version=v)
+        elif 'ld: 0706-012 The -- flag is not recognized' in e:
+            if isinstance(comp_class.LINKER_PREFIX, str):
+                _, _, e = Popen_safe(compiler + [comp_class.LINKER_PREFIX + '-V'] + extra_args)
+            else:
+                _, _, e = Popen_safe(compiler + comp_class.LINKER_PREFIX + ['-V'] + extra_args)
+            linker = AIXDynamicLinker(
+                compiler, for_machine, comp_class.LINKER_PREFIX, override,
+                version=search_version(e))
         else:
             raise EnvironmentException('Unable to determine dynamic linker')
         return linker
@@ -1954,7 +1967,7 @@ class Environment:
             if p.returncode == 1 and err.startswith('usage'): # OSX
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('Usage'): # AIX
-                return ArLinker(linker)
+                return AIXArLinker(linker)
             if p.returncode == 1 and err.startswith('ar: bad option: --'): # Solaris
                 return ArLinker(linker)
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
