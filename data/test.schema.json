@@ -20,6 +20,7 @@
             "type": "string",
             "enum": [
               "file",
+              "dir",
               "exe",
               "shared_lib",
               "pdb",

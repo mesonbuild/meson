@@ -131,7 +131,7 @@ class InstalledFile:
             return None
 
         # Handle the different types
-        if self.typ == 'file':
+        if self.typ in ['file', 'dir']:
             return p
         elif self.typ == 'shared_lib':
             if env.machines.host.is_windows() or env.machines.host.is_cygwin():
@@ -181,6 +181,20 @@ class InstalledFile:
             raise RuntimeError('Invalid installed file type {}'.format(self.typ))
 
         return p
+
+    def get_paths(self, compiler: str, env: environment.Environment, installdir: Path) -> T.List[Path]:
+        p = self.get_path(compiler, env)
+        if not p:
+            return []
+        if self.typ == 'dir':
+            abs_p = installdir / p
+            if not abs_p.exists():
+                raise RuntimeError('{} does not exist'.format(p))
+            if not abs_p.is_dir():
+                raise RuntimeError('{} is not a directory'.format(p))
+            return [x.relative_to(installdir) for x in abs_p.rglob('*') if x.is_file() or x.is_symlink()]
+        else:
+            return [p]
 
 @functools.total_ordering
 class TestDef:
@@ -295,10 +309,15 @@ def platform_fix_name(fname: str, canonical_compiler: str, env: environment.Envi
     return fname
 
 def validate_install(test: TestDef, installdir: Path, compiler: str, env: environment.Environment) -> str:
-    expected_raw = [x.get_path(compiler, env) for x in test.installed_files]
-    expected = {Path(x): False for x in expected_raw if x}
-    found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     ret_msg = ''
+    expected_raw = []  # type: T.List[Path]
+    for i in test.installed_files:
+        try:
+            expected_raw += i.get_paths(compiler, env, installdir)
+        except RuntimeError as err:
+            ret_msg += 'Expected path error: {}\n'.format(err)
+    expected = {x: False for x in expected_raw}
+    found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     # Mark all found files as found and detect unexpected files
     for fname in found:
         if fname not in expected:

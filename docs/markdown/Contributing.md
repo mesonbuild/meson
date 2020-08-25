@@ -242,6 +242,7 @@ current platform. The following values are currently supported:
 | type          | Description                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------- |
 | `file`        | No postprocessing, just use the provided path                                                           |
+| `dir`         | To include all files inside the directory (for generated docs, etc). The path must be a valid directory |
 | `exe`         | For executables. On Windows the `.exe` suffix is added to the path in `file`                            |
 | `shared_lib`  | For shared libraries, always written as `name`. The appropriate suffix and prefix are added by platform |
 | `pdb`         | For Windows PDB files. PDB entries are ignored on non Windows platforms                                 |
