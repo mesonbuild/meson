@@ -1450,10 +1450,12 @@ class CMakeDependency(ExternalDependency):
                     cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
                 if 'b_vscrt' in self.env.coredata.base_options:
+                    is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
                     if self.env.coredata.base_options['b_vscrt'].value in ('mdd', 'mtd'):
                         is_debug = True
+                else:
+                    is_debug = self.env.coredata.get_builtin_option('debug')
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
