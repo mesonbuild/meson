@@ -373,7 +373,7 @@ class CLikeCompiler:
             # us in that case and will error out asking us to pick one.
             try:
                 crt_val = env.coredata.base_options['b_vscrt'].value
-                buildtype = env.coredata.base_options['buildtype'].value
+                buildtype = env.coredata.builtins['buildtype'].value
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass

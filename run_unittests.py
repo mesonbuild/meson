@@ -1780,6 +1780,15 @@ class BasePlatformTests(unittest.TestCase):
         cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
         return cmds
 
+    def get_meson_log_sanitychecks(self):
+        '''
+        Same as above, but for the sanity checks that were run
+        '''
+        log = self.get_meson_log()
+        prefix = 'Sanity check compiler command line:'
+        cmds = [l[len(prefix):].split() for l in log if l.startswith(prefix)]
+        return cmds
+
     def introspect(self, args):
         if isinstance(args, str):
             args = [args]
@@ -5612,6 +5621,50 @@ class WindowsTests(BasePlatformTests):
             contents = f.read()
             m = re.search('build qt5core.exe: cpp_LINKER.*Qt5Cored.lib', contents)
         self.assertIsNotNone(m, msg=contents)
+
+    def test_compiler_checks_vscrt(self):
+        '''
+        Test that the correct VS CRT is used when running compiler checks
+        '''
+        # Verify that the `b_vscrt` option is available
+        env = get_fake_env()
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if 'b_vscrt' not in cc.base_options:
+            raise unittest.SkipTest('Compiler does not support setting the VS CRT')
+
+        def sanitycheck_vscrt(vscrt):
+            checks = self.get_meson_log_sanitychecks()
+            self.assertTrue(len(checks) > 0)
+            for check in checks:
+                self.assertIn(vscrt, check)
+
+        testdir = os.path.join(self.common_test_dir, '1 trivial')
+        self.init(testdir)
+        sanitycheck_vscrt('/MDd')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Dbuildtype=debugoptimized'])
+        sanitycheck_vscrt('/MD')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Dbuildtype=release'])
+        sanitycheck_vscrt('/MD')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Db_vscrt=md'])
+        sanitycheck_vscrt('/MD')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Db_vscrt=mdd'])
+        sanitycheck_vscrt('/MDd')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Db_vscrt=mt'])
+        sanitycheck_vscrt('/MT')
+
+        self.new_builddir()
+        self.init(testdir, extra_args=['-Db_vscrt=mtd'])
+        sanitycheck_vscrt('/MTd')
 
 
 @unittest.skipUnless(is_osx(), "requires Darwin")
