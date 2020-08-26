@@ -54,15 +54,23 @@ foreach cc : compilers
                             args : unit_test_args),
             'couldn\'t detect "poll" when defined by a header')
     lchmod_prefix = '#include <sys/stat.h>\n#include <unistd.h>'
+    has_lchmod = cc.has_function('lchmod', prefix : lchmod_prefix, args : unit_test_args)
+
     if host_system == 'linux'
-      assert (not cc.has_function('lchmod', prefix : lchmod_prefix,
-                                  args : unit_test_args),
-              '"lchmod" check should have failed')
+      glibc_major = cc.get_define('__GLIBC__', prefix: '#include <gnu/libc-version.h>', args: unit_test_args)
+      glibc_minor = cc.get_define('__GLIBC_MINOR__', prefix: '#include <gnu/libc-version.h>', args: unit_test_args)
+      glibc_vers = '@0@.@1@'.format(glibc_major, glibc_minor)
+      message('GLIBC vetsion:', glibc_vers)
+
+      # lchmod was implemented in glibc 2.32 (https://sourceware.org/pipermail/libc-announce/2020/000029.html)
+      if glibc_vers.version_compare('<2.32')
+        assert (not has_lchmod, '"lchmod" check should have failed')
+      else
+        assert (has_lchmod, '"lchmod" check should have succeeded')
+      endif
     else
       # macOS and *BSD have lchmod
-      assert (cc.has_function('lchmod', prefix : lchmod_prefix,
-                                  args : unit_test_args),
-              '"lchmod" check should have succeeded')
+      assert (has_lchmod, '"lchmod" check should have succeeded')
     endif
     # Check that built-ins are found properly both with and without headers
     assert(cc.has_function('alloca', args : unit_test_args),
