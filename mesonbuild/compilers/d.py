@@ -19,6 +19,7 @@ from ..mesonlib import (
     EnvironmentException, MachineChoice, version_compare,
 )
 
+from ..arglist import CompilerArgs
 from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
@@ -426,6 +427,9 @@ class DmdLikeCompilerMixin:
             args = [a.replace('-L=', '-Xcc=-Wl,') for a in args]
         return args
 
+class DCompilerArgs(CompilerArgs):
+    prepend_prefixes = ('-I', '-L')
+    dedup2_prefixes = ('-I')
 
 class DCompiler(Compiler):
     mscrt_args = {
@@ -598,6 +602,9 @@ class DCompiler(Compiler):
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
+
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> DCompilerArgs:
+        return DCompilerArgs(self, args)
 
     def compiles(self, code, env, *, extra_args=None, dependencies=None, mode='compile'):
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
