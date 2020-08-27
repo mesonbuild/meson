@@ -83,8 +83,10 @@ URLOPEN_TIMEOUT = 5
 def chdir(path: str):
     curdir = os.getcwd()
     os.chdir(path)
-    yield
-    os.chdir(curdir)
+    try:
+        yield
+    finally:
+        os.chdir(curdir)
 
 
 def get_dynamic_section_entry(fname, entry):
