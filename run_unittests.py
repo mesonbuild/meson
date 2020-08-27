@@ -376,6 +376,12 @@ class InternalTests(unittest.TestCase):
         a += ['-I.', '-I./tests2/']
         self.assertEqual(a, ['-I.', '-I./tests2/', '-I./tests/', '-I..'])
 
+    def test_compiler_args_class_d(self):
+        d = mesonbuild.compilers.DCompiler([], 'fake', MachineChoice.HOST, 'info', 'arch', False, None)
+        # check include order is kept when deduplicating
+        a = d.compiler_args(['-Ifirst', '-Isecond', '-Ithird'])
+        a += ['-Ifirst']
+        self.assertEqual(a, ['-Ifirst', '-Isecond', '-Ithird'])
 
     def test_compiler_args_class(self):
         cc = mesonbuild.compilers.CCompiler([], 'fake', False, MachineChoice.HOST, mock.Mock())
