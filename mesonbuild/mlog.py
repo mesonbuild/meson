@@ -56,7 +56,7 @@ def colorize_console() -> bool:
     sys.stdout.colorize_console = _colorize_console  # type: ignore[attr-defined]
     return _colorize_console
 
-def setup_console():
+def setup_console() -> None:
     # on Windows, a subprocess might call SetConsoleMode() on the console
     # connected to stdout and turn off ANSI escape processing. Call this after
     # running a subprocess to ensure we turn it on again.
