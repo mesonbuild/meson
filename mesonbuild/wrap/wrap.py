@@ -83,7 +83,7 @@ def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
     url = whitelist_wrapdb(urlstring)
     if has_ssl:
         try:
-            return urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT)
+            return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(url), timeout=REQ_TIMEOUT))
         except urllib.error.URLError as excp:
             raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
@@ -93,7 +93,7 @@ def open_wrapdburl(urlstring: str) -> 'http.client.HTTPResponse':
         mlog.warning('SSL module not available in {}: WrapDB traffic not authenticated.'.format(sys.executable))
         SSL_WARNING_PRINTED = True
     try:
-        return urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT)
+        return T.cast('http.client.HTTPResponse', urllib.request.urlopen(urllib.parse.urlunparse(nossl_url), timeout=REQ_TIMEOUT))
     except urllib.error.URLError as excp:
         raise WrapException('WrapDB connection failed to {} with error {}'.format(urlstring, excp))
 
@@ -107,7 +107,7 @@ class WrapNotFoundException(WrapException):
 class PackageDefinition:
     def __init__(self, fname: str):
         self.filename = fname
-        self.type = None
+        self.type = None  # type: str
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
         self.provided_programs = [] # type: T.List[str]
@@ -122,7 +122,7 @@ class PackageDefinition:
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
 
-    def parse_wrap(self, fname: str):
+    def parse_wrap(self, fname: str) -> None:
         try:
             self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(fname)
@@ -131,7 +131,7 @@ class PackageDefinition:
         self.parse_wrap_section()
         self.parse_provide_section()
 
-    def parse_wrap_section(self):
+    def parse_wrap_section(self) -> None:
         if len(self.config.sections()) < 1:
             raise WrapException('Missing sections in {}'.format(self.basename))
         self.wrap_section = self.config.sections()[0]
@@ -141,19 +141,19 @@ class PackageDefinition:
         self.type = self.wrap_section[5:]
         self.values = dict(self.config[self.wrap_section])
 
-    def parse_provide_section(self):
+    def parse_provide_section(self) -> None:
         if self.config.has_section('provide'):
             for k, v in self.config['provide'].items():
                 if k == 'dependency_names':
                     # A comma separated list of dependency names that does not
                     # need a variable name
-                    names = {n.strip(): None for n in v.split(',')}
-                    self.provided_deps.update(names)
+                    names_dict = {n.strip(): None for n in v.split(',')}
+                    self.provided_deps.update(names_dict)
                     continue
                 if k == 'program_names':
                     # A comma separated list of program names
-                    names = [n.strip() for n in v.split(',')]
-                    self.provided_programs += names
+                    names_list = [n.strip() for n in v.split(',')]
+                    self.provided_programs += names_list
                     continue
                 if not v:
                     m = ('Empty dependency variable name for {!r} in {}. '
@@ -177,7 +177,7 @@ def get_directory(subdir_root: str, packagename: str) -> str:
     return packagename
 
 class Resolver:
-    def __init__(self, subdir_root: str, wrap_mode=WrapMode.default):
+    def __init__(self, subdir_root: str, wrap_mode: WrapMode = WrapMode.default) -> None:
         self.wrap_mode = wrap_mode
         self.subdir_root = subdir_root
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
@@ -187,7 +187,7 @@ class Resolver:
         self.provided_programs = {} # type: T.Dict[str, PackageDefinition]
         self.load_wraps()
 
-    def load_wraps(self):
+    def load_wraps(self) -> None:
         if not os.path.isdir(self.subdir_root):
             return
         root, dirs, files = next(os.walk(self.subdir_root))
@@ -221,7 +221,7 @@ class Resolver:
                     raise WrapException(m.format(k, wrap.basename, prev_wrap.basename))
                 self.provided_programs[k] = wrap
 
-    def find_dep_provider(self, packagename: str):
+    def find_dep_provider(self, packagename: str) -> T.Optional[T.Union[str, T.List[str]]]:
         # Return value is in the same format as fallback kwarg:
         # ['subproject_name', 'variable_name'], or 'subproject_name'.
         wrap = self.provided_deps.get(packagename)
@@ -232,7 +232,7 @@ class Resolver:
             return wrap.name
         return None
 
-    def find_program_provider(self, names: T.List[str]):
+    def find_program_provider(self, names: T.List[str]) -> T.Optional[str]:
         for name in names:
             wrap = self.provided_programs.get(name)
             if wrap:
@@ -464,7 +464,7 @@ class Resolver:
         if dhash != expected:
             raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
 
-    def download(self, what: str, ofname: str, fallback=False) -> None:
+    def download(self, what: str, ofname: str, fallback: bool = False) -> None:
         self.check_can_download()
         srcurl = self.wrap.get(what + ('_fallback_url' if fallback else '_url'))
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))

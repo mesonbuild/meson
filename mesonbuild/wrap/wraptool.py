@@ -16,6 +16,7 @@ import json
 import sys, os
 import configparser
 import shutil
+import typing as T
 
 from glob import glob
 
@@ -23,7 +24,10 @@ from .wrap import API_ROOT, open_wrapdburl
 
 from .. import mesonlib
 
-def add_arguments(parser):
+if T.TYPE_CHECKING:
+    import argparse
+
+def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     subparsers = parser.add_subparsers(title='Commands', dest='command')
     subparsers.required = True
 
@@ -53,26 +57,28 @@ def add_arguments(parser):
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
 
-def get_result(urlstring):
+def get_result(urlstring: str) -> T.Dict[str, T.Any]:
     u = open_wrapdburl(urlstring)
     data = u.read().decode('utf-8')
     jd = json.loads(data)
     if jd['output'] != 'ok':
         print('Got bad output from server.', file=sys.stderr)
         raise SystemExit(data)
+    assert isinstance(jd, dict)
     return jd
 
-def get_projectlist():
+def get_projectlist() -> T.List[str]:
     jd = get_result(API_ROOT + 'projects')
     projects = jd['projects']
+    assert isinstance(projects, list)
     return projects
 
-def list_projects(options):
+def list_projects(options: 'argparse.Namespace') -> None:
     projects = get_projectlist()
     for p in projects:
         print(p)
 
-def search(options):
+def search(options: 'argparse.Namespace') -> None:
     name = options.name
     jd = get_result(API_ROOT + 'query/byname/' + name)
     for p in jd['projects']:
@@ -84,7 +90,7 @@ def get_latest_version(name: str) -> tuple:
     revision = jd['revision']
     return branch, revision
 
-def install(options):
+def install(options: 'argparse.Namespace') -> None:
     name = options.name
     if not os.path.isdir('subprojects'):
         raise SystemExit('Subprojects dir not found. Run this script in your source root directory.')
@@ -100,25 +106,25 @@ def install(options):
         f.write(data)
     print('Installed', name, 'branch', branch, 'revision', revision)
 
-def parse_patch_url(patch_url):
+def parse_patch_url(patch_url: str) -> T.Tuple[str, int]:
     arr = patch_url.split('/')
     return arr[-3], int(arr[-2])
 
-def get_current_version(wrapfile):
+def get_current_version(wrapfile: str) -> T.Tuple[str, int, str, str, str]:
     cp = configparser.ConfigParser(interpolation=None)
     cp.read(wrapfile)
-    cp = cp['wrap-file']
-    patch_url = cp['patch_url']
+    wrap_data = cp['wrap-file']
+    patch_url = wrap_data['patch_url']
     branch, revision = parse_patch_url(patch_url)
-    return branch, revision, cp['directory'], cp['source_filename'], cp['patch_filename']
+    return branch, revision, wrap_data['directory'], wrap_data['source_filename'], wrap_data['patch_filename']
 
-def update_wrap_file(wrapfile, name, new_branch, new_revision):
+def update_wrap_file(wrapfile: str, name: str, new_branch: str, new_revision: str) -> None:
     u = open_wrapdburl(API_ROOT + 'projects/{}/{}/{}/get_wrap'.format(name, new_branch, new_revision))
     data = u.read()
     with open(wrapfile, 'wb') as f:
         f.write(data)
 
-def update(options):
+def update(options: 'argparse.Namespace') -> None:
     name = options.name
     if not os.path.isdir('subprojects'):
         raise SystemExit('Subprojects dir not found. Run this command in your source root directory.')
@@ -142,7 +148,7 @@ def update(options):
         pass
     print('Updated', name, 'to branch', new_branch, 'revision', new_revision)
 
-def info(options):
+def info(options: 'argparse.Namespace') -> None:
     name = options.name
     jd = get_result(API_ROOT + 'projects/' + name)
     versions = jd['versions']
@@ -152,7 +158,7 @@ def info(options):
     for v in versions:
         print(' ', v['branch'], v['revision'])
 
-def do_promotion(from_path, spdir_name):
+def do_promotion(from_path: str, spdir_name: str) -> None:
     if os.path.isfile(from_path):
         assert(from_path.endswith('.wrap'))
         shutil.copy(from_path, spdir_name)
@@ -163,7 +169,7 @@ def do_promotion(from_path, spdir_name):
             raise SystemExit('Output dir {} already exists. Will not overwrite.'.format(outputdir))
         shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
-def promote(options):
+def promote(options: 'argparse.Namespace') -> None:
     argument = options.project_path
     spdir_name = 'subprojects'
     sprojs = mesonlib.detect_subprojects(spdir_name)
@@ -186,7 +192,7 @@ def promote(options):
         raise SystemExit(1)
     do_promotion(matches[0], spdir_name)
 
-def status(options):
+def status(options: 'argparse.Namespace') -> None:
     print('Subproject status')
     for w in glob('subprojects/*.wrap'):
         name = os.path.basename(w)[:-5]
@@ -205,6 +211,6 @@ def status(options):
         else:
             print('', name, 'not up to date. Have {} {}, but {} {} is available.'.format(current_branch, current_revision, latest_branch, latest_revision))
 
-def run(options):
+def run(options: 'argparse.Namespace') -> int:
     options.wrap_func(options)
     return 0

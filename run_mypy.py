@@ -34,7 +34,7 @@ strict_modules = [
   'mesonbuild/mesonlib.py',
   'mesonbuild/mlog.py',
   'mesonbuild/ast',
-  # 'mesonbuild/wrap',
+  'mesonbuild/wrap',
   'run_mypy.py',
 ]
 
