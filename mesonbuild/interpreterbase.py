@@ -454,7 +454,7 @@ def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
 def default_resolve_key(key: mparser.BaseNode) -> str:
     if not isinstance(key, mparser.IdNode):
         raise InterpreterException('Invalid kwargs format.')
-    return T.cast(str, key.value)
+    return key.value
 
 class InterpreterBase:
     elementary_types = (int, float, str, bool, list)
@@ -552,9 +552,9 @@ class InterpreterBase:
         elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
         elif isinstance(cur, mparser.StringNode):
-            return T.cast(str, cur.value)
+            return cur.value
         elif isinstance(cur, mparser.BooleanNode):
-            return T.cast(bool, cur.value)
+            return cur.value
         elif isinstance(cur, mparser.IfClauseNode):
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser.IdNode):
@@ -566,7 +566,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.DictNode):
             return self.evaluate_dictstatement(cur)
         elif isinstance(cur, mparser.NumberNode):
-            return T.cast(int, cur.value)
+            return cur.value
         elif isinstance(cur, mparser.AndNode):
             return self.evaluate_andstatement(cur)
         elif isinstance(cur, mparser.OrNode):

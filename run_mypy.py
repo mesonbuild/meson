@@ -30,9 +30,11 @@ normal_modules = [
 
 strict_modules = [
   'mesonbuild/interpreterbase.py',
+  'mesonbuild/mparser.py',
   'mesonbuild/mesonlib.py',
   'mesonbuild/mlog.py',
   'mesonbuild/ast',
+  # 'mesonbuild/wrap',
   'run_mypy.py',
 ]
 
