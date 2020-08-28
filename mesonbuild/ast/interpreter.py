@@ -38,7 +38,6 @@ from ..mparser import (
     NotNode,
     OrNode,
     PlusAssignmentNode,
-    StringNode,
     TernaryNode,
     UMinusNode,
 )
@@ -216,15 +215,16 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def unknown_function_called(self, func_name: str) -> None:
         pass
 
-    def reduce_arguments(self, args: ArgumentNode, resolve_key_nodes: bool = True) -> T.Tuple[T.List[TYPE_nvar], TYPE_nkwargs]:
+    def reduce_arguments(
+                self,
+                args: mparser.ArgumentNode,
+                key_resolver: T.Callable[[mparser.BaseNode], str] = interpreterbase.default_resolve_key,
+                duplicate_key_error: T.Optional[str] = None,
+            ) -> T.Tuple[T.List[TYPE_nvar], TYPE_nkwargs]:
         if isinstance(args, ArgumentNode):
-            kwargs = {}  # type: T.Dict[T.Union[str, BaseNode], TYPE_nvar]
+            kwargs = {}  # type: T.Dict[str, TYPE_nvar]
             for key, val in args.kwargs.items():
-                if resolve_key_nodes and isinstance(key, (StringNode, IdNode)):
-                    assert isinstance(key.value, str)
-                    kwargs[key.value] = val
-                else:
-                    kwargs[key] = val
+                kwargs[key_resolver(key)] = val
             if args.incorrect_order():
                 raise InvalidArguments('All keyword arguments must be after positional arguments.')
             return self.flatten_args(args.arguments), kwargs

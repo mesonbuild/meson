@@ -439,6 +439,11 @@ def is_disabled(args, kwargs) -> bool:
             return True
     return False
 
+def default_resolve_key(key: mparser.BaseNode) -> str:
+    if not isinstance(key, mparser.IdNode):
+        raise InterpreterException('Invalid kwargs format.')
+    return T.cast(str, key.value)
+
 class InterpreterBase:
     elementary_types = (int, float, str, bool, list)
 
@@ -585,23 +590,17 @@ class InterpreterBase:
         return arguments
 
     @FeatureNew('dict', '0.47.0')
-    def evaluate_dictstatement(self, cur: mparser.DictNode) -> T.Dict[str, T.Any]:
-        (arguments, kwargs) = self.reduce_arguments(cur.args, resolve_key_nodes=False)
-        assert (not arguments)
-        result = {}  # type: T.Dict[str, T.Any]
-        self.argument_depth += 1
-        for key, value in kwargs.items():
+    def evaluate_dictstatement(self, cur: mparser.DictNode) -> TYPE_nkwargs:
+        def resolve_key(key: mparser.BaseNode) -> str:
             if not isinstance(key, mparser.StringNode):
                 FeatureNew.single_use('Dictionary entry using non literal key', '0.53.0', self.subproject)
-            assert isinstance(key, mparser.BaseNode)  # All keys must be nodes due to resolve_key_nodes=False
             str_key = self.evaluate_statement(key)
             if not isinstance(str_key, str):
                 raise InvalidArguments('Key must be a string')
-            if str_key in result:
-                raise InvalidArguments('Duplicate dictionary key: {}'.format(str_key))
-            result[str_key] = value
-        self.argument_depth -= 1
-        return result
+            return str_key
+        arguments, kwargs = self.reduce_arguments(cur.args, key_resolver=resolve_key, duplicate_key_error='Duplicate dictionary key: {}')
+        assert not arguments
+        return kwargs
 
     def evaluate_notstatement(self, cur: mparser.NotNode) -> T.Union[bool, Disabler]:
         v = self.evaluate_statement(cur.value)
@@ -1157,7 +1156,12 @@ The result of this is undefined and will become a hard error in a future Meson r
 
         raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 
-    def reduce_arguments(self, args: mparser.ArgumentNode, resolve_key_nodes: bool = True) -> T.Tuple[T.List[TYPE_nvar], TYPE_nkwargs]:
+    def reduce_arguments(
+                self,
+                args: mparser.ArgumentNode,
+                key_resolver: T.Callable[[mparser.BaseNode], str] = default_resolve_key,
+                duplicate_key_error: T.Optional[str] = None,
+            ) -> T.Tuple[T.List[TYPE_nvar], TYPE_nkwargs]:
         assert(isinstance(args, mparser.ArgumentNode))
         if args.incorrect_order():
             raise InvalidArguments('All keyword arguments must be after positional arguments.')
@@ -1165,13 +1169,12 @@ The result of this is undefined and will become a hard error in a future Meson r
         reduced_pos = [self.evaluate_statement(arg) for arg in args.arguments]  # type: T.List[TYPE_nvar]
         reduced_kw = {}  # type: TYPE_nkwargs
         for key, val in args.kwargs.items():
-            reduced_key = key  # type: T.Union[str, mparser.BaseNode]
+            reduced_key = key_resolver(key)
             reduced_val = val  # type: TYPE_nvar
-            if resolve_key_nodes and isinstance(key, mparser.IdNode):
-                assert isinstance(key.value, str)
-                reduced_key = key.value
             if isinstance(reduced_val, mparser.BaseNode):
                 reduced_val = self.evaluate_statement(reduced_val)
+            if duplicate_key_error and reduced_key in reduced_kw:
+                raise InvalidArguments(duplicate_key_error.format(reduced_key))
             reduced_kw[reduced_key] = reduced_val
         self.argument_depth -= 1
         final_kw = self.expand_default_kwargs(reduced_kw)
