@@ -18,7 +18,7 @@
 from .. import mparser
 
 class AstVisitor:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def visit_default_func(self, node: mparser.BaseNode) -> None:

@@ -21,7 +21,7 @@ from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
 from ..mesonlib import MachineChoice
 from ..interpreterbase import InvalidArguments, TYPE_nvar
-from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import typing as T
 import os
@@ -173,7 +173,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node
         }]
 
-    def build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs_raw: T.Dict[str, TYPE_nvar], targetclass) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs_raw: T.Dict[str, TYPE_nvar], targetclass: T.Type[BuildTarget]) -> T.Optional[T.Dict[str, T.Any]]:
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return None
@@ -295,7 +295,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return None
 
     def is_subproject(self) -> bool:
-        return self.subproject != ''
+        return str(self.subproject) != ''
 
     def analyze(self) -> None:
         self.load_root_meson_file()
