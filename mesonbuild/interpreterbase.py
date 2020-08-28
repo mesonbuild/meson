@@ -24,14 +24,31 @@ import collections.abc
 from functools import wraps
 import typing as T
 
+TV_fw_var = T.Union[str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']
+TV_fw_args = T.List[T.Union[mparser.BaseNode, TV_fw_var]]
+TV_fw_kwargs = T.Dict[str, T.Union[mparser.BaseNode, TV_fw_var]]
+
+TV_func = T.TypeVar('TV_func', bound=T.Callable[..., T.Any])
+
+TYPE_elementary = T.Union[str, int, float, bool]
+TYPE_var = T.Union[TYPE_elementary, T.List[T.Any], T.Dict[str, T.Any], 'InterpreterObject', 'ObjectHolder']
+TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
+TYPE_nkwargs = T.Dict[str, TYPE_nvar]
+TYPE_key_resolver = T.Callable[[mparser.BaseNode], str]
+
 class InterpreterObject:
-    def __init__(self):
-        self.methods = {}  # type: T.Dict[str, T.Callable]
+    def __init__(self) -> None:
+        self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
         # Current node set during a method call. This can be used as location
         # when printing a warning message during a method call.
         self.current_node = None  # type: mparser.BaseNode
 
-    def method_call(self, method_name: str, args: T.List[T.Union[mparser.BaseNode, str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']], kwargs: T.Dict[str, T.Union[mparser.BaseNode, str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']]):
+    def method_call(
+                self,
+                method_name: str,
+                args: TV_fw_args,
+                kwargs: TV_fw_kwargs
+            ) -> TYPE_var:
         if method_name in self.methods:
             method = self.methods[method_name]
             if not getattr(method, 'no-args-flattening', False):
@@ -42,17 +59,12 @@ class InterpreterObject:
 TV_InterpreterObject = T.TypeVar('TV_InterpreterObject')
 
 class ObjectHolder(T.Generic[TV_InterpreterObject]):
-    def __init__(self, obj: InterpreterObject, subproject: T.Optional[str] = None):
+    def __init__(self, obj: InterpreterObject, subproject: T.Optional[str] = None) -> None:
         self.held_object = obj        # type: InterpreterObject
         self.subproject = subproject  # type: str
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<Holder: {!r}>'.format(self.held_object)
-
-TYPE_elementary = T.Union[str, int, float, bool]
-TYPE_var = T.Union[TYPE_elementary, list, dict, InterpreterObject, ObjectHolder]
-TYPE_nvar = T.Union[TYPE_var, mparser.BaseNode]
-TYPE_nkwargs = T.Dict[T.Union[mparser.BaseNode, str], TYPE_nvar]
 
 class MesonVersionString(str):
     pass
@@ -67,11 +79,11 @@ def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
         mlog.debug('Element not a string:', str(a))
         raise InvalidArguments(msg)
 
-def _get_callee_args(wrapped_args, want_subproject: bool = False):
+def _get_callee_args(wrapped_args: T.Sequence[T.Any], want_subproject: bool = False) -> T.Tuple[T.Any, mparser.BaseNode, TV_fw_args, TV_fw_kwargs, T.Optional[str]]:
     s = wrapped_args[0]
     n = len(wrapped_args)
     # Raise an error if the codepaths are not there
-    subproject = None
+    subproject = None  # type: T.Optional[str]
     if want_subproject and n == 2:
         if hasattr(s, 'subproject'):
             # Interpreter base types have 2 args: self, node
@@ -145,18 +157,18 @@ def flatten(args: T.Union[TYPE_nvar, T.List[TYPE_nvar]]) -> T.List[TYPE_nvar]:
             result.append(a)
     return result
 
-def noPosargs(f):
+def noPosargs(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args, **wrapped_kwargs):
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         args = _get_callee_args(wrapped_args)[2]
         if args:
             raise InvalidArguments('Function does not take positional arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
-    return wrapped
+    return T.cast(TV_func, wrapped)
 
-def builtinMethodNoKwargs(f):
+def builtinMethodNoKwargs(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args, **wrapped_kwargs):
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         node = wrapped_args[0].current_node
         method_name = wrapped_args[2]
         kwargs = wrapped_args[4]
@@ -165,56 +177,56 @@ def builtinMethodNoKwargs(f):
                          'This will become a hard error in the future',
                          location=node)
         return f(*wrapped_args, **wrapped_kwargs)
-    return wrapped
+    return T.cast(TV_func, wrapped)
 
-def noKwargs(f):
+def noKwargs(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args, **wrapped_kwargs):
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         kwargs = _get_callee_args(wrapped_args)[3]
         if kwargs:
             raise InvalidArguments('Function does not take keyword arguments.')
         return f(*wrapped_args, **wrapped_kwargs)
-    return wrapped
+    return T.cast(TV_func, wrapped)
 
-def stringArgs(f):
+def stringArgs(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args, **wrapped_kwargs):
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         args = _get_callee_args(wrapped_args)[2]
         assert(isinstance(args, list))
         check_stringlist(args)
         return f(*wrapped_args, **wrapped_kwargs)
-    return wrapped
+    return T.cast(TV_func, wrapped)
 
-def noArgsFlattening(f):
+def noArgsFlattening(f: TV_func) -> TV_func:
     setattr(f, 'no-args-flattening', True)  # noqa: B010
     return f
 
-def disablerIfNotFound(f):
+def disablerIfNotFound(f: TV_func) -> TV_func:
     @wraps(f)
-    def wrapped(*wrapped_args, **wrapped_kwargs):
+    def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
         kwargs = _get_callee_args(wrapped_args)[3]
         disabler = kwargs.pop('disabler', False)
         ret = f(*wrapped_args, **wrapped_kwargs)
         if disabler and not ret.held_object.found():
             return Disabler()
         return ret
-    return wrapped
+    return T.cast(TV_func, wrapped)
 
 class permittedKwargs:
 
     def __init__(self, permitted: T.Set[str]):
         self.permitted = permitted  # type: T.Set[str]
 
-    def __call__(self, f):
+    def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
+        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             s, node, args, kwargs, _ = _get_callee_args(wrapped_args)
             for k in kwargs:
                 if k not in self.permitted:
                     mlog.warning('''Passed invalid keyword argument "{}".'''.format(k), location=node)
                     mlog.warning('This will become a hard error in the future.')
             return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
+        return T.cast(TV_func, wrapped)
 
 class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
@@ -233,7 +245,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         # Don't do any checks if project() has not been parsed yet
         if subproject not in mesonlib.project_meson_versions:
             return ''
-        return mesonlib.project_meson_versions[subproject]
+        return T.cast(str, mesonlib.project_meson_versions[subproject])  # TODO: remove type cast when fully typing mesonlib
 
     @staticmethod
     @abc.abstractmethod
@@ -279,15 +291,15 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
     def get_warning_str_prefix(tv: str) -> str:
         raise InterpreterException('get_warning_str_prefix not implemented')
 
-    def __call__(self, f):
+    def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
+        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             subproject = _get_callee_args(wrapped_args, want_subproject=True)[4]
             if subproject is None:
                 raise AssertionError('{!r}'.format(wrapped_args))
             self.use(subproject)
             return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
+        return T.cast(TV_func, wrapped)
 
     @classmethod
     def single_use(cls, feature_name: str, version: str, subproject: str,
@@ -306,7 +318,7 @@ class FeatureNew(FeatureCheckBase):
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
-        return mesonlib.version_compare_condition_with_min(target_version, feature_version)
+        return T.cast(bool, mesonlib.version_compare_condition_with_min(target_version, feature_version))  # TODO: remove once mesonlib is annotated
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:
@@ -366,9 +378,9 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
         self.kwargs = kwargs
         self.extra_message = extra_message
 
-    def __call__(self, f):
+    def __call__(self, f: TV_func) -> TV_func:
         @wraps(f)
-        def wrapped(*wrapped_args, **wrapped_kwargs):
+        def wrapped(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
             if subproject is None:
                 raise AssertionError('{!r}'.format(wrapped_args))
@@ -379,7 +391,7 @@ class FeatureCheckKwargsBase(metaclass=abc.ABCMeta):
                 self.feature_check_class.single_use(
                         name, self.feature_version, subproject, self.extra_message)
             return f(*wrapped_args, **wrapped_kwargs)
-        return wrapped
+        return T.cast(TV_func, wrapped)
 
 class FeatureNewKwargs(FeatureCheckKwargsBase):
     feature_check_class = FeatureNew
@@ -407,21 +419,21 @@ class BreakRequest(BaseException):
     pass
 
 class MutableInterpreterObject(InterpreterObject):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
 class Disabler(InterpreterObject):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.methods.update({'found': self.found_method})
 
-    def found_method(self, args, kwargs):
+    def found_method(self, args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
         return False
 
-def is_disabler(i) -> bool:
+def is_disabler(i: T.Any) -> bool:
     return isinstance(i, Disabler)
 
-def is_arg_disabled(arg) -> bool:
+def is_arg_disabled(arg: T.Any) -> bool:
     if is_disabler(arg):
         return True
     if isinstance(arg, list):
@@ -430,7 +442,7 @@ def is_arg_disabled(arg) -> bool:
                 return True
     return False
 
-def is_disabled(args, kwargs) -> bool:
+def is_disabled(args: T.Sequence[T.Any], kwargs: T.Dict[str, T.Any]) -> bool:
     for i in args:
         if is_arg_disabled(i):
             return True
@@ -540,9 +552,9 @@ class InterpreterBase:
         elif isinstance(cur, mparser.MethodNode):
             return self.method_call(cur)
         elif isinstance(cur, mparser.StringNode):
-            return cur.value
+            return T.cast(str, cur.value)
         elif isinstance(cur, mparser.BooleanNode):
-            return cur.value
+            return T.cast(bool, cur.value)
         elif isinstance(cur, mparser.IfClauseNode):
             return self.evaluate_if(cur)
         elif isinstance(cur, mparser.IdNode):
@@ -554,7 +566,7 @@ class InterpreterBase:
         elif isinstance(cur, mparser.DictNode):
             return self.evaluate_dictstatement(cur)
         elif isinstance(cur, mparser.NumberNode):
-            return cur.value
+            return T.cast(int, cur.value)
         elif isinstance(cur, mparser.AndNode):
             return self.evaluate_andstatement(cur)
         elif isinstance(cur, mparser.OrNode):
@@ -721,7 +733,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             raise InterpreterException('Second argument to "or" is not a boolean.')
         return r
 
-    def evaluate_uminusstatement(self, cur) -> T.Union[int, Disabler]:
+    def evaluate_uminusstatement(self, cur: mparser.UMinusNode) -> T.Union[int, Disabler]:
         v = self.evaluate_statement(cur.value)
         if isinstance(v, Disabler):
             return v
@@ -867,7 +879,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(index, str):
                 raise InterpreterException('Key is not a string')
             try:
-                return iobject[index]
+                return T.cast(TYPE_var, iobject[index])
             except KeyError:
                 raise InterpreterException('Key %s is not in dict' % index)
         else:
@@ -892,7 +904,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             func_args = posargs  # type: T.Any
             if not getattr(func, 'no-args-flattening', False):
                 func_args = flatten(posargs)
-            return func(node, func_args, self.kwargs_string_keys(kwargs))
+            return func(node, func_args, kwargs)
         else:
             self.unknown_function_called(func_name)
             return None
@@ -934,7 +946,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 raise InvalidArguments('Invalid operation "extract_objects" on variable "{}"'.format(object_name))
             self.validate_extraction(obj.held_object)
         obj.current_node = node
-        return obj.method_call(method_name, args, self.kwargs_string_keys(kwargs))
+        return obj.method_call(method_name, args, kwargs)
 
     @builtinMethodNoKwargs
     def bool_method_call(self, obj: bool, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> T.Union[str, int]:
@@ -1067,7 +1079,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 arg = str(arg).lower()
             arg_strings.append(str(arg))
 
-        def arg_replace(match):
+        def arg_replace(match: T.Match[str]) -> str:
             idx = int(match.group(1))
             if idx >= len(arg_strings):
                 raise InterpreterException('Format placeholder @{}@ out of range.'.format(idx))
@@ -1115,12 +1127,12 @@ The result of this is undefined and will become a hard error in a future Meson r
                 if isinstance(fallback, mparser.BaseNode):
                     return self.evaluate_statement(fallback)
                 return fallback
-            return obj[index]
+            return T.cast(TYPE_var, obj[index])
         m = 'Arrays do not have a method called {!r}.'
         raise InterpreterException(m.format(method_name))
 
     @builtinMethodNoKwargs
-    def dict_method_call(self, obj: dict, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
+    def dict_method_call(self, obj: T.Dict[str, TYPE_var], method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
         if method_name in ('has_key', 'get'):
             if method_name == 'has_key':
                 if len(posargs) != 1:
@@ -1194,14 +1206,6 @@ The result of this is undefined and will become a hard error in a future Meson r
             kwargs[k] = v
         return kwargs
 
-    def kwargs_string_keys(self, kwargs: TYPE_nkwargs) -> T.Dict[str, TYPE_nvar]:
-        kw = {}  # type: T.Dict[str, TYPE_nvar]
-        for key, val in kwargs.items():
-            if not isinstance(key, str):
-                raise InterpreterException('Key of kwargs is not a string')
-            kw[key] = val
-        return kw
-
     def assignment(self, node: mparser.AssignmentNode) -> None:
         assert(isinstance(node, mparser.AssignmentNode))
         if self.argument_depth != 0:
@@ -1232,7 +1236,7 @@ To specify a keyword argument, use : instead of =.''')
             raise InvalidCode('Tried to overwrite internal variable "%s"' % varname)
         self.variables[varname] = variable
 
-    def get_variable(self, varname) -> TYPE_var:
+    def get_variable(self, varname: str) -> TYPE_var:
         if varname in self.builtin:
             return self.builtin[varname]
         if varname in self.variables:
