@@ -245,7 +245,7 @@ class FeatureCheckBase(metaclass=abc.ABCMeta):
         # Don't do any checks if project() has not been parsed yet
         if subproject not in mesonlib.project_meson_versions:
             return ''
-        return T.cast(str, mesonlib.project_meson_versions[subproject])  # TODO: remove type cast when fully typing mesonlib
+        return mesonlib.project_meson_versions[subproject]
 
     @staticmethod
     @abc.abstractmethod
@@ -318,7 +318,7 @@ class FeatureNew(FeatureCheckBase):
 
     @staticmethod
     def check_version(target_version: str, feature_version: str) -> bool:
-        return T.cast(bool, mesonlib.version_compare_condition_with_min(target_version, feature_version))  # TODO: remove once mesonlib is annotated
+        return mesonlib.version_compare_condition_with_min(target_version, feature_version)
 
     @staticmethod
     def get_warning_str_prefix(tv: str) -> str:

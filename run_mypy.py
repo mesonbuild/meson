@@ -2,6 +2,7 @@
 
 import sys
 import subprocess
+import argparse
 from pathlib import Path
 import typing as T
 
@@ -29,9 +30,10 @@ normal_modules = [
 
 strict_modules = [
   'mesonbuild/interpreterbase.py',
-  # 'mesonbuild/mesonlib.py',
+  'mesonbuild/mesonlib.py',
   'mesonbuild/mlog.py',
   'mesonbuild/ast',
+  'run_mypy.py',
 ]
 
 normal_args = ['--follow-imports=skip']
@@ -44,6 +46,8 @@ strict_args = normal_args + [
   '--disallow-untyped-defs',
   '--disallow-incomplete-defs',
   '--disallow-untyped-decorators',
+  '--no-implicit-optional',
+  '--strict-equality',
   # '--disallow-any-expr',
   # '--disallow-any-decorated',
   # '--disallow-any-explicit',
@@ -69,6 +73,14 @@ def check_mypy() -> None:
 def main() -> int:
   res = 0
   check_mypy()
+
+  parser = argparse.ArgumentParser(description='Process some integers.')
+  parser.add_argument('-p', '--pretty', action='store_true', help='pretty print mypy errors')
+
+  args = parser.parse_args()
+  if args.pretty:
+    normal_args.append('--pretty')
+    strict_args.append('--pretty')
 
   print('Running normal mypy check...')
   res += run_mypy(normal_args, normal_modules)

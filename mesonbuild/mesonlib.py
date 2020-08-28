@@ -289,7 +289,7 @@ class File:
     def split(self, s: str) -> T.List[str]:
         return self.fname.split(s)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: T.Any) -> bool:
         if not isinstance(other, File):
             return NotImplemented
         if self.hash != other.hash:
@@ -327,23 +327,23 @@ class OrderedEnum(Enum):
     """
     An Enum which additionally offers homogeneous ordered comparison.
     """
-    def __ge__(self, other):
-        if self.__class__ is other.__class__:
+    def __ge__(self, other: T.Any) -> bool:
+        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value >= other.value
         return NotImplemented
 
-    def __gt__(self, other):
-        if self.__class__ is other.__class__:
+    def __gt__(self, other: T.Any) -> bool:
+        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value > other.value
         return NotImplemented
 
-    def __le__(self, other):
-        if self.__class__ is other.__class__:
+    def __le__(self, other: T.Any) -> bool:
+        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value <= other.value
         return NotImplemented
 
-    def __lt__(self, other):
-        if self.__class__ is other.__class__:
+    def __lt__(self, other: T.Any) -> bool:
+        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value < other.value
         return NotImplemented
 
@@ -365,7 +365,7 @@ class MachineChoice(OrderedEnum):
 
 
 class PerMachine(T.Generic[_T]):
-    def __init__(self, build: _T, host: _T):
+    def __init__(self, build: _T, host: _T) -> None:
         self.build = build
         self.host = host
 
@@ -403,7 +403,7 @@ class PerThreeMachine(PerMachine[_T]):
     need to computer the `target` field so we don't bother overriding the
     `__getitem__`/`__setitem__` methods.
     """
-    def __init__(self, build: _T, host: _T, target: _T):
+    def __init__(self, build: _T, host: _T, target: _T) -> None:
         super().__init__(build, host)
         self.target = target
 
@@ -434,7 +434,7 @@ class PerThreeMachine(PerMachine[_T]):
 class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     """Extends `PerMachine` with the ability to default from `None`s.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(None, None)
 
     def default_missing(self) -> "PerMachine[T.Optional[_T]]":
@@ -455,7 +455,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
 class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.
     """
-    def __init__(self):
+    def __init__(self) -> None:
         PerThreeMachine.__init__(self, None, None, None)
 
     def default_missing(self) -> "PerThreeMachine[T.Optional[_T]]":
@@ -589,7 +589,7 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
 
 # a helper class which implements the same version ordering as RPM
 class Version:
-    def __init__(self, s: str):
+    def __init__(self, s: str) -> None:
         self._s = s
 
         # split into numeric, alphabetic and non-alphanumeric sequences
@@ -603,38 +603,38 @@ class Version:
 
         self._v = sequences3
 
-    def __str__(self):
+    def __str__(self) -> str:
         return '%s (V=%s)' % (self._s, str(self._v))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<Version: {}>'.format(self._s)
 
-    def __lt__(self, other):
+    def __lt__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.lt)
         return NotImplemented
 
-    def __gt__(self, other):
+    def __gt__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.gt)
         return NotImplemented
 
-    def __le__(self, other):
+    def __le__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.le)
         return NotImplemented
 
-    def __ge__(self, other):
+    def __ge__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.ge)
         return NotImplemented
 
-    def __eq__(self, other):
+    def __eq__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self._v == other._v
         return NotImplemented
 
-    def __ne__(self, other):
+    def __ne__(self, other: T.Any) -> bool:
         if isinstance(other, Version):
             return self._v != other._v
         return NotImplemented
@@ -740,7 +740,7 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
     if re.match(r'^\d+.\d+$', condition):
         condition += '.0'
 
-    return cmpop(Version(minimum), Version(condition))
+    return T.cast(bool, cmpop(Version(minimum), Version(condition)))
 
 
 def default_libdir() -> str:
@@ -924,20 +924,20 @@ def do_replacement(regex: T.Pattern[str], line: str, variable_format: str,
         # Template variable to be replaced
         else:
             varname = match.group(1)
+            var_str = ''
             if varname in confdata:
                 (var, desc) = confdata.get(varname)
                 if isinstance(var, str):
-                    pass
+                    var_str = var
                 elif isinstance(var, int):
-                    var = str(var)
+                    var_str = str(var)
                 else:
                     msg = 'Tried to replace variable {!r} value with ' \
                           'something other than a string or int: {!r}'
                     raise MesonException(msg.format(varname, var))
             else:
                 missing_variables.add(varname)
-                var = ''
-            return var
+            return var_str
     return re.sub(regex, variable_replace, line), missing_variables
 
 def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', variable_format: str) -> str:
@@ -981,14 +981,14 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', v
 
 def do_conf_str (data: list, confdata: 'ConfigurationData', variable_format: str,
                  encoding: str = 'utf-8') -> T.Tuple[T.List[str],T.Set[str], bool]:
-    def line_is_valid(line : str, variable_format: str):
-      if variable_format == 'meson':
-          if '#cmakedefine' in line:
-              return False
-      else: #cmake format
-         if '#mesondefine' in line:
-            return False
-      return True
+    def line_is_valid(line : str, variable_format: str) -> bool:
+        if variable_format == 'meson':
+            if '#cmakedefine' in line:
+                return False
+        else: #cmake format
+            if '#mesondefine' in line:
+                return False
+        return True
 
     # Only allow (a-z, A-Z, 0-9, _, -) as valid characters for a define
     # Also allow escaping '@' with '\@'
@@ -1115,7 +1115,7 @@ def unholder(item: T.List[_T]) -> T.List[_T]: ...
 @T.overload
 def unholder(item: T.List[T.Union[_T, 'ObjectHolder[_T]']]) -> T.List[_T]: ...
 
-def unholder(item):
+def unholder(item):  # type: ignore  # TODO for some reason mypy throws the "Function is missing a type annotation" error
     """Get the held item of an object holder or list of object holders."""
     if isinstance(item, list):
         return [i.held_object if hasattr(i, 'held_object') else i for i in item]
@@ -1531,10 +1531,10 @@ class OrderedSet(T.MutableSet[_T]):
 
 class BuildDirLock:
 
-    def __init__(self, builddir: str):
+    def __init__(self, builddir: str) -> None:
         self.lockfilename = os.path.join(builddir, 'meson-private/meson.lock')
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self.lockfile = open(self.lockfilename, 'w')
         try:
             if have_fcntl:
@@ -1545,7 +1545,7 @@ class BuildDirLock:
             self.lockfile.close()
             raise MesonException('Some other Meson process is already using this build directory. Exiting.')
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: T.Any) -> None:
         if have_fcntl:
             fcntl.flock(self.lockfile, fcntl.LOCK_UN)
         elif have_msvcrt:
@@ -1636,7 +1636,7 @@ except ImportError:
     ProgressBar = ProgressBarFallback  # type: T.Union[T.Type[ProgressBarFallback], T.Type[ProgressBarTqdm]]
 else:
     class ProgressBarTqdm(tqdm):
-        def __init__(self, *args, bar_type: T.Optional[str] = None, **kwargs):
+        def __init__(self, *args: T.Any, bar_type: T.Optional[str] = None, **kwargs: T.Any) -> None:
             if bar_type == 'download':
                 kwargs.update({'unit': 'bytes', 'leave': True})
             else:
