@@ -36,6 +36,7 @@ strict_modules = [
   'mesonbuild/ast',
   'mesonbuild/wrap',
   'run_mypy.py',
+  'tools',
 ]
 
 normal_args = ['--follow-imports=skip']
