@@ -17,11 +17,12 @@ import argparse
 import multiprocessing
 import subprocess
 from pathlib import Path
+import typing as T
 
 from ..mesonlib import Popen_safe
 
 class ExternalProject:
-    def __init__(self, options):
+    def __init__(self, options: argparse.Namespace):
         self.name = options.name
         self.src_dir = options.srcdir
         self.build_dir = options.builddir
@@ -46,13 +47,13 @@ class ExternalProject:
         with open(self.stampfile, 'w') as f:
             pass
 
-    def gnu_make(self):
+    def gnu_make(self) -> bool:
         p, o, e = Popen_safe([self.make, '--version'])
         if p.returncode == 0 and 'GNU Make' in o:
             return True
         return False
 
-    def build(self):
+    def build(self) -> int:
         make_cmd = [self.make]
         if not self.verbose:
             make_cmd.append('--quiet')
@@ -73,7 +74,7 @@ class ExternalProject:
 
         return 0
 
-    def _run(self, command):
+    def _run(self, command: T.List[str]) -> int:
         output = None if self.verbose else subprocess.DEVNULL
         p, o, e = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
                              cwd=self.build_dir)

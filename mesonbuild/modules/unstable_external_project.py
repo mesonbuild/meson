@@ -14,6 +14,7 @@
 
 import os, subprocess, shlex
 from pathlib import Path
+import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog, build
@@ -21,13 +22,25 @@ from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
 from ..interpreterbase import stringArgs, permittedKwargs
-from ..interpreter import DependencyHolder, InstallDir
+from ..interpreter import Interpreter, DependencyHolder, InstallDir
 from ..compilers.compilers import cflags_mapping, cexe_mapping
 from ..dependencies.base import InternalDependency, PkgConfigDependency
+from ..environment import Environment
 
 class ExternalProject(InterpreterObject):
-    def __init__(self, interpreter, subdir, project_version, subproject, environment, build_machine, host_machine,
-                 configure_command, configure_options, cross_configure_options, env, verbose):
+    def __init__(self,
+                 interpreter: Interpreter,
+                 subdir: str,
+                 project_version: T.Dict[str, str],
+                 subproject: str,
+                 environment: Environment,
+                 build_machine: str,
+                 host_machine: str,
+                 configure_command: T.List[str],
+                 configure_options: T.List[str],
+                 cross_configure_options: T.List[str],
+                 env: build.EnvironmentVariables,
+                 verbose: bool):
         InterpreterObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,
                              })
@@ -116,10 +129,10 @@ class ExternalProject(InterpreterObject):
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd)
 
-    def _quote_and_join(self, array):
+    def _quote_and_join(self, array: T.List[str]) -> str:
         return ' '.join([shlex.quote(i) for i in array])
 
-    def _validate_configure_options(self, required_keys):
+    def _validate_configure_options(self, required_keys: T.List[str]):
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
         for key in required_keys:
@@ -131,7 +144,7 @@ class ExternalProject(InterpreterObject):
                 m = 'At least one configure option must contain "{}" key'
                 raise InterpreterException(m.format(key_format))
 
-    def _format_options(self, options, variables):
+    def _format_options(self, options: T.List[str], variables: T.Dict[str, str]) -> T.List[str]:
         out = []
         missing = set()
         regex = get_variable_regex('meson')
@@ -146,7 +159,7 @@ class ExternalProject(InterpreterObject):
                 "Variables {} in configure options are missing.".format(var_list))
         return out
 
-    def _run(self, step, command):
+    def _run(self, step: str, command: T.List[str]):
         mlog.log('External project {}:'.format(self.name), mlog.bold(step))
         output = None if self.verbose else subprocess.DEVNULL
         p, o, e = Popen_safe(command, cwd=str(self.build_dir), env=self.run_env,
