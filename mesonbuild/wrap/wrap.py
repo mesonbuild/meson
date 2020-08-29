@@ -90,8 +90,9 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, fname: str):
+    def __init__(self, fname: str, filesdir: str = None):
         self.filename = fname
+        self.filesdir = filesdir
         self.type = None  # type: T.Optional[str]
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
@@ -184,7 +185,7 @@ class Resolver:
             if not i.endswith('.wrap'):
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname)
+            wrap = PackageDefinition(fname, self.filesdir)
             self.wraps[wrap.name] = wrap
             if wrap.directory in dirs:
                 dirs.remove(wrap.directory)
@@ -193,7 +194,7 @@ class Resolver:
             if i in ['packagecache', 'packagefiles']:
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname)
+            wrap = PackageDefinition(fname, self.filesdir)
             self.wraps[wrap.name] = wrap
 
         for wrap in self.wraps.values():
@@ -514,7 +515,7 @@ class Resolver:
         else:
             from ..interpreterbase import FeatureNew
             FeatureNew('Local wrap patch files without {}_url'.format(what), '0.55.0').use(self.current_subproject)
-            path = Path(self.filesdir) / filename
+            path = Path(self.wrap.filesdir) / filename
 
             if not path.exists():
                 raise WrapException('File "{}" does not exist'.format(path))
@@ -538,7 +539,7 @@ class Resolver:
             from ..interpreterbase import FeatureNew
             FeatureNew('patch_directory', '0.55.0').use(self.current_subproject)
             patch_dir = self.wrap.values['patch_directory']
-            src_dir = os.path.join(self.filesdir, patch_dir)
+            src_dir = os.path.join(self.wrap.filesdir, patch_dir)
             if not os.path.isdir(src_dir):
                 raise WrapException('patch directory does not exists: {}'.format(patch_dir))
             self.copy_tree(src_dir, self.dirname)
