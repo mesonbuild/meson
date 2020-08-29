@@ -17,19 +17,20 @@ import sys
 import argparse
 import pickle
 import subprocess
+import typing as T
 
 from .. import mesonlib
 from ..backend.backends import ExecutableSerialisation
 
 options = None
 
-def buildparser():
+def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     return parser
 
-def run_exe(exe):
+def run_exe(exe: ExecutableSerialisation) -> int:
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
@@ -74,7 +75,7 @@ def run_exe(exe):
         sys.stderr.buffer.write(stderr)
     return p.returncode
 
-def run(args):
+def run(args: T.List[str]) -> int:
     global options
     parser = buildparser()
     options, cmd_args = parser.parse_known_args(args)

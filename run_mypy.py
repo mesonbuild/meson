@@ -15,6 +15,7 @@ normal_modules = [
   'mesonbuild/msetup.py',
   'mesonbuild/ast',
   'mesonbuild/wrap',
+  'mesonbuild/scripts',
   'tools',
   'mesonbuild/modules/fs.py',
   'mesonbuild/dependencies/boost.py',
@@ -35,6 +36,7 @@ strict_modules = [
   'mesonbuild/mlog.py',
   'mesonbuild/ast',
   'mesonbuild/wrap',
+  'mesonbuild/scripts',
   'run_mypy.py',
   'tools',
 ]

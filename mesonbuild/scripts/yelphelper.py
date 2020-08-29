@@ -20,6 +20,7 @@ from .. import mlog
 from ..mesonlib import has_path_sep
 from . import destdir_join
 from .gettext import read_linguas
+import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
@@ -31,19 +32,19 @@ parser.add_argument('--media', dest='media', default='')
 parser.add_argument('--langs', dest='langs', default='')
 parser.add_argument('--symlinks', type=bool, dest='symlinks', default=False)
 
-def build_pot(srcdir, project_id, sources):
+def build_pot(srcdir: str, project_id: str, sources: T.List[str]) -> None:
     # Must be relative paths
     sources = [os.path.join('C', source) for source in sources]
     outfile = os.path.join(srcdir, project_id + '.pot')
     subprocess.call(['itstool', '-o', outfile] + sources)
 
-def update_po(srcdir, project_id, langs):
+def update_po(srcdir: str, project_id: str, langs: T.List[str]) -> None:
     potfile = os.path.join(srcdir, project_id + '.pot')
     for lang in langs:
         pofile = os.path.join(srcdir, lang, lang + '.po')
         subprocess.call(['msgmerge', '-q', '-o', pofile, pofile, potfile])
 
-def build_translations(srcdir, blddir, langs):
+def build_translations(srcdir: str, blddir: str, langs: T.List[str]) -> None:
     for lang in langs:
         outdir = os.path.join(blddir, lang)
         os.makedirs(outdir, exist_ok=True)
@@ -52,14 +53,14 @@ def build_translations(srcdir, blddir, langs):
             '-o', os.path.join(outdir, lang + '.gmo')
         ])
 
-def merge_translations(blddir, sources, langs):
+def merge_translations(blddir: str, sources: T.List[str], langs: T.List[str]) -> None:
     for lang in langs:
         subprocess.call([
             'itstool', '-m', os.path.join(blddir, lang, lang + '.gmo'),
             '-o', os.path.join(blddir, lang)
         ] + sources)
 
-def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, project_id, symlinks):
+def install_help(srcdir: str, blddir: str, sources: T.List[str], media: T.List[str], langs: T.List[str], install_dir: str, destdir: str, project_id: str, symlinks: bool) -> None:
     c_install_dir = os.path.join(install_dir, 'C', project_id)
     for lang in langs + ['C']:
         indir = destdir_join(destdir, os.path.join(install_dir, lang, project_id))
@@ -101,7 +102,7 @@ def install_help(srcdir, blddir, sources, media, langs, install_dir, destdir, pr
             shutil.copyfile(infile, outfile)
             shutil.copystat(infile, outfile)
 
-def run(args):
+def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
     langs = options.langs.split('@@') if options.langs else []
     media = options.media.split('@@') if options.media else []
@@ -129,3 +130,4 @@ def run(args):
             merge_translations(build_subdir, abs_sources, langs)
         install_help(src_subdir, build_subdir, sources, media, langs, install_dir,
                      destdir, options.project_id, options.symlinks)
+    return 0

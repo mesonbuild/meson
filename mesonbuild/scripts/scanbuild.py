@@ -12,30 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja, detect_scanbuild
+from pathlib import Path
+import typing as T
 
 
-def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
-    with tempfile.TemporaryDirectory(dir=privdir) as scandir:
+def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
+    with tempfile.TemporaryDirectory(dir=str(privdir)) as scandir:
         meson_cmd = exelist + args
-        build_cmd = exelist + ['-o', logdir] + detect_ninja() + ['-C', scandir]
-        rc = subprocess.call(meson_cmd + [srcdir, scandir])
+        build_cmd = exelist + ['-o', str(logdir)] + detect_ninja() + ['-C', scandir]
+        rc = subprocess.call(meson_cmd + [str(srcdir), scandir])
         if rc != 0:
             return rc
         return subprocess.call(build_cmd)
 
 
-def run(args):
-    srcdir = args[0]
-    blddir = args[1]
+def run(args: T.List[str]) -> int:
+    srcdir = Path(args[0])
+    blddir = Path(args[1])
     meson_cmd = args[2:]
-    privdir = os.path.join(blddir, 'meson-private')
-    logdir = os.path.join(blddir, 'meson-logs/scanbuild')
-    shutil.rmtree(logdir, ignore_errors=True)
+    privdir = blddir / 'meson-private'
+    logdir = blddir / 'meson-logs' / 'scanbuild'
+    shutil.rmtree(str(logdir), ignore_errors=True)
 
     exelist = detect_scanbuild()
     if not exelist:

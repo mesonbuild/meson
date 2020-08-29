@@ -15,8 +15,9 @@
 from mesonbuild import environment, mesonlib
 
 import argparse, sys, os, subprocess, pathlib, stat
+import typing as T
 
-def coverage(outputs, source_root, subproject_root, build_root, log_dir, use_llvm_cov):
+def coverage(outputs: T.List[str], source_root: str, subproject_root: str, build_root: str, log_dir: str, use_llvm_cov: bool) -> int:
     outfiles = []
     exitcode = 0
 
@@ -146,7 +147,7 @@ def coverage(outputs, source_root, subproject_root, build_root, log_dir, use_llv
 
     return exitcode
 
-def run(args):
+def run(args: T.List[str]) -> int:
     if not os.path.isfile('build.ninja'):
         print('Coverage currently only works with the Ninja backend.')
         return 1

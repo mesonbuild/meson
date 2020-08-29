@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import os
+import typing as T
 
 logfile = 'meson-logs/install-log.txt'
 
-def do_uninstall(log):
+def do_uninstall(log: str) -> None:
     failures = 0
     successes = 0
     for line in open(log):
@@ -38,7 +39,7 @@ def do_uninstall(log):
     print('Failed:', failures)
     print('\nRemember that files created by custom scripts have not been removed.')
 
-def run(args):
+def run(args: T.List[str]) -> int:
     if args:
         print('Weird error.')
         return 1

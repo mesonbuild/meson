@@ -18,8 +18,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 from ..environment import detect_clangformat
 from ..compilers import lang_suffixes
+import typing as T
 
-def clangformat(exelist, srcdir_name, builddir_name):
+def clangformat(exelist: T.List[str], srcdir_name: str, builddir_name: str) -> int:
     srcdir = pathlib.Path(srcdir_name)
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
@@ -33,7 +34,7 @@ def clangformat(exelist, srcdir_name, builddir_name):
         [x.result() for x in futures]
     return 0
 
-def run(args):
+def run(args: T.List[str]) -> int:
     srcdir_name = args[0]
     builddir_name = args[1]
 
