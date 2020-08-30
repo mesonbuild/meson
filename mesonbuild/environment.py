@@ -429,10 +429,9 @@ def detect_cpu(compilers: CompilersDict):
     return trial
 
 def detect_system():
-    system = platform.system().lower()
-    if system.startswith('cygwin'):
+    if sys.platform == 'cygwin':
         return 'cygwin'
-    return system
+    return platform.system().lower()
 
 def detect_msys2_arch():
     if 'MSYSTEM_CARCH' in os.environ:

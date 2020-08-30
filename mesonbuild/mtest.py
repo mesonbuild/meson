@@ -58,11 +58,10 @@ GNU_ERROR_RETURNCODE = 99
 
 def is_windows() -> bool:
     platname = platform.system().lower()
-    return platname == 'windows' or 'mingw' in platname
+    return platname == 'windows'
 
 def is_cygwin() -> bool:
-    platname = platform.system().lower()
-    return 'cygwin' in platname
+    return sys.platform == 'cygwin'
 
 def determine_worker_count() -> int:
     varname = 'MESON_TESTTHREADS'

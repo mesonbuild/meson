@@ -502,11 +502,11 @@ def is_openbsd() -> bool:
 
 def is_windows() -> bool:
     platname = platform.system().lower()
-    return platname == 'windows' or 'mingw' in platname
+    return platname == 'windows'
 
 
 def is_cygwin() -> bool:
-    return platform.system().lower().startswith('cygwin')
+    return sys.platform == 'cygwin'
 
 
 def is_debianlike() -> bool:
