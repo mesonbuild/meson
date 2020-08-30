@@ -946,7 +946,7 @@ def write_cmd_line_file(build_dir, options):
 
     properties = OrderedDict()
     if options.cross_file:
-        properties['cross_file'] = options.cross_file
+        properties['cross_file'] = list(map(os.path.abspath, options.cross_file))
     if options.native_file:
         properties['native_file'] = options.native_file
 
