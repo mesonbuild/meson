@@ -38,6 +38,7 @@ strict_modules = [
   'mesonbuild/ast',
   'mesonbuild/wrap',
   'mesonbuild/scripts',
+  'mesonbuild/modules/fs.py',
   'mesonbuild/dependencies/boost.py',
   'mesonbuild/dependencies/hdf5.py',
   'mesonbuild/compilers/mixins/intel.py',
