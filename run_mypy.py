@@ -18,6 +18,7 @@ normal_modules = [
   'mesonbuild/scripts',
   'tools',
   'mesonbuild/modules/fs.py',
+  # 'mesonbuild/dependencies/base.py',
   'mesonbuild/dependencies/boost.py',
   'mesonbuild/dependencies/mpi.py',
   'mesonbuild/dependencies/hdf5.py',
@@ -37,6 +38,8 @@ strict_modules = [
   'mesonbuild/ast',
   'mesonbuild/wrap',
   'mesonbuild/scripts',
+  'mesonbuild/dependencies/boost.py',
+  'mesonbuild/dependencies/hdf5.py',
   'run_mypy.py',
   'tools',
 ]
