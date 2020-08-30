@@ -40,6 +40,8 @@ strict_modules = [
   'mesonbuild/scripts',
   'mesonbuild/dependencies/boost.py',
   'mesonbuild/dependencies/hdf5.py',
+  'mesonbuild/compilers/mixins/intel.py',
+  'mesonbuild/arglist.py',
   'run_mypy.py',
   'tools',
 ]

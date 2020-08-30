@@ -164,7 +164,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __getitem__(self, index: slice) -> T.MutableSequence[str]:  # noqa: F811
         pass
 
-    def __getitem__(self, index):  # noqa: F811
+    def __getitem__(self, index):  # type: ignore  # noqa: F811
         self.flush_pre_post()
         return self._container[index]
 
@@ -176,7 +176,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __setitem__(self, index: slice, value: T.Iterable[str]) -> None:  # noqa: F811
         pass
 
-    def __setitem__(self, index, value) -> None:  # noqa: F811
+    def __setitem__(self, index, value) -> None:  # type: ignore  # noqa: F811
         self.flush_pre_post()
         self._container[index] = value
 
@@ -242,7 +242,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             new = self.copy()
         else:
             new = self
-        return self.compiler.unix_args_to_native(new._container)
+        return T.cast(T.List[str], self.compiler.unix_args_to_native(new._container))
 
     def append_direct(self, arg: str) -> None:
         '''
