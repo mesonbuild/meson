@@ -27,7 +27,7 @@ if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
 
 
-@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})  # type: ignore
 def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     language = kwargs.get('language', 'c')
