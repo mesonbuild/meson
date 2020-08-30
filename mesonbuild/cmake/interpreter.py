@@ -433,8 +433,8 @@ class ConverterTarget:
                 x = os.path.normpath(os.path.join(self.src_dir, x))
             if not os.path.exists(x) and not any([x.endswith(y) for y in obj_suffixes]) and not is_generated:
                 if (
-                    any([os.path.commonpath([x, y]) == x for y in self.generated])
-                        and os.path.isabs(x)
+                    os.path.isabs(x)
+                        and any([(os.path.isabs(y) and os.path.commonpath([x, y]) == x) for y in self.generated])
                         and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir()
                     ):
                     os.makedirs(x)
