@@ -32,7 +32,10 @@ normal_modules = [
 
 strict_modules = [
   'mesonbuild/interpreterbase.py',
+  'mesonbuild/minit.py',
   'mesonbuild/mparser.py',
+  'mesonbuild/msetup.py',
+  'mesonbuild/mcompile.py',
   'mesonbuild/mesonlib.py',
   'mesonbuild/mlog.py',
   'mesonbuild/ast',

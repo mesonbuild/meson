@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     import argparse
 
 def array_arg(value: str) -> T.List[str]:
-    return UserArrayOption(None, value, allow_dups=True, user_input=True).value
+    return T.cast(T.List[str], UserArrayOption(None, value, allow_dups=True, user_input=True).value)
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat' ).is_file():
@@ -45,7 +45,7 @@ def get_backend_from_coredata(builddir: Path) -> str:
     """
     Gets `backend` option value from coredata
     """
-    return coredata.load(str(builddir)).get_builtin_option('backend')
+    return T.cast(str, coredata.load(str(builddir)).get_builtin_option('backend'))
 
 def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     """
@@ -97,12 +97,12 @@ class ParsedTargetName:
         }
         return type in allowed_types
 
-def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> dict:
+def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
     if target.name not in introspect_data:
         raise MesonException('Can\'t invoke target `{}`: target not found'.format(target.full_name))
 
     intro_targets = introspect_data[target.name]
-    found_targets = []
+    found_targets = []  # type: T.List[T.Dict[str, T.Any]]
 
     resolved_bdir = builddir.resolve()
 
@@ -169,9 +169,9 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
 
     # Normalize project name
     # Source: https://docs.microsoft.com/en-us/visualstudio/msbuild/how-to-build-specific-targets-in-solutions-by-using-msbuild-exe
-    target_name = re.sub('[\%\$\@\;\.\(\)\']', '_', intro_target['id'])
+    target_name = re.sub('[\%\$\@\;\.\(\)\']', '_', intro_target['id'])  # type: str
     rel_path = Path(intro_target['filename'][0]).relative_to(builddir.resolve()).parent
-    if rel_path != '.':
+    if rel_path != Path('.'):
         target_name = str(rel_path / target_name)
     return target_name
 
