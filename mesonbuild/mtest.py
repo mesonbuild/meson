@@ -462,7 +462,7 @@ class TestRun:
     def make_exitcode(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
                       returncode: int, starttime: float, duration: float,
                       stdo: T.Optional[str], stde: T.Optional[str],
-                      cmd: T.Optional[T.List[str]], **kwargs) -> 'TestRun':
+                      cmd: T.Optional[T.List[str]], **kwargs: T.Any) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
@@ -605,9 +605,9 @@ class SingleTestRunner:
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
-            return ['java', '-jar'] + self.test.fname
+            return ['java', '-jar'] + T.cast(T.List[str], self.test.fname)
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
-            return ['mono'] + self.test.fname
+            return ['mono'] + T.cast(T.List[str], self.test.fname)
         elif self.test.cmd_is_built and self.test.needs_exe_wrapper:
             if self.test.exe_runner is None:
                 # Can not run test on cross compiled executable
@@ -620,8 +620,8 @@ class SingleTestRunner:
                     msg = ('The exe_wrapper defined in the cross file {!r} was not '
                            'found. Please check the command and/or add it to PATH.')
                     raise TestException(msg.format(self.test.exe_runner.name))
-                return self.test.exe_runner.get_command() + self.test.fname
-        return self.test.fname
+                return T.cast(T.List[str], self.test.exe_runner.get_command()) + T.cast(T.List[str], self.test.fname)
+        return T.cast(T.List[str], self.test.fname)
 
     def run(self) -> TestRun:
         cmd = self._get_cmd()
@@ -680,7 +680,7 @@ class SingleTestRunner:
                 # We don't want setsid() in gdb because gdb needs the
                 # terminal in order to handle ^C and not show tcsetpgrp()
                 # errors avoid not being able to use the terminal.
-                os.setsid()  # type: ignore
+                os.setsid()
 
         extra_cmd = []  # type: T.List[str]
         if self.test.protocol is TestProtocol.GTEST:
@@ -727,10 +727,10 @@ class SingleTestRunner:
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
 
-                def _send_signal_to_process_group(pgid : int, signum : int):
+                def _send_signal_to_process_group(pgid : int, signum : int) -> None:
                     """ sends a signal to a process group """
                     try:
-                        os.killpg(pgid, signum) # type: ignore
+                        os.killpg(pgid, signum)
                     except ProcessLookupError:
                         # Sometimes (e.g. with Wine) this happens.
                         # There's nothing we can do (maybe the process
@@ -820,10 +820,10 @@ class TestHarness:
     def __del__(self) -> None:
         self.close_logfiles()
 
-    def __enter__(self):
+    def __enter__(self) -> 'TestHarness':
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
@@ -855,7 +855,7 @@ class TestHarness:
             sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
         if options.wrapper is None:
             options.wrapper = current.exe_wrapper
-        return current.env.get_env(os.environ.copy())
+        return T.cast(T.Dict[str, str], current.env.get_env(os.environ.copy()))
 
     def get_test_runner(self, test: 'TestSerialisation') -> SingleTestRunner:
         options = deepcopy(self.options)
@@ -1095,9 +1095,9 @@ class TestHarness:
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
             if s:
                 rv += ":"
-            return rv + s + " / " + test.name
+            return rv + s + " / " + T.cast(str, test.name)
         else:
-            return test.name
+            return T.cast(str, test.name)
 
     def run_tests(self, tests: T.List['TestSerialisation']) -> None:
         executor = None
