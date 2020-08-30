@@ -111,7 +111,6 @@ class CommandLineParser:
         return 0
 
     def run(self, args):
-        print_py35_notice = False
         # If first arg is not a known command, assume user wants to run the setup
         # command.
         known_commands = list(self.commands.keys()) + ['-h', '--help']
@@ -125,16 +124,9 @@ class CommandLineParser:
             args = args[1:]
         else:
             parser = self.parser
-            command = None
 
         args = mesonlib.expand_arguments(args)
         options = parser.parse_args(args)
-
-        if command is None:
-            command = options.command
-
-        if command in ('setup', 'compile', 'test', 'install') and sys.version_info < (3, 6):
-            print_py35_notice = True
 
         try:
             return options.run_func(options)
@@ -152,9 +144,6 @@ class CommandLineParser:
             traceback.print_exc()
             return 2
         finally:
-            if print_py35_notice:
-                mlog.notice('You are using Python 3.5 which is EOL. Starting with v0.57, '
-                            'Meson will require Python 3.6 or newer', fatal=False)
             mlog.shutdown()
 
 def run_script_command(script_name, script_args):
@@ -192,8 +181,8 @@ def ensure_stdout_accepts_unicode():
                 sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
 
 def run(original_args, mainfile):
-    if sys.version_info < (3, 5):
-        print('Meson works correctly only with python 3.5+.')
+    if sys.version_info < (3, 6):
+        print('Meson works correctly only with python 3.6+.')
         print('You have python {}.'.format(sys.version))
         print('Please update your environment')
         return 1
