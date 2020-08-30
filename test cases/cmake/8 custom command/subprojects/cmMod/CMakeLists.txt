@@ -120,7 +120,14 @@ add_custom_command(
 
 add_subdirectory(cpyTest ccppyyTTeesstt)
 
-add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp)
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cpyTest/some/directory/cpyTest5.hpp"
+  COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest5.hpp" "${CMAKE_CURRENT_BINARY_DIR}/cpyTest/some/directory/cpyTest5.hpp"
+  DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/cpyTest/cpyTest5.hpp"
+)
+include_directories("${CMAKE_CURRENT_BINARY_DIR}/cpyTest/some")
+
+add_library(cmModLib SHARED cmMod.cpp genTest.cpp cpyBase.cpp cpyBase.hpp cpyNext.cpp cpyNext.hpp cpyTest.cpp cpyTest.hpp cpyTest2.hpp cpyTest3.hpp cpyTest/some/directory/cpyTest5.hpp)
 include(GenerateExportHeader)
 generate_export_header(cmModLib)
 
