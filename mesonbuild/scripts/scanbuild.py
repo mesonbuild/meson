@@ -16,8 +16,7 @@ import os
 import subprocess
 import shutil
 import tempfile
-from ast import literal_eval
-from ..environment import detect_ninja, detect_scanbuild, coredata
+from ..environment import detect_ninja, detect_scanbuild
 
 
 def scanbuild(exelist, srcdir, blddir, privdir, logdir, args):
@@ -37,13 +36,6 @@ def run(args):
     privdir = os.path.join(blddir, 'meson-private')
     logdir = os.path.join(blddir, 'meson-logs/scanbuild')
     shutil.rmtree(logdir, ignore_errors=True)
-
-    cmd = coredata.get_cmd_line_file(blddir)
-    data = coredata.CmdLineFileParser()
-    data.read(cmd)
-
-    if 'cross_file' in data['properties'].keys():
-        meson_cmd.append('--cross-file={}'.format(literal_eval(data['properties']['cross_file'])[0]))
 
     exelist = detect_scanbuild()
     if not exelist:
