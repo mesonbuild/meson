@@ -4,7 +4,7 @@
 Meson® is a project to create the best possible next-generation
 build system.
 
-#### Status
+#### Just testing CI
 
 [![PyPI](https://img.shields.io/pypi/v/meson.svg)](https://pypi.python.org/pypi/meson)
 [![Travis](https://travis-ci.org/mesonbuild/meson.svg?branch=master)](https://travis-ci.org/mesonbuild/meson)
