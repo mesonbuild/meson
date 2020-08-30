@@ -743,7 +743,7 @@ class CoreData:
         if unknown_options and warn_unknown:
             unknown_options = ', '.join(sorted(unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
-            mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
+            mlog.warning('{}Compiler does not support: "{}"'.format(sub, unknown_options))
             mlog.log('The value of new options can be set with:')
             mlog.log(mlog.bold('meson setup <builddir> --reconfigure -Dnew_option=new_value ...'))
         if not self.is_cross_build():
@@ -946,7 +946,7 @@ def write_cmd_line_file(build_dir, options):
 
     properties = OrderedDict()
     if options.cross_file:
-        properties['cross_file'] = options.cross_file
+        properties['cross_file'] = list(map(os.path.abspath, options.cross_file))
     if options.native_file:
         properties['native_file'] = options.native_file
 
