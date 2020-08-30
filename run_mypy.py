@@ -27,7 +27,7 @@ normal_modules = [
   'mesonbuild/mcompile.py',
   'mesonbuild/mesonlib.py',
   'mesonbuild/arglist.py',
-  # 'mesonbuild/envconfig.py',
+  'mesonbuild/envconfig.py',
 ]
 
 strict_modules = [

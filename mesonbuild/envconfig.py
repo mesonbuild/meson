@@ -111,7 +111,7 @@ def get_env_var_pair(for_machine: MachineChoice,
 
 def get_env_var(for_machine: MachineChoice,
                 is_cross: bool,
-                var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+                var_name: str) -> T.Optional[str]:
     ret = get_env_var_pair(for_machine, is_cross, var_name)
     if ret is None:
         return None
