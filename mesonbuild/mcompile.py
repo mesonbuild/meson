@@ -156,7 +156,7 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Li
         cmd.extend(['-l', str(options.load_average)])
 
     if options.verbose:
-        cmd.append('--verbose')
+        cmd.append('-v')
 
     cmd += options.ninja_args
 
