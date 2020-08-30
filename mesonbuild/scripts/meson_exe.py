@@ -16,7 +16,6 @@ import os
 import sys
 import argparse
 import pickle
-import platform
 import subprocess
 
 from .. import mesonlib
@@ -29,14 +28,6 @@ def buildparser():
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     return parser
-
-def is_windows():
-    platname = platform.system().lower()
-    return platname == 'windows' or 'mingw' in platname
-
-def is_cygwin():
-    platname = platform.system().lower()
-    return 'cygwin' in platname
 
 def run_exe(exe):
     if exe.exe_runner:
