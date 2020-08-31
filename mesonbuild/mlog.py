@@ -255,8 +255,10 @@ def _log_error(severity: str, *rargs: T.Union[str, AnsiDecorator],
 
     # The typing requirements here are non-obvious. Lists are invariant,
     # therefore T.List[A] and T.List[T.Union[A, B]] are not able to be joined
-    if severity == 'warning':
-        label = [yellow('WARNING:')]  # type: T.List[T.Union[str, AnsiDecorator]]
+    if severity == 'notice':
+        label = [bold('NOTICE:')]  # type: T.List[T.Union[str, AnsiDecorator]]
+    elif severity == 'warning':
+        label = [yellow('WARNING:')]
     elif severity == 'error':
         label = [red('ERROR:')]
     elif severity == 'deprecation':
@@ -294,6 +296,9 @@ def warning(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
 
 def deprecation(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
     return _log_error('deprecation', *args, **kwargs, is_error=True)
+
+def notice(*args: T.Union[str, AnsiDecorator], **kwargs: T.Any) -> None:
+    return _log_error('notice', *args, **kwargs, is_error=False)
 
 def get_relative_path(target: Path, current: Path) -> Path:
     """Get the path to target from current"""

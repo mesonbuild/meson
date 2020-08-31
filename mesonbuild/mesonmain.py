@@ -38,7 +38,7 @@ class CommandLineParser:
         self.commands = {}
         self.hidden_commands = []
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
-        self.subparsers = self.parser.add_subparsers(title='Commands',
+        self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help_msg='Configure the project')
@@ -111,6 +111,7 @@ class CommandLineParser:
         return 0
 
     def run(self, args):
+        print_py35_notice = False
         # If first arg is not a known command, assume user wants to run the setup
         # command.
         known_commands = list(self.commands.keys()) + ['-h', '--help']
@@ -119,13 +120,21 @@ class CommandLineParser:
 
         # Hidden commands have their own parser instead of using the global one
         if args[0] in self.hidden_commands:
-            parser = self.commands[args[0]]
+            command = args[0]
+            parser = self.commands[command]
             args = args[1:]
         else:
             parser = self.parser
+            command = None
 
         args = mesonlib.expand_arguments(args)
         options = parser.parse_args(args)
+
+        if command is None:
+            command = options.command
+
+        if command in ('setup', 'compile', 'test', 'install') and sys.version_info < (3, 6):
+            print_py35_notice = True
 
         try:
             return options.run_func(options)
@@ -143,6 +152,9 @@ class CommandLineParser:
             traceback.print_exc()
             return 2
         finally:
+            if print_py35_notice:
+                mlog.notice('You are using Python 3.5 which is EOL. Starting with v0.57, '
+                            'Meson will require Python 3.6 or newer', fatal=False)
             mlog.shutdown()
 
 def run_script_command(script_name, script_args):
