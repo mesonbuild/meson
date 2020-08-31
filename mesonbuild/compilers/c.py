@@ -22,6 +22,7 @@ from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler
 from .mixins.xc16 import Xc16Compiler
+from .mixins.compcert import CompCertCompiler
 from .mixins.c2000 import C2000Compiler
 from .mixins.arm import ArmCompiler, ArmclangCompiler
 from .mixins.visualstudio import MSVCCompiler, ClangClCompiler
@@ -554,6 +555,36 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
             path = '.'
         return ['-I' + path]
 
+class CompCertCCompiler(CompCertCompiler, CCompiler):
+    def __init__(self, exelist, version, for_machine: MachineChoice,
+                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, **kwargs)
+        CompCertCompiler.__init__(self)
+
+    def get_options(self):
+        opts = CCompiler.get_options(self)
+        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
+                                                       ['none', 'c89', 'c99'],
+                                                       'none')})
+        return opts
+
+    def get_option_compile_args(self, options):
+        return []
+
+    def get_no_optimization_args(self):
+        return ['-O0']
+
+    def get_output_args(self, target):
+        return ['-o%s' % target]
+
+    def get_werror_args(self):
+        return ['-Werror']
+
+    def get_include_args(self, path, is_system):
+        if path == '':
+            path = '.'
+        return ['-I' + path]
 
 class C2000CCompiler(C2000Compiler, CCompiler):
     def __init__(self, exelist, version, for_machine: MachineChoice,

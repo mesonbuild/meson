@@ -19,7 +19,7 @@ import typing as T
 import collections
 
 from . import coredata
-from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
+from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, CompCertLinker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
@@ -49,6 +49,7 @@ from .linkers import (
     ArmDynamicLinker,
     CcrxDynamicLinker,
     Xc16DynamicLinker,
+    CompCertDynamicLinker,
     C2000DynamicLinker,
     ClangClDynamicLinker,
     DynamicLinker,
@@ -120,6 +121,7 @@ from .compilers import (
     CcrxCCompiler,
     CcrxCPPCompiler,
     Xc16CCompiler,
+    CompCertCCompiler,
     C2000CCompiler,
     C2000CPPCompiler,
     SunFortranCompiler,
@@ -1149,6 +1151,8 @@ class Environment:
                 arg = '-v'
             elif 'xc16' in compiler_name:
                 arg = '--version'
+            elif 'ccomp' in compiler_name:
+                arg = '-version'
             elif 'cl2000' in compiler_name:
                 arg = '-version'
             elif compiler_name in {'icl', 'icl.exe'}:
@@ -1359,6 +1363,14 @@ class Environment:
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
+            if 'CompCert' in out:
+                cls = CompCertCCompiler
+                self.coredata.add_lang_args(cls.language, cls, for_machine, self)
+                linker = CompCertDynamicLinker(for_machine, version=version)
+                return cls(
+                    ccache + compiler, version, for_machine, is_cross, info,
+                    exe_wrap, full_version=full_version, linker=linker)
+
             if 'TMS320C2000 C/C++' in out:
                 cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
@@ -1366,6 +1378,7 @@ class Environment:
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
+
 
         self._handle_exceptions(popen_exceptions, compilers)
 
@@ -1961,6 +1974,8 @@ class Environment:
                 return Xc16Linker(linker)
             if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker):
                 return C2000Linker(linker)
+            if out.startswith('The CompCert'):
+                return CompCertLinker(linker)
             if p.returncode == 0:
                 return ArLinker(linker)
             if p.returncode == 1 and err.startswith('usage'): # OSX
