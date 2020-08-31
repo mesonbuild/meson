@@ -263,7 +263,7 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         help='The system load average to try to maintain (if supported).'
     )
     parser.add_argument(
-        '--verbose',
+        '-v', '--verbose',
         action='store_true',
         help='Show more verbose output.'
     )
