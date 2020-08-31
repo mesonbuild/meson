@@ -947,7 +947,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', v
         for token in arr[2:]:
             try:
                 (v, desc) = confdata.get(token)
-                define_value += [v]
+                define_value += [str(v)]
             except KeyError:
                 define_value += [token]
         return ' '.join(define_value)

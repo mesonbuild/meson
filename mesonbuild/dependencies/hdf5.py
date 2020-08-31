@@ -113,7 +113,7 @@ class HDF5Dependency(ExternalDependency):
                 cmd = prog.get_command() + [shlib_arg, '-show']
                 p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
                 if p.returncode != 0:
-                    mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                    mlog.debug('Command', mlog.bold(str(cmd)), 'failed to run:')
                     mlog.debug(mlog.bold('Standard output\n'), p.stdout)
                     mlog.debug(mlog.bold('Standard error\n'), p.stderr)
                     return

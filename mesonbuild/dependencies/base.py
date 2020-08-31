@@ -114,11 +114,11 @@ class Dependency:
 
     def __init__(self, type_name, kwargs):
         self.name = "null"
-        self.version = None
+        self.version = None  # type: T.Optional[str]
         self.language = None # None means C-like
         self.is_found = False
         self.type_name = type_name
-        self.compile_args = []
+        self.compile_args = []  # type: T.List[str]
         self.link_args = []
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
@@ -132,7 +132,7 @@ class Dependency:
         s = '<{0} {1}: {2}>'
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
-    def get_compile_args(self):
+    def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
             converted = []
             for i in self.compile_args:
@@ -156,7 +156,7 @@ class Dependency:
             return self.raw_link_args
         return self.link_args
 
-    def found(self):
+    def found(self) -> bool:
         return self.is_found
 
     def get_sources(self):
@@ -171,7 +171,7 @@ class Dependency:
     def get_name(self):
         return self.name
 
-    def get_version(self):
+    def get_version(self) -> str:
         if self.version:
             return self.version
         else:
@@ -183,7 +183,7 @@ class Dependency:
     def get_exe_args(self, compiler):
         return []
 
-    def get_pkgconfig_variable(self, variable_name, kwargs):
+    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException('{!r} is not a pkgconfig dependency'.format(self.name))
 
     def get_configtool_variable(self, variable_name):
@@ -261,7 +261,7 @@ class InternalDependency(Dependency):
                 setattr(result, k, copy.deepcopy(v, memo))
         return result
 
-    def get_pkgconfig_variable(self, variable_name, kwargs):
+    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException('Method "get_pkgconfig_variable()" is '
                                   'invalid for an internal dependency')
 
@@ -504,7 +504,7 @@ class ConfigToolDependency(ExternalDependency):
 
         return self.config is not None
 
-    def get_config_value(self, args, stage):
+    def get_config_value(self, args: T.List[str], stage: str) -> T.List[str]:
         p, out, err = Popen_safe(self.config + args)
         if p.returncode != 0:
             if self.required:
@@ -877,7 +877,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out_raw))
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
-    def get_pkgconfig_variable(self, variable_name, kwargs):
+    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         options = ['--variable=' + variable_name, self.name]
 
         if 'define_variable' in kwargs:
@@ -2037,7 +2037,7 @@ class ExternalProgram:
     def found(self) -> bool:
         return self.command[0] is not None
 
-    def get_command(self):
+    def get_command(self) -> T.List[str]:
         return self.command[:]
 
     def get_path(self):
@@ -2550,7 +2550,7 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryTy
 
     This helps to make factory functions self documenting
     >>> @factory_methods([DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE])
-    >>> def factory(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any], methods: T.Set[DependencyMethods]) -> T.List[DependencyType]:
+    >>> def factory(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     >>>     pass
     """
 
