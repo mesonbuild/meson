@@ -22,20 +22,20 @@ from .base import (DependencyMethods, PkgConfigDependency, factory_methods,
 from ..environment import detect_cpu_family
 
 if T.TYPE_CHECKING:
-    from .base import DependencyType
+    from .base import Dependency
     from ..compilers import Compiler
     from ..environment import Environment, MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
-                kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+                kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     language = kwargs.get('language', 'c')
     if language not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
         return []
 
-    candidates = []
+    candidates = []  # type: T.List[T.Callable[[], Dependency]]
     compiler = detect_compiler('mpi', env, for_machine, language)
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
