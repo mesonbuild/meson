@@ -879,6 +879,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             if not isinstance(index, str):
                 raise InterpreterException('Key is not a string')
             try:
+                # The cast is required because we don't have recursive types...
                 return T.cast(TYPE_var, iobject[index])
             except KeyError:
                 raise InterpreterException('Key %s is not in dict' % index)
@@ -1091,7 +1092,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         raise InvalidCode('Unknown function "%s".' % func_name)
 
     @builtinMethodNoKwargs
-    def array_method_call(self, obj: list, method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
+    def array_method_call(self, obj: T.List[TYPE_var], method_name: str, posargs: T.List[TYPE_nvar], kwargs: T.Dict[str, T.Any]) -> TYPE_var:
         if method_name == 'contains':
             def check_contains(el: list) -> bool:
                 if len(posargs) != 1:
@@ -1127,7 +1128,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 if isinstance(fallback, mparser.BaseNode):
                     return self.evaluate_statement(fallback)
                 return fallback
-            return T.cast(TYPE_var, obj[index])
+            return obj[index]
         m = 'Arrays do not have a method called {!r}.'
         raise InterpreterException(m.format(method_name))
 

@@ -242,7 +242,7 @@ class CompilerArgs(collections.abc.MutableSequence):
             new = self.copy()
         else:
             new = self
-        return T.cast(T.List[str], self.compiler.unix_args_to_native(new._container))
+        return self.compiler.unix_args_to_native(new._container)
 
     def append_direct(self, arg: str) -> None:
         '''

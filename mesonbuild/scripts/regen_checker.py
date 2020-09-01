@@ -15,13 +15,12 @@
 import sys, os
 import pickle, subprocess
 import typing as T
-
-if T.TYPE_CHECKING:
-    from ..backend.vs2010backend import RegenInfo
+from ..coredata import CoreData
+from ..backend.vs2010backend import RegenInfo
 
 # This could also be used for XCode.
 
-def need_regen(regeninfo: 'RegenInfo', regen_timestamp: float) -> bool:
+def need_regen(regeninfo: RegenInfo, regen_timestamp: float) -> bool:
     for i in regeninfo.depfiles:
         curfile = os.path.join(regeninfo.build_dir, i)
         curtime = os.stat(curfile).st_mtime
@@ -35,7 +34,7 @@ def need_regen(regeninfo: 'RegenInfo', regen_timestamp: float) -> bool:
     Vs2010Backend.touch_regen_timestamp(regeninfo.build_dir)
     return False
 
-def regen(regeninfo: 'RegenInfo', meson_command: T.List[str], backend: str) -> None:
+def regen(regeninfo: RegenInfo, meson_command: T.List[str], backend: str) -> None:
     cmd = meson_command + ['--internal',
                            'regenerate',
                            regeninfo.build_dir,
@@ -48,10 +47,13 @@ def run(args: T.List[str]) -> int:
     dumpfile = os.path.join(private_dir, 'regeninfo.dump')
     coredata_file = os.path.join(private_dir, 'coredata.dat')
     with open(dumpfile, 'rb') as f:
-        regeninfo = T.cast('RegenInfo', pickle.load(f))
+        regeninfo = pickle.load(f)
+        assert isinstance(regeninfo, RegenInfo)
     with open(coredata_file, 'rb') as f:
         coredata = pickle.load(f)
+        assert isinstance(coredata, CoreData)
     backend = coredata.get_builtin_option('backend')
+    assert isinstance(backend, str)
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):
         regen(regeninfo, coredata.meson_command, backend)

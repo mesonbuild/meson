@@ -48,4 +48,6 @@ def run(args: T.List[str]) -> int:
     srcdir_name = args[1]
     os.chdir(srcdir_name)
     assert tool_name in ['cscope', 'ctags', 'etags']
-    return T.cast(int, globals()[tool_name]())
+    res = globals()[tool_name]()
+    assert isinstance(res, int)
+    return res

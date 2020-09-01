@@ -814,9 +814,8 @@ class Environment:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
         # build file parsing.
-        self.coredata = coredata.CoreData(options, self.scratch_dir)
-        # Used by the regenchecker script, which runs meson
-        self.coredata.meson_command = mesonlib.meson_command
+        # meson_command is used by the regenchecker script, which runs meson
+        self.coredata = coredata.CoreData(options, self.scratch_dir, mesonlib.meson_command)
         self.first_invocation = True
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
@@ -1038,7 +1037,7 @@ class Environment:
         :extra_args: Any additional arguments required (such as a source file)
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
-        extra_args = T.cast(T.List[str], extra_args or [])
+        extra_args = extra_args or []
         extra_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
