@@ -97,7 +97,7 @@ class Token(T.Generic[TV_TokenTypes]):
         self.bytespan = bytespan      # type: T.Tuple[int, int]
         self.value = value            # type: TV_TokenTypes
 
-    def __eq__(self, other: T.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return self.tid == other
         elif isinstance(other, Token):

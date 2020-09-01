@@ -30,7 +30,8 @@ from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
 from .interpreter import Interpreter
 from pathlib import PurePath
 import typing as T
-import os, argparse
+import os
+import argparse
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')

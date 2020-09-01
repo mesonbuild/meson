@@ -216,7 +216,7 @@ class TestDef:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
         return self.path.as_posix()
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, TestDef):
             # None is not sortable, so replace it with an empty string
             s_id = int(self.path.name.split(' ')[0])

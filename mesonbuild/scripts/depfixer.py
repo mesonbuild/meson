@@ -328,7 +328,7 @@ class Elf(DataSizes):
         new_rpath = b':'.join(new_rpaths)
 
         if len(old_rpath) < len(new_rpath):
-            msg = "New rpath must not be longer than the old one.\n Old: {!r}\n New: {!r}".format(old_rpath, new_rpath)
+            msg = "New rpath must not be longer than the old one.\n Old: {}\n New: {}".format(old_rpath.decode('utf-8'), new_rpath.decode('utf-8'))
             sys.exit(msg)
         # The linker does read-only string deduplication. If there is a
         # string that shares a suffix with the rpath, they might get

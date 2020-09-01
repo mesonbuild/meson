@@ -289,7 +289,7 @@ class File:
     def split(self, s: str) -> T.List[str]:
         return self.fname.split(s)
 
-    def __eq__(self, other: T.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, File):
             return NotImplemented
         if self.hash != other.hash:
@@ -327,23 +327,23 @@ class OrderedEnum(Enum):
     """
     An Enum which additionally offers homogeneous ordered comparison.
     """
-    def __ge__(self, other: T.Any) -> bool:
-        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
+    def __ge__(self, other: object) -> bool:
+        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value >= other.value
         return NotImplemented
 
-    def __gt__(self, other: T.Any) -> bool:
-        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
+    def __gt__(self, other: object) -> bool:
+        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value > other.value
         return NotImplemented
 
-    def __le__(self, other: T.Any) -> bool:
-        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
+    def __le__(self, other: object) -> bool:
+        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value <= other.value
         return NotImplemented
 
-    def __lt__(self, other: T.Any) -> bool:
-        if self.__class__ is other.__class__ and isinstance(self.value, int) and isinstance(other.value, int):
+    def __lt__(self, other: object) -> bool:
+        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum) and isinstance(self.value, int) and isinstance(other.value, int):
             return self.value < other.value
         return NotImplemented
 
@@ -609,32 +609,32 @@ class Version:
     def __repr__(self) -> str:
         return '<Version: {}>'.format(self._s)
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.lt)
         return NotImplemented
 
-    def __gt__(self, other: T.Any) -> bool:
+    def __gt__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.gt)
         return NotImplemented
 
-    def __le__(self, other: T.Any) -> bool:
+    def __le__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.le)
         return NotImplemented
 
-    def __ge__(self, other: T.Any) -> bool:
+    def __ge__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self.__cmp(other, operator.ge)
         return NotImplemented
 
-    def __eq__(self, other: T.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self._v == other._v
         return NotImplemented
 
-    def __ne__(self, other: T.Any) -> bool:
+    def __ne__(self, other: object) -> bool:
         if isinstance(other, Version):
             return self._v != other._v
         return NotImplemented
@@ -1115,7 +1115,7 @@ def unholder(item: T.List[_T]) -> T.List[_T]: ...
 @T.overload
 def unholder(item: T.List[T.Union[_T, 'ObjectHolder[_T]']]) -> T.List[_T]: ...
 
-def unholder(item):  # type: ignore  # TODO for some reason mypy throws the "Function is missing a type annotation" error
+def unholder(item):  # type: ignore  # TODO fix overload (somehow)
     """Get the held item of an object holder or list of object holders."""
     if isinstance(item, list):
         return [i.held_object if hasattr(i, 'held_object') else i for i in item]

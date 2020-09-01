@@ -107,7 +107,7 @@ class WrapNotFoundException(WrapException):
 class PackageDefinition:
     def __init__(self, fname: str):
         self.filename = fname
-        self.type = None  # type: str
+        self.type = None  # type: T.Optional[str]
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
         self.provided_programs = [] # type: T.List[str]

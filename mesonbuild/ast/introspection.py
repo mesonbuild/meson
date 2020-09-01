@@ -296,7 +296,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return None
 
     def is_subproject(self) -> bool:
-        return str(self.subproject) != ''
+        return self.subproject != ''
 
     def analyze(self) -> None:
         self.load_root_meson_file()

@@ -95,7 +95,7 @@ class BoostIncludeDir():
     def __repr__(self) -> str:
         return '<BoostIncludeDir: {} -- {}>'.format(self.version, self.path)
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostIncludeDir):
             return (self.version_int, self.path) < (other.version_int, other.path)
         return NotImplemented
@@ -187,7 +187,7 @@ class BoostLibraryFile():
     def __repr__(self) -> str:
         return '<LIB: {} {:<32} {}>'.format(self.abitag, self.mod_name, self.path)
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostLibraryFile):
             return (
                 self.mod_name, self.static, self.version_lib, self.arch,
@@ -204,7 +204,7 @@ class BoostLibraryFile():
             )
         return NotImplemented
 
-    def __eq__(self, other: T.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, BoostLibraryFile):
             return self.name == other.name
         return NotImplemented
@@ -346,7 +346,7 @@ class BoostDependency(ExternalDependency):
         self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
-        self.boost_root = None  # type: Path
+        self.boost_root = None  # type: T.Optional[Path]
         self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
