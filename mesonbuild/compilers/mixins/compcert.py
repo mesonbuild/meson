@@ -18,8 +18,6 @@ import os
 import re
 import typing as T
 
-from ...mesonlib import EnvironmentException
-
 if T.TYPE_CHECKING:
     from ...environment import Environment
 
@@ -88,7 +86,7 @@ class CompCertCompiler:
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def unix_args_to_native(cls, args):
+    def unix_args_to_native(self, args):
         "Always returns a copy that can be independently mutated"
         patched_args = []
         for arg in args:
