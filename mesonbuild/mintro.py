@@ -254,11 +254,9 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
         'compiler',
         machine='host',
     )
+    tmp_dict = dict(coredata.flatten_lang_iterator(coredata.compiler_options.build.items()))  # type: T.Dict[str, cdata.UserOption]
     add_keys(
-        {
-            'build.' + k: o for k, o in
-            coredata.flatten_lang_iterator(coredata.compiler_options.build.items())
-        },
+        {'build.' + k: o for k, o in tmp_dict.items()},
         'compiler',
         machine='build',
     )
@@ -305,10 +303,10 @@ def list_deps(coredata: cdata.CoreData) -> T.List[T.Dict[str, T.Union[str, T.Lis
                         'link_args': d.get_link_args()}]
     return result
 
-def get_test_list(testdata: backends.TestSerialisation) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
     result = []  # type: T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]
     for t in testdata:
-        to = {}
+        to = {}  # type: T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]
         if isinstance(t.fname, str):
             fname = [t.fname]
         else:
@@ -329,21 +327,21 @@ def get_test_list(testdata: backends.TestSerialisation) -> T.List[T.Dict[str, T.
         result.append(to)
     return result
 
-def list_tests(testdata: backends.TestSerialisation) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_tests(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(testdata)
 
-def list_benchmarks(benchdata: backends.TestSerialisation) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
+def list_benchmarks(benchdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict[str, T.Union[str, int, T.List[str], T.Dict[str, str]]]]:
     return get_test_list(benchdata)
 
 def list_projinfo(builddata: build.Build) -> T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]:
     result = {'version': builddata.project_version,
               'descriptive_name': builddata.project_name,
-              'subproject_dir': builddata.subproject_dir}
+              'subproject_dir': builddata.subproject_dir}    # type: T.Dict[str, T.Union[str, T.List[T.Dict[str, str]]]]
     subprojects = []
     for k, v in builddata.subprojects.items():
         c = {'name': k,
              'version': v,
-             'descriptive_name': builddata.projects.get(k)}
+             'descriptive_name': builddata.projects.get(k)}  # type: T.Dict[str, str]
         subprojects.append(c)
     result['subprojects'] = subprojects
     return result
@@ -391,6 +389,7 @@ def run(options: argparse.Namespace) -> int:
         # Make sure that log entries in other parts of meson don't interfere with the JSON output
         mlog.disable()
         backend = backends.get_backend_from_name(options.backend)
+        assert backend is not None
         intr = IntrospectionInterpreter(sourcedir, '', backend.name, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         intr.analyze()
         # Re-enable logging just in case

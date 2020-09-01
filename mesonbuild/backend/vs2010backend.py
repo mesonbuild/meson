@@ -192,11 +192,11 @@ class Vs2010Backend(backends.Backend):
         Vs2010Backend.touch_regen_timestamp(self.environment.get_build_dir())
 
     @staticmethod
-    def get_regen_stampfile(build_dir):
+    def get_regen_stampfile(build_dir: str) -> None:
         return os.path.join(os.path.join(build_dir, Environment.private_dir), 'regen.stamp')
 
     @staticmethod
-    def touch_regen_timestamp(build_dir):
+    def touch_regen_timestamp(build_dir: str) -> None:
         with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w'):
             pass
 

@@ -37,6 +37,9 @@ from .compilers import (
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
+if T.TYPE_CHECKING:
+    from .interpreter import Test
+
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
 lang_arg_kwargs = set([
@@ -128,14 +131,14 @@ class Build:
         self.project_version = None
         self.environment = environment
         self.projects = {}
-        self.targets = OrderedDict()
+        self.targets = OrderedDict()                  # type: T.Dict[str, 'Target']
         self.run_target_names = set() # type: T.Set[T.Tuple[str, str]]
         self.global_args = PerMachine({}, {})         # type: PerMachine[T.Dict[str, T.List[str]]]
         self.projects_args = PerMachine({}, {})       # type: PerMachine[T.Dict[str, T.List[str]]]
         self.global_link_args = PerMachine({}, {})    # type: PerMachine[T.Dict[str, T.List[str]]]
         self.projects_link_args = PerMachine({}, {})  # type: PerMachine[T.Dict[str, T.List[str]]]
-        self.tests = []
-        self.benchmarks = []
+        self.tests = []                               # type: T.List['Test']
+        self.benchmarks = []                          # type: T.List['Test']
         self.headers = []
         self.man = []
         self.data = []
@@ -178,13 +181,13 @@ class Build:
     def get_subproject_dir(self):
         return self.subproject_dir
 
-    def get_targets(self):
+    def get_targets(self) -> T.Dict[str, 'Target']:
         return self.targets
 
-    def get_tests(self):
+    def get_tests(self) -> T.List['Test']:
         return self.tests
 
-    def get_benchmarks(self):
+    def get_benchmarks(self) -> T.List['Test']:
         return self.benchmarks
 
     def get_headers(self):
@@ -403,13 +406,13 @@ a hard error in the future.'''.format(name))
             outdirs[0] = default_install_dir
         return outdirs, custom_install_dir
 
-    def get_basename(self):
+    def get_basename(self) -> str:
         return self.name
 
-    def get_subdir(self):
+    def get_subdir(self) -> str:
         return self.subdir
 
-    def get_typename(self):
+    def get_typename(self) -> str:
         return self.typename
 
     @staticmethod
@@ -423,7 +426,7 @@ a hard error in the future.'''.format(name))
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir, name, type_suffix):
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -441,7 +444,7 @@ a hard error in the future.'''.format(name))
             return subdir_part + '@@' + my_id
         return my_id
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.construct_id_from_path(
             self.subdir, self.name, self.type_suffix())
 
@@ -478,6 +481,12 @@ a hard error in the future.'''.format(name))
         return result
 
     def is_linkable_target(self) -> bool:
+        return False
+
+    def get_outputs(self) -> T.List[str]:
+        return []
+
+    def should_install(self) -> bool:
         return False
 
 class BuildTarget(Target):
@@ -1006,7 +1015,7 @@ This will become a hard error in a future Meson release.''')
     def get_filename(self):
         return self.filename
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outputs
 
     def get_extra_args(self, language):
@@ -1036,7 +1045,7 @@ This will become a hard error in a future Meson release.''')
     def get_generated_sources(self):
         return self.generated
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return self.need_install
 
     def has_pch(self):
@@ -1474,7 +1483,7 @@ class GeneratedList:
     def get_inputs(self):
         return self.infilelist
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outfilelist
 
     def get_outputs_for(self, filename):
@@ -2192,7 +2201,7 @@ class CustomTarget(Target):
     def get_dependencies(self):
         return self.dependencies
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return self.install
 
     def get_custom_install_dir(self):
@@ -2201,7 +2210,7 @@ class CustomTarget(Target):
     def get_custom_install_mode(self):
         return self.install_mode
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outputs
 
     def get_filename(self):
@@ -2289,13 +2298,13 @@ class RunTarget(Target):
     def get_sources(self):
         return []
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return False
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.name
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         if isinstance(self.name, str):
             return [self.name]
         elif isinstance(self.name, list):
@@ -2367,7 +2376,7 @@ class CustomTargetIndex:
         return '<CustomTargetIndex: {!r}[{}]>'.format(
             self.target, self.target.get_outputs().index(self.output))
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return [self.output]
 
     def get_subdir(self):
@@ -2509,6 +2518,6 @@ def load(build_dir: str) -> Build:
         raise MesonException(load_fail_msg)
     return obj
 
-def save(obj, filename):
+def save(obj: Build, filename: str) -> None:
     with open(filename, 'wb') as f:
         pickle.dump(obj, f)

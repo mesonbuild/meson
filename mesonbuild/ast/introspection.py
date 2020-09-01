@@ -25,10 +25,11 @@ from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, S
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import typing as T
 import os
+import argparse
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 
-class IntrospectionHelper:
+class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
     def __init__(self, cross_file: str):
         self.cross_file = cross_file  # type: str

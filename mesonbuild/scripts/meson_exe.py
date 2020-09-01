@@ -57,7 +57,7 @@ def run_exe(exe: ExecutableSerialisation) -> int:
 
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
-        raise FileNotFoundError('Missing DLLs on calling {!r}'.format(exe.name))
+        raise FileNotFoundError('Missing DLLs on calling {!r}'.format(cmd_args))
 
     if exe.capture and p.returncode == 0:
         skip_write = False

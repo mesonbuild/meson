@@ -311,7 +311,7 @@ class Elf(DataSizes):
         old_rpath = self.read_str()
         # Some rpath entries may come from multiple sources.
         # Only add each one once.
-        new_rpaths = OrderedSet()
+        new_rpaths = OrderedSet()  # type: OrderedSet[bytes]
         if new_rpath:
             new_rpaths.add(new_rpath)
         if old_rpath:

@@ -178,12 +178,18 @@ class MesonApp:
             logger_fun = mlog.log
         else:
             logger_fun = mlog.debug
-        logger_fun('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
-        logger_fun('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
-        mlog.log('Host machine cpu family:', mlog.bold(intr.builtin['host_machine'].cpu_family_method([], {})))
-        mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
-        logger_fun('Target machine cpu family:', mlog.bold(intr.builtin['target_machine'].cpu_family_method([], {})))
-        logger_fun('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
+        build_machine = intr.builtin['build_machine']
+        host_machine = intr.builtin['build_machine']
+        target_machine = intr.builtin['target_machine']
+        assert isinstance(build_machine, interpreter.MachineHolder)
+        assert isinstance(host_machine, interpreter.MachineHolder)
+        assert isinstance(target_machine, interpreter.MachineHolder)
+        logger_fun('Build machine cpu family:', mlog.bold(build_machine.cpu_family_method([], {})))
+        logger_fun('Build machine cpu:', mlog.bold(build_machine.cpu_method([], {})))
+        mlog.log('Host machine cpu family:', mlog.bold(host_machine.cpu_family_method([], {})))
+        mlog.log('Host machine cpu:', mlog.bold(host_machine.cpu_method([], {})))
+        logger_fun('Target machine cpu family:', mlog.bold(target_machine.cpu_family_method([], {})))
+        logger_fun('Target machine cpu:', mlog.bold(target_machine.cpu_method([], {})))
         try:
             if self.options.profile:
                 fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')

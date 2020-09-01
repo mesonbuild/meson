@@ -47,7 +47,7 @@ _T = T.TypeVar('_T')
 
 class MesonVersionMismatchException(MesonException):
     '''Build directory generated with Meson version incompatible with current version'''
-    def __init__(self, old_version, current_version):
+    def __init__(self, old_version: str, current_version: str) -> None:
         super().__init__('Build directory has been generated with Meson version {}, '
                          'which is incompatible with current version {}.'
                          .format(old_version, current_version))
@@ -56,7 +56,7 @@ class MesonVersionMismatchException(MesonException):
 
 
 class UserOption(T.Generic[_T]):
-    def __init__(self, description, choices, yielding):
+    def __init__(self, description: str, choices: T.Optional[T.Union[str, T.List[_T]]], yielding: T.Optional[bool]):
         super().__init__()
         self.choices = choices
         self.description = description
@@ -66,7 +66,8 @@ class UserOption(T.Generic[_T]):
             raise MesonException('Value of "yielding" must be a boolean.')
         self.yielding = yielding
 
-    def printable_value(self):
+    def printable_value(self) -> T.Union[str, int, bool, T.List[T.Union[str, int, bool]]]:
+        assert isinstance(self.value, (str, int, bool, list))
         return self.value
 
     # Check that the input is a valid value and return the
@@ -75,30 +76,32 @@ class UserOption(T.Generic[_T]):
     def validate_value(self, value: T.Any) -> _T:
         raise RuntimeError('Derived option class did not override validate_value.')
 
-    def set_value(self, newvalue):
+    def set_value(self, newvalue: T.Any) -> None:
         self.value = self.validate_value(newvalue)
 
 class UserStringOption(UserOption[str]):
-    def __init__(self, description, value, choices=None, yielding=None):
-        super().__init__(description, choices, yielding)
+    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
+        super().__init__(description, None, yielding)
         self.set_value(value)
 
-    def validate_value(self, value):
+    def validate_value(self, value: T.Any) -> str:
         if not isinstance(value, str):
             raise MesonException('Value "%s" for string option is not a string.' % str(value))
         return value
 
 class UserBooleanOption(UserOption[bool]):
-    def __init__(self, description, value, yielding=None):
+    def __init__(self, description: str, value, yielding: T.Optional[bool] = None) -> None:
         super().__init__(description, [True, False], yielding)
         self.set_value(value)
 
     def __bool__(self) -> bool:
         return self.value
 
-    def validate_value(self, value) -> bool:
+    def validate_value(self, value: T.Any) -> bool:
         if isinstance(value, bool):
             return value
+        if not isinstance(value, str):
+            raise MesonException('Value {} cannot be converted to a boolean'.format(value))
         if value.lower() == 'true':
             return True
         if value.lower() == 'false':
@@ -106,7 +109,7 @@ class UserBooleanOption(UserOption[bool]):
         raise MesonException('Value %s is not boolean (true or false).' % value)
 
 class UserIntegerOption(UserOption[int]):
-    def __init__(self, description, value, yielding=None):
+    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         min_value, max_value, default_value = value
         self.min_value = min_value
         self.max_value = max_value
@@ -119,7 +122,7 @@ class UserIntegerOption(UserOption[int]):
         super().__init__(description, choices, yielding)
         self.set_value(default_value)
 
-    def validate_value(self, value) -> int:
+    def validate_value(self, value: T.Any) -> int:
         if isinstance(value, str):
             value = self.toint(value)
         if not isinstance(value, int):
@@ -130,35 +133,35 @@ class UserIntegerOption(UserOption[int]):
             raise MesonException('New value %d is more than maximum value %d.' % (value, self.max_value))
         return value
 
-    def toint(self, valuestring) -> int:
+    def toint(self, valuestring: str) -> int:
         try:
             return int(valuestring)
         except ValueError:
             raise MesonException('Value string "%s" is not convertible to an integer.' % valuestring)
 
 class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, int]]):
-    def __init__(self, description, value, yielding=None):
+    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, (0, 0o777, value), yielding)
         self.choices = ['preserve', '0000-0777']
 
-    def printable_value(self):
+    def printable_value(self) -> str:
         if self.value == 'preserve':
             return self.value
         return format(self.value, '04o')
 
-    def validate_value(self, value):
+    def validate_value(self, value: T.Any) -> T.Union[str, int]:
         if value is None or value == 'preserve':
             return 'preserve'
         return super().validate_value(value)
 
-    def toint(self, valuestring):
+    def toint(self, valuestring: T.Union[str, int]) -> int:
         try:
             return int(valuestring, 8)
         except ValueError as e:
             raise MesonException('Invalid mode: {}'.format(e))
 
 class UserComboOption(UserOption[str]):
-    def __init__(self, description, choices: T.List[str], value, yielding=None):
+    def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, choices, yielding)
         if not isinstance(self.choices, list):
             raise MesonException('Combo choices must be an array.')
@@ -167,7 +170,7 @@ class UserComboOption(UserOption[str]):
                 raise MesonException('Combo choice elements must be strings.')
         self.set_value(value)
 
-    def validate_value(self, value):
+    def validate_value(self, value: T.Any) -> str:
         if value not in self.choices:
             if isinstance(value, bool):
                 _type = 'boolean'
@@ -182,13 +185,13 @@ class UserComboOption(UserOption[str]):
         return value
 
 class UserArrayOption(UserOption[T.List[str]]):
-    def __init__(self, description, value, split_args=False, user_input=False, allow_dups=False, **kwargs):
+    def __init__(self, description: str, value: T.Union[str, T.List[str]], split_args: bool = False, user_input: bool = False, allow_dups: bool = False, **kwargs: T.Any) -> None:
         super().__init__(description, kwargs.get('choices', []), yielding=kwargs.get('yielding', None))
         self.split_args = split_args
         self.allow_dups = allow_dups
         self.value = self.validate_value(value, user_input=user_input)
 
-    def validate_value(self, value, user_input: bool = True) -> T.List[str]:
+    def validate_value(self, value: T.Union[str, T.List[str]], user_input: bool = True) -> T.List[str]:
         # User input is for options defined on the command line (via -D
         # options). Users can put their input in as a comma separated
         # string, but for defining options in meson_options.txt the format
@@ -232,16 +235,16 @@ class UserArrayOption(UserOption[T.List[str]]):
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
 
-    def __init__(self, description, value, yielding=None):
+    def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, self.static_choices, value, yielding)
 
-    def is_enabled(self):
+    def is_enabled(self) -> bool:
         return self.value == 'enabled'
 
-    def is_disabled(self):
+    def is_disabled(self) -> bool:
         return self.value == 'disabled'
 
-    def is_auto(self):
+    def is_auto(self) -> bool:
         return self.value == 'auto'
 
 if T.TYPE_CHECKING:
@@ -534,7 +537,7 @@ class CoreData:
             value = None
         opts_map[optname] = opt.init_option(key, value, default_prefix())
 
-    def init_backend_options(self, backend_name):
+    def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
             self.backend_options['backend_max_links'] = \
                 UserIntegerOption(
@@ -547,7 +550,7 @@ class CoreData:
                     'Default project to execute in Visual Studio',
                     '')
 
-    def get_builtin_option(self, optname, subproject=''):
+    def get_builtin_option(self, optname: str, subproject: str = '') -> T.Union[str, int, bool]:
         raw_optname = optname
         if subproject:
             optname = subproject + ':' + optname
@@ -683,7 +686,7 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang):
         return self.compiler_options[for_machine][lang]['link_args'].value
 
-    def merge_user_options(self, options):
+    def merge_user_options(self, options: T.Dict[str, T.Union[str, bool, int]]) -> None:
         for (name, value) in options.items():
             if name not in self.user_options:
                 self.user_options[name] = value
@@ -715,7 +718,7 @@ class CoreData:
                 if k in build_opts:
                     build_opts[k].set_value(o.value)
 
-    def set_options(self, options, *, subproject='', warn_unknown=True):
+    def set_options(self, options: T.Dict[str, T.Any], subproject: str = '', warn_unknown: bool = True) -> None:
         if not self.is_cross_build():
             options = self.strip_build_option_names(options)
         # Set prefix first because it's needed to sanitize other options
@@ -912,10 +915,10 @@ def parse_machine_files(filenames):
     parser = MachineFileParser(filenames)
     return parser.sections
 
-def get_cmd_line_file(build_dir):
+def get_cmd_line_file(build_dir: str) -> str:
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
 
-def read_cmd_line_file(build_dir, options):
+def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     if not os.path.isfile(filename):
         return
@@ -937,10 +940,10 @@ def read_cmd_line_file(build_dir, options):
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
-def cmd_line_options_to_string(options):
+def cmd_line_options_to_string(options: argparse.Namespace) -> T.Dict[str, str]:
     return {k: str(v) for k, v in options.cmd_line_options.items()}
 
-def write_cmd_line_file(build_dir, options):
+def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
 
@@ -955,7 +958,7 @@ def write_cmd_line_file(build_dir, options):
     with open(filename, 'w') as f:
         config.write(f)
 
-def update_cmd_line_file(build_dir, options):
+def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
@@ -963,7 +966,7 @@ def update_cmd_line_file(build_dir, options):
     with open(filename, 'w') as f:
         config.write(f)
 
-def get_cmd_line_options(build_dir, options):
+def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:
     copy = argparse.Namespace(**vars(options))
     read_cmd_line_file(build_dir, copy)
     cmdline = ['-D{}={}'.format(k, v) for k, v in copy.cmd_line_options.items()]
@@ -976,7 +979,7 @@ def get_cmd_line_options(build_dir, options):
 def major_versions_differ(v1, v2):
     return v1.split('.')[0:2] != v2.split('.')[0:2]
 
-def load(build_dir):
+def load(build_dir: str) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
     try:
@@ -995,7 +998,7 @@ def load(build_dir):
         raise MesonVersionMismatchException(obj.version, version)
     return obj
 
-def save(obj, build_dir):
+def save(obj: CoreData, build_dir: str) -> str:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
     prev_filename = filename + '.prev'
     tempfilename = filename + '~'
@@ -1012,7 +1015,7 @@ def save(obj, build_dir):
     return filename
 
 
-def register_builtin_arguments(parser):
+def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     for n, b in BUILTIN_OPTIONS.items():
         b.add_to_argparse(n, parser, '', '')
     for n, b in BUILTIN_OPTIONS_PER_MACHINE.items():
@@ -1021,7 +1024,7 @@ def register_builtin_arguments(parser):
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def create_options_dict(options):
+def create_options_dict(options: T.List[str]) -> T.Dict[str, str]:
     result = OrderedDict()
     for o in options:
         try:
@@ -1031,7 +1034,7 @@ def create_options_dict(options):
         result[key] = value
     return result
 
-def parse_cmd_line_options(args):
+def parse_cmd_line_options(args: argparse.Namespace) -> None:
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
     # Merge builtin options set with --option into the dict.

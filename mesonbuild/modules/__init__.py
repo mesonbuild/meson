@@ -19,14 +19,18 @@ import os
 
 from .. import build
 from ..mesonlib import unholder
+import typing as T
 
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
+    from ..interpreterbase import TYPE_var
 
 class ExtensionModule:
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: 'Interpreter') -> None:
         self.interpreter = interpreter
-        self.snippets = set() # List of methods that operate only on the interpreter.
+        self.snippets = set()  # type: T.Set[str] # List of methods that operate only on the interpreter.
 
-    def is_snippet(self, funcname):
+    def is_snippet(self, funcname: str) -> bool:
         return funcname in self.snippets
 
 
@@ -69,7 +73,7 @@ def is_module_library(fname):
 
 
 class ModuleReturnValue:
-    def __init__(self, return_value, new_objects):
+    def __init__(self, return_value: 'TYPE_var', new_objects: T.List['TYPE_var']) -> None:
         self.return_value = return_value
         assert(isinstance(new_objects, list))
         self.new_objects = new_objects

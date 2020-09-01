@@ -15,15 +15,19 @@
 import os
 from . import coredata, environment, mesonlib, build, mintro, mlog
 from .ast import AstIDGenerator
+import typing as T
 
-def add_arguments(parser):
+if T.TYPE_CHECKING:
+    import argparse
+
+def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
 
 
-def make_lower_case(val):
+def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
         return str(val).lower()
     elif isinstance(val, list):

@@ -36,7 +36,7 @@ from ..mesonlib import (
 )
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
+    from ..interpreter import Interpreter, Test
 
 
 class TestProtocol(enum.Enum):
@@ -104,7 +104,7 @@ class TargetInstallData:
 
 class ExecutableSerialisation:
     def __init__(self, cmd_args, env=None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None):
+                 workdir=None, extra_paths=None, capture=None) -> None:
         self.cmd_args = cmd_args
         self.env = env or {}
         if exe_wrapper is not None:
@@ -182,10 +182,14 @@ class Backend:
         self.interpreter = interpreter
         self.environment = build.environment
         self.processed_targets = {}
+        self.name = '<UNKNOWN>'
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
+
+    def generate(self) -> None:
+        raise RuntimeError('generate is not implemented in {}'.format(type(self).__name__))
 
     def get_target_filename(self, t, *, warn_multi_output: bool = True):
         if isinstance(t, build.CustomTarget):
@@ -794,7 +798,7 @@ class Backend:
     def write_test_file(self, datafile):
         self.write_test_serialisation(self.build.get_tests(), datafile)
 
-    def create_test_serialisation(self, tests):
+    def create_test_serialisation(self, tests: T.List['Test']) -> T.List[TestSerialisation]:
         arr = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
@@ -864,7 +868,7 @@ class Backend:
             arr.append(ts)
         return arr
 
-    def write_test_serialisation(self, tests, datafile):
+    def write_test_serialisation(self, tests: T.List['Test'], datafile: str):
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
     def construct_target_rel_path(self, a, workdir):
@@ -1128,7 +1132,7 @@ class Backend:
         cmd = [i.replace('\\', '/') for i in cmd]
         return inputs, outputs, cmd
 
-    def run_postconf_scripts(self):
+    def run_postconf_scripts(self) -> None:
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
@@ -1140,7 +1144,7 @@ class Backend:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
 
-    def create_install_data(self):
+    def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
@@ -1338,7 +1342,7 @@ class Backend:
             d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
                                       sd.exclude])
 
-    def get_introspection_data(self, target_id, target):
+    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
         '''
         Returns a list of source dicts with the following format for a given target:
         [

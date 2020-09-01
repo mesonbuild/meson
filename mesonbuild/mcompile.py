@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     import argparse
 
 def array_arg(value: str) -> T.List[str]:
-    return T.cast(T.List[str], UserArrayOption(None, value, allow_dups=True, user_input=True).value)
+    return UserArrayOption(None, value, allow_dups=True, user_input=True).value
 
 def validate_builddir(builddir: Path) -> None:
     if not (builddir / 'meson-private' / 'coredata.dat' ).is_file():
@@ -45,7 +45,9 @@ def get_backend_from_coredata(builddir: Path) -> str:
     """
     Gets `backend` option value from coredata
     """
-    return T.cast(str, coredata.load(str(builddir)).get_builtin_option('backend'))
+    backend = coredata.load(str(builddir)).get_builtin_option('backend')
+    assert isinstance(backend, str)
+    return backend
 
 def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     """
