@@ -2498,10 +2498,11 @@ def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
     return [l for l in link_args if l not in exclude]
 
 
-def process_method_kw(possible: T.List[DependencyMethods], kwargs) -> T.List[DependencyMethods]:
-    method = kwargs.get('method', 'auto')
+def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List[DependencyMethods]:
+    method = kwargs.get('method', 'auto')  # type: T.Union[DependencyMethods, str]
     if isinstance(method, DependencyMethods):
-        return method
+        return [method]
+    # TODO: try/except?
     if method not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(method))
     method = DependencyMethods(method)
@@ -2519,26 +2520,23 @@ def process_method_kw(possible: T.List[DependencyMethods], kwargs) -> T.List[Dep
     # Set the detection method. If the method is set to auto, use any available method.
     # If method is set to a specific string, allow only that detection method.
     if method == DependencyMethods.AUTO:
-        methods = possible
+        methods = list(possible)
     elif method in possible:
         methods = [method]
     else:
         raise DependencyException(
             'Unsupported detection method: {}, allowed methods are {}'.format(
                 method.value,
-                mlog.format_list([x.value for x in [DependencyMethods.AUTO] + possible])))
+                mlog.format_list([x.value for x in [DependencyMethods.AUTO] + list(possible)])))
 
     return methods
 
 
 if T.TYPE_CHECKING:
-    FactoryType = T.Callable[[Environment, MachineChoice, T.Dict[str, T.Any]],
-                             T.List['DependencyType']]
-    FullFactoryType = T.Callable[[Environment, MachineChoice, T.Dict[str, T.Any], T.Set[DependencyMethods]],
-                                 T.List['DependencyType']]
+    FactoryType = T.TypeVar('FactoryType', bound=T.Callable[..., T.List[T.Callable[[], 'Dependency']]])
 
 
-def factory_methods(methods: T.Set[DependencyMethods]) -> 'FactoryType':
+def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryType'], 'FactoryType']:
     """Decorator for handling methods for dependency factory functions.
 
     This helps to make factory functions self documenting
@@ -2547,13 +2545,13 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> 'FactoryType':
     >>>     pass
     """
 
-    def inner(func: 'FullFactoryType') -> 'FactoryType':
+    def inner(func: 'FactoryType') -> 'FactoryType':
 
         @functools.wraps(func)
-        def wrapped(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
+        def wrapped(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any]) -> T.List[T.Callable[[], 'Dependency']]:
             return func(env, for_machine, kwargs, process_method_kw(methods, kwargs))
 
-        return wrapped
+        return T.cast('FactoryType', wrapped)
 
     return inner
 
