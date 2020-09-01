@@ -21,9 +21,11 @@ from mesonbuild.templates.objctemplates import ObjCProject
 from mesonbuild.templates.cpptemplates import CppProject
 from mesonbuild.templates.cstemplates import CSharpProject
 from mesonbuild.templates.ctemplates import CProject
+from mesonbuild.templates.sampleimpl import SampleImpl
 
+import argparse
 
-def sameple_generator(options):
+def sameple_generator(options: argparse.Namespace) -> SampleImpl:
     return {
         'c': CProject,
         'cpp': CppProject,
