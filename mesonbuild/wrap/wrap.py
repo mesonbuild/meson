@@ -24,13 +24,12 @@ import tempfile
 import stat
 import subprocess
 import sys
-import configparser
 import typing as T
 
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
-from ..mesonlib import git, GIT, ProgressBar, MesonException
+from ..mesonlib import git, GIT, ProgressBar, MesonException, stringlistify
 
 if T.TYPE_CHECKING:
     import http.client
@@ -117,50 +116,57 @@ class PackageDefinition:
             self.name = self.name[:-5]
         self.provided_deps[self.name] = None
         if fname.endswith('.wrap'):
-            self.parse_wrap(fname)
+            self.parse_wrap()
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
 
-    def parse_wrap(self, fname: str):
-        try:
-            self.config = configparser.ConfigParser(interpolation=None)
-            self.config.read(fname)
-        except configparser.Error:
-            raise WrapException('Failed to parse {}'.format(self.basename))
+    def parse_wrap(self):
+        parser = coredata.ConfigFileParser(self.filename)
+        config = coredata.ConfigFileInterpreter(parser, legacy=True)
+        self.sections = config.sections
         self.parse_wrap_section()
         self.parse_provide_section()
 
     def parse_wrap_section(self):
-        if len(self.config.sections()) < 1:
-            raise WrapException('Missing sections in {}'.format(self.basename))
-        self.wrap_section = self.config.sections()[0]
-        if not self.wrap_section.startswith('wrap-'):
-            m = '{!r} is not a valid first section in {}'
-            raise WrapException(m.format(self.wrap_section, self.basename))
-        self.type = self.wrap_section[5:]
-        self.values = dict(self.config[self.wrap_section])
+        for section, values in self.sections.items():
+            if not section.startswith('wrap-'):
+                continue
+            if self.type is not None:
+                raise WrapException('Multiple [wrap-] sections in {}'.format(self.basename))
+            self.type = section[5:]
+            self.values = values
+        if self.type is None:
+            raise WrapException('Missing wrap section in {}'.format(self.basename))
 
     def parse_provide_section(self):
-        if self.config.has_section('provide'):
-            for k, v in self.config['provide'].items():
-                if k == 'dependency_names':
+        for k, v in self.sections.get('provide', {}).items():
+            if k == 'dependency_names':
+                if isinstance(v, str):
                     # A comma separated list of dependency names that does not
                     # need a variable name
                     names = {n.strip(): None for n in v.split(',')}
-                    self.provided_deps.update(names)
-                    continue
-                if k == 'program_names':
+                else:
+                    names = {n: None for n in stringlistify(v)}
+                self.provided_deps.update(names)
+                continue
+            if k == 'program_names':
+                if isinstance(v, str):
                     # A comma separated list of program names
                     names = [n.strip() for n in v.split(',')]
-                    self.provided_programs += names
-                    continue
-                if not v:
-                    m = ('Empty dependency variable name for {!r} in {}. '
-                         'If the subproject uses meson.override_dependency() '
-                         'it can be added in the "dependency_names" special key.')
-                    raise WrapException(m.format(k, self.basename))
-                self.provided_deps[k] = v
+                else:
+                    names = stringlistify(v)
+                self.provided_programs += names
+                continue
+            if not v:
+                m = ('Empty dependency variable name for {!r} in {}. '
+                     'If the subproject uses meson.override_dependency() '
+                     'it can be added in the "dependency_names" special key.')
+                raise WrapException(m.format(k, self.basename))
+            if not isinstance(v, str):
+                m = 'Dependency variable name for {!r} in {} is not a string'
+                raise WrapException(m.format(k, self.basename))
+            self.provided_deps[k] = v
 
     def get(self, key: str) -> str:
         try:

@@ -843,22 +843,43 @@ class CoreData:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
-class CmdLineFileParser(configparser.ConfigParser):
-    def __init__(self):
+class ConfigFileParser(configparser.ConfigParser):
+    def __init__(self, filenames=None):
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
+        if filenames:
+            try:
+                self.read(filenames)
+            except configparser.Error:
+                raise MesonException('Failed to parse {}'.format(str(filenames)))
 
-class MachineFileParser():
-    def __init__(self, filenames: T.List[str]):
-        self.parser = CmdLineFileParser()
+class ConfigFileInterpreter():
+    def __init__(self, parser: ConfigFileParser, legacy=False):
+        self.parser = parser
+        self.legacy = legacy
         self.constants = {'True': True, 'False': False}
         self.sections = {}
 
-        self.parser.read(filenames)
+        # Try to parse as if it is the new format (i.e. quoted values) and
+        # fallback to legacy mode if permitted. Legacy mode gets disabled when
+        # the first value gets parsed correctly or if [constants] section exists.
+        try:
+            self._parse()
+        except MesonException:
+            if legacy:
+                self._parse_legacy()
+            else:
+                raise
 
+    def _parse_legacy(self):
+        for section, values in self.parser.items():
+            self.sections[section] = {k: v for k, v in values.items()}
+
+    def _parse(self):
         # Parse [constants] first so they can be used in other sections
         if self.parser.has_section('constants'):
+            self.legacy = False
             self.constants.update(self._parse_section('constants'))
 
         for s in self.parser.sections():
@@ -871,18 +892,19 @@ class MachineFileParser():
         section = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                raise EnvironmentException('Malformed variable name {!r} in machine file.'.format(entry))
+                raise EnvironmentException('Malformed variable name {!r} in config file.'.format(entry))
             # Windows paths...
             value = value.replace('\\', '\\\\')
             try:
-                ast = mparser.Parser(value, 'machinefile').parse()
+                ast = mparser.Parser(value, 'configfile').parse()
                 res = self._evaluate_statement(ast.lines[0])
             except MesonException:
-                raise EnvironmentException('Malformed value in machine file variable {!r}.'.format(entry))
+                raise EnvironmentException('Malformed value in config file variable {!r}.'.format(entry))
             except KeyError as e:
-                raise EnvironmentException('Undefined constant {!r} in machine file variable {!r}.'.format(e.args[0], entry))
+                raise EnvironmentException('Undefined constant {!r} in config file variable {!r}.'.format(e.args[0], entry))
             section[entry] = res
             self.scope[entry] = res
+            self.legacy = False
         return section
 
     def _evaluate_statement(self, node):
@@ -905,12 +927,12 @@ class MachineFileParser():
                     return l + r
             elif node.operation == 'div':
                 if isinstance(l, str) and isinstance(r, str):
-                    return os.path.join(l, r)
+                    return os.path.join(l, r).replace('\\', '/')
         raise EnvironmentException('Unsupported node type')
 
 def parse_machine_files(filenames):
-    parser = MachineFileParser(filenames)
-    return parser.sections
+    config = ConfigFileParser(filenames)
+    return ConfigFileInterpreter(config).sections
 
 def get_cmd_line_file(build_dir):
     return os.path.join(build_dir, 'meson-private', 'cmd_line.txt')
@@ -920,8 +942,7 @@ def read_cmd_line_file(build_dir, options):
     if not os.path.isfile(filename):
         return
 
-    config = CmdLineFileParser()
-    config.read(filename)
+    config = ConfigFileParser(filename)
 
     # Do a copy because config is not really a dict. options.cmd_line_options
     # overrides values from the file.
@@ -942,7 +963,7 @@ def cmd_line_options_to_string(options):
 
 def write_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
+    config = ConfigFileParser()
 
     properties = OrderedDict()
     if options.cross_file:
@@ -957,8 +978,7 @@ def write_cmd_line_file(build_dir, options):
 
 def update_cmd_line_file(build_dir, options):
     filename = get_cmd_line_file(build_dir)
-    config = CmdLineFileParser()
-    config.read(filename)
+    config = ConfigFileParser(filename)
     config['options'].update(cmd_line_options_to_string(options))
     with open(filename, 'w') as f:
         config.write(f)

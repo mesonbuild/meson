@@ -1,0 +1,8 @@
+[constants]
+version = '1.0'
+mirror = 'http://mirror.invalid'
+
+[wrap-file]
+filename = 'project-' + version + '.tar.gz'
+source_url = 'http://foo.invalid/' / filename
+fallback_source_url = mirror / filename

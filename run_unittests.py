@@ -68,6 +68,7 @@ from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
 
 from mesonbuild.mtest import TAPParser, TestResult
+from mesonbuild.wrap import wrap
 
 from run_tests import (
     Backend, FakeBuild, FakeCompilerOptions,
@@ -5093,6 +5094,20 @@ recommended as it is not supported on some platforms''')
         self.meson_cross_file = machinefile
         self.init(testdir)
         self.build()
+
+    def test_new_wrap_syntax(self):
+        r = wrap.Resolver(os.path.join(self.unit_test_dir, '79 new wrap syntax'))
+        self.assertEqual(r.wraps['constants'].values['source_url'], 'http://foo.invalid/project-1.0.tar.gz')
+        self.assertEqual(r.wraps['constants'].values['fallback_source_url'], 'http://mirror.invalid/project-1.0.tar.gz')
+        self.assertEqual(r.wraps['legacy'].values['source_url'], 'http://foo.invalid/legacy.tar.gz')
+        self.assertEqual(r.wraps['legacy'].values['lead_directory_missing'], 'true')
+        self.assertEqual(r.wraps['new'].values['source_url'], 'http://foo.invalid/project-1.0.tar.gz')
+        self.assertEqual(r.wraps['new'].values['lead_directory_missing'], True)
+        self.assertEqual(r.find_program_provider(['prog1']), 'new')
+        self.assertEqual(r.find_dep_provider('d1'), 'new')
+        self.assertEqual(r.find_dep_provider('d2'), 'new')
+        self.assertEqual(r.find_dep_provider('d3'), 'new')
+        self.assertEqual(r.find_dep_provider('d4'), ['new', 'varname'])
 
 class FailureTests(BasePlatformTests):
     '''

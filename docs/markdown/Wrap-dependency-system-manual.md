@@ -47,24 +47,35 @@ Currently Meson has four kinds of wraps:
 
 Wrap files are written in ini format, with a single header containing the type
 of wrap, followed by properties describing how to obtain the sources, validate
-them, and modify them if needed. An example wrap-file for the wrap named
-`libfoobar` would have a filename `libfoobar.wrap` and would look like this:
+them, and modify them if needed.
+
+Since *0.56.0* the same syntax as [machine files](Machine-files.md) is supported
+and recommended for values:
+- Quoted string values (e.g. `directory='libfoobar-1.0'`).
+- Python-style list values (e.g. `program_names=['prog1', 'prog2']`)
+- `+` and `/` operators and `[constants]` section (e.g. `source_url='http://example.com' / project_name + '.tar.gz'`)
+
+The legacy syntax, where values were unquoted and lists were separated by comma,
+is still supported for backward compatibility.
+
+An example wrap-file for the wrap named `libfoobar` would have a filename
+`libfoobar.wrap` and would look like this:
 
 ```ini
 [wrap-file]
-directory = libfoobar-1.0
+directory = 'libfoobar-1.0'
 
-source_url = https://example.com/foobar-1.0.tar.gz
-source_filename = foobar-1.0.tar.gz
-source_hash = 5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663
+source_url = 'https://example.com/foobar-1.0.tar.gz'
+source_filename = 'foobar-1.0.tar.gz'
+source_hash = '5ebeea0dfb75d090ea0e7ff84799b2a7a1550db3fe61eb5f6f61c2e971e57663'
 ```
 
 An example wrap-git will look like this:
 
 ```ini
 [wrap-git]
-url = https://github.com/libfoobar/libfoobar.git
-revision = head
+url = 'https://github.com/libfoobar/libfoobar.git'
+revision = 'head'
 ```
 
 ## Accepted configuration properties for wraps
@@ -149,7 +160,7 @@ Wrap files can define the dependencies it provides in the `[provide]` section.
 
 ```ini
 [provide]
-dependency_names = foo-1.0
+dependency_names = ['foo-1.0']
 ```
 
 When a wrap file provides the dependency `foo-1.0`, as above, any call to
@@ -198,29 +209,29 @@ For example when using a recent enough version of glib that uses
 a wrap file would look like:
 ```ini
 [wrap-git]
-url=https://gitlab.gnome.org/GNOME/glib.git
-revision=glib-2-62
+url='https://gitlab.gnome.org/GNOME/glib.git'
+revision='glib-2-62'
 
 [provide]
-dependency_names = glib-2.0, gobject-2.0, gio-2.0
+dependency_names = ['glib-2.0', 'gobject-2.0', 'gio-2.0']
 ```
 
 With older version of glib dependency variable names need to be specified:
 ```ini
 [wrap-git]
-url=https://gitlab.gnome.org/GNOME/glib.git
-revision=glib-2-62
+url='https://gitlab.gnome.org/GNOME/glib.git'
+revision='glib-2-62'
 
 [provide]
-glib-2.0=glib_dep
-gobject-2.0=gobject_dep
-gio-2.0=gio_dep
+glib-2.0='glib_dep'
+gobject-2.0='gobject_dep'
+gio-2.0='gio_dep'
 ```
 
 Programs can also be provided by wrap files, with the `program_names` key:
 ```ini
 [provide]
-program_names = myprog, otherprog
+program_names = ['myprog', 'otherprog']
 ```
 
 With such wrap file, `find_program('myprog')` will automatically fallback to use
