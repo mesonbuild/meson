@@ -663,7 +663,7 @@ class Backend:
         # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
         if no_warn_args:
             commands += compiler.get_no_warn_args()
-        elif self.get_option_for_target('buildtype', target) != 'plain':
+        else:
             commands += compiler.get_warn_args(self.get_option_for_target('warning_level', target))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
