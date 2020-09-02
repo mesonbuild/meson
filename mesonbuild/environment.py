@@ -158,15 +158,19 @@ def find_coverage_tools():
 
     return gcovr_exe, gcovr_new_rootdir, lcov_exe, genhtml_exe, llvm_cov_exe
 
-def detect_ninja(version: str = '1.7', log: bool = False) -> str:
+def detect_ninja(version: str = '1.7', log: bool = False) -> T.List[str]:
     r = detect_ninja_command_and_version(version, log)
     return r[0] if r else None
 
-def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) -> (str, str):
+def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) -> (T.List[str], str):
+    from .dependencies.base import ExternalProgram
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
+        prog = ExternalProgram(n, silent=True)
+        if not prog.found():
+            continue
         try:
-            p, found = Popen_safe([n, '--version'])[0:2]
+            p, found = Popen_safe(prog.command + ['--version'])[0:2]
         except (FileNotFoundError, PermissionError):
             # Doesn't exist in PATH or isn't executable
             continue
@@ -174,7 +178,6 @@ def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) ->
         # Perhaps we should add a way for the caller to know the failure mode
         # (not found or too old)
         if p.returncode == 0 and mesonlib.version_compare(found, '>=' + version):
-            n = shutil.which(n)
             if log:
                 name = os.path.basename(n)
                 if name.endswith('-' + found):
@@ -183,8 +186,9 @@ def detect_ninja_command_and_version(version: str = '1.7', log: bool = False) ->
                     name = 'ninja'
                 if name == 'samu':
                     name = 'samurai'
-                mlog.log('Found {}-{} at {}'.format(name, found, quote_arg(n)))
-            return (n, found)
+                mlog.log('Found {}-{} at {}'.format(name, found,
+                         ' '.join([quote_arg(x) for x in prog.command])))
+            return (prog.command, found)
 
 def get_llvm_tool_names(tool: str) -> T.List[str]:
     # Ordered list of possible suffixes of LLVM executables to try. Start with

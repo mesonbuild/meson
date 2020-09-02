@@ -1173,7 +1173,7 @@ def rebuild_all(wd: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    ret = subprocess.run([ninja, '-C', wd]).returncode
+    ret = subprocess.run(ninja + ['-C', wd]).returncode
     if ret != 0:
         print('Could not rebuild {}'.format(wd))
         return False

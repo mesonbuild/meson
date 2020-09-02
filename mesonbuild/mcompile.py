@@ -139,7 +139,7 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Li
         raise MesonException('Cannot find ninja.')
     mlog.log('Found runner:', runner)
 
-    cmd = [runner, '-C', builddir.as_posix()]
+    cmd = runner + ['-C', builddir.as_posix()]
 
     if options.targets:
         intro_data = parse_introspect_data(builddir)
