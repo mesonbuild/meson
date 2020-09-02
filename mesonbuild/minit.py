@@ -174,7 +174,7 @@ def run(options) -> int:
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit
-        cmd = [detect_ninja(), '-C', options.builddir]
+        cmd = detect_ninja() + ['-C', options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit

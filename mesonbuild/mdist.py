@@ -180,19 +180,19 @@ def create_dist_hg(dist_name, archives, src_root, bld_root, dist_sub, dist_scrip
         output_names.append(zipname)
     return output_names
 
-def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin):
+def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args):
     if subprocess.call(meson_command + ['--backend=ninja', unpacked_src_dir, builddir]) != 0:
         print('Running Meson on distribution package failed')
         return 1
-    if subprocess.call([ninja_bin], cwd=builddir) != 0:
+    if subprocess.call(ninja_args, cwd=builddir) != 0:
         print('Compiling the distribution package failed')
         return 1
-    if subprocess.call([ninja_bin, 'test'], cwd=builddir) != 0:
+    if subprocess.call(ninja_args + ['test'], cwd=builddir) != 0:
         print('Running unit tests on the distribution package failed')
         return 1
     myenv = os.environ.copy()
     myenv['DESTDIR'] = installdir
-    if subprocess.call([ninja_bin, 'install'], cwd=builddir, env=myenv) != 0:
+    if subprocess.call(ninja_args + ['install'], cwd=builddir, env=myenv) != 0:
         print('Installing the distribution package failed')
         return 1
     return 0
@@ -206,7 +206,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
         if os.path.exists(p):
             windows_proof_rmtree(p)
         os.mkdir(p)
-    ninja_bin = detect_ninja()
+    ninja_args = detect_ninja()
     shutil.unpack_archive(packagename, unpackdir)
     unpacked_files = glob(os.path.join(unpackdir, '*'))
     assert(len(unpacked_files) == 1)
@@ -216,7 +216,7 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
                           if o['name'] not in ['backend', 'install_umask', 'buildtype']]
     meson_command += extra_meson_args
 
-    ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_bin)
+    ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args)
     if ret > 0:
         print('Dist check build directory was {}'.format(builddir))
     else:
