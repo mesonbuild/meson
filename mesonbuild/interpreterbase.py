@@ -458,7 +458,7 @@ class InterpreterBase:
         # meson.version().compare_version(version_string)
         # If it was part of a if-clause, it is used to temporally override the
         # current meson version target within that if-block.
-        self.tmp_meson_version = None # type: str
+        self.tmp_meson_version = None # type: T.Optional[str]
 
     def load_root_meson_file(self) -> None:
         mesonfile = os.path.join(self.source_root, self.subdir, environment.build_filename)
