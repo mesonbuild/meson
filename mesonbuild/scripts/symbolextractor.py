@@ -80,6 +80,9 @@ def call_tool(name: str, args: T.List[str], **kwargs) -> str:
     except FileNotFoundError:
         print_tool_warning(tool, 'not found')
         return None
+    except PermissionError:
+        print_tool_warning(tool, 'not usable')
+        return None
     if p.returncode != 0:
         print_tool_warning(tool, 'does not work', e)
         return None
@@ -90,6 +93,8 @@ def call_tool_nowarn(tool: T.List[str], **kwargs) -> T.Tuple[str, str]:
         p, output, e = Popen_safe(tool, **kwargs)
     except FileNotFoundError:
         return None, '{!r} not found\n'.format(tool[0])
+    except PermissionError:
+        return None, '{!r} not usable\n'.format(tool[0])
     if p.returncode != 0:
         return None, e
     return output, None
