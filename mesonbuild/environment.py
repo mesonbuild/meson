@@ -1383,8 +1383,6 @@ class Environment:
         for compiler in compilers:
             if isinstance(compiler, str):
                 compiler = [compiler]
-            else:
-                raise EnvironmentException()
             arg = '--version'
             try:
                 p, out, err = Popen_safe(compiler + [arg])
