@@ -17,14 +17,14 @@ jobs:
   scalapackMacOS:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: python -m pip install -e .
     - run: brew install pkg-config ninja gcc openmpi lapack scalapack
     - run: meson setup "test cases/frameworks/30 scalapack" build
-    - run: ninja -C build
+    - run: meson compile -C build
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
@@ -40,14 +40,14 @@ jobs:
   HDF5macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: python -m pip install -e .
     - run: brew install pkg-config ninja gcc hdf5
     - run: meson setup "test cases/frameworks/25 hdf5" build
-    - run: ninja -C build
+    - run: meson compile -C build
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
@@ -63,8 +63,8 @@ jobs:
   Qt4macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - run: python -m pip install -e .
@@ -72,7 +72,7 @@ jobs:
     - run: brew tap cartr/qt4
     - run: brew install qt@4
     - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
-    - run: ninja -C build
+    - run: meson compile -C build
     - uses: actions/upload-artifact@v1
       if: failure()
       with:

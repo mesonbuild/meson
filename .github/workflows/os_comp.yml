@@ -25,7 +25,6 @@ jobs:
     - name: Run tests
       run: LD_LIBRARY_PATH=/usr/local/share/boost/1.69.0/lib/:$(rustc --print sysroot)/lib:$LD_LIBRARY_PATH python3 run_tests.py
       env:
-        CI: '1'
         XENIAL: '1'
 
   arch:
