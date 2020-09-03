@@ -4,6 +4,10 @@ name: UnusedMissingReturn
 # * missing return values
 # * strict prototypes
 # some users have default configs that will needlessly fail Meson self-tests due to these syntax.
+env:
+  CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
+  CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
+  FFLAGS: "-fimplicit-none"
 
 on:
   push:
@@ -31,10 +35,10 @@ on:
 jobs:
 
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
     - name: Install Compilers
@@ -42,30 +46,19 @@ jobs:
         sudo apt update -yq
         sudo apt install -yq --no-install-recommends g++ gfortran ninja-build gobjc gobjc++
     - run: python run_project_tests.py --only cmake common fortran platform-linux "objective c" "objective c++"
-      env:
-        CI: "1"
-        CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
-        CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
-        FFLAGS: "-fimplicit-none"
 
   windows:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
       with:
         python-version: '3.x'
-    # ninja==1.10 pypi release didn't ship with windows binaries, which causes
-    # pip to try to build it which fails on Windows. Pin the previous version
-    # for now. We can update once that's fixed.
-    # https://pypi.org/project/ninja/1.10.0/#files
-    - run: pip install ninja==1.9.0.post1 pefile
+
+    - run: pip install ninja pefile
+
     - run: python run_project_tests.py --only platform-windows
       env:
-        CI: "1"
-        CFLAGS: "-Werror=unused-parameter -Werror=return-type -Werror=strict-prototypes"
-        CPPFLAGS: "-Werror=unused-parameter -Werror=return-type"
-        FFLAGS: "-fimplicit-none"
         CC: gcc
         CXX: g++
         FC: gfortran

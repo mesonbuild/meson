@@ -1,3 +1,5 @@
+program test_include_syntax
+
 implicit none
 
 integer :: x, y
