@@ -19,7 +19,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from enum import Enum
+from enum import IntEnum
 from functools import lru_cache, wraps
 from itertools import tee, filterfalse
 import typing as T
@@ -323,32 +323,7 @@ def classify_unity_sources(compilers: T.Iterable['CompilerType'], sources: T.Ite
     return compsrclist
 
 
-class OrderedEnum(Enum):
-    """
-    An Enum which additionally offers homogeneous ordered comparison.
-    """
-    def __ge__(self, other: object) -> bool:
-        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
-            return self.value >= other.value
-        return NotImplemented
-
-    def __gt__(self, other: object) -> bool:
-        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
-            return self.value > other.value
-        return NotImplemented
-
-    def __le__(self, other: object) -> bool:
-        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum)and isinstance(self.value, int) and isinstance(other.value, int):
-            return self.value <= other.value
-        return NotImplemented
-
-    def __lt__(self, other: object) -> bool:
-        if self.__class__ is other.__class__ and isinstance(other, OrderedEnum) and isinstance(self.value, int) and isinstance(other.value, int):
-            return self.value < other.value
-        return NotImplemented
-
-
-class MachineChoice(OrderedEnum):
+class MachineChoice(IntEnum):
 
     """Enum class representing one of the two abstract machine names used in
     most places: the build, and host, machines.
@@ -1572,7 +1547,7 @@ def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
         return False
     return True
 
-class LibType(Enum):
+class LibType(IntEnum):
 
     """Enumeration for library types."""
 
