@@ -42,7 +42,7 @@ NINJA_CMD = None
 # test that we run.
 if 'CI' in os.environ:
     NINJA_1_9_OR_NEWER = True
-    NINJA_CMD = 'ninja'
+    NINJA_CMD = ['ninja']
 else:
     # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
     # is fixed
@@ -221,7 +221,7 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
-        cmd = [NINJA_CMD, '-w', 'dupbuild=err', '-d', 'explain']
+        cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
