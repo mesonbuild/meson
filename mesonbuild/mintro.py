@@ -325,6 +325,7 @@ def get_test_list(testdata) -> T.List[T.Dict[str, T.Union[str, int, T.List[str],
         to['is_parallel'] = t.is_parallel
         to['priority'] = t.priority
         to['protocol'] = str(t.protocol)
+        to['depends'] = t.depends
         result.append(to)
     return result
 

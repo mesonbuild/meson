@@ -247,12 +247,18 @@ line arguments, environment variable settings and how to process the output.
     "is_parallel": true / false,
     "protocol": "exitcode" / "tap",
     "cmd": ["command", "to", "run"],
+    "depends": ["target1-id", "target2-id"],
     "env": {
         "VARIABLE1": "value 1",
         "VARIABLE2": "value 2"
     }
 }
 ```
+
+The `depends` entry *(since 0.56.0)* contains target ids; they can be
+looked up in the targets introspection data.  The executable
+pointed to by `cmd` is also included in the entry, as are any
+arguments to the test that are build products.
 
 ## Build system files
 
