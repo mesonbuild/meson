@@ -120,7 +120,8 @@ class TestSerialisation:
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
                  extra_paths: T.List[str], protocol: TestProtocol, priority: int,
-                 cmd_is_built: bool):
+                 cmd_is_built: bool,
+                 depends: T.List[str]):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -140,6 +141,7 @@ class TestSerialisation:
         self.priority = priority
         self.needs_exe_wrapper = needs_exe_wrapper
         self.cmd_is_built = cmd_is_built
+        self.depends = depends
 
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
@@ -830,7 +832,12 @@ class Backend:
                 extra_paths = []
 
             cmd_args = []
+            depends = set(t.depends)
+            if isinstance(exe, build.Target):
+                depends.add(exe)
             for a in unholder(t.cmd_args):
+                if isinstance(a, build.Target):
+                    depends.add(a)
                 if isinstance(a, build.BuildTarget):
                     extra_paths += self.determine_windows_extra_paths(a, [])
                 if isinstance(a, mesonlib.File):
@@ -852,7 +859,8 @@ class Backend:
                                    t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
-                                   isinstance(exe, build.Executable))
+                                   isinstance(exe, build.Executable),
+                                   [x.get_id() for x in depends])
             arr.append(ts)
         return arr
 

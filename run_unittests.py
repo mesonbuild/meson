@@ -4281,6 +4281,7 @@ recommended as it is not supported on some platforms''')
             ('suite', list),
             ('is_parallel', bool),
             ('protocol', str),
+            ('depends', list),
         ]
 
         buildoptions_keylist = [
@@ -4338,12 +4339,28 @@ recommended as it is not supported on some platforms''')
 
         assertKeyTypes(root_keylist, res)
 
+        # Match target ids to input and output files for ease of reference
+        src_to_id = {}
+        out_to_id = {}
+        for i in res['targets']:
+            print(json.dump(i, sys.stdout))
+            out_to_id.update({os.path.relpath(out, self.builddir): i['id']
+                              for out in i['filename']})
+            for group in i['target_sources']:
+                src_to_id.update({os.path.relpath(src, testdir): i['id']
+                                  for src in group['sources']})
+
         # Check Tests and benchmarks
         tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
+        deps_to_find = {'test case 1': [src_to_id['t1.cpp']],
+                        'test case 2': [src_to_id['t2.cpp'], src_to_id['t3.cpp']],
+                        'benchmark 1': [out_to_id['file2'], src_to_id['t3.cpp']]}
         for i in res['benchmarks'] + res['tests']:
             assertKeyTypes(test_keylist, i)
             if i['name'] in tests_to_find:
                 tests_to_find.remove(i['name'])
+            self.assertEqual(sorted(i['depends']),
+                             sorted(deps_to_find[i['name']]))
         self.assertListEqual(tests_to_find, [])
 
         # Check buildoptions
@@ -4484,6 +4501,7 @@ recommended as it is not supported on some platforms''')
         res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
 
         # Account for differences in output
+        res_wb = [i for i in res_wb if i['type'] != 'custom']
         for i in res_wb:
             i['filename'] = [os.path.relpath(x, self.builddir) for x in i['filename']]
             if 'install_filename' in i:
