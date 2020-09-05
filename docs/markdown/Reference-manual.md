@@ -2155,7 +2155,7 @@ the following methods:
   `args` keyword, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `check_header` *(since 0.47.0)*: returns true if the specified header is *usable* with
+- `check_header(header_name)` *(since 0.47.0)*: returns true if the specified header is *usable* with
   the specified prefix, dependencies, and arguments.
   You can specify external dependencies to use with `dependencies`
   keyword argument and extra code to put above the header test with
@@ -2166,7 +2166,7 @@ the following methods:
   `required` keyword argument can be used to abort if the header cannot be
   found.
 
-- `has_header`: returns true if the specified header *exists*, and is
+- `has_header(header_name)`: returns true if the specified header *exists*, and is
   faster than `check_header()` since it only does a pre-processor check.
   You can specify external dependencies to use with `dependencies`
   keyword argument and extra code to put above the header test with
