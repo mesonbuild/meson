@@ -2961,6 +2961,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.is_subproject():
             optname = self.subproject + ':' + optname
 
+        if raw_optname == 'buildtype':
+            mlog.deprecation('Getting the buildtype option is deprecated, debug and/or optimization options should be used instead.')
 
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
@@ -3047,9 +3049,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend)
 
-        if '' in self.environment.meson_options.host:
-            options = {k: v for k, v in self.environment.meson_options.host[''].items() if k.startswith('backend_')}
-            self.coredata.set_options(options)
+        options = {k: v for k, v in self.environment.raw_options.items() if k.startswith('backend_')}
+        self.coredata.set_options(options)
 
     @stringArgs
     @permittedKwargs(permitted_kwargs['project'])

@@ -27,7 +27,7 @@ from ..mesonlib import (
     Popen_safe, split_args
 )
 from ..envconfig import (
-    Properties, get_env_var
+    get_env_var
 )
 from ..arglist import CompilerArgs
 
@@ -949,8 +949,7 @@ def get_args_from_envvars(lang: str,
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       is_cross: bool,
-                       properties: Properties) -> T.Dict[str, coredata.UserOption]:
+                       is_cross: bool) -> T.Dict[str, coredata.UserOption]:
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     opts = {
@@ -970,11 +969,7 @@ def get_global_options(lang: str,
         comp.INVOKES_LINKER)
 
     for k, o in opts.items():
-        user_k = lang + '_' + k
-        if user_k in properties:
-            # Get from configuration files.
-            o.set_value(properties[user_k])
-        elif k == 'args':
+        if k == 'args':
             o.set_value(compile_args)
         elif k == 'link_args':
             o.set_value(link_args)

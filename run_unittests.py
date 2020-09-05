@@ -8226,7 +8226,7 @@ class NativeFileTests(BasePlatformTests):
         else:
             self.fail('Did not find werror in build options?')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
         config = self.helper_create_native_file({'built-in options': {'pkg_config_path': '/foo'}})
 
@@ -8234,7 +8234,7 @@ class NativeFileTests(BasePlatformTests):
         configuration = self.introspect('--buildoptions')
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/foo'])
                 break
         else:
             self.fail('Did not find pkg_config_path in build options?')
@@ -8269,14 +8269,11 @@ class NativeFileTests(BasePlatformTests):
             self.init(testcase, extra_args=['--native-file', config])
             self.assertIn(cm.exception.stdout, 'Parent should override default_library')
 
-    def test_builtin_options_subprojects_inherits_parent_override(self):
+    def test_builtin_options_subprojects_dont_inherits_parent_override(self):
         # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
         testcase = os.path.join(self.common_test_dir, '230 persubproject options')
         config = self.helper_create_native_file({'built-in options': {'default_library': 'both'}})
-
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
-            self.init(testcase, extra_args=['--native-file', config])
-            self.assertIn(cm.exception.stdout, 'Parent should override default_library')
+        self.init(testcase, extra_args=['--native-file', config])
 
     def test_builtin_options_compiler_properties(self):
         # the properties section can have lang_args, and those need to be
@@ -8639,10 +8636,10 @@ class CrossFileTests(BasePlatformTests):
                 break
         self.assertEqual(found, 4, 'Did not find all sections.')
 
-    def test_builtin_options_env_overrides_conf(self):
+    def test_builtin_options_conf_overrides_env(self):
         testcase = os.path.join(self.common_test_dir, '2 cpp')
-        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
-        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/foo'}})
+        config = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/native'}})
+        cross = self.helper_create_cross_file({'built-in options': {'pkg_config_path': '/cross'}})
 
         self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross],
                   override_envvars={'PKG_CONFIG_PATH': '/bar', 'PKG_CONFIG_PATH_FOR_BUILD': '/dir'})
@@ -8650,10 +8647,10 @@ class CrossFileTests(BasePlatformTests):
         found = 0
         for each in configuration:
             if each['name'] == 'pkg_config_path':
-                self.assertEqual(each['value'], ['/bar'])
+                self.assertEqual(each['value'], ['/cross'])
                 found += 1
             elif each['name'] == 'build.pkg_config_path':
-                self.assertEqual(each['value'], ['/dir'])
+                self.assertEqual(each['value'], ['/native'])
                 found += 1
             if found == 2:
                 break
