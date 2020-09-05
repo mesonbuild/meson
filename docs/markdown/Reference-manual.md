@@ -1776,7 +1776,7 @@ the following methods.
 
   `MESONINTROSPECT` contains the path to the introspect command that
   corresponds to the `meson` executable that was used to configure the
-  build. (This might be a different path then the first executable
+  build. (This might be a different path than the first executable
   found in `PATH`.) It can be used to query build configuration. Note
   that the value will contain many parts, f.ex., it may be `python3
   /path/to/meson.py introspect`. The user is responsible for splitting
