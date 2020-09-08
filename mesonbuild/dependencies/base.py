@@ -1897,7 +1897,7 @@ class ExternalProgram:
         return ExternalProgram(command, silent=True)
 
     @staticmethod
-    def _shebang_to_cmd(script):
+    def _shebang_to_cmd(script: str) -> T.Optional[list]:
         """
         Check if the file has a shebang and manually parse it to figure out
         the interpreter to use. This is useful if the script is not executable
@@ -1941,7 +1941,7 @@ class ExternalProgram:
         except Exception as e:
             mlog.debug(e)
         mlog.debug('Unusable script {!r}'.format(script))
-        return False
+        return None
 
     def _is_executable(self, path):
         suffix = os.path.splitext(path)[-1].lower()[1:]
@@ -1953,9 +1953,9 @@ class ExternalProgram:
             return not os.path.isdir(path)
         return False
 
-    def _search_dir(self, name, search_dir):
+    def _search_dir(self, name: str, search_dir: T.Optional[str]) -> T.Optional[list]:
         if search_dir is None:
-            return False
+            return None
         trial = os.path.join(search_dir, name)
         if os.path.exists(trial):
             if self._is_executable(trial):
@@ -1970,9 +1970,9 @@ class ExternalProgram:
                     trial_ext = '{}.{}'.format(trial, ext)
                     if os.path.exists(trial_ext):
                         return [trial_ext]
-        return False
+        return None
 
-    def _search_windows_special_cases(self, name, command):
+    def _search_windows_special_cases(self, name: str, command: str) -> list:
         '''
         Lots of weird Windows quirks:
         1. PATH search for @name returns files with extensions from PATHEXT,
@@ -2015,7 +2015,7 @@ class ExternalProgram:
                 return commands
         return [None]
 
-    def _search(self, name, search_dir):
+    def _search(self, name: str, search_dir: T.Optional[str]) -> list:
         '''
         Search in the specified dir for the specified executable by name
         and if not found search in PATH
