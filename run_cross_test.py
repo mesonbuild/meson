@@ -25,17 +25,20 @@ from mesonbuild import mesonlib
 from mesonbuild.coredata import version as meson_version
 
 
-def runtests(cross_file, failfast):
-    tests = ['--only', 'common', 'native']
+def runtests(cross_file, failfast, cross_only):
+    tests = ['--only', 'common']
+    if not cross_only:
+        tests.append('native')
     cmd = mesonlib.python_command + ['run_project_tests.py', '--backend', 'ninja'] + (['--failfast'] if failfast else []) + tests + ['--cross-file', cross_file]
     return subprocess.call(cmd)
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--failfast', action='store_true')
+    parser.add_argument('--cross-only', action='store_true')
     parser.add_argument('cross_file')
     options = parser.parse_args()
-    return runtests(options.cross_file, options.failfast)
+    return runtests(options.cross_file, options.failfast, options.cross_only)
 
 if __name__ == '__main__':
     print('Meson build system', meson_version, 'Cross Tests')
