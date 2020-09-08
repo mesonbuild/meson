@@ -192,6 +192,16 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.evaluate_statement(node.trueblock)
         self.evaluate_statement(node.falseblock)
 
+    def evaluate_dictstatement(self, node: mparser.DictNode) -> TYPE_nkwargs:
+        (arguments, kwargs) = self.reduce_arguments(node.args, resolve_key_nodes=False)
+        assert (not arguments)
+        self.argument_depth += 1
+        for key, value in kwargs.items():
+            if isinstance(key, BaseNode):
+                self.evaluate_statement(key)
+        self.argument_depth -= 1
+        return {}
+
     def evaluate_plusassign(self, node: PlusAssignmentNode) -> None:
         assert(isinstance(node, PlusAssignmentNode))
         # Cheat by doing a reassignment
