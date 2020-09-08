@@ -2,7 +2,7 @@ import os, subprocess
 import argparse
 
 from . import mlog
-from .mesonlib import git, Popen_safe
+from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe
 from .wrap.wrap import API_ROOT, Resolver, WrapException
 from .wrap import wraptool
 
@@ -42,13 +42,12 @@ def update_file(wrap, repo_dir, options):
     return True
 
 def git_output(cmd, workingdir):
-    return git(cmd, workingdir, check=True, universal_newlines=True,
-               stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+    return quiet_git(cmd, workingdir, check=True)[1]
 
 def git_stash(workingdir):
     # Don't pipe stdout here because we want the user to see his changes have
     # been saved.
-    git(['stash'], workingdir, check=True, universal_newlines=True)
+    verbose_git(['stash'], workingdir, check=True)
 
 def git_show(repo_dir):
     commit_message = git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
@@ -58,10 +57,9 @@ def git_show(repo_dir):
 def git_rebase(repo_dir, revision):
     try:
         git_output(['-c', 'rebase.autoStash=true', 'rebase', 'FETCH_HEAD'], repo_dir)
-    except subprocess.CalledProcessError as e:
-        out = e.output.strip()
+    except GitException as e:
         mlog.log('  -> Could not rebase', mlog.bold(repo_dir), 'onto', mlog.bold(revision))
-        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(e.output))
         mlog.log(mlog.red(str(e)))
         return False
     return True
@@ -72,10 +70,9 @@ def git_reset(repo_dir, revision):
         # avoid any data lost by mistake.
         git_stash(repo_dir)
         git_output(['reset', '--hard', 'FETCH_HEAD'], repo_dir)
-    except subprocess.CalledProcessError as e:
-        out = e.output.strip()
+    except GitException as e:
         mlog.log('  -> Could not reset', mlog.bold(repo_dir), 'to', mlog.bold(revision))
-        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(e.output))
         mlog.log(mlog.red(str(e)))
         return False
     return True
@@ -89,10 +86,9 @@ def git_checkout(repo_dir, revision, create=False):
         # avoid any data lost by mistake.
         git_stash(repo_dir)
         git_output(cmd, repo_dir)
-    except subprocess.CalledProcessError as e:
-        out = e.output.strip()
+    except GitException as e:
         mlog.log('  -> Could not checkout', mlog.bold(revision), 'in', mlog.bold(repo_dir))
-        mlog.log(mlog.red(out))
+        mlog.log(mlog.red(e.output))
         mlog.log(mlog.red(str(e)))
         return False
     return True
@@ -126,7 +122,14 @@ def update_git(wrap, repo_dir, options):
     # Fetch only the revision we need, this avoids fetching useless branches and
     # is needed for http case were new remote branches wouldn't be discovered
     # otherwise. After this command, FETCH_HEAD is the revision we want.
-    git_output(['fetch', 'origin', revision], repo_dir)
+    try:
+        git_output(['fetch', 'origin', revision], repo_dir)
+    except GitException as e:
+        mlog.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(repo_dir))
+        mlog.log(mlog.red(e.output))
+        mlog.log(mlog.red(str(e)))
+        return False
+
     if branch == '':
         # We are currently in detached mode
         if options.reset:
@@ -234,17 +237,15 @@ def foreach(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
         return True
-    try:
-        out = subprocess.check_output([options.command] + options.args,
-                                      stderr=subprocess.STDOUT,
-                                      cwd=repo_dir).decode()
-        mlog.log(out, end='')
-    except subprocess.CalledProcessError as e:
-        err_message = "Command '{}' returned non-zero exit status {}.".format(" ".join(e.cmd), e.returncode)
-        out = e.output.decode()
+    cmd = [options.command] + options.args
+    p, out, _ = Popen_safe(cmd, stderr=subprocess.STDOUT, cwd=repo_dir)
+    if p.returncode != 0:
+        err_message = "Command '{}' returned non-zero exit status {}.".format(" ".join(cmd), p.returncode)
         mlog.log('  -> ', mlog.red(err_message))
         mlog.log(out, end='')
         return False
+
+    mlog.log(out, end='')
     return True
 
 def add_common_arguments(p):
