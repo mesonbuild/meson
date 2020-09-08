@@ -82,11 +82,9 @@ class CompCertCompiler:
         "Always returns a copy that can be independently mutated"
         patched_args = []
         for arg in args:
-            do_not_add = 0
             for ptrn in ccomp_args_to_wul:
                 if re.match(ptrn, arg):
                     patched_args.append('-WUl,' + arg)
-                    do_not_add = 1
                 else:
                     patched_args.append(arg)
         return patched_args
