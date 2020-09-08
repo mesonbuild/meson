@@ -1804,7 +1804,14 @@ class ExternalProgram:
             if mesonlib.is_windows():
                 cmd = self.command[0]
                 args = self.command[1:]
-                self.command = self._search_windows_special_cases(name, cmd) + args
+                # Check whether the specified cmd is a path to a script, in
+                # which case we need to insert the interpreter. If not, try to
+                # use it as-is.
+                ret = self._shebang_to_cmd(cmd)
+                if ret:
+                    self.command = ret + args
+                else:
+                    self.command = [cmd] + args
         else:
             all_search_dirs = [search_dir]
             if extra_search_dirs:
