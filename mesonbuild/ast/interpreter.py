@@ -192,7 +192,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         self.evaluate_statement(node.falseblock)
 
     def evaluate_dictstatement(self, node: mparser.DictNode) -> TYPE_nkwargs:
-        (arguments, kwargs) = self.reduce_arguments(node.args, resolve_key_nodes=False)
+        def resolve_key(node: mparser.BaseNode) -> str:
+            if isinstance(node, mparser.StringNode):
+                return node.value
+            return '__AST_UNKNOWN__'
+        arguments, kwargs = self.reduce_arguments(node.args, key_resolver=resolve_key)
         assert (not arguments)
         self.argument_depth += 1
         for key, value in kwargs.items():
