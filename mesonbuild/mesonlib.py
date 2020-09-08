@@ -88,6 +88,22 @@ def git(cmd: T.List[str], workingdir: str, **kwargs: T.Any) -> subprocess.Comple
     mlog.setup_console()
     return pc
 
+def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
+    if not GIT:
+        return False, 'Git program not found.'
+    pc = git(cmd, workingdir, universal_newlines=True,
+             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if pc.returncode != 0:
+        return False, pc.stderr
+    return True, pc.stdout
+
+def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
+    if not GIT:
+        return False
+    try:
+        return git(cmd, workingdir, check=check).returncode == 0
+    except subprocess.CalledProcessError:
+        raise WrapException('Git command failed')
 
 def set_meson_command(mainfile: str) -> None:
     global python_command

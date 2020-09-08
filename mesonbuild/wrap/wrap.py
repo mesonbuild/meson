@@ -30,7 +30,7 @@ import typing as T
 from pathlib import Path
 from . import WrapMode
 from .. import coredata
-from ..mesonlib import git, GIT, ProgressBar, MesonException
+from ..mesonlib import verbose_git, quiet_git, GIT, ProgressBar, MesonException
 
 if T.TYPE_CHECKING:
     import http.client
@@ -48,23 +48,6 @@ except ImportError:
 REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
-
-def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
-    if not GIT:
-        return False, 'Git program not found.'
-    pc = git(cmd, workingdir, universal_newlines=True,
-             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if pc.returncode != 0:
-        return False, pc.stderr
-    return True, pc.stdout
-
-def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
-    if not GIT:
-        return False
-    try:
-        return git(cmd, workingdir, check=check).returncode == 0
-    except subprocess.CalledProcessError:
-        raise WrapException('Git command failed')
 
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
