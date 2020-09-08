@@ -72,38 +72,41 @@ class MesonException(Exception):
     lineno = None  # type: T.Optional[int]
     colno = None   # type: T.Optional[int]
 
-
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
 
-GIT = shutil.which('git')
-def git(cmd: T.List[str], workingdir: str, **kwargs: T.Any) -> subprocess.CompletedProcess:
-    pc = subprocess.run([GIT, '-C', workingdir] + cmd,
-                        # Redirect stdin to DEVNULL otherwise git messes up the
-                        # console and ANSI colors stop working on Windows.
-                        stdin=subprocess.DEVNULL, **kwargs)
-    # Sometimes git calls git recursively, such as `git submodule update
-    # --recursive` which will be without the above workaround, so set the
-    # console mode again just in case.
-    mlog.setup_console()
-    return pc
+class GitException(MesonException):
+    def __init__(self, msg: str, output: T.Optional[str] = None):
+        super().__init__(msg)
+        self.output = output.strip() if output else ''
 
-def quiet_git(cmd: T.List[str], workingdir: str) -> T.Tuple[bool, str]:
+GIT = shutil.which('git')
+def git(cmd: T.List[str], workingdir: str, check: bool = False, **kwargs: T.Any) -> T.Tuple[subprocess.Popen, str, str]:
+    cmd = [GIT] + cmd
+    p, o, e = Popen_safe(cmd, cwd=workingdir, **kwargs)
+    if check and p.returncode != 0:
+        raise GitException('Git command failed: ' + str(cmd), e)
+    return p, o, e
+
+def quiet_git(cmd: T.List[str], workingdir: str, check: bool = False) -> T.Tuple[bool, str]:
     if not GIT:
-        return False, 'Git program not found.'
-    pc = git(cmd, workingdir, universal_newlines=True,
-             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if pc.returncode != 0:
-        return False, pc.stderr
-    return True, pc.stdout
+        m = 'Git program not found.'
+        if check:
+            raise GitException(m)
+        return False, m
+    p, o, e = git(cmd, workingdir, check)
+    if p.returncode != 0:
+        return False, e
+    return True, o
 
 def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     if not GIT:
+        m = 'Git program not found.'
+        if check:
+            raise GitException(m)
         return False
-    try:
-        return git(cmd, workingdir, check=check).returncode == 0
-    except subprocess.CalledProcessError:
-        raise WrapException('Git command failed')
+    p, _, _ = git(cmd, workingdir, check, stdout=None, stderr=None)
+    return p.returncode == 0
 
 def set_meson_command(mainfile: str) -> None:
     global python_command
