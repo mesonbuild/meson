@@ -5461,6 +5461,10 @@ class WindowsTests(BasePlatformTests):
         prog2 = ExternalProgram('cmd.exe')
         self.assertTrue(prog2.found(), msg='cmd.exe not found')
         self.assertPathEqual(prog1.get_path(), prog2.get_path())
+        # Find cmd.exe with args without searching
+        prog = ExternalProgram('cmd', command=['cmd', '/C'])
+        self.assertTrue(prog.found(), msg='cmd not found with args')
+        self.assertPathEqual(prog.get_command()[0], 'cmd')
         # Find cmd with an absolute path that's missing the extension
         cmd_path = prog2.get_path()[:-4]
         prog = ExternalProgram(cmd_path)
@@ -5473,9 +5477,9 @@ class WindowsTests(BasePlatformTests):
         self.assertTrue(prog.found(), msg='test-script-ext.py not found')
         # Finding a script in PATH
         os.environ['PATH'] += os.pathsep + testdir
-        # Finding a script in PATH w/o extension works and adds the interpreter
-        # (check only if `.PY` is in PATHEXT)
+        # If `.PY` is in PATHEXT, scripts can be found as programs
         if '.PY' in [ext.upper() for ext in os.environ['PATHEXT'].split(';')]:
+            # Finding a script in PATH w/o extension works and adds the interpreter
             prog = ExternalProgram('test-script-ext')
             self.assertTrue(prog.found(), msg='test-script-ext not found in PATH')
             self.assertPathEqual(prog.get_command()[0], python_command[0])
@@ -5485,6 +5489,18 @@ class WindowsTests(BasePlatformTests):
         self.assertTrue(prog.found(), msg='test-script-ext.py not found in PATH')
         self.assertPathEqual(prog.get_command()[0], python_command[0])
         self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+        # Using a script with an extension directly via command= works and adds the interpreter
+        prog = ExternalProgram('test-script-ext.py', command=[os.path.join(testdir, 'test-script-ext.py'), '--help'])
+        self.assertTrue(prog.found(), msg='test-script-ext.py with full path not picked up via command=')
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
+        self.assertPathEqual(prog.get_command()[2], '--help')
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script-ext.py')
+        # Using a script without an extension directly via command= works and adds the interpreter
+        prog = ExternalProgram('test-script', command=[os.path.join(testdir, 'test-script'), '--help'])
+        self.assertTrue(prog.found(), msg='test-script with full path not picked up via command=')
+        self.assertPathEqual(prog.get_command()[0], python_command[0])
+        self.assertPathEqual(prog.get_command()[2], '--help')
+        self.assertPathBasenameEqual(prog.get_path(), 'test-script')
         # Ensure that WindowsApps gets removed from PATH
         path = os.environ['PATH']
         if 'WindowsApps' not in path:
