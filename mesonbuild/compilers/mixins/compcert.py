@@ -82,11 +82,13 @@ class CompCertCompiler:
         "Always returns a copy that can be independently mutated"
         patched_args = []
         for arg in args:
+            added = 0
             for ptrn in ccomp_args_to_wul:
                 if re.match(ptrn, arg):
                     patched_args.append('-WUl,' + arg)
-                else:
-                    patched_args.append(arg)
+                    added = 1
+            if not added:
+                patched_args.append(arg)
         return patched_args
 
     # Override CCompiler.get_dependency_gen_args
