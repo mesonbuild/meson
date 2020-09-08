@@ -65,6 +65,17 @@ else:
     python_command = [sys.executable]
 meson_command = None
 
+class MesonException(Exception):
+    '''Exceptions thrown by Meson'''
+
+    file = None    # type: T.Optional[str]
+    lineno = None  # type: T.Optional[int]
+    colno = None   # type: T.Optional[int]
+
+
+class EnvironmentException(MesonException):
+    '''Exceptions thrown while processing and creating the build environment'''
+
 GIT = shutil.which('git')
 def git(cmd: T.List[str], workingdir: str, **kwargs: T.Any) -> subprocess.CompletedProcess:
     pc = subprocess.run([GIT, '-C', workingdir] + cmd,
@@ -131,19 +142,6 @@ def check_direntry_issues(direntry_array: T.Union[T.List[T.Union[str, bytes]], s
 # by accident.
 import threading
 an_unpicklable_object = threading.Lock()
-
-
-class MesonException(Exception):
-    '''Exceptions thrown by Meson'''
-
-    file = None    # type: T.Optional[str]
-    lineno = None  # type: T.Optional[int]
-    colno = None   # type: T.Optional[int]
-
-
-class EnvironmentException(MesonException):
-    '''Exceptions thrown while processing and creating the build environment'''
-
 
 class FileMode:
     # The first triad is for owner permissions, the second for group permissions,
