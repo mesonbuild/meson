@@ -41,6 +41,8 @@ import xml.etree.ElementTree as et
 from . import build
 from . import environment
 from . import mlog
+from .coredata import major_versions_differ, MesonVersionMismatchException
+from .coredata import version as coredata_version
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
 from .backend.backends import TestProtocol, TestSerialisation
@@ -574,27 +576,42 @@ def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> No
 def run_with_mono(fname: str) -> bool:
     return fname.endswith('.exe') and not (is_windows() or is_cygwin())
 
+def check_obj_major_version(objs: T.List[TestSerialisation]) -> None:
+    if not objs:
+        return
+    obj = objs[0]
+    if not hasattr(obj, 'version'):
+        raise MesonVersionMismatchException('<unknown>', coredata_version)
+    if major_versions_differ(obj.version, coredata_version):
+        raise MesonVersionMismatchException(obj.version, coredata_version)
+
 def load_benchmarks(build_dir: str) -> T.List[TestSerialisation]:
     datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = pickle.load(f)
-        assert isinstance(obj, list)
-        for i in obj:
-            assert isinstance(i, TestSerialisation)
-    return obj
+        objs = pickle.load(f)
+        if not isinstance(objs, list):
+            raise MesonVersionMismatchException('<unknown>', coredata_version)
+        for i in objs:
+            if not isinstance(i, TestSerialisation):
+                raise MesonVersionMismatchException('<unknown>', coredata_version)
+    check_obj_major_version(objs)
+    return objs
 
 def load_tests(build_dir: str) -> T.List[TestSerialisation]:
     datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = pickle.load(f)
-        assert isinstance(obj, list)
-        for i in obj:
-            assert isinstance(i, TestSerialisation)
-    return obj
+        objs = pickle.load(f)
+        if not isinstance(objs, list):
+            raise MesonVersionMismatchException('<unknown>', coredata_version)
+        for i in objs:
+            if not isinstance(i, TestSerialisation):
+                raise MesonVersionMismatchException('<unknown>', coredata_version)
+    check_obj_major_version(objs)
+    return objs
 
 
 class SingleTestRunner:

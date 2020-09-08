@@ -46,10 +46,10 @@ default_yielding = False
 _T = T.TypeVar('_T')
 
 class MesonVersionMismatchException(MesonException):
-    '''Build directory generated with Meson version incompatible with current version'''
+    '''Build directory generated with Meson version is incompatible with current version'''
     def __init__(self, old_version: str, current_version: str) -> None:
         super().__init__('Build directory has been generated with Meson version {}, '
-                         'which is incompatible with current version {}.'
+                         'which is incompatible with the current version {}.'
                          .format(old_version, current_version))
         self.old_version = old_version
         self.current_version = current_version
@@ -977,7 +977,7 @@ def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:
         cmdline += ['--native-file {}'.format(f) for f in options.native_file]
     return ' '.join([shlex.quote(x) for x in cmdline])
 
-def major_versions_differ(v1, v2):
+def major_versions_differ(v1: str, v2: str) -> bool:
     return v1.split('.')[0:2] != v2.split('.')[0:2]
 
 def load(build_dir: str) -> CoreData:
