@@ -319,6 +319,7 @@ def main():
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     parser.add_argument('--cross', default=[], dest='cross', action='append')
+    parser.add_argument('--cross-only', action='store_true')
     parser.add_argument('--failfast', action='store_true')
     parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
@@ -330,7 +331,6 @@ def main():
         import coverage
         coverage.process_startup()
     returncode = 0
-    cross = options.cross
     backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
@@ -365,7 +365,7 @@ def main():
                 env['PYTHONPATH'] = os.pathsep.join([temp_dir, env.get('PYTHONPATH')])
             else:
                 env['PYTHONPATH'] = temp_dir
-        if not cross:
+        if not options.cross:
             cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
             if options.failfast:
                 cmd += ['--failfast']
@@ -395,6 +395,8 @@ def main():
                 cmd = cross_test_args + ['cross/' + cf]
                 if options.failfast:
                     cmd += ['--failfast']
+                if options.cross_only:
+                    cmd += ['--cross-only']
                 returncode += subprocess.call(cmd, env=env)
                 if options.failfast and returncode != 0:
                     return returncode
