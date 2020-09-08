@@ -51,14 +51,6 @@ ccomp_args_to_wul = [
         r"^-r$"
 ] # type: T.List[str]
 
-# As of CompCert 20.04, these arguments can just be ignored
-# There are probably (many) more, but these are those used by picolibc
-ccomp_filter_args = [
-        r"^-fno-builtin.*",
-        r"^-ffunction-sections$",
-        r"^-ftls-model=.*"
-] # type: T.List[str]
-
 class CompCertCompiler:
     def __init__(self):
         self.id = 'ccomp'
@@ -95,16 +87,8 @@ class CompCertCompiler:
                 if re.match(ptrn, arg):
                     patched_args.append('-WUl,' + arg)
                     do_not_add = 1
-                    break
-
-            if do_not_add == 1:
-                continue
-            for ptrn in ccomp_filter_args:
-                if re.match(ptrn, arg):
-                    do_not_add = 1
-                    break
-            if do_not_add == 0:
-                patched_args.append(arg)
+                else:
+                    patched_args.append(arg)
         return patched_args
 
     # Override CCompiler.get_dependency_gen_args
