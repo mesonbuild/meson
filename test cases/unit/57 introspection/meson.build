@@ -12,6 +12,7 @@ test_bool = not test_bool
 
 set_variable('list_test_plusassign', [])
 list_test_plusassign += ['bugs everywhere']
+dict_test = {list_test_plusassign[0]: 'even more bugs'}
 
 if not true
   vers_str = '<=99.9.9'
