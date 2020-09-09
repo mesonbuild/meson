@@ -45,7 +45,7 @@ def git_output(cmd, workingdir):
     return quiet_git(cmd, workingdir, check=True)[1]
 
 def git_stash(workingdir):
-    # Don't pipe stdout here because we want the user to see his changes have
+    # Don't pipe stdout here because we want the user to see their changes have
     # been saved.
     verbose_git(['stash'], workingdir, check=True)
 
@@ -118,7 +118,13 @@ def update_git(wrap, repo_dir, options):
         # It could be a detached git submodule for example.
         mlog.log('  -> No revision specified.')
         return True
-    branch = git_output(['branch', '--show-current'], repo_dir).strip()
+    try:
+        branch = git_output(['branch', '--show-current'], repo_dir).strip()
+    except GitException as e:
+        mlog.log('  -> Failed to determine current branch in', mlog.bold(repo_dir))
+        mlog.log(mlog.red(e.output))
+        mlog.log(mlog.red(str(e)))
+        return False
     # Fetch only the revision we need, this avoids fetching useless branches and
     # is needed for http case were new remote branches wouldn't be discovered
     # otherwise. After this command, FETCH_HEAD is the revision we want.
