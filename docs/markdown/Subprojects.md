@@ -267,8 +267,9 @@ subcommand fails on any subproject the execution continues with other subproject
 All subcommands accept `--sourcedir` argument pointing to the root source dir
 of the main project.
 
-*Since 0.56.0* all subcommands accept `--type <file|git|hg|svn>` argument to
-run the subcommands only on subprojects of the given type.
+*Since 0.56.0* all subcommands accept `--types <file|git|hg|svn>` argument to
+run the subcommands only on subprojects of the given types. Multiple types can
+be set as comma separated list e.g. `--types git,file`.
 
 *Since 0.56.0* If the subcommand fails on any subproject an error code is returned
 at the end instead of retuning success.
