@@ -4251,6 +4251,14 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '59 introspect buildoptions')
         self._run(self.mconf_command + [testdir])
 
+    def test_introspect_buildoptions_cross_only(self):
+        testdir = os.path.join(self.unit_test_dir, '83 cross only introspect')
+        testfile = os.path.join(testdir, 'meson.build')
+        res = self.introspect_directory(testfile, ['--buildoptions'] + self.meson_args)
+        optnames = [o['name'] for o in res]
+        self.assertIn('c_args', optnames)
+        self.assertNotIn('build.c_args', optnames)
+
     def test_introspect_json_dump(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')
         self.init(testdir)
