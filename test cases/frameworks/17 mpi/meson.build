@@ -9,7 +9,7 @@ if not mpic.found()
 endif
 exec = executable('exec',
   'main.c',
-  dependencies : [mpic])
+  dependencies : mpic)
 
 test('MPI C', exec, timeout: 10)
 
@@ -26,7 +26,7 @@ int main(int argc, char **argv) {MPI::Init(argc, argv);}
 endif
 execpp = executable('execpp',
   'main.cpp',
-  dependencies : [mpicpp])
+  dependencies : mpicpp)
 
 test('MPI C++', execpp, timeout: 10)
 
