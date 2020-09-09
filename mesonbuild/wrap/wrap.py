@@ -49,6 +49,8 @@ REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
 WHITELIST_SUBDOMAIN = 'wrapdb.mesonbuild.com'
 
+ALL_TYPES = ['file', 'git', 'hg', 'svn']
+
 def whitelist_wrapdb(urlstr: str) -> urllib.parse.ParseResult:
     """ raises WrapException if not whitelisted subdomain """
     url = urllib.parse.urlparse(urlstr)
@@ -106,6 +108,8 @@ class PackageDefinition:
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
+        if self.type and self.type not in ALL_TYPES:
+            raise WrapException('Unknown wrap type {!r}'.format(self.type))
 
     def guess_type(self) -> None:
         if os.path.exists(os.path.join(self.filename, '.git')):

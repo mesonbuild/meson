@@ -1,8 +1,9 @@
 ## `meson subprojects` command
 
-A new `--type` argument has been added to all subcommands to run the command only
-on wraps with the specified type. For example this command will only print `Hello`
-for each git subproject: `meson subprojects foreach --type git echo "Hello"`.
+A new `--types` argument has been added to all subcommands to run the command only
+on wraps with the specified types. For example this command will only print `Hello`
+for each git subproject: `meson subprojects foreach --types git echo "Hello"`.
+Multiple types can be set as comma separated list e.g. `--types git,file`.
 
 Subprojects with no wrap file are now taken into account as well. This happens
 for example for subprojects configured as git submodule, or downloaded manually
