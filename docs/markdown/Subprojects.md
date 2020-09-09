@@ -264,10 +264,10 @@ the following command-line options:
 
 `meson subprojects` has various subcommands to manage all subprojects. If the
 subcommand fails on any subproject the execution continues with other subprojects.
-All subcommands accepts `--sourcedir` argument pointing to the root source dir
+All subcommands accept `--sourcedir` argument pointing to the root source dir
 of the main project.
 
-*Since 0.56.0* all subcommands accepts `--type <file,git,hg,svn>` argument to
+*Since 0.56.0* all subcommands accept `--type <file|git|hg|svn>` argument to
 run the subcommands only on subprojects of the given type.
 
 *Since 0.56.0* If the subcommand fails on any subproject an error code is returned
