@@ -69,7 +69,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         's': ['-Os'],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
         #
@@ -152,7 +152,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'intel-cl'
 
-    def compile(self, code, *, extra_args: T.Optional[T.List[str]] = None, **kwargs) -> T.Iterator['subprocess.Popen']:
+    def compile(self, code: str, *, extra_args: T.Optional[T.List[str]] = None, **kwargs) -> T.Iterator['subprocess.Popen']:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
         if kwargs.get('mode', 'compile') != 'link':
             extra_args = extra_args.copy() if extra_args is not None else []

@@ -6,14 +6,14 @@ assert(os.getcwd() == '/home/jpakkane')
 
 from glob import glob
 
-def purge(fname):
+def purge(fname: str) -> None:
     if not os.path.exists(fname):
         return
     if os.path.isdir(fname):
         shutil.rmtree(fname)
     os.unlink(fname)
 
-def update():
+def update() -> None:
     webdir = 'mesonweb'
     repodir = 'mesonwebbuild'
     docdir = os.path.join(repodir, 'docs')

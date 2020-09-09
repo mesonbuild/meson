@@ -21,19 +21,24 @@ from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
 from ..mesonlib import MachineChoice
 from ..interpreterbase import InvalidArguments, TYPE_nvar
-from ..build import Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
+from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
 import typing as T
 import os
+import argparse
 
 build_target_functions = ['executable', 'jar', 'library', 'shared_library', 'shared_module', 'static_library', 'both_libraries']
 
-class IntrospectionHelper:
+class IntrospectionHelper(argparse.Namespace):
     # mimic an argparse namespace
     def __init__(self, cross_file: str):
+        super().__init__()
         self.cross_file = cross_file  # type: str
         self.native_file = None       # type: str
         self.cmd_line_options = {}    # type: T.Dict[str, str]
+
+    def __eq__(self, other: object) -> bool:
+        return NotImplemented
 
 class IntrospectionInterpreter(AstInterpreter):
     # Interpreter to detect the options without a build directory
@@ -182,7 +187,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'node': node
         }]
 
-    def build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs_raw: T.Dict[str, TYPE_nvar], targetclass) -> T.Optional[T.Dict[str, T.Any]]:
+    def build_target(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs_raw: T.Dict[str, TYPE_nvar], targetclass: T.Type[BuildTarget]) -> T.Optional[T.Dict[str, T.Any]]:
         args = self.flatten_args(args)
         if not args or not isinstance(args[0], str):
             return None

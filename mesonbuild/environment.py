@@ -132,6 +132,9 @@ build_filename = 'meson.build'
 
 CompilersDict = T.Dict[str, Compiler]
 
+if T.TYPE_CHECKING:
+    import argparse
+
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
     try:
@@ -153,7 +156,7 @@ def detect_llvm_cov():
             return tool
     return None
 
-def find_coverage_tools():
+def find_coverage_tools() -> T.Tuple[T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str], T.Optional[str]]:
     gcovr_exe, gcovr_new_rootdir = detect_gcovr()
 
     llvm_cov_exe = detect_llvm_cov()
@@ -522,7 +525,7 @@ class Environment:
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
 
-    def __init__(self, source_dir, build_dir, options):
+    def __init__(self, source_dir: T.Optional[str], build_dir: T.Optional[str], options: 'argparse.Namespace') -> None:
         self.source_dir = source_dir
         self.build_dir = build_dir
         # Do not try to create build directories when build_dir is none.
@@ -535,7 +538,7 @@ class Environment:
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
             try:
-                self.coredata = coredata.load(self.get_build_dir())
+                self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
                 self.first_invocation = False
             except FileNotFoundError:
                 self.create_new_coredata(options)
@@ -807,29 +810,28 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver = None
 
-    def create_new_coredata(self, options):
+    def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
         # build file parsing.
-        self.coredata = coredata.CoreData(options, self.scratch_dir)
-        # Used by the regenchecker script, which runs meson
-        self.coredata.meson_command = mesonlib.meson_command
+        # meson_command is used by the regenchecker script, which runs meson
+        self.coredata = coredata.CoreData(options, self.scratch_dir, mesonlib.meson_command)
         self.first_invocation = True
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         return self.coredata.is_cross_build(when_building_for)
 
-    def dump_coredata(self):
+    def dump_coredata(self) -> str:
         return coredata.save(self.coredata, self.get_build_dir())
 
-    def get_script_dir(self):
+    def get_script_dir(self) -> str:
         import mesonbuild.scripts
         return os.path.dirname(mesonbuild.scripts.__file__)
 
-    def get_log_dir(self):
+    def get_log_dir(self) -> str:
         return self.log_dir
 
-    def get_coredata(self):
+    def get_coredata(self) -> coredata.CoreData:
         return self.coredata
 
     def get_build_command(self, unbuffered=False):
@@ -1035,7 +1037,7 @@ class Environment:
         :extra_args: Any additional arguments required (such as a source file)
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
-        extra_args = T.cast(T.List[str], extra_args or [])
+        extra_args = extra_args or []
         extra_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
@@ -1535,7 +1537,7 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
-    def get_scratch_dir(self):
+    def get_scratch_dir(self) -> str:
         return self.scratch_dir
 
     def detect_objc_compiler(self, for_machine: MachineInfo) -> 'Compiler':
@@ -1974,10 +1976,10 @@ class Environment:
         self._handle_exceptions(popen_exceptions, linkers, 'linker')
         raise EnvironmentException('Unknown static linker "{}"'.format(' '.join(linkers)))
 
-    def get_source_dir(self):
+    def get_source_dir(self) -> str:
         return self.source_dir
 
-    def get_build_dir(self):
+    def get_build_dir(self) -> str:
         return self.build_dir
 
     def get_import_lib_dir(self) -> str:

@@ -24,6 +24,7 @@ from ..environment import detect_cpu_family
 if T.TYPE_CHECKING:
     from .base import Dependency
     from ..compilers import Compiler
+    from ..compilers.compiler import CompilerType
     from ..environment import Environment, MachineChoice
 
 
@@ -36,7 +37,9 @@ def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
         return []
 
     candidates = []  # type: T.List[T.Callable[[], Dependency]]
-    compiler = detect_compiler('mpi', env, for_machine, language)
+    compiler = detect_compiler('mpi', env, for_machine, language)  # type: T.Optional['CompilerType']
+    if compiler is None:
+        return []
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}
 
     # Only OpenMPI has pkg-config, and it doesn't work with the intel compilers

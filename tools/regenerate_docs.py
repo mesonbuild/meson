@@ -31,21 +31,21 @@ from pathlib import Path
 
 PathLike = T.Union[Path,str]
 
-def _get_meson_output(root_dir: Path, args: T.List):
+def _get_meson_output(root_dir: Path, args: T.List) -> str:
     env = os.environ.copy()
     env['COLUMNS'] = '80'
     return subprocess.run([str(sys.executable), str(root_dir/'meson.py')] + args, check=True, capture_output=True, text=True, env=env).stdout.strip()
 
-def get_commands_data(root_dir: Path):
+def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
     usage_start_pattern = re.compile(r'^usage: ', re.MULTILINE)
     positional_start_pattern = re.compile(r'^positional arguments:[\t ]*[\r\n]+', re.MULTILINE)
     options_start_pattern = re.compile(r'^optional arguments:[\t ]*[\r\n]+', re.MULTILINE)
     commands_start_pattern = re.compile(r'^[A-Za-z ]*[Cc]ommands:[\t ]*[\r\n]+', re.MULTILINE)
 
-    def get_next_start(iterators, end):
+    def get_next_start(iterators: T.Sequence[T.Any], end: T.Optional[int]) -> int:
         return next((i.start() for i in iterators if i), end)
 
-    def normalize_text(text):
+    def normalize_text(text: str) -> str:
         # clean up formatting
         out = text
         out = re.sub(r'\r\n', r'\r', out, flags=re.MULTILINE) # replace newlines with a linux EOL
@@ -53,7 +53,7 @@ def get_commands_data(root_dir: Path):
         out = re.sub(r'(?:^\n+|\n+$)', '', out) # remove trailing empty lines
         return out
 
-    def parse_cmd(cmd):
+    def parse_cmd(cmd: str) -> T.Dict[str, str]:
         cmd_len = len(cmd)
         usage = usage_start_pattern.search(cmd)
         positionals = positional_start_pattern.search(cmd)
@@ -72,7 +72,7 @@ def get_commands_data(root_dir: Path):
             'arguments': normalize_text(cmd[arguments_start:cmd_len]),
         }
 
-    def clean_dir_arguments(text):
+    def clean_dir_arguments(text: str) -> str:
         # Remove platform specific defaults
         args = [
             'prefix',
@@ -127,7 +127,7 @@ def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
     if not output_dir:
         raise ValueError(f'Output directory value is not set')
-        
+
     output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate meson docs')
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--dummy-output-file', type=str)
-    
+
     args = parser.parse_args()
 
     regenerate_docs(output_dir=args.output_dir,

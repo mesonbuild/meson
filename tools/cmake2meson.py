@@ -34,7 +34,7 @@ class Statement:
         self.args = args
 
 class Lexer:
-    def __init__(self):
+    def __init__(self) -> None:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
@@ -87,11 +87,11 @@ class Lexer:
                 raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
 
 class Parser:
-    def __init__(self, code: str):
+    def __init__(self, code: str) -> None:
         self.stream = Lexer().lex(code)
         self.getsym()
 
-    def getsym(self):
+    def getsym(self) -> None:
         try:
             self.current = next(self.stream)
         except StopIteration:
@@ -118,8 +118,8 @@ class Parser:
         self.expect('rparen')
         return Statement(cur.value, args)
 
-    def arguments(self) -> list:
-        args = []
+    def arguments(self) -> T.List[T.Union[Token, T.Any]]:
+        args = []  # type: T.List[T.Union[Token, T.Any]]
         if self.accept('lparen'):
             args.append(self.arguments())
             self.expect('rparen')
@@ -139,7 +139,7 @@ class Parser:
         while not self.accept('eof'):
             yield(self.statement())
 
-def token_or_group(arg):
+def token_or_group(arg: T.Union[Token, T.List[Token]]) -> str:
     if isinstance(arg, Token):
         return ' ' + arg.value
     elif isinstance(arg, list):
@@ -148,6 +148,7 @@ def token_or_group(arg):
             line += ' ' + token_or_group(a)
         line += ' )'
         return line
+    raise RuntimeError('Conversion error in token_or_group')
 
 class Converter:
     ignored_funcs = {'cmake_minimum_required': True,
@@ -183,7 +184,7 @@ class Converter:
             return res[0]
         return ''
 
-    def write_entry(self, outfile: T.TextIO, t: Statement):
+    def write_entry(self, outfile: T.TextIO, t: Statement) -> None:
         if t.name in Converter.ignored_funcs:
             return
         preincrement = 0
@@ -274,7 +275,7 @@ class Converter:
             outfile.write('\n')
         self.indent_level += postincrement
 
-    def convert(self, subdir: Path = None):
+    def convert(self, subdir: Path = None) -> None:
         if not subdir:
             subdir = self.cmake_root
         cfile = Path(subdir).expanduser() / 'CMakeLists.txt'
@@ -297,7 +298,7 @@ class Converter:
         if subdir == self.cmake_root and len(self.options) > 0:
             self.write_options()
 
-    def write_options(self):
+    def write_options(self) -> None:
         filename = self.cmake_root / 'meson_options.txt'
         with filename.open('w') as optfile:
             for o in self.options:

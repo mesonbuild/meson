@@ -22,10 +22,14 @@ from .. import mlog
 from ..mesonlib import split_args, listify
 from .base import (DependencyException, DependencyMethods, ExternalDependency, ExternalProgram,
                    PkgConfigDependency)
+import typing as T
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
 
 class HDF5Dependency(ExternalDependency):
 
-    def __init__(self, environment, kwargs):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         language = kwargs.get('language', 'c')
         super().__init__('hdf5', environment, kwargs, language=language)
         kwargs['required'] = False
@@ -109,7 +113,7 @@ class HDF5Dependency(ExternalDependency):
                 cmd = prog.get_command() + [shlib_arg, '-show']
                 p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=15)
                 if p.returncode != 0:
-                    mlog.debug('Command', mlog.bold(cmd), 'failed to run:')
+                    mlog.debug('Command', mlog.bold(str(cmd)), 'failed to run:')
                     mlog.debug(mlog.bold('Standard output\n'), p.stdout)
                     mlog.debug(mlog.bold('Standard error\n'), p.stderr)
                     return
@@ -127,5 +131,5 @@ class HDF5Dependency(ExternalDependency):
             return
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.AUTO, DependencyMethods.PKGCONFIG]

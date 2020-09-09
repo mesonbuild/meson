@@ -77,7 +77,7 @@ class RustProject(SampleImpl):
         self.name = options.name
         self.version = options.version
 
-    def create_executable(self):
+    def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         source_name = lowercase_token + '.rs'
         open(source_name, 'w').write(hello_rust_template.format(project_name=self.name))
@@ -86,7 +86,7 @@ class RustProject(SampleImpl):
                                                                         source_name=source_name,
                                                                         version=self.version))
 
-    def create_library(self):
+    def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         uppercase_token = lowercase_token.upper()
         function_name = lowercase_token[0:3] + '_func'

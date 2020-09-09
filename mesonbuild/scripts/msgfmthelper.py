@@ -15,6 +15,7 @@
 import argparse
 import subprocess
 import os
+import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('input')
@@ -25,7 +26,7 @@ parser.add_argument('--datadirs', default='')
 parser.add_argument('args', default=[], metavar='extra msgfmt argument', nargs='*')
 
 
-def run(args):
+def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
     env = None
     if options.datadirs:

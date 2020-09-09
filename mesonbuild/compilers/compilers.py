@@ -578,7 +578,7 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
     @classmethod
-    def unix_args_to_native(cls, args):
+    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
         return args[:]
 

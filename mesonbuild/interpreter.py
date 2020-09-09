@@ -31,9 +31,10 @@ from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from .interpreterbase import ObjectHolder, MesonVersionString
-from .modules import ModuleReturnValue
+from .interpreterbase import TYPE_var, TYPE_nkwargs
+from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
-from .backend.backends import TestProtocol
+from .backend.backends import TestProtocol, Backend
 
 from pathlib import Path, PurePath
 import os
@@ -673,22 +674,22 @@ class MachineHolder(InterpreterObject, ObjectHolder):
 
     @noPosargs
     @permittedKwargs({})
-    def cpu_family_method(self, args, kwargs):
+    def cpu_family_method(self, args: T.List[TYPE_var], kwargs: TYPE_nkwargs) -> str:
         return self.held_object.cpu_family
 
     @noPosargs
     @permittedKwargs({})
-    def cpu_method(self, args, kwargs):
+    def cpu_method(self, args: T.List[TYPE_var], kwargs: TYPE_nkwargs) -> str:
         return self.held_object.cpu
 
     @noPosargs
     @permittedKwargs({})
-    def system_method(self, args, kwargs):
+    def system_method(self, args: T.List[TYPE_var], kwargs: TYPE_nkwargs) -> str:
         return self.held_object.system
 
     @noPosargs
     @permittedKwargs({})
-    def endian_method(self, args, kwargs):
+    def endian_method(self, args: T.List[TYPE_var], kwargs: TYPE_nkwargs) -> str:
         return self.held_object.endian
 
 class IncludeDirsHolder(InterpreterObject, ObjectHolder):
@@ -2333,8 +2334,18 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
 
 class Interpreter(InterpreterBase):
 
-    def __init__(self, build, backend=None, subproject='', subdir='', subproject_dir='subprojects',
-                 modules = None, default_project_options=None, mock=False, ast=None):
+    def __init__(
+                self,
+                build: build.Build,
+                backend: T.Optional[Backend] = None,
+                subproject: str = '',
+                subdir: str = '',
+                subproject_dir: str = 'subprojects',
+                modules: T.Optional[T.Dict[str, ExtensionModule]] = None,
+                default_project_options: T.Optional[T.Dict[str, str]] = None,
+                mock: bool = False,
+                ast: T.Optional[mparser.CodeBlockNode] = None,
+            ) -> None:
         super().__init__(build.environment.get_source_dir(), subdir, subproject)
         self.an_unpicklable_object = mesonlib.an_unpicklable_object
         self.build = build
@@ -2396,7 +2407,8 @@ class Interpreter(InterpreterBase):
         self.builtin['target_machine'] = \
             MachineHolder(self.build.environment.machines.target)
 
-    def get_non_matching_default_options(self):
+    # TODO: Why is this in interpreter.py and not CoreData or Environment?
+    def get_non_matching_default_options(self) -> T.Iterator[T.Tuple[str, str, coredata.UserOption]]:
         env = self.environment
         for def_opt_name, def_opt_value in self.project_default_options.items():
             for opts in env.coredata.get_all_options():
@@ -2530,7 +2542,7 @@ class Interpreter(InterpreterBase):
         self.process_new_values(invalues)
         return self.holderify(return_object.return_value)
 
-    def get_build_def_files(self):
+    def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
     def add_build_def_file(self, f):
@@ -2599,7 +2611,9 @@ class Interpreter(InterpreterBase):
             module = importlib.import_module('mesonbuild.modules.' + modname)
         except ImportError:
             raise InvalidArguments('Module "%s" does not exist' % (modname, ))
-        self.modules[modname] = module.initialize(self)
+        ext_module = module.initialize(self)
+        assert isinstance(ext_module, ExtensionModule)
+        self.modules[modname] = ext_module
 
     @stringArgs
     @noKwargs
@@ -4598,7 +4612,7 @@ different subdirectory.
     def func_join_paths(self, node, args, kwargs):
         return self.join_path_strings(args)
 
-    def run(self):
+    def run(self) -> None:
         super().run()
         mlog.log('Build targets in project:', mlog.bold(str(len(self.build.targets))))
         FeatureNew.report(self.subproject)
@@ -4608,14 +4622,14 @@ different subdirectory.
         if self.subproject == '':
             self._print_summary()
 
-    def print_extra_warnings(self):
+    def print_extra_warnings(self) -> None:
         # TODO cross compilation
         for c in self.coredata.compilers.host.values():
             if c.get_id() == 'clang':
                 self.check_clang_asan_lundef()
                 break
 
-    def check_clang_asan_lundef(self):
+    def check_clang_asan_lundef(self) -> None:
         if 'b_lundef' not in self.coredata.base_options:
             return
         if 'b_sanitize' not in self.coredata.base_options:

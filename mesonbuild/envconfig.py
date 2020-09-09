@@ -111,7 +111,7 @@ def get_env_var_pair(for_machine: MachineChoice,
 
 def get_env_var(for_machine: MachineChoice,
                 is_cross: bool,
-                var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+                var_name: str) -> T.Optional[str]:
     ret = get_env_var_pair(for_machine, is_cross, var_name)
     if ret is None:
         return None
@@ -147,7 +147,7 @@ class Properties:
             return p
         return mesonlib.listify(p)
 
-    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.properties == other.properties
         return NotImplemented
@@ -172,8 +172,8 @@ class MachineInfo:
         self.endian = endian
         self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
 
-    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MachineInfo):
             return NotImplemented
         return \
             self.system == other.system and \
@@ -181,8 +181,8 @@ class MachineInfo:
             self.cpu == other.cpu and \
             self.endian == other.endian
 
-    def __ne__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, MachineInfo):
             return NotImplemented
         return not self.__eq__(other)
 

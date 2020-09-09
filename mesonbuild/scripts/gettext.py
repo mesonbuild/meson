@@ -17,6 +17,7 @@ import shutil
 import argparse
 import subprocess
 from . import destdir_join
+import typing as T
 
 parser = argparse.ArgumentParser()
 parser.add_argument('command')
@@ -27,7 +28,7 @@ parser.add_argument('--localedir', default='')
 parser.add_argument('--subdir', default='')
 parser.add_argument('--extra-args', default='')
 
-def read_linguas(src_sub):
+def read_linguas(src_sub: str) -> T.List[str]:
     # Syntax of this file is documented here:
     # https://www.gnu.org/software/gettext/manual/html_node/po_002fLINGUAS.html
     linguas = os.path.join(src_sub, 'LINGUAS')
@@ -43,7 +44,7 @@ def read_linguas(src_sub):
         print('Could not find file LINGUAS in {}'.format(src_sub))
         return []
 
-def run_potgen(src_sub, pkgname, datadirs, args):
+def run_potgen(src_sub: str, pkgname: str, datadirs: str, args: T.List[str]) -> int:
     listfile = os.path.join(src_sub, 'POTFILES.in')
     if not os.path.exists(listfile):
         listfile = os.path.join(src_sub, 'POTFILES')
@@ -60,13 +61,13 @@ def run_potgen(src_sub, pkgname, datadirs, args):
                             '-D', os.environ['MESON_SOURCE_ROOT'], '-k_', '-o', ofile] + args,
                            env=child_env)
 
-def gen_gmo(src_sub, bld_sub, langs):
+def gen_gmo(src_sub: str, bld_sub: str, langs: T.List[str]) -> int:
     for l in langs:
         subprocess.check_call(['msgfmt', os.path.join(src_sub, l + '.po'),
                                '-o', os.path.join(bld_sub, l + '.gmo')])
     return 0
 
-def update_po(src_sub, pkgname, langs):
+def update_po(src_sub: str, pkgname: str, langs: T.List[str]) -> int:
     potfile = os.path.join(src_sub, pkgname + '.pot')
     for l in langs:
         pofile = os.path.join(src_sub, l + '.po')
@@ -76,7 +77,7 @@ def update_po(src_sub, pkgname, langs):
             subprocess.check_call(['msginit', '--input', potfile, '--output-file', pofile, '--locale', l, '--no-translator'])
     return 0
 
-def do_install(src_sub, bld_sub, dest, pkgname, langs):
+def do_install(src_sub: str, bld_sub: str, dest: str, pkgname: str, langs: T.List[str]) -> int:
     for l in langs:
         srcfile = os.path.join(bld_sub, l + '.gmo')
         outfile = os.path.join(dest, l, 'LC_MESSAGES',
@@ -88,7 +89,7 @@ def do_install(src_sub, bld_sub, dest, pkgname, langs):
         print('Installing %s to %s' % (srcfile, outfile))
     return 0
 
-def run(args):
+def run(args: T.List[str]) -> int:
     options = parser.parse_args(args)
     subcmd = options.command
     langs = options.langs.split('@@') if options.langs else None
@@ -120,3 +121,4 @@ def run(args):
     else:
         print('Unknown subcommand.')
         return 1
+    return 0

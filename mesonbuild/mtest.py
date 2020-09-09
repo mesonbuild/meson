@@ -43,10 +43,7 @@ from . import environment
 from . import mlog
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
-from .backend.backends import TestProtocol
-
-if T.TYPE_CHECKING:
-    from .backend.backends import TestSerialisation
+from .backend.backends import TestProtocol, TestSerialisation
 
 # GNU autotools interprets a return code of 77 from tests it executes to
 # mean that the test should be skipped.
@@ -445,7 +442,7 @@ class JunitBuilder:
 class TestRun:
 
     @classmethod
-    def make_gtest(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
+    def make_gtest(cls, test: TestSerialisation, test_env: T.Dict[str, str],
                    returncode: int, starttime: float, duration: float,
                    stdo: T.Optional[str], stde: T.Optional[str],
                    cmd: T.Optional[T.List[str]]) -> 'TestRun':
@@ -459,10 +456,10 @@ class TestRun:
             junit=tree)
 
     @classmethod
-    def make_exitcode(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
+    def make_exitcode(cls, test: TestSerialisation, test_env: T.Dict[str, str],
                       returncode: int, starttime: float, duration: float,
                       stdo: T.Optional[str], stde: T.Optional[str],
-                      cmd: T.Optional[T.List[str]], **kwargs) -> 'TestRun':
+                      cmd: T.Optional[T.List[str]], **kwargs: T.Any) -> 'TestRun':
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
@@ -474,7 +471,7 @@ class TestRun:
         return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd, **kwargs)
 
     @classmethod
-    def make_tap(cls, test: 'TestSerialisation', test_env: T.Dict[str, str],
+    def make_tap(cls, test: TestSerialisation, test_env: T.Dict[str, str],
                  returncode: int, starttime: float, duration: float,
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
@@ -511,7 +508,7 @@ class TestRun:
 
         return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
 
-    def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
+    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
                  res: TestResult, results: T.List[TestResult], returncode:
                  int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
@@ -577,26 +574,32 @@ def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> No
 def run_with_mono(fname: str) -> bool:
     return fname.endswith('.exe') and not (is_windows() or is_cygwin())
 
-def load_benchmarks(build_dir: str) -> T.List['TestSerialisation']:
+def load_benchmarks(build_dir: str) -> T.List[TestSerialisation]:
     datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = T.cast(T.List['TestSerialisation'], pickle.load(f))
+        obj = pickle.load(f)
+        assert isinstance(obj, list)
+        for i in obj:
+            assert isinstance(i, TestSerialisation)
     return obj
 
-def load_tests(build_dir: str) -> T.List['TestSerialisation']:
+def load_tests(build_dir: str) -> T.List[TestSerialisation]:
     datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
     if not datafile.is_file():
         raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
     with datafile.open('rb') as f:
-        obj = T.cast(T.List['TestSerialisation'], pickle.load(f))
+        obj = pickle.load(f)
+        assert isinstance(obj, list)
+        for i in obj:
+            assert isinstance(i, TestSerialisation)
     return obj
 
 
 class SingleTestRunner:
 
-    def __init__(self, test: 'TestSerialisation', test_env: T.Dict[str, str],
+    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
                  env: T.Dict[str, str], options: argparse.Namespace):
         self.test = test
         self.test_env = test_env
@@ -680,7 +683,7 @@ class SingleTestRunner:
                 # We don't want setsid() in gdb because gdb needs the
                 # terminal in order to handle ^C and not show tcsetpgrp()
                 # errors avoid not being able to use the terminal.
-                os.setsid()  # type: ignore
+                os.setsid()
 
         extra_cmd = []  # type: T.List[str]
         if self.test.protocol is TestProtocol.GTEST:
@@ -727,10 +730,10 @@ class SingleTestRunner:
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
 
-                def _send_signal_to_process_group(pgid : int, signum : int):
+                def _send_signal_to_process_group(pgid : int, signum : int) -> None:
                     """ sends a signal to a process group """
                     try:
-                        os.killpg(pgid, signum) # type: ignore
+                        os.killpg(pgid, signum)
                     except ProcessLookupError:
                         # Sometimes (e.g. with Wine) this happens.
                         # There's nothing we can do (maybe the process
@@ -820,10 +823,10 @@ class TestHarness:
     def __del__(self) -> None:
         self.close_logfiles()
 
-    def __enter__(self):
+    def __enter__(self) -> 'TestHarness':
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
@@ -833,7 +836,7 @@ class TestHarness:
                 lfile.close()
                 setattr(self, f, None)
 
-    def merge_suite_options(self, options: argparse.Namespace, test: 'TestSerialisation') -> T.Dict[str, str]:
+    def merge_suite_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
         if ':' in options.setup:
             if options.setup not in self.build_data.test_setups:
                 sys.exit("Unknown test setup '{}'.".format(options.setup))
@@ -857,7 +860,7 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_runner(self, test: 'TestSerialisation') -> SingleTestRunner:
+    def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
         options = deepcopy(self.options)
         if not options.setup:
             options.setup = self.build_data.test_setup_default_name
@@ -889,7 +892,7 @@ class TestHarness:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def print_stats(self, test_count: int, name_max_len: int,
-                    tests: T.List['TestSerialisation'],
+                    tests: T.List[TestSerialisation],
                     name: str, result: TestRun, i: int) -> None:
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
         bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT,
@@ -983,14 +986,14 @@ class TestHarness:
     @staticmethod
     def split_suite_string(suite: str) -> T.Tuple[str, str]:
         if ':' in suite:
-            # mypy can't figure out that str.split(n, 1) will return a list of
-            # length 2, so we have to help it.
-            return T.cast(T.Tuple[str, str], tuple(suite.split(':', 1)))
+            split = suite.split(':', 1)
+            assert len(split) == 2
+            return split[0], split[1]
         else:
             return suite, ""
 
     @staticmethod
-    def test_in_suites(test: 'TestSerialisation', suites: T.List[str]) -> bool:
+    def test_in_suites(test: TestSerialisation, suites: T.List[str]) -> bool:
         for suite in suites:
             (prj_match, st_match) = TestHarness.split_suite_string(suite)
             for prjst in test.suite:
@@ -1021,12 +1024,12 @@ class TestHarness:
                 return True
         return False
 
-    def test_suitable(self, test: 'TestSerialisation') -> bool:
+    def test_suitable(self, test: TestSerialisation) -> bool:
         return ((not self.options.include_suites or
                 TestHarness.test_in_suites(test, self.options.include_suites)) and not
                 TestHarness.test_in_suites(test, self.options.exclude_suites))
 
-    def get_tests(self) -> T.List['TestSerialisation']:
+    def get_tests(self) -> T.List[TestSerialisation]:
         if not self.tests:
             print('No tests defined.')
             return []
@@ -1089,7 +1092,7 @@ class TestHarness:
             wrap += options.wrapper
         return wrap
 
-    def get_pretty_suite(self, test: 'TestSerialisation') -> str:
+    def get_pretty_suite(self, test: TestSerialisation) -> str:
         if len(self.suites) > 1 and test.suite:
             rv = TestHarness.split_suite_string(test.suite[0])[0]
             s = "+".join(TestHarness.split_suite_string(s)[1] for s in test.suite)
@@ -1099,7 +1102,7 @@ class TestHarness:
         else:
             return test.name
 
-    def run_tests(self, tests: T.List['TestSerialisation']) -> None:
+    def run_tests(self, tests: T.List[TestSerialisation]) -> None:
         executor = None
         futures = []  # type: T.List[T.Tuple[conc.Future[TestRun], int, int, T.List[TestSerialisation], str, int]]
         test_count = len(tests)
@@ -1141,7 +1144,7 @@ class TestHarness:
         finally:
             os.chdir(startdir)
 
-    def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, int, T.List['TestSerialisation'], str, int]]) -> None:
+    def drain_futures(self, futures: T.List[T.Tuple['conc.Future[TestRun]', int, int, T.List[TestSerialisation], str, int]]) -> None:
         for x in futures:
             (result, test_count, name_max_len, tests, name, i) = x
             if self.options.repeat > 1 and self.fail_count:
