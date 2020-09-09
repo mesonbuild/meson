@@ -1235,6 +1235,10 @@ class CMakeInterpreter:
                 if tgt_func in ['static_library', 'shared_library']:
                     dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                     node_list += [dep_node]
+                elif tgt_func in ['shared_module']:
+                    del dep_kwargs['link_with']
+                    dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+                    node_list += [dep_node]
                 else:
                     dep_var = None
 
