@@ -9008,18 +9008,26 @@ def convert_args(argv):
         pytest_args += ['-k', ' or '.join(test_list)]
     return pytest_args
 
+def running_single_tests(argv, cases):
+    '''
+    Check whether we only got arguments for running individual tests, not
+    entire testcases, and not all testcases (no test args).
+    '''
+    got_test_arg = False
+    for arg in argv:
+        if arg.startswith('-'):
+            continue
+        for case in cases:
+            if not arg.startswith(case):
+                continue
+            if '.' not in arg:
+                # Got a testcase, done
+                return False
+            got_test_arg = True
+    return got_test_arg
+
 def main():
     unset_envs()
-    try:
-        import pytest # noqa: F401
-        # Need pytest-xdist for `-n` arg
-        import xdist # noqa: F401
-        pytest_args = ['-n', 'auto', './run_unittests.py']
-        pytest_args += convert_args(sys.argv[1:])
-        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
-    except ImportError:
-        print('pytest-xdist not found, using unittest instead')
-    # All attempts at locating pytest failed, fall back to plain unittest.
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests',
@@ -9027,6 +9035,19 @@ def main():
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
 
+    # Don't use pytest-xdist when running single unit tests since it wastes
+    # time spawning a lot of processes to distribute tests to in that case.
+    if not running_single_tests(sys.argv, cases):
+        try:
+            import pytest # noqa: F401
+            # Need pytest-xdist for `-n` arg
+            import xdist # noqa: F401
+            pytest_args = ['-n', 'auto', './run_unittests.py']
+            pytest_args += convert_args(sys.argv[1:])
+            return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
+        except ImportError:
+            print('pytest-xdist not found, using unittest instead')
+    # Fallback to plain unittest.
     return unittest.main(defaultTest=cases, buffer=True)
 
 if __name__ == '__main__':
