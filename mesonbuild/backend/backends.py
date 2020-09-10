@@ -74,7 +74,7 @@ class CleanTrees:
 
 class InstallData:
     def __init__(self, source_dir, build_dir, prefix, strip_bin,
-                 install_umask, mesonintrospect):
+                 install_umask, mesonintrospect, version):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
@@ -89,6 +89,7 @@ class InstallData:
         self.install_scripts = []
         self.install_subdirs = []
         self.mesonintrospect = mesonintrospect
+        self.version = version
 
 class TargetInstallData:
     def __init__(self, fname, outdir, aliases, strip, install_name_mappings, rpath_dirs_to_remove, install_rpath, install_mode, optional=False):
@@ -1158,7 +1159,8 @@ class Backend:
                         self.environment.get_prefix(),
                         strip_bin,
                         self.environment.coredata.get_builtin_option('install_umask'),
-                        self.environment.get_build_command() + ['introspect'])
+                        self.environment.get_build_command() + ['introspect'],
+                        self.environment.coredata.version)
         self.generate_depmf_install(d)
         self.generate_target_install(d)
         self.generate_header_install(d)

@@ -20,6 +20,9 @@ from .scripts import depfixer
 from .scripts import destdir_join
 from .mesonlib import is_windows, Popen_safe
 from .mtest import rebuild_all
+from .backend.backends import InstallData
+from .coredata import major_versions_differ, MesonVersionMismatchException
+from .coredata import version as coredata_version
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -343,9 +346,18 @@ class Installer:
                 self.do_copyfile(abs_src, abs_dst)
                 set_mode(abs_dst, install_mode, data.install_umask)
 
+    @staticmethod
+    def check_installdata(obj: InstallData) -> InstallData:
+        if not isinstance(obj, InstallData) or not hasattr(obj, 'version'):
+            raise MesonVersionMismatchException('<unknown>', coredata_version)
+        if major_versions_differ(obj.version, coredata_version):
+            raise MesonVersionMismatchException(obj.version, coredata_version)
+        return obj
+
     def do_install(self, datafilename):
         with open(datafilename, 'rb') as ifile:
-            d = pickle.load(ifile)
+            d = self.check_installdata(pickle.load(ifile))
+
         d.destdir = os.environ.get('DESTDIR', '')
         d.fullprefix = destdir_join(d.destdir, d.prefix)
 

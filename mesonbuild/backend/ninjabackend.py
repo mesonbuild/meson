@@ -3009,12 +3009,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             result += [i]
         return result
 
-def load(build_dir):
-    filename = os.path.join(build_dir, 'meson-private', 'install.dat')
-    with open(filename, 'rb') as f:
-        obj = pickle.load(f)
-    return obj
-
 
 def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> T.List[str]:
     """
