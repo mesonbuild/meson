@@ -9008,18 +9008,16 @@ def convert_args(argv):
         pytest_args += ['-k', ' or '.join(test_list)]
     return pytest_args
 
+def running_a_single_test(argv, cases):
+    'Check whether we got an argument for running an individual test'
+    for arg in argv:
+        for case in cases:
+            if arg.startswith(case) and '.' in arg and case in arg.split('.'):
+                return True
+    return False
+
 def main():
     unset_envs()
-    try:
-        import pytest # noqa: F401
-        # Need pytest-xdist for `-n` arg
-        import xdist # noqa: F401
-        pytest_args = ['-n', 'auto', './run_unittests.py']
-        pytest_args += convert_args(sys.argv[1:])
-        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
-    except ImportError:
-        print('pytest-xdist not found, using unittest instead')
-    # All attempts at locating pytest failed, fall back to plain unittest.
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests',
@@ -9027,6 +9025,19 @@ def main():
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
 
+    # Don't use pytest-xdist when running a single unit test since it wastes
+    # time spawning a lot of processes to distribute tests to, just for one job
+    if not running_a_single_test(sys.argv, cases):
+        try:
+            import pytest # noqa: F401
+            # Need pytest-xdist for `-n` arg
+            import xdist # noqa: F401
+            pytest_args = ['-n', 'auto', './run_unittests.py']
+            pytest_args += convert_args(sys.argv[1:])
+            return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
+        except ImportError:
+            print('pytest-xdist not found, using unittest instead')
+    # Fallback to plain unittest.
     return unittest.main(defaultTest=cases, buffer=True)
 
 if __name__ == '__main__':
