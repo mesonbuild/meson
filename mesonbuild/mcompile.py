@@ -14,9 +14,11 @@
 
 """Entrypoint script for backend agnostic compile."""
 
+import os
 import json
 import re
 import sys
+import shutil
 import typing as T
 from collections import defaultdict
 from pathlib import Path
@@ -229,6 +231,42 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.List[
 
     return cmd
 
+def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.List[str]:
+    runner = 'xcodebuild'
+    if not shutil.which(runner):
+        raise MesonException('Cannot find xcodebuild, did you install XCode?')
+
+    # No argument to switch directory
+    os.chdir(str(builddir))
+
+    cmd = [runner, '-parallelizeTargets']
+
+    if options.targets:
+        for t in options.targets:
+            cmd += ['-target', t]
+
+    if options.clean:
+        if options.targets:
+            cmd += ['clean']
+        else:
+            cmd += ['-alltargets', 'clean']
+        # Otherwise xcodebuild tries to delete the builddir and fails
+        cmd += ['-UseNewBuildSystem=FALSE']
+
+    if options.jobs > 0:
+        cmd.extend(['-jobs', str(options.jobs)])
+
+    if options.load_average > 0:
+        mlog.warning('xcodebuild does not have a load-average switch, ignoring')
+
+    if options.verbose:
+        # xcodebuild is already quite verbose, and -quiet doesn't print any
+        # status messages
+        pass
+
+    cmd += options.xcode_args
+    return cmd
+
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
     parser.add_argument(
@@ -281,6 +319,12 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
         default=[],
         help='Arguments to pass to `msbuild` (applied only on `vs` backend).'
     )
+    parser.add_argument(
+        '--xcode-args',
+        type=array_arg,
+        default=[],
+        help='Arguments to pass to `xcodebuild` (applied only on `xcode` backend).'
+    )
 
 def run(options: 'argparse.Namespace') -> int:
     bdir = options.builddir  # type: Path
@@ -296,8 +340,10 @@ def run(options: 'argparse.Namespace') -> int:
         cmd = get_parsed_args_ninja(options, bdir)
     elif backend.startswith('vs'):
         cmd = get_parsed_args_vs(options, bdir)
+    elif backend == 'xcode':
+        mlog.warning('xcode backend is currently unmaintained, patches welcome')
+        cmd = get_parsed_args_xcode(options, bdir)
     else:
-        # TODO: xcode?
         raise MesonException(
             'Backend `{}` is not yet supported by `compile`. Use generated project files directly instead.'.format(backend))
 
