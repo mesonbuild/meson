@@ -247,7 +247,7 @@ skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-system_compiler = None
+host_c_compiler = None
 compiler_id_map = {}  # type: T.Dict[str, str]
 tool_vers_map = {}    # type: T.Dict[str, str]
 
@@ -1010,7 +1010,7 @@ def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str, failfast: bool,
                extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
-    global stop, executor, futures, system_compiler
+    global stop, executor, futures, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time = 0
@@ -1063,7 +1063,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             t.skip = skipped or t.skip
             result = executor.submit(run_test, t, extra_args + suite_args + t.args,
-                                     system_compiler, backend, backend_flags, commands, should_fail, use_tmp)
+                                     host_c_compiler, backend, backend_flags, commands, should_fail, use_tmp)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -1203,7 +1203,7 @@ def check_meson_commands_work(options):
 
 
 def detect_system_compiler(options):
-    global system_compiler, compiler_id_map
+    global host_c_compiler, compiler_id_map
 
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
         fake_opts = get_fake_options('/')
@@ -1229,7 +1229,7 @@ def detect_system_compiler(options):
             # note C compiler for later use by platform_fix_name()
             if lang == 'c':
                 if comp:
-                    system_compiler = comp.get_id()
+                    host_c_compiler = comp.get_id()
                 else:
                     raise RuntimeError("Could not find C compiler.")
 
