@@ -127,11 +127,16 @@ def update_git(wrap, repo_dir, options):
         mlog.log(mlog.red(e.output))
         mlog.log(mlog.red(str(e)))
         return False
-    # Fetch only the revision we need, this avoids fetching useless branches and
-    # is needed for http case were new remote branches wouldn't be discovered
-    # otherwise. After this command, FETCH_HEAD is the revision we want.
     try:
-        git_output(['fetch', 'origin', revision], repo_dir)
+        # Fetch only the revision we need, this avoids fetching useless branches.
+        # revision can be either a branch, tag or commit id. In all cases we want
+        # FETCH_HEAD to be set to the desired commit and "git checkout <revision>"
+        # to to either switch to existing/new branch, or detach to tag/commit.
+        # It is more complicated than it first appear, see discussion there:
+        # https://github.com/mesonbuild/meson/pull/7723#discussion_r488816189.
+        heads_refmap = '+refs/heads/*:refs/remotes/origin/*'
+        tags_refmap = '+refs/tags/*:refs/tags/*'
+        git_output(['fetch', '--refmap', heads_refmap, '--refmap', tags_refmap, 'origin', revision], repo_dir)
     except GitException as e:
         mlog.log('  -> Could not fetch revision', mlog.bold(revision), 'in', mlog.bold(repo_dir))
         mlog.log(mlog.red(e.output))
