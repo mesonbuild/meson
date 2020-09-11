@@ -4,7 +4,7 @@ cpp = 'cl'
 ar = 'lib'
 windres = 'rc'
 
-[properties]
+[built-in options]
 c_args = ['-DWINAPI_FAMILY=WINAPI_FAMILY_APP']
 c_link_args = ['-APPCONTAINER', 'WindowsApp.lib']
 cpp_args = ['-DWINAPI_FAMILY=WINAPI_FAMILY_APP']
