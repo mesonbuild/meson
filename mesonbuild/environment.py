@@ -1311,7 +1311,7 @@ class Environment:
                     m = 'Failed to detect MSVC compiler version: stderr was\n{!r}'
                     raise EnvironmentException(m.format(err))
                 cl_signature = lookat.split('\n')[0]
-                match = re.search('.*(x86|x64|ARM|ARM64)( |$)', cl_signature)
+                match = re.search(r'.*(x86|x64|ARM|ARM64)([^_A-Za-z0-9]|$)', cl_signature)
                 if match:
                     target = match.group(1)
                 else:
