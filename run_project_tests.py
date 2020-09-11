@@ -1209,17 +1209,22 @@ def detect_system_compiler(options):
         fake_opts = get_fake_options('/')
         if options.cross_file:
             fake_opts.cross_file = [options.cross_file]
+        if options.native_file:
+            fake_opts.native_file = [options.native_file]
+
         env = environment.Environment(None, build_dir, fake_opts)
-        print()
+
+        print_compilers(env, MachineChoice.HOST)
+        if options.cross_file:
+            print_compilers(env, MachineChoice.BUILD)
+
         for lang in sorted(compilers.all_languages):
             try:
                 comp = env.compiler_from_language(lang, MachineChoice.HOST)
-                details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
+                # note compiler id for later use with test.json matrix
                 compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
                 comp = None
-                details = '[not found]'
-            print('%-7s: %s' % (lang, details))
 
             # note C compiler for later use by platform_fix_name()
             if lang == 'c':
@@ -1227,7 +1232,20 @@ def detect_system_compiler(options):
                     system_compiler = comp.get_id()
                 else:
                     raise RuntimeError("Could not find C compiler.")
-        print()
+
+
+def print_compilers(env, machine):
+    print()
+    print('{} machine compilers'.format(machine.get_lower_case_name()))
+    print()
+    for lang in sorted(compilers.all_languages):
+        try:
+            comp = env.compiler_from_language(lang, machine)
+            details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
+        except mesonlib.MesonException:
+            details = '[not found]'
+        print('%-7s: %s' % (lang, details))
+
 
 def print_tool_versions():
     tools = [
@@ -1269,6 +1287,10 @@ def print_tool_versions():
 
         return '{} (unknown)'.format(exe)
 
+    print()
+    print('tools')
+    print()
+
     max_width = max([len(x['tool']) for x in tools] + [7])
     for tool in tools:
         print('{0:<{2}}: {1}'.format(tool['tool'], get_version(tool), max_width))
@@ -1285,10 +1307,14 @@ if __name__ == '__main__':
                         help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
+    parser.add_argument('--native-file', action='store', help='File describing native compilation environment.')
     parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
     options = parser.parse_args()
+
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
+    if options.native_file:
+        options.extra_args += ['--native-file', options.native_file]
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0])

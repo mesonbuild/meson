@@ -34,7 +34,6 @@ def runtests(cross_file, failfast, cross_only):
         cmd += ['--failfast']
     cmd += tests
     cmd += ['--cross-file', cross_file]
-    cmd += ['--']  # args following this are passed directly to meson
     if cross_only:
         cmd += ['--native-file', 'cross/none.txt']
     return subprocess.call(cmd)
