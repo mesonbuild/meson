@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import typing as T
+import time
 import stat
 import subprocess
 import re
@@ -9052,4 +9052,8 @@ def main():
 
 if __name__ == '__main__':
     print('Meson build system', mesonbuild.coredata.version, 'Unit Tests')
-    raise SystemExit(main())
+    start = time.monotonic()
+    try:
+        raise SystemExit(main())
+    finally:
+        print('Total time: {:.3f} seconds'.format(time.monotonic() - start))
