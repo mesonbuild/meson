@@ -240,7 +240,7 @@ class CompCertLinker(StaticLinker):
         return False
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o {}'.format(target)]
+        return ['-o{}'.format(target)]
 
 
 class C2000Linker(StaticLinker):
