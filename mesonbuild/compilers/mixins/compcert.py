@@ -52,7 +52,7 @@ ccomp_args_to_wul = [
 ] # type: T.List[str]
 
 class CompCertCompiler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.id = 'ccomp'
         # Assembly
         self.can_compile_suffixes.add('s')

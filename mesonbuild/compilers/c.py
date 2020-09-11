@@ -576,7 +576,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
         return ['-O0']
 
     def get_output_args(self, target):
-        return ['-o%s' % target]
+        return ['-o{}'.format(target)]
 
     def get_werror_args(self):
         return ['-Werror']
