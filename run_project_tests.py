@@ -1186,6 +1186,11 @@ def check_meson_commands_work(options):
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that introspect works...')
+        pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
+        json.loads(o)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to introspect --targets {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that building works...')
         dir_args = get_backend_args_for_dir(backend, build_dir)
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
