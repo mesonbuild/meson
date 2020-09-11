@@ -6,6 +6,8 @@ from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonExc
 from .wrap.wrap import API_ROOT, Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
+ALL_TYPES_STRING = ', '.join(ALL_TYPES)
+
 def update_wrapdb_file(wrap, repo_dir, options):
     patch_url = wrap.get('patch_url')
     branch, revision = wraptool.parse_patch_url(patch_url)
@@ -257,8 +259,8 @@ def foreach(wrap, repo_dir, options):
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
-    p.add_argument('--types', default='',
-                   help='Comma-separated list of subproject types. Supported types are: {} (default: all)'.format(', '.join(ALL_TYPES)))
+    p.add_argument('--types', default=ALL_TYPES_STRING,
+                   help='Comma-separated list of subproject types. Supported types are: {} (default: all)'.format(ALL_TYPES_STRING))
 
 def add_subprojects_argument(p):
     p.add_argument('subprojects', nargs='*',
@@ -320,7 +322,7 @@ def run(options):
     types = [t.strip() for t in options.types.split(',')]
     for t in types:
         if t not in ALL_TYPES:
-            raise MesonException('Unknown subproject type {!r}, supported types are: {}'.format(t, ', '.join(ALL_TYPES)))
+            raise MesonException('Unknown subproject type {!r}, supported types are: {}'.format(t, ALL_TYPES_STRING))
     failures = []
     for wrap in wraps:
         if wrap.type not in types:
