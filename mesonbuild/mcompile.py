@@ -137,7 +137,7 @@ def generate_target_names_ninja(target: ParsedTargetName, builddir: Path, intros
     else:
         return [str(Path(out_file).relative_to(builddir.resolve())) for out_file in intro_target['filename']]
 
-def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.List[str]:
+def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = detect_ninja()
     if runner is None:
         raise MesonException('Cannot find ninja.')
@@ -164,7 +164,7 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Li
 
     cmd += options.ninja_args
 
-    return cmd
+    return cmd, None
 
 def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect_data: dict) -> str:
     intro_target = get_target_from_intro_data(target, builddir, introspect_data)
@@ -179,7 +179,7 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
-def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.List[str]:
+def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
     sln = slns[0]
@@ -229,9 +229,13 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.List[
 
     cmd += options.vs_args
 
-    return cmd
+    # Remove platform from env so that msbuild does not pick x86 platform when solution platform is Win32
+    env = os.environ.copy()
+    del env['PLATFORM']
 
-def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.List[str]:
+    return cmd, env
+
+def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     runner = 'xcodebuild'
     if not shutil.which(runner):
         raise MesonException('Cannot find xcodebuild, did you install XCode?')
@@ -265,7 +269,7 @@ def get_parsed_args_xcode(options: 'argparse.Namespace', builddir: Path) -> T.Li
         pass
 
     cmd += options.xcode_args
-    return cmd
+    return cmd, None
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     """Add compile specific arguments."""
@@ -330,23 +334,23 @@ def run(options: 'argparse.Namespace') -> int:
     bdir = options.builddir  # type: Path
     validate_builddir(bdir.resolve())
 
-    cmd = []  # type: T.List[str]
+    cmd = []    # type: T.List[str]
+    env = None  # type: T.Optional[T.Dict[str, str]]
 
     if options.targets and options.clean:
         raise MesonException('`TARGET` and `--clean` can\'t be used simultaneously')
 
     backend = get_backend_from_coredata(bdir)
     if backend == 'ninja':
-        cmd = get_parsed_args_ninja(options, bdir)
+        cmd, env = get_parsed_args_ninja(options, bdir)
     elif backend.startswith('vs'):
-        cmd = get_parsed_args_vs(options, bdir)
+        cmd, env = get_parsed_args_vs(options, bdir)
     elif backend == 'xcode':
-        mlog.warning('xcode backend is currently unmaintained, patches welcome')
-        cmd = get_parsed_args_xcode(options, bdir)
+        cmd, env = get_parsed_args_xcode(options, bdir)
     else:
         raise MesonException(
             'Backend `{}` is not yet supported by `compile`. Use generated project files directly instead.'.format(backend))
 
-    p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer)
+    p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
 
     return p.returncode
