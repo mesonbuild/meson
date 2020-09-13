@@ -47,9 +47,13 @@ def git_output(cmd, workingdir):
     return quiet_git(cmd, workingdir, check=True)[1]
 
 def git_stash(workingdir):
-    # Don't pipe stdout here because we want the user to see their changes have
-    # been saved.
-    verbose_git(['stash'], workingdir, check=True)
+    # That git command return 1 (failure) when there is something to stash.
+    # We don't want to stash when there is nothing to stash because that would
+    # print spurious "No local changes to save".
+    if not quiet_git(['diff', '--quiet', 'HEAD'], workingdir)[0]:
+        # Don't pipe stdout here because we want the user to see their changes have
+        # been saved.
+        verbose_git(['stash'], workingdir, check=True)
 
 def git_show(repo_dir):
     commit_message = git_output(['show', '--quiet', '--pretty=format:%h%n%d%n%s%n[%an]'], repo_dir)
