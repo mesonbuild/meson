@@ -966,9 +966,7 @@ class Vs2010Backend(backends.Backend):
             t_inc_dirs = [self.relpath(self.get_target_private_dir(target),
                                        self.get_target_dir(target))]
             if target.implicit_include_directories:
-                t_inc_dirs += ['.']
-            if target.implicit_include_directories:
-                t_inc_dirs += [proj_to_src_dir]
+                t_inc_dirs += ['.', proj_to_src_dir]
             args += ['-I' + arg for arg in t_inc_dirs]
 
         # Split preprocessor defines and include directories out of the list of
@@ -983,9 +981,8 @@ class Vs2010Backend(backends.Backend):
                     else:
                         define = arg[2:]
                     # De-dup
-                    if define in file_defines[l]:
-                        file_defines[l].remove(define)
-                    file_defines[l].append(define)
+                    if define not in file_defines[l]:
+                        file_defines[l].append(define)
                 elif arg.startswith(('-I', '/I')) or arg == '%(AdditionalIncludeDirectories)':
                     file_args[l].remove(arg)
                     # Don't escape the marker
