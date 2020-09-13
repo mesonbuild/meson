@@ -32,7 +32,7 @@ class ExternalProject:
         self.depfile = options.depfile
         self.make = options.make
 
-    def write_depfile(self):
+    def write_depfile(self) -> None:
         with open(self.depfile, 'w') as f:
             f.write('{}: \\\n'.format(self.stampfile))
             for dirpath, dirnames, filenames in os.walk(self.src_dir):
@@ -43,7 +43,7 @@ class ExternalProject:
                     path = Path(dirpath, fname)
                     f.write('  {} \\\n'.format(path.as_posix().replace(' ', '\\ ')))
 
-    def write_stampfile(self):
+    def write_stampfile(self) -> None:
         with open(self.stampfile, 'w') as f:
             pass
 
@@ -80,7 +80,7 @@ class ExternalProject:
                              cwd=self.build_dir)
         return p.returncode
 
-def run(args):
+def run(args: T.List[str]) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--name')
     parser.add_argument('--srcdir')
