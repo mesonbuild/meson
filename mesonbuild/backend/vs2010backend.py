@@ -996,6 +996,9 @@ class Vs2010Backend(backends.Backend):
                     # De-dup
                     if inc_dir not in file_inc_dirs[l]:
                         file_inc_dirs[l].append(inc_dir)
+                    # Add include dirs to target as well so that "Go to Document" works in headers
+                    if inc_dir not in target_inc_dirs: 
+                        target_inc_dirs.append(inc_dir)
 
         # Split compile args needed to find external dependencies
         # Link args are added while generating the link command
@@ -1025,8 +1028,6 @@ class Vs2010Backend(backends.Backend):
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
-
-        target_inc_dirs.append('%(AdditionalIncludeDirectories)')
         ET.SubElement(clconf, 'AdditionalIncludeDirectories').text = ';'.join(target_inc_dirs)
         target_defines.append('%(PreprocessorDefinitions)')
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
