@@ -41,6 +41,13 @@ class EmscriptenMixin:
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return ['-s', 'USE_PTHREADS=1']
 
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        args = ['-s', 'USE_PTHREADS=1']
+        count = env.coredata.compiler_options[self.for_machine]['{}_thread_count'.format(self.language)].value  # type: int
+        if count:
+            args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
+        return args
+
     def get_options(self):
         opts = super().get_options()
         opts.update({
