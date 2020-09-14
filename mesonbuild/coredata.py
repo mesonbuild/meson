@@ -689,14 +689,24 @@ class CoreData:
     def get_external_link_args(self, for_machine: MachineChoice, lang):
         return self.compiler_options[for_machine][lang]['link_args'].value
 
-    def merge_user_options(self, options: T.Dict[str, T.Union[str, bool, int]]) -> None:
+    def merge_user_options(self, options: T.Dict[str, UserOption[T.Any]]) -> None:
         for (name, value) in options.items():
             if name not in self.user_options:
                 self.user_options[name] = value
-            else:
-                oldval = self.user_options[name]
-                if type(oldval) != type(value):
-                    self.user_options[name] = value
+                continue
+
+            oldval = self.user_options[name]
+            if type(oldval) != type(value):
+                self.user_options[name] = value
+            elif oldval.choices != value.choices:
+                # If the choices have changed, use the new value, but attempt
+                # to keep the old options. If they are not valid keep the new
+                # defaults but warn.
+                self.user_options[name] = value
+                try:
+                    value.set_value(oldval.value)
+                except MesonException as e:
+                    mlog.warning('Old value(s) of {} are no longer valid, resetting to default ({}).'.format(name, value.value))
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:

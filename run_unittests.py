@@ -3325,6 +3325,46 @@ int main(int argc, char **argv) {
         self.setconf("-Dfree_array_opt=['a,b', 'c,d']", will_build=False)
         self.opt_has('free_array_opt', ['a,b', 'c,d'])
 
+    def test_options_with_choices_changing(self) -> None:
+        """Detect when options like arrays or combos have their choices change."""
+        testdir = Path(os.path.join(self.unit_test_dir, '84 change option choices'))
+        options1 = str(testdir / 'meson_options.1.txt')
+        options2 = str(testdir / 'meson_options.2.txt')
+
+        # Test that old options are changed to the new defaults if they are not valid
+        real_options = str(testdir / 'meson_options.txt')
+        self.addCleanup(os.unlink, real_options)
+
+        shutil.copy(options1, real_options)
+        self.init(str(testdir))
+        shutil.copy(options2, real_options)
+
+        self.build()
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == 'combo':
+                self.assertEqual(item['value'], 'b')
+                self.assertEqual(item['choices'], ['b', 'c', 'd'])
+            elif item['name'] == 'arr':
+                self.assertEqual(item['value'], ['b'])
+                self.assertEqual(item['choices'], ['b', 'c', 'd'])
+
+        self.wipe()
+
+        # When the old options are valid they should remain
+        shutil.copy(options1, real_options)
+        self.init(str(testdir), extra_args=['-Dcombo=c', '-Darray=b,c'])
+        shutil.copy(options2, real_options)
+        self.build()
+        opts = self.introspect('--buildoptions')
+        for item in opts:
+            if item['name'] == 'combo':
+                self.assertEqual(item['value'], 'c')
+                self.assertEqual(item['choices'], ['b', 'c', 'd'])
+            elif item['name'] == 'arr':
+                self.assertEqual(item['value'], ['b', 'c'])
+                self.assertEqual(item['choices'], ['b', 'c', 'd'])
+
     def test_subproject_promotion(self):
         testdir = os.path.join(self.unit_test_dir, '12 promote')
         workdir = os.path.join(self.builddir, 'work')
