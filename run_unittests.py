@@ -8179,7 +8179,9 @@ class NativeFileTests(BasePlatformTests):
         testcase = os.path.join(self.common_test_dir, '43 options')
         for opt, value in [('testoption', 'some other val'), ('other_one', True),
                            ('combo_opt', 'one'), ('array_opt', ['two']),
-                           ('integer_opt', 0)]:
+                           ('integer_opt', 0),
+                           ('CaseSenSiTivE', 'SOME other Value'),
+                           ('CASESENSITIVE', 'some other Value')]:
             config = self.helper_create_native_file({'project options': {opt: value}})
             with self.assertRaises(subprocess.CalledProcessError) as cm:
                 self.init(testcase, extra_args=['--native-file', config])
