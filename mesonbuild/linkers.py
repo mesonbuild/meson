@@ -327,6 +327,10 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
+    @abc.abstractproperty
+    def id(self) -> str:
+        pass
+
     def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]:
         args = [arg] if isinstance(arg, str) else arg
         if self.prefix_arg is None:
@@ -338,13 +342,12 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
             ret += self.prefix_arg + [arg]
         return ret
 
-    def __init__(self, id_: str, exelist: T.List[str],
+    def __init__(self, exelist: T.List[str],
                  for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
                  always_args: T.List[str], *, version: str = 'unknown version'):
         self.exelist = exelist
         self.for_machine = for_machine
         self.version = version
-        self.id = id_
         self.prefix_arg = prefix_arg
         self.always_args = always_args
 
@@ -655,8 +658,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """Apple's ld implementation."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld64', *args, **kwargs)
+    id = 'ld64'
 
     def get_asneeded_args(self) -> T.List[str]:
         return self._apply_prefix('-dead_strip_dylibs')
@@ -741,14 +743,12 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
 
 class GnuGoldDynamicLinker(GnuDynamicLinker):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.gold', *args, **kwargs)
+    id = 'ld.gold'
 
 
 class GnuBFDDynamicLinker(GnuDynamicLinker):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.bfd', *args, **kwargs)
+    id = 'ld.bfd'
 
 
 class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -759,8 +759,10 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
     linkers.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.lld', *args, **kwargs)
+    id = 'ld.lld'
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         # Some targets don't seem to support this argument (windows, wasm, ...)
         _, _, e = mesonlib.Popen_safe(self.exelist + self._apply_prefix('--allow-shlib-undefined'))
@@ -776,8 +778,7 @@ class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     """Emscripten's wasm-ld."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.wasm', *args, **kwargs)
+    id = 'ld.wasm'
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         args = ['-s', 'USE_PTHREADS=1']
@@ -810,9 +811,11 @@ class CcrxDynamicLinker(DynamicLinker):
 
     """Linker for Renesis CCrx compiler."""
 
+    id = 'rlink'
+
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__('rlink', ['rlink.exe'], for_machine, '', [],
+        super().__init__(['rlink.exe'], for_machine, '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -843,9 +846,11 @@ class Xc16DynamicLinker(DynamicLinker):
 
     """Linker for Microchip XC16 compiler."""
 
+    id = 'xc16-gcc'
+
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__('xc16-gcc', ['xc16-gcc.exe'], for_machine, '', [],
+        super().__init__(['xc16-gcc.exe'], for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -885,9 +890,11 @@ class CompCertDynamicLinker(DynamicLinker):
 
     """Linker for CompCert C compiler."""
 
+    id = 'ccomp'
+
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__('ccomp', ['ccomp'], for_machine, '', [],
+        super().__init__(['ccomp'], for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -927,9 +934,11 @@ class C2000DynamicLinker(DynamicLinker):
 
     """Linker for Texas Instruments C2000 compiler."""
 
+    id = 'cl2000'
+
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__('cl2000', ['cl2000.exe'], for_machine, '', [],
+        super().__init__(['cl2000.exe'], for_machine, '', [],
                          version=version)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -963,9 +972,11 @@ class ArmDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """Linker for the ARM compiler."""
 
+    id = 'armlink'
+
     def __init__(self, for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
-        super().__init__('armlink', ['armlink'], for_machine, '', [],
+        super().__init__(['armlink'], for_machine, '', [],
                          version=version)
 
     def get_accepts_rsp(self) -> bool:
@@ -993,18 +1004,17 @@ class ArmClangDynamicLinker(ArmDynamicLinker):
         return ['--symdefs=' + implibname]
 
 class QualcommLLVMDynamicLinker(LLVMDynamicLinker):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
-        # ARM Linker from Snapdragon LLVM ARM Compiler
-        self.id = 'ld.qcld'
+    """ARM Linker from Snapdragon LLVM ARM Compiler."""
+
+    id = 'ld.qcld'
+
 
 class PGIDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """PGI linker."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('pgi', *args, **kwargs)
+    id = 'pgi'
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -1114,12 +1124,14 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Microsoft's Link.exe."""
 
+    id = 'link'
+
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
-        super().__init__('link', exelist or ['link.exe'], for_machine,
+        super().__init__(exelist or ['link.exe'], for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct)
 
     def get_always_args(self) -> T.List[str]:
@@ -1130,12 +1142,14 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Clang's lld-link.exe."""
 
+    id = 'lld-link'
+
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
                  exelist: T.Optional[T.List[str]] = None,
                  prefix: T.Union[str, T.List[str]] = '',
                  machine: str = 'x86', version: str = 'unknown version',
                  direct: bool = True):
-        super().__init__('lld-link', exelist or ['lld-link.exe'], for_machine,
+        super().__init__(exelist or ['lld-link.exe'], for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct)
 
 
@@ -1143,17 +1157,18 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Intel's Xilink.exe."""
 
+    id = 'xilink'
+
     def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str],
                  *, version: str = 'unknown version'):
-        super().__init__('xilink', ['xilink.exe'], for_machine, '', always_args, version=version)
+        super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
 
 
 class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """Sys-V derived linker used on Solaris and OpenSolaris."""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.solaris', *args, **kwargs)
+    id = 'ld.solaris'
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         if not args:
@@ -1214,8 +1229,7 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """Sys-V derived linker used on AIX"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('ld.aix', *args, **kwargs)
+    id = 'ld.aix'
 
     def get_always_args(self) -> T.List[str]:
         return self._apply_prefix(['-bsvr4', '-bnoipath', '-bbigtoc']) + super().get_always_args()
@@ -1246,11 +1260,13 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     """Digital Mars dynamic linker for windows."""
 
+    id = 'optlink'
+
     def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
                  *, version: str = 'unknown version'):
         # Use optlink instead of link so we don't interfer with other link.exe
         # implementations.
-        super().__init__('optlink', exelist, for_machine, '', [], version=version)
+        super().__init__(exelist, for_machine, '', [], version=version)
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -1266,8 +1282,7 @@ class OptlinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     """Cuda linker (nvlink)"""
 
-    def __init__(self, *args, **kwargs):
-        super().__init__('nvlink', *args, **kwargs)
+    id = 'nvlink'
 
     @staticmethod
     def parse_version():
