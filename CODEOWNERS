@@ -4,3 +4,5 @@
 /mesonbuild/modules/unstable_external_project.py @xclaesse
 /mesonbuild/ast/* @mensinda
 /mesonbuild/cmake/* @mensinda
+/mesonbuild/compilers/* @dcbaker
+/mesonbuild/linkers.py @dcbaker
