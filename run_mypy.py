@@ -21,6 +21,7 @@ modules = [
   'mesonbuild/dependencies/mpi.py',
   'mesonbuild/envconfig.py',
   'mesonbuild/interpreterbase.py',
+  'mesonbuild/linkers.py',
   'mesonbuild/mcompile.py',
   'mesonbuild/mesonlib.py',
   'mesonbuild/minit.py',

@@ -22,6 +22,7 @@ from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
     from .coredata import OptionDictType
+    from .envconfig import MachineChoice
     from .environment import Environment
 
 
@@ -516,6 +517,10 @@ class GnuLikeDynamicLinkerMixin:
     other linkers like GNU-ld.
     """
 
+    if T.TYPE_CHECKING:
+        for_machine = MachineChoice.HOST
+        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+
     _BUILDTYPE_ARGS = {
         'plain': [],
         'debug': [],
@@ -761,8 +766,10 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
 
     id = 'ld.lld'
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, exelist: T.List[str],
+                 for_machine: mesonlib.MachineChoice, prefix_arg: T.Union[str, T.List[str]],
+                 always_args: T.List[str], *, version: str = 'unknown version'):
+        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)
 
         # Some targets don't seem to support this argument (windows, wasm, ...)
         _, _, e = mesonlib.Popen_safe(self.exelist + self._apply_prefix('--allow-shlib-undefined'))
@@ -1052,6 +1059,12 @@ NvidiaHPC_StaticLinker = PGIStaticLinker
 
 class VisualStudioLikeLinkerMixin:
 
+    """Mixin class for for dynamic linkers that act like Microsoft's link.exe."""
+
+    if T.TYPE_CHECKING:
+        for_machine = MachineChoice.HOST
+        def _apply_prefix(self, arg: T.Union[str, T.List[str]]) -> T.List[str]: ...
+
     _BUILDTYPE_ARGS = {
         'plain': [],
         'debug': [],
@@ -1063,9 +1076,13 @@ class VisualStudioLikeLinkerMixin:
         'custom': [],
     }  # type: T.Dict[str, T.List[str]]
 
-    def __init__(self, *args, direct: bool = True, machine: str = 'x86', **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, exelist: T.List[str], for_machine: mesonlib.MachineChoice,
+                 prefix_arg: T.Union[str, T.List[str]], always_args: T.List[str], *,
+                 version: str = 'unknown version', direct: bool = True, machine: str = 'x86'):
+        # There's no way I can find to make mypy understand what's going on here
+        super().__init__(exelist, for_machine, prefix_arg, always_args, version=version)  # type: ignore
         self.machine = machine
+        self.direct = direct
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return mesonlib.listify([self._apply_prefix(a) for a in self._BUILDTYPE_ARGS[buildtype]])
@@ -1077,7 +1094,8 @@ class VisualStudioLikeLinkerMixin:
         return self._apply_prefix(['/MACHINE:' + self.machine, '/OUT:' + outputname])
 
     def get_always_args(self) -> T.List[str]:
-        return self._apply_prefix('/nologo') + super().get_always_args()
+        parent = super().get_always_args() # type: ignore
+        return self._apply_prefix('/nologo') + T.cast(T.List[str], parent)
 
     def get_search_args(self, dirname: str) -> T.List[str]:
         return self._apply_prefix('/LIBPATH:' + dirname)
@@ -1278,7 +1296,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     id = 'nvlink'
 
     @staticmethod
-    def parse_version():
+    def parse_version() -> str:
         version_cmd = ['nvlink', '--version']
         try:
             _, out, _ = mesonlib.Popen_safe(version_cmd)
