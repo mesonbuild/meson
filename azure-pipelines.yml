@@ -168,17 +168,6 @@ jobs:
       displayName: Install MSYS2
     - script: |
         set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
-        # Remove this line when https://github.com/msys2/MSYS2-packages/pull/2022 is merged
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Sy dash
-        echo Updating msys2
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu || echo system update failed, ignoring
-        echo Killing all msys2 processes
-        taskkill /F /FI "MODULES eq msys-2.0.dll"
-        echo Updating msys2 (again)
-        %MSYS2_ROOT%\usr\bin\pacman --noconfirm -Syuu
-      displayName: Update MSYS2
-    - script: |
-        set PATH=%MSYS2_ROOT%\usr\bin;%SystemRoot%\system32;%SystemRoot%;%SystemRoot%\System32\Wbem
         if %compiler%==gcc ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-toolchain" ) else ( set "TOOLCHAIN=mingw-w64-$(MSYS2_ARCH)-clang" )
         %MSYS2_ROOT%\usr\bin\pacman --noconfirm --needed -S ^
         base-devel ^
