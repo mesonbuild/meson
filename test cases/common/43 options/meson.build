@@ -34,4 +34,12 @@ if get_option('neg_int_opt') != -3
   error('Incorrect value in negative integer option.')
 endif
 
+if get_option('CaseSenSiTivE') != 'Some CAPS'
+  error('Incorrect value in mixed caps option.')
+endif
+
+if get_option('CASESENSITIVE') != 'ALL CAPS'
+  error('Incorrect value in all caps option.')
+endif
+
 assert(get_option('wrap_mode') == 'default', 'Wrap mode option is broken.')

@@ -5,6 +5,9 @@ documentation on the common values used by both, for the specific values of
 one or the other see the [cross compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
+*Changed in 0.56.0* Keys within sections are now case sensitive. This is
+*required to make project options work correctly.
+
 ## Data Types
 
 There are four basic data types in a machine file:

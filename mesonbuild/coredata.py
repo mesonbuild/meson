@@ -848,13 +848,17 @@ class CoreData:
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
 class CmdLineFileParser(configparser.ConfigParser):
-    def __init__(self):
+    def __init__(self) -> None:
         # We don't want ':' as key delimiter, otherwise it would break when
         # storing subproject options like "subproject:option=value"
         super().__init__(delimiters=['='], interpolation=None)
 
+    def optionxform(self, option: str) -> str:
+        # Don't call str.lower() on keys
+        return option
+
 class MachineFileParser():
-    def __init__(self, filenames: T.List[str]):
+    def __init__(self, filenames: T.List[str]) -> None:
         self.parser = CmdLineFileParser()
         self.constants = {'True': True, 'False': False}
         self.sections = {}
