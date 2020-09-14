@@ -26,6 +26,7 @@ from io import StringIO
 from enum import Enum
 from glob import glob
 from pathlib import Path
+from unittest import mock
 from mesonbuild import compilers
 from mesonbuild import dependencies
 from mesonbuild import mesonlib
@@ -255,16 +256,11 @@ def ensure_backend_detects_changes(backend):
         time.sleep(1)
 
 def run_mtest_inprocess(commandlist):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    try:
+    stderr = StringIO()
+    stdout = StringIO()
+    with mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
         returncode = mtest.run_with_args(commandlist)
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
+    return returncode, stdout.getvalue(), stderr.getvalue()
 
 def clear_meson_configure_class_caches():
     compilers.CCompiler.library_dirs_cache = {}
@@ -275,22 +271,14 @@ def clear_meson_configure_class_caches():
     dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
 def run_configure_inprocess(commandlist, env=None):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    old_environ = os.environ.copy()
-    if env is not None:
-        os.environ.update(env)
-    try:
-        returncode = mesonmain.run(commandlist, get_meson_script())
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-        clear_meson_configure_class_caches()
-        os.environ.clear()
-        os.environ.update(old_environ)
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
+    stderr = StringIO()
+    stdout = StringIO()
+    with mock.patch.dict(os.environ, env or {}), mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
+        try:
+            returncode = mesonmain.run(commandlist, get_meson_script())
+        finally:
+            clear_meson_configure_class_caches()
+    return returncode, stdout.getvalue(), stderr.getvalue()
 
 def run_configure_external(full_command, env=None):
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
