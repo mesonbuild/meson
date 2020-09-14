@@ -7,5 +7,9 @@ score=no
 [MESSAGES CONTROL]
 disable=all
 enable=
+    assert-on-tuple,
+    dangerous-default-value,
+    deprecated-lambda,
+    compare-to-zero,
     len-as-condition,
     unreachable
