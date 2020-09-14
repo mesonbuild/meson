@@ -1177,7 +1177,7 @@ def check_format():
                 check_file(root / file)
 
 def check_meson_commands_work(options):
-    global backend, compile_commands, test_commands, install_commands
+    global install_commands, do_debug
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
@@ -1187,17 +1187,22 @@ def check_meson_commands_work(options):
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that building works...')
-        dir_args = get_backend_args_for_dir(backend, build_dir)
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
+        compile_cmd = meson_commands + ['compile']
+        if do_debug:
+            compile_cmd.append('-v')
+        pc, o, e = Popen_safe(compile_cmd, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that testing works...')
-        pc, o, e = Popen_safe(test_commands, cwd=build_dir)
+        test_cmd = meson_commands + ['test']
+        if do_debug:
+            test_cmd.append('-v')
+        pc, o, e = Popen_safe(test_cmd, cwd=build_dir)
         if pc.returncode != 0:
             raise RuntimeError('Failed to test {!r}:\n{}\n{}'.format(testdir, e, o))
         if install_commands:
             print('Checking that installing works...')
-            pc, o, e = Popen_safe(install_commands, cwd=build_dir)
+            pc, o, e = Popen_safe(meson_commands + ['install'], cwd=build_dir)
             if pc.returncode != 0:
                 raise RuntimeError('Failed to install {!r}:\n{}\n{}'.format(testdir, e, o))
 
