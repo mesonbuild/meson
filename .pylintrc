@@ -6,4 +6,6 @@ score=no
 
 [MESSAGES CONTROL]
 disable=all
-enable=unreachable
+enable=
+    len-as-condition,
+    unreachable
