@@ -3211,6 +3211,7 @@ int main(int argc, char **argv) {
                         os.unlink(fname)
 
     @skipIfNoPkgconfig
+    @mock.patch.dict(os.environ)
     def test_pkgconfig_gen_escaping(self):
         testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
         prefix = '/usr/with spaces'
@@ -5443,6 +5444,7 @@ class WindowsTests(BasePlatformTests):
         self.platform_test_dir = os.path.join(self.src_root, 'test cases/windows')
 
     @unittest.skipIf(is_cygwin(), 'Test only applicable to Windows')
+    @mock.patch.dict(os.environ)
     def test_find_program(self):
         '''
         Test that Windows-specific edge-cases in find_program are functioning
@@ -5894,6 +5896,7 @@ class LinuxlikeTests(BasePlatformTests):
         compdb = self.get_compdb()
         self.assertNotIn('-fPIC', compdb[0]['command'])
 
+    @mock.patch.dict(os.environ)
     def test_pkgconfig_gen(self):
         '''
         Test that generated pkg-config files can be found and have the correct
@@ -5931,7 +5934,6 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, override_envvars={'PKG_CONFIG_LIBDIR': privatedir1})
         privatedir2 = self.privatedir
 
-        os.environ
         env = {
             'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
             'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
@@ -5992,6 +5994,7 @@ class LinuxlikeTests(BasePlatformTests):
             content = f.read()
             self.assertNotIn('-lstat2', content)
 
+    @mock.patch.dict(os.environ)
     def test_pkgconfig_uninstalled(self):
         testdir = os.path.join(self.common_test_dir, '47 pkgconfig-gen')
         self.init(testdir)
