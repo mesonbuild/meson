@@ -23,8 +23,8 @@ if T.TYPE_CHECKING:
 
 ccomp_buildtype_args = {
     'plain': [''],
-    'debug': ['-O0 -g'],
-    'debugoptimized': ['-O0 -g'],
+    'debug': ['-O0', '-g'],
+    'debugoptimized': ['-O0', '-g'],
     'release': ['-03'],
     'minsize': ['-Os'],
     'custom': ['-Obranchless'],
