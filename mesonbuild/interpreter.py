@@ -3707,8 +3707,10 @@ external dependencies (including libraries) must go to "dependencies".''')
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_dependency()
 
-        has_fallback = 'fallback' in kwargs
-        if not has_fallback and name:
+        fallback = kwargs.get('fallback', None)
+
+        # If "fallback" is absent, look for an implicit fallback.
+        if name and fallback is None:
             # Add an implicit fallback if we have a wrap file or a directory with the same name,
             # but only if this dependency is required. It is common to first check for a pkg-config,
             # then fallback to use find_library() and only afterward check again the dependency
@@ -3717,15 +3719,14 @@ external dependencies (including libraries) must go to "dependencies".''')
             provider = self.environment.wrap_resolver.find_dep_provider(name)
             dirname = mesonlib.listify(provider)[0]
             if provider and (required or self.get_subproject(dirname)):
-                kwargs['fallback'] = provider
-                has_fallback = True
+                fallback = provider
 
-        if 'default_options' in kwargs and not has_fallback:
+        if 'default_options' in kwargs and not fallback:
             mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
                          location=self.current_node)
 
         # writing just "dependency('')" is an error, because it can only fail
-        if name == '' and required and not has_fallback:
+        if name == '' and required and not fallback:
             raise InvalidArguments('Dependency is both required and not-found')
 
         if '<' in name or '>' in name or '=' in name:
@@ -3734,8 +3735,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         identifier, cached_dep = self._find_cached_dep(name, display_name, kwargs)
         if cached_dep:
-            if has_fallback:
-                dirname, varname = self.get_subproject_infos(kwargs)
+            if fallback:
+                dirname, varname = self.get_subproject_infos(fallback)
                 self.verify_fallback_consistency(dirname, varname, cached_dep)
             if required and not cached_dep.found():
                 m = 'Dependency {!r} was already checked and was not found'
@@ -3744,21 +3745,21 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         # If the dependency has already been configured, possibly by
         # a higher level project, try to use it first.
-        if has_fallback:
-            dirname, varname = self.get_subproject_infos(kwargs)
+        if fallback:
+            dirname, varname = self.get_subproject_infos(fallback)
             if self.get_subproject(dirname):
                 return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
         force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
         force_fallback = kwargs.get('force_fallback', False)
-        forcefallback = has_fallback and (wrap_mode == WrapMode.forcefallback or \
-                                          name in force_fallback_for or \
-                                          dirname in force_fallback_for or \
-                                          force_fallback)
+        forcefallback = fallback and (wrap_mode == WrapMode.forcefallback or \
+                                      name in force_fallback_for or \
+                                      dirname in force_fallback_for or \
+                                      force_fallback)
         if name != '' and not forcefallback:
             self._handle_featurenew_dependencies(name)
-            kwargs['required'] = required and not has_fallback
+            kwargs['required'] = required and not fallback
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)
             kwargs['required'] = required
             # Only store found-deps in the cache
@@ -3770,8 +3771,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 self.coredata.deps[for_machine].put(identifier, dep)
                 return DependencyHolder(dep, self.subproject)
 
-        if has_fallback:
-            return self.dependency_fallback(name, display_name, kwargs)
+        if fallback:
+            return self.dependency_fallback(name, display_name, fallback, kwargs)
 
         return self.notfound_dependency()
 
@@ -3798,8 +3799,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             message.append(mlog.bold(command_templ.format(l[len(self.source_root) + 1:])))
         mlog.warning(*message, location=self.current_node)
 
-    def get_subproject_infos(self, kwargs):
-        fbinfo = mesonlib.stringlistify(kwargs['fallback'])
+    def get_subproject_infos(self, fbinfo):
+        fbinfo = mesonlib.stringlistify(fbinfo)
         if len(fbinfo) == 1:
             FeatureNew.single_use('Fallback without variable name', '0.53.0', self.subproject)
             return fbinfo[0], None
@@ -3807,8 +3808,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InterpreterException('Fallback info must have one or two items.')
         return fbinfo
 
-    def dependency_fallback(self, name, display_name, kwargs):
-        dirname, varname = self.get_subproject_infos(kwargs)
+    def dependency_fallback(self, name, display_name, fallback, kwargs):
+        dirname, varname = self.get_subproject_infos(fallback)
         required = kwargs.get('required', True)
 
         # Explicitly listed fallback preferences for specific subprojects
