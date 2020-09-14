@@ -440,33 +440,52 @@ system) with the given name with `pkg-config` and [with
 CMake](Dependencies.md#cmake) if `pkg-config` fails. Additionally,
 frameworks (OSX only) and [library-specific fallback detection
 logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-are also supported. This function supports the following keyword
-arguments:
+are also supported.
+
+Dependencies can also be resolved in two other ways:
+
+* if the same name was used in a `meson.override_dependency` prior to
+  the call to `dependency`, the overriding dependency will be returned
+  unconditionally; that is, the overriding dependency will be used
+  independent of whether an external dependency is installed in the system.
+  Typically, `meson.override_dependency` will have been used by a
+  subproject.
+
+* by a fallback subproject which, if needed, will be brought into the current
+  build specification as if [`subproject()`](#subproject) had been called.
+  The subproject can be specified with the `fallback` argument.  Alternatively,
+  if the `fallback` argument is absent and `required` is `true` or
+  [`enabled`](Build-options.md#features), *since 0.55.0* Meson will
+  automatically identify a subproject as a fallback if a wrap file
+  [provides](Wrap-dependency-system-manual.md#provide-section) the
+  dependency, or if a subproject has the same name as the dependency.
+  In the latter case, the subproject must use `meson.override_dependency` to
+  specify the replacement, or Meson will report a hard error.  See the
+  [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.
+
+This function supports the following keyword arguments:
 
 - `default_options` *(since 0.37.0)*: an array of default option values
   that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
-- `fallback`: specifies a subproject fallback to use in case the
-  dependency is not found in the system. The value is an array
-  `['subproj_name', 'subproj_dep']` where the first value is the name
+- `fallback`: manually specifies a subproject
+  fallback to use in case the dependency is not found in the system.
+  This is useful if the automatic search is not applicable or if you
+  want to support versions of Meson older than 0.55.0.  If the value is an
+  array `['subproj_name', 'subproj_dep']`, the first value is the name
   of the subproject and the second is the variable name in that
   subproject that contains a dependency object such as the return
   value of [`declare_dependency`](#declare_dependency) or
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
   case the value of the `required:` kwarg will be obeyed.
-  *(since 0.54.0)* `'subproj_dep'` argument can be omitted in the case the
-  subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
-  In that case, the `fallback` keyword argument can be a single string instead
-  of a list of 2 strings. *Since 0.55.0* the `fallback` keyword argument can be
-  omitted when there is a wrap file or a directory with the same `dependency_name`,
-  and subproject registered the dependency using
-  `meson.override_dependency('dependency_name', subproj_dep)`, or when the wrap
-  file has `dependency_name` in its `[provide]` section.
-  See [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
-  for more details.
+  *Since 0.54.0* the value can be a single string, the subproject name;
+  in this case the subproject must use
+  `meson.override_dependency('dependency_name', subproj_dep)`
+  to specify the dependency object used in the superproject.
 - `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method`: defines the way the dependency is detected, the default is
