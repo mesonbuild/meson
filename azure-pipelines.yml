@@ -24,8 +24,8 @@ jobs:
           compiler: msvc2017
           backend: ninja
           MESON_RSP_THRESHOLD: 0
-        vc2017x64vs:
-          arch: x64
+        vc2017x86vs:
+          arch: x86
           compiler: msvc2017
           backend: vs2017
         clangclx64ninja:
