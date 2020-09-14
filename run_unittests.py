@@ -1657,13 +1657,7 @@ class BasePlatformTests(unittest.TestCase):
         self.privatedir = os.path.join(self.builddir, 'meson-private')
         if inprocess:
             try:
-                if override_envvars is not None:
-                    old_envvars = os.environ.copy()
-                    os.environ.update(override_envvars)
-                (returncode, out, err) = run_configure_inprocess(self.meson_args + args + extra_args)
-                if override_envvars is not None:
-                    os.environ.clear()
-                    os.environ.update(old_envvars)
+                (returncode, out, err) = run_configure_inprocess(self.meson_args + args + extra_args, override_envvars)
                 if 'MESON_SKIP_TEST' in out:
                     raise unittest.SkipTest('Project requested skipping.')
                 if returncode != 0:
@@ -1707,15 +1701,8 @@ class BasePlatformTests(unittest.TestCase):
         if not inprocess:
             self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
-            if override_envvars is not None:
-                old_envvars = os.environ.copy()
-                os.environ.update(override_envvars)
-            try:
+            with mock.patch.dict(os.environ, override_envvars):
                 run_mtest_inprocess(['-C', self.builddir])
-            finally:
-                if override_envvars is not None:
-                    os.environ.clear()
-                    os.environ.update(old_envvars)
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
