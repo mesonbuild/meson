@@ -2587,7 +2587,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_link_whole_args(self, linker, target):
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-        return linker.get_link_whole_for(target_args) if len(target_args) else []
+        return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)
     def guess_library_absolute_path(self, linker, libname, search_dirs, patterns):

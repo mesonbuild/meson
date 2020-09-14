@@ -2232,7 +2232,7 @@ class CustomTarget(Target):
     def get_dep_outname(self, infilenames):
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
-        if len(infilenames):
+        if infilenames:
             plainname = os.path.basename(infilenames[0])
             basename = os.path.splitext(plainname)[0]
             return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
