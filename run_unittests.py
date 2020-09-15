@@ -58,7 +58,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg, relpath, is_linux
+    quote_arg, relpath, is_linux, git, GIT
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException
@@ -8956,6 +8956,169 @@ class TAPParserTests(unittest.TestCase):
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_last(events)
 
+class SubprojectsCommandTests(BasePlatformTests):
+    def setUp(self):
+        super().setUp()
+        self.root_dir = Path(self.builddir)
+
+        self.project_dir = self.root_dir / 'src'
+        self._create_project(self.project_dir)
+
+        self.subprojects_dir = self.project_dir / 'subprojects'
+        os.makedirs(str(self.subprojects_dir))
+
+    def _create_project(self, path, project_name='dummy'):
+        os.makedirs(str(path), exist_ok=True)
+        with open(str(path / 'meson.build'), 'w') as f:
+            f.write("project('{}')".format(project_name))
+
+    def _git(self, cmd, workdir):
+        return git(cmd, str(workdir), check=True)[1].strip()
+
+    def _git_config(self, workdir):
+        self._git(['config', 'user.name', 'Meson Test'], workdir)
+        self._git(['config', 'user.email', 'meson.test@example.com'], workdir)
+
+    def _git_remote(self, cmd, name):
+        return self._git(cmd, self.root_dir / name)
+
+    def _git_local(self, cmd, name):
+        return self._git(cmd, self.subprojects_dir / name)
+
+    def _git_create_repo(self, path):
+        self._create_project(path)
+        self._git(['init'], path)
+        self._git_config(path)
+        self._git(['add', '.'], path)
+        self._git(['commit', '-m', 'Initial commit'], path)
+
+    def _git_create_remote_repo(self, name):
+        self._git_create_repo(self.root_dir / name)
+
+    def _git_create_local_repo(self, name):
+        self._git_create_repo(self.subprojects_dir / name)
+
+    def _git_create_remote_commit(self, name, branch):
+        self._git_remote(['checkout', branch], name)
+        self._git_remote(['commit', '--allow-empty', '-m', 'initial {} commit'.format(branch)], name)
+
+    def _git_create_remote_branch(self, name, branch):
+        self._git_remote(['checkout', '-b', branch], name)
+        self._git_remote(['commit', '--allow-empty', '-m', 'initial {} commit'.format(branch)], name)
+
+    def _git_create_remote_tag(self, name, tag):
+        self._git_remote(['commit', '--allow-empty', '-m', 'tag {} commit'.format(tag)], name)
+        self._git_remote(['tag', tag], name)
+
+    def _wrap_create_git(self, name, revision='master'):
+        path = self.root_dir / name
+        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w') as f:
+            f.write(textwrap.dedent(
+                '''
+                [wrap-git]
+                url={}
+                revision={}
+                '''.format(os.path.abspath(str(path)), revision)))
+
+    def _wrap_create_file(self, name, tarball='dummy.tar.gz'):
+        path = self.root_dir / tarball
+        with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w') as f:
+            f.write(textwrap.dedent(
+                '''
+                [wrap-file]
+                source_url={}
+                '''.format(os.path.abspath(str(path)))))
+
+    def _subprojects_cmd(self, args):
+        return self._run(self.meson_command + ['subprojects'] + args, workdir=str(self.project_dir))
+
+    def test_git_update(self):
+        subp_name = 'sub1'
+
+        # Create a fake remote git repository and a wrap file. Checks that
+        # "meson subprojects download" works.
+        self._git_create_remote_repo(subp_name)
+        self._wrap_create_git(subp_name)
+        self._subprojects_cmd(['download'])
+        self.assertPathExists(str(self.subprojects_dir / subp_name))
+        self._git_config(self.subprojects_dir / subp_name)
+
+        # Create a new remote branch and update the wrap file. Checks that
+        # "meson subprojects update --reset" checkout the new branch.
+        self._git_create_remote_branch(subp_name, 'newbranch')
+        self._wrap_create_git(subp_name, 'newbranch')
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+
+        # Update remote newbranch. Checks the new commit is pulled into existing
+        # local newbranch. Make sure it does not print spurious 'git stash' message.
+        self._git_create_remote_commit(subp_name, 'newbranch')
+        out = self._subprojects_cmd(['update', '--reset'])
+        self.assertNotIn('No local changes to save', out)
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+
+        # Update remote newbranch and switch to another branch. Checks that it
+        # switch current branch to newbranch and pull latest commit.
+        self._git_local(['checkout', 'master'], subp_name)
+        self._git_create_remote_commit(subp_name, 'newbranch')
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+
+        # Stage some local changes then update. Checks that local changes got
+        # stashed.
+        self._create_project(self.subprojects_dir / subp_name, 'new_project_name')
+        self._git_local(['add', '.'], subp_name)
+        self._git_create_remote_commit(subp_name, 'newbranch')
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+        self.assertTrue(self._git_local(['stash', 'list'], subp_name))
+
+        # Create a new remote tag and update the wrap file. Checks that
+        # "meson subprojects update --reset" checkout the new tag in detached mode.
+        self._git_create_remote_tag(subp_name, 'newtag')
+        self._wrap_create_git(subp_name, 'newtag')
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), '')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newtag'], subp_name))
+
+        # Create a new remote commit and update the wrap file with the commit id.
+        # Checks that "meson subprojects update --reset" checkout the new commit
+        # in detached mode.
+        self._git_local(['checkout', 'master'], subp_name)
+        self._git_create_remote_commit(subp_name, 'newbranch')
+        new_commit = self._git_remote(['rev-parse', 'HEAD'], subp_name)
+        self._wrap_create_git(subp_name, new_commit)
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), '')
+        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), new_commit)
+
+    @skipIfNoExecutable('true')
+    def test_foreach(self):
+        self._create_project(self.subprojects_dir / 'sub_file')
+        self._wrap_create_file('sub_file')
+        self._git_create_local_repo('sub_git_no_wrap')
+
+        def ran_in(s):
+            ret = []
+            prefix = 'Executing command in '
+            for l in s.splitlines():
+                if l.startswith(prefix):
+                    ret.append(l[len(prefix):])
+            return sorted(ret)
+
+        dummy_cmd = ['true']
+        out = self._subprojects_cmd(['foreach'] + dummy_cmd)
+        self.assertEqual(ran_in(out), sorted(['./subprojects/sub_git_no_wrap', './subprojects/sub_file']))
+        out = self._subprojects_cmd(['foreach', '--types', 'git,file'] + dummy_cmd)
+        self.assertEqual(ran_in(out), sorted(['./subprojects/sub_git_no_wrap', './subprojects/sub_file']))
+        out = self._subprojects_cmd(['foreach', '--types', 'file'] + dummy_cmd)
+        self.assertEqual(ran_in(out), ['./subprojects/sub_file'])
+        out = self._subprojects_cmd(['foreach', '--types', 'git'] + dummy_cmd)
+        self.assertEqual(ran_in(out), ['./subprojects/sub_git_no_wrap'])
 
 def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
     """
@@ -9030,7 +9193,7 @@ def main():
     unset_envs()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
-             'TAPParserTests',
+             'TAPParserTests', 'SubprojectsCommandTests',
 
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
