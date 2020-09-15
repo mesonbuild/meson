@@ -85,7 +85,7 @@ CPU_FAMILES_64_BIT = [
 
 def get_env_var_pair(for_machine: MachineChoice,
                      is_cross: bool,
-                     var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
     """
     Returns the exact env var and the value.
     """
@@ -115,9 +115,7 @@ def get_env_var(for_machine: MachineChoice,
     ret = get_env_var_pair(for_machine, is_cross, var_name)
     if ret is None:
         return None
-    else:
-        var, value = ret
-        return value
+    return ret[1]
 
 class Properties:
     def __init__(
