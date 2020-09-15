@@ -230,6 +230,18 @@ class Xc16Linker(StaticLinker):
     def get_linker_always_args(self) -> T.List[str]:
         return ['rcs']
 
+class CompCertLinker(StaticLinker):
+
+    def __init__(self, exelist: T.List[str]):
+        super().__init__(exelist)
+        self.id = 'ccomp'
+
+    def can_linker_accept_rsp(self) -> bool:
+        return False
+
+    def get_output_args(self, target: str) -> T.List[str]:
+        return ['-o{}'.format(target)]
+
 
 class C2000Linker(StaticLinker):
 
@@ -869,6 +881,47 @@ class Xc16DynamicLinker(DynamicLinker):
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
         return ([], set())
 
+class CompCertDynamicLinker(DynamicLinker):
+
+    """Linker for CompCert C compiler."""
+
+    def __init__(self, for_machine: mesonlib.MachineChoice,
+                 *, version: str = 'unknown version'):
+        super().__init__('ccomp', ['ccomp'], for_machine, '', [],
+                         version=version)
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        if not args:
+            return args
+        return self._apply_prefix('-WUl,--start-group') + args + self._apply_prefix('-WUl,--end-group')
+
+    def get_accepts_rsp(self) -> bool:
+        return False
+
+    def get_lib_prefix(self) -> str:
+        return '-l'
+
+    def get_std_shared_lib_args(self) -> T.List[str]:
+        return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o{}'.format(outputname)]
+
+    def get_search_args(self, dirname: str) -> T.List[str]:
+        return ['-L{}'.format(outputname)]
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
+                        is_shared_module: bool) -> T.List[str]:
+        raise mesonlib.MesonException('{} does not support shared libraries.'.format(self.id))
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        return ([], set())
 
 class C2000DynamicLinker(DynamicLinker):
 

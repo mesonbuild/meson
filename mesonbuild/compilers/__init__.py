@@ -97,6 +97,7 @@ __all__ = [
     'CcrxCCompiler',
     'CcrxCPPCompiler',
     'Xc16CCompiler',
+    'CompCertCCompiler',
     'C2000CCompiler',
     'C2000CPPCompiler',
     'SunFortranCompiler',
@@ -145,6 +146,7 @@ from .c import (
     PGICCompiler,
     CcrxCCompiler,
     Xc16CCompiler,
+    CompCertCCompiler,
     C2000CCompiler,
     VisualStudioCCompiler,
 )
