@@ -119,22 +119,23 @@ class WindowsModule(ExtensionModule):
             src = unholder(src)
 
             if isinstance(src, str):
-                name_format = 'file {!r}'
+                name_formatted = src
                 name = os.path.join(state.subdir, src)
             elif isinstance(src, mesonlib.File):
-                name_format = 'file {!r}'
+                name_formatted = src.fname
                 name = src.relative_name()
             elif isinstance(src, build.CustomTarget):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
-                name_format = 'target {!r}'
+                name_formatted = src.get_basename()
                 name = src.get_id()
             else:
                 raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
 
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_')
+            name_formatted = name_formatted.replace('/', '_').replace('\\', '_')
 
             res_kwargs = {
                 'output': name + '_@BASENAME@.' + suffix,
@@ -149,7 +150,7 @@ class WindowsModule(ExtensionModule):
                 res_kwargs['depfile'] = res_kwargs['output'] + '.d'
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 
-            res_targets.append(build.CustomTarget('Windows resource for ' + name_format.format(name), state.subdir, state.subproject, res_kwargs))
+            res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
 
         add_target(args)
 
