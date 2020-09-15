@@ -47,6 +47,175 @@ default_yielding = False
 # Can't bind this near the class method it seems, sadly.
 _T = T.TypeVar('_T')
 
+
+class ArgumentGroup(enum.Enum):
+
+    """Enum used to specify what kind of argument a thing is."""
+
+    BUILTIN = 0
+    BASE = 1
+    COMPILER = 2
+    USER = 3
+    BACKEND = 4
+
+
+def classify_argument(key: 'OptionKey') -> ArgumentGroup:
+    """Classify arguments into groups so we know which dict to assign them to."""
+
+    from .compilers import all_languages, base_options
+    all_builtins = set(BUILTIN_OPTIONS) | set(BUILTIN_OPTIONS_PER_MACHINE) | set(builtin_dir_noprefix_options)
+    lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
+
+    if key.name in base_options:
+        assert key.machine is MachineChoice.HOST
+        return ArgumentGroup.BASE
+    elif key.name.startswith(lang_prefixes):
+        return ArgumentGroup.COMPILER
+    elif key.name in all_builtins:
+        # if for_machine is MachineChoice.BUILD:
+        #     if option in BUILTIN_OPTIONS_PER_MACHINE:
+        #         return ArgumentGroup.BUILTIN
+        #     raise MesonException('Argument {} is not allowed per-machine'.format(option))
+        return ArgumentGroup.BUILTIN
+    elif key.name.startswith('backend_'):
+        return ArgumentGroup.BACKEND
+    else:
+        assert key.machine is MachineChoice.HOST
+        return ArgumentGroup.USER
+
+
+class OptionKey:
+
+    """Represents an option key in the various option dictionaries.
+
+    This provides a flexible, powerful way to map option names from their
+    external form (things like subproject:build.option) to something that
+    internally easier to reason about and produce.
+    """
+
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash']
+
+    name: str
+    subproject: str
+    machine: MachineChoice
+    lang: T.Optional[str]
+
+    def __init__(self, name: str, subproject: str = '',
+                 machine: MachineChoice = MachineChoice.HOST,
+                 lang: T.Optional[str] = None):
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'subproject', subproject)
+        object.__setattr__(self, 'machine', machine)
+        object.__setattr__(self, 'lang', lang)
+        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang)))
+
+    def __setattr__(self, key: str, value: T.Any) -> None:
+        raise AttributeError('OptionKey instances do not support mutation.')
+
+    def __getstate__(self) -> T.Dict[str, T.Any]:
+        return {
+            'name': self.name,
+            'subproject': self.subproject,
+            'machine': self.machine,
+            'lang': self.lang,
+        }
+
+    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
+        """De-serialize the state of a pickle.
+
+        This is very clever. __init__ is not a constructor, it's an
+        initializer, therefore it's safe to call more than once. We create a
+        state in the custom __getstate__ method, which is valid to pass
+        unsplatted to the initializer.
+        """
+        self.__init__(**state)
+
+    def __hash__(self) -> int:
+        return self._hash
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return (
+                self.name == other.name and
+                self.subproject == other.subproject and
+                self.machine is other.machine and
+                self.lang == other.lang)
+        return NotImplemented
+
+    def __str__(self) -> str:
+        out = self.name
+        if self.lang:
+            out = f'{self.lang}_{out}'
+        if self.machine is MachineChoice.BUILD:
+            out = f'build.{out}'
+        if self.subproject:
+            out = f'{self.subproject}:{out}'
+        return out
+
+    def __repr__(self) -> str:
+        return f'OptionKey({repr(self.name)}, {repr(self.subproject)}, {repr(self.machine)}, {repr(self.lang)})'
+
+    @classmethod
+    def from_string(cls, raw: str) -> 'OptionKey':
+        """Parse the raw command line format into a three part tuple.
+
+        This takes strings like `mysubproject:build.myoption` and Creates an
+        OptionKey out of them.
+        """
+        from .compilers import all_languages
+        if any(raw.startswith(f'{l}_') for l in all_languages):
+            lang, raw2 = raw.split('_', 1)
+        else:
+            lang, raw2 = None, raw
+
+        try:
+            subproject, raw3 = raw2.split(':')
+        except ValueError:
+            subproject, raw3 = '', raw2
+
+        if raw3.startswith('build.'):
+            opt = raw3.lstrip('build.')
+            for_machine = MachineChoice.BUILD
+        else:
+            opt = raw3
+            for_machine = MachineChoice.HOST
+        assert ':' not in opt
+        assert 'build.' not in opt
+
+        return cls(opt, subproject, for_machine, lang)
+
+    def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
+               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '') -> 'OptionKey':
+        """Create a new copy of this key, but with alterted members.
+
+        For example:
+        >>> a = OptionKey('foo', '', MachineChoice.Host)
+        >>> b = OptionKey('foo', 'bar', MachineChoice.Host)
+        >>> b == a.evolve(subproject='bar')
+        True
+        """
+        # We have to be a little clever with lang here, because lang is valid
+        # as None, for non-compiler options
+        return OptionKey(
+            name if name is not None else self.name,
+            subproject if subproject is not None else self.subproject,
+            machine if machine is not None else self.machine,
+            lang if lang != '' else self.lang,
+        )
+
+    def as_root(self) -> 'OptionKey':
+        """Convenience method for key.evolve(subproject='')."""
+        return self.evolve(subproject='')
+
+    def as_build(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachinceChoice.BUILD)."""
+        return self.evolve(machine=MachineChoice.BUILD)
+
+    def as_host(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachinceChoice.HOST)."""
+        return self.evolve(machine=MachineChoice.HOST)
+
+
 class MesonVersionMismatchException(MesonException):
     '''Build directory generated with Meson version is incompatible with current version'''
     def __init__(self, old_version: str, current_version: str) -> None:
