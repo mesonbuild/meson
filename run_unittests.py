@@ -66,6 +66,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
+import mesonbuild.modules.qt
 
 from mesonbuild.mtest import TAPParser, TestResult
 
@@ -6082,6 +6083,15 @@ class LinuxlikeTests(BasePlatformTests):
         if qt5 == 0:
             self.assertRegex('\n'.join(mesonlog),
                              r'Run-time dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
+
+    def test_qtdependency_static_qt(self):
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        mock_prl = os.path.join(testdir, 'libqmlplugin.prl')
+        link_args = mesonbuild.modules.qt.QtBaseModule._link_args('libs', mock_prl)
+
+        self.assertEqual(os.path.basename(link_args[0]), 'libqmlplugin.a')
+        self.assertFalse('QT_INSTALL_LIBS' in ' '.join(link_args))
+        self.assertFalse('$$' in ' '.join(link_args))
 
     @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
