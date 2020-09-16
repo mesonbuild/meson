@@ -63,6 +63,7 @@ needs to be specified manually, while QML plugins are automatically detected fro
 
 The method takes the following keyword arguments:
 - `qresources`, rcc source file used for scanning for QML plugins
+- `qmlfiles`, sources files used for scanning for QML plugins
 - `plugins`, list of plugins to import
 
 ```meson

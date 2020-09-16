@@ -317,12 +317,14 @@ class QtBaseModule(ExtensionModule):
         raise MesonException('failed to parse pri file:', pripath)
 
     def _get_qml(self, state, rcc):
+        if not rcc:
+            return []
         nodes  = self.parse_qrc_deps(state, rcc)
         return [x.fname for x in nodes if os.path.splitext(x.fname)[1] in ['.qml', '.js']]
 
 
 
-    @permittedKwargs({'method', 'qresources', 'plugins'})
+    @permittedKwargs({'method', 'qresources', 'qmlfiles', 'plugins'})
     @FeatureNew('qt.static_qml_plugins', '0.56.0')
     def static_plugins_dep(self, state, args, kwargs):
         method = kwargs.get('method', 'auto')
@@ -335,15 +337,17 @@ class QtBaseModule(ExtensionModule):
         sources = []
 
         qresources = kwargs.get('qresources', None)
-        if qresources:
+        qmlfiles = extract_as_list(kwargs, 'qmlfiles', pop=True)
+        if qresources or qmlfiles:
             scanner = os.path.join(qt.bindir, 'qmlimportscanner')
             if not os.path.isfile(scanner) or not os.access(scanner, os.X_OK):
                 raise MesonException('qmlimportscanner not found')
             qmldir = os.path.join(qt.install_prefix, 'qml')
 
 
-            qml_files = self._get_qml(state, qresources)
-            cmd  = [scanner, '-qmlFiles'] + qml_files + ['-importPath', qmldir]
+            qmlfiles_abs =  [os.path.join(state.source_root, state.subdir, f) for f in qmlfiles]
+            scan_files = self._get_qml(state, qresources) + qmlfiles_abs
+            cmd  = [scanner, '-qmlFiles'] + scan_files + ['-importPath', qmldir]
             stdout = Popen_safe(cmd)[1]
             added = set()
             for plugin in json.loads(stdout):
