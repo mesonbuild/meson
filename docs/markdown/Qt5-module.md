@@ -68,7 +68,7 @@ The method takes the following keyword arguments:
 ```meson
 qt5 = import('qt5')
 if qt5.is_static()
-  plugins_dep = qt5.static_plugins_dep(plugins: ['qsqlite', 'qjpeg'], qresource: 'resources.qrc')
+  plugins_dep = qt5.static_plugins_dep(plugins: ['qsqlite', 'qjpeg'], qresources: 'resources.qrc')
 endif
 ```
 *Since 0.56.0*
