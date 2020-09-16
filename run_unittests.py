@@ -9125,13 +9125,13 @@ class SubprojectsCommandTests(BasePlatformTests):
 
         dummy_cmd = ['true']
         out = self._subprojects_cmd(['foreach'] + dummy_cmd)
-        self.assertEqual(ran_in(out), sorted(['./subprojects/sub_file', './subprojects/sub_git', './subprojects/sub_git_no_wrap']))
+        self.assertEqual(ran_in(out), sorted(['subprojects/sub_file', 'subprojects/sub_git', 'subprojects/sub_git_no_wrap']))
         out = self._subprojects_cmd(['foreach', '--types', 'git,file'] + dummy_cmd)
-        self.assertEqual(ran_in(out), sorted(['./subprojects/sub_file', './subprojects/sub_git']))
+        self.assertEqual(ran_in(out), sorted(['subprojects/sub_file', 'subprojects/sub_git']))
         out = self._subprojects_cmd(['foreach', '--types', 'file'] + dummy_cmd)
-        self.assertEqual(ran_in(out), ['./subprojects/sub_file'])
+        self.assertEqual(ran_in(out), ['subprojects/sub_file'])
         out = self._subprojects_cmd(['foreach', '--types', 'git'] + dummy_cmd)
-        self.assertEqual(ran_in(out), ['./subprojects/sub_git'])
+        self.assertEqual(ran_in(out), ['subprojects/sub_git'])
 
 def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
     """
