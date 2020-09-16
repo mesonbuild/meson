@@ -2245,7 +2245,7 @@ class CustomTarget(Target):
         if len(self.outputs) != 1:
             return False
         suf = os.path.splitext(self.outputs[0])[-1]
-        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
+        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so' or suf == '.dylib':
             return True
 
     def get_link_deps_mapping(self, prefix, environment):
