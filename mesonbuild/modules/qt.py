@@ -323,6 +323,14 @@ class QtBaseModule(ExtensionModule):
         return [x.fname for x in nodes if os.path.splitext(x.fname)[1] in ['.qml', '.js']]
 
 
+    def _find_prl(self, dir, name):
+        templates = ['{}.prl', 'lib{}.prl']
+        for template in templates:
+            path = os.path.join(dir, template.format(name))
+            if os.path.exists(path):
+                return path
+        raise MesonException('failed to find .prl file for plugin \"{}\"'.format(name))
+
 
     @permittedKwargs({'method', 'qresources', 'qmlfiles', 'plugins'})
     @FeatureNew('qt.static_qml_plugins', '0.56.0')
@@ -352,8 +360,11 @@ class QtBaseModule(ExtensionModule):
             added = set()
             for plugin in json.loads(stdout):
                 if 'plugin' in plugin and plugin['classname'] not in added:
-                    prl = os.path.join(qmldir, plugin['relativePath'], 'lib{}.prl'.format(plugin['plugin']))
-                    link_args.extend(self._link_args(qt, prl))
+                    plugindir = os.path.join(qmldir, plugin['relativePath'])
+                    prl =  self._find_prl(plugindir, plugin['plugin'])
+                    archive = os.path.join(plugindir, 'lib{}.a'.format(plugin['plugin']))
+
+                    link_args += [archive] + self._link_args(qt, prl)
                     sources.append(self._generate_importer(qt, state, plugin['classname']))
                     added.add(plugin['classname'])
 
@@ -363,9 +374,12 @@ class QtBaseModule(ExtensionModule):
             for cpp_plugin in cpp_plugins:
                 pripath = os.path.join(pridir, 'qt_plugin_{}.pri'.format(cpp_plugin))
                 plugin_data = self._parse_pri(pripath)
-                prl = os.path.join(qt.install_prefix, 'plugins', plugin_data['type'], 'lib{}.prl'.format(cpp_plugin))
 
-                link_args.extend(self._link_args(qt, prl))
+                plugindir = os.path.join(qt.install_prefix, 'plugins', plugin_data['type'])
+                prl = self._find_prl(plugindir, cpp_plugin)
+                archive = os.path.join(plugindir, 'lib{}.a'.format(cpp_plugin))
+
+                link_args += [archive] + self._link_args(qt, prl)
                 sources.append(self._generate_importer(qt, state, plugin_data['classname']))
 
         dep = ExternalDependency('qt-static-plugins', state.environment, {'static': True})
