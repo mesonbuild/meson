@@ -908,7 +908,7 @@ class CompCertDynamicLinker(DynamicLinker):
         return ['-o{}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> T.List[str]:
-        return ['-L{}'.format(outputname)]
+        return ['-L{}'.format(dirname)]
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
