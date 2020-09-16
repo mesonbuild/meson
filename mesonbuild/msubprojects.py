@@ -125,7 +125,9 @@ def update_git(wrap, repo_dir, options):
         mlog.log('  -> No revision specified.')
         return True
     try:
-        branch = git_output(['branch', '--show-current'], repo_dir).strip()
+        # Same as `git branch --show-current` but compatible with older git version
+        branch = git_output(['rev-parse', '--abbrev-ref', 'HEAD'], repo_dir).strip()
+        branch = branch if branch != 'HEAD' else ''
     except GitException as e:
         mlog.log('  -> Failed to determine current branch in', mlog.bold(repo_dir))
         mlog.log(mlog.red(e.output))

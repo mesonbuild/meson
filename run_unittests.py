@@ -8985,6 +8985,17 @@ class SubprojectsCommandTests(BasePlatformTests):
     def _git_local(self, cmd, name):
         return self._git(cmd, self.subprojects_dir / name)
 
+    def _git_local_branch(self, name):
+        # Same as `git branch --show-current` but compatible with older git version
+        branch = self._git_local(['rev-parse', '--abbrev-ref', 'HEAD'], name)
+        return branch if branch != 'HEAD' else ''
+
+    def _git_local_commit(self, name, ref='HEAD'):
+        return self._git_local(['rev-parse', ref], name)
+
+    def _git_remote_commit(self, name, ref='HEAD'):
+        return self._git_remote(['rev-parse', ref], name)
+
     def _git_create_repo(self, path):
         self._create_project(path)
         self._git(['init'], path)
@@ -9048,24 +9059,24 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_create_remote_branch(subp_name, 'newbranch')
         self._wrap_create_git(subp_name, 'newbranch')
         self._subprojects_cmd(['update', '--reset'])
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+        self.assertEqual(self._git_local_branch(subp_name), 'newbranch')
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newbranch'))
 
         # Update remote newbranch. Checks the new commit is pulled into existing
         # local newbranch. Make sure it does not print spurious 'git stash' message.
         self._git_create_remote_commit(subp_name, 'newbranch')
         out = self._subprojects_cmd(['update', '--reset'])
         self.assertNotIn('No local changes to save', out)
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+        self.assertEqual(self._git_local_branch(subp_name), 'newbranch')
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newbranch'))
 
         # Update remote newbranch and switch to another branch. Checks that it
         # switch current branch to newbranch and pull latest commit.
         self._git_local(['checkout', 'master'], subp_name)
         self._git_create_remote_commit(subp_name, 'newbranch')
         self._subprojects_cmd(['update', '--reset'])
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+        self.assertEqual(self._git_local_branch(subp_name), 'newbranch')
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newbranch'))
 
         # Stage some local changes then update. Checks that local changes got
         # stashed.
@@ -9073,8 +9084,8 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_local(['add', '.'], subp_name)
         self._git_create_remote_commit(subp_name, 'newbranch')
         self._subprojects_cmd(['update', '--reset'])
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), 'newbranch')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newbranch'], subp_name))
+        self.assertEqual(self._git_local_branch(subp_name), 'newbranch')
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newbranch'))
         self.assertTrue(self._git_local(['stash', 'list'], subp_name))
 
         # Create a new remote tag and update the wrap file. Checks that
@@ -9082,8 +9093,8 @@ class SubprojectsCommandTests(BasePlatformTests):
         self._git_create_remote_tag(subp_name, 'newtag')
         self._wrap_create_git(subp_name, 'newtag')
         self._subprojects_cmd(['update', '--reset'])
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), '')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), self._git_remote(['rev-parse', 'newtag'], subp_name))
+        self.assertEqual(self._git_local_branch(subp_name), '')
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name, 'newtag'))
 
         # Create a new remote commit and update the wrap file with the commit id.
         # Checks that "meson subprojects update --reset" checkout the new commit
@@ -9093,8 +9104,8 @@ class SubprojectsCommandTests(BasePlatformTests):
         new_commit = self._git_remote(['rev-parse', 'HEAD'], subp_name)
         self._wrap_create_git(subp_name, new_commit)
         self._subprojects_cmd(['update', '--reset'])
-        self.assertEqual(self._git_local(['branch', '--show-current'], subp_name), '')
-        self.assertEqual(self._git_local(['rev-parse', 'HEAD'], subp_name), new_commit)
+        self.assertEqual(self._git_local_branch(subp_name), '')
+        self.assertEqual(self._git_local_commit(subp_name), new_commit)
 
     @skipIfNoExecutable('true')
     def test_foreach(self):
