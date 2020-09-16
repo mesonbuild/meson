@@ -1,5 +1,6 @@
 import os, subprocess
 import argparse
+from pathlib import Path
 
 from . import mlog
 from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException
@@ -338,7 +339,7 @@ def run(options):
     for wrap in wraps:
         if types and wrap.type not in types:
             continue
-        dirname = os.path.join(subprojects_dir, wrap.directory)
+        dirname = Path(subprojects_dir, wrap.directory).as_posix()
         if not options.subprojects_func(wrap, dirname, options):
             failures.append(wrap.name)
     if failures:
