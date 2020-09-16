@@ -268,7 +268,7 @@ def foreach(wrap, repo_dir, options):
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
-    p.add_argument('--types', default=ALL_TYPES_STRING,
+    p.add_argument('--types', default='',
                    help='Comma-separated list of subproject types. Supported types are: {} (default: all)'.format(ALL_TYPES_STRING))
 
 def add_subprojects_argument(p):
@@ -328,13 +328,13 @@ def run(options):
         wraps = [wrap for name, wrap in r.wraps.items() if name in options.subprojects]
     else:
         wraps = r.wraps.values()
-    types = [t.strip() for t in options.types.split(',')]
+    types = [t.strip() for t in options.types.split(',')] if options.types else []
     for t in types:
         if t not in ALL_TYPES:
             raise MesonException('Unknown subproject type {!r}, supported types are: {}'.format(t, ALL_TYPES_STRING))
     failures = []
     for wrap in wraps:
-        if wrap.type not in types:
+        if types and wrap.type not in types:
             continue
         dirname = os.path.join(subprojects_dir, wrap.directory)
         if not options.subprojects_func(wrap, dirname, options):

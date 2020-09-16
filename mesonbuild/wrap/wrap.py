@@ -103,23 +103,11 @@ class PackageDefinition:
         self.provided_deps[self.name] = None
         if fname.endswith('.wrap'):
             self.parse_wrap(fname)
-        else:
-            self.guess_type();
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
         if self.type and self.type not in ALL_TYPES:
             raise WrapException('Unknown wrap type {!r}'.format(self.type))
-
-    def guess_type(self) -> None:
-        if os.path.exists(os.path.join(self.filename, '.git')):
-            # This is a git subproject without wrap file. Either the user cloned
-            # it manually, or it's a git submodule. The revision is used in
-            # msubprojects.py to update the git repo. If it's a submodule the repo
-            # is likely detached and revision will be empty.
-            res, stdout = quiet_git(['branch', '--show-current'], self.filename)
-            self.values['revision'] = stdout.strip()
-            self.type = 'git'
 
     def parse_wrap(self, fname: str) -> None:
         try:
