@@ -284,7 +284,6 @@ class QtBaseModule(ExtensionModule):
 
     @staticmethod
     def _link_args(libdir, prl):
-        archive = os.path.splitext(prl)[0] + '.a'
         with open(prl) as prl_file:
             content = prl_file.read()
 
@@ -341,6 +340,10 @@ class QtBaseModule(ExtensionModule):
         qt = _QT_DEPS_LUT[self.qt_version](state.environment, {'modules': 'Core', 'method': method})
         if not qt.found():
             raise MesonException('couldn\'t find qt')
+
+        if not qt.static:
+            empty_dep = ExternalDependency('qt-static-plugins', state.environment, {'static': False, 'required': False})
+            return ModuleReturnValue(empty_dep, [])
 
         link_args = []
         sources = []

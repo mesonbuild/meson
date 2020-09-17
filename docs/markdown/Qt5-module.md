@@ -59,11 +59,12 @@ This method returnes `true` if the Qt install is statically built.
 ## static_plugins_dep
 When linking against a statically built Qt installation, plugins also needs static linking. The `static_plugins_dep` return a dependecy object that holds the nessecary
 linker flags for static linking, and generates files that includes the plugins using Qt's `Q_IMPORT_PLUGIN`. Normal plugins (those found in the `plugins` folder) must
-needs to be specified manually, while QML plugins are automatically detected from QML and JavaScript files.
+needs to be specified manually, while QML plugins are automatically detected from QML and JavaScript files. A non-required empty dependency is returned if the Qt
+installation found by Meson is not statically built.
 
 The method takes the following keyword arguments:
 - `qresources`, rcc source file used for scanning for QML plugins
-- `qmlfiles`, sources files used for scanning for QML plugins
+- `qmlfiles`, QML or JavaScript source files to scan for QML plugins
 - `plugins`, list of plugins to import
 
 ```meson
