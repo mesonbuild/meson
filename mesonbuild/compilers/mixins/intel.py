@@ -109,7 +109,6 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
             '-diag-error', '10156',  # ignoring not argument allowed
             '-diag-error', '10157',  # Ignoring argument of the wrong type
             '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
-            '-diag-error', '1292',   # unknown __attribute__
         ]
         return super().compiles(*args, **kwargs)
 
@@ -124,6 +123,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+        return ['-diag-error', '1292']
 
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
