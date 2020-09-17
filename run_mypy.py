@@ -19,6 +19,7 @@ modules = [
   'mesonbuild/compilers/mixins/c2000.py',
   'mesonbuild/compilers/mixins/ccrx.py',
   'mesonbuild/compilers/mixins/clike.py',
+  'mesonbuild/compilers/mixins/gnu.py',
   # 'mesonbuild/compilers/mixins/intel.py',
   # 'mesonbuild/coredata.py',
   'mesonbuild/dependencies/boost.py',
