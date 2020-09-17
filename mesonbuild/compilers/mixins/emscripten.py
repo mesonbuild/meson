@@ -20,12 +20,17 @@ import typing as T
 from ... import coredata
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
+    from ...envconfig import MachineChoice
+    from ...environment import Environment
 
 
 class EmscriptenMixin:
 
-    def _get_compile_output(self, dirname, mode):
+    if T.TYPE_CHECKING:
+        for_machine = MachineChoice.HOST
+        language = ''
+
+    def _get_compile_output(self, dirname: str, mode: str) -> str:
         # In pre-processor mode, the output is sent to stdout and discarded
         if mode == 'preprocess':
             return None
@@ -48,8 +53,10 @@ class EmscriptenMixin:
             args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
         return args
 
-    def get_options(self):
-        opts = super().get_options()
+    def get_options(self) -> 'coredata.OptionDictType':
+        # Mypy and co-operative inheritance
+        _opts = super().get_options()  # type: ignore
+        opts = T.cast('coredata.OptionDictType', _opts)
         opts.update({
             '{}_thread_count'.format(self.language): coredata.UserIntegerOption(
                 'Number of threads to use in web assembly, set to 0 to disable',
