@@ -42,9 +42,6 @@ class SwiftCompiler(Compiler):
         self.id = 'llvm'
         self.is_cross = is_cross
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
     def needs_static_linker(self):
         return True
 
