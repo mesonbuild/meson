@@ -25,6 +25,7 @@ modules = [
   'mesonbuild/compilers/mixins/emscripten.py',
   'mesonbuild/compilers/mixins/gnu.py',
   'mesonbuild/compilers/mixins/intel.py',
+  'mesonbuild/compilers/mixins/islinker.py',
   # 'mesonbuild/coredata.py',
   'mesonbuild/dependencies/boost.py',
   'mesonbuild/dependencies/hdf5.py',
