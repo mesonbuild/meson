@@ -47,7 +47,12 @@ xc16_debug_args = {
 
 
 class Xc16Compiler:
-    def __init__(self):
+
+    if T.TYPE_CHECKING:
+        can_compile_suffixes = set()  # type: T.Set[str]
+        is_cross = True
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('xc16 supports only cross-compilation.')
         self.id = 'xc16'
@@ -85,7 +90,7 @@ class Xc16Compiler:
 
     def get_coverage_args(self) -> T.List[str]:
         return []
-    
+
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['-nostdinc']
 
