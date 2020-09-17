@@ -325,7 +325,7 @@ class CLikeCompiler:
     def gen_import_library_args(self, implibname: str) -> T.List[str]:
         return self.linker.import_library_args(implibname)
 
-    def sanity_check_impl(self, work_dir: str, environment: 'Environment',
+    def _sanity_check_impl(self, work_dir: str, environment: 'Environment',
                          sname: str, code: str) -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
@@ -383,7 +383,7 @@ class CLikeCompiler:
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'int main(void) { int class=0; return class; }\n'
-        return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
