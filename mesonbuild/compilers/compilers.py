@@ -405,6 +405,29 @@ class RunResult:
         self.stderr = stderr
 
 
+class CompileResult:
+
+    """The result of Compiler.compiles (and friends)."""
+
+    def __init__(self, stdo: T.Optional[str] = None, stde: T.Optional[str] = None,
+                 args: T.Optional[T.List[str]] = None,
+                 returncode: int = 999, pid: int = -1,
+                 text_mode: bool = True,
+                 input_name: T.Optional[str] = None,
+                 output_name: T.Optional[str] = None,
+                 command: T.Optional[T.List[str]] = None, cached: bool = False):
+        self.stdout = stdo
+        self.stderr = stde
+        self.input_name = input_name
+        self.output_name = output_name
+        self.command = command or []
+        self.args = args or []
+        self.cached = cached
+        self.returncode = returncode
+        self.pid = pid
+        self.text_mode = text_mode
+
+
 class Compiler(metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
@@ -633,7 +656,7 @@ class Compiler(metaclass=abc.ABCMeta):
         return CompilerArgs(self, args)
 
     @contextlib.contextmanager
-    def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None):
+    def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None) -> T.Iterator[CompileResult]:
         if extra_args is None:
             extra_args = []
         try:
@@ -671,15 +694,14 @@ class Compiler(metaclass=abc.ABCMeta):
                 os_env['LC_ALL'] = 'C'
                 if no_ccache:
                     os_env['CCACHE_DISABLE'] = '1'
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
-                p.commands = commands
-                p.input_name = srcname
+                p, stdo, stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
+                mlog.debug('Compiler stdout:\n', stdo)
+                mlog.debug('Compiler stderr:\n', stde)
+
+                result = CompileResult(stdo, stde, list(commands), p.returncode, p.pid, input_name=srcname)
                 if want_output:
-                    p.output_name = output
-                p.cached = False  # Make sure that the cached attribute always exists
-                yield p
+                    result.output_name = output
+                yield result
         except OSError:
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
@@ -687,7 +709,7 @@ class Compiler(metaclass=abc.ABCMeta):
             pass
 
     @contextlib.contextmanager
-    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link', temp_dir=None):
+    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link', temp_dir=None) -> T.Iterator[CompileResult]:
         assert(isinstance(cdata, coredata.CoreData))
 
         # Calculate the key
@@ -697,21 +719,13 @@ class Compiler(metaclass=abc.ABCMeta):
         # Check if not cached
         if key not in cdata.compiler_check_cache:
             with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
-                # Remove all attributes except the following
-                # This way the object can be serialized
-                tokeep = ['args', 'commands', 'input_name', 'output_name',
-                          'pid', 'returncode', 'stdo', 'stde', 'text_mode']
-                todel = [x for x in vars(p).keys() if x not in tokeep]
-                for i in todel:
-                    delattr(p, i)
-                p.cached = False
                 cdata.compiler_check_cache[key] = p
                 yield p
+                p.cached = True
                 return
 
         # Return cached
         p = cdata.compiler_check_cache[key]
-        p.cached = True
         mlog.debug('Using cached compile:')
         mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
         mlog.debug('Code:\n', code)

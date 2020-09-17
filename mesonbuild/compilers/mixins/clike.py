@@ -446,7 +446,7 @@ class CLikeCompiler:
         with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
             return p.returncode == 0, p.cached
 
-    def _build_wrapper(self, code: str, env, extra_args, dependencies=None, mode: str = 'compile', want_output: bool = False, disable_cache: bool = False, temp_dir: str = None) -> T.Tuple[bool, bool]:
+    def _build_wrapper(self, code: str, env, extra_args, dependencies=None, mode: str = 'compile', want_output: bool = False, disable_cache: bool = False, temp_dir: str = None) -> T.Iterator[compilers.CompileResult]:
         args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
         if disable_cache or want_output:
             return self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir)
@@ -665,7 +665,7 @@ class CLikeCompiler:
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
-        return self.concatenate_string_literals(p.stdo.split(delim + '\n')[-1][:-1]), cached
+        return self.concatenate_string_literals(p.stdout.split(delim + '\n')[-1][:-1]), cached
 
     def get_return_value(self, fname, rtype, prefix, env, extra_args, dependencies):
         if rtype == 'string':
@@ -889,7 +889,7 @@ class CLikeCompiler:
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
                 m = 'BUG: Unable to compile {!r} check: {}'
-                raise RuntimeError(m.format(n, p.stdo))
+                raise RuntimeError(m.format(n, p.stdout))
             if not os.path.isfile(p.output_name):
                 m = 'BUG: Can\'t find compiled test code for {!r} check'
                 raise RuntimeError(m.format(n))

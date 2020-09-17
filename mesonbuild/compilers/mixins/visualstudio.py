@@ -296,7 +296,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
-            return not(warning_text in p.stde or warning_text in p.stdo), p.cached
+            return not(warning_text in p.stderr or warning_text in p.stdout), p.cached
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         pdbarr = rel_obj.split('.')[:-1]
