@@ -18,6 +18,7 @@ modules = [
   'mesonbuild/compilers/mixins/arm.py',
   'mesonbuild/compilers/mixins/c2000.py',
   'mesonbuild/compilers/mixins/ccrx.py',
+  'mesonbuild/compilers/mixins/clang.py',
   'mesonbuild/compilers/mixins/clike.py',
   'mesonbuild/compilers/mixins/gnu.py',
   # 'mesonbuild/compilers/mixins/intel.py',

@@ -23,8 +23,10 @@ from ...linkers import AppleDynamicLinker
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
+    from ...envconfig import MachineChoice
     from ...environment import Environment
     from ...dependencies import Dependency  # noqa: F401
+    from ...linkers import AppleDynamicLinker
 
 clang_color_args = {
     'auto': ['-Xclang', '-fcolor-diagnostics'],
@@ -42,6 +44,12 @@ clang_optimization_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 class ClangCompiler(GnuLikeCompiler):
+
+    if T.TYPE_CHECKING:
+        linker = AppleDynamicLinker([], MachineChoice.HOST, '', [])
+
+        def get_pch_name(self, name: str) -> str: ...
+
     def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.id = 'clang'
@@ -79,13 +87,14 @@ class ClangCompiler(GnuLikeCompiler):
         myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
         if mesonlib.version_compare(self.version, '>=3.6.0'):
             myargs.append('-Werror=ignored-optimization-argument')
-        return super().has_multi_arguments(
+        # Mypy doesn't understand co-coperative inheritance
+        return super().has_multi_arguments(  # type: ignore
             myargs + args,
             env)
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,
-                     dependencies: T.Optional[T.List['Dependency']] = None) -> bool:
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         if extra_args is None:
             extra_args = []
         # Starting with XCode 8, we need to pass this to force linker
@@ -95,8 +104,10 @@ class ClangCompiler(GnuLikeCompiler):
         # TODO: this really should be communicated by the linker
         if isinstance(self.linker, AppleDynamicLinker) and mesonlib.version_compare(self.version, '>=8.0'):
             extra_args.append('-Wl,-no_weak_imports')
-        return super().has_function(funcname, prefix, env, extra_args=extra_args,
-                                    dependencies=dependencies)
+        # Mypy doesn't understand co-coperative inheritance
+        ret = super().has_function(funcname, prefix, env, extra_args=extra_args,  # type: ignore
+                                   dependencies=dependencies)
+        return T.cast(T.Tuple[bool, bool], ret)
 
     def openmp_flags(self) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=3.8.0'):
@@ -125,7 +136,7 @@ class ClangCompiler(GnuLikeCompiler):
             return ['-fuse-ld={}'.format(linker)]
         return super().use_linker_args(linker)
 
-    def get_has_func_attribute_extra_args(self, name):
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # Clang only warns about unknown or ignored attributes, so force an
         # error.
         return ['-Werror=attributes']
