@@ -26,7 +26,13 @@ from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
+    import contextlib
+
+    from .. import compilers
+    from ... import arglist
     from ...coredata import UserOption  # noqa: F401
+    from ...dependency import Dependency
+    from ...envconfig import MachineInfo
     from ...environment import Environment
 
 # XXX: prevent circular references.
@@ -106,7 +112,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[st
     )
     stdout = p.stdout.read().decode('utf-8', errors='replace')
     parse_state = 0
-    paths = []
+    paths = []  # type: T.List[str]
     for line in stdout.split('\n'):
         line = line.strip(' \n\r\t')
         if parse_state == 0:
@@ -137,9 +143,24 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     that the actual concrete subclass define their own implementation.
     """
 
+    if T.TYPE_CHECKING:
+        can_compile_suffixes = set()  # type: T.Set[str]
+        exelist = []  # type: T.List[str]
+        info = MachineInfo('', '', '', '')
+        language = ''
+        version = ''
+
+        @contextlib.contextmanager
+        def _build_wrapper(self, code: str, env: 'Environment',
+                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
+                           dependencies: T.Optional[T.List['Dependency']] = None,
+                           mode: str = 'compile', want_output: bool = False,
+                           disable_cache: bool = False,
+                           temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]: ...
+
     LINKER_PREFIX = '-Wl,'
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
                              'b_ndebug', 'b_staticpic', 'b_pie']
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
@@ -164,14 +185,14 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        raise NotImplementedError("get_optimization_args not implemented")
+        pass
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
 
     @abc.abstractmethod
     def get_pch_suffix(self) -> str:
-        raise NotImplementedError("get_pch_suffix not implemented")
+        pass
 
     def split_shlib_to_parts(self, fname: str) -> T.Tuple[str, str]:
         return os.path.dirname(fname), fname
@@ -184,7 +205,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def openmp_flags(self) -> T.List[str]:
-        raise NotImplementedError("openmp_flags not implemented")
+        pass
 
     def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
         return gnu_symbol_visibility_args[vistype]
@@ -223,7 +244,6 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     @functools.lru_cache()
     def _get_search_dirs(self, env: 'Environment') -> str:
         extra_args = ['--print-search-dirs']
-        stdo = None
         with self._build_wrapper('', env, extra_args=extra_args,
                                  dependencies=None, mode='compile',
                                  want_output=True) as p:
@@ -290,7 +310,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
-    def get_dependency_gen_args(self, outtarget, outfile):
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', '-MQ', outtarget, '-MF', outfile]
 
     def get_compile_only_args(self) -> T.List[str]:
@@ -321,7 +341,7 @@ class GnuCompiler(GnuLikeCompiler):
     Compilers imitating GCC (Clang/Intel) should use the GnuLikeCompiler ABC.
     """
 
-    def __init__(self, defines: T.Dict[str, str]):
+    def __init__(self, defines: T.Optional[T.Dict[str, str]]):
         super().__init__()
         self.id = 'gcc'
         self.defines = defines or {}
@@ -333,7 +353,9 @@ class GnuCompiler(GnuLikeCompiler):
         return []
 
     def get_warn_args(self, level: str) -> T.List[str]:
-        args = super().get_warn_args(level)
+        # Mypy doesn't understand cooperative inheritance
+        _args = super().get_warn_args(level)  # type: ignore
+        args = T.cast(T.List[str], _args)
         if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
             # -Wpedantic was added in 4.8.0
             # https://gcc.gnu.org/gcc-4.8/changes.html
@@ -357,7 +379,8 @@ class GnuCompiler(GnuLikeCompiler):
     def openmp_flags(self) -> T.List[str]:
         return ['-fopenmp']
 
-    def has_arguments(self, args, env, code, mode):
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str,
+                      mode: str) -> T.Tuple[bool, bool]:
         # For some compiler command line arguments, the GNU compilers will
         # emit a warning on stderr indicating that an option is valid for a
         # another language, but still complete with exit_success
@@ -369,7 +392,7 @@ class GnuCompiler(GnuLikeCompiler):
                 result = False
         return result, p.cached
 
-    def get_has_func_attribute_extra_args(self, name):
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # GCC only warns about unknown or ignored attributes, so force an
         # error.
         return ['-Werror=attributes']
