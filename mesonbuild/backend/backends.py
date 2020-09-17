@@ -919,9 +919,9 @@ class Backend:
             if delta > 0.001:
                 raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
 
-    def build_target_to_cmd_array(self, bt):
+    def build_target_to_cmd_array(self, bt, check_cross):
         if isinstance(bt, build.BuildTarget):
-            if isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
+            if check_cross and isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
                 if (self.environment.is_cross_build() and
                         self.environment.exe_wrapper is None and
                         self.environment.need_exe_wrapper()):
@@ -1061,9 +1061,11 @@ class Backend:
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list
         cmd = []
+        index = -1
         for i in target.command:
+            index += 1
             if isinstance(i, build.BuildTarget):
-                cmd += self.build_target_to_cmd_array(i)
+                cmd += self.build_target_to_cmd_array(i, (index == 0))
                 continue
             elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
