@@ -32,7 +32,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
-    from .compilers import Compiler  # noqa: F401
+    from .compilers import Compiler, CompileResult  # noqa: F401
     from .environment import Environment
 
     OptionDictType = T.Dict[str, 'UserOption[T.Any]']
@@ -394,7 +394,7 @@ class CoreData:
         build_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
-        self.compiler_check_cache = OrderedDict()
+        self.compiler_check_cache = OrderedDict()  # type: T.MutableMapping[T.Tuple[T.Tuple[str, ...], str, str, T.Tuple[str, ...], str], CompileResult]
 
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')

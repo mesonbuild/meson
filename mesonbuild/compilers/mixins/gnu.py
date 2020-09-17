@@ -227,8 +227,7 @@ class GnuLikeCompiler(metaclass=abc.ABCMeta):
         with self._build_wrapper('', env, extra_args=extra_args,
                                  dependencies=None, mode='compile',
                                  want_output=True) as p:
-            stdo = p.stdo
-        return stdo
+            return p.stdout
 
     def _split_fetch_real_dirs(self, pathstr: str) -> T.List[str]:
         # We need to use the path separator used by the compiler for printing
@@ -364,9 +363,9 @@ class GnuCompiler(GnuLikeCompiler):
         # another language, but still complete with exit_success
         with self._build_wrapper(code, env, args, None, mode) as p:
             result = p.returncode == 0
-            if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stde:
+            if self.language in {'cpp', 'objcpp'} and 'is valid for C/ObjC' in p.stderr:
                 result = False
-            if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stde:
+            if self.language in {'c', 'objc'} and 'is valid for C++/ObjC++' in p.stderr:
                 result = False
         return result, p.cached
 
