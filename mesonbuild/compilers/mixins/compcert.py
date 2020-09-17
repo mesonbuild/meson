@@ -52,6 +52,10 @@ ccomp_args_to_wul = [
 ] # type: T.List[str]
 
 class CompCertCompiler:
+
+    if T.TYPE_CHECKING:
+        can_compile_suffixes = set()  # type: T.Set[str]
+
     def __init__(self) -> None:
         self.id = 'ccomp'
         # Assembly
@@ -78,9 +82,9 @@ class CompCertCompiler:
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def unix_args_to_native(self, args):
+    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
-        patched_args = []
+        patched_args = []  # type: T.List[str]
         for arg in args:
             added = 0
             for ptrn in ccomp_args_to_wul:
