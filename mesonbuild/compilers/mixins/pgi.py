@@ -20,6 +20,10 @@ from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
 
+if T.TYPE_CHECKING:
+    from ...envconfig import MachineInfo
+    from ...environment import Environment
+
 pgi_buildtype_args = {
     'plain': [],
     'debug': [],
@@ -31,7 +35,12 @@ pgi_buildtype_args = {
 
 
 class PGICompiler:
-    def __init__(self):
+
+    if T.TYPE_CHECKING:
+        info = MachineInfo('', '', '', '')
+        language = ''
+
+    def __init__(self) -> None:
         self.base_options = ['b_pch']
         self.id = 'pgi'
 
@@ -94,6 +103,6 @@ class PGICompiler:
         else:
             return []
 
-    def thread_flags(self, env):
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
         # PGI cannot accept -pthread, it's already threaded
         return []
