@@ -24,7 +24,14 @@ from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
+    from contextlib import contextmanager
+
+    from ...arglist import CompilerArgs
+    from ...compilers.compilers import CompileResult
+    from ...dependencies import Dependency
+    from ...envconfig import MachineChoice
     from ...environment import Environment
+    from ...linkers import MSVCDynamicLinker
 
 vs32_instruction_set_args = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
@@ -94,6 +101,18 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     success, such as Clang-CL and ICL (the Intel C/C++ Compiler for Windows).
     This class implements as much common logic as possible.
     """
+
+    if T.TYPE_CHECKING:
+        linker = MSVCDynamicLinker(MachineChoice.HOST, [])
+        version = ''
+
+        @contextmanager  # yes, yes, it's a half truth.
+        def _build_wrapper(self, code: str, env: 'Environment',
+                        extra_args: T.Union[None, 'CompilerArgs', T.List[str]] = None,
+                        dependencies: T.Optional[T.List['Dependency']] = None,
+                        mode: str = 'compile', want_output: bool = False,
+                        disable_cache: bool = False,
+                        temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]: ...
 
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
@@ -291,7 +310,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
@@ -420,7 +439,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'clang-cl'
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument']
         return super().has_arguments(args, env, code, mode)
