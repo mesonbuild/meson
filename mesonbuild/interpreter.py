@@ -3166,12 +3166,13 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         # Load wrap files from this (sub)project.
         wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-        subdir = os.path.join(self.subdir, spdirname)
-        r = wrap.Resolver(self.environment.get_source_dir(), subdir, wrap_mode)
-        if self.is_subproject():
-            self.environment.wrap_resolver.merge_wraps(r)
-        else:
-            self.environment.wrap_resolver = r
+        if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
+            subdir = os.path.join(self.subdir, spdirname)
+            r = wrap.Resolver(self.environment.get_source_dir(), subdir, wrap_mode)
+            if self.is_subproject():
+                self.environment.wrap_resolver.merge_wraps(r)
+            else:
+                self.environment.wrap_resolver = r
 
         self.build.projects[self.subproject] = proj_name
         mlog.log('Project name:', mlog.bold(proj_name))
