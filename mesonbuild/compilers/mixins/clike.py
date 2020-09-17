@@ -32,7 +32,7 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker
+from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
@@ -67,7 +67,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         # This covers all ld.bfd, ld.gold, ld.gold, and xild on Linux, which
         # all act like (or are) gnu ld
         # TODO: this could probably be added to the DynamicLinker instead
-        if isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker)):
+        if isinstance(self.compiler.linker, (GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker)):
             group_start = -1
             group_end = -1
             for i, each in enumerate(new):

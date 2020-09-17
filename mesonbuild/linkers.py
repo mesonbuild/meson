@@ -900,13 +900,13 @@ class CompCertDynamicLinker(DynamicLinker):
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         if not args:
             return args
-        return self._apply_prefix('-WUl,--start-group') + args + self._apply_prefix('-WUl,--end-group')
+        return self._apply_prefix('-Wl,--whole-archive') + args + self._apply_prefix('-Wl,--no-whole-archive')
 
     def get_accepts_rsp(self) -> bool:
         return False
 
     def get_lib_prefix(self) -> str:
-        return '-l'
+        return ''
 
     def get_std_shared_lib_args(self) -> T.List[str]:
         return []
