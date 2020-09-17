@@ -131,6 +131,10 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             self.machine = 'x64'
         elif '86' in target:
             self.machine = 'x86'
+        elif 'aarch64' in target:
+            self.machine = 'arm64'
+        elif 'arm' in target:
+            self.machine = 'arm'
         else:
             self.machine = target
         self.linker.machine = self.machine
