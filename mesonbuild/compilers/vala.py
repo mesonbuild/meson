@@ -35,9 +35,6 @@ class ValaCompiler(Compiler):
         self.id = 'valac'
         self.base_options = ['b_colorout']
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
     def needs_static_linker(self):
         return False # Because compiles into C.
 

@@ -633,9 +633,6 @@ class DCompiler(Compiler):
     def thread_link_flags(self, env):
         return self.linker.thread_flags(env)
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 

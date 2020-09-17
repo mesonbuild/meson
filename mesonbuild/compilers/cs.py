@@ -95,9 +95,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
     def get_pch_use_args(self, pch_dir, header):
         return []
 

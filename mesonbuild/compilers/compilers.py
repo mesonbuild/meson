@@ -1044,6 +1044,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         raise EnvironmentException('{} does not support function attributes'.format(self.id))
 
+    def name_string(self) -> str:
+        return ' '.join(self.exelist)
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,

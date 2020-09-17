@@ -210,9 +210,6 @@ class CudaCompiler(Compiler):
     def get_option_link_args(self, options):
         return self._cook_link_args(self.host_compiler.get_option_link_args(self._to_host_compiler_options(options)))
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
     def get_soname_args(self, *args):
         return self._cook_link_args(self.host_compiler.get_soname_args(*args))
 
