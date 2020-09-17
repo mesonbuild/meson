@@ -1041,6 +1041,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
 
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+        raise EnvironmentException('{} does not support function attributes'.format(self.id))
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,
