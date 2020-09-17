@@ -38,6 +38,10 @@ class BasicLinkerIsCompilerMixin:
     functionality itself.
     """
 
+    if T.TYPE_CHECKING:
+        exelist = []  # type: T.List[str]
+        id = ''
+
     def sanitizer_link_args(self, value: str) -> T.List[str]:
         return []
 
