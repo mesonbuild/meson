@@ -64,7 +64,7 @@ class CCompiler(CLikeCompiler, Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'int main(void) { int class=0; return class; }\n'
-        return self.sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckc.c', code)
 
     def has_header_symbol(self, hname, symbol, prefix, env, *, extra_args=None, dependencies=None):
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
