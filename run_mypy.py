@@ -21,6 +21,7 @@ modules = [
   'mesonbuild/compilers/mixins/clang.py',
   'mesonbuild/compilers/mixins/clike.py',
   'mesonbuild/compilers/mixins/compcert.py',
+  'mesonbuild/compilers/mixins/elbrus.py',
   'mesonbuild/compilers/mixins/gnu.py',
   # 'mesonbuild/compilers/mixins/intel.py',
   # 'mesonbuild/coredata.py',
