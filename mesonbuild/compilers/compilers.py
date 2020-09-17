@@ -1032,6 +1032,14 @@ class Compiler(metaclass=abc.ABCMeta):
     def attribute_check_func(self, name: str) -> str:
         raise EnvironmentException('{} does not support attribute checks'.format(self.id))
 
+    def get_pch_suffix(self) -> str:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+
+    def get_pch_name(self, name: str) -> str:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
 
 
 def get_args_from_envvars(lang: str,
