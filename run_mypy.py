@@ -9,26 +9,13 @@ import typing as T
 modules = [
   # fully typed submodules
   'mesonbuild/ast',
+  'mesonbuild/compilers/mixins',
   'mesonbuild/scripts',
   'mesonbuild/wrap',
 
   # specific files
   'mesonbuild/arglist.py',
   'mesonbuild/compilers/compilers.py',
-  'mesonbuild/compilers/mixins/arm.py',
-  'mesonbuild/compilers/mixins/c2000.py',
-  'mesonbuild/compilers/mixins/ccrx.py',
-  'mesonbuild/compilers/mixins/clang.py',
-  'mesonbuild/compilers/mixins/clike.py',
-  'mesonbuild/compilers/mixins/compcert.py',
-  'mesonbuild/compilers/mixins/elbrus.py',
-  'mesonbuild/compilers/mixins/emscripten.py',
-  'mesonbuild/compilers/mixins/gnu.py',
-  'mesonbuild/compilers/mixins/intel.py',
-  'mesonbuild/compilers/mixins/islinker.py',
-  'mesonbuild/compilers/mixins/pgi.py',
-  'mesonbuild/compilers/mixins/visualstudio.py',
-  'mesonbuild/compilers/mixins/xc16.py',
   # 'mesonbuild/coredata.py',
   'mesonbuild/dependencies/boost.py',
   'mesonbuild/dependencies/hdf5.py',
