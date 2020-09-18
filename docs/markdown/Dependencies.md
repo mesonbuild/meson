@@ -623,9 +623,9 @@ Curses (and ncurses) are a cross platform pain in the butt. Meson wraps up
 these dependencies in the `curses` dependency. This covers both `ncurses`
 (preferred) and other curses implementations.
 
-`method` may be `auto`, `pkg-config`, or `config-tool`
+`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
 
-*New in 0.56.0* The `config-tool` method.
+*New in 0.56.0* The `config-tool` and `system` methods.
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the

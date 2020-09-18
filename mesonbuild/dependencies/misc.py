@@ -420,7 +420,61 @@ class CursesConfigToolDependency(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
 
-@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
+class CursesSystemDependency(ExternalDependency):
+
+    """Curses dependency the hard way.
+
+    This replaces hand rolled find_library() and has_header() calls. We
+    provide this for portability reasons, there are a large number of curses
+    implementations, and the differences between them can be very annoying.
+    """
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__(name, env, kwargs)
+
+        candidates = [
+            ('ncursesw',  ['ncursesw/ncurses.h', 'ncurses.h']),
+            ('ncurses',  ['ncurses/ncurses.h', 'ncurses/curses.h', 'ncurses.h']),
+            ('curses',  ['curses.h']),
+        ]
+
+        # Not sure how else to elegently break out of both loops
+        for lib, headers in candidates:
+            l = self.clib_compiler.find_library(lib, env, [])
+            if l:
+                for header in headers:
+                    h = self.clib_compiler.has_header(header, '', env)
+                    if h[0]:
+                        self.is_found = True
+                        self.link_args = l
+                        # Not sure how to find version for non-ncurses curses
+                        # implementations. The one in illumos/OpenIndiana
+                        # doesn't seem to have a version defined in the header.
+                        if lib.startswith('ncurses'):
+                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', '#include <{}>'.format(header), env, [], [self])
+                            self.version = v.strip('"')
+
+                        # Check the version if possible, emit a wraning if we can't
+                        req = kwargs.get('version')
+                        if req:
+                            if self.version:
+                                self.is_found = mesonlib.version_compare(self.version, req)
+                            else:
+                                mlog.warning('Cannot determine version of curses to compare against.')
+
+                        if self.is_found:
+                            mlog.debug('Curses library:', l)
+                            mlog.debug('Curses header:', header)
+                            break
+            if self.is_found:
+                break
+
+    @staticmethod
+    def get_methods() -> T.List[DependencyMethods]:
+        return [DependencyMethods.SYSTEM]
+
+
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     candidates = []  # type: T.List[T.Callable[[], Dependency]]
@@ -432,6 +486,9 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
 
     if DependencyMethods.CONFIG_TOOL in methods:
         candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
+
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
 
     return candidates
 

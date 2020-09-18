@@ -3,7 +3,8 @@
     "options": {
       "method": [
         { "val": "pkg-config" },
-        { "val": "config-tool" }
+        { "val": "config-tool" },
+        { "val": "system" }
       ]
     }
   }
