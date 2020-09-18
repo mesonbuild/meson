@@ -151,14 +151,15 @@ class IntrospectionInterpreter(AstInterpreter):
             for for_machine in [MachineChoice.BUILD, MachineChoice.HOST]:
                 self._add_languages(args, for_machine)
 
-    def _add_languages(self, langs: T.List[TYPE_nvar], for_machine: MachineChoice) -> None:
-        langs = self.flatten_args(langs)
+    def _add_languages(self, raw_langs: T.List[TYPE_nvar], for_machine: MachineChoice) -> None:
+        langs = []  # type: T.List[str]
+        for l in self.flatten_args(raw_langs):
+            if isinstance(l, str):
+                langs.append(l)
+            elif isinstance(l, StringNode):
+                langs.append(l.value)
+
         for lang in sorted(langs, key=compilers.sort_clink):
-            if isinstance(lang, StringNode):
-                assert isinstance(lang.value, str)
-                lang = lang.value
-            if not isinstance(lang, str):
-                continue
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
                 self.environment.detect_compiler_for(lang, for_machine)
