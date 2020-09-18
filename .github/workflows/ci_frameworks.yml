@@ -46,7 +46,7 @@ jobs:
         python-version: '3.x'
     - run: python -m pip install -e .
     - run: brew install pkg-config ninja gcc hdf5
-    - run: meson setup "test cases/frameworks/25 hdf5" build
+    - run: meson setup "test cases/frameworks/25 hdf5" build -Dmethod=config-tool
     - run: meson compile -C build
     - uses: actions/upload-artifact@v1
       if: failure()

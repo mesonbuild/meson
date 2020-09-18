@@ -364,6 +364,10 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the `HL` high-level HDF5 functions are linked for each language.
 
+`method` may be `auto`, `config-tool` or `pkg-config`.
+
+*New in 0.56.0* the `config-tool` method.
+*New in 0.56.0* the dependencies now return proper dependency types and `get_variable` and similar methods should work as expected.
 
 ## libwmf
 
