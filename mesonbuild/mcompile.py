@@ -179,6 +179,17 @@ def generate_target_name_vs(target: ParsedTargetName, builddir: Path, introspect
         target_name = str(rel_path / target_name)
     return target_name
 
+def get_has_gen_target(intro_data: dict, builddir: Path, targets: T.List[str]) -> bool:
+    for each in intro_data.values():
+        for t in each:
+            if t['type'] == 'custom':
+                return True
+    for t in targets:
+        data = get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)
+        if data['type'] == 'run':
+            return True
+    return False
+
 def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple[T.List[str], T.Optional[T.Dict[str, str]]]:
     slns = list(builddir.glob('*.sln'))
     assert len(slns) == 1, 'More than one solution in a project?'
@@ -187,21 +198,19 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     cmd = ['msbuild']
 
     if options.targets:
+        # `run` target can't be used the same way as other targets on `vs` backend.
+        # They are defined as disabled projects, which can't be invoked as `.sln`
+        # target and have to be invoked directly as project instead.
+        # Issue: https://github.com/microsoft/msbuild/issues/4772
+        #
+        # If the project defines a `custom` target, we cannot use the -target:
+        # argument because msbuild will search for that target in all custom
+        # target vcxproj files.
         intro_data = parse_introspect_data(builddir)
-        has_run_target = any(map(
-            lambda t:
-                get_target_from_intro_data(ParsedTargetName(t), builddir, intro_data)['type'] == 'run',
-            options.targets
-        ))
 
-        if has_run_target:
-            # `run` target can't be used the same way as other targets on `vs` backend.
-            # They are defined as disabled projects, which can't be invoked as `.sln`
-            # target and have to be invoked directly as project instead.
-            # Issue: https://github.com/microsoft/msbuild/issues/4772
-
+        if get_has_gen_target(intro_data, builddir, options.targets):
             if len(options.targets) > 1:
-                raise MesonException('Only one target may be specified when `run` target type is used on this backend.')
+                raise MesonException('VS backend: only one target may be specified when `run` target type is used or when the project defines a custom target')
             intro_target = get_target_from_intro_data(ParsedTargetName(options.targets[0]), builddir, intro_data)
             proj_dir = Path(intro_target['filename'][0]).parent
             proj = proj_dir/'{}.vcxproj'.format(intro_target['id'])
@@ -231,7 +240,8 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
 
     # Remove platform from env so that msbuild does not pick x86 platform when solution platform is Win32
     env = os.environ.copy()
-    del env['PLATFORM']
+    if 'PLATFORM' in env:
+        del env['PLATFORM']
 
     return cmd, env
 
