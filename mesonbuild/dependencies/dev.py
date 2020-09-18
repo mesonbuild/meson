@@ -480,7 +480,7 @@ class ZlibSystemDependency(ExternalDependency):
             for lib in libs:
                 l = self.clib_compiler.find_library(lib, environment, [])
                 h = self.clib_compiler.has_header('zlib.h', '', environment, dependencies=[self])
-                if l and h:
+                if l and h[0]:
                     self.is_found = True
                     self.link_args = l
                     break
