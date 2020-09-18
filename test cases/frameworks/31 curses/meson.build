@@ -1,6 +1,6 @@
 project('curses', 'c')
 
-curses = dependency('curses', required: false)
+curses = dependency('curses', required: false, method : get_option('method'))
 if not curses.found()
   error('MESON_SKIP_TEST: Curses library not found')
 endif

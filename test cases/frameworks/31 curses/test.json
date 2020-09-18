@@ -1,0 +1,10 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "pkg-config" },
+        { "val": "config-tool" }
+      ]
+    }
+  }
+}

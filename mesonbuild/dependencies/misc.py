@@ -404,7 +404,23 @@ class ShadercDependency(ExternalDependency):
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
 
 
-@factory_methods({DependencyMethods.PKGCONFIG})
+class CursesConfigToolDependency(ConfigToolDependency):
+
+    """Use the curses config tools."""
+
+    tool = 'curses-config'
+    # ncurses5.4-config is for macOS Catalina
+    tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
+        super().__init__(name, env, kwargs, language)
+        if not self.is_found:
+            return
+        self.compile_args = self.get_config_value(['--cflags'], 'compile_args')
+        self.link_args = self.get_config_value(['--libs'], 'link_args')
+
+
+@factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     candidates = []  # type: T.List[T.Callable[[], Dependency]]
@@ -413,6 +429,9 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
         pkgconfig_files = ['ncursesw', 'ncurses', 'curses']
         for pkg in pkgconfig_files:
             candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
+
+    if DependencyMethods.CONFIG_TOOL in methods:
+        candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
 
     return candidates
 
