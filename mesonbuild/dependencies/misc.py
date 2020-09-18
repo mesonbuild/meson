@@ -410,7 +410,7 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
     candidates = []  # type: T.List[T.Callable[[], Dependency]]
 
     if DependencyMethods.PKGCONFIG in methods:
-        pkgconfig_files = ['ncurses', 'ncursesw']
+        pkgconfig_files = ['ncursesw', 'ncurses', 'curses']
         for pkg in pkgconfig_files:
             candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
