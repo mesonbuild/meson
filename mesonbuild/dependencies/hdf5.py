@@ -15,12 +15,13 @@
 # This file contains the detection logic for miscellaneous external dependencies.
 
 import functools
-import subprocess
-import shutil
+import os
 import re
+import shutil
+import subprocess
 from pathlib import Path
 
-from ..mesonlib import OrderedSet
+from ..mesonlib import OrderedSet, join_args
 from .base import (
     DependencyException, DependencyMethods, ConfigToolDependency,
     PkgConfigDependency, factory_methods
@@ -94,10 +95,13 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             raise DependencyException('Language {} is not supported with HDF5.'.format(language))
 
         if language == 'c':
+            cenv = 'CC'
             tools = ['h5cc']
         elif language == 'cpp':
+            cenv = 'CXX'
             tools = ['h5c++']
         elif language == 'fortran':
+            cenv = 'FC'
             tools = ['h5fc']
         else:
             raise DependencyException('How did you get here?')
@@ -108,7 +112,17 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         nkwargs = kwargs.copy()
         nkwargs['tools'] = tools
 
-        super().__init__(name, environment, nkwargs, language)
+        # Override the compiler that the config tools are going to use by
+        # setting the environment variables that they use for the compiler and
+        # linkers.
+        compiler = environment.coredata.compilers[for_machine][language]
+        try:
+            os.environ['HDF5_{}'.format(cenv)] = join_args(compiler.get_exelist())
+            os.environ['HDF5_{}LINKER'.format(cenv)] = join_args(compiler.get_linker_exelist())
+            super().__init__(name, environment, nkwargs, language)
+        finally:
+            del os.environ['HDF5_{}'.format(cenv)]
+            del os.environ['HDF5_{}LINKER'.format(cenv)]
         if not self.is_found:
             return
 
@@ -126,7 +140,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             nkwargs = kwargs.copy()
             nkwargs['language'] = 'c'
             # I'm being too clever for mypy and pylint
-            self.is_found = self._add_sub_dependency(hdf5_factory(environment, self.for_machine, nkwargs))  # type: ignore  # pylint: disable=no-value-for-parameter
+            self.is_found = self._add_sub_dependency(hdf5_factory(environment, for_machine, nkwargs))  # type: ignore  # pylint: disable=no-value-for-parameter
 
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
