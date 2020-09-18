@@ -72,7 +72,7 @@ from mesonbuild.mtest import TAPParser, TestResult
 from run_tests import (
     Backend, FakeBuild, FakeCompilerOptions,
     ensure_backend_detects_changes, exe_suffix, get_backend_commands,
-    get_builddir_target_args, get_fake_env, get_fake_options, get_meson_script,
+    get_fake_env, get_fake_options, get_meson_script,
     run_configure_inprocess, run_mtest_inprocess
 )
 
@@ -1532,6 +1532,7 @@ class BasePlatformTests(unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.maxDiff = None
+        self.longMessage = True
         src_root = os.path.dirname(__file__)
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
@@ -1548,8 +1549,10 @@ class BasePlatformTests(unittest.TestCase):
         self.wrap_command = self.meson_command + ['wrap']
         self.rewrite_command = self.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
-            self.uninstall_command = get_backend_commands(self.backend)
+        self.build_command, self.clean_command, self.test_command, self.bench_command, \
+            self.dist_command, self.install_command, self.uninstall_command = get_backend_commands(self.backend)
+        if self.backend is Backend.vs:
+            self.build_command += ['-v']
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
@@ -1688,21 +1691,33 @@ class BasePlatformTests(unittest.TestCase):
     def build(self, target=None, *, extra_args=None, override_envvars=None):
         if extra_args is None:
             extra_args = []
-        # Add arguments for building the target (if specified),
-        # and using the build dir (if required, with VS)
-        args = get_builddir_target_args(self.backend, self.builddir, target)
+        args = []
+        if target:
+            args = [target]
         return self._run(self.build_command + args + extra_args, workdir=self.builddir, override_envvars=override_envvars)
 
+    def reconfigure(self, srcdir, override_envvars=None):
+        reconfigure_cmd = self.meson_command + [srcdir, self.builddir, '--reconfigure']
+        return self._run(reconfigure_cmd, workdir=self.builddir, override_envvars=override_envvars)
+
+    def dist(self, override_envvars=None):
+        return self._run(self.dist_command, workdir=self.builddir, override_envvars=override_envvars)
+
     def clean(self, *, override_envvars=None):
-        dir_args = get_builddir_target_args(self.backend, self.builddir, None)
-        self._run(self.clean_command + dir_args, workdir=self.builddir, override_envvars=override_envvars)
+        self._run(self.clean_command, workdir=self.builddir, override_envvars=override_envvars)
 
     def run_tests(self, *, inprocess=False, override_envvars=None):
+        out = ''
         if not inprocess:
-            self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
+            out += self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
+            out += self._run(self.bench_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
             with mock.patch.dict(os.environ, override_envvars):
-                run_mtest_inprocess(['-C', self.builddir])
+                ret, o, e = run_mtest_inprocess(['-C', self.builddir])
+                out += o + e
+                ret, o, e = run_mtest_inprocess(['-C', self.builddir, '--benchmark'])
+                out += o + e
+        return out
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
@@ -1836,12 +1851,12 @@ class BasePlatformTests(unittest.TestCase):
                 if line in self.no_rebuild_stdout:
                     break
             else:
-                raise AssertionError('build was reconfigured, but was not no-op')
+                raise AssertionError('build was reconfigured, but was not no-op:\n' + ret)
         elif self.backend is Backend.vs:
             # Ensure that some target said that no rebuild was done
             # XXX: Note CustomBuild did indeed rebuild, because of the regen checker!
-            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
-            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            self.assertRegex(ret, r'ClCompile:\n\s+All outputs are up-to-date.')
+            self.assertRegex(ret, r'Link:\n\s+All outputs are up-to-date.')
             # Ensure that no targets were built
             self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
             self.assertNotRegex(ret, re.compile('Link:\n [^\n]*link', flags=re.IGNORECASE))
@@ -1853,13 +1868,17 @@ class BasePlatformTests(unittest.TestCase):
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
-            self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
+            for line in ret.split('\n'):
+                if line in self.no_rebuild_stdout:
+                    break
+            else:
+                raise AssertionError('build was not no-op:\n' + ret)
         elif self.backend is Backend.vs:
             # Ensure that some target of each type said that no rebuild was done
             # We always have at least one CustomBuild target for the regen checker
-            self.assertIn('CustomBuild:\n  All outputs are up-to-date.', ret)
-            self.assertIn('ClCompile:\n  All outputs are up-to-date.', ret)
-            self.assertIn('Link:\n  All outputs are up-to-date.', ret)
+            self.assertRegex(ret, r'CustomBuild:\n\s+All outputs are up-to-date.')
+            self.assertRegex(ret, r'ClCompile:\n\s+All outputs are up-to-date.')
+            self.assertRegex(ret, r'Link:\n\s+All outputs are up-to-date.')
             # Ensure that no targets were built
             self.assertNotRegex(ret, re.compile('CustomBuild:\n [^\n]*cl', flags=re.IGNORECASE))
             self.assertNotRegex(ret, re.compile('ClCompile:\n [^\n]*cl', flags=re.IGNORECASE))
@@ -1876,7 +1895,7 @@ class BasePlatformTests(unittest.TestCase):
         elif self.backend is Backend.vs:
             # Ensure that this target was rebuilt
             linkre = re.compile('Link:\n [^\n]*link[^\n]*' + target, flags=re.IGNORECASE)
-            self.assertRegex(ret, linkre)
+            self.assertRegex(ret, linkre, msg=ret)
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
@@ -1897,13 +1916,13 @@ class BasePlatformTests(unittest.TestCase):
                 if 'Linking target' in line:
                     fname = line.rsplit('target ')[-1]
                     linked_targets.append(self.get_target_from_filename(fname))
-            self.assertEqual(linked_targets, [target])
+            self.assertEqual(linked_targets, [target], msg=ret)
         elif self.backend is Backend.vs:
             # Ensure that this target was rebuilt
             linkre = re.compile(r'Link:\n  [^\n]*link.exe[^\n]*/OUT:".\\([^"]*)"', flags=re.IGNORECASE)
             matches = linkre.findall(ret)
             self.assertEqual(len(matches), 1, msg=matches)
-            self.assertEqual(self.get_target_from_filename(matches[0]), target)
+            self.assertEqual(self.get_target_from_filename(matches[0]), target, msg=ret)
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
@@ -2489,9 +2508,9 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(genfile2)
         self.assertPathDoesNotExist(exe1)
         self.assertPathDoesNotExist(exe2)
-        self.build(target=('fooprog' + exe_suffix))
+        self.build(target=('fooprog'))
         self.assertPathExists(exe1)
-        self.build(target=('barprog' + exe_suffix))
+        self.build(target=('barprog'))
         self.assertPathExists(exe2)
 
     def test_internal_include_order(self):
@@ -2920,7 +2939,7 @@ class AllPlatformTests(BasePlatformTests):
                                 project_dir)
                 _git_init(project_dir)
                 self.init(project_dir)
-                self.build('dist')
+                self.dist()
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir
@@ -2963,7 +2982,7 @@ int main(int argc, char **argv) {
                 self.create_dummy_subproject(project_dir, 'tarballsub')
                 self.create_dummy_subproject(project_dir, 'unusedsub')
             self.init(project_dir)
-            self.build('dist')
+            self.dist()
             self.assertPathExists(xz_distfile)
             self.assertPathExists(xz_checksumfile)
             self.assertPathDoesNotExist(zip_distfile)
@@ -3777,11 +3796,9 @@ recommended as it is not supported on some platforms''')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'shared')
-        if self.backend is Backend.ninja:
-            # reconfigure target works only with ninja backend
-            self.build('reconfigure')
-            obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.builtins['default_library'].value, 'shared')
+        self.reconfigure(testdir)
+        obj = mesonbuild.coredata.load(self.builddir)
+        self.assertEqual(obj.builtins['default_library'].value, 'shared')
         self.wipe()
 
         # Should warn on unknown options
@@ -6745,7 +6762,7 @@ class LinuxlikeTests(BasePlatformTests):
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
         self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)
-        self.build('reconfigure')
+        self.reconfigure(testdir)
 
     def test_vala_generated_source_buildir_inside_source_tree(self):
         '''
@@ -8490,7 +8507,7 @@ class CrossFileTests(BasePlatformTests):
             with p.open('wt') as f:
                 f.write(self._cross_file_generator(needs_exe_wrapper=True))
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
-            out = self.run_target('test')
+            out = self.run_tests()
             self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     def test_needs_exe_wrapper_false(self):
@@ -8500,7 +8517,7 @@ class CrossFileTests(BasePlatformTests):
             with p.open('wt') as f:
                 f.write(self._cross_file_generator(needs_exe_wrapper=False))
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
-            out = self.run_target('test')
+            out = self.run_tests()
             self.assertNotRegex(out, r'Skipped:\s*1\n')
 
     def test_needs_exe_wrapper_true_wrapper(self):
@@ -8517,7 +8534,7 @@ class CrossFileTests(BasePlatformTests):
                     exe_wrapper=[str(s)]))
 
             self.init(testdir, extra_args=['--cross-file=' + str(p), '-Dexpect=true'])
-            out = self.run_target('test')
+            out = self.run_tests()
             self.assertRegex(out, r'Ok:\s*3\s*\n')
 
     def test_cross_exe_passed_no_wrapper(self):
@@ -8529,7 +8546,7 @@ class CrossFileTests(BasePlatformTests):
 
             self.init(testdir, extra_args=['--cross-file=' + str(p)])
             self.build()
-            out = self.run_target('test')
+            out = self.run_tests()
             self.assertRegex(out, r'Skipped:\s*1\s*\n')
 
     # The test uses mocking and thus requires that the current process is the

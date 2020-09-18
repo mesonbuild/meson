@@ -46,7 +46,7 @@ from mesonbuild.mesonlib import MachineChoice, Popen_safe
 from mesonbuild.coredata import backendlist, version as meson_version
 
 from run_tests import get_fake_options, run_configure, get_meson_script
-from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
+from run_tests import get_backend_commands, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
@@ -264,9 +264,9 @@ signal.signal(signal.SIGTERM, stop_handler)
 
 def setup_commands(optbackend):
     global do_debug, backend, backend_flags
-    global compile_commands, clean_commands, test_commands, install_commands, uninstall_commands
+    global compile_commands, clean_commands, test_commands, bench_commands, install_commands, uninstall_commands
     backend, backend_flags = guess_backend(optbackend, shutil.which('msbuild'))
-    compile_commands, clean_commands, test_commands, install_commands, \
+    compile_commands, clean_commands, test_commands, bench_commands, dist_commands, install_commands, \
         uninstall_commands = get_backend_commands(backend, do_debug)
 
 # TODO try to eliminate or at least reduce this function
@@ -573,12 +573,11 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
         testresult.fail('Generating the build system failed.')
         return testresult
     builddata = build.load(test_build_dir)
-    dir_args = get_backend_args_for_dir(backend, test_build_dir)
 
     # Build with subprocess
     def build_step():
         build_start = time.time()
-        pc, o, e = Popen_safe(compile_commands + dir_args, cwd=test_build_dir)
+        pc, o, e = Popen_safe(compile_commands, cwd=test_build_dir)
         testresult.add_step(BuildStep.build, o, e, '', time.time() - build_start)
         if should_fail == 'build':
             if pc.returncode != 0:
@@ -631,7 +630,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     # Clean with subprocess
     env = os.environ.copy()
-    pi, o, e = Popen_safe(clean_commands + dir_args, cwd=test_build_dir, env=env)
+    pi, o, e = Popen_safe(clean_commands, cwd=test_build_dir, env=env)
     testresult.add_step(BuildStep.clean, o, e)
     if pi.returncode != 0:
         testresult.fail('Running clean failed.')
