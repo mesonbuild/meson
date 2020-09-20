@@ -72,35 +72,104 @@ will be posted in a comment to this issue.
 NOTE: Requesting a branch is not necessary. WrapDB maintainer can create the branch and
 modify the PR accordingly if the project repository exists.
 
-### Add a new wrap
+### Creating the wrap contents
 
-First you need to fork the repository to your own page.
-Then you can create the first Wrap commit that usually looks something like this.
+Setting up the contents might seem a bit counterintuitive at
+first. Just remember that the outcome needs to have one (and only one)
+commit that has all the build definition files (i.e. `meson.build` and
+`meson_options.txt` files) and _nothing else_. It is good practice to
+have this commit in a branch whose name matches the release as
+described above.
+
+First you need to fork the repository to your own page using GitHub's
+fork button. Then you can clone the repo to your local machine.
+
 
 ```
-tar xzf libfoo-1.0.0.tar.gz
-git clone -b 1.0.0 git@github.com:yourusername/libfoo.git tmpdir
-mv tmpdir/.git libfoo-1.0.0
-rm -rf tmpdir
-cd libfoo-1.0.0
-git reset --hard
-emacs upstream.wrap meson.build
+git clone git@github.com:yourusername/libfoo.git foo-wrap
+```
+
+Create a new branch for your work:
+
+```
+git checkout -b 1.0.0
+```
+
+If you are adding new changes to an existing branch, leave out the
+`-b` argument.
+
+Now you need to copy the source code for the original project to this
+directory. If you already have it extracted somewhere, you'd do
+something like this:
+
+```
+cd /path/to/source/extract/dir
+cp -r * /path/to/foo-wrap
+```
+
+Now all the files should be in the wrap directory. Do _not_ add them
+to Git, though. Neither now or at any time during this process. The
+repo must contain only the newly created build files.
+
+New release branches require an `upstream.wrap` file, so create one if
+needed.
+
+```
+${EDITOR} upstream.wrap
+```
+
+The file format is simple, see any existing wrapdb repo for the
+content. The checksum is SHA-256 and can be calculated with the
+following command on most unix-like operating systems:
+
+```
+sha256sum path/to/libfoo-1.0.0.tar.gz
+```
+
+Under macOS the command is the following:
+
+```
+shasum -a 256 path/to/libfoo-1.0.0.tar.gz
+```
+
+Now you can create the build files and work on them until the project
+builds correctly.
+
+```
+${EDITOR} meson.build meson_options.txt
+```
+
+When you are satisfied with the results, add the build files to Git
+and push the result to GitHub.
+
+```
 <verify that your project builds and runs>
 git add upstream.wrap meson.build
 git commit -a -m 'Add wrap files for libfoo-1.0.0'
-git push origin 1.0.0
+git push -u origin 1.0.0
 ```
 
-Now you should create a pull request on GitHub. Remember to create it against the
-correct branch rather than master (`1.0.0` branch in this example). GitHub should do
-this automatically.
+Now you should create a pull request on GitHub. Try to create it
+against the correct branch rather than master (`1.0.0` branch in this
+example). GitHub should do this automatically.
 
 If the branch doesn't exist file a pull request against master.
 WrapDB maintainers can fix it before merging.
 
+If packaging review requires you to do changes, use the `--amend`
+argument to `commit` so that your branch will continue to have only
+one commit.
+
+```
+${EDITOR} meson.build
+git commit -a --amend
+git push --force
+```
+
 ## What is done by WrapDB maintainers
 
-[mesonwrap tools](Wrap-maintainer-tools.md) must be used for the tasks below.
+[mesonwrap tools](Wrap-maintainer-tools.md) must be used for the tasks
+below.
 
 ### Adding new project to the Wrap provider service
 
@@ -110,7 +179,7 @@ Each project gets its own repo. It is initialized like this:
 mesonwrap new_repo --homepage=$HOMEPAGE --directory=$NEW_LOCAL_PROJECT_DIR $PROJECT_NAME
 ```
 
-The command creates a new repository and uploads it to Github.
+The command creates a new repository and uploads it to GitHub.
 
 `--version` flag may be used to create a branch immediately.
 
