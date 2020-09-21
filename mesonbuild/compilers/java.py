@@ -32,7 +32,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
                  info: 'MachineInfo'):
         super().__init__(exelist, version, for_machine, info)
         self.id = 'unknown'
-        self.is_cross = False
         self.javarunner = 'java'
 
     def get_werror_args(self):
