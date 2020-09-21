@@ -1821,7 +1821,8 @@ class Environment:
             elif 'gdc' in out:
                 linker = self._guess_nix_linker(exelist, compilers.GnuDCompiler, for_machine)
                 return compilers.GnuDCompiler(
-                    exelist, version, for_machine, info, arch, is_cross, exe_wrap,
+                    exelist, version, for_machine, info, arch,
+                    exe_wrapper=exe_wrap, is_cross=is_cross,
                     full_version=full_version, linker=linker)
             elif 'The D Language Foundation' in out or 'Digital Mars' in out:
                 # DMD seems to require a file

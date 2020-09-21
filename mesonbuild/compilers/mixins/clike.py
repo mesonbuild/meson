@@ -160,9 +160,8 @@ class CLikeCompiler:
     find_framework_cache = {}  # type: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], bool], T.Optional[T.List[str]]]
     internal_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS
 
-    def __init__(self, is_cross: bool, exe_wrapper: T.Optional['ExternalProgram'] = None):
+    def __init__(self, exe_wrapper: T.Optional['ExternalProgram'] = None):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
-        self.is_cross = is_cross
         self.can_compile_suffixes.add('h')
         # If the exe wrapper was not found, pretend it wasn't set so that the
         # sanity check is skipped and compiler checks use fallbacks.

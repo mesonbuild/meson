@@ -36,11 +36,10 @@ class RustCompiler(Compiler):
     language = 'rust'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        super().__init__(exelist, version, for_machine, info, **kwargs)
+                 is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        super().__init__(exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
-        self.is_cross = is_cross
 
     def needs_static_linker(self):
         return False

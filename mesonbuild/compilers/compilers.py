@@ -456,7 +456,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def __init__(self, exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
                  linker: T.Optional['DynamicLinker'] = None,
-                 full_version: T.Optional[str] = None):
+                 full_version: T.Optional[str] = None, is_cross: bool = False):
         self.exelist = exelist
         # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
@@ -470,6 +470,7 @@ class Compiler(metaclass=abc.ABCMeta):
         self.base_options = []  # type: T.List[str]
         self.linker = linker
         self.info = info
+        self.is_cross = is_cross
 
     def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"

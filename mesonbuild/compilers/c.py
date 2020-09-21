@@ -56,8 +56,8 @@ class CCompiler(CLikeCompiler, Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional[str] = None, **kwargs):
         # If a child ObjC or CPP class has already set it, don't set it ourselves
-        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
-        CLikeCompiler.__init__(self, is_cross, exe_wrapper)
+        Compiler.__init__(self, exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
+        CLikeCompiler.__init__(self, exe_wrapper)
 
     def get_no_stdinc_args(self):
         return ['-nostdinc']
