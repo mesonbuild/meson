@@ -1588,6 +1588,10 @@ class Environment:
                     exe_wrap, defines, linker=linker)
             if 'clang' in out:
                 linker = None
+                defines = self.get_clang_compiler_defines(compiler)
+                if not defines:
+                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                    continue
                 if 'Apple' in out:
                     comp = AppleClangObjCCompiler if objc else AppleClangObjCPPCompiler
                 else:
@@ -1604,7 +1608,7 @@ class Environment:
                         compiler, comp, for_machine)
                 return comp(
                     ccache + compiler, version, for_machine,
-                    is_cross, info, exe_wrap, linker=linker)
+                    is_cross, info, exe_wrap, linker=linker, defines=defines)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
