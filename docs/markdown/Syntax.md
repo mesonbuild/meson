@@ -366,8 +366,9 @@ The following methods are defined for all arrays:
 ## Dictionaries
 
 Dictionaries are delimited by curly braces. A dictionary can contain an
-arbitrary number of key value pairs. Keys are required to be strings, values can
-be objects of any type. Prior to *0.53.0* keys were required to be literal strings.
+arbitrary number of key: value pairs. Keys are required to be strings, but values can
+be objects of any type. Prior to *0.53.0* keys were required to be literal
+strings, i.e., you could not use a variable containing a string value as a key.
 
 ```meson
 my_dict = {'foo': 42, 'bar': 'baz'}
