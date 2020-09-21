@@ -31,9 +31,6 @@ class ElbrusCompiler(GnuLikeCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
 
-    if T.TYPE_CHECKING:
-        exelist = []  # type: T.List[str]
-
     def __init__(self) -> None:
         super().__init__()
         self.id = 'lcc'

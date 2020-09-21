@@ -20,18 +20,19 @@ import abc
 import os
 import typing as T
 
+from ... import arglist
 from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
-    from contextlib import contextmanager
-
-    from ...arglist import CompilerArgs
-    from ...compilers.compilers import CompileResult
-    from ...dependencies import Dependency
-    from ...envconfig import MachineChoice
     from ...environment import Environment
-    from ...linkers import MSVCDynamicLinker
+    from .clike import CLikeCompiler as Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 vs32_instruction_set_args = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
@@ -92,7 +93,7 @@ msvc_debug_args = {
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
+class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     """A common interface for all compilers implementing an MSVC-style
     interface.
@@ -102,24 +103,10 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     This class implements as much common logic as possible.
     """
 
-    if T.TYPE_CHECKING:
-        linker = MSVCDynamicLinker(MachineChoice.HOST, [])
-        version = ''
-
-        @contextmanager  # yes, yes, it's a half truth.
-        def _build_wrapper(self, code: str, env: 'Environment',
-                        extra_args: T.Union[None, 'CompilerArgs', T.List[str]] = None,
-                        dependencies: T.Optional[T.List['Dependency']] = None,
-                        mode: str = 'compile', want_output: bool = False,
-                        disable_cache: bool = False,
-                        temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]: ...
-
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
-    # XXX: this is copied in this patch only to avoid circular dependencies
-    #ignore_libs = unixy_compiler_internal_libs
-    ignore_libs = ('m', 'c', 'pthread', 'dl', 'rt', 'execinfo')
-    internal_libs = ()
+    ignore_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS + ['execinfo']
+    internal_libs = []  # type: T.List[str]
 
     crt_args = {
         'none': [],
@@ -156,6 +143,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             self.machine = 'arm'
         else:
             self.machine = target
+        assert self.linker is not None
         self.linker.machine = self.machine
 
     # Override CCompiler.get_always_args

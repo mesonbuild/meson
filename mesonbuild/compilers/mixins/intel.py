@@ -28,8 +28,6 @@ from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    import subprocess  # noqa: F401
-
     from ...arglist import CompilerArgs
     from ...dependencies import Dependency
     from ...environment import Environment
@@ -115,8 +113,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
             '-diag-error', '10157',  # Ignoring argument of the wrong type
             '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
         ]
-        ret = super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)  # type: ignore
-        return T.cast(T.Tuple[bool, bool], ret)
+        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-prof-gen=threadsafe']
@@ -176,8 +173,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
                 '/Qdiag-error:10157',  # Ignoring argument of the wrong type
                 '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
             ])
-        ret = super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)  # type: ignore
-        return T.cast(T.Tuple[bool, bool], ret)
+        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
 
     def get_toolset_version(self) -> T.Optional[str]:
         # Avoid circular dependencies....

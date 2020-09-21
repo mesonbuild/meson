@@ -40,10 +40,15 @@ from .. import compilers
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...coredata import CoreData
     from ...dependencies import Dependency, ExternalProgram
     from ...environment import Environment
-    from ...linkers import DynamicLinker
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 GROUP_FLAGS = re.compile(r'''\.so (?:\.[0-9]+)? (?:\.[0-9]+)? (?:\.[0-9]+)?$ |
                              ^(?:-Wl,)?-l |
@@ -115,45 +120,12 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
         return 'CLikeCompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
 
 
-class CLikeCompiler:
+class CLikeCompiler(Compiler):
 
     """Shared bits for the C and CPP Compilers."""
 
     if T.TYPE_CHECKING:
-        can_compile_suffixes = set()  # type: T.Set[str]
-        exelist = []  # type: T.List[str]
-        for_machine = mesonlib.MachineChoice.HOST
-        id = ''
-        ignore_libs = ()  # type: T.Tuple[str, ...]
-        language = ''
-        linker = SolarisDynamicLinker([], mesonlib.MachineChoice.HOST, [], [])  # type: DynamicLinker
         warn_args = {}  # type: T.Dict[str, T.List[str]]
-
-        @staticmethod
-        def attribute_check_func(name: str) -> str:...
-        def get_allow_undefined_link_args(self) -> T.List[str]: ...
-        def get_compiler_args_for_mode(self, mode: str) -> T.List[str]: ...
-        def get_display_language(self) -> str: ...
-        def get_largefile_args(self) -> T.List[str]: ...
-        def get_linker_always_args(self) -> T.List[str]: ...
-        def get_pch_suffix(self) -> str: ...
-        def get_id(self) -> str: ...
-        def name_string(self) -> str: ...
-        def remove_linkerlike_args(self, args: T.List[str]) -> T.List[str]: ...
-        @classmethod
-        def use_linker_args(cls, linker: str) -> T.List[str]: ...
-
-        @contextlib.contextmanager
-        def compile(self, code: 'mesonlib.FileOrString',
-                    extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
-                    *, mode: str = 'link', want_output: bool = False,
-                    temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[compilers.CompileResult]]: ...
-
-        @contextlib.contextmanager
-        def cached_compile(self, code: str, cdata: 'CoreData', *,
-                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
-                           mode: str = 'link',
-                           temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[compilers.CompileResult]]: ...
 
     # TODO: Replace this manual cache with functools.lru_cache
     find_library_cache = {}    # type: T.Dict[T.Tuple[T.Tuple[str, ...], str, T.Tuple[str, ...], str, LibType], T.Optional[T.List[str]]]
@@ -170,9 +142,9 @@ class CLikeCompiler:
         else:
             self.exe_wrapper = exe_wrapper.get_command()
 
-    def compiler_args(self, args: T.Optional[T.List[str]] = None) -> CLikeCompilerArgs:
+    def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
         # This is correct, mypy just doesn't understand co-operative inheritance
-        return CLikeCompilerArgs(self, args)  # type: ignore
+        return CLikeCompilerArgs(self, args)
 
     def needs_static_linker(self) -> bool:
         return True # When compiling static libraries, so yes.
@@ -296,12 +268,15 @@ class CLikeCompiler:
         return self._get_library_dirs(env, elf_class).copy()
 
     @functools.lru_cache()
-    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
+    def _get_program_dirs(self, env: 'Environment') -> T.List[str]:
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
         '''
         return self.get_compiler_dirs(env, 'programs')
+
+    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
+        return self._get_program_dirs(env).copy()
 
     def get_pic_args(self) -> T.List[str]:
         return ['-fPIC']
@@ -506,7 +481,7 @@ class CLikeCompiler:
         return args
 
     def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Optional[T.List[str]] = None,
+                 extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
                  dependencies: T.Optional[T.List['Dependency']] = None,
                  mode: str = 'compile',
                  disable_cache: bool = False) -> T.Tuple[bool, bool]:
@@ -529,7 +504,7 @@ class CLikeCompiler:
                 yield r
 
     def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Optional[T.List[str]] = None,
+              extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
               dependencies: T.Optional[T.List['Dependency']] = None,
               mode: str = 'compile',
               disable_cache: bool = False) -> T.Tuple[bool, bool]:
