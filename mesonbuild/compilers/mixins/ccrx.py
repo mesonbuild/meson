@@ -69,7 +69,7 @@ class CcrxCompiler(Compiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
-                          '3': default_warn_args + []}
+                          '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
 
     def get_pic_args(self) -> T.List[str]:
         # PIC support is not enabled by default for CCRX,

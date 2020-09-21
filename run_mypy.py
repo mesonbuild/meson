@@ -17,6 +17,7 @@ modules = [
     # specific files
     'mesonbuild/arglist.py',
     'mesonbuild/compilers/compilers.py',
+    'mesonbuild/compilers/c.py',
     'mesonbuild/compilers/c_function_attributes.py',
     'mesonbuild/compilers/objc.py',
     'mesonbuild/compilers/objcpp.py',

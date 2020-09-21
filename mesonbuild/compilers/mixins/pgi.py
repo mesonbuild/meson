@@ -50,7 +50,8 @@ class PGICompiler(Compiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args,
-                          '3': default_warn_args}
+                          '3': default_warn_args
+        }  # type: T.Dict[str, T.List[str]]
 
     def get_module_incdir_args(self) -> T.Tuple[str]:
         return ('-module', )

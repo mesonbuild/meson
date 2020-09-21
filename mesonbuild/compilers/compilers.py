@@ -452,6 +452,7 @@ class Compiler(metaclass=abc.ABCMeta):
     if T.TYPE_CHECKING:
         language = 'unset'
         id = ''
+        warn_args = {}  # type: T.Dict[str, T.List[str]]
 
     def __init__(self, exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
