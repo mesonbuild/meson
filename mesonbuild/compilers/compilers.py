@@ -440,10 +440,10 @@ class CompileResult:
 class Compiler(metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
-    ignore_libs = ()  # type: T.Tuple[str, ...]
+    ignore_libs = []  # type: T.List[str]
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
-    internal_libs = ()  # type: T.Tuple[str, ...]
+    internal_libs = []  # type: T.List[str]
 
     LINKER_PREFIX = None  # type: T.Union[None, str, T.List[str]]
     INVOKES_LINKER = True
@@ -518,18 +518,18 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
     def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
-                    guess: T.Optional[int], prefix: str, env: 'Environment',
-                    extra_args: T.List[str], dependencies: T.List['Dependency']) -> int:
+                    guess: T.Optional[int], prefix: str, env: 'Environment', *,
+                    extra_args: T.Optional[T.List[str]], dependencies: T.Optional[T.List['Dependency']]) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
                                                build_dir: str) -> T.List[str]:
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename: str, membernames: T.Iterable[str],
+    def has_members(self, typename: str, membernames: T.List[str],
                     prefix: str, env: 'Environment', *,
-                    extra_args: T.Optional[T.Iterable[str]] = None,
-                    dependencies: T.Optional[T.Iterable['Dependency']] = None) -> T.Tuple[bool, bool]:
+                    extra_args: T.Optional[T.List[str]] = None,
+                    dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
     def has_type(self, typename: str, prefix: str, env: 'Environment',
@@ -662,8 +662,8 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
-                     extra_args: T.Optional[T.Iterable[str]] = None,
-                     dependencies: T.Optional[T.Iterable['Dependency']] = None) -> T.Tuple[bool, bool]:
+                     extra_args: T.Optional[T.List[str]] = None,
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         """See if a function exists.
 
         Returns a two item tuple of bools. The first bool is whether the
@@ -672,8 +672,7 @@ class Compiler(metaclass=abc.ABCMeta):
         """
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
-    @classmethod
-    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
+    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
         return args.copy()
 
@@ -878,7 +877,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_gui_app_args(self, value: bool) -> T.List[str]:
         return []
 
-    def has_func_attribute(self, name: str, env: 'Environment') -> T.List[str]:
+    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support function attributes.'.format(self.get_display_language()))
 

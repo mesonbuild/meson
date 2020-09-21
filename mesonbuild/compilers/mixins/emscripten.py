@@ -20,15 +20,17 @@ import typing as T
 from ... import coredata
 
 if T.TYPE_CHECKING:
-    from ...envconfig import MachineChoice
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 
-class EmscriptenMixin:
-
-    if T.TYPE_CHECKING:
-        for_machine = MachineChoice.HOST
-        language = ''
+class EmscriptenMixin(Compiler):
 
     def _get_compile_output(self, dirname: str, mode: str) -> str:
         # In pre-processor mode, the output is sent to stdout and discarded
@@ -54,9 +56,7 @@ class EmscriptenMixin:
         return args
 
     def get_options(self) -> 'coredata.OptionDictType':
-        # Mypy and co-operative inheritance
-        _opts = super().get_options()  # type: ignore
-        opts = T.cast('coredata.OptionDictType', _opts)
+        opts = super().get_options()
         opts.update({
             '{}_thread_count'.format(self.language): coredata.UserIntegerOption(
                 'Number of threads to use in web assembly, set to 0 to disable',

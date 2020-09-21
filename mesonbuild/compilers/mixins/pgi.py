@@ -21,8 +21,14 @@ from pathlib import Path
 from ..compilers import clike_debug_args, clike_optimization_args
 
 if T.TYPE_CHECKING:
-    from ...envconfig import MachineInfo
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 pgi_buildtype_args = {
     'plain': [],
@@ -34,11 +40,7 @@ pgi_buildtype_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 
-class PGICompiler:
-
-    if T.TYPE_CHECKING:
-        info = MachineInfo('', '', '', '')
-        language = ''
+class PGICompiler(Compiler):
 
     def __init__(self) -> None:
         self.base_options = ['b_pch']

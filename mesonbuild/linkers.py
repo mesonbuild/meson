@@ -351,6 +351,7 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         self.version = version
         self.prefix_arg = prefix_arg
         self.always_args = always_args
+        self.machine = None  # type: T.Optional[str]
 
     def __repr__(self) -> str:
         return '<{}: v{} `{}`>'.format(type(self).__name__, self.version, ' '.join(self.exelist))

@@ -20,6 +20,13 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 ccomp_buildtype_args = {
     'plain': [''],
@@ -51,10 +58,7 @@ ccomp_args_to_wul = [
         r"^-r$"
 ] # type: T.List[str]
 
-class CompCertCompiler:
-
-    if T.TYPE_CHECKING:
-        can_compile_suffixes = set()  # type: T.Set[str]
+class CompCertCompiler(Compiler):
 
     def __init__(self) -> None:
         self.id = 'ccomp'

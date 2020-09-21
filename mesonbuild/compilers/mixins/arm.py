@@ -23,8 +23,14 @@ from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
 if T.TYPE_CHECKING:
-    from ...envconfig import MachineChoice
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 arm_buildtype_args = {
     'plain': [],
@@ -63,13 +69,9 @@ armclang_optimization_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 
-class ArmCompiler:
+class ArmCompiler(Compiler):
 
     """Functionality that is common to all ARM family compilers."""
-
-    if T.TYPE_CHECKING:
-        is_cross = True
-        can_compile_suffixes = set()  # type: T.Set[str]
 
     def __init__(self) -> None:
         if not self.is_cross:
@@ -133,15 +135,7 @@ class ArmCompiler:
         return parameter_list
 
 
-class ArmclangCompiler:
-
-    if T.TYPE_CHECKING:
-        can_compile_suffixes = set()  # type: T.Set[str]
-        is_cross = True
-        version = '0'
-        linker = ArmClangDynamicLinker(MachineChoice.HOST, version='1.2.3')
-
-        def get_pch_name(self, name: str) -> str: ...
+class ArmclangCompiler(Compiler):
 
     def __init__(self) -> None:
         if not self.is_cross:

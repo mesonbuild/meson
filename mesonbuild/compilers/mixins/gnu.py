@@ -26,14 +26,14 @@ from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
-    import contextlib
-
-    from .. import compilers
-    from ... import arglist
-    from ...coredata import UserOption  # noqa: F401
-    from ...dependency import Dependency
-    from ...envconfig import MachineInfo
     from ...environment import Environment
+    from .clike import CLikeCompiler as Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 # XXX: prevent circular references.
 # FIXME: this really is a posix interface not a c-like interface
@@ -135,28 +135,13 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[st
     return paths
 
 
-class GnuLikeCompiler(metaclass=abc.ABCMeta):
+class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     """
     GnuLikeCompiler is a common interface to all compilers implementing
     the GNU-style commandline interface. This includes GCC, Clang
     and ICC. Certain functionality between them is different and requires
     that the actual concrete subclass define their own implementation.
     """
-
-    if T.TYPE_CHECKING:
-        can_compile_suffixes = set()  # type: T.Set[str]
-        exelist = []  # type: T.List[str]
-        info = MachineInfo('', '', '', '')
-        language = ''
-        version = ''
-
-        @contextlib.contextmanager
-        def _build_wrapper(self, code: str, env: 'Environment',
-                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
-                           dependencies: T.Optional[T.List['Dependency']] = None,
-                           mode: str = 'compile', want_output: bool = False,
-                           disable_cache: bool = False,
-                           temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]: ...
 
     LINKER_PREFIX = '-Wl,'
 
@@ -354,8 +339,7 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_warn_args(self, level: str) -> T.List[str]:
         # Mypy doesn't understand cooperative inheritance
-        _args = super().get_warn_args(level)  # type: ignore
-        args = T.cast(T.List[str], _args)
+        args = super().get_warn_args(level)
         if mesonlib.version_compare(self.version, '<4.8.0') and '-Wpedantic' in args:
             # -Wpedantic was added in 4.8.0
             # https://gcc.gnu.org/gcc-4.8/changes.html
