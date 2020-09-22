@@ -946,7 +946,7 @@ def do_define(regex: T.Pattern[str], line: str, confdata: 'ConfigurationData', v
 
     arr = line.split()
     if variable_format == 'meson' and len(arr) != 2:
-      raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
+        raise MesonException('#mesondefine does not contain exactly two tokens: %s' % line.strip())
 
     varname = arr[1]
     try:

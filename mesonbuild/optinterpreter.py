@@ -210,7 +210,7 @@ class OptionInterpreter:
         (posargs, kwargs) = self.reduce_arguments(node.args)
 
         if 'yield' in kwargs:
-           FeatureNew.single_use('option yield', '0.45.0', self.subproject)
+            FeatureNew.single_use('option yield', '0.45.0', self.subproject)
 
         if 'type' not in kwargs:
             raise OptionException('Option call missing mandatory "type" keyword argument')
