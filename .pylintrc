@@ -7,6 +7,7 @@ score=no
 [MESSAGES CONTROL]
 disable=all
 enable=
+    abstract-class-instantiated,
     assert-on-tuple,
     compare-to-zero,
     dangerous-default-value,
