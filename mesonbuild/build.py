@@ -462,10 +462,10 @@ a hard error in the future.'''.format(name))
 
         for k, v in option_overrides.items():
             if '_' in k:
-               lang, k2 = k.split('_', 1)
-               if lang in all_languages:
-                   self.option_overrides_compiler[lang][k2] = v
-                   continue
+                lang, k2 = k.split('_', 1)
+                if lang in all_languages:
+                    self.option_overrides_compiler[lang][k2] = v
+                    continue
             self.option_overrides_base[k] = v
 
     def parse_overrides(self, kwargs) -> dict:

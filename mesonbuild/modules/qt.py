@@ -87,29 +87,29 @@ class QtBaseModule(ExtensionModule):
         rcc_dirname, nodes = self.qrc_nodes(state, rcc_file)
         result = []
         for resource_path in nodes:
-                    # We need to guess if the pointed resource is:
-                    #   a) in build directory -> implies a generated file
-                    #   b) in source directory
-                    #   c) somewhere else external dependency file to bundle
-                    #
-                    # Also from qrc documentation: relative path are always from qrc file
-                    # So relative path must always be computed from qrc file !
-                    if os.path.isabs(resource_path):
-                        # a)
-                        if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
-                            resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
-                            result.append(File(is_built=True, subdir='', fname=resource_relpath))
-                        # either b) or c)
-                        else:
-                            result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
-                    else:
-                        path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
-                        # a)
-                        if path_from_rcc.startswith(state.environment.build_dir):
-                            result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
-                        # b)
-                        else:
-                            result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
+            # We need to guess if the pointed resource is:
+            #   a) in build directory -> implies a generated file
+            #   b) in source directory
+            #   c) somewhere else external dependency file to bundle
+            #
+            # Also from qrc documentation: relative path are always from qrc file
+            # So relative path must always be computed from qrc file !
+            if os.path.isabs(resource_path):
+                # a)
+                if resource_path.startswith(os.path.abspath(state.environment.build_dir)):
+                    resource_relpath = os.path.relpath(resource_path, state.environment.build_dir)
+                    result.append(File(is_built=True, subdir='', fname=resource_relpath))
+                # either b) or c)
+                else:
+                    result.append(File(is_built=False, subdir=state.subdir, fname=resource_path))
+            else:
+                path_from_rcc = os.path.normpath(os.path.join(rcc_dirname, resource_path))
+                # a)
+                if path_from_rcc.startswith(state.environment.build_dir):
+                    result.append(File(is_built=True, subdir=state.subdir, fname=resource_path))
+                # b)
+                else:
+                    result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
         return result
 
     @noPosargs

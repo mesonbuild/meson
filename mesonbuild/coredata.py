@@ -771,7 +771,7 @@ class CoreData:
                 lang, key = k.split('_', 1)
                 for machine in MachineChoice:
                     if key not in env.compiler_options[machine][lang]:
-                         env.compiler_options[machine][lang][key] = v
+                        env.compiler_options[machine][lang][key] = v
             elif k in base_options:
                 if not subproject and k not in env.base_options:
                     env.base_options[k] = v
