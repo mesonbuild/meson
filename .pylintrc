@@ -14,9 +14,12 @@ enable=
     dangerous-default-value,
     deprecated-lambda,
     len-as-condition,
+    literal-comparison,
     missing-kwoa,
+    mixed-indentation,
     no-value-for-parameter,
     redundant-keyword-arg,
+    singleton-comparison,
     too-many-function-args,
     unexpected-keyword-arg,
     unreachable
