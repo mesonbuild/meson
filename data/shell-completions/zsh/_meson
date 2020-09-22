@@ -184,14 +184,16 @@ local -a meson_commands=(
 (( $+functions[_meson-introspect] )) || _meson-introspect() {
   local curcontext="$curcontext"
   local -a specs=(
-  '--targets[list top level targets]'
-  '--installed[list all installed files and directories]'
-  '--buildsystem-files[list files that belong to the build system]'
-  '--buildoptions[list all build options]'
-  '--tests[list all unit tests]'
+  '--ast[dump the ASK of the meson file]'
   '--benchmarks[list all benchmarks]'
+  '--buildoptions[list all build options]'
+  '--buildsystem-files[list files that belong to the build system]'
   '--dependencies[list external dependencies]'
+  '--installed[list all installed files and directories]'
   '--projectinfo[show project information]'
+  '--targets[list top level targets]'
+  '--tests[list all unit tests]'
+  '--backend=[backend to use]:Meson backend:'"$__meson_backends"
   '::build directory:_directories'
   )
 _arguments \
