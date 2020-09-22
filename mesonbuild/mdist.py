@@ -35,7 +35,7 @@ archive_extension = {'gztar': '.tar.gz',
 def add_arguments(parser):
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
-    parser.add_argument('--formats', default='xztar',
+    parser.add_argument('--formats', default='xztar', choices=archive_choices,
                         help='Comma separated list of archive types to create.')
     parser.add_argument('--include-subprojects', action='store_true',
                         help='Include source code of subprojects that have been used for the build.')
