@@ -1,4 +1,4 @@
-#compdef meson mesonconf=meson-configure mesontest=meson-test mesonintrospect=meson-introspect
+#compdef meson
 
 # vim:ts=2 sw=2
 
