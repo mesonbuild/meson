@@ -62,10 +62,10 @@ local -a __meson_common=(
   '--werror[treat warnings as errors]'
   '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes"
   '--force-fallback-for=[force fallback for listed subprojects]'
-  '--pkg-config-path=[extra paths for HOST pkg-config to search]:paths:_files -/'
-  '--build.pkg-config-path=[extra paths for BUILD pkg-config to search]:paths:_files -/'
-  '--cmake-prefix-path=[extra prefixes for HOST cmake to search]:paths:_files -/'
-  '--build.cmake-prefix-path=[extra prefix for BUILD cmake to search]:paths:_files -/'
+  '--pkg-config-path=[extra paths for HOST pkg-config to search]:paths:_dir_list -s ,'
+  '--build.pkg-config-path=[extra paths for BUILD pkg-config to search]:paths:_dir_list -s ,'
+  '--cmake-prefix-path=[extra prefixes for HOST cmake to search]:paths:_dir_list -s ,'
+  '--build.cmake-prefix-path=[extra prefix for BUILD cmake to search]:paths:_dir_list -s ,'
 )
 
 local -a meson_commands=(
