@@ -1735,10 +1735,19 @@ class BasePlatformTests(unittest.TestCase):
 
     def run_target(self, target, *, override_envvars=None):
         '''
+        Run a build, custom, or run target while printing the stdout and stderr
+        to stdout, and also return a copy of it
+        '''
+        return self.build(target=target, override_envvars=override_envvars)
+
+    def run_ninja_target(self, target, *, override_envvars=None):
+        '''
         Run a Ninja target while printing the stdout and stderr to stdout,
         and also return a copy of it
         '''
-        return self.build(target=target, override_envvars=override_envvars)
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest('Not using the ninja backend')
+        return self.build(extra_args=['--ninja-args', target], override_envvars=override_envvars)
 
     def setconf(self, arg, will_build=True):
         if not isinstance(arg, list):
@@ -4251,7 +4260,7 @@ recommended as it is not supported on some platforms''')
                                 Path(goodfile).read_text())
             self.assertNotEqual(Path(testheader).read_text(),
                                 Path(goodheader).read_text())
-            self.run_target('clang-format')
+            self.run_ninja_target('clang-format')
             self.assertEqual(Path(testheader).read_text(),
                              Path(goodheader).read_text())
         finally:
@@ -4271,7 +4280,7 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '70 clang-tidy')
         dummydir = os.path.join(testdir, 'dummydir.h')
         self.init(testdir, override_envvars={'CXX': 'c++'})
-        out = self.run_target('clang-tidy')
+        out = self.run_ninja_target('clang-tidy')
         self.assertIn('cttest.cpp:4:20', out)
         self.assertNotIn(dummydir, out)
 
@@ -5004,7 +5013,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
-        self.run_target('coverage')
+        self.run_ninja_target('coverage')
         self._check_coverage_files()
 
     def test_coverage_complex(self):
@@ -5024,7 +5033,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
-        self.run_target('coverage')
+        self.run_ninja_target('coverage')
         self._check_coverage_files()
 
     def test_coverage_html(self):
@@ -5044,7 +5053,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
-        self.run_target('coverage-html')
+        self.run_ninja_target('coverage-html')
         self._check_coverage_files(['html'])
 
     def test_coverage_text(self):
@@ -5064,7 +5073,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
-        self.run_target('coverage-text')
+        self.run_ninja_target('coverage-text')
         self._check_coverage_files(['text'])
 
     def test_coverage_xml(self):
@@ -5084,7 +5093,7 @@ recommended as it is not supported on some platforms''')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
-        self.run_target('coverage-xml')
+        self.run_ninja_target('coverage-xml')
         self._check_coverage_files(['xml'])
 
     def test_cross_file_constants(self):
