@@ -32,6 +32,41 @@ local -i ret
 local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
 local __meson_build_types="(plain debug debugoptimized minsize release)"
 local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
+local -a __meson_common=(
+  '--prefix=[installation prefix]: :_directories'
+  '--bindir=[executable directory]: :_directories'
+  '--datadir=[data file directory]: :_directories'
+  '--includedir=[header file directory]: :_directories'
+  '--infodir=[info page directory]: :_directories'
+  '--libdir=[library directory]: :_directories'
+  '--libexecdir=[library executable directory]: :_directories'
+  '--localedir=[locale data directory]: :_directories'
+  '--localstatedir=[local state data directory]: :_directories'
+  '--mandir=[manual page directory]: :_directories'
+  '--sbindir=[system executable directory]: :_directories'
+  '--sharedstatedir=[arch-independent data directory]: :_directories'
+  '--sysconfdir=[system configuration directory]: :_directories'
+  '--auto-features=[default value for auto features]:auto features types:(auto disabled enabled)'
+  '--backend=[backend to use]:Meson backend:'"$__meson_backends"
+  '--buildtype=[build type to use]:Meson build type:'"$__meson_build_types"
+  '--debug[turn on building with debug]'
+  '--default-library=[default library type]:default library type:(shared static both)'
+  '--errorlogs[prints the logs from failing tests]'
+  '--install-umask=[default umask for permissions of all installed files]'
+  '--layout=[build directory layout]:build directory layout:(flat mirror)'
+  '--optimization=[optimization level for compiled targets]:optimization:(0 g 1 2 3 s)'
+  '--stdsplit=[split stdout and stderr in test logs]'
+  '--strip[strip targets on install]'
+  '--unity=[unity builds on/off]:whether to do unity builds:(on off subprojects)'
+  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(1 2 3)'
+  '--werror[treat warnings as errors]'
+  '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes"
+  '--force-fallback-for=[force fallback for listed subprojects]'
+  '--pkg-config-path=[extra paths for HOST pkg-config to search]:paths:_files -/'
+  '--build.pkg-config-path=[extra paths for BUILD pkg-config to search]:paths:_files -/'
+  '--cmake-prefix-path=[extra prefixes for HOST cmake to search]:paths:_files -/'
+  '--build.cmake-prefix-path=[extra prefix for BUILD cmake to search]:paths:_files -/'
+)
 
 local -a meson_commands=(
 'setup:set up a build directory'
@@ -89,39 +124,6 @@ local -a meson_commands=(
 
   _arguments \
   '*-D-[set the value of a build option]:build option:__meson_build_options' \
-  '--prefix=[installation prefix]: :_directories' \
-  '--bindir=[executable directory]: :_directories' \
-  '--datadir=[data file directory]: :_directories' \
-  '--includedir=[header file directory]: :_directories' \
-  '--infodir=[info page directory]: :_directories' \
-  '--libdir=[library directory]: :_directories' \
-  '--libexecdir=[library executable directory]: :_directories' \
-  '--localedir=[locale data directory]: :_directories' \
-  '--localstatedir=[local state data directory]: :_directories' \
-  '--mandir=[manual page directory]: :_directories' \
-  '--sbindir=[system executable directory]: :_directories' \
-  '--sharedstatedir=[arch-independent data directory]: :_directories' \
-  '--sysconfdir=[system configuration directory]: :_directories' \
-  '--auto-features=[default value for auto features]:auto features types:(auto disabled enabled)' \
-  '--backend=[backend to use]:Meson backend:'"$__meson_backends" \
-  '--buildtype=[build type to use]:Meson build type:'"$__meson_build_types" \
-  '--debug=[turn on building with debug]' \
-  '--default-library=[default library type]:default library type:(shared static both)' \
-  '--errorlogs=[prints the logs from failing tests]' \
-  '--install-umask=[default umask for permissions of all installed files]' \
-  '--layout=[build directory layout]:build directory layout:(flat mirror)' \
-  '--optimization=[optimization level for compiled targets]:optimization:(0 g 1 2 3 s)' \
-  '--stdsplit=[split stdout and stderr in test logs]' \
-  '--strip[strip targets on install]' \
-  '--unity=[unity builds on/off]:whether to do unity builds:(on off subprojects)' \
-  '--warnlevel=[compiler warning level]:compiler warning level:warning level:(1 2 3)' \
-  '--werror[treat warnings as errors]' \
-  '--wrap-mode=[special wrap mode]:wrap mode:'"$__meson_wrap_modes" \
-  '--force-fallback-for=[force fallback for listed subprojects]' \
-  '--pkg-config-path=[extra paths for HOST pkg-config to search]:paths:_files -/' \
-  '--build.pkg-config-path=[extra paths for BUILD pkg-config to search]:paths:_files -/' \
-  '--cmake-prefix-path=[extra prefixes for HOST cmake to search]:paths:_files -/' \
-  '--build.cmake-prefix-path=[extra prefix for BUILD cmake to search]:paths:_files -/' \
   '--cross-file=[cross-compilation environment description]:cross file:_files' \
   '--native-file=[build machine compilation environment description]:native file:_files' \
   '--clearcache[clear cached state]' \
@@ -131,21 +133,21 @@ local -a meson_commands=(
   '--wipe=[delete saved state and restart using saved command line options]' \
   ":$firstd directory:_directories" \
   "::$secondd directory:_directories" \
-  #
+  "${(@)__meson_common}"
 }
 
 (( $+functions[_meson-configure] )) || _meson-configure() {
   local curcontext="$curcontext"
   # TODO: implement 'mesonconf @file'
   local -a specs=(
-  '--clearcache[clear cached state]'
   '*-D-[set the value of a build option]:build option:__meson_build_options'
   '::build directory:_directories'
   )
 
   _arguments \
     '(: -)'{'--help','-h'}'[show a help message and quit]' \
-    "${(@)specs}"
+    "${(@)specs}" \
+    "${(@)__meson_common}"
 }
 
 (( $+functions[_meson-test] )) || _meson-test() {
