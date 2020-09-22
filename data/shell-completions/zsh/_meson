@@ -32,6 +32,7 @@ local -i ret
 local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
 local __meson_build_types="(plain debug debugoptimized minsize release)"
 local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
+local __meson_dist_formats=("xztar" "gztar" "zip")
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
@@ -69,10 +70,11 @@ local -a __meson_common=(
 )
 
 local -a meson_commands=(
-'setup:set up a build directory'
 'configure:configure a project'
-'test:run tests'
+'dist:generate release archive'
 'introspect:query project properties'
+'setup:set up a build directory'
+'test:run tests'
 'wrap:manage source dependencies'
 )
 
@@ -204,6 +206,20 @@ _arguments \
 (( $+functions[_meson-wrap] )) || _meson-wrap() {
   # TODO
 }
+
+(( $+functions[_meson-dist] )) || _meson-dist() {
+  local curcontext="$curcontext"
+  local -a specs=(
+  '-C[change into this directory before running]:target dir:_directories'
+  '--formats=[comma seperated list of archive types to create]:archive formats:_values -s , format '"$__meson_dist_formats"
+  '--include-subprojects[Include source code of subprojects that have been used fo rhte build]'
+  '--no-tests[Do not build and test generated packages]'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
 
 if [[ $service != meson ]]; then
   _call_function ret _$service
