@@ -57,3 +57,22 @@ d2_i = declare_dependency(link_whole: clib[0])
 
 exe4_i = executable('prog4_i', 'prog.c', dependencies: d2_i)
 test('linkwhole2_i', exe2_i)
+
+# Link with custom target
+
+dummy = static_library('dummy', 'dummy.c')
+
+custom_prog = find_program('custom_target.py')
+t = custom_target('custom', input: dummy, output: 'libcustom.a', command: [custom_prog, '@INPUT@', '@OUTPUT@'])
+
+dep1 = declare_dependency(link_with: t)
+dep2 = declare_dependency(link_with: t[0])
+
+lib1 = static_library('lib1', 'outerlib.c', dependencies: dep1)
+lib2 = static_library('lib2', 'outerlib.c', dependencies: dep2)
+
+exe1 = executable('exe1', 'custom_target.c', link_with: lib1)
+test('custom_target_1', exe1)
+
+exe1_2 = executable('exe1_2', 'custom_target.c', link_with: lib2)
+test('custom_target_2', exe2)
