@@ -483,7 +483,7 @@ class Installer:
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
-                        self.log('Not stripping jar target:', os.path.basename(fname))
+                        self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
                     self.log('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
                     ps, stdo, stde = Popen_safe(d.strip_bin + [outname])
