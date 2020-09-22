@@ -1065,6 +1065,14 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
 
+    def get_std_exe_link_args(self) -> T.List[str]:
+        # TODO: is this a linker property?
+        return []
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        return []
+
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,

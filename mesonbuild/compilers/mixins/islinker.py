@@ -97,8 +97,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
         return []
 
     def get_coverage_link_args(self) -> T.List[str]:
-        m = "Linker {} doesn't implement coverage data generation.".format(self.id)
-        raise mesonlib.EnvironmentException(m)
+        return []
 
     def no_undefined_link_args(self) -> T.List[str]:
         return []
