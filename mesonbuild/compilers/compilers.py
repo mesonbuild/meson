@@ -1048,6 +1048,17 @@ class Compiler(metaclass=abc.ABCMeta):
     def name_string(self) -> str:
         return ' '.join(self.exelist)
 
+    @abc.abstractmethod
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        """Check that this compiler actually works.
+
+        This should provide a simple compile/link test. Somthing as simple as:
+        ```python
+        main(): return 0
+        ```
+        is good enough here.
+        """
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,

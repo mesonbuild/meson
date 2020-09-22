@@ -184,7 +184,7 @@ class CudaCompiler(Compiler):
         overrides = {name: opt.value for name, opt in options.copy().items()}
         return OptionOverrideProxy(overrides, self.host_compiler.get_options())
 
-    def get_option_compile_args(self, options):
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
