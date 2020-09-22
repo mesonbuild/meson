@@ -1130,10 +1130,16 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in unholder(listify(target)):
-            if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
-                # When we're a static library and we link_with to an
-                # internal/convenience library, promote to link_whole.
-                return self.link_whole(t)
+            if isinstance(self, StaticLibrary) and self.need_install:
+                if isinstance(t, (CustomTarget, CustomTargetIndex)):
+                    if not t.should_install():
+                        mlog.warning('Try to link an installed static library target {} with a custom target '
+                                     'that is not installed, this might cause problems when you try to use '
+                                     'this static library'.format(self.name))
+                elif t.is_internal():
+                    # When we're a static library and we link_with to an
+                    # internal/convenience library, promote to link_whole.
+                    return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
@@ -2274,6 +2280,18 @@ class CustomTarget(Target):
     def get_all_link_deps(self):
         return []
 
+    def is_internal(self) -> bool:
+        if not self.should_install():
+            return True
+        for out in self.get_outputs():
+            # Can't check if this is a static library, so try to guess
+            if not out.endswith(('.a', '.lib')):
+                return False
+        return True
+
+    def extract_all_objects_recurse(self):
+        return self.get_outputs()
+
     def type_suffix(self):
         return "@cus"
 
@@ -2418,6 +2436,15 @@ class CustomTargetIndex:
         suf = os.path.splitext(self.output)[-1]
         if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
             return True
+
+    def should_install(self) -> bool:
+        return self.target.should_install()
+
+    def is_internal(self) -> bool:
+        return self.target.is_internal()
+
+    def extract_all_objects_recurse(self):
+        return self.target.extract_all_objects_recurse()
 
 class ConfigureFile:
 
