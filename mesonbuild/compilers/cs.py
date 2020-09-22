@@ -61,9 +61,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self):
         return ['-warnaserror']
 
-    def split_shlib_to_parts(self, fname):
-        return None, fname
-
     def get_dependency_gen_args(self, outtarget, outfile):
         return []
 

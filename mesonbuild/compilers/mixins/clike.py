@@ -169,9 +169,6 @@ class CLikeCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
-        return None, fname
-
     def depfile_for_object(self, objfile: str) -> str:
         return objfile + '.' + self.get_depfile_suffix()
 
