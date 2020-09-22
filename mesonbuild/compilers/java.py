@@ -48,12 +48,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_coverage_args(self):
         return []
 
-    def get_std_exe_link_args(self):
-        return []
-
-    def get_include_args(self, path):
-        return []
-
     def get_pic_args(self):
         return []
 

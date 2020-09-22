@@ -206,9 +206,6 @@ class DmdLikeCompilerMixin:
             return self.get_target_arch_args()
         return []
 
-    def get_std_exe_link_args(self):
-        return []
-
     def gen_import_library_args(self, implibname):
         return self.linker.import_library_args(implibname)
 
@@ -559,9 +556,6 @@ class DCompiler(Compiler):
     def get_buildtype_linker_args(self, buildtype):
         if buildtype != 'plain':
             return self.get_target_arch_args()
-        return []
-
-    def get_std_exe_link_args(self):
         return []
 
     def _get_compiler_check_args(self, env, extra_args, dependencies, mode='compile'):

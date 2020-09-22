@@ -20,6 +20,7 @@ modules = [
     'mesonbuild/compilers/c.py',
     'mesonbuild/compilers/c_function_attributes.py',
     'mesonbuild/compilers/cpp.py',
+    'mesonbuild/compilers/cuda.py',
     'mesonbuild/compilers/objc.py',
     'mesonbuild/compilers/objcpp.py',
     # 'mesonbuild/coredata.py',

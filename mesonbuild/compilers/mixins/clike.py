@@ -197,10 +197,6 @@ class CLikeCompiler(Compiler):
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def get_std_exe_link_args(self) -> T.List[str]:
-        # TODO: is this a linker property?
-        return []
-
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if path == '':
             path = '.'
@@ -1256,9 +1252,6 @@ class CLikeCompiler(Compiler):
         if host_m.is_haiku() or host_m.is_darwin():
             return []
         return ['-pthread']
-
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
-        return self.linker.thread_flags(env)
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return args.copy()

@@ -863,6 +863,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        return self.linker.thread_flags(env)
+
     def openmp_flags(self) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
@@ -953,6 +956,9 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        raise EnvironmentException('{} does not implement get_buildtype_args'.format(self.id))
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
@@ -1077,6 +1083,10 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def get_depfile_suffix(self) -> str:
         raise EnvironmentError('{} does not implement get_depfile_suffix'.format(self.id))
+
+    def get_no_stdinc_args(self) -> T.List[str]:
+        """Arguments to turn off default inclusion of standard libraries."""
+        return []
 
 
 def get_args_from_envvars(lang: str,

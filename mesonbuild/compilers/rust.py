@@ -103,9 +103,6 @@ class RustCompiler(Compiler):
 
         return parameter_list
 
-    def get_std_exe_link_args(self):
-        return []
-
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
 
