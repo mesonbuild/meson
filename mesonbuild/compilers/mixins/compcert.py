@@ -99,10 +99,6 @@ class CompCertCompiler(Compiler):
                 patched_args.append(arg)
         return patched_args
 
-    # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
-
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 

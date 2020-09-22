@@ -1062,6 +1062,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
         return None, fname
 
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return []
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,

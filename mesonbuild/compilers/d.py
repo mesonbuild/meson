@@ -99,10 +99,6 @@ class DmdLikeCompilerMixin:
     def get_werror_args(self):
         return ['-w']
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        # DMD and LDC does not currently return Makefile-compatible dependency info.
-        return []
-
     def get_coverage_args(self):
         return ['-cov']
 

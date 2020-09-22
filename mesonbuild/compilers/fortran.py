@@ -108,9 +108,6 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def get_debug_args(self, is_debug):
         return clike_debug_args[is_debug]
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
     def get_preprocess_only_args(self):
         return ['-cpp'] + super().get_preprocess_only_args()
 

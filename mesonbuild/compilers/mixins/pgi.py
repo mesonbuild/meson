@@ -86,9 +86,6 @@ class PGICompiler(Compiler):
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
-
     def get_always_args(self) -> T.List[str]:
         return []
 

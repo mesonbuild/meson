@@ -81,10 +81,6 @@ class C2000Compiler(Compiler):
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
-
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 

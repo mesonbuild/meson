@@ -96,7 +96,6 @@ class ArmCompiler(Compiler):
     def get_always_args(self) -> T.List[str]:
         return []
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--depend_target', outtarget, '--depend', outfile, '--depend_single_line']
 
@@ -171,7 +170,6 @@ class ArmclangCompiler(Compiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', '-MT', outtarget, '-MF', outfile]
 

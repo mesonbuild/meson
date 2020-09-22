@@ -213,9 +213,6 @@ class CudaCompiler(Compiler):
     def get_soname_args(self, *args):
         return self._cook_link_args(self.host_compiler.get_soname_args(*args))
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
     def get_compile_only_args(self):
         return ['-c']
 

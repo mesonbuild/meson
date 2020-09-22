@@ -194,9 +194,6 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             args = [arg for arg in args if arg != '/Gw']
         return args
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
-
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return ['/link'] + args
 

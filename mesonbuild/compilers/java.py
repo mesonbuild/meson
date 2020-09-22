@@ -37,9 +37,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self):
         return ['-Werror']
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
     def get_compile_only_args(self):
         return []
 

@@ -61,9 +61,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_werror_args(self):
         return ['-warnaserror']
 
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
     def get_linker_exelist(self):
         return self.exelist[:]
 
