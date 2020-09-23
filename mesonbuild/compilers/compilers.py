@@ -1072,6 +1072,11 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         return []
 
+    def depfile_for_object(self, objfile: str) -> str:
+        return objfile + '.' + self.get_depfile_suffix()
+
+    def get_depfile_suffix(self) -> str:
+        raise EnvironmentError('{} does not implement get_depfile_suffix'.format(self.id))
 
 
 def get_args_from_envvars(lang: str,

@@ -251,10 +251,7 @@ class CudaCompiler(Compiler):
     def get_link_debugfile_args(self, targetfile):
         return self._cook_link_args(self.host_compiler.get_link_debugfile_args(targetfile))
 
-    def depfile_for_object(self, objfile):
-        return objfile + '.' + self.get_depfile_suffix()
-
-    def get_depfile_suffix(self):
+    def get_depfile_suffix(self) -> str:
         return 'd'
 
     def get_buildtype_linker_args(self, buildtype):

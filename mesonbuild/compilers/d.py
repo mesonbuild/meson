@@ -111,9 +111,6 @@ class DmdLikeCompilerMixin:
     def get_compile_only_args(self):
         return ['-c']
 
-    def depfile_for_object(self, objfile):
-        return objfile + '.' + self.get_depfile_suffix()
-
     def get_depfile_suffix(self):
         return 'deps'
 
@@ -468,9 +465,6 @@ class DCompiler(Compiler):
 
     def needs_static_linker(self):
         return True
-
-    def depfile_for_object(self, objfile):
-        return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self):
         return 'deps'

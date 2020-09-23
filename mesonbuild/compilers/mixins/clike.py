@@ -169,9 +169,6 @@ class CLikeCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def depfile_for_object(self, objfile: str) -> str:
-        return objfile + '.' + self.get_depfile_suffix()
-
     def get_depfile_suffix(self) -> str:
         return 'd'
 
