@@ -33,6 +33,7 @@ local __meson_backends="(ninja xcode ${(j. .)${:-vs{,2010,2015,2017}}})"
 local __meson_build_types="(plain debug debugoptimized minsize release)"
 local __meson_wrap_modes="(WrapMode.{default,nofallback,nodownload,forcefallback})"
 local __meson_dist_formats=("xztar" "gztar" "zip")
+local __meson_cd='-C[change into this directory before running]:target dir:_directories'
 local -a __meson_common=(
   '--prefix=[installation prefix]: :_directories'
   '--bindir=[executable directory]: :_directories'
@@ -73,6 +74,7 @@ local -a meson_commands=(
 'configure:configure a project'
 'dist:generate release archive'
 'introspect:query project properties'
+'install:install one more more targets'
 'setup:set up a build directory'
 'test:run tests'
 'wrap:manage source dependencies'
@@ -160,7 +162,7 @@ local -a meson_commands=(
   '(--quiet -q)'{'--quiet','-q'}'[produce less output to the terminal]'
   '(--verbose -v)'{'--verbose','-v'}'[do not redirect stdout and stderr]'
   '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}'[a multiplier for test timeouts]:Python floating-point number: '
-  '-C[directory to cd into]: :_directories'
+  "$__meson_cd"
   '--repeat[number of times to run the tests]:number of times to repeat: '
   '--no-rebuild[do not rebuild before running tests]'
   '--gdb[run tests under gdb]'
@@ -181,6 +183,19 @@ local -a meson_commands=(
   _arguments \
     '(: -)'{'--help','-h'}'[show a help message and quit]' \
     "${(@)specs}"
+}
+
+(( $+functions[_meson-install] )) || _meson-install() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "$__meson_cd"
+    '--no-rebuild[Do not rebuild before installing]'
+    '--only-changed[Do not overwrite files that are older than the copied file]'
+    '--quiet[Do not print every fiel that was installed]'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
 }
 
 (( $+functions[_meson-introspect] )) || _meson-introspect() {
@@ -210,10 +225,10 @@ _arguments \
 (( $+functions[_meson-dist] )) || _meson-dist() {
   local curcontext="$curcontext"
   local -a specs=(
-  '-C[change into this directory before running]:target dir:_directories'
   '--formats=[comma seperated list of archive types to create]:archive formats:_values -s , format '"$__meson_dist_formats"
   '--include-subprojects[Include source code of subprojects that have been used fo rhte build]'
   '--no-tests[Do not build and test generated packages]'
+  "$__meson_cd"
   )
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
