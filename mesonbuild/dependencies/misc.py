@@ -408,9 +408,9 @@ class CursesConfigToolDependency(ConfigToolDependency):
 
     """Use the curses config tools."""
 
-    tool = 'curses-config'
     # ncurses5.4-config is for macOS Catalina
     tools = ['ncursesw6-config', 'ncursesw5-config', 'ncurses6-config', 'ncurses5-config', 'ncurses5.4-config']
+    tool_name = 'curses-config'
 
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language)
@@ -433,18 +433,24 @@ class CursesSystemDependency(ExternalDependency):
         super().__init__(name, env, kwargs)
 
         candidates = [
-            ('pdcurses', ['pdcurses/curses.h']),
-            ('ncursesw',  ['ncursesw/ncurses.h', 'ncurses.h']),
-            ('ncurses',  ['ncurses/ncurses.h', 'ncurses/curses.h', 'ncurses.h']),
-            ('curses',  ['curses.h']),
+            ('pdcurses', [('curses.h', 'pdcurses'), ('curses.h', None)]),
+            ('ncursesw', [('ncurses.h', 'ncursesw'), ('curses.h', 'ncursesw'), ('ncurses.h', None)]),
+            ('ncurses', [('ncurses.h', 'ncurses'), ('curses.h', 'ncurses'), ('ncurses.h', None)]),
+            ('curses', [('curses.h', None)]),
         ]
 
         # Not sure how else to elegently break out of both loops
         for lib, headers in candidates:
             l = self.clib_compiler.find_library(lib, env, [])
             if l:
-                for header in headers:
-                    h = self.clib_compiler.has_header(header, '', env)
+                for header, include_suffix in headers:
+                    compile_args = []
+                    if include_suffix:
+                        include_paths = self.get_include_paths_from_suffix(include_suffix)
+                        for include_path in include_paths:
+                            compile_args.append('-I{}'.format(include_path))
+                    compile_args_native = self.get_native_args(compile_args)
+                    h = self.clib_compiler.has_header(header, '', env, extra_args=compile_args_native)
                     if h[0]:
                         self.is_found = True
                         self.link_args = l
@@ -452,11 +458,11 @@ class CursesSystemDependency(ExternalDependency):
                         # implementations. The one in illumos/OpenIndiana
                         # doesn't seem to have a version defined in the header.
                         if lib.startswith('ncurses'):
-                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', '#include <{}>'.format(header), env, [], [self])
+                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', '#include <{}>'.format(header), env, compile_args_native, [self])
                             self.version = v.strip('"')
                         if lib.startswith('pdcurses'):
-                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', '#include <{}>'.format(header), env, [], [self])
-                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', '#include <{}>'.format(header), env, [], [self])
+                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', '#include <{}>'.format(header), env, compile_args_native, [self])
+                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', '#include <{}>'.format(header), env, compile_args_native, [self])
                             self.version = '{}.{}'.format(v_major, v_minor)
 
                         # Check the version if possible, emit a wraning if we can't
@@ -464,6 +470,7 @@ class CursesSystemDependency(ExternalDependency):
                         if req:
                             if self.version:
                                 self.is_found = mesonlib.version_compare(self.version, req)
+                                self.compile_args = compile_args
                             else:
                                 mlog.warning('Cannot determine version of curses to compare against.')
 
@@ -489,15 +496,11 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
         for pkg in pkgconfig_files:
             candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
-    # There are path handling problems with these methods on msys, and they
-    # don't apply to windows otherwise (cygwin is handled seperately from
-    # windows)
-    if not env.machines[for_machine].is_windows():
-        if DependencyMethods.CONFIG_TOOL in methods:
-            candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
+    if DependencyMethods.CONFIG_TOOL in methods:
+        candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
 
-        if DependencyMethods.SYSTEM in methods:
-            candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
+    if DependencyMethods.SYSTEM in methods:
+        candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
 
     return candidates
 

@@ -146,4 +146,4 @@ class MKLPkgConfigDependency(PkgConfigDependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n%s\n' %
                                       (self.name, err))
-        self.compile_args = self._convert_mingw_paths(self._split_args(out))
+        self.compile_args = self.get_native_args(self._split_args(out))

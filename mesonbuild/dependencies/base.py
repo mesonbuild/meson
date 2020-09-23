@@ -22,6 +22,7 @@ import json
 import shlex
 import shutil
 import stat
+import subprocess
 import sys
 import textwrap
 import platform
@@ -132,6 +133,9 @@ class Dependency:
         s = '<{0} {1}: {2}>'
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
+    def get_native_args(self, args: T.List[str]) -> T.List[str]:
+        return args
+
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
             converted = []
@@ -140,7 +144,7 @@ class Dependency:
                     converted += ['-isystem' + i[2:]]
                 else:
                     converted += [i]
-            return converted
+            return self.get_native_args(converted)
         if self.include_type == 'non-system':
             converted = []
             for i in self.compile_args:
@@ -148,13 +152,13 @@ class Dependency:
                     converted += ['-I' + i[8:]]
                 else:
                     converted += [i]
-            return converted
-        return self.compile_args
+            return self.get_native_args(converted)
+        return self.get_native_args(self.compile_args)
 
     def get_link_args(self, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
-            return self.raw_link_args
-        return self.link_args
+            return self.get_native_args(self.raw_link_args)
+        return self.get_native_args(self.link_args)
 
     def found(self) -> bool:
         return self.is_found
@@ -326,6 +330,64 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         # Is this dependency to be run on the build platform?
         HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
+
+    def convert_path_posix_to_native(self, p):
+        return convert_path_posix_to_native(p)
+
+    def get_include_paths_from_suffix(self, include_suffix):
+        # TODO: Add multiple prefix like CMAKE_PREFIX_PATH
+        # https://cmake.org/cmake/help/v3.18/variable/CMAKE_PREFIX_PATH.html
+        # Semicolon-separated list of directories specifying installation prefixes to be searched by the
+        # find_package(), find_program(), find_library(), find_file(), and find_path() commands.
+        # Each command will add appropriate subdirectories (like bin, lib, or include) as specified in its own documentation.
+        if mesonlib.is_msys():
+            # This is for msys2
+            return [ '/usr/include/{}'.format(include_suffix) ]
+        elif mesonlib.is_windows():
+            if mesonlib.is_mingw32():
+                # This is for mingw32
+                return [ '/mingw32/include/{}'.format(include_suffix) ]
+            elif mesonlib.is_mingw64():
+                # This is for mingw64
+                return [ '/mingw64/include/{}'.format(include_suffix) ]
+            else:
+                # TODO:How to handling for msvc?
+                return [ include_suffix ]
+        else:
+            # TODO: maybe there is special handling for some OS
+            return [ '/usr/include/{}'.format(include_suffix) ]
+
+    def get_native_args(self, args):
+        '''
+        Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
+        paths so convert them to C:/foo. We cannot resolve other paths starting
+        with / like /home/foo so leave them as-is so that the user gets an
+        error/warning from the compiler/linker.
+        '''
+        if not mesonlib.is_windows():
+            return args
+        converted = []
+        for arg in args:
+            prefix = ''
+            p = arg
+            if arg.startswith('-isystem'):
+                prefix = '-isystem'
+                p = arg[8:]
+            elif arg.startswith(('-I', '/I')):
+                prefix = '-I'
+                p = arg[2:]
+            elif arg.startswith(('-L-l', '-L-L')):
+                # These are D language arguments, not library paths
+                converted +=  [arg]
+                continue
+            elif arg.startswith('-L'):
+                prefix = '-L'
+                p = arg[2:]
+            if p.startswith('/'):
+                converted += [prefix + self.convert_path_posix_to_native(p)]
+            else:
+                converted += [arg]
+        return converted
 
     def get_compiler(self):
         return self.clib_compiler
@@ -683,37 +745,6 @@ class PkgConfigDependency(ExternalDependency):
             cache[(self.pkgbin, targs, fenv)] = self._call_pkgbin_real(args, env)
         return cache[(self.pkgbin, targs, fenv)]
 
-    def _convert_mingw_paths(self, args: T.List[str]) -> T.List[str]:
-        '''
-        Both MSVC and native Python on Windows cannot handle MinGW-esque /c/foo
-        paths so convert them to C:/foo. We cannot resolve other paths starting
-        with / like /home/foo so leave them as-is so that the user gets an
-        error/warning from the compiler/linker.
-        '''
-        if not mesonlib.is_windows():
-            return args
-        converted = []
-        for arg in args:
-            pargs = []
-            # Library search path
-            if arg.startswith('-L/'):
-                pargs = PurePath(arg[2:]).parts
-                tmpl = '-L{}:/{}'
-            elif arg.startswith('-I/'):
-                pargs = PurePath(arg[2:]).parts
-                tmpl = '-I{}:/{}'
-            # Full path to library or .la file
-            elif arg.startswith('/'):
-                pargs = PurePath(arg).parts
-                tmpl = '{}:/{}'
-            elif arg.startswith(('-L', '-I')) or (len(arg) > 2 and arg[1] == ':'):
-                # clean out improper '\\ ' as comes from some Windows pkg-config files
-                arg = arg.replace('\\ ', ' ')
-            if len(pargs) > 1 and len(pargs[1]) == 1:
-                arg = tmpl.format(pargs[1], '/'.join(pargs[2:]))
-            converted.append(arg)
-        return converted
-
     def _split_args(self, cmd):
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
@@ -730,7 +761,7 @@ class PkgConfigDependency(ExternalDependency):
         if ret != 0:
             raise DependencyException('Could not generate cargs for %s:\n%s\n' %
                                       (self.name, err))
-        self.compile_args = self._convert_mingw_paths(self._split_args(out))
+        self.compile_args = self._split_args(out)
 
     def _search_libs(self, out, out_raw):
         '''
@@ -759,7 +790,7 @@ class PkgConfigDependency(ExternalDependency):
         # always searched first.
         prefix_libpaths = OrderedSet()
         # We also store this raw_link_args on the object later
-        raw_link_args = self._convert_mingw_paths(self._split_args(out_raw))
+        raw_link_args = self.get_native_args(self._split_args(out_raw))
         for arg in raw_link_args:
             if arg.startswith('-L') and not arg.startswith(('-L-l', '-L-L')):
                 path = arg[2:]
@@ -784,10 +815,10 @@ class PkgConfigDependency(ExternalDependency):
             pkg_config_path = pkg_config_path.split(os.pathsep)
         else:
             pkg_config_path = []
-        pkg_config_path = self._convert_mingw_paths(pkg_config_path)
+        pkg_config_path = self.get_native_args(pkg_config_path)
         prefix_libpaths = sort_libpaths(prefix_libpaths, pkg_config_path)
         system_libpaths = OrderedSet()
-        full_args = self._convert_mingw_paths(self._split_args(out))
+        full_args = self.get_native_args(self._split_args(out))
         for arg in full_args:
             if arg.startswith(('-L-l', '-L-L')):
                 # These are D language arguments, not library paths
@@ -2057,6 +2088,41 @@ class ExternalProgram:
 
     def get_name(self) -> str:
         return self.name
+
+
+class Msys2PathConverter():
+
+    def __init__(self) -> None:
+        self.cygpath = ExternalProgram('cygpath', silent=True)
+
+    def win2posix(self, path: str) -> str:
+        """Convert a Windows path to a msys path"""
+        p, output, error = Popen_safe(self.cygpath.command + ['-u', path], write='', stdin=subprocess.PIPE)
+        posix_path = output.strip()
+        return posix_path
+
+    def posix2win(self, path: str) -> str:
+        """Convert a msys path to a Windows path"""
+        p, output, error = Popen_safe(self.cygpath.command + ['-w', path], write='', stdin=subprocess.PIPE)
+        win_path = output.strip()
+        return win_path
+
+
+msys_converter = Msys2PathConverter()
+
+
+def convert_path_posix_to_native(p):
+    if (mesonlib.is_mingw() or mesonlib.is_msys()) and msys_converter.cygpath.found():
+        return msys_converter.posix2win(p)
+    if not mesonlib.is_windows():
+        return p
+
+    # clean out improper '\\ ' as comes from some Windows pkg-config files
+    p = p.replace('\\ ', ' ')
+    pargs = PurePath(p).parts
+    if len(pargs) > 1 and len(pargs[1]) == 1:
+        p = '{}:/{}'.format(pargs[1], '/'.join(pargs[2:]))
+    return p
 
 
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
