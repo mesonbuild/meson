@@ -80,6 +80,7 @@ local -a meson_commands=(
 'test:run tests'
 'wrap:manage source dependencies'
 'subprojects:manage subprojects'
+'compile:Build the project'
 )
 
 (( $+functions[__meson_is_build_dir] )) || __meson_is_build_dir() {
@@ -383,6 +384,21 @@ _arguments \
 
 }
 
+(( $+functions[_meson-compile] )) || _meson-compile() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "$__meson_cd"
+    '--clean[Clean the build directory]'
+    '(-j --jobs)'{'-j','--jobs'}'=[the number fo work jobs to run (if supported)]:_guard "[0-9]#" "number of jobs"'
+    '(-l --load-averate)'{'-l','--load-average'}'=[the system load average to try to maintain (if supported)]:_guard "[0-9]#" "load average"'
+    '(-v --verbose)'{'-v','--verbose'}'[Show more output]'
+    '--ninja-args=[Arguments to pass to ninja (only when using ninja)]'
+    '--vs-args=[Arguments to pass to vs (only when using msbuild)]'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
 
 if [[ $service != meson ]]; then
   _call_function ret _$service
