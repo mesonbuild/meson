@@ -160,22 +160,23 @@ local -a meson_commands=(
 
   # TODO: complete test suites
   local -a specs=(
-  '(--quiet -q)'{'--quiet','-q'}'[produce less output to the terminal]'
-  '(--verbose -v)'{'--verbose','-v'}'[do not redirect stdout and stderr]'
-  '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}'[a multiplier for test timeouts]:Python floating-point number: '
-  "$__meson_cd"
   '--repeat[number of times to run the tests]:number of times to repeat: '
   '--no-rebuild[do not rebuild before running tests]'
   '--gdb[run tests under gdb]'
+  '--gdb-path=[program to run for gdb (can be wrapper or compaitble program)]:program:_path_commands'
   '--list[list available tests]'
   '(--wrapper --wrap)'{'--wrapper=','--wrap='}'[wrapper to run tests with]:wrapper program:_path_commands'
-  '(--no-suite)--suite[only run tests from this suite]:test suite: '
+  "$__meson_cd"
   '(--suite)--no-suite[do not run tests from this suite]:test suite: '
+  '(--no-suite)--suite[only run tests from this suite]:test suite: '
   '--no-stdsplit[do not split stderr and stdout in logs]'
   '--print-errorlogs[print logs for failing tests]'
   '--benchmark[run benchmarks instead of tests]'
   '--logbase[base name for log file]:filename: '
   '--num-processes[how many threads to use]:number of processes: '
+  '(--verbose -v)'{'--verbose','-v'}'[do not redirect stdout and stderr]'
+  '(--quiet -q)'{'--quiet','-q'}'[produce less output to the terminal]'
+  '(--timeout-multiplier -t)'{'--timeout-multiplier','-t'}'[a multiplier for test timeouts]:Python floating-point number: '
   '--setup[which test setup to use]:test setup: '
   '--test-args[arguments to pass to the tests]: : '
   '*:Meson tests:__meson_test_names'
