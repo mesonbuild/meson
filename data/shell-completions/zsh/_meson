@@ -108,6 +108,21 @@ local -a meson_commands=(
   fi
 }
 
+(( $+functions[__meson_wrap_names] )) || __meson_wrap_names() {
+  local rwraps
+  rwraps="$(_call_program meson meson wrap list)"
+  local -a wraps=(${(@f)rwraps})
+  _describe -t wraps "Meson wraps" wraps
+}
+
+(( $+functions[__meson_installed_wraps] )) || __meson_installed_wraps() {
+  if [[ -d "subprojects" ]]; then
+    local rwraps="$(ls subprojects/ | grep '\.wrap$' | cut -d . -f 1)"
+    local -a wraps=(${(@f)rwraps})
+    _describe -t wraps "Meson wraps" wraps
+  fi
+}
+
 (( $+functions[_meson_commands] )) || _meson_commands() {
     _describe -t commands "Meson subcommands" meson_commands
 }
@@ -240,7 +255,45 @@ _arguments \
 }
 
 (( $+functions[_meson-wrap] )) || _meson-wrap() {
-  # TODO
+  local -a commands=(
+    'list:list all available wraps'
+    'search:search the db by name'
+    'install:install the specified project'
+    'update:Update a project to its newest available version'
+    'info:Show info about a wrap'
+    'status:Show the status of your subprojects'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands "Meson subcommands" commands
+  else
+    local curcontext="$curcontext"
+    cmd="${${commands[(r)$words[2]:*]%%:*}}"
+    if (( $#cmd )); then
+      if [[ $cmd == status ]]; then
+        _message "no options"
+      elif [[ $cmd == "list" ]]; then
+        _arguments '*:meson wraps'
+      elif [[ $cmd == "search" ]]; then
+        _arguments '*:meson wraps'
+      elif [[ $cmd == "install" ]]; then
+        _arguments '*:meson wraps:__meson_wrap_names'
+      elif [[ $cmd == "update" ]]; then
+        _arguments '*:meson wraps:__meson_installed_wraps'
+      elif [[ $cmd == "info" ]]; then
+        _arguments '*:meson wraps:__meson_wrap_name'
+      elif [[ $cmd == "status" ]]; then
+        _arguments '*:'
+      elif [[ $cmd == "promote" ]]; then
+        # TODO: how do you figure out what wraps are provided by subprojects if
+        # they haven't been fetched yet?
+        _arguments '*:'
+      fi
+    else
+      _message "unknown meson wrap command: $words[2]"
+    fi
+  fi
+
 }
 
 (( $+functions[_meson-dist] )) || _meson-dist() {
