@@ -2061,11 +2061,13 @@ class MesonMain(InterpreterObject):
 
     @noPosargs
     @permittedKwargs({})
+    @FeatureDeprecated('meson.source_root', '0.56.0', 'use meson.current_source_dir instead.')
     def source_root_method(self, args, kwargs):
         return self.interpreter.environment.source_dir
 
     @noPosargs
     @permittedKwargs({})
+    @FeatureDeprecated('meson.build_root', '0.56.0', 'use meson.current_build_dir instead.')
     def build_root_method(self, args, kwargs):
         return self.interpreter.environment.build_dir
 
