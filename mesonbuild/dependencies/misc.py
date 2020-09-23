@@ -433,6 +433,7 @@ class CursesSystemDependency(ExternalDependency):
         super().__init__(name, env, kwargs)
 
         candidates = [
+            ('pdcurses', ['pdcurses/curses.h']),
             ('ncursesw',  ['ncursesw/ncurses.h', 'ncurses.h']),
             ('ncurses',  ['ncurses/ncurses.h', 'ncurses/curses.h', 'ncurses.h']),
             ('curses',  ['curses.h']),
@@ -453,6 +454,10 @@ class CursesSystemDependency(ExternalDependency):
                         if lib.startswith('ncurses'):
                             v, _ = self.clib_compiler.get_define('NCURSES_VERSION', '#include <{}>'.format(header), env, [], [self])
                             self.version = v.strip('"')
+                        if lib.startswith('pdcurses'):
+                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', '#include <{}>'.format(header), env, [], [self])
+                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', '#include <{}>'.format(header), env, [], [self])
+                            self.version = '{}.{}'.format(v_major, v_minor)
 
                         # Check the version if possible, emit a wraning if we can't
                         req = kwargs.get('version')
@@ -480,7 +485,7 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
     candidates = []  # type: T.List[T.Callable[[], Dependency]]
 
     if DependencyMethods.PKGCONFIG in methods:
-        pkgconfig_files = ['ncursesw', 'ncurses', 'curses']
+        pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
         for pkg in pkgconfig_files:
             candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
