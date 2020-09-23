@@ -73,8 +73,9 @@ local -a __meson_common=(
 local -a meson_commands=(
 'configure:configure a project'
 'dist:generate release archive'
-'introspect:query project properties'
+'init:create a new project'
 'install:install one more more targets'
+'introspect:query project properties'
 'setup:set up a build directory'
 'test:run tests'
 'wrap:manage source dependencies'
@@ -218,6 +219,25 @@ _arguments \
   "${(@)specs}"
 }
 
+(( $+functions[_meson-init] )) || _meson-init() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "$__meson_cd"
+    '(-n --name)'{'-n','--name'}'=[the name of the project (defaults to directory name)]'
+    '(-e --executable)'{'-e','--executable'}'=[the name of the executable target to create (defaults to project name)]'
+    '(-d --deps)'{'-d','--deps'}'=[comma seperated list of dependencies]'
+    '(-l --language)'{'-l','--language'}'=[comma seperated list of languages (autodetected based on sources if unset)]:languages:_values , (c cpp cs cuda d fortran java objc objcpp rust)'
+    '(-b --build)'{'-b','--build'}'[build the project immediately after generation]'
+    '--builddir=[directory for building]:directory:_directories'
+    '(-f --force)'{'-f','--force'}'[overwrite any existing files and directories]'
+    '(-t --type)'{'-t','--type'}'=[project type, defaults to executable]:type:(executable library)'
+    '(-v --version)'{'-v','--version'}'[print the meson version and exit]'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
 (( $+functions[_meson-wrap] )) || _meson-wrap() {
   # TODO
 }
@@ -226,7 +246,7 @@ _arguments \
   local curcontext="$curcontext"
   local -a specs=(
   '--formats=[comma seperated list of archive types to create]:archive formats:_values -s , format '"$__meson_dist_formats"
-  '--include-subprojects[Include source code of subprojects that have been used fo rhte build]'
+  '--include-subprojects[Include source code of subprojects that have been used for the build]'
   '--no-tests[Do not build and test generated packages]'
   "$__meson_cd"
   )
