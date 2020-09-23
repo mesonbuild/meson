@@ -79,6 +79,7 @@ local -a meson_commands=(
 'setup:set up a build directory'
 'test:run tests'
 'wrap:manage source dependencies'
+'subprojects:manage subprojects'
 )
 
 (( $+functions[__meson_is_build_dir] )) || __meson_is_build_dir() {
@@ -116,8 +117,8 @@ local -a meson_commands=(
 }
 
 (( $+functions[__meson_installed_wraps] )) || __meson_installed_wraps() {
-  if [[ -d "subprojects" ]]; then
-    local rwraps="$(ls subprojects/ | grep '\.wrap$' | cut -d . -f 1)"
+  local rwraps
+  if rwraps="$(ls subprojects/ | grep '\.wrap$' | cut -d . -f 1)"; then
     local -a wraps=(${(@f)rwraps})
     _describe -t wraps "Meson wraps" wraps
   fi
@@ -265,7 +266,7 @@ _arguments \
   )
 
   if (( CURRENT == 2 )); then
-    _describe -t commands "Meson subcommands" commands
+    _describe -t commands "Meson wrap subcommands" commands
   else
     local curcontext="$curcontext"
     cmd="${${commands[(r)$words[2]:*]%%:*}}"
@@ -307,6 +308,79 @@ _arguments \
 _arguments \
   '(: -)'{'--help','-h'}'[show a help message and quit]' \
   "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-update] )) || _meson-subprojects-update() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    "--rebase[rebase your branch on top of wrap's revision (git only)]"
+    '--sourcedir=[path to source directory]:_directories'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-checkout] )) || _meson-subprojects-checkout() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '-b[create a new branch]'
+    '--sourcedir=[path to source directory]:_directories'
+    # FIXME: this doesn't work exactly right, but I can't figure it out
+    ':branch name'
+    '*:subprojects:__meson_installed_wraps'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-download] )) || _meson-subprojects-download() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '--sourcedir=[path to source directory]:_directories'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects-foreach] )) || _meson-subprojects-foreach() {
+  local curcontext="$curcontext"
+  local -a specs=(
+    '--sourcedir=[path to source directory]:_directories'
+    '*:command:_command_names -e'
+  )
+_arguments \
+  '(: -)'{'--help','-h'}'[show a help message and quit]' \
+  "${(@)specs}"
+}
+
+(( $+functions[_meson-subprojects] )) || _meson-subprojects() {
+  local -a commands=(
+    'update:update all subprojects from wrap files'
+    'checkout:checkout a branch (git only)'
+    'download:ensure subprojects are fetched, even if not in use. Already downloaded subprojects are not modified.'
+    'foreach:execute a command in each subproject directory'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands "Meson subproject subcommands" commands
+  else
+    local curcontext="$curcontext"
+    cmd="${${commands[(r)$words[2]:*]%%:*}}"
+    if (( $#cmd )); then
+      if [[ $cmd == status ]]; then
+        _message "no options"
+      else
+        _meson-subprojects-$cmd
+      fi
+    else
+      _message "unknown meson subproject command: $words[2]"
+    fi
+  fi
+
 }
 
 
