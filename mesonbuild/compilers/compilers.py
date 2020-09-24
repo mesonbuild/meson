@@ -1023,6 +1023,7 @@ class Compiler(metaclass=abc.ABCMeta):
         raise EnvironmentException('This compiler does not have a preprocessor')
 
     def get_default_include_dirs(self) -> T.List[str]:
+        # TODO: This is a candidate for returning an immutable list
         return []
 
     def get_largefile_args(self) -> T.List[str]:

@@ -42,6 +42,7 @@ from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
     from ...dependencies import Dependency
+    from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ...compilers.compilers import Compiler
     from ...programs import ExternalProgram
@@ -207,7 +208,7 @@ class CLikeCompiler(Compiler):
 
     @functools.lru_cache()
     def _get_library_dirs(self, env: 'Environment',
-                          elf_class: T.Optional[int] = None) -> T.List[str]:
+                          elf_class: T.Optional[int] = None) -> 'ImmutableListProtocol[str]':
         # TODO: replace elf_class with enum
         dirs = self.get_compiler_dirs(env, 'libraries')
         if elf_class is None or elf_class == 0:
@@ -253,7 +254,7 @@ class CLikeCompiler(Compiler):
         return self._get_library_dirs(env, elf_class).copy()
 
     @functools.lru_cache()
-    def _get_program_dirs(self, env: 'Environment') -> T.List[str]:
+    def _get_program_dirs(self, env: 'Environment') -> 'ImmutableListProtocol[str]':
         '''
         Programs used by the compiler. Also where toolchain DLLs such as
         libstdc++-6.dll are found with MinGW.
