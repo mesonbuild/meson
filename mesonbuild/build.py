@@ -40,6 +40,7 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
+    from ._typing import ImmutableListProtocol
     from .interpreter.interpreter import Test, SourceOutputs
     from .mesonlib import FileMode, FileOrString
     from .backend.backends import Backend
@@ -909,8 +910,8 @@ class BuildTarget(Target):
         return self.get_transitive_link_deps()
 
     @lru_cache(maxsize=None)
-    def get_transitive_link_deps(self):
-        result = []
+    def get_transitive_link_deps(self) -> 'ImmutableListProtocol[Target]':
+        result: T.List[Target] = []
         for i in self.link_targets:
             result += i.get_all_link_deps()
         return result

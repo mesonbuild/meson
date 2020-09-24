@@ -51,6 +51,7 @@ from ..mparser import (
 
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..build import Build
     from ..backend.backends import Backend
     from ..environment import Environment
@@ -582,14 +583,14 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in opts if x not in self.compile_opts[lang]]
 
     @lru_cache(maxsize=None)
-    def _all_source_suffixes(self) -> T.List[str]:
+    def _all_source_suffixes(self) -> 'ImmutableListProtocol[str]':
         suffixes = []  # type: T.List[str]
         for exts in lang_suffixes.values():
             suffixes += [x for x in exts]
         return suffixes
 
     @lru_cache(maxsize=None)
-    def _all_lang_stds(self, lang: str) -> T.List[str]:
+    def _all_lang_stds(self, lang: str) -> 'ImmutableListProtocol[str]':
         try:
             res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
         except KeyError:

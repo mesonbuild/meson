@@ -28,6 +28,7 @@ from ... import mlog
 from ...mesonlib import OptionKey
 
 if T.TYPE_CHECKING:
+    from ..._typing import ImmutableListProtocol
     from ...environment import Environment
     from ..compilers import Compiler
 else:
@@ -92,7 +93,7 @@ gnu_color_args = {
 
 
 @functools.lru_cache(maxsize=None)
-def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[str]:
+def gnulike_default_include_dirs(compiler: T.Tuple[str, ...], lang: str) -> 'ImmutableListProtocol[str]':
     lang_map = {
         'c': 'c',
         'cpp': 'c++',
@@ -189,7 +190,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return gnulike_instruction_set_args.get(instruction_set, None)
 
     def get_default_include_dirs(self) -> T.List[str]:
-        return gnulike_default_include_dirs(tuple(self.exelist), self.language)
+        return gnulike_default_include_dirs(tuple(self.exelist), self.language).copy()
 
     @abc.abstractmethod
     def openmp_flags(self) -> T.List[str]:

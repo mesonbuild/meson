@@ -30,6 +30,7 @@ import textwrap
 from mesonbuild import mlog
 
 if T.TYPE_CHECKING:
+    from .._typing import ImmutableListProtocol
     from ..build import ConfigurationData
     from ..coredata import KeyedOptionDictType, UserOption
     from ..compilers.compilers import CompilerType
@@ -659,7 +660,7 @@ def exe_exists(arglist: T.List[str]) -> bool:
 
 
 @lru_cache(maxsize=None)
-def darwin_get_object_archs(objpath: str) -> T.List[str]:
+def darwin_get_object_archs(objpath: str) -> 'ImmutableListProtocol[str]':
     '''
     For a specific object (executable, static library, dylib, etc), run `lipo`
     to fetch the list of archs supported by it. Supports both thin objects and
