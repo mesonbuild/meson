@@ -20,12 +20,19 @@ import typing as T
 from ... import coredata
 
 if T.TYPE_CHECKING:
-    from ..environment import Environment
+    from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 
-class EmscriptenMixin:
+class EmscriptenMixin(Compiler):
 
-    def _get_compile_output(self, dirname, mode):
+    def _get_compile_output(self, dirname: str, mode: str) -> str:
         # In pre-processor mode, the output is sent to stdout and discarded
         if mode == 'preprocess':
             return None
@@ -48,7 +55,7 @@ class EmscriptenMixin:
             args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
         return args
 
-    def get_options(self):
+    def get_options(self) -> 'coredata.OptionDictType':
         opts = super().get_options()
         opts.update({
             '{}_thread_count'.format(self.language): coredata.UserIntegerOption(

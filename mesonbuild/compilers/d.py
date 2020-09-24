@@ -30,6 +30,7 @@ from .compilers import (
 from .mixins.gnu import GnuCompiler
 
 if T.TYPE_CHECKING:
+    from ..dependencies import ExternalProgram
     from ..envconfig import MachineInfo
 
 d_feature_args = {'gcc':  {'unittest': '-funittest',
@@ -442,13 +443,13 @@ class DCompiler(Compiler):
 
     language = 'd'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', arch, is_cross, exe_wrapper, **kwargs):
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch: str, exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 **kwargs):
         super().__init__(exelist, version, for_machine, info, **kwargs)
         self.id = 'unknown'
         self.arch = arch
         self.exe_wrapper = exe_wrapper
-        self.is_cross = is_cross
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.d')
@@ -633,18 +634,16 @@ class DCompiler(Compiler):
     def thread_link_flags(self, env):
         return self.linker.thread_flags(env)
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
 
 class GnuDCompiler(GnuCompiler, DCompiler):
 
     # we mostly want DCompiler, but that gives us the Compiler.LINKER_PREFIX instead
     LINKER_PREFIX = GnuCompiler.LINKER_PREFIX
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', is_cross, exe_wrapper, arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, is_cross, exe_wrapper, arch, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch: str, *, exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, exe_wrapper=exe_wrapper, **kwargs)
         GnuCompiler.__init__(self, {})
         self.id = 'gcc'
         default_warn_args = ['-Wall', '-Wdeprecated']
@@ -698,9 +697,9 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch: str, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
@@ -750,9 +749,9 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo', arch, **kwargs):
-        DCompiler.__init__(self, exelist, version, for_machine, info, arch, False, None, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 info: 'MachineInfo', arch: str, **kwargs):
+        DCompiler.__init__(self, exelist, version, for_machine, info, arch, **kwargs)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 

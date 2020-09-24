@@ -28,15 +28,11 @@ class ValaCompiler(Compiler):
     language = 'vala'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info)
+                 is_cross: bool, info: 'MachineInfo'):
+        super().__init__(exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
-        self.is_cross = is_cross
         self.id = 'valac'
         self.base_options = ['b_colorout']
-
-    def name_string(self):
-        return ' '.join(self.exelist)
 
     def needs_static_linker(self):
         return False # Because compiles into C.

@@ -24,28 +24,32 @@ from .. import mesonlib
 from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args
+    Popen_safe, split_args, LibType
 )
 from ..envconfig import (
     Properties, get_env_var
 )
+
 from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
+    from ..build import BuildTarget
     from ..coredata import OptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
+    from ..dependencies import Dependency
 
     CompilerType = T.TypeVar('CompilerType', bound=Compiler)
+    _T = T.TypeVar('_T')
 
 """This file contains the data files of all compilers Meson knows
 about. To support a new compiler, add its information below.
 Also add corresponding autodetection code in environment.py."""
 
-header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')
-obj_suffixes = ('o', 'obj', 'res')
-lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')
+header_suffixes = ('h', 'hh', 'hpp', 'hxx', 'H', 'ipp', 'moc', 'vapi', 'di')  # type: T.Tuple[str, ...]
+obj_suffixes = ('o', 'obj', 'res')  # type: T.Tuple[str, ...]
+lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')  # type: T.Tuple[str, ...]
 # Mapping of language to suffixes of files that should always be in that language
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
@@ -63,26 +67,26 @@ lang_suffixes = {
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),
-}
+}  # type: T.Dict[str, T.Tuple[str, ...]]
 all_languages = lang_suffixes.keys()
-cpp_suffixes = lang_suffixes['cpp'] + ('h',)
-c_suffixes = lang_suffixes['c'] + ('h',)
+cpp_suffixes = lang_suffixes['cpp'] + ('h',)  # type: T.Tuple[str, ...]
+c_suffixes = lang_suffixes['c'] + ('h',)  # type: T.Tuple[str, ...]
 # List of languages that by default consume and output libraries following the
 # C ABI; these can generally be used interchangebly
-clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)
+clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)  # type: T.Tuple[str, ...]
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clink_langs = ('d', 'cuda') + clib_langs
-clink_suffixes = ()
+clink_langs = ('d', 'cuda') + clib_langs  # type: T.Tuple[str, ...]
+clink_suffixes = tuple()  # type: T.Tuple[str, ...]
 for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
 clink_suffixes += ('h', 'll', 's')
-all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))
+all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
 
 # Languages that should use LDFLAGS arguments when linking.
-languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}
+languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
 # Languages that should use CPPFLAGS arguments when linking.
-languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}
+languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
@@ -94,14 +98,14 @@ cflags_mapping = {'c': 'CFLAGS',
                   'fortran': 'FFLAGS',
                   'd': 'DFLAGS',
                   'vala': 'VALAFLAGS',
-                  'rust': 'RUSTFLAGS'}
+                  'rust': 'RUSTFLAGS'}  # type: T.Dict[str, str]
 
 cexe_mapping = {'c': 'CC',
                 'cpp': 'CXX'}
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
-def sort_clink(lang):
+def sort_clink(lang: str) -> int:
     '''
     Sorting function to sort the list of languages according to
     reversed(compilers.clink_langs) and append the unknown langs in the end.
@@ -112,40 +116,40 @@ def sort_clink(lang):
         return 1
     return -clink_langs.index(lang)
 
-def is_header(fname):
-    if hasattr(fname, 'fname'):
+def is_header(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1]
     return suffix in header_suffixes
 
-def is_source(fname):
-    if hasattr(fname, 'fname'):
+def is_source(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1].lower()
     return suffix in clink_suffixes
 
-def is_assembly(fname):
-    if hasattr(fname, 'fname'):
+def is_assembly(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     return fname.split('.')[-1].lower() == 's'
 
-def is_llvm_ir(fname):
-    if hasattr(fname, 'fname'):
+def is_llvm_ir(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     return fname.split('.')[-1] == 'll'
 
 @lru_cache(maxsize=None)
-def cached_by_name(fname):
+def cached_by_name(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
     return suffix in obj_suffixes
 
-def is_object(fname):
-    if hasattr(fname, 'fname'):
+def is_object(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     return cached_by_name(fname)
 
-def is_library(fname):
-    if hasattr(fname, 'fname'):
+def is_library(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
 
     if soregex.match(fname):
@@ -154,8 +158,8 @@ def is_library(fname):
     suffix = fname.split('.')[-1]
     return suffix in lib_suffixes
 
-def is_known_suffix(fname):
-    if hasattr(fname, 'fname'):
+def is_known_suffix(fname: 'mesonlib.FileOrString') -> bool:
+    if isinstance(fname, mesonlib.File):
         fname = fname.fname
     suffix = fname.split('.')[-1]
 
@@ -166,14 +170,14 @@ cuda_buildtype_args = {'plain': [],
                        'debugoptimized': [],
                        'release': [],
                        'minsize': [],
-                       }
+                       }  # type: T.Dict[str, T.List[str]]
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],
                        'debugoptimized': ['-g'],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }
+                       }  # type: T.Dict[str, T.List[str]]
 
 rust_buildtype_args = {'plain': [],
                        'debug': [],
@@ -181,7 +185,7 @@ rust_buildtype_args = {'plain': [],
                        'release': [],
                        'minsize': [],
                        'custom': [],
-                       }
+                       }  # type: T.Dict[str, T.List[str]]
 
 d_gdc_buildtype_args = {'plain': [],
                         'debug': [],
@@ -189,7 +193,7 @@ d_gdc_buildtype_args = {'plain': [],
                         'release': ['-finline-functions'],
                         'minsize': [],
                         'custom': [],
-                        }
+                        }  # type: T.Dict[str, T.List[str]]
 
 d_ldc_buildtype_args = {'plain': [],
                         'debug': [],
@@ -197,7 +201,7 @@ d_ldc_buildtype_args = {'plain': [],
                         'release': ['-enable-inlining', '-Hkeep-all-bodies'],
                         'minsize': [],
                         'custom': [],
-                        }
+                        }  # type: T.Dict[str, T.List[str]]
 
 d_dmd_buildtype_args = {'plain': [],
                         'debug': [],
@@ -205,7 +209,7 @@ d_dmd_buildtype_args = {'plain': [],
                         'release': ['-inline'],
                         'minsize': [],
                         'custom': [],
-                        }
+                        }  # type: T.Dict[str, T.List[str]]
 
 mono_buildtype_args = {'plain': [],
                        'debug': [],
@@ -213,7 +217,7 @@ mono_buildtype_args = {'plain': [],
                        'release': ['-optimize+'],
                        'minsize': [],
                        'custom': [],
-                       }
+                       }  # type: T.Dict[str, T.List[str]]
 
 swift_buildtype_args = {'plain': [],
                         'debug': [],
@@ -221,14 +225,14 @@ swift_buildtype_args = {'plain': [],
                         'release': [],
                         'minsize': [],
                         'custom': [],
-                        }
+                        }  # type: T.Dict[str, T.List[str]]
 
 gnu_winlibs = ['-lkernel32', '-luser32', '-lgdi32', '-lwinspool', '-lshell32',
-               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']
+               '-lole32', '-loleaut32', '-luuid', '-lcomdlg32', '-ladvapi32']  # type: T.List[str]
 
 msvc_winlibs = ['kernel32.lib', 'user32.lib', 'gdi32.lib',
                 'winspool.lib', 'shell32.lib', 'ole32.lib', 'oleaut32.lib',
-                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']
+                'uuid.lib', 'comdlg32.lib', 'advapi32.lib']  # type: T.List[str]
 
 clike_optimization_args = {'0': [],
                            'g': [],
@@ -236,7 +240,7 @@ clike_optimization_args = {'0': [],
                            '2': ['-O2'],
                            '3': ['-O3'],
                            's': ['-Os'],
-                           }
+                           }  # type: T.Dict[str, T.List[str]]
 
 cuda_optimization_args = {'0': [],
                           'g': ['-O0'],
@@ -244,13 +248,13 @@ cuda_optimization_args = {'0': [],
                           '2': ['-O2'],
                           '3': ['-O3'],
                           's': ['-O3']
-                          }
+                          }  # type: T.Dict[str, T.List[str]]
 
 cuda_debug_args = {False: [],
-                   True: ['-g']}
+                   True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
 clike_debug_args = {False: [],
-                    True: ['-g']}
+                    True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
 base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', True),
                 'b_lto': coredata.UserBooleanOption('Use link time optimization', False),
@@ -278,18 +282,21 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype'],
                                                     'from_buildtype'),
-                }
+                }  # type: OptionDictType
 
-def option_enabled(boptions, options, option):
+def option_enabled(boptions: T.List[str], options: 'OptionDictType',
+                   option: str) -> bool:
     try:
         if option not in boptions:
             return False
-        return options[option].value
+        ret = options[option].value
+        assert isinstance(ret, bool), 'must return bool'  # could also be str
+        return ret
     except KeyError:
         return False
 
-def get_base_compile_args(options, compiler):
-    args = []
+def get_base_compile_args(options: 'OptionDictType', compiler: 'Compiler') -> T.List[str]:
+    args = []  # type T.List[str]
     try:
         if options['b_lto'].value:
             args.extend(compiler.get_lto_compile_args())
@@ -337,8 +344,9 @@ def get_base_compile_args(options, compiler):
         pass
     return args
 
-def get_base_link_args(options, linker, is_shared_module):
-    args = []
+def get_base_link_args(options: 'OptionDictType', linker: 'Compiler',
+                       is_shared_module: bool) -> T.List[str]:
+    args = []  # type: T.List[str]
     try:
         if options['b_lto'].value:
             args.extend(linker.get_lto_link_args())
@@ -398,32 +406,58 @@ class CrossNoRunException(MesonException):
     pass
 
 class RunResult:
-    def __init__(self, compiled, returncode=999, stdout='UNDEFINED', stderr='UNDEFINED'):
+    def __init__(self, compiled: bool, returncode: int = 999,
+                 stdout: str = 'UNDEFINED', stderr: str = 'UNDEFINED'):
         self.compiled = compiled
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
 
 
+class CompileResult:
+
+    """The result of Compiler.compiles (and friends)."""
+
+    def __init__(self, stdo: T.Optional[str] = None, stde: T.Optional[str] = None,
+                 args: T.Optional[T.List[str]] = None,
+                 returncode: int = 999, pid: int = -1,
+                 text_mode: bool = True,
+                 input_name: T.Optional[str] = None,
+                 output_name: T.Optional[str] = None,
+                 command: T.Optional[T.List[str]] = None, cached: bool = False):
+        self.stdout = stdo
+        self.stderr = stde
+        self.input_name = input_name
+        self.output_name = output_name
+        self.command = command or []
+        self.args = args or []
+        self.cached = cached
+        self.returncode = returncode
+        self.pid = pid
+        self.text_mode = text_mode
+
+
 class Compiler(metaclass=abc.ABCMeta):
     # Libraries to ignore in find_library() since they are provided by the
     # compiler or the C library. Currently only used for MSVC.
-    ignore_libs = ()
+    ignore_libs = []  # type: T.List[str]
     # Libraries that are internal compiler implementations, and must not be
     # manually searched.
-    internal_libs = ()
+    internal_libs = []  # type: T.List[str]
 
     LINKER_PREFIX = None  # type: T.Union[None, str, T.List[str]]
     INVOKES_LINKER = True
 
-    def __init__(self, exelist, version, for_machine: MachineChoice, info: 'MachineInfo',
-                 linker: T.Optional['DynamicLinker'] = None, **kwargs):
-        if isinstance(exelist, str):
-            self.exelist = [exelist]
-        elif isinstance(exelist, list):
-            self.exelist = exelist
-        else:
-            raise TypeError('Unknown argument to Compiler')
+    # TODO: these could be forward declarations once we drop 3.5 support
+    if T.TYPE_CHECKING:
+        language = 'unset'
+        id = ''
+
+    def __init__(self, exelist: T.List[str], version: str,
+                 for_machine: MachineChoice, info: 'MachineInfo',
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None, is_cross: bool = False):
+        self.exelist = exelist
         # In case it's been overridden by a child class already
         if not hasattr(self, 'file_suffixes'):
             self.file_suffixes = lang_suffixes[self.language]
@@ -431,28 +465,24 @@ class Compiler(metaclass=abc.ABCMeta):
             self.can_compile_suffixes = set(self.file_suffixes)
         self.default_suffix = self.file_suffixes[0]
         self.version = version
-        if 'full_version' in kwargs:
-            self.full_version = kwargs['full_version']
-        else:
-            self.full_version = None
+        self.full_version = full_version
         self.for_machine = for_machine
-        self.base_options = []
+        self.base_options = []  # type: T.List[str]
         self.linker = linker
         self.info = info
+        self.is_cross = is_cross
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0}: v{1} `{2}`>"
         return repr_str.format(self.__class__.__name__, self.version,
                                ' '.join(self.exelist))
 
     @lru_cache(maxsize=None)
-    def can_compile(self, src) -> bool:
-        if hasattr(src, 'fname'):
+    def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
+        if isinstance(src, mesonlib.File):
             src = src.fname
         suffix = os.path.splitext(src)[1].lower()
-        if suffix and suffix[1:] in self.can_compile_suffixes:
-            return True
-        return False
+        return bool(suffix) and suffix[1:] in self.can_compile_suffixes
 
     def get_id(self) -> str:
         return self.id
@@ -482,42 +512,54 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_default_suffix(self) -> str:
         return self.default_suffix
 
-    def get_define(self, dname, prefix, env, extra_args, dependencies) -> T.Tuple[str, bool]:
+    def get_define(self, dname: str, prefix: str, env: 'Environment',
+                   extra_args: T.List[str], dependencies: T.List['Dependency'],
+                   disable_cache: bool = False) -> T.Tuple[str, bool]:
         raise EnvironmentException('%s does not support get_define ' % self.get_id())
 
-    def compute_int(self, expression, low, high, guess, prefix, env, extra_args, dependencies) -> int:
+    def compute_int(self, expression: str, low: T.Optional[int], high: T.Optional[int],
+                    guess: T.Optional[int], prefix: str, env: 'Environment', *,
+                    extra_args: T.Optional[T.List[str]], dependencies: T.Optional[T.List['Dependency']]) -> int:
         raise EnvironmentException('%s does not support compute_int ' % self.get_id())
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
+                                               build_dir: str) -> T.List[str]:
         raise EnvironmentException('%s does not support compute_parameters_with_absolute_paths ' % self.get_id())
 
-    def has_members(self, typename, membernames, prefix, env, *,
-                    extra_args=None, dependencies=None) -> T.Tuple[bool, bool]:
+    def has_members(self, typename: str, membernames: T.List[str],
+                    prefix: str, env: 'Environment', *,
+                    extra_args: T.Optional[T.List[str]] = None,
+                    dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_member(s) ' % self.get_id())
 
-    def has_type(self, typename, prefix, env, extra_args, *,
-                 dependencies=None) -> T.Tuple[bool, bool]:
+    def has_type(self, typename: str, prefix: str, env: 'Environment',
+                 extra_args: T.List[str], *,
+                 dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('%s does not support has_type ' % self.get_id())
 
-    def symbols_have_underscore_prefix(self, env) -> bool:
+    def symbols_have_underscore_prefix(self, env: 'Environment') -> bool:
         raise EnvironmentException('%s does not support symbols_have_underscore_prefix ' % self.get_id())
 
-    def get_exelist(self):
-        return self.exelist[:]
+    def get_exelist(self) -> T.List[str]:
+        return self.exelist.copy()
 
     def get_linker_exelist(self) -> T.List[str]:
         return self.linker.get_exelist()
 
+    @abc.abstractmethod
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        pass
+
     def get_linker_output_args(self, outputname: str) -> T.List[str]:
         return self.linker.get_output_args(outputname)
 
-    def get_builtin_define(self, *args, **kwargs):
+    def get_builtin_define(self, define: str) -> T.Optional[str]:
         raise EnvironmentException('%s does not support get_builtin_define.' % self.id)
 
-    def has_builtin_define(self, *args, **kwargs):
+    def has_builtin_define(self, define: str) -> bool:
         raise EnvironmentException('%s does not support has_builtin_define.' % self.id)
 
-    def get_always_args(self):
+    def get_always_args(self) -> T.List[str]:
         return []
 
     def can_linker_accept_rsp(self) -> bool:
@@ -529,10 +571,10 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_linker_always_args(self) -> T.List[str]:
         return self.linker.get_always_args()
 
-    def get_linker_lib_prefix(self):
+    def get_linker_lib_prefix(self) -> str:
         return self.linker.get_lib_prefix()
 
-    def gen_import_library_args(self, implibname):
+    def gen_import_library_args(self, implibname: str) -> T.List[str]:
         """
         Used only on Windows for libraries that need an import library.
         This currently means C, C++, Fortran.
@@ -544,62 +586,115 @@ class Compiler(metaclass=abc.ABCMeta):
                                      is_cross: bool) -> T.List[str]:
         return self.linker.get_args_from_envvars(for_machine, is_cross)
 
-    def get_options(self) -> T.Dict[str, coredata.UserOption]:
+    def get_options(self) -> 'OptionDictType':
         return {}
 
-    def get_option_compile_args(self, options):
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         return []
 
     def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return self.linker.get_option_args(options)
 
-    def check_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def check_header(self, hname: str, prefix: str, env: 'Environment', *,
+                     extra_args: T.Optional[T.List[str]] = None,
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+        """Check that header is usable.
+
+        Returns a two item tuple of bools. The first bool is whether the
+        check succeeded, the second is whether the result was cached (True)
+        or run fresh (False).
+        """
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_header(self, hname: str, prefix: str, env: 'Environment', *,
+                   extra_args: T.Optional[T.List[str]] = None,
+                   dependencies: T.Optional[T.List['Dependency']] = None,
+                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        """Check that header is exists.
+
+        This check will return true if the file exists, even if it contains:
+
+        ```c
+        # error "You thought you could use this, LOLZ!"
+        ```
+
+        Use check_header if your header only works in some cases.
+
+        Returns a two item tuple of bools. The first bool is whether the
+        check succeeded, the second is whether the result was cached (True)
+        or run fresh (False).
+        """
         raise EnvironmentException('Language %s does not support header checks.' % self.get_display_language())
 
-    def has_header_symbol(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_header_symbol(self, hname: str, symbol: str, prefix: str,
+                          env: 'Environment', *,
+                          extra_args: T.Optional[T.List[str]] = None,
+                          dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def compiles(self, code: str, env: 'Environment', *,
+                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None,
+                 mode: str = 'compile',
+                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
 
-    def links(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def links(self, code: str, env: 'Environment', *,
+              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+              dependencies: T.Optional[T.List['Dependency']] = None,
+              mode: str = 'compile',
+              disable_cache: bool = False) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
 
-    def run(self, *args, **kwargs) -> RunResult:
+    def run(self, code: str, env: 'Environment', *,
+            extra_args: T.Optional[T.List[str]] = None,
+            dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
         raise EnvironmentException('Language %s does not support run checks.' % self.get_display_language())
 
-    def sizeof(self, *args, **kwargs) -> int:
+    def sizeof(self, typename: str, prefix: str, env: 'Environment', *,
+               extra_args: T.Optional[T.List[str]] = None,
+               dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         raise EnvironmentException('Language %s does not support sizeof checks.' % self.get_display_language())
 
-    def alignment(self, *args, **kwargs) -> int:
+    def alignment(self, typename: str, prefix: str, env: 'Environment', *,
+                 extra_args: T.Optional[T.List[str]] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None) -> int:
         raise EnvironmentException('Language %s does not support alignment checks.' % self.get_display_language())
 
-    def has_function(self, *args, **kwargs) -> T.Tuple[bool, bool]:
+    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+                     extra_args: T.Optional[T.List[str]] = None,
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
+        """See if a function exists.
+
+        Returns a two item tuple of bools. The first bool is whether the
+        check succeeded, the second is whether the result was cached (True)
+        or run fresh (False).
+        """
         raise EnvironmentException('Language %s does not support function checks.' % self.get_display_language())
 
-    @classmethod
-    def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
+    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
-        return args[:]
+        return args.copy()
 
     @classmethod
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
-        return args[:]
+        return args.copy()
 
-    def find_library(self, *args, **kwargs):
+    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
         raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
 
-    def get_library_dirs(self, *args, **kwargs):
-        return ()
+    def get_library_naming(self, env: 'Environment', libtype: LibType,
+                           strict: bool = False) -> T.Optional[T.Tuple[str, ...]]:
+        raise EnvironmentException(
+            'Language {} does not support get_library_naming.'.format(
+                self.get_display_language()))
 
-    def get_program_dirs(self, *args, **kwargs):
+    def get_program_dirs(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def has_multi_arguments(self, args, env) -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support has_multi_arguments.'.format(
                 self.get_display_language()))
@@ -607,7 +702,8 @@ class Compiler(metaclass=abc.ABCMeta):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self.linker.has_multi_arguments(args, env)
 
-    def _get_compile_output(self, dirname, mode):
+    def _get_compile_output(self, dirname: str, mode: str) -> str:
+        # TODO: mode should really be an enum
         # In pre-processor mode, the output is sent to stdout and discarded
         if mode == 'preprocess':
             return None
@@ -619,8 +715,9 @@ class Compiler(metaclass=abc.ABCMeta):
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
-    def get_compiler_args_for_mode(self, mode):
-        args = []
+    def get_compiler_args_for_mode(self, mode: str) -> T.List[str]:
+        # TODO: mode should really be an enum
+        args = []  # type: T.List[str]
         args += self.get_always_args()
         if mode == 'compile':
             args += self.get_compile_only_args()
@@ -633,7 +730,11 @@ class Compiler(metaclass=abc.ABCMeta):
         return CompilerArgs(self, args)
 
     @contextlib.contextmanager
-    def compile(self, code: str, extra_args: list = None, *, mode: str = 'link', want_output: bool = False, temp_dir: str = None):
+    def compile(self, code: 'mesonlib.FileOrString',
+                extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
+                *, mode: str = 'link', want_output: bool = False,
+                temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+        # TODO: there isn't really any reason for this to be a contextmanager
         if extra_args is None:
             extra_args = []
         try:
@@ -646,8 +747,11 @@ class Compiler(metaclass=abc.ABCMeta):
                         ofile.write(code)
                     # ccache would result in a cache miss
                     no_ccache = True
+                    contents = code
                 elif isinstance(code, mesonlib.File):
                     srcname = code.fname
+                    with open(code.fname, 'r') as f:
+                        contents = f.read()
 
                 # Construct the compiler command-line
                 commands = self.compiler_args()
@@ -662,69 +766,62 @@ class Compiler(metaclass=abc.ABCMeta):
                 # in the command line after '/link' is given to the linker.
                 commands += extra_args
                 # Generate full command-line with the exelist
-                commands = self.get_exelist() + commands.to_native()
+                command_list = self.get_exelist() + commands.to_native()
                 mlog.debug('Running compile:')
                 mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(commands), '\n')
-                mlog.debug('Code:\n', code)
+                mlog.debug('Command line: ', ' '.join(command_list), '\n')
+                mlog.debug('Code:\n', contents)
                 os_env = os.environ.copy()
                 os_env['LC_ALL'] = 'C'
                 if no_ccache:
                     os_env['CCACHE_DISABLE'] = '1'
-                p, p.stdo, p.stde = Popen_safe(commands, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', p.stdo)
-                mlog.debug('Compiler stderr:\n', p.stde)
-                p.commands = commands
-                p.input_name = srcname
+                p, stdo, stde = Popen_safe(command_list, cwd=tmpdirname, env=os_env)
+                mlog.debug('Compiler stdout:\n', stdo)
+                mlog.debug('Compiler stderr:\n', stde)
+
+                result = CompileResult(stdo, stde, list(commands), p.returncode, p.pid, input_name=srcname)
                 if want_output:
-                    p.output_name = output
-                p.cached = False  # Make sure that the cached attribute always exists
-                yield p
+                    result.output_name = output
+                yield result
         except OSError:
             # On Windows antivirus programs and the like hold on to files so
             # they can't be deleted. There's not much to do in this case. Also,
             # catch OSError because the directory is then no longer empty.
-            pass
+            yield None
 
     @contextlib.contextmanager
-    def cached_compile(self, code, cdata: coredata.CoreData, *, extra_args=None, mode: str = 'link', temp_dir=None):
-        assert(isinstance(cdata, coredata.CoreData))
+    def cached_compile(self, code: str, cdata: coredata.CoreData, *,
+                       extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+                       mode: str = 'link',
+                       temp_dir: T.Optional[str] = None) -> T.Iterator[T.Optional[CompileResult]]:
+        # TODO: There's isn't really any reason for this to be a context manager
 
         # Calculate the key
-        textra_args = tuple(extra_args) if extra_args is not None else None
-        key = (tuple(self.exelist), self.version, code, textra_args, mode)
+        textra_args = tuple(extra_args) if extra_args is not None else tuple()  # type: T.Tuple[str, ...]
+        key = (tuple(self.exelist), self.version, code, textra_args, mode)  # type: coredata.CompilerCheckCacheKey
 
-        # Check if not cached
-        if key not in cdata.compiler_check_cache:
+        # Check if not cached, and generate, otherwise get from the cache
+        if key in cdata.compiler_check_cache:
+            p = cdata.compiler_check_cache[key]  # type: CompileResult
+            p.cached = True
+            mlog.debug('Using cached compile:')
+            mlog.debug('Cached command line: ', ' '.join(p.command), '\n')
+            mlog.debug('Code:\n', code)
+            mlog.debug('Cached compiler stdout:\n', p.stdout)
+            mlog.debug('Cached compiler stderr:\n', p.stderr)
+            yield p
+        else:
             with self.compile(code, extra_args=extra_args, mode=mode, want_output=False, temp_dir=temp_dir) as p:
-                # Remove all attributes except the following
-                # This way the object can be serialized
-                tokeep = ['args', 'commands', 'input_name', 'output_name',
-                          'pid', 'returncode', 'stdo', 'stde', 'text_mode']
-                todel = [x for x in vars(p).keys() if x not in tokeep]
-                for i in todel:
-                    delattr(p, i)
-                p.cached = False
                 cdata.compiler_check_cache[key] = p
                 yield p
-                return
 
-        # Return cached
-        p = cdata.compiler_check_cache[key]
-        p.cached = True
-        mlog.debug('Using cached compile:')
-        mlog.debug('Cached command line: ', ' '.join(p.commands), '\n')
-        mlog.debug('Code:\n', code)
-        mlog.debug('Cached compiler stdout:\n', p.stdo)
-        mlog.debug('Cached compiler stderr:\n', p.stde)
-        yield p
-
-    def get_colorout_args(self, colortype):
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        # TODO: colortype can probably be an emum
         return []
 
     # Some compilers (msvc) write debug info to a separate file.
     # These args specify where it should be written.
-    def get_compile_debugfile_args(self, rel_obj, **kwargs):
+    def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         return []
 
     def get_link_debugfile_name(self, targetfile: str) -> str:
@@ -748,10 +845,12 @@ class Compiler(metaclass=abc.ABCMeta):
     def no_undefined_link_args(self) -> T.List[str]:
         return self.linker.no_undefined_args()
 
-    # Compiler arguments needed to enable the given instruction set.
-    # May be [] meaning nothing needed or None meaning the given set
-    # is not supported.
-    def get_instruction_set_args(self, instruction_set):
+    def get_instruction_set_args(self, instruction_set: str) -> T.Optional[T.List[str]]:
+        """Compiler arguments needed to enable the given instruction set.
+
+        Return type ay be an empty list meaning nothing needed or None
+        meaning the given set is not supported.
+        """
         return None
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
@@ -760,40 +859,40 @@ class Compiler(metaclass=abc.ABCMeta):
         return self.linker.build_rpath_args(
             env, build_dir, from_dir, rpath_paths, build_rpath, install_rpath)
 
-    def thread_flags(self, env):
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def openmp_flags(self):
+    def openmp_flags(self) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
-    def openmp_link_flags(self):
+    def openmp_link_flags(self) -> T.List[str]:
         return self.openmp_flags()
 
-    def language_stdlib_only_link_flags(self):
+    def language_stdlib_only_link_flags(self) -> T.List[str]:
         return []
 
-    def gnu_symbol_visibility_args(self, vistype):
+    def gnu_symbol_visibility_args(self, vistype: str) -> T.List[str]:
         return []
 
-    def get_gui_app_args(self, value):
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
         return []
 
-    def has_func_attribute(self, name, env):
+    def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(
             'Language {} does not support function attributes.'.format(self.get_display_language()))
 
-    def get_pic_args(self):
+    def get_pic_args(self) -> T.List[str]:
         m = 'Language {} does not support position-independent code'
         raise EnvironmentException(m.format(self.get_display_language()))
 
-    def get_pie_args(self):
+    def get_pie_args(self) -> T.List[str]:
         m = 'Language {} does not support position-independent executable'
         raise EnvironmentException(m.format(self.get_display_language()))
 
     def get_pie_link_args(self) -> T.List[str]:
         return self.linker.get_pie_args()
 
-    def get_argument_syntax(self):
+    def get_argument_syntax(self) -> str:
         """Returns the argument family type.
 
         Compilers fall into families if they try to emulate the command line
@@ -804,22 +903,19 @@ class Compiler(metaclass=abc.ABCMeta):
         """
         return 'other'
 
-    def get_profile_generate_args(self):
+    def get_profile_generate_args(self) -> T.List[str]:
         raise EnvironmentException(
             '%s does not support get_profile_generate_args ' % self.get_id())
 
-    def get_profile_use_args(self):
+    def get_profile_use_args(self) -> T.List[str]:
         raise EnvironmentException(
             '%s does not support get_profile_use_args ' % self.get_id())
 
-    def get_undefined_link_args(self) -> T.List[str]:
-        return self.linker.get_undefined_link_args()
-
-    def remove_linkerlike_args(self, args):
+    def remove_linkerlike_args(self, args: T.List[str]) -> T.List[str]:
         rm_exact = ('-headerpad_max_install_names',)
         rm_prefixes = ('-Wl,', '-L',)
         rm_next = ('-L', '-framework',)
-        ret = []
+        ret = []  # T.List[str]
         iargs = iter(args)
         for arg in iargs:
             # Remove this argument
@@ -868,13 +964,13 @@ class Compiler(metaclass=abc.ABCMeta):
             env, prefix, shlib_name, suffix, soversion,
             darwin_versions, is_shared_module)
 
-    def get_target_link_args(self, target):
+    def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return target.link_args
 
-    def get_dependency_compile_args(self, dep):
+    def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_compile_args()
 
-    def get_dependency_link_args(self, dep):
+    def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return dep.get_link_args()
 
     @classmethod
@@ -883,33 +979,74 @@ class Compiler(metaclass=abc.ABCMeta):
         """
         return []
 
+    def get_coverage_args(self) -> T.List[str]:
+        return []
+
     def get_coverage_link_args(self) -> T.List[str]:
         return self.linker.get_coverage_args()
 
     def get_disable_assert_args(self) -> T.List[str]:
         return []
 
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        raise EnvironmentError('This compiler does not support Windows CRT selection')
 
-def get_largefile_args(compiler):
-    '''
-    Enable transparent large-file-support for 32-bit UNIX systems
-    '''
-    if not (compiler.get_argument_syntax() == 'msvc' or compiler.info.is_darwin()):
-        # Enable large-file support unconditionally on all platforms other
-        # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
-        # need anything special, and MSVC doesn't have automatic LFS.
-        # You must use the 64-bit counterparts explicitly.
-        # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
-        # support for transparent LFS is available depending on the version of
-        # Bionic: https://github.com/android/platform_bionic#32-bit-abi-bugs
-        # https://code.google.com/p/android/issues/detail?id=64613
-        #
-        # If this breaks your code, fix it! It's been 20+ years!
-        return ['-D_FILE_OFFSET_BITS=64']
-        # We don't enable -D_LARGEFILE64_SOURCE since that enables
-        # transitionary features and must be enabled by programs that use
-        # those features explicitly.
-    return []
+    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        raise EnvironmentError('This compiler does not support Windows CRT selection')
+
+    def get_compile_only_args(self) -> T.List[str]:
+        return []
+
+    def get_preprocess_only_args(self) -> T.List[str]:
+        raise EnvironmentError('This compiler does not have a preprocessor')
+
+    def get_default_include_dirs(self) -> T.List[str]:
+        # TODO: This is a candidate for returning an immutable list
+        return []
+
+    def get_largefile_args(self) -> T.List[str]:
+        '''Enable transparent large-file-support for 32-bit UNIX systems'''
+        if not (self.get_argument_syntax() == 'msvc' or self.info.is_darwin()):
+            # Enable large-file support unconditionally on all platforms other
+            # than macOS and MSVC. macOS is now 64-bit-only so it doesn't
+            # need anything special, and MSVC doesn't have automatic LFS.
+            # You must use the 64-bit counterparts explicitly.
+            # glibc, musl, and uclibc, and all BSD libcs support this. On Android,
+            # support for transparent LFS is available depending on the version of
+            # Bionic: https://github.com/android/platform_bionic#32-bit-abi-bugs
+            # https://code.google.com/p/android/issues/detail?id=64613
+            #
+            # If this breaks your code, fix it! It's been 20+ years!
+            return ['-D_FILE_OFFSET_BITS=64']
+            # We don't enable -D_LARGEFILE64_SOURCE since that enables
+            # transitionary features and must be enabled by programs that use
+            # those features explicitly.
+        return []
+
+    def get_library_dirs(self, env: 'Environment',
+                         elf_class: T.Optional[int] = None) -> T.List[str]:
+        return []
+
+    def find_framework_paths(self, env: 'Environment') -> T.List[str]:
+        raise EnvironmentException('{} does not support find_framework_paths'.format(self.id))
+
+    def attribute_check_func(self, name: str) -> str:
+        raise EnvironmentException('{} does not support attribute checks'.format(self.id))
+
+    def get_pch_suffix(self) -> str:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+
+    def get_pch_name(self, name: str) -> str:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
+        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+        raise EnvironmentException('{} does not support function attributes'.format(self.id))
+
+    def name_string(self) -> str:
+        return ' '.join(self.exelist)
 
 
 def get_args_from_envvars(lang: str,
@@ -953,7 +1090,7 @@ def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
                        is_cross: bool,
-                       properties: Properties) -> T.Dict[str, coredata.UserOption]:
+                       properties: Properties) -> 'OptionDictType':
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     opts = {
@@ -963,7 +1100,7 @@ def get_global_options(lang: str,
         'link_args': coredata.UserArrayOption(
             description + ' linker',
             [], split_args=True, user_input=True, allow_dups=True),
-    }
+    }  # type: OptionDictType
 
     # Get from env vars.
     compile_args, link_args = get_args_from_envvars(

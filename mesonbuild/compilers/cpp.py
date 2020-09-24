@@ -65,8 +65,8 @@ class CPPCompiler(CLikeCompiler, Compiler):
     def __init__(self, exelist, version, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrap: T.Optional[str] = None, **kwargs):
         # If a child ObjCPP class has already set it, don't set it ourselves
-        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
-        CLikeCompiler.__init__(self, is_cross, exe_wrap)
+        Compiler.__init__(self, exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
+        CLikeCompiler.__init__(self, exe_wrap)
 
     @staticmethod
     def get_display_language():
@@ -77,7 +77,7 @@ class CPPCompiler(CLikeCompiler, Compiler):
 
     def sanity_check(self, work_dir, environment):
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
-        return self.sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
     def get_compiler_check_args(self):
         # -fpermissive allows non-conforming code to compile which is necessary

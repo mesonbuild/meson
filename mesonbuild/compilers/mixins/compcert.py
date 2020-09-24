@@ -20,6 +20,13 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 ccomp_buildtype_args = {
     'plain': [''],
@@ -51,7 +58,8 @@ ccomp_args_to_wul = [
         r"^-r$"
 ] # type: T.List[str]
 
-class CompCertCompiler:
+class CompCertCompiler(Compiler):
+
     def __init__(self) -> None:
         self.id = 'ccomp'
         # Assembly
@@ -78,9 +86,9 @@ class CompCertCompiler:
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def unix_args_to_native(self, args):
+    def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         "Always returns a copy that can be independently mutated"
-        patched_args = []
+        patched_args = []  # type: T.List[str]
         for arg in args:
             added = 0
             for ptrn in ccomp_args_to_wul:

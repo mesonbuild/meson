@@ -20,11 +20,19 @@ import abc
 import os
 import typing as T
 
+from ... import arglist
 from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from .clike import CLikeCompiler as Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 vs32_instruction_set_args = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
@@ -85,7 +93,7 @@ msvc_debug_args = {
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
+class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     """A common interface for all compilers implementing an MSVC-style
     interface.
@@ -97,10 +105,8 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
-    # XXX: this is copied in this patch only to avoid circular dependencies
-    #ignore_libs = unixy_compiler_internal_libs
-    ignore_libs = ('m', 'c', 'pthread', 'dl', 'rt', 'execinfo')
-    internal_libs = ()
+    ignore_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS + ['execinfo']
+    internal_libs = []  # type: T.List[str]
 
     crt_args = {
         'none': [],
@@ -137,6 +143,7 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             self.machine = 'arm'
         else:
             self.machine = target
+        assert self.linker is not None
         self.linker.machine = self.machine
 
     # Override CCompiler.get_always_args
@@ -291,12 +298,12 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
-            return not(warning_text in p.stde or warning_text in p.stdo), p.cached
+            return not(warning_text in p.stderr or warning_text in p.stdout), p.cached
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         pdbarr = rel_obj.split('.')[:-1]
@@ -420,7 +427,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'clang-cl'
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument']
         return super().has_arguments(args, env, code, mode)

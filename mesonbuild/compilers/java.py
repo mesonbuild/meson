@@ -32,7 +32,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
                  info: 'MachineInfo'):
         super().__init__(exelist, version, for_machine, info)
         self.id = 'unknown'
-        self.is_cross = False
         self.javarunner = 'java'
 
     def get_werror_args(self):
@@ -63,9 +62,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def get_pic_args(self):
         return []
-
-    def name_string(self):
-        return ' '.join(self.exelist)
 
     def get_pch_use_args(self, pch_dir, header):
         return []

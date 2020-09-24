@@ -40,7 +40,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
                  info: 'MachineInfo', comp_id, runner=None):
         super().__init__(exelist, version, for_machine, info)
         self.id = comp_id
-        self.is_cross = False
         self.runner = runner
 
     @classmethod
@@ -94,9 +93,6 @@ class CsCompiler(BasicLinkerIsCompilerMixin, Compiler):
                 parameter_list[idx] = i[:5] + os.path.normpath(os.path.join(build_dir, i[5:]))
 
         return parameter_list
-
-    def name_string(self):
-        return ' '.join(self.exelist)
 
     def get_pch_use_args(self, pch_dir, header):
         return []

@@ -36,17 +36,13 @@ class RustCompiler(Compiler):
     language = 'rust'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        super().__init__(exelist, version, for_machine, info, **kwargs)
+                 is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        super().__init__(exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
-        self.is_cross = is_cross
 
     def needs_static_linker(self):
         return False
-
-    def name_string(self):
-        return ' '.join(self.exelist)
 
     def sanity_check(self, work_dir, environment):
         source_name = os.path.join(work_dir, 'sanity.rs')
@@ -109,6 +105,9 @@ class RustCompiler(Compiler):
 
     def get_std_exe_link_args(self):
         return []
+
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        return ['-o', outputname]
 
     # Rust does not have a use_linker_args because it dispatches to a gcc-like
     # C compiler for dynamic linking, as such we invoke the C compiler's

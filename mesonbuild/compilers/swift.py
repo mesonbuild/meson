@@ -36,14 +36,10 @@ class SwiftCompiler(Compiler):
     language = 'swift'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', **kwargs):
-        super().__init__(exelist, version, for_machine, info, **kwargs)
+                 is_cross: bool, info: 'MachineInfo', **kwargs):
+        super().__init__(exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
         self.version = version
         self.id = 'llvm'
-        self.is_cross = is_cross
-
-    def name_string(self):
-        return ' '.join(self.exelist)
 
     def needs_static_linker(self):
         return True

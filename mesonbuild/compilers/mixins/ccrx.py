@@ -21,6 +21,13 @@ from ...mesonlib import EnvironmentException
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 ccrx_buildtype_args = {
     'plain': [],
@@ -46,8 +53,13 @@ ccrx_debug_args = {
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class CcrxCompiler:
-    def __init__(self):
+class CcrxCompiler(Compiler):
+
+    if T.TYPE_CHECKING:
+        is_cross = True
+        can_compile_suffixes = set()  # type: T.Set[str]
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('ccrx supports only cross-compilation.')
         self.id = 'ccrx'

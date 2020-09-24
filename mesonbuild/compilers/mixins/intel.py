@@ -28,7 +28,9 @@ from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    import subprocess  # noqa: F401
+    from ...arglist import CompilerArgs
+    from ...dependencies import Dependency
+    from ...environment import Environment
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
@@ -97,21 +99,21 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         else:
             return ['-openmp']
 
-    def compiles(self, *args, **kwargs) -> T.Tuple[bool, bool]:
-        # This covers a case that .get('foo', []) doesn't, that extra_args is
-        # defined and is None
-        extra_args = kwargs.get('extra_args') or []
-        kwargs['extra_args'] = [
-            extra_args,
+    def compiles(self, code: str, env: 'Environment', *,
+                 extra_args: T.Union[None, T.List[str], 'CompilerArgs'] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None,
+                 mode: str = 'compile',
+                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        extra_args = extra_args.copy() if extra_args is not None else []
+        extra_args += [
             '-diag-error', '10006',  # ignoring unknown option
             '-diag-error', '10148',  # Option not supported
             '-diag-error', '10155',  # ignoring argument required
             '-diag-error', '10156',  # ignoring not argument allowed
             '-diag-error', '10157',  # Ignoring argument of the wrong type
             '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
-            '-diag-error', '1292',   # unknown __attribute__
         ]
-        return super().compiles(*args, **kwargs)
+        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-prof-gen=threadsafe']
@@ -124,6 +126,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+        return ['-diag-error', '1292']
 
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
@@ -148,13 +153,17 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         's': ['/Os'],
     }
 
-    def __init__(self, target: str):
+    def __init__(self, target: str) -> None:
         super().__init__(target)
         self.id = 'intel-cl'
 
-    def compile(self, code: str, *, extra_args: T.Optional[T.List[str]] = None, **kwargs) -> T.Iterator['subprocess.Popen']:
+    def compiles(self, code: str, env: 'Environment', *,
+                 extra_args: T.Union[None, T.List[str], 'CompilerArgs'] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None,
+                 mode: str = 'compile',
+                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
         # This covers a case that .get('foo', []) doesn't, that extra_args is
-        if kwargs.get('mode', 'compile') != 'link':
+        if mode != 'link':
             extra_args = extra_args.copy() if extra_args is not None else []
             extra_args.extend([
                 '/Qdiag-error:10006',  # ignoring unknown option
@@ -164,7 +173,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
                 '/Qdiag-error:10157',  # Ignoring argument of the wrong type
                 '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
             ])
-        return super().compile(code, extra_args, **kwargs)
+        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
 
     def get_toolset_version(self) -> T.Optional[str]:
         # Avoid circular dependencies....

@@ -1588,6 +1588,10 @@ class Environment:
                     exe_wrap, defines, linker=linker)
             if 'clang' in out:
                 linker = None
+                defines = self.get_clang_compiler_defines(compiler)
+                if not defines:
+                    popen_exceptions[' '.join(compiler)] = 'no pre-processor defines'
+                    continue
                 if 'Apple' in out:
                     comp = AppleClangObjCCompiler if objc else AppleClangObjCPPCompiler
                 else:
@@ -1604,7 +1608,7 @@ class Environment:
                         compiler, comp, for_machine)
                 return comp(
                     ccache + compiler, version, for_machine,
-                    is_cross, info, exe_wrap, linker=linker)
+                    is_cross, info, exe_wrap, linker=linker, defines=defines)
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
@@ -1821,7 +1825,8 @@ class Environment:
             elif 'gdc' in out:
                 linker = self._guess_nix_linker(exelist, compilers.GnuDCompiler, for_machine)
                 return compilers.GnuDCompiler(
-                    exelist, version, for_machine, info, arch, is_cross, exe_wrap,
+                    exelist, version, for_machine, info, arch,
+                    exe_wrapper=exe_wrap, is_cross=is_cross,
                     full_version=full_version, linker=linker)
             elif 'The D Language Foundation' in out or 'Digital Mars' in out:
                 # DMD seems to require a file

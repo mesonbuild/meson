@@ -44,9 +44,9 @@ class FortranCompiler(CLikeCompiler, Compiler):
     language = 'fortran'
 
     def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
-        CLikeCompiler.__init__(self, is_cross, exe_wrapper)
+                 is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+        Compiler.__init__(self, exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
+        CLikeCompiler.__init__(self, exe_wrapper)
         self.id = 'unknown'
 
     def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
@@ -143,7 +143,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
     def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
         code = 'stop; end program'
-        return self.find_library_impl(libname, env, extra_dirs, code, libtype)
+        return self._find_library_impl(libname, env, extra_dirs, code, libtype)
 
     def has_multi_arguments(self, args: T.Sequence[str], env):
         for arg in args[:]:
