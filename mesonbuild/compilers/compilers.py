@@ -1088,6 +1088,15 @@ class Compiler(metaclass=abc.ABCMeta):
         """Arguments to turn off default inclusion of standard libraries."""
         return []
 
+    def get_warn_args(self, level: str) -> T.List[str]:
+        return []
+
+    def get_werror_args(self) -> T.List[str]:
+        return []
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        raise EnvironmentError('{} does not implement get_optimization_args'.format(self.id))
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,
