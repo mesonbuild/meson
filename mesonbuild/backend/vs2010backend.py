@@ -182,6 +182,8 @@ class Vs2010Backend(backends.Backend):
         else:
             raise MesonException('Unsupported Visual Studio platform: ' + target_machine)
         self.buildtype = self.environment.coredata.get_builtin_option('buildtype')
+        self.optimization = self.environment.coredata.get_builtin_option('optimization')
+        self.debug = self.environment.coredata.get_builtin_option('debug')
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
@@ -774,7 +776,9 @@ class Vs2010Backend(backends.Backend):
         if self.is_unity(target):
             sources = self.generate_unity_files(target, sources)
         compiler = self._get_cl_compiler(target)
-        buildtype_args = compiler.get_buildtype_args(self.buildtype)
+        build_args = compiler.get_buildtype_args(self.buildtype)
+        build_args += compiler.get_optimization_args(self.optimization)
+        build_args += compiler.get_debug_args(self.debug)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         vscrt_type = self.environment.coredata.base_options['b_vscrt']
         project_name = target.name
@@ -844,18 +848,20 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
         # Debug format
-        if '/ZI' in buildtype_args:
+        if '/ZI' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
-        elif '/Zi' in buildtype_args:
+        elif '/Zi' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
-        elif '/Z7' in buildtype_args:
+        elif '/Z7' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
+        else:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
         # Runtime checks
-        if '/RTC1' in buildtype_args:
+        if '/RTC1' in build_args:
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'EnableFastChecks'
-        elif '/RTCu' in buildtype_args:
+        elif '/RTCu' in build_args:
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'UninitializedLocalUsageCheck'
-        elif '/RTCs' in buildtype_args:
+        elif '/RTCs' in build_args:
             ET.SubElement(clconf, 'BasicRuntimeChecks').text = 'StackFrameRuntimeCheck'
         # Exception handling has to be set in the xml in addition to the "AdditionalOptions" because otherwise
         # cl will give warning D9025: overriding '/Ehs' with cpp_eh value
@@ -1022,6 +1028,8 @@ class Vs2010Backend(backends.Backend):
                         target_args.append(arg)
 
         languages += gen_langs
+        if '/Gw' in build_args:
+            target_args.append('/Gw')
         if len(target_args) > 0:
             target_args.append('%(AdditionalOptions)')
             ET.SubElement(clconf, "AdditionalOptions").text = ' '.join(target_args)
@@ -1035,7 +1043,7 @@ class Vs2010Backend(backends.Backend):
         if self.get_option_for_target('werror', target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
-        o_flags = split_o_flags_args(buildtype_args)
+        o_flags = split_o_flags_args(build_args)
         if '/Ox' in o_flags:
             ET.SubElement(clconf, 'Optimization').text = 'Full'
         elif '/O2' in o_flags:
@@ -1087,8 +1095,10 @@ class Vs2010Backend(backends.Backend):
         # AdditionalOptions?
         extra_link_args += compiler.get_buildtype_linker_args(self.buildtype)
         # Generate Debug info
-        if self.buildtype.startswith('debug'):
+        if self.debug:
             self.generate_debug_information(link)
+        else:
+            ET.SubElement(link, 'GenerateDebugInformation').text = 'false'
         if not isinstance(target, build.StaticLibrary):
             if isinstance(target, build.SharedModule):
                 options = self.environment.coredata.base_options
@@ -1186,7 +1196,7 @@ class Vs2010Backend(backends.Backend):
             if target.vs_module_defs:
                 relpath = os.path.join(down, target.vs_module_defs.rel_to_builddir(self.build_to_src))
                 ET.SubElement(link, 'ModuleDefinitionFile').text = relpath
-        if '/ZI' in buildtype_args or '/Zi' in buildtype_args:
+        if self.debug:
             pdb = ET.SubElement(link, 'ProgramDataBaseFileName')
             pdb.text = '$(OutDir}%s.pdb' % target_name
         targetmachine = ET.SubElement(link, 'TargetMachine')

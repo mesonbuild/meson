@@ -62,10 +62,10 @@ vs64_instruction_set_args = {
 
 msvc_buildtype_args = {
     'plain': [],
-    'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
-    'debugoptimized': ["/Zi", "/Ob1"],
-    'release': ["/Ob2", "/Gw"],
-    'minsize': ["/Zi", "/Gw"],
+    'debug': ["/ZI", "/RTC1"],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
@@ -79,17 +79,17 @@ clangcl_buildtype_args = msvc_buildtype_args.copy()
 clangcl_buildtype_args['debug'] = ['/Zi', '/Ob0', '/Od', '/RTC1']
 
 msvc_optimization_args = {
-    '0': [],
+    '0': ['/Od', '/Ob0'],
     'g': ['/O0'],
     '1': ['/O1'],
-    '2': ['/O2'],
-    '3': ['/O2'],
-    's': ['/O1'], # Implies /Os.
+    '2': ['/O2', '/Ob1'],
+    '3': ['/O2', '/Ob2', '/Gw'],
+    's': ['/O1', '/Gw'], # Implies /Os.
 }  # type: T.Dict[str, T.List[str]]
 
 msvc_debug_args = {
     False: [],
-    True: []  # Fixme!
+    True: ['/Zi']
 }  # type: T.Dict[bool, T.List[str]]
 
 
@@ -182,11 +182,17 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return ['/Fe' + target]
         return ['/Fo' + target]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return msvc_optimization_args[optimization_level]
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return msvc_buildtype_args[buildtype]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return msvc_debug_args[is_debug]
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        args = msvc_optimization_args[optimization_level]
+        if mesonlib.version_compare(self.version, '<18.0'):
+            args = [arg for arg in args if arg != '/Gw']
+        return args
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
@@ -408,12 +414,6 @@ class MSVCCompiler(VisualStudioLikeCompiler):
             # and they can not be called.
             return None
         return super().get_instruction_set_args(instruction_set)
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        args = msvc_buildtype_args[buildtype]
-        if mesonlib.version_compare(self.version, '<18.0'):
-            args = [arg for arg in args if arg != '/Gw']
-        return args
 
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)

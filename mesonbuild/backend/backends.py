@@ -685,6 +685,10 @@ class Backend:
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
         commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
+        # MSVC debug builds have /ZI argument by default and /Zi is added with debug flag
+        # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
+        if ('/ZI' in commands) and ('/Zi' in commands):
+            commands.remove('/Zi')
         # Add compile args added using add_project_arguments()
         commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         # Add compile args added using add_global_arguments()
