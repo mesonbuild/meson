@@ -28,30 +28,37 @@ import json
 import textwrap
 
 class CMakeTraceLine:
-    def __init__(self, file, line, func, args):
+    def __init__(self, file: str, line: int, func: str, args: T.List[str]) -> None:
         self.file = file
         self.line = line
         self.func = func.lower()
         self.args = args
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = 'CMake TRACE: {0}:{1} {2}({3})'
         return s.format(self.file, self.line, self.func, self.args)
 
 class CMakeTarget:
-    def __init__(self, name, target_type, properties=None, imported: bool = False, tline: T.Optional[CMakeTraceLine] = None):
+    def __init__(
+                self,
+                name:        str,
+                target_type: str,
+                properties:  T.Optional[T.Dict[str, T.List[str]]] = None,
+                imported:    bool                                 = False,
+                tline:       T.Optional[CMakeTraceLine]           = None
+            ):
         if properties is None:
             properties = {}
-        self.name = name
-        self.type = target_type
-        self.properties = properties
-        self.imported = imported
-        self.tline = tline
-        self.depends = []
-        self.current_bin_dir = None
-        self.current_src_dir = None
+        self.name            = name
+        self.type            = target_type
+        self.properties      = properties
+        self.imported        = imported
+        self.tline           = tline
+        self.depends         = []      # type: T.List[str]
+        self.current_bin_dir = None    # type: T.Optional[str]
+        self.current_src_dir = None    # type: T.Optional[str]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
         propSTR = ''
         for i in self.properties:
@@ -67,14 +74,14 @@ class CMakeTarget:
             assert all([';' not in x for x in self.properties[key]])
 
 class CMakeGeneratorTarget(CMakeTarget):
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
         self.outputs = []        # type: T.List[str]
         self.command = []        # type: T.List[T.List[str]]
         self.working_dir = None  # type: T.Optional[str]
 
 class CMakeTraceParser:
-    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = True):
+    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = True) -> None:
         self.vars = {}     # type: T.Dict[str, T.List[str]]
         self.targets = {}  # type: T.Dict[str, CMakeTarget]
 
@@ -117,7 +124,7 @@ class CMakeTraceParser:
             # meaning here in the trace parser.
             'meson_ps_execute_delayed_calls': self._meson_ps_execute_delayed_calls,
             'meson_ps_reload_vars': self._meson_ps_reload_vars,
-        }
+        }  # type: T.Dict[str, T.Callable[[CMakeTraceLine], None]]
 
     def trace_args(self) -> T.List[str]:
         arg_map = {
@@ -256,7 +263,7 @@ class CMakeTraceParser:
         else:
             self.vars[identifier] = value.split(';')
 
-    def _cmake_unset(self, tline: CMakeTraceLine):
+    def _cmake_unset(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
         if len(tline.args) < 1:
             return self._gen_exception('unset', 'requires at least one argument', tline)
@@ -264,7 +271,7 @@ class CMakeTraceParser:
         if tline.args[0] in self.vars:
             del self.vars[tline.args[0]]
 
-    def _cmake_add_executable(self, tline: CMakeTraceLine):
+    def _cmake_add_executable(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_executable.html
         args = list(tline.args) # Make a working copy
 
@@ -280,7 +287,7 @@ class CMakeTraceParser:
 
         self.targets[args[0]] = CMakeTarget(args[0], 'EXECUTABLE', {}, tline=tline, imported=is_imported)
 
-    def _cmake_add_library(self, tline: CMakeTraceLine):
+    def _cmake_add_library(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_library.html
         args = list(tline.args) # Make a working copy
 
@@ -314,7 +321,7 @@ class CMakeTraceParser:
         else:
             self.targets[args[0]] = CMakeTarget(args[0], 'NORMAL', {}, tline=tline)
 
-    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name=None):
+    def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: T.Optional[str] = None) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
         args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' seperated lists
 
@@ -379,7 +386,7 @@ class CMakeTraceParser:
         if name:
             self.targets[name] = target
 
-    def _cmake_add_custom_target(self, tline: CMakeTraceLine):
+    def _cmake_add_custom_target(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_target.html
         # We only the first parameter (the target name) is interesting
         if len(tline.args) < 1:
@@ -494,7 +501,7 @@ class CMakeTraceParser:
         arglist = []  # type: T.List[T.Tuple[str, T.List[str]]]
         if self.trace_format == 'human':
             name = args.pop(0)
-            values = []
+            values = []  # type: T.List[str]
             prop_regex = re.compile(r'^[A-Z_]+$')
             for a in args:
                 if prop_regex.match(a):
@@ -550,7 +557,7 @@ class CMakeTraceParser:
         # DOC: https://cmake.org/cmake/help/latest/command/target_link_libraries.html
         self._parse_common_target_options('target_link_options', 'LINK_LIBRARIES', 'INTERFACE_LINK_LIBRARIES', tline)
 
-    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False):
+    def _parse_common_target_options(self, func: str, private_prop: str, interface_prop: str, tline: CMakeTraceLine, ignore: T.Optional[T.List[str]] = None, paths: bool = False) -> None:
         if ignore is None:
             ignore = ['BEFORE']
 
@@ -588,11 +595,11 @@ class CMakeTraceParser:
         interface = [x for x in interface if x]
         private = [x for x in private if x]
 
-        for i in [(private_prop, private), (interface_prop, interface)]:
-            if not i[0] in self.targets[target].properties:
-                self.targets[target].properties[i[0]] = []
+        for j in [(private_prop, private), (interface_prop, interface)]:
+            if not j[0] in self.targets[target].properties:
+                self.targets[target].properties[j[0]] = []
 
-            self.targets[target].properties[i[0]] += i[1]
+            self.targets[target].properties[j[0]] += j[1]
 
     def _meson_ps_execute_delayed_calls(self, tline: CMakeTraceLine) -> None:
         for l in self.stored_commands:
@@ -606,7 +613,7 @@ class CMakeTraceParser:
     def _meson_ps_reload_vars(self, tline: CMakeTraceLine) -> None:
         self.delayed_commands = self.get_cmake_var('MESON_PS_DELAYED_CALLS')
 
-    def _lex_trace_human(self, trace):
+    def _lex_trace_human(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
         reg_tline = re.compile(r'\s*(.*\.(cmake|txt))\(([0-9]+)\):\s*(\w+)\(([\s\S]*?) ?\)\s*\n', re.MULTILINE)
         reg_other = re.compile(r'[^\n]*\n')
@@ -629,17 +636,23 @@ class CMakeTraceParser:
             func = mo_file_line.group(4)
             args = mo_file_line.group(5)
             args = parse_generator_expressions(args)
-            args = args.split(' ')
-            args = list(map(lambda x: x.strip(), args))
+            argl = args.split(' ')
+            argl = list(map(lambda x: x.strip(), argl))
 
-            yield CMakeTraceLine(file, line, func, args)
+            yield CMakeTraceLine(file, int(line), func, argl)
 
-    def _lex_trace_json(self, trace: str):
+    def _lex_trace_json(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         lines = trace.splitlines(keepends=False)
         lines.pop(0)  # The first line is the version
         for i in lines:
             data = json.loads(i)
+            assert isinstance(data['file'], str)
+            assert isinstance(data['line'], int)
+            assert isinstance(data['cmd'],  str)
+            assert isinstance(data['args'], list)
             args = data['args']
+            for j in args:
+                assert isinstance(j, str)
             args = [parse_generator_expressions(x) for x in args]
             yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
 
