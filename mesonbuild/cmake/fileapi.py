@@ -27,8 +27,8 @@ class CMakeFileAPI:
         self.api_base_dir = os.path.join(self.build_dir, '.cmake', 'api', 'v1')
         self.request_dir = os.path.join(self.api_base_dir, 'query', 'client-meson')
         self.reply_dir = os.path.join(self.api_base_dir, 'reply')
-        self.cmake_sources = []
-        self.cmake_configurations = []
+        self.cmake_sources = []          # type: T.List[CMakeBuildFile]
+        self.cmake_configurations = []   # type: T.List[CMakeConfiguration]
         self.kind_resolver_map = {
             'codemodel': self._parse_codemodel,
             'cmakeFiles': self._parse_cmakeFiles,
@@ -87,7 +87,7 @@ class CMakeFileAPI:
 
             self.kind_resolver_map[i['kind']](i)
 
-    def _parse_codemodel(self, data: dict) -> None:
+    def _parse_codemodel(self, data: T.Dict[str, T.Any]) -> None:
         assert('configurations' in data)
         assert('paths' in data)
 
@@ -100,7 +100,7 @@ class CMakeFileAPI:
         # resolved and the resulting data structure is identical
         # to the CMake serve output.
 
-        def helper_parse_dir(dir_entry: dict) -> T.Tuple[str, str]:
+        def helper_parse_dir(dir_entry: T.Dict[str, T.Any]) -> T.Tuple[str, str]:
             src_dir = dir_entry.get('source', '.')
             bld_dir = dir_entry.get('build', '.')
             src_dir = src_dir if os.path.isabs(src_dir) else os.path.join(source_dir, src_dir)
@@ -110,7 +110,7 @@ class CMakeFileAPI:
 
             return src_dir, bld_dir
 
-        def parse_sources(comp_group: dict, tgt: dict) -> T.Tuple[T.List[str], T.List[str], T.List[int]]:
+        def parse_sources(comp_group: T.Dict[str, T.Any], tgt: T.Dict[str, T.Any]) -> T.Tuple[T.List[str], T.List[str], T.List[int]]:
             gen = []
             src = []
             idx = []
@@ -127,7 +127,7 @@ class CMakeFileAPI:
 
             return src, gen, idx
 
-        def parse_target(tgt: dict) -> dict:
+        def parse_target(tgt: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
             src_dir, bld_dir = helper_parse_dir(cnf.get('paths', {}))
 
             # Parse install paths (if present)
@@ -230,7 +230,7 @@ class CMakeFileAPI:
                 }]
             return tgt_data
 
-        def parse_project(pro: dict) -> dict:
+        def parse_project(pro: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
             # Only look at the first directory specified in directoryIndexes
             # TODO Figure out what the other indexes are there for
             p_src_dir = source_dir
@@ -268,7 +268,7 @@ class CMakeFileAPI:
 
             self.cmake_configurations += [CMakeConfiguration(cnf_data)]
 
-    def _parse_cmakeFiles(self, data: dict) -> None:
+    def _parse_cmakeFiles(self, data: T.Dict[str, T.Any]) -> None:
         assert('inputs' in data)
         assert('paths' in data)
 
@@ -309,10 +309,14 @@ class CMakeFileAPI:
 
         return data
 
-    def _reply_file_content(self, filename: str) -> dict:
+    def _reply_file_content(self, filename: str) -> T.Dict[str, T.Any]:
         real_path = os.path.join(self.reply_dir, filename)
         if not os.path.exists(real_path):
             raise CMakeException('File "{}" does not exist'.format(real_path))
 
         with open(real_path, 'r') as fp:
-            return json.load(fp)
+            data = json.load(fp)
+            assert isinstance(data, dict)
+            for i in data.keys():
+                assert isinstance(i, str)
+            return data
