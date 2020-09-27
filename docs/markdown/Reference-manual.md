@@ -599,8 +599,9 @@ be passed to [shared and static libraries](#library).
 - `extra_files`: not used for the build itself but are shown as
   source files in IDEs that group files by targets (such as Visual
   Studio)
-- `gui_app`: when set to true flags this target as a GUI application on
-  platforms where this makes a difference (e.g. Windows).
+- `gui_app`: when set to true flags this target as a GUI application
+  on platforms where this makes a differerence, **deprecated** since
+  0.56.0, use `win_subsystem` instead.
 - `link_args`: flags to use during linking. You can use UNIX-style
   flags here for all platforms.
 - `link_depends`: strings, files, or custom targets the link step
@@ -677,6 +678,12 @@ be passed to [shared and static libraries](#library).
 - `pie` *(since 0.49.0)*: build a position-independent executable
 - `native`: is a boolean controlling whether the target is compiled for the
   build or host machines. Defaults to false, building for the host machine.
+- `win_subsystem` *(since 0.56.0)* specifies the subsystem type to use
+  on the Windows platform. Typical values include `console` for text
+  mode programs and `windows` for gui apps. The value can also contain
+  version specification such as `windows,6.0'. See [MSDN
+  documentation](https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem)
+  for the full list. The default value is `console`.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while

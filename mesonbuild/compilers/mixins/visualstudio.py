@@ -205,6 +205,9 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         else:
             return ['/SUBSYSTEM:CONSOLE']
 
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return ['/SUBSYSTEM:' + value.upper()]
+
     def get_pic_args(self) -> T.List[str]:
         return [] # PIC is handled by the loader on Windows
 
