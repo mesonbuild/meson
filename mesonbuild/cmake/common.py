@@ -23,12 +23,12 @@ class CMakeException(MesonException):
     pass
 
 class CMakeBuildFile:
-    def __init__(self, file: str, is_cmake: bool, is_temp: bool):
+    def __init__(self, file: str, is_cmake: bool, is_temp: bool) -> None:
         self.file = file
         self.is_cmake = is_cmake
         self.is_temp = is_temp
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<{}: {}; cmake={}; temp={}>'.format(self.__class__.__name__, self.file, self.is_cmake, self.is_temp)
 
 def _flags_to_list(raw: str) -> T.List[str]:
@@ -80,29 +80,37 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
 
     return res
 
+class CMakeInclude:
+    def __init__(self, path: str, isSystem: bool = False):
+        self.path     = path
+        self.isSystem = isSystem
+
+    def __repr__(self) -> str:
+        return '<CMakeInclude: {} -- isSystem = {}>'.format(self.path, self.isSystem)
+
 class CMakeFileGroup:
-    def __init__(self, data: dict):
-        self.defines = data.get('defines', '')
-        self.flags = _flags_to_list(data.get('compileFlags', ''))
-        self.includes = data.get('includePath', [])
-        self.is_generated = data.get('isGenerated', False)
-        self.language = data.get('language', 'C')
-        self.sources = data.get('sources', [])
+    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+        self.defines      = data.get('defines', '')                       # type: str
+        self.flags        = _flags_to_list(data.get('compileFlags', ''))  # type: T.List[str]
+        self.is_generated = data.get('isGenerated', False)                # type: bool
+        self.language     = data.get('language', 'C')                     # type: str
+        self.sources      = data.get('sources', [])                       # type: T.List[str]
 
         # Fix the include directories
-        tmp = []
-        for i in self.includes:
+        self.includes = []  # type: T.List[CMakeInclude]
+        for i in data.get('includePath', []):
             if isinstance(i, dict) and 'path' in i:
-                i['isSystem'] = i.get('isSystem', False)
-                tmp += [i]
+                isSystem = i.get('isSystem', False)
+                assert isinstance(isSystem, bool)
+                assert isinstance(i['path'], str)
+                self.includes += [CMakeInclude(i['path'], isSystem)]
             elif isinstance(i, str):
-                tmp += [{'path': i, 'isSystem': False}]
-        self.includes = tmp
+                self.includes += [CMakeInclude(i)]
 
     def log(self) -> None:
         mlog.log('flags        =', mlog.bold(', '.join(self.flags)))
         mlog.log('defines      =', mlog.bold(', '.join(self.defines)))
-        mlog.log('includes     =', mlog.bold(', '.join(self.includes)))
+        mlog.log('includes     =', mlog.bold(', '.join([str(x) for x in self.includes])))
         mlog.log('is_generated =', mlog.bold('true' if self.is_generated else 'false'))
         mlog.log('language     =', mlog.bold(self.language))
         mlog.log('sources:')
@@ -111,22 +119,22 @@ class CMakeFileGroup:
                 mlog.log(i)
 
 class CMakeTarget:
-    def __init__(self, data: dict):
-        self.artifacts = data.get('artifacts', [])
-        self.src_dir = data.get('sourceDirectory', '')
-        self.build_dir = data.get('buildDirectory', '')
-        self.name = data.get('name', '')
-        self.full_name = data.get('fullName', '')
-        self.install = data.get('hasInstallRule', False)
-        self.install_paths = list(set(data.get('installPaths', [])))
-        self.link_lang = data.get('linkerLanguage', '')
-        self.link_libraries = _flags_to_list(data.get('linkLibraries', ''))
-        self.link_flags = _flags_to_list(data.get('linkFlags', ''))
-        self.link_lang_flags = _flags_to_list(data.get('linkLanguageFlags', ''))
-        # self.link_path = data.get('linkPath', '')
-        self.type = data.get('type', 'EXECUTABLE')
-        # self.is_generator_provided = data.get('isGeneratorProvided', False)
-        self.files = []
+    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+        self.artifacts               = data.get('artifacts', [])                            # type: T.List[str]
+        self.src_dir                 = data.get('sourceDirectory', '')                      # type: str
+        self.build_dir               = data.get('buildDirectory', '')                       # type: str
+        self.name                    = data.get('name', '')                                 # type: str
+        self.full_name               = data.get('fullName', '')                             # type: str
+        self.install                 = data.get('hasInstallRule', False)                    # type: bool
+        self.install_paths           = list(set(data.get('installPaths', [])))              # type: T.List[str]
+        self.link_lang               = data.get('linkerLanguage', '')                       # type: str
+        self.link_libraries          = _flags_to_list(data.get('linkLibraries', ''))        # type: T.List[str]
+        self.link_flags              = _flags_to_list(data.get('linkFlags', ''))            # type: T.List[str]
+        self.link_lang_flags         = _flags_to_list(data.get('linkLanguageFlags', ''))    # type: T.List[str]
+        # self.link_path             = data.get('linkPath', '')                             # type: str
+        self.type                    = data.get('type', 'EXECUTABLE')                       # type: str
+        # self.is_generator_provided = data.get('isGeneratorProvided', False)               # type: bool
+        self.files                   = []                                                   # type: T.List[CMakeFileGroup]
 
         for i in data.get('fileGroups', []):
             self.files += [CMakeFileGroup(i)]
@@ -152,11 +160,11 @@ class CMakeTarget:
                 i.log()
 
 class CMakeProject:
-    def __init__(self, data: dict):
-        self.src_dir = data.get('sourceDirectory', '')
-        self.build_dir = data.get('buildDirectory', '')
-        self.name = data.get('name', '')
-        self.targets = []
+    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+        self.src_dir   = data.get('sourceDirectory', '')   # type: str
+        self.build_dir = data.get('buildDirectory', '')    # type: str
+        self.name      = data.get('name', '')              # type: str
+        self.targets   = []                                # type: T.List[CMakeTarget]
 
         for i in data.get('targets', []):
             self.targets += [CMakeTarget(i)]
@@ -171,9 +179,9 @@ class CMakeProject:
                 i.log()
 
 class CMakeConfiguration:
-    def __init__(self, data: dict):
-        self.name = data.get('name', '')
-        self.projects = []
+    def __init__(self, data: T.Dict[str, T.Any]) -> None:
+        self.name     = data.get('name', '')   # type: str
+        self.projects = []                     # type: T.List[CMakeProject]
         for i in data.get('projects', []):
             self.projects += [CMakeProject(i)]
 

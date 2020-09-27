@@ -264,8 +264,8 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in args if x not in self.compile_opts[lang]]
 
             # Handle include directories
-            self.includes += [x['path'] for x in i.includes if x not in self.includes and not x['isSystem']]
-            self.sys_includes += [x['path'] for x in i.includes if x not in self.sys_includes and x['isSystem']]
+            self.includes += [x.path for x in i.includes if x not in self.includes and not x.isSystem]
+            self.sys_includes += [x.path for x in i.includes if x not in self.sys_includes and x.isSystem]
 
             # Add sources to the right array
             if i.is_generated:
