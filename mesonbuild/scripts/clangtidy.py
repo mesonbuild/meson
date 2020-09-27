@@ -15,6 +15,8 @@
 import pathlib
 import subprocess
 import shutil
+import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 import typing as T
 
@@ -42,7 +44,7 @@ def clangformat(srcdir_name: str, builddir_name: str) -> int:
             run_clang_tidy = rct
             break
     if run_clang_tidy:
-        return subprocess.run([run_clang_tidy, '-p', builddir_name]).returncode
+        return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) +').*$']).returncode
     else:
         print('Could not find run-clang-tidy, running checks manually.')
         manual_clangformat(srcdir_name, builddir_name)
