@@ -88,6 +88,7 @@ buildtarget_kwargs = set([
     'sources',
     'gnu_symbol_visibility',
     'link_language',
+    'win_subsystem',
 ])
 
 known_build_target_kwargs = (
@@ -924,11 +925,21 @@ This will become a hard error in a future Meson release.''')
             raise InvalidArguments('Main class must be a string')
         self.main_class = main_class
         if isinstance(self, Executable):
-            self.gui_app = kwargs.get('gui_app', False)
-            if not isinstance(self.gui_app, bool):
-                raise InvalidArguments('Argument gui_app must be boolean.')
+            # This kwarg is deprecated. The value of "none" means that the kwarg
+            # was not specified and win_subsystem should be used instead.
+            self.gui_app = None
+            if 'gui_app' in kwargs:
+                mlog.deprecation('The gui_app kwarg is deprecated, use win_subsystem instead.')
+                if 'win_subsystem' in kwargs:
+                    raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
+                self.gui_app = kwargs['gui_app']
+                if not isinstance(self.gui_app, bool):
+                    raise InvalidArguments('Argument gui_app must be boolean.')
+            self.win_subsystem = self.validate_win_subsystem(kwargs.get('win_subsystem', 'console'))
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
+        elif 'win_subsystem' in kwargs:
+            raise InvalidArguments('Argument win_subsystem can only be used on executables.')
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert(isinstance(i, File))
@@ -999,6 +1010,12 @@ This will become a hard error in a future Meson release.''')
             permitted = ['default', 'internal', 'hidden', 'protected', 'inlineshidden']
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
+
+    def validate_win_subsystem(self, value: str) -> str: 
+        value = value.lower()
+        if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+            raise InvalidArguments('Invalid value for win_subsystem: {}.'.format(value))
+        return value
 
     def _extract_pic_pie(self, kwargs, arg):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
