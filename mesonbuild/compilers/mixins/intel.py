@@ -195,3 +195,11 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
+        warning_text = 'command line warning #10006'
+        with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
+            if p.returncode != 0:
+                return False, p.cached
+            return not(warning_text in p.stderr or warning_text in p.stdout), p.cached
+
