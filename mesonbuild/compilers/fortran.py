@@ -29,7 +29,6 @@ from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
-from .. import mlog
 
 from mesonbuild.mesonlib import (
     version_compare, EnvironmentException, MesonException, MachineChoice, LibType
@@ -145,25 +144,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
         code = 'stop; end program'
         return self._find_library_impl(libname, env, extra_dirs, code, libtype)
 
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_arguments(args, env, 'stop; end program')
+
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        for arg in args[:]:
-            # some compilers, e.g. GCC, don't warn for unsupported warning-disable
-            # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
-            # check the equivalent enable flag too "-Wforgotten-towel"
-            # GCC does error for "-fno-foobar"
-            if arg.startswith('-Wno-'):
-                args.append('-W' + arg[5:])
-            if arg.startswith('-Wl,'):
-                mlog.warning('{} looks like a linker argument, '
-                             'but has_argument and other similar methods only '
-                             'support checking compiler arguments. Using them '
-                             'to check linker arguments are never supported, '
-                             'and results are likely to be wrong regardless of '
-                             'the compiler you are using. has_link_argument or '
-                             'other similar method can be used instead.'
-                             .format(arg))
-        code = 'stop; end program'
-        return self.has_arguments(args, env, code, mode='compile')
+        return self._has_multi_link_arguments(args, env, 'stop; end program')
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):

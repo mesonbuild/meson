@@ -1222,7 +1222,7 @@ class CLikeCompiler(Compiler):
                       mode: str) -> T.Tuple[bool, bool]:
         return self.compiles(code, env, extra_args=args, mode=mode)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
         new_args = []  # type: T.List[str]
         for arg in args:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -1240,17 +1240,21 @@ class CLikeCompiler(Compiler):
                              'other similar method can be used instead.'
                              .format(arg))
             new_args.append(arg)
-        code = 'extern int i;\nint i;\n'
         return self.has_arguments(new_args, env, code, mode='compile')
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_arguments(args, env, 'extern int i;\nint i;\n')
+
+    def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
         # First time we check for link flags we need to first check if we have
         # --fatal-warnings, otherwise some linker checks could give some
         # false positive.
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
-        code = 'int main(void) { return 0; }\n'
         return self.has_arguments(args, env, code, mode='link')
+
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_link_arguments(args, env, 'int main(void) { return 0; }\n')
 
     @staticmethod
     def _concatenate_string_literals(s: str) -> str:
