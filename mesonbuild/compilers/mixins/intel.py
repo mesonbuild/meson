@@ -24,6 +24,7 @@ import os
 import typing as T
 
 from ... import mesonlib
+from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
@@ -99,13 +100,8 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         else:
             return ['-openmp']
 
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], 'CompilerArgs'] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        extra_args = extra_args.copy() if extra_args is not None else []
-        extra_args += [
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        extra_args = [
             '-diag-error', '10006',  # ignoring unknown option
             '-diag-error', '10148',  # Option not supported
             '-diag-error', '10155',  # ignoring argument required
@@ -113,7 +109,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
             '-diag-error', '10157',  # Ignoring argument of the wrong type
             '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
         ]
-        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
+        return super().get_compiler_check_args(mode) + extra_args
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-prof-gen=threadsafe']
@@ -157,15 +153,10 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'intel-cl'
 
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], 'CompilerArgs'] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        # This covers a case that .get('foo', []) doesn't, that extra_args is
-        if mode != 'link':
-            extra_args = extra_args.copy() if extra_args is not None else []
-            extra_args.extend([
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        args = super().get_compiler_check_args(mode)
+        if mode is not CompileCheckMode.LINK:
+            args.extend([
                 '/Qdiag-error:10006',  # ignoring unknown option
                 '/Qdiag-error:10148',  # Option not supported
                 '/Qdiag-error:10155',  # ignoring argument required
@@ -173,7 +164,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
                 '/Qdiag-error:10157',  # Ignoring argument of the wrong type
                 '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
             ])
-        return super().compiles(code, env, extra_args=extra_args, dependencies=dependencies, mode=mode, disable_cache=disable_cache)
+        return args
 
     def get_toolset_version(self) -> T.Optional[str]:
         # Avoid circular dependencies....

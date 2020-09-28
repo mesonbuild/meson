@@ -385,10 +385,10 @@ class CLikeCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def _get_basic_compiler_args(self, env: 'Environment', mode: str) -> T.Tuple[T.List[str], T.List[str]]:
+    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
         cargs = []  # type: T.List[str]
         largs = []  # type: T.List[str]
-        if mode == 'link':
+        if mode is CompileCheckMode.LINK:
             # Sometimes we need to manually select the CRT to use with MSVC.
             # One example is when trying to do a compiler check that involves
             # linking with static libraries since MSVC won't select a CRT for
@@ -409,7 +409,7 @@ class CLikeCompiler(Compiler):
         cleaned_sys_args = self.remove_linkerlike_args(sys_args)
         cargs += cleaned_sys_args
 
-        if mode == 'link':
+        if mode is CompileCheckMode.LINK:
             ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
                 largs += self.use_linker_args(ld_value[0])
@@ -433,7 +433,7 @@ class CLikeCompiler(Compiler):
         else:
             # TODO: we want to do this in the caller
             extra_args = mesonlib.listify(extra_args)
-        extra_args = mesonlib.listify([e(mode) if callable(e) else e for e in extra_args])
+        extra_args = mesonlib.listify([e(mode.value) if callable(e) else e for e in extra_args])
 
         if dependencies is None:
             dependencies = []
@@ -446,7 +446,7 @@ class CLikeCompiler(Compiler):
         for d in dependencies:
             # Add compile flags needed by dependencies
             cargs += d.get_compile_args()
-            if mode == 'link':
+            if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()
 
@@ -476,7 +476,7 @@ class CLikeCompiler(Compiler):
     def _build_wrapper(self, code: str, env: 'Environment',
                        extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = CompileCheckMode.COMPILE, want_output: bool = False,
+                       mode: str = 'compile', want_output: bool = False,
                        disable_cache: bool = False,
                        temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]:
         args = self._get_compiler_check_args(env, extra_args, dependencies, CompileCheckMode(mode))
