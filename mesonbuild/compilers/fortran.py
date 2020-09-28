@@ -36,31 +36,35 @@ from mesonbuild.mesonlib import (
 )
 
 if T.TYPE_CHECKING:
+    from ..coredata import OptionDictType
+    from ..dependencies import Dependency, ExternalProgram
     from ..envconfig import MachineInfo
+    from ..environment import Environment
+    from ..linkers import DynamicLinker
 
 
 class FortranCompiler(CLikeCompiler, Compiler):
 
     language = 'fortran'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross: bool, info: 'MachineInfo', exe_wrapper=None, **kwargs):
-        Compiler.__init__(self, exelist, version, for_machine, info, is_cross=is_cross, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        Compiler.__init__(self, exelist, version, for_machine, info,
+                          is_cross=is_cross, full_version=full_version, linker=linker)
         CLikeCompiler.__init__(self, exe_wrapper)
-        self.id = 'unknown'
 
-    def has_function(self, funcname, prefix, env, *, extra_args=None, dependencies=None):
+    def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
+                     extra_args: T.Optional[T.List[str]] = None,
+                     dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise MesonException('Fortran does not have "has_function" capability.\n'
                              'It is better to test if a Fortran capability is working like:\n\n'
                              "meson.get_compiler('fortran').links('block; end block; end program')\n\n"
                              'that example is to see if the compiler has Fortran 2008 Block element.')
 
-    def sanity_check(self, work_dir: Path, environment):
-        """
-        Check to be sure a minimal program can compile and execute
-          with this compiler & platform.
-        """
-        work_dir = Path(work_dir)
+    def sanity_check(self, work_dir_: str, environment: 'Environment') -> None:
+        work_dir = Path(work_dir_)
         source_name = work_dir / 'sanitycheckf.f90'
         binary_name = work_dir / 'sanitycheckf'
         if binary_name.is_file():
@@ -96,28 +100,26 @@ class FortranCompiler(CLikeCompiler, Compiler):
         except OSError:
             raise EnvironmentException('Executables created by Fortran compiler %s are not runnable.' % self.name_string())
 
-    def get_std_warn_args(self, level):
-        return FortranCompiler.std_warn_args
-
-    def get_buildtype_args(self, buildtype):
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return gnulike_buildtype_args[buildtype]
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return gnu_optimization_args[optimization_level]
 
-    def get_debug_args(self, is_debug):
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return clike_debug_args[is_debug]
 
-    def get_preprocess_only_args(self):
+    def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp'] + super().get_preprocess_only_args()
 
-    def get_module_incdir_args(self):
+    def get_module_incdir_args(self) -> T.Tuple[str, ...]:
         return ('-I', )
 
-    def get_module_outdir_args(self, path):
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-module', path]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
+                                               build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
@@ -138,11 +140,12 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
         return filename
 
-    def find_library(self, libname, env, extra_dirs, libtype: LibType = LibType.PREFER_SHARED):
+    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
         code = 'stop; end program'
         return self._find_library_impl(libname, env, extra_dirs, code, libtype)
 
-    def has_multi_arguments(self, args: T.Sequence[str], env):
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         for arg in args[:]:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
             # flags, so when we are testing a flag like "-Wno-forgotten-towel", also
@@ -164,11 +167,15 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 defines=None, **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
@@ -176,7 +183,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
-    def get_options(self):
+    def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003']
         if version_compare(self.version, '>=4.4.0'):
@@ -192,14 +199,14 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
         })
         return opts
 
-    def get_option_compile_args(self, options) -> T.List[str]:
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
 
-    def get_dependency_gen_args(self, outtarget, outfile) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         # Disabled until this is fixed:
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=62162
         # return ['-cpp', '-MD', '-MQ', outtarget]
@@ -211,7 +218,10 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lgfortran', '-lm']
 
-    def has_header(self, hname, prefix, env, *, extra_args=None, dependencies=None, disable_cache=False):
+    def has_header(self, hname: str, prefix: str, env: 'Environment', *,
+                   extra_args: T.Optional[T.List[str]] = None,
+                   dependencies: T.Optional[T.List['Dependency']] = None,
+                   disable_cache: bool = False) -> T.Tuple[bool, bool]:
         '''
         Derived from mixins/clike.py:has_header, but without C-style usage of
         __has_include which breaks with GCC-Fortran 10:
@@ -224,22 +234,27 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
 
 class ElbrusFortranCompiler(GnuFortranCompiler, ElbrusCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 defines=None, **kwargs):
-        GnuFortranCompiler.__init__(self, exelist, version, for_machine,
-                                    is_cross, info, exe_wrapper, defines,
-                                    **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        GnuFortranCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                                    info, exe_wrapper, defines=defines,
+                                    linker=linker, full_version=full_version)
         ElbrusCompiler.__init__(self)
 
 class G95FortranCompiler(FortranCompiler):
 
     LINKER_PREFIX = '-Wl,'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None, **kwargs):
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         self.id = 'g95'
         default_warn_args = ['-Wall']
         self.warn_args = {'0': [],
@@ -250,7 +265,7 @@ class G95FortranCompiler(FortranCompiler):
     def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-fmod=' + path]
 
-    def get_no_warn_args(self):
+    def get_no_warn_args(self) -> T.List[str]:
         # FIXME: Confirm that there's no compiler option to disable all warnings
         return []
 
@@ -259,22 +274,25 @@ class SunFortranCompiler(FortranCompiler):
 
     LINKER_PREFIX = '-Wl,'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
-        FortranCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        FortranCompiler.__init__(self, exelist, version, for_machine,
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         self.id = 'sun'
 
-    def get_dependency_gen_args(self, outtarget, outfile) -> T.List[str]:
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-fpp']
 
-    def get_always_args(self):
+    def get_always_args(self) -> T.List[str]:
         return []
 
-    def get_warn_args(self, level):
+    def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
-    def get_module_incdir_args(self):
+    def get_module_incdir_args(self) -> T.Tuple[str, ...]:
         return ('-M', )
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
@@ -286,12 +304,15 @@ class SunFortranCompiler(FortranCompiler):
 
 class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
-        self.file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp')
+    file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         # FIXME: Add support for OS X and Windows in detect_fortran_compiler so
         # we are sent the type of compiler
         IntelGnuLikeCompiler.__init__(self)
@@ -302,7 +323,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['-warn', 'unused'],
                           '3': ['-warn', 'all']}
 
-    def get_options(self):
+    def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
         opts.update({
@@ -314,7 +335,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
         })
         return opts
 
-    def get_option_compile_args(self, options) -> T.List[str]:
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -325,7 +346,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp', '-EP']
 
-    def get_always_args(self):
+    def get_always_args(self) -> T.List[str]:
         """Ifort doesn't have -pipe."""
         val = super().get_always_args()
         val.remove('-pipe')
@@ -340,14 +361,17 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
 class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
-    file_suffixes = ['f90', 'f', 'for', 'ftn', 'fpp']
+    file_suffixes = ('f90', 'f', 'for', 'ftn', 'fpp', )
     always_args = ['/nologo']
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, target: str, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, target: str, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
         default_warn_args = ['/warn:general', '/warn:truncated_source']
@@ -356,7 +380,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['/warn:unused'],
                           '3': ['/warn:all']}
 
-    def get_options(self):
+    def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
         opts.update({
@@ -368,7 +392,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
         })
         return opts
 
-    def get_option_compile_args(self, options) -> T.List[str]:
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
@@ -376,16 +400,19 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
             args.append('/stand:' + stds[std.value])
         return args
 
-    def get_module_outdir_args(self, path) -> T.List[str]:
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['/module:' + path]
 
 
 class PathScaleFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         self.id = 'pathscale'
         default_warn_args = ['-fullwarn']
         self.warn_args = {'0': [],
@@ -398,11 +425,14 @@ class PathScaleFortranCompiler(FortranCompiler):
 
 
 class PGIFortranCompiler(PGICompiler, FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         PGICompiler.__init__(self)
 
         default_warn_args = ['-Minform=inform']
@@ -417,11 +447,14 @@ class PGIFortranCompiler(PGICompiler, FortranCompiler):
 
 
 class NvidiaHPC_FortranCompiler(PGICompiler, FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         PGICompiler.__init__(self)
 
         self.id = 'nvidia_hpc'
@@ -433,12 +466,15 @@ class NvidiaHPC_FortranCompiler(PGICompiler, FortranCompiler):
 
 
 class FlangFortranCompiler(ClangCompiler, FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, [])
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
+        ClangCompiler.__init__(self, {})
         self.id = 'flang'
         default_warn_args = ['-Minform=inform']
         self.warn_args = {'0': [],
@@ -450,11 +486,14 @@ class FlangFortranCompiler(ClangCompiler, FortranCompiler):
         return ['-lflang', '-lpgmath']
 
 class Open64FortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         self.id = 'open64'
         default_warn_args = ['-fullwarn']
         self.warn_args = {'0': [],
@@ -467,17 +506,20 @@ class Open64FortranCompiler(FortranCompiler):
 
 
 class NAGFortranCompiler(FortranCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
         FortranCompiler.__init__(self, exelist, version, for_machine,
-                                 is_cross, info, exe_wrapper, **kwargs)
+                                 is_cross, info, exe_wrapper, linker=linker,
+                                 full_version=full_version)
         self.id = 'nagfor'
 
-    def get_warn_args(self, level):
+    def get_warn_args(self, level: str) -> T.List[str]:
         return []
 
-    def get_module_outdir_args(self, path) -> T.List[str]:
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
         return ['-mdir', path]
 
     def openmp_flags(self) -> T.List[str]:
