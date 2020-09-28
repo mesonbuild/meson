@@ -26,6 +26,7 @@ from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
     Compiler,
+    CompileCheckMode,
 )
 from .c_function_attributes import CXX_FUNC_ATTRIBUTES, C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -90,11 +91,11 @@ class CPPCompiler(CLikeCompiler, Compiler):
         code = 'class breakCCompiler;int main(void) { return 0; }\n'
         return self._sanity_check_impl(work_dir, environment, 'sanitycheckcpp.cc', code)
 
-    def get_compiler_check_args(self) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # -fpermissive allows non-conforming code to compile which is necessary
         # for many C++ checks. Particularly, the has_header_symbol check is
         # too strict without this and always fails.
-        return super().get_compiler_check_args() + ['-fpermissive']
+        return super().get_compiler_check_args(mode) + ['-fpermissive']
 
     def has_header_symbol(self, hname: str, symbol: str, prefix: str,
                           env: 'Environment', *,
@@ -605,9 +606,9 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
 
         return args
 
-    def get_compiler_check_args(self) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         # XXX: this is a hack because so much GnuLike stuff is in the base CPPCompiler class.
-        return CLikeCompiler.get_compiler_check_args(self)
+        return Compiler.get_compiler_check_args(self, mode)
 
 
 class CPP11AsCPP14Mixin(CompilerMixinBase):
@@ -739,7 +740,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return []
 
-    def get_compiler_check_args(self) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []
 
 
@@ -768,7 +769,7 @@ class CcrxCPPCompiler(CcrxCompiler, CPPCompiler):
     def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return []
 
-    def get_compiler_check_args(self) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []
 
 class C2000CPPCompiler(C2000Compiler, CPPCompiler):
@@ -802,5 +803,5 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
     def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
         return []
 
-    def get_compiler_check_args(self) -> T.List[str]:
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         return []

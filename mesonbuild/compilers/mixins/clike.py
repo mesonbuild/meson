@@ -37,6 +37,7 @@ from ... import mlog
 from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
+from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -184,13 +185,6 @@ class CLikeCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_compiler_check_args(self) -> T.List[str]:
-        '''
-        Get arguments useful for compiler checks such as being permissive in
-        the code quality and not doing any optimization.
-        '''
-        return self.get_no_optimization_args()
-
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
@@ -296,7 +290,7 @@ class CLikeCompiler(Compiler):
 
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
-        mode = 'link'
+        mode = CompileCheckMode.LINK
         if self.is_cross:
             binname += '_cross'
             if self.exe_wrapper is None:
@@ -305,7 +299,7 @@ class CLikeCompiler(Compiler):
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
-                mode = 'compile'
+                mode = CompileCheckMode.COMPILE
         cargs, largs = self._get_basic_compiler_args(environment, mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
 
@@ -432,7 +426,7 @@ class CLikeCompiler(Compiler):
     def _get_compiler_check_args(self, env: 'Environment',
                                  extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
                                  dependencies: T.Optional[T.List['Dependency']],
-                                 mode: str = 'compile') -> arglist.CompilerArgs:
+                                 mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
         # TODO: the caller should handle the listfing of these arguments
         if extra_args is None:
             extra_args = []
@@ -460,7 +454,7 @@ class CLikeCompiler(Compiler):
         cargs += ca
         largs += la
 
-        cargs += self.get_compiler_check_args()
+        cargs += self.get_compiler_check_args(mode)
 
         # on MSVC compiler and linker flags must be separated by the "/link" argument
         # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
@@ -482,10 +476,10 @@ class CLikeCompiler(Compiler):
     def _build_wrapper(self, code: str, env: 'Environment',
                        extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
                        dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
+                       mode: str = CompileCheckMode.COMPILE, want_output: bool = False,
                        disable_cache: bool = False,
                        temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]:
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
+        args = self._get_compiler_check_args(env, extra_args, dependencies, CompileCheckMode(mode))
         if disable_cache or want_output:
             with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
                 yield r
@@ -720,7 +714,7 @@ class CLikeCompiler(Compiler):
         #endif
         {delim}\n{define}'''
         args = self._get_compiler_check_args(env, extra_args, dependencies,
-                                             mode='preprocess').to_native()
+                                             mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
             func = functools.partial(self.compile, code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
@@ -966,7 +960,7 @@ class CLikeCompiler(Compiler):
         }
         #endif
         '''
-        args = self.get_compiler_check_args()
+        args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
         n = 'symbols_have_underscore_prefix'
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:

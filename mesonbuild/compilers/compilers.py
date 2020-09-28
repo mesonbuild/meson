@@ -14,6 +14,7 @@
 
 import abc
 import contextlib, os.path, re, tempfile
+import enum
 import itertools
 import typing as T
 from functools import lru_cache
@@ -164,6 +165,14 @@ def is_known_suffix(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
 
     return suffix in all_suffixes
+
+
+class CompileCheckMode(enum.Enum):
+
+    PREPROCESS = 'preprocess'
+    COMPILE = 'compile'
+    LINK = 'link'
+
 
 cuda_buildtype_args = {'plain': [],
                        'debug': [],
@@ -716,14 +725,16 @@ class Compiler(metaclass=abc.ABCMeta):
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
-    def get_compiler_args_for_mode(self, mode: str) -> T.List[str]:
+    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
         # TODO: mode should really be an enum
         args = []  # type: T.List[str]
         args += self.get_always_args()
-        if mode == 'compile':
+        if mode is CompileCheckMode.COMPILE:
             args += self.get_compile_only_args()
-        if mode == 'preprocess':
+        elif mode is CompileCheckMode.PREPROCESS:
             args += self.get_preprocess_only_args()
+        else:
+            assert mode is CompileCheckMode.LINK
         return args
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
@@ -761,7 +772,7 @@ class Compiler(metaclass=abc.ABCMeta):
                 if mode != 'preprocess':
                     output = self._get_compile_output(tmpdirname, mode)
                     commands += self.get_output_args(output)
-                commands.extend(self.get_compiler_args_for_mode(mode))
+                commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
                 # extra_args must be last because it could contain '/link' to
                 # pass args to VisualStudio's linker. In that case everything
                 # in the command line after '/link' is given to the linker.
@@ -1105,6 +1116,21 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def module_name_to_filename(self, module_name: str) -> str:
         raise EnvironmentError('{} does not implement module_name_to_filename'.format(self.id))
+
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        """Arguments to pass the compiler and/or linker for checks.
+
+        The default implementation turns off optimizations. mode should be
+        one of:
+
+        Examples of things that go here:
+          - extra arguments for error checking
+        """
+        return self.get_no_optimization_args()
+
+    def get_no_optimization_args(self) -> T.List[str]:
+        """Arguments to the compiler to turn off all optimizations."""
+        return []
 
 
 def get_args_from_envvars(lang: str,
