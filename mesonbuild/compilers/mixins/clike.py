@@ -20,7 +20,6 @@ of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
 
-import contextlib
 import collections
 import functools
 import glob
@@ -423,10 +422,10 @@ class CLikeCompiler(Compiler):
         cargs += self.get_compiler_args_for_mode(mode)
         return cargs, largs
 
-    def _get_compiler_check_args(self, env: 'Environment',
-                                 extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
-                                 dependencies: T.Optional[T.List['Dependency']],
-                                 mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
+    def build_wrapper_args(self, env: 'Environment',
+                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
+                           dependencies: T.Optional[T.List['Dependency']],
+                           mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
         # TODO: the caller should handle the listfing of these arguments
         if extra_args is None:
             extra_args = []
@@ -463,37 +462,6 @@ class CLikeCompiler(Compiler):
 
         args = cargs + extra_args + largs
         return args
-
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
-            return p.returncode == 0, p.cached
-
-    @contextlib.contextmanager
-    def _build_wrapper(self, code: str, env: 'Environment',
-                       extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
-                       dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
-                       disable_cache: bool = False,
-                       temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]:
-        args = self._get_compiler_check_args(env, extra_args, dependencies, CompileCheckMode(mode))
-        if disable_cache or want_output:
-            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
-                yield r
-        else:
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
-                yield r
-
-    def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
-              dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
@@ -713,7 +681,7 @@ class CLikeCompiler(Compiler):
         # define {define}
         #endif
         {delim}\n{define}'''
-        args = self._get_compiler_check_args(env, extra_args, dependencies,
+        args = self.build_wrapper_args(env, extra_args, dependencies,
                                              mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:

@@ -642,20 +642,6 @@ class Compiler(metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
-
-    def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-              dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
-
     def run(self, code: str, env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
@@ -1131,6 +1117,80 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_no_optimization_args(self) -> T.List[str]:
         """Arguments to the compiler to turn off all optimizations."""
         return []
+
+    def build_wrapper_args(self, env: 'Environment',
+                           extra_args: T.Union[None, CompilerArgs, T.List[str]],
+                           dependencies: T.Optional[T.List['Dependency']],
+                           mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
+        """Arguments to pass the build_wrapper helper.
+
+        This generally needs to be set on a per-language baises. It provides
+        a hook for languages to handle dependencies and extra args. The base
+        implementation handles the most common cases, namely adding the
+        check_arguments, unwrapping dependencies, and appending extra args.
+        """
+        if callable(extra_args):
+            extra_args = extra_args(mode)
+        if extra_args is None:
+            extra_args = []
+        if dependencies is None:
+            dependencies = []
+
+        # Collect compiler arguments
+        args = self.compiler_args(self.get_compiler_check_args(mode))
+        for d in dependencies:
+            # Add compile flags needed by dependencies
+            args += d.get_compile_args()
+            if mode is CompileCheckMode.LINK:
+                # Add link flags needed to find dependencies
+                args += d.get_link_args()
+
+        if mode is CompileCheckMode.COMPILE:
+            # Add DFLAGS from the env
+            args += env.coredata.get_external_args(self.for_machine, self.language)
+        elif mode is CompileCheckMode.LINK:
+            # Add LDFLAGS from the env
+            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return args
+
+    @contextlib.contextmanager
+    def _build_wrapper(self, code: str, env: 'Environment',
+                       extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
+                       dependencies: T.Optional[T.List['Dependency']] = None,
+                       mode: str = 'compile', want_output: bool = False,
+                       disable_cache: bool = False,
+                       temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
+        """Helper for getting a cacched value when possible.
+
+        This method isn't meant to be called externally, it's mean to be
+        wrapped by other methods like compiles() and links().
+        """
+        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        if disable_cache or want_output:
+            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
+                yield r
+        else:
+            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
+                yield r
+
+    def compiles(self, code: str, env: 'Environment', *,
+                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None,
+                 mode: str = 'compile',
+                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+            return p.returncode == 0, p.cached
+
+
+    def links(self, code: str, env: 'Environment', *,
+              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+              dependencies: T.Optional[T.List['Dependency']] = None,
+              mode: str = 'compile',
+              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        return self.compiles(code, env, extra_args=extra_args,
+                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
 
 def get_args_from_envvars(lang: str,
