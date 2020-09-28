@@ -21,6 +21,7 @@ modules = [
     'mesonbuild/compilers/c_function_attributes.py',
     'mesonbuild/compilers/cpp.py',
     'mesonbuild/compilers/cuda.py',
+    'mesonbuild/compilers/d.py',
     'mesonbuild/compilers/fortran.py',
     'mesonbuild/compilers/java.py',
     'mesonbuild/compilers/objc.py',

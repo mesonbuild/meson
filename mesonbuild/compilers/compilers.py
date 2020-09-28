@@ -1192,6 +1192,11 @@ class Compiler(metaclass=abc.ABCMeta):
         return self.compiles(code, env, extra_args=extra_args,
                              dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
+    def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
+        """Used by D for extra language features."""
+        # TODO: using a TypeDict here would improve this
+        raise EnvironmentError('{} does not implement get_feature_args'.format(self.id))
+
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,
