@@ -23,6 +23,7 @@ modules = [
     'mesonbuild/compilers/cuda.py',
     'mesonbuild/compilers/objc.py',
     'mesonbuild/compilers/objcpp.py',
+    'mesonbuild/compilers/rust.py',
     'mesonbuild/compilers/swift.py',
     'mesonbuild/compilers/vala.py',
     # 'mesonbuild/coredata.py',
