@@ -464,6 +464,7 @@ class InterpreterBase:
         self.funcs = {}    # type: T.Dict[str, T.Callable[[mparser.BaseNode, T.List[TYPE_nvar], T.Dict[str, TYPE_nvar]], TYPE_var]]
         self.builtin = {}  # type: T.Dict[str, InterpreterObject]
         self.subdir = subdir
+        self.root_subdir = subdir
         self.subproject = subproject
         self.variables = {}  # type: T.Dict[str, TYPE_var]
         self.argument_depth = 0

@@ -1924,6 +1924,8 @@ class MesonMain(InterpreterObject):
                              'current_build_dir': self.current_build_dir_method,
                              'source_root': self.source_root_method,
                              'build_root': self.build_root_method,
+                             'project_source_root': self.project_source_root_method,
+                             'project_build_root': self.project_build_root_method,
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
                              'add_dist_script': self.add_dist_script_method,
@@ -2070,6 +2072,26 @@ class MesonMain(InterpreterObject):
     @FeatureDeprecated('meson.build_root', '0.56.0', 'use meson.current_build_dir instead.')
     def build_root_method(self, args, kwargs):
         return self.interpreter.environment.build_dir
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('meson.project_source_root', '0.56.0')
+    def project_source_root_method(self, args, kwargs):
+        src = self.interpreter.environment.source_dir
+        sub = self.interpreter.root_subdir
+        if sub == '':
+            return src
+        return os.path.join(src, sub)
+
+    @noPosargs
+    @permittedKwargs({})
+    @FeatureNew('meson.project_build_root', '0.56.0')
+    def project_build_root_method(self, args, kwargs):
+        src = self.interpreter.environment.build_dir
+        sub = self.interpreter.root_subdir
+        if sub == '':
+            return src
+        return os.path.join(src, sub)
 
     @noPosargs
     @permittedKwargs({})
