@@ -17,7 +17,6 @@
 
 from .common import CMakeException, CMakeConfiguration, CMakeBuildFile
 from .executor import CMakeExecutor
-from ..environment import Environment
 from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
@@ -25,6 +24,9 @@ from subprocess import Popen, PIPE, TimeoutExpired
 import typing as T
 import json
 import os
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
 
 CMAKE_SERVER_BEGIN_STR = '[== "CMake Server" ==['
 CMAKE_SERVER_END_STR = ']== "CMake Server" ==]'
@@ -36,7 +38,7 @@ CMAKE_MESSAGE_TYPES = {
     'progress': ['cookie'],
     'reply': ['cookie', 'inReplyTo'],
     'signal': ['cookie', 'name'],
-}
+}  # type: T.Dict[str, T.List[str]]
 
 CMAKE_REPLY_TYPES = {
     'handshake': [],
@@ -44,16 +46,16 @@ CMAKE_REPLY_TYPES = {
     'compute': [],
     'cmakeInputs': ['buildFiles', 'cmakeRootDirectory', 'sourceDirectory'],
     'codemodel': ['configurations']
-}
+}  # type: T.Dict[str, T.List[str]]
 
 # Base CMake server message classes
 
 class MessageBase:
-    def __init__(self, msg_type: str, cookie: str):
+    def __init__(self, msg_type: str, cookie: str) -> None:
         self.type = msg_type
         self.cookie = cookie
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> T.Dict[str, T.Union[str, T.List[str], T.Dict[str, int]]]:
         return {'type': self.type, 'cookie': self.cookie}
 
     def log(self) -> None:
@@ -62,21 +64,21 @@ class MessageBase:
 class RequestBase(MessageBase):
     cookie_counter = 0
 
-    def __init__(self, msg_type: str):
+    def __init__(self, msg_type: str) -> None:
         super().__init__(msg_type, self.gen_cookie())
 
     @staticmethod
-    def gen_cookie():
+    def gen_cookie() -> str:
         RequestBase.cookie_counter += 1
         return 'meson_{}'.format(RequestBase.cookie_counter)
 
 class ReplyBase(MessageBase):
-    def __init__(self, cookie: str, in_reply_to: str):
+    def __init__(self, cookie: str, in_reply_to: str) -> None:
         super().__init__('reply', cookie)
         self.in_reply_to = in_reply_to
 
 class SignalBase(MessageBase):
-    def __init__(self, cookie: str, signal_name: str):
+    def __init__(self, cookie: str, signal_name: str) -> None:
         super().__init__('signal', cookie)
         self.signal_name = signal_name
 
@@ -86,7 +88,7 @@ class SignalBase(MessageBase):
 # Special Message classes
 
 class Error(MessageBase):
-    def __init__(self, cookie: str, message: str):
+    def __init__(self, cookie: str, message: str) -> None:
         super().__init__('error', cookie)
         self.message = message
 
@@ -94,7 +96,7 @@ class Error(MessageBase):
         mlog.error(mlog.bold('CMake server error:'), mlog.red(self.message))
 
 class Message(MessageBase):
-    def __init__(self, cookie: str, message: str):
+    def __init__(self, cookie: str, message: str) -> None:
         super().__init__('message', cookie)
         self.message = message
 
@@ -103,19 +105,21 @@ class Message(MessageBase):
         pass
 
 class Progress(MessageBase):
-    def __init__(self, cookie: str):
+    def __init__(self, cookie: str) -> None:
         super().__init__('progress', cookie)
 
     def log(self) -> None:
         pass
 
 class MessageHello(MessageBase):
-    def __init__(self, supported_protocol_versions: T.List[dict]):
+    def __init__(self, supported_protocol_versions: T.List[T.Dict[str, int]]) -> None:
         super().__init__('hello', '')
         self.supported_protocol_versions = supported_protocol_versions
 
     def supports(self, major: int, minor: T.Optional[int] = None) -> bool:
         for i in self.supported_protocol_versions:
+            assert 'major' in i
+            assert 'minor' in i
             if major == i['major']:
                 if minor is None or minor == i['minor']:
                     return True
@@ -124,7 +128,7 @@ class MessageHello(MessageBase):
 # Request classes
 
 class RequestHandShake(RequestBase):
-    def __init__(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None):
+    def __init__(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
         super().__init__('handshake')
         self.src_dir = src_dir
         self.build_dir = build_dir
@@ -132,7 +136,7 @@ class RequestHandShake(RequestBase):
         self.vers_major = vers_major
         self.vers_minor = vers_minor
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> T.Dict[str, T.Union[str, T.List[str], T.Dict[str, int]]]:
         vers = {'major': self.vers_major}
         if self.vers_minor is not None:
             vers['minor'] = self.vers_minor
@@ -154,40 +158,40 @@ class RequestConfigure(RequestBase):
         super().__init__('configure')
         self.args = args
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> T.Dict[str, T.Union[str, T.List[str], T.Dict[str, int]]]:
         res = super().to_dict()
         if self.args:
             res['cacheArguments'] = self.args
         return res
 
 class RequestCompute(RequestBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('compute')
 
 class RequestCMakeInputs(RequestBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('cmakeInputs')
 
 class RequestCodeModel(RequestBase):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('codemodel')
 
 # Reply classes
 
 class ReplyHandShake(ReplyBase):
-    def __init__(self, cookie: str):
+    def __init__(self, cookie: str) -> None:
         super().__init__(cookie, 'handshake')
 
 class ReplyConfigure(ReplyBase):
-    def __init__(self, cookie: str):
+    def __init__(self, cookie: str) -> None:
         super().__init__(cookie, 'configure')
 
 class ReplyCompute(ReplyBase):
-    def __init__(self, cookie: str):
+    def __init__(self, cookie: str) -> None:
         super().__init__(cookie, 'compute')
 
 class ReplyCMakeInputs(ReplyBase):
-    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: T.List[CMakeBuildFile]):
+    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: T.List[CMakeBuildFile]) -> None:
         super().__init__(cookie, 'cmakeInputs')
         self.cmake_root = cmake_root
         self.src_dir = src_dir
@@ -202,7 +206,7 @@ class ReplyCMakeInputs(ReplyBase):
                 mlog.log(str(i))
 
 class ReplyCodeModel(ReplyBase):
-    def __init__(self, data: dict):
+    def __init__(self, data: T.Dict[str, T.Any]) -> None:
         super().__init__(data['cookie'], 'codemodel')
         self.configs = []
         for i in data['configurations']:
@@ -218,9 +222,9 @@ class ReplyCodeModel(ReplyBase):
 # Main client class
 
 class CMakeClient:
-    def __init__(self, env: Environment):
+    def __init__(self, env: 'Environment') -> None:
         self.env = env
-        self.proc = None
+        self.proc = None  # type: T.Optional[Popen]
         self.type_map = {
             'error': lambda data: Error(data['cookie'], data['errorMessage']),
             'hello': lambda data: MessageHello(data['supportedProtocolVersions']),
@@ -228,7 +232,7 @@ class CMakeClient:
             'progress': lambda data: Progress(data['cookie']),
             'reply': self.resolve_type_reply,
             'signal': lambda data: SignalBase(data['cookie'], data['name'])
-        }
+        }  # type: T.Dict[str, T.Callable[[T.Dict[str, T.Any]], MessageBase]]
 
         self.reply_map = {
             'handshake': lambda data: ReplyHandShake(data['cookie']),
@@ -236,10 +240,10 @@ class CMakeClient:
             'compute': lambda data: ReplyCompute(data['cookie']),
             'cmakeInputs': self.resolve_reply_cmakeInputs,
             'codemodel': lambda data: ReplyCodeModel(data),
-        }
+        }  # type: T.Dict[str, T.Callable[[T.Dict[str, T.Any]], ReplyBase]]
 
-    def readMessageRaw(self) -> dict:
-        assert(self.proc is not None)
+    def readMessageRaw(self) -> T.Dict[str, T.Any]:
+        assert self.proc is not None
         rawData = []
         begin = False
         while self.proc.poll() is None:
@@ -257,7 +261,11 @@ class CMakeClient:
                 begin = True # Begin of the message
 
         if rawData:
-            return json.loads('\n'.join(rawData))
+            res = json.loads('\n'.join(rawData))
+            assert isinstance(res, dict)
+            for i in res.keys():
+                assert isinstance(i, str)
+            return res
         raise CMakeException('Failed to read data from the CMake server')
 
     def readMessage(self) -> MessageBase:
@@ -287,7 +295,7 @@ class CMakeClient:
 
             reply.log()
 
-    def query_checked(self, request: RequestBase, message: str) -> ReplyBase:
+    def query_checked(self, request: RequestBase, message: str) -> MessageBase:
         reply = self.query(request)
         h = mlog.green('SUCCEEDED') if reply.type == 'reply' else mlog.red('FAILED')
         mlog.log(message + ':', h)
@@ -305,7 +313,7 @@ class CMakeClient:
         request = RequestHandShake(src_dir, build_dir, generator, vers_major, vers_minor)
         self.query_checked(request, 'CMake server handshake')
 
-    def resolve_type_reply(self, data: dict) -> ReplyBase:
+    def resolve_type_reply(self, data: T.Dict[str, T.Any]) -> ReplyBase:
         reply_type = data['inReplyTo']
         func = self.reply_map.get(reply_type, None)
         if not func:
@@ -315,7 +323,7 @@ class CMakeClient:
                 raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, type))
         return func(data)
 
-    def resolve_reply_cmakeInputs(self, data: dict) -> ReplyCMakeInputs:
+    def resolve_reply_cmakeInputs(self, data: T.Dict[str, T.Any]) -> ReplyCMakeInputs:
         files = []
         for i in data['buildFiles']:
             for j in i['sources']:
@@ -323,7 +331,7 @@ class CMakeClient:
         return ReplyCMakeInputs(data['cookie'], data['cmakeRootDirectory'], data['sourceDirectory'], files)
 
     @contextmanager
-    def connect(self):
+    def connect(self) -> T.Generator[None, None, None]:
         self.startup()
         try:
             yield

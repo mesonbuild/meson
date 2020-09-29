@@ -2052,26 +2052,26 @@ class ExternalProgram:
     def get_command(self) -> T.List[str]:
         return self.command[:]
 
-    def get_path(self):
+    def get_path(self) -> str:
         return self.path
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
 
 
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
 
-    def __init__(self, name='nonexistingprogram'):
+    def __init__(self, name: str = 'nonexistingprogram') -> None:
         self.name = name
         self.command = [None]
         self.path = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
 
-    def found(self):
+    def found(self) -> bool:
         return False
 
 
