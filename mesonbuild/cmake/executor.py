@@ -189,14 +189,14 @@ class CMakeExecutor:
         if always_capture_stderr is not None:
             self.always_capture_stderr = always_capture_stderr
 
-    def _cache_key(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]]) -> TYPE_cache_key:
+    def _cache_key(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_cache_key:
         fenv = frozenset(env.items()) if env is not None else frozenset()
         targs = tuple(args)
-        return (self.cmakebin.get_path(), targs, build_dir, fenv)
+        return (self.cmakebin.get_path(), targs, build_dir.as_posix(), fenv)
 
-    def _call_cmout_stderr(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
+    def _call_cmout_stderr(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
         cmd = self.cmakebin.get_command() + args
-        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.PIPE, cwd=build_dir, env=env)
+        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.PIPE, cwd=str(build_dir), env=env)  # TODO [PYTHON_37]: drop Path conversion
 
         # stdout and stderr MUST be read at the same time to avoid pipe
         # blocking issues. The easiest way to do this is with a separate
@@ -237,9 +237,9 @@ class CMakeExecutor:
 
         return proc.returncode, None, raw_trace
 
-    def _call_cmout(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
+    def _call_cmout(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
         cmd = self.cmakebin.get_command() + args
-        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.STDOUT, cwd=build_dir, env=env)
+        proc = S.Popen(cmd, stdout=S.PIPE, stderr=S.STDOUT, cwd=str(build_dir), env=env)  # TODO [PYTHON_37]: drop Path conversion
         while True:
             line = proc.stdout.readline()
             if not line:
@@ -249,11 +249,11 @@ class CMakeExecutor:
         proc.wait()
         return proc.returncode, None, None
 
-    def _call_quiet(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
-        os.makedirs(build_dir, exist_ok=True)
+    def _call_quiet(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
+        build_dir.mkdir(parents=True, exist_ok=True)
         cmd = self.cmakebin.get_command() + args
-        ret = S.run(cmd, env=env, cwd=build_dir, close_fds=False,
-                    stdout=S.PIPE, stderr=S.PIPE, universal_newlines=False)
+        ret = S.run(cmd, env=env, cwd=str(build_dir), close_fds=False,
+                    stdout=S.PIPE, stderr=S.PIPE, universal_newlines=False)   # TODO [PYTHON_37]: drop Path conversion
         rc = ret.returncode
         out = ret.stdout.decode(errors='ignore')
         err = ret.stderr.decode(errors='ignore')
@@ -261,7 +261,7 @@ class CMakeExecutor:
         mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
         return rc, out, err
 
-    def _call_impl(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
+    def _call_impl(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
         if not self.print_cmout:
             return self._call_quiet(args, build_dir, env)
         else:
@@ -270,7 +270,7 @@ class CMakeExecutor:
             else:
                 return self._call_cmout(args, build_dir, env)
 
-    def call(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]] = None, disable_cache: bool = False) -> TYPE_result:
+    def call(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]] = None, disable_cache: bool = False) -> TYPE_result:
         if env is None:
             env = os.environ.copy()
 
@@ -285,28 +285,28 @@ class CMakeExecutor:
             cache[key] = self._call_impl(args, build_dir, env)
         return cache[key]
 
-    def call_with_fake_build(self, args: T.List[str], build_dir: str, env: T.Optional[T.Dict[str, str]] = None) -> TYPE_result:
+    def call_with_fake_build(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]] = None) -> TYPE_result:
         # First check the cache
         cache = CMakeExecutor.class_cmake_cache
         key = self._cache_key(args, build_dir, env)
         if key in cache:
             return cache[key]
 
-        os.makedirs(build_dir, exist_ok=True)
+        build_dir.mkdir(exist_ok=True, parents=True)
 
         # Try to set the correct compiler for C and C++
         # This step is required to make try_compile work inside CMake
-        fallback = os.path.realpath(__file__)  # A file used as a fallback wehen everything else fails
+        fallback = Path(__file__).resolve()  # A file used as a fallback wehen everything else fails
         compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
 
         def make_abs(exe: str, lang: str) -> str:
-            if os.path.isabs(exe):
+            if Path(exe).is_absolute():
                 return exe
 
             p = shutil.which(exe)
             if p is None:
                 mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
-                p = fallback
+                return str(fallback)
             return p
 
         def choose_compiler(lang: str) -> T.Tuple[str, str, str, str]:
@@ -331,7 +331,7 @@ class CMakeExecutor:
                 return make_abs(exe_list[1], lang), make_abs(exe_list[0], lang), comp_id, comp_version
             else:
                 mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
-                return fallback, '', 'GNU', ''
+                return str(fallback), '', 'GNU', ''
 
         c_comp, c_launcher, c_id, c_version = choose_compiler('c')
         cxx_comp, cxx_launcher, cxx_id, cxx_version = choose_compiler('cpp')
@@ -346,10 +346,10 @@ class CMakeExecutor:
         fortran_launcher = fortran_launcher.replace('\\', '/')
 
         # Reset the CMake cache
-        (Path(build_dir) / 'CMakeCache.txt').write_text('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
+        (build_dir / 'CMakeCache.txt').write_text('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
 
         # Fake the compiler files
-        comp_dir = Path(build_dir) / 'CMakeFiles' / self.cmakevers
+        comp_dir = build_dir / 'CMakeFiles' / self.cmakevers
         comp_dir.mkdir(parents=True, exist_ok=True)
 
         c_comp_file = comp_dir / 'CMakeCCompiler.cmake'

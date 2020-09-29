@@ -2983,7 +2983,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             cmake_options = mesonlib.stringlistify(kwargs.get('cmake_options', []))
             cmake_options += options.cmake_options
-            cm_int = CMakeInterpreter(new_build, subdir, subdir_abs, prefix, new_build.environment, self.backend)
+            cm_int = CMakeInterpreter(new_build, Path(subdir), Path(subdir_abs), Path(prefix), new_build.environment, self.backend)
             cm_int.initialise(cmake_options)
             cm_int.analyse()
 

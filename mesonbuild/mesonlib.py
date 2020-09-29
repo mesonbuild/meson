@@ -1570,6 +1570,15 @@ def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
         return False
     return True
 
+def relative_to_if_possible(path: Path, root: Path, resolve: bool = False) -> Path:
+    try:
+        if resolve:
+            return path.resolve().relative_to(root.resolve())
+        else:
+            return path.relative_to(root)
+    except ValueError:
+        return path
+
 class LibType(IntEnum):
 
     """Enumeration for library types."""

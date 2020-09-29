@@ -23,12 +23,11 @@ from ..mesonlib import version_compare
 import typing as T
 from pathlib import Path
 import re
-import os
 import json
 import textwrap
 
 class CMakeTraceLine:
-    def __init__(self, file: str, line: int, func: str, args: T.List[str]) -> None:
+    def __init__(self, file: Path, line: int, func: str, args: T.List[str]) -> None:
         self.file = file
         self.line = line
         self.func = func.lower()
@@ -55,8 +54,8 @@ class CMakeTarget:
         self.imported        = imported
         self.tline           = tline
         self.depends         = []      # type: T.List[str]
-        self.current_bin_dir = None    # type: T.Optional[str]
-        self.current_src_dir = None    # type: T.Optional[str]
+        self.current_bin_dir = None    # type: T.Optional[Path]
+        self.current_src_dir = None    # type: T.Optional[Path]
 
     def __repr__(self) -> str:
         s = 'CMake TARGET:\n  -- name:      {}\n  -- type:      {}\n  -- imported:  {}\n  -- properties: {{\n{}     }}\n  -- tline: {}'
@@ -76,12 +75,12 @@ class CMakeTarget:
 class CMakeGeneratorTarget(CMakeTarget):
     def __init__(self, name: str) -> None:
         super().__init__(name, 'CUSTOM', {})
-        self.outputs = []        # type: T.List[str]
+        self.outputs = []        # type: T.List[Path]
         self.command = []        # type: T.List[T.List[str]]
-        self.working_dir = None  # type: T.Optional[str]
+        self.working_dir = None  # type: T.Optional[Path]
 
 class CMakeTraceParser:
-    def __init__(self, cmake_version: str, build_dir: str, permissive: bool = True) -> None:
+    def __init__(self, cmake_version: str, build_dir: Path, permissive: bool = True) -> None:
         self.vars = {}     # type: T.Dict[str, T.List[str]]
         self.targets = {}  # type: T.Dict[str, CMakeTarget]
 
@@ -93,7 +92,7 @@ class CMakeTraceParser:
         self.permissive = permissive  # type: bool
         self.cmake_version = cmake_version  # type: str
         self.trace_file = 'cmake_trace.txt'
-        self.trace_file_path = Path(build_dir) / self.trace_file
+        self.trace_file_path = build_dir / self.trace_file
         self.trace_format = 'json-v1' if version_compare(cmake_version, '>=3.17') else 'human'
 
         # State for delayed command execution. Delayed command execution is realised
@@ -339,7 +338,7 @@ class CMakeTraceParser:
         target = CMakeGeneratorTarget(name)
 
         def handle_output(key: str, target: CMakeGeneratorTarget) -> None:
-            target.outputs += [key]
+            target.outputs += [Path(key)]
 
         def handle_command(key: str, target: CMakeGeneratorTarget) -> None:
             if key == 'ARGS':
@@ -349,12 +348,14 @@ class CMakeTraceParser:
         def handle_depends(key: str, target: CMakeGeneratorTarget) -> None:
             target.depends += [key]
 
+        working_dir = None
         def handle_working_dir(key: str, target: CMakeGeneratorTarget) -> None:
-            if target.working_dir is None:
-                target.working_dir = key
+            nonlocal working_dir
+            if working_dir is None:
+                working_dir = key
             else:
-                target.working_dir += ' '
-                target.working_dir += key
+                working_dir += ' '
+                working_dir += key
 
         fn = None
 
@@ -376,9 +377,13 @@ class CMakeTraceParser:
             if fn is not None:
                 fn(i, target)
 
-        target.current_bin_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_BINARY_DIR')
-        target.current_src_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_SOURCE_DIR')
-        target.outputs = self._guess_files(target.outputs)
+        cbinary_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_BINARY_DIR')
+        csource_dir = self.var_to_str('MESON_PS_CMAKE_CURRENT_SOURCE_DIR')
+
+        target.working_dir     = Path(working_dir) if working_dir else None
+        target.current_bin_dir = Path(cbinary_dir) if cbinary_dir else None
+        target.current_src_dir = Path(csource_dir) if csource_dir else None
+        target.outputs = [Path(x) for x in self._guess_files([str(y) for y in target.outputs])]
         target.depends = self._guess_files(target.depends)
         target.command = [self._guess_files(x) for x in target.command]
 
@@ -639,7 +644,7 @@ class CMakeTraceParser:
             argl = args.split(' ')
             argl = list(map(lambda x: x.strip(), argl))
 
-            yield CMakeTraceLine(file, int(line), func, argl)
+            yield CMakeTraceLine(Path(file), int(line), func, argl)
 
     def _lex_trace_json(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         lines = trace.splitlines(keepends=False)
@@ -654,7 +659,7 @@ class CMakeTraceParser:
             for j in args:
                 assert isinstance(j, str)
             args = [parse_generator_expressions(x) for x in args]
-            yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
+            yield CMakeTraceLine(Path(data['file']), data['line'], data['cmd'], args)
 
     def _flatten_args(self, args: T.List[str]) -> T.List[str]:
         # Split lists in arguments
@@ -681,7 +686,7 @@ class CMakeTraceParser:
             if curr_str is None:
                 curr_str = i
                 path_found = False
-            elif os.path.isfile(curr_str):
+            elif Path(curr_str).is_file():
                 # Abort concatenation if curr_str is an existing file
                 fixed_list += [curr_str]
                 curr_str = i
@@ -697,7 +702,7 @@ class CMakeTraceParser:
                 fixed_list += [curr_str]
                 curr_str = None
                 path_found = False
-            elif os.path.exists('{} {}'.format(curr_str, i)):
+            elif Path('{} {}'.format(curr_str, i)).exists():
                 # Path detected
                 curr_str = '{} {}'.format(curr_str, i)
                 path_found = True
