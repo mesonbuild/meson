@@ -21,9 +21,9 @@ from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
+from pathlib import Path
 import typing as T
 import json
-import os
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
@@ -128,7 +128,7 @@ class MessageHello(MessageBase):
 # Request classes
 
 class RequestHandShake(RequestBase):
-    def __init__(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
+    def __init__(self, src_dir: Path, build_dir: Path, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
         super().__init__('handshake')
         self.src_dir = src_dir
         self.build_dir = build_dir
@@ -142,13 +142,13 @@ class RequestHandShake(RequestBase):
             vers['minor'] = self.vers_minor
 
         # Old CMake versions (3.7) want '/' even on Windows
-        src_list = os.path.normpath(self.src_dir).split(os.sep)
-        bld_list = os.path.normpath(self.build_dir).split(os.sep)
+        self.src_dir   = self.src_dir.resolve()
+        self.build_dir = self.build_dir.resolve()
 
         return {
             **super().to_dict(),
-            'sourceDirectory': '/'.join(src_list),
-            'buildDirectory': '/'.join(bld_list),
+            'sourceDirectory': self.src_dir.as_posix(),
+            'buildDirectory': self.build_dir.as_posix(),
             'generator': self.generator,
             'protocolVersion': vers
         }
@@ -191,15 +191,15 @@ class ReplyCompute(ReplyBase):
         super().__init__(cookie, 'compute')
 
 class ReplyCMakeInputs(ReplyBase):
-    def __init__(self, cookie: str, cmake_root: str, src_dir: str, build_files: T.List[CMakeBuildFile]) -> None:
+    def __init__(self, cookie: str, cmake_root: Path, src_dir: Path, build_files: T.List[CMakeBuildFile]) -> None:
         super().__init__(cookie, 'cmakeInputs')
         self.cmake_root = cmake_root
         self.src_dir = src_dir
         self.build_files = build_files
 
     def log(self) -> None:
-        mlog.log('CMake root: ', mlog.bold(self.cmake_root))
-        mlog.log('Source dir: ', mlog.bold(self.src_dir))
+        mlog.log('CMake root: ', mlog.bold(self.cmake_root.as_posix()))
+        mlog.log('Source dir: ', mlog.bold(self.src_dir.as_posix()))
         mlog.log('Build files:', mlog.bold(str(len(self.build_files))))
         with mlog.nested():
             for i in self.build_files:
@@ -304,7 +304,7 @@ class CMakeClient:
             raise CMakeException('CMake server query failed')
         return reply
 
-    def do_handshake(self, src_dir: str, build_dir: str, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
+    def do_handshake(self, src_dir: Path, build_dir: Path, generator: str, vers_major: int, vers_minor: T.Optional[int] = None) -> None:
         # CMake prints the hello message on startup
         msg = self.readMessage()
         if not isinstance(msg, MessageHello):
@@ -327,8 +327,8 @@ class CMakeClient:
         files = []
         for i in data['buildFiles']:
             for j in i['sources']:
-                files += [CMakeBuildFile(j, i['isCMake'], i['isTemporary'])]
-        return ReplyCMakeInputs(data['cookie'], data['cmakeRootDirectory'], data['sourceDirectory'], files)
+                files += [CMakeBuildFile(Path(j), i['isCMake'], i['isTemporary'])]
+        return ReplyCMakeInputs(data['cookie'], Path(data['cmakeRootDirectory']), Path(data['sourceDirectory']), files)
 
     @contextmanager
     def connect(self) -> T.Generator[None, None, None]:

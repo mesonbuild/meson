@@ -1528,12 +1528,12 @@ class CMakeDependency(ExternalDependency):
         self.compile_args = compileOptions + compileDefinitions + ['-I{}'.format(x) for x in incDirs]
         self.link_args = libraries
 
-    def _get_build_dir(self) -> str:
+    def _get_build_dir(self) -> Path:
         build_dir = Path(self.cmake_root_dir) / 'cmake_{}'.format(self.name)
         build_dir.mkdir(parents=True, exist_ok=True)
-        return str(build_dir)
+        return build_dir
 
-    def _setup_cmake_dir(self, cmake_file: str) -> str:
+    def _setup_cmake_dir(self, cmake_file: str) -> Path:
         # Setup the CMake build environment and return the "build" directory
         build_dir = self._get_build_dir()
 
@@ -1557,7 +1557,7 @@ cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
 project(MesonTemp LANGUAGES {})
 """.format(' '.join(cmake_language)) + cmake_txt
 
-        cm_file = Path(build_dir) / 'CMakeLists.txt'
+        cm_file = build_dir / 'CMakeLists.txt'
         cm_file.write_text(cmake_txt)
         mlog.cmd_ci_include(cm_file.absolute().as_posix())
 

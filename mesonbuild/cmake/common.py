@@ -17,13 +17,14 @@
 
 from ..mesonlib import MesonException
 from .. import mlog
+from pathlib import Path
 import typing as T
 
 class CMakeException(MesonException):
     pass
 
 class CMakeBuildFile:
-    def __init__(self, file: str, is_cmake: bool, is_temp: bool) -> None:
+    def __init__(self, file: Path, is_cmake: bool, is_temp: bool) -> None:
         self.file = file
         self.is_cmake = is_cmake
         self.is_temp = is_temp
@@ -81,7 +82,7 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
     return res
 
 class CMakeInclude:
-    def __init__(self, path: str, isSystem: bool = False):
+    def __init__(self, path: Path, isSystem: bool = False):
         self.path     = path
         self.isSystem = isSystem
 
@@ -94,7 +95,7 @@ class CMakeFileGroup:
         self.flags        = _flags_to_list(data.get('compileFlags', ''))  # type: T.List[str]
         self.is_generated = data.get('isGenerated', False)                # type: bool
         self.language     = data.get('language', 'C')                     # type: str
-        self.sources      = data.get('sources', [])                       # type: T.List[str]
+        self.sources      = [Path(x) for x in data.get('sources', [])]    # type: T.List[Path]
 
         # Fix the include directories
         self.includes = []  # type: T.List[CMakeInclude]
@@ -103,9 +104,9 @@ class CMakeFileGroup:
                 isSystem = i.get('isSystem', False)
                 assert isinstance(isSystem, bool)
                 assert isinstance(i['path'], str)
-                self.includes += [CMakeInclude(i['path'], isSystem)]
+                self.includes += [CMakeInclude(Path(i['path']), isSystem)]
             elif isinstance(i, str):
-                self.includes += [CMakeInclude(i)]
+                self.includes += [CMakeInclude(Path(i))]
 
     def log(self) -> None:
         mlog.log('flags        =', mlog.bold(', '.join(self.flags)))
@@ -116,22 +117,22 @@ class CMakeFileGroup:
         mlog.log('sources:')
         for i in self.sources:
             with mlog.nested():
-                mlog.log(i)
+                mlog.log(i.as_posix())
 
 class CMakeTarget:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.artifacts               = data.get('artifacts', [])                            # type: T.List[str]
-        self.src_dir                 = data.get('sourceDirectory', '')                      # type: str
-        self.build_dir               = data.get('buildDirectory', '')                       # type: str
+        self.artifacts               = [Path(x) for x in data.get('artifacts', [])]         # type: T.List[Path]
+        self.src_dir                 = Path(data.get('sourceDirectory', ''))                # type: Path
+        self.build_dir               = Path(data.get('buildDirectory', ''))                 # type: Path
         self.name                    = data.get('name', '')                                 # type: str
         self.full_name               = data.get('fullName', '')                             # type: str
         self.install                 = data.get('hasInstallRule', False)                    # type: bool
-        self.install_paths           = list(set(data.get('installPaths', [])))              # type: T.List[str]
+        self.install_paths           = [Path(x) for x in set(data.get('installPaths', []))] # type: T.List[Path]
         self.link_lang               = data.get('linkerLanguage', '')                       # type: str
         self.link_libraries          = _flags_to_list(data.get('linkLibraries', ''))        # type: T.List[str]
         self.link_flags              = _flags_to_list(data.get('linkFlags', ''))            # type: T.List[str]
         self.link_lang_flags         = _flags_to_list(data.get('linkLanguageFlags', ''))    # type: T.List[str]
-        # self.link_path             = data.get('linkPath', '')                             # type: str
+        # self.link_path             = Path(data.get('linkPath', ''))                       # type: Path
         self.type                    = data.get('type', 'EXECUTABLE')                       # type: str
         # self.is_generator_provided = data.get('isGeneratorProvided', False)               # type: bool
         self.files                   = []                                                   # type: T.List[CMakeFileGroup]
@@ -140,13 +141,13 @@ class CMakeTarget:
             self.files += [CMakeFileGroup(i)]
 
     def log(self) -> None:
-        mlog.log('artifacts             =', mlog.bold(', '.join(self.artifacts)))
-        mlog.log('src_dir               =', mlog.bold(self.src_dir))
-        mlog.log('build_dir             =', mlog.bold(self.build_dir))
+        mlog.log('artifacts             =', mlog.bold(', '.join([x.as_posix() for x in self.artifacts])))
+        mlog.log('src_dir               =', mlog.bold(self.src_dir.as_posix()))
+        mlog.log('build_dir             =', mlog.bold(self.build_dir.as_posix()))
         mlog.log('name                  =', mlog.bold(self.name))
         mlog.log('full_name             =', mlog.bold(self.full_name))
         mlog.log('install               =', mlog.bold('true' if self.install else 'false'))
-        mlog.log('install_paths         =', mlog.bold(', '.join(self.install_paths)))
+        mlog.log('install_paths         =', mlog.bold(', '.join([x.as_posix() for x in self.install_paths])))
         mlog.log('link_lang             =', mlog.bold(self.link_lang))
         mlog.log('link_libraries        =', mlog.bold(', '.join(self.link_libraries)))
         mlog.log('link_flags            =', mlog.bold(', '.join(self.link_flags)))
@@ -161,17 +162,17 @@ class CMakeTarget:
 
 class CMakeProject:
     def __init__(self, data: T.Dict[str, T.Any]) -> None:
-        self.src_dir   = data.get('sourceDirectory', '')   # type: str
-        self.build_dir = data.get('buildDirectory', '')    # type: str
-        self.name      = data.get('name', '')              # type: str
-        self.targets   = []                                # type: T.List[CMakeTarget]
+        self.src_dir   = Path(data.get('sourceDirectory', ''))   # type: Path
+        self.build_dir = Path(data.get('buildDirectory', ''))    # type: Path
+        self.name      = data.get('name', '')                    # type: str
+        self.targets   = []                                      # type: T.List[CMakeTarget]
 
         for i in data.get('targets', []):
             self.targets += [CMakeTarget(i)]
 
     def log(self) -> None:
-        mlog.log('src_dir   =', mlog.bold(self.src_dir))
-        mlog.log('build_dir =', mlog.bold(self.build_dir))
+        mlog.log('src_dir   =', mlog.bold(self.src_dir.as_posix()))
+        mlog.log('build_dir =', mlog.bold(self.build_dir.as_posix()))
         mlog.log('name      =', mlog.bold(self.name))
         for idx, i in enumerate(self.targets):
             mlog.log('Target {}:'.format(idx))
