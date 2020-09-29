@@ -99,3 +99,6 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     def needs_static_linker(self) -> bool:
         return False
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []

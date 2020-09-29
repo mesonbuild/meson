@@ -1091,8 +1091,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_werror_args(self) -> T.List[str]:
         return []
 
+    @abc.abstractmethod
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        raise EnvironmentError('{} does not implement get_optimization_args'.format(self.id))
+        pass
 
     def get_module_incdir_args(self) -> T.Tuple[str, ...]:
         raise EnvironmentError('{} does not implement get_module_incdir_args'.format(self.id))
