@@ -150,7 +150,7 @@ class Vs2010Backend(backends.Backend):
                     # Always use a wrapper because MSBuild eats random characters when
                     # there are many arguments.
                     tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                    cmd = self.as_meson_exe_cmdline(
+                    cmd, _ = self.as_meson_exe_cmdline(
                         'generator ' + cmd[0],
                         cmd[0],
                         cmd[1:],
@@ -567,12 +567,12 @@ class Vs2010Backend(backends.Backend):
         # there are many arguments.
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
         extra_bdeps = target.get_transitive_build_target_deps()
-        wrapper_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                # All targets run from the target dir
-                                                workdir=tdir_abs,
-                                                extra_bdeps=extra_bdeps,
-                                                capture=ofilenames[0] if target.capture else None,
-                                                force_serialize=True)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                   # All targets run from the target dir
+                                                   workdir=tdir_abs,
+                                                   extra_bdeps=extra_bdeps,
+                                                   capture=ofilenames[0] if target.capture else None,
+                                                   force_serialize=True)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
