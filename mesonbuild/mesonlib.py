@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """A library of random helper functionality."""
-from pathlib import Path
+from ._pathlib import Path
 import sys
 import stat
 import time

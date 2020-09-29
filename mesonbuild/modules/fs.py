@@ -14,7 +14,7 @@
 
 import typing as T
 import hashlib
-from pathlib import Path, PurePath, PureWindowsPath
+from .._pathlib import Path, PurePath, PureWindowsPath
 
 from .. import mlog
 from . import ExtensionModule

@@ -17,7 +17,7 @@
 
 from ..mesonlib import MesonException
 from .. import mlog
-from pathlib import Path
+from .._pathlib import Path
 import typing as T
 
 class CMakeException(MesonException):

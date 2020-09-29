@@ -15,6 +15,7 @@ modules = [
     'mesonbuild/wrap',
 
     # specific files
+    'mesonbuild/_pathlib.py',
     'mesonbuild/arglist.py',
     'mesonbuild/compilers/compilers.py',
     'mesonbuild/compilers/c_function_attributes.py',

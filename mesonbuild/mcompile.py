@@ -21,7 +21,7 @@ import sys
 import shutil
 import typing as T
 from collections import defaultdict
-from pathlib import Path
+from ._pathlib import Path
 
 from . import mlog
 from . import mesonlib

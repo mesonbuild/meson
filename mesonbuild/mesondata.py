@@ -19,7 +19,7 @@
 ####
 
 
-from pathlib import Path
+from ._pathlib import Path
 import typing as T
 
 if T.TYPE_CHECKING:

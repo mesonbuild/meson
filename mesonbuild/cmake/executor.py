@@ -16,7 +16,7 @@
 # or an interpreter-based tool.
 
 import subprocess as S
-from pathlib import Path
+from .._pathlib import Path
 from threading import Thread
 import typing as T
 import re

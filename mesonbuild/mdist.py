@@ -21,7 +21,7 @@ import subprocess
 import hashlib
 import json
 from glob import glob
-from pathlib import Path
+from ._pathlib import Path
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree, MesonException
 from mesonbuild.wrap import wrap
