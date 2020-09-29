@@ -489,11 +489,15 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
         for pkg in pkgconfig_files:
             candidates.append(functools.partial(PkgConfigDependency, pkg, env, kwargs))
 
-    if DependencyMethods.CONFIG_TOOL in methods:
-        candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
+    # There are path handling problems with these methods on msys, and they
+    # don't apply to windows otherwise (cygwin is handled seperately from
+    # windows)
+    if not env.machines[for_machine].is_windows():
+        if DependencyMethods.CONFIG_TOOL in methods:
+            candidates.append(functools.partial(CursesConfigToolDependency, 'curses', env, kwargs))
 
-    if DependencyMethods.SYSTEM in methods:
-        candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
+        if DependencyMethods.SYSTEM in methods:
+            candidates.append(functools.partial(CursesSystemDependency, 'curses', env, kwargs))
 
     return candidates
 
