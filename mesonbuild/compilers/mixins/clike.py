@@ -140,7 +140,7 @@ class CLikeCompiler(Compiler):
         if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
             self.exe_wrapper = None
         else:
-            self.exe_wrapper = exe_wrapper.get_command()
+            self.exe_wrapper = exe_wrapper
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
         # This is correct, mypy just doesn't understand co-operative inheritance
@@ -326,7 +326,7 @@ class CLikeCompiler(Compiler):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper + [binary_name]
+            cmdlist = self.exe_wrapper.get_command() + [binary_name]
         else:
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
@@ -476,7 +476,7 @@ class CLikeCompiler(Compiler):
                     p.returncode))
                 return compilers.RunResult(False)
             if need_exe_wrapper:
-                cmdlist = self.exe_wrapper + [p.output_name]
+                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
             else:
                 cmdlist = [p.output_name]
             try:

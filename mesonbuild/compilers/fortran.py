@@ -88,7 +88,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper + [str(binary_name)]
+            cmdlist = self.exe_wrapper.get_command() + [str(binary_name)]
         else:
             cmdlist = [str(binary_name)]
         # %% Run the test executable
