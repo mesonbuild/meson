@@ -27,7 +27,7 @@ import sys
 import configparser
 import typing as T
 
-from pathlib import Path
+from .._pathlib import Path
 from . import WrapMode
 from .. import coredata
 from ..mesonlib import verbose_git, quiet_git, GIT, ProgressBar, MesonException

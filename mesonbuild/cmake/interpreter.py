@@ -26,7 +26,7 @@ from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
-from pathlib import Path
+from .._pathlib import Path
 import typing as T
 import re
 from os import environ

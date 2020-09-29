@@ -15,6 +15,7 @@ modules = [
     'mesonbuild/wrap',
 
     # specific files
+    'mesonbuild/_pathlib.py',
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/dependencies/boost.py',

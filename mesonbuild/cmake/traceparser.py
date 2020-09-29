@@ -21,7 +21,7 @@ from .. import mlog
 from ..mesonlib import version_compare
 
 import typing as T
-from pathlib import Path
+from .._pathlib import Path
 import re
 import json
 import textwrap

@@ -19,7 +19,7 @@ import tempfile
 import unittest
 import subprocess
 import zipapp
-from pathlib import Path
+from mesonbuild._pathlib import Path
 
 from mesonbuild.mesonlib import windows_proof_rmtree, python_command, is_windows
 from mesonbuild.coredata import version as meson_version

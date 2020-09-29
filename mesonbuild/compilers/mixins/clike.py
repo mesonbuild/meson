@@ -28,7 +28,7 @@ import os
 import re
 import subprocess
 import typing as T
-from pathlib import Path
+from ..._pathlib import Path
 
 from ... import arglist
 from ... import mesonlib

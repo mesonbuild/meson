@@ -20,7 +20,7 @@ import subprocess
 from collections import OrderedDict
 from enum import Enum, unique
 import itertools
-from pathlib import PurePath, Path
+from .._pathlib import PurePath, Path
 from functools import lru_cache
 
 from . import backends

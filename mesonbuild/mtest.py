@@ -14,7 +14,7 @@
 
 # A tool to run tests in many different ways.
 
-from pathlib import Path
+from ._pathlib import Path
 from collections import namedtuple
 from copy import deepcopy
 import argparse

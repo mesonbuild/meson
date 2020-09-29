@@ -15,7 +15,7 @@
 from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
 import typing as T
 from .. import mlog
-from pathlib import Path
+from .._pathlib import Path
 import json
 import re
 
@@ -74,6 +74,7 @@ class CMakeFileAPI:
 
         # Debug output
         debug_json = self.build_dir / '..' / 'fileAPI.json'
+        debug_json = debug_json.resolve()
         debug_json.write_text(json.dumps(index, indent=2))
         mlog.cmd_ci_include(debug_json.as_posix())
 

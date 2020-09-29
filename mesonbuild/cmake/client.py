@@ -21,7 +21,7 @@ from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
-from pathlib import Path
+from .._pathlib import Path
 import typing as T
 import json
 

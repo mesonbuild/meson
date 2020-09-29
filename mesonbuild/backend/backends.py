@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from pathlib import Path
+from .._pathlib import Path
 import enum
 import json
 import os
@@ -917,7 +917,7 @@ class Backend:
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
         definition needs to be regenerated.'''
-        deps = [os.path.join(self.build_to_src, df)
+        deps = [str(Path(self.build_to_src) / df)
                 for df in self.interpreter.get_build_def_files()]
         if self.environment.is_cross_build():
             deps.extend(self.environment.coredata.cross_files)

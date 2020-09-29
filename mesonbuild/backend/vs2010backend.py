@@ -19,7 +19,7 @@ import xml.dom.minidom
 import xml.etree.ElementTree as ET
 import uuid
 import typing as T
-from pathlib import Path, PurePath
+from .._pathlib import Path, PurePath
 
 from . import backends
 from .. import build
@@ -1000,7 +1000,7 @@ class Vs2010Backend(backends.Backend):
                     if inc_dir not in file_inc_dirs[l]:
                         file_inc_dirs[l].append(inc_dir)
                     # Add include dirs to target as well so that "Go to Document" works in headers
-                    if inc_dir not in target_inc_dirs: 
+                    if inc_dir not in target_inc_dirs:
                         target_inc_dirs.append(inc_dir)
 
         # Split compile args needed to find external dependencies
