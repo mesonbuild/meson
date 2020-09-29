@@ -1495,8 +1495,8 @@ class Environment:
                     self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                     linker = XilinkDynamicLinker(for_machine, [], version=version)
                     return cls(
-                        compiler, version, for_machine, is_cross, target,
-                        info, exe_wrap, linker=linker)
+                        compiler, version, for_machine, is_cross, info,
+                        target, exe_wrap, linker=linker)
 
                 if 'ifort (IFORT)' in out:
                     linker = self._guess_nix_linker(compiler, IntelFortranCompiler, for_machine)
