@@ -390,7 +390,7 @@ class CoreData:
         ) # type: PerMachine[T.defaultdict[str, OptionDictType]]
         self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
-        self.compilers = PerMachine(OrderedDict(), OrderedDict())
+        self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
         build_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
         host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)

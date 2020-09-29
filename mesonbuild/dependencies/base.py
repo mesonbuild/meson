@@ -207,7 +207,7 @@ class Dependency:
         """
         raise RuntimeError('Unreachable code in partial_dependency called')
 
-    def _add_sub_dependency(self, deplist: T.List['DependencyType']) -> bool:
+    def _add_sub_dependency(self, deplist: T.Iterable[T.Callable[[], 'Dependency']]) -> bool:
         """Add an internal depdency from a list of possible dependencies.
 
         This method is intended to make it easier to add additional
@@ -302,10 +302,10 @@ class InternalDependency(Dependency):
         return new_dep
 
 class HasNativeKwarg:
-    def __init__(self, kwargs):
+    def __init__(self, kwargs: T.Dict[str, T.Any]):
         self.for_machine = self.get_for_machine_from_kwargs(kwargs)
 
-    def get_for_machine_from_kwargs(self, kwargs):
+    def get_for_machine_from_kwargs(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
