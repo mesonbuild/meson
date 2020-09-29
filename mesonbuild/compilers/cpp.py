@@ -790,9 +790,9 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CPPCompiler.get_options(self)
-        opts.update({'cpp_std': coredata.UserComboOption('C++ language standard to use',
-                                                         ['none', 'c++03'],
-                                                         'none')})
+        opts.update({'std': coredata.UserComboOption('C++ language standard to use',
+                                                     ['none', 'c++03'],
+                                                     'none')})
         return opts
 
     def get_always_args(self) -> T.List[str]:

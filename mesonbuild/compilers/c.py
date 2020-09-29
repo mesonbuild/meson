@@ -615,9 +615,9 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
-                                                       ['none', 'c89', 'c99', 'gnu89', 'gnu99'],
-                                                       'none')})
+        opts.update({'std': coredata.UserComboOption('C language standard to use',
+                                                     ['none', 'c89', 'c99', 'gnu89', 'gnu99'],
+                                                     'none')})
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
@@ -660,9 +660,9 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
-                                                       ['none', 'c89', 'c99'],
-                                                       'none')})
+        opts.update({'std': coredata.UserComboOption('C language standard to use',
+                                                     ['none', 'c89', 'c99'],
+                                                     'none')})
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -698,9 +698,9 @@ class C2000CCompiler(C2000Compiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'c_std': coredata.UserComboOption('C language standard to use',
-                                                       ['none', 'c89', 'c99', 'c11'],
-                                                       'none')})
+        opts.update({'std': coredata.UserComboOption('C language standard to use',
+                                                     ['none', 'c89', 'c99', 'c11'],
+                                                     'none')})
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
