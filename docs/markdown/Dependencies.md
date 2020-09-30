@@ -615,6 +615,18 @@ on these OSes to link with the bundled version.
 
 *New in 0.54.0* the `system` method.
 
+## Curses
+
+*(Since 0.54.0)*
+
+Curses (and ncurses) are a cross platform pain in the butt. Meson wraps up
+these dependencies in the `curses` dependency. This covers both `ncurses`
+(preferred) and other curses implementations.
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
+
+*New in 0.56.0* The `config-tool` and `system` methods.
+
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the
     underlying file system happens to be case-insensitive.
