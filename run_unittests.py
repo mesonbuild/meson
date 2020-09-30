@@ -69,6 +69,8 @@ import mesonbuild.modules.pkgconfig
 
 from mesonbuild.mtest import TAPParser, TestResult
 
+from mesonbuild.wrap.wrap import PackageDefinition, WrapException
+
 from run_tests import (
     Backend, FakeBuild, FakeCompilerOptions,
     ensure_backend_detects_changes, exe_suffix, get_backend_commands,
@@ -5165,6 +5167,52 @@ recommended as it is not supported on some platforms''')
         testdir = os.path.join(self.unit_test_dir, '82 meson version compare')
         out = self.init(testdir)
         self.assertNotRegex(out, r'WARNING')
+
+    def test_wrap_redirect(self):
+        redirect_wrap = os.path.join(self.builddir, 'redirect.wrap')
+        real_wrap = os.path.join(self.builddir, 'foo/subprojects/real.wrap')
+        os.makedirs(os.path.dirname(real_wrap))
+
+        # Invalid redirect, filename must have .wrap extension
+        with open(redirect_wrap, 'w') as f:
+            f.write(textwrap.dedent('''
+                [wrap-redirect]
+                filename = foo/subprojects/real.wrapper
+                '''))
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be a .wrap file'):
+            PackageDefinition(redirect_wrap)
+
+        # Invalid redirect, filename cannot be in parent directory
+        with open(redirect_wrap, 'w') as f:
+            f.write(textwrap.dedent('''
+                [wrap-redirect]
+                filename = ../real.wrap
+                '''))
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename cannot contain ".."'):
+            PackageDefinition(redirect_wrap)
+
+        # Invalid redirect, filename must be in foo/subprojects/real.wrap
+        with open(redirect_wrap, 'w') as f:
+            f.write(textwrap.dedent('''
+                [wrap-redirect]
+                filename = foo/real.wrap
+                '''))
+        with self.assertRaisesRegex(WrapException, 'wrap-redirect filename must be in the form foo/subprojects/bar.wrap'):
+            wrap = PackageDefinition(redirect_wrap)
+
+        # Correct redirect
+        with open(redirect_wrap, 'w') as f:
+            f.write(textwrap.dedent('''
+                [wrap-redirect]
+                filename = foo/subprojects/real.wrap
+                '''))
+        with open(real_wrap, 'w') as f:
+            f.write(textwrap.dedent('''
+                [wrap-git]
+                url = http://invalid
+                '''))
+        wrap = PackageDefinition(redirect_wrap)
+        self.assertEqual(wrap.get('url'), 'http://invalid')
 
 class FailureTests(BasePlatformTests):
     '''

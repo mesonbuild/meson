@@ -26,6 +26,7 @@ import subprocess
 import sys
 import configparser
 import typing as T
+import textwrap
 
 from .._pathlib import Path
 from . import WrapMode
@@ -90,9 +91,8 @@ class WrapNotFoundException(WrapException):
     pass
 
 class PackageDefinition:
-    def __init__(self, fname: str, filesdir: str = None):
+    def __init__(self, fname: str):
         self.filename = fname
-        self.filesdir = filesdir
         self.type = None  # type: T.Optional[str]
         self.values = {} # type: T.Dict[str, str]
         self.provided_deps = {} # type: T.Dict[str, T.Optional[str]]
@@ -103,20 +103,42 @@ class PackageDefinition:
         self.directory = self.name
         self.provided_deps[self.name] = None
         if self.has_wrap:
-            self.parse_wrap(fname)
+            self.parse_wrap()
         self.directory = self.values.get('directory', self.name)
         if os.path.dirname(self.directory):
             raise WrapException('Directory key must be a name and not a path')
         if self.type and self.type not in ALL_TYPES:
             raise WrapException('Unknown wrap type {!r}'.format(self.type))
+        self.filesdir = os.path.join(os.path.dirname(self.filename), 'packagefiles')
 
-    def parse_wrap(self, fname: str) -> None:
+    def parse_wrap(self) -> None:
         try:
             self.config = configparser.ConfigParser(interpolation=None)
-            self.config.read(fname)
+            self.config.read(self.filename)
         except configparser.Error:
             raise WrapException('Failed to parse {}'.format(self.basename))
         self.parse_wrap_section()
+        if self.type == 'redirect':
+            # [wrap-redirect] have a `filename` value pointing to the real wrap
+            # file we should parse instead. It must be relative to the current
+            # wrap file location and must be in the form foo/subprojects/bar.wrap.
+            dirname = Path(self.filename).parent
+            fname = Path(self.values['filename'])
+            for i, p in enumerate(fname.parts):
+                if i % 2 == 0:
+                    if p == '..':
+                        raise WrapException('wrap-redirect filename cannot contain ".."')
+                else:
+                    if p != 'subprojects':
+                        raise WrapException('wrap-redirect filename must be in the form foo/subprojects/bar.wrap')
+            if fname.suffix != '.wrap':
+                raise WrapException('wrap-redirect filename must be a .wrap file')
+            fname = dirname / fname
+            if not fname.is_file():
+                raise WrapException('wrap-redirect filename does not exist')
+            self.filename = str(fname)
+            self.parse_wrap()
+            return
         self.parse_provide_section()
 
     def parse_wrap_section(self) -> None:
@@ -171,7 +193,6 @@ class Resolver:
         self.wrap_mode = wrap_mode
         self.subdir_root = os.path.join(source_dir, subdir)
         self.cachedir = os.path.join(self.subdir_root, 'packagecache')
-        self.filesdir = os.path.join(self.subdir_root, 'packagefiles')
         self.wraps = {} # type: T.Dict[str, PackageDefinition]
         self.provided_deps = {} # type: T.Dict[str, PackageDefinition]
         self.provided_programs = {} # type: T.Dict[str, PackageDefinition]
@@ -185,7 +206,7 @@ class Resolver:
             if not i.endswith('.wrap'):
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname, self.filesdir)
+            wrap = PackageDefinition(fname)
             self.wraps[wrap.name] = wrap
             if wrap.directory in dirs:
                 dirs.remove(wrap.directory)
@@ -194,7 +215,7 @@ class Resolver:
             if i in ['packagecache', 'packagefiles']:
                 continue
             fname = os.path.join(self.subdir_root, i)
-            wrap = PackageDefinition(fname, self.filesdir)
+            wrap = PackageDefinition(fname)
             self.wraps[wrap.name] = wrap
 
         for wrap in self.wraps.values():
@@ -252,13 +273,18 @@ class Resolver:
             # project's subproject_dir even if the wrap file comes from another
             # subproject.
             self.dirname = os.path.join(self.subdir_root, self.directory)
-            # Copy .wrap file into main project's subproject_dir
-            wrap_dir = os.path.normpath(os.path.dirname(self.wrap.filename))
-            main_dir = os.path.normpath(self.subdir_root)
-            if wrap_dir != main_dir:
+            # Check if the wrap comes from the main project.
+            main_fname = os.path.join(self.subdir_root, self.wrap.basename)
+            if self.wrap.filename != main_fname:
                 rel = os.path.relpath(self.wrap.filename, self.source_dir)
                 mlog.log('Using', mlog.bold(rel))
-                shutil.copy2(self.wrap.filename, self.subdir_root)
+                # Write a dummy wrap file in main project that redirect to the
+                # wrap we picked.
+                with open(main_fname, 'w') as f:
+                    f.write(textwrap.dedent('''\
+                        [wrap-redirect]
+                        filename = {}
+                        '''.format(os.path.relpath(self.wrap.filename, self.subdir_root))))
         else:
             # No wrap file, it's a dummy package definition for an existing
             # directory. Use the source code in place.
