@@ -186,3 +186,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_pch_base_name(self, header: str) -> str:
+        return os.path.basename(header)
