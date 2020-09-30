@@ -140,9 +140,9 @@ class ExternalProject(InterpreterObject):
             for option in self.configure_options:
                 if key_format in option:
                     break
-            else:
-                m = 'At least one configure option must contain "{}" key'
-                raise InterpreterException(m.format(key_format))
+                else:
+                    m = 'At least one configure option must contain "{}" key'
+                    raise InterpreterException(m.format(key_format))
 
     def _format_options(self, options: T.List[str], variables: T.Dict[str, str]) -> T.List[str]:
         out = []
