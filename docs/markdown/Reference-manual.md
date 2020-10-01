@@ -699,7 +699,10 @@ The returned object also has methods that are documented in the
 
 `program_name1` here is a string that can be an executable or script
 to be searched for in `PATH`, or a script in the current source
-directory.
+directory. The search order is: program overrides (set via meson.override_find_program());
+subprojects (if wrap_mode is set to `forcefallback`); your project's source tree;
+$PATH; the python3 libdir if your command starts with `python3` and finally
+subprojects again, if wrap_mode is set to anything but `nofallback`.
 
 *(since 0.37.0)* `program_name2` and later positional arguments are used as fallback
 strings to search for. This is meant to be used for cases where the
