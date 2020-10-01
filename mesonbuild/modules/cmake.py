@@ -18,7 +18,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
 
-from .. import build, dependencies, mesonlib, mlog
+from .. import build, mesonlib, mlog
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder, DependencyHolder
 from ..interpreterbase import (
@@ -36,6 +36,7 @@ from ..interpreterbase import (
 
     InvalidArguments,
 )
+from ..programs import ExternalProgram
 
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
@@ -232,7 +233,7 @@ class CmakeModule(ExtensionModule):
         if self.cmake_detected:
             return True
 
-        cmakebin = dependencies.ExternalProgram('cmake', silent=False)
+        cmakebin = ExternalProgram('cmake', silent=False)
         p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
         if p.returncode != 0:
             mlog.log(f'error retrieving cmake information: returnCode={p.returncode} stdout={stdout} stderr={stderr}')

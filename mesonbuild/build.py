@@ -25,6 +25,7 @@ import typing as T
 from . import environment
 from . import dependencies
 from . import mlog
+from . import programs
 from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
@@ -1490,7 +1491,7 @@ class Generator:
         if len(args) != 1:
             raise InvalidArguments('Generator requires exactly one positional argument: the executable')
         exe = unholder(args[0])
-        if not isinstance(exe, (Executable, dependencies.ExternalProgram)):
+        if not isinstance(exe, (Executable, programs.ExternalProgram)):
             raise InvalidArguments('First generator argument must be an executable.')
         self.exe = exe
         self.depfile = None
@@ -1614,7 +1615,7 @@ class GeneratedList:
         self.depend_files = []
         self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args if extra_args is not None else []
-        if isinstance(self.generator.exe, dependencies.ExternalProgram):
+        if isinstance(self.generator.exe, programs.ExternalProgram):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
             path = self.generator.exe.get_path()
@@ -2180,7 +2181,7 @@ class CommandBase:
             elif isinstance(c, File):
                 self.depend_files.append(c)
                 final_cmd.append(c)
-            elif isinstance(c, dependencies.ExternalProgram):
+            elif isinstance(c, programs.ExternalProgram):
                 if not c.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')
                 path = c.get_path()

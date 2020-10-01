@@ -16,10 +16,11 @@ from .boost import BoostDependency
 from .cuda import CudaDependency
 from .hdf5 import hdf5_factory
 from .base import (  # noqa: F401
-    Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
-    ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
-    PkgConfigDependency, CMakeDependency, find_external_dependency, get_dep_identifier, packages, _packages_accept_language,
-    DependencyFactory)
+    Dependency, DependencyException, DependencyMethods, ExternalDependency,
+    NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency,
+    InternalDependency, PkgConfigDependency, CMakeDependency,
+    find_external_dependency, get_dep_identifier, packages,
+    _packages_accept_language, DependencyFactory)
 from .dev import ValgrindDependency, gmock_factory, gtest_factory, llvm_factory, zlib_factory
 from .coarrays import coarray_factory
 from .mpi import mpi_factory

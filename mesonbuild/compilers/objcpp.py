@@ -23,7 +23,7 @@ from .mixins.gnu import GnuCompiler
 from .mixins.clang import ClangCompiler
 
 if T.TYPE_CHECKING:
-    from ..dependencies import ExternalProgram
+    from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker

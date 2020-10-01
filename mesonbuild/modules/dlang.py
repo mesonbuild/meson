@@ -26,10 +26,8 @@ from ..mesonlib import (
     Popen_safe, MesonException
 )
 
-from ..dependencies.base import (
-    ExternalProgram, DubDependency
-)
-
+from ..dependencies.base import DubDependency
+from ..programs import ExternalProgram
 from ..interpreter import DependencyHolder
 
 class DlangModule(ExtensionModule):

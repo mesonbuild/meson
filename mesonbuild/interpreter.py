@@ -22,7 +22,7 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
-from .dependencies import ExternalProgram
+from .programs import ExternalProgram, NonExistingExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
 from .interpreterbase import InterpreterBase, typed_pos_args
@@ -73,7 +73,7 @@ def stringifyUserArguments(args, quote=False):
     raise InvalidArguments('Function accepts only strings, integers, lists, dictionaries and lists thereof.')
 
 
-class OverrideProgram(dependencies.ExternalProgram):
+class OverrideProgram(ExternalProgram):
     pass
 
 
@@ -1918,9 +1918,9 @@ class MesonMain(InterpreterObject):
             found = self._found_source_scripts[key]
         elif isinstance(prog, mesonlib.File):
             prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
-            found = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
+            found = ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
         else:
-            found = dependencies.ExternalProgram(prog, search_dir=search_dir)
+            found = ExternalProgram(prog, search_dir=search_dir)
 
         if found.found():
             self._found_source_scripts[key] = found
@@ -1963,7 +1963,7 @@ class MesonMain(InterpreterObject):
             elif isinstance(a, build.ConfigureFile):
                 new = True
                 script_args.append(os.path.join(a.subdir, a.targetname))
-            elif isinstance(a, dependencies.ExternalProgram):
+            elif isinstance(a, ExternalProgram):
                 script_args.extend(a.command)
                 new = True
             else:
@@ -2149,7 +2149,7 @@ class MesonMain(InterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = OverrideProgram(name, abspath)
-        if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
+        if not isinstance(exe, (ExternalProgram, build.Executable)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
@@ -2513,7 +2513,7 @@ class Interpreter(InterpreterBase):
             return DataHolder(item)
         elif isinstance(item, dependencies.Dependency):
             return DependencyHolder(item, self.subproject)
-        elif isinstance(item, dependencies.ExternalProgram):
+        elif isinstance(item, ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
         elif isinstance(item, ModuleObject):
             return ModuleObjectHolder(item, self)
@@ -2546,7 +2546,7 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, Test):
                 self.build.tests.append(v)
             elif isinstance(v, (int, str, bool, Disabler, ObjectHolder, build.GeneratedList,
-                                dependencies.ExternalProgram)):
+                                ExternalProgram)):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
@@ -3394,12 +3394,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             else:
                 raise InvalidArguments('find_program only accepts strings and '
                                        'files, not {!r}'.format(exename))
-            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
-                                                   extra_search_dirs=extra_search_dirs,
-                                                   silent=True)
+            extprog = ExternalProgram(exename, search_dir=search_dir,
+                                      extra_search_dirs=extra_search_dirs,
+                                      silent=True)
             progobj = ExternalProgramHolder(extprog, self.subproject)
             if progobj.found():
-                extra_info.append('({})'.format(' '.join(progobj.get_command())))
+                extra_info.append(f"({' '.join(progobj.get_command())})")
                 return progobj
 
     def program_from_overrides(self, command_names, extra_info):
@@ -3427,7 +3427,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.find_overrides[name] = exe
 
     def notfound_program(self, args):
-        return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
+        return ExternalProgramHolder(NonExistingExternalProgram(' '.join(args)), self.subproject)
 
     # TODO update modules to always pass `for_machine`. It is bad-form to assume
     # the host machine.
@@ -3485,7 +3485,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if progobj is None:
             progobj = self.program_from_system(args, search_dirs, extra_info)
         if progobj is None and args[0].endswith('python3'):
-            prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
+            prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = ExternalProgramHolder(prog, self.subproject) if prog.found() else None
         if progobj is None and fallback and required:
             progobj = self.find_program_fallback(fallback, args, required, extra_info)
@@ -4002,10 +4002,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         cleaned_args = []
         for i in unholder(listify(all_args)):
-            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
+            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
-            if isinstance(i, dependencies.ExternalProgram) and not i.found():
+            if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException(f'Tried to use non-existing executable {i.name!r}')
             cleaned_args.append(i)
         name = args[0]
@@ -4594,7 +4594,7 @@ different subdirectory.
             for i in inp:
                 if isinstance(i, str):
                     exe_wrapper.append(i)
-                elif isinstance(i, dependencies.ExternalProgram):
+                elif isinstance(i, ExternalProgram):
                     if not i.found():
                         raise InterpreterException('Tried to use non-found executable.')
                     exe_wrapper += i.get_command()

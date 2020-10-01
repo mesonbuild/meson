@@ -26,7 +26,7 @@ from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
-    from ..dependencies import ExternalProgram
+    from ..programs import ExternalProgram
 
 
 class RustModule(ExtensionModule):

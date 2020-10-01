@@ -26,6 +26,7 @@ import hashlib
 
 from .. import build
 from .. import dependencies
+from .. import programs
 from .. import mesonlib
 from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS
@@ -140,7 +141,7 @@ class ExecutableSerialisation:
         self.cmd_args = cmd_args
         self.env = env
         if exe_wrapper is not None:
-            assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
+            assert(isinstance(exe_wrapper, programs.ExternalProgram))
         self.exe_runner = exe_wrapper
         self.workdir = workdir
         self.extra_paths = extra_paths
@@ -152,7 +153,7 @@ class ExecutableSerialisation:
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
-                 is_cross_built: bool, exe_wrapper: T.Optional[dependencies.ExternalProgram],
+                 is_cross_built: bool, exe_wrapper: T.Optional[programs.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
@@ -164,7 +165,7 @@ class TestSerialisation:
         self.fname = fname
         self.is_cross_built = is_cross_built
         if exe_wrapper is not None:
-            assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
+            assert(isinstance(exe_wrapper, programs.ExternalProgram))
         self.exe_runner = exe_wrapper
         self.is_parallel = is_parallel
         self.cmd_args = cmd_args
@@ -406,7 +407,7 @@ class Backend:
                                      env: T.Optional[build.EnvironmentVariables] = None):
         exe = cmd[0]
         cmd_args = cmd[1:]
-        if isinstance(exe, dependencies.ExternalProgram):
+        if isinstance(exe, programs.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
         elif isinstance(exe, build.BuildTarget):
@@ -490,7 +491,7 @@ class Backend:
                     ['--internal', 'exe', '--capture', capture, '--'] + es.cmd_args),
                     ', '.join(reasons))
 
-        if isinstance(exe, (dependencies.ExternalProgram,
+        if isinstance(exe, (programs.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
         elif isinstance(exe, mesonlib.File):
@@ -897,11 +898,11 @@ class Backend:
         arr = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
-            if isinstance(exe, dependencies.ExternalProgram):
+            if isinstance(exe, programs.ExternalProgram):
                 cmd = exe.get_command()
             else:
                 cmd = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(t.get_exe()))]
-            if isinstance(exe, (build.BuildTarget, dependencies.ExternalProgram)):
+            if isinstance(exe, (build.BuildTarget, programs.ExternalProgram)):
                 test_for_machine = exe.for_machine
             else:
                 # E.g. an external verifier or simulator program run on a generated executable.

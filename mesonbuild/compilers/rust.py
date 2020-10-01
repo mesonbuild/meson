@@ -25,10 +25,10 @@ from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType
-    from ..dependencies import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers import DynamicLinker
+    from ..programs import ExternalProgram
 
 
 rust_optimization_args = {
