@@ -676,7 +676,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
     def get_pie_args(self) -> T.List[str]:
-        return ['-pie']
+        return []
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         result = []  # type: T.List[str]
