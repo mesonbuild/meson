@@ -171,6 +171,24 @@ def openbsd_syms(libfilename: str, outfilename: str) -> None:
     result += [' '.join(x.split()[0:2]) for x in output.split('\n') if x and not x.endswith('U ')]
     write_if_changed('\n'.join(result) + '\n', outfilename)
 
+def freebsd_syms(libfilename: str, outfilename: str) -> None:
+    # Get the name of the library
+    output = call_tool('readelf', ['-d', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+    result = [x for x in output.split('\n') if 'SONAME' in x]
+    assert(len(result) <= 1)
+    # Get a list of all symbols exported
+    output = call_tool('nm', ['--dynamic', '--extern-only', '--defined-only',
+                              '--format=posix', libfilename])
+    if not output:
+        dummy_syms(outfilename)
+        return
+
+    result += [' '.join(x.split()[0:2]) for x in output.split('\n')]
+    write_if_changed('\n'.join(result) + '\n', outfilename)
+
 def cygwin_syms(impfilename: str, outfilename: str) -> None:
     # Get the name of the library
     output = call_tool('dlltool', ['-I', impfilename])
@@ -268,6 +286,8 @@ def gen_symbols(libfilename: str, impfilename: str, outfilename: str, cross_host
         osx_syms(libfilename, outfilename)
     elif mesonlib.is_openbsd():
         openbsd_syms(libfilename, outfilename)
+    elif mesonlib.is_freebsd():
+        freebsd_syms(libfilename, outfilename)
     elif mesonlib.is_windows():
         if os.path.isfile(impfilename):
             windows_syms(impfilename, outfilename)
