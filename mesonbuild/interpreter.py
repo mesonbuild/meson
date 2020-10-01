@@ -459,6 +459,8 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
     def name_method(self, args, kwargs):
         return self.held_object.get_name()
 
+    @FeatureDeprecated('Dependency.get_pkgconfig_variable', '0.56.0',
+                       'use Dependency.get_variable(pkgconfig : ...) instead')
     @permittedKwargs({'define_variable', 'default'})
     def pkgconfig_method(self, args, kwargs):
         args = listify(args)
@@ -470,6 +472,8 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
     @FeatureNew('dep.get_configtool_variable', '0.44.0')
+    @FeatureDeprecated('Dependency.get_configtool_variable', '0.56.0',
+                       'use Dependency.get_variable(configtool : ...) instead')
     @permittedKwargs({})
     def configtool_method(self, args, kwargs):
         args = listify(args)
