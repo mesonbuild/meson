@@ -42,9 +42,9 @@ from . import environment
 from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
-from .dependencies import ExternalProgram
 from .mesonlib import MesonException, OrderedSet, get_wine_shortpath, split_args, join_args
 from .mintro import get_infodir, load_info_file
+from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
 
 # GNU autotools interprets a return code of 77 from tests it executes to

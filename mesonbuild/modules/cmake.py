@@ -36,6 +36,7 @@ from ..interpreterbase import (
 
     InvalidArguments,
 )
+from ..programs import ExternalProgram
 
 
 COMPATIBILITIES = ['AnyNewerVersion', 'SameMajorVersion', 'SameMinorVersion', 'ExactVersion']
@@ -232,7 +233,7 @@ class CmakeModule(ExtensionModule):
         if self.cmake_detected:
             return True
 
-        cmakebin = dependencies.ExternalProgram('cmake', silent=False)
+        cmakebin = ExternalProgram('cmake', silent=False)
         p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
         if p.returncode != 0:
             mlog.log('error retrieving cmake information: returnCode={0} stdout={1} stderr={2}'.format(p.returncode, stdout, stderr))

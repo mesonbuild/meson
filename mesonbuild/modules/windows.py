@@ -24,7 +24,7 @@ from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
-from ..dependencies import ExternalProgram
+from ..programs import ExternalProgram
 
 class ResourceCompilerType(enum.Enum):
     windres = 1

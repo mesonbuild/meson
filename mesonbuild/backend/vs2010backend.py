@@ -31,6 +31,7 @@ from ..mesonlib import (
     MesonException, File, python_command, replace_if_different, OptionKey,
 )
 from ..environment import Environment, build_filename
+from .. import programs
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -539,7 +540,7 @@ class Vs2010Backend(backends.Backend):
         for i in cmd_raw:
             if isinstance(i, build.BuildTarget):
                 cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
-            elif isinstance(i, dependencies.ExternalProgram):
+            elif isinstance(i, programs.ExternalProgram):
                 cmd += i.get_command()
             elif isinstance(i, File):
                 relfname = i.rel_to_builddir(self.build_to_src)

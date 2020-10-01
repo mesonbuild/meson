@@ -29,6 +29,7 @@ from .. import environment, mesonlib
 from .. import build
 from .. import mlog
 from .. import dependencies
+from .. import programs
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import (
@@ -1036,7 +1037,7 @@ int dummy;
                         raise MesonException(msg.format(exe_wrap.name, target.name))
                     cmd += exe_wrap.get_command()
             cmd.append(abs_exe)
-        elif isinstance(texe, dependencies.ExternalProgram):
+        elif isinstance(texe, programs.ExternalProgram):
             cmd += texe.get_command()
         elif isinstance(texe, build.CustomTarget):
             deps.append(self.get_target_filename(texe))

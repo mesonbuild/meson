@@ -33,8 +33,9 @@ from ..mesonlib import (
     MachineChoice, MesonException, OrderedSet, Popen_safe, extract_as_list,
     join_args, unholder,
 )
-from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
+from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler

@@ -23,12 +23,13 @@ import re
 import os
 
 from .. import mlog
+from ..environment import Environment
 from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, is_windows, OptionKey
+from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..dependencies.base import ExternalProgram
-    from ..compilers import Compiler
+    from ..programs import ExternalProgram
 
 TYPE_result    = T.Tuple[int, T.Optional[str], T.Optional[str]]
 TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, str]]]
@@ -65,9 +66,7 @@ class CMakeExecutor:
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 
-    def find_cmake_binary(self, environment: 'Environment', silent: bool = False) -> T.Tuple[T.Optional['ExternalProgram'], T.Optional[str]]:
-        from ..dependencies.base import find_external_program, NonExistingExternalProgram
-
+    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple[T.Optional['ExternalProgram'], T.Optional[str]]:
         # Only search for CMake the first time and store the result in the class
         # definition
         if isinstance(CMakeExecutor.class_cmakebin[self.for_machine], NonExistingExternalProgram):

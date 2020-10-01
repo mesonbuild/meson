@@ -27,6 +27,10 @@ from .mesonlib import (
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey
 )
 from . import mlog
+from .programs import (
+    ExternalProgram, EmptyExternalProgram
+)
+from .wrap import WrapMode
 
 from .envconfig import (
     BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
@@ -208,7 +212,6 @@ def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
     return r[0] if r else None
 
 def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> (T.List[str], str):
-    from .dependencies.base import ExternalProgram
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         prog = ExternalProgram(n, silent=True)
@@ -694,7 +697,6 @@ class Environment:
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
-            from .dependencies import ExternalProgram
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
         else:
             self.exe_wrapper = None
@@ -2149,6 +2151,5 @@ class Environment:
 
     def get_exe_wrapper(self):
         if not self.need_exe_wrapper():
-            from .dependencies import EmptyExternalProgram
             return EmptyExternalProgram()
         return self.exe_wrapper

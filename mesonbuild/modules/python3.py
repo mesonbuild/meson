@@ -19,6 +19,7 @@ from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated
 from ..build import known_shmod_kwargs
+from ..programs import ExternalProgram
 
 
 class Python3Module(ExtensionModule):
@@ -50,9 +51,9 @@ class Python3Module(ExtensionModule):
     def find_python(self, state, args, kwargs):
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
-            py3 = dependencies.ExternalProgram.from_entry('python3', command)
+            py3 = ExternalProgram.from_entry('python3', command)
         else:
-            py3 = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
+            py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
         return ModuleReturnValue(py3, [py3])
 
     @noKwargs
