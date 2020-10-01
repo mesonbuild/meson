@@ -266,7 +266,7 @@ build directory with the name `output:` in the current directory.
 These are all the supported keyword arguments:
 
 - `capture` *(since 0.41.0)*: when this argument is set to true,
-  Meson captures `stdout` of the `command` and writes it to the target 
+  Meson captures `stdout` of the `command` and writes it to the target
   file specified as `output`.
 - `command`: as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
@@ -392,7 +392,7 @@ the following special string substitutions:
 - `@BASENAME@`: the input filename, with extension removed
 - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
 
-*(since 0.47.0)* The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@` substitutions. 
+*(since 0.47.0)* The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@` substitutions.
 
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
@@ -488,7 +488,7 @@ arguments:
   by all dependency backends)
 - `version` *(since 0.37.0)*: specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
-  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. 
+  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching.
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
   These requirements are never met if the version is unknown.
@@ -620,8 +620,8 @@ be passed to [shared and static libraries](#library).
   custom targets. The user must ensure that the output is a library in
   the correct format.
 - `link_with`: one or more shared or static libraries (built by this
-  project) that this target should be linked with. *(since 0.41.0)* If passed a 
-  list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets. 
+  project) that this target should be linked with. *(since 0.41.0)* If passed a
+  list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets.
   In this case Meson will assume that merely adding the output file in the linker command
   line is sufficient to make linking work. If this is not sufficient,
   then the build system writer must write all other steps manually.
@@ -725,7 +725,7 @@ Keyword arguments are the following:
 
 - `disabler` *(since 0.49.0)*: if `true` and the program couldn't be found, return a
   [disabler object](#disabler-object) instead of a not-found object.
-  
+
 
 - `version` *(since 0.52.0)*: specifies the required version, see
   [`dependency()`](#dependency) for argument format. The version of the program
@@ -2201,7 +2201,7 @@ the following methods:
   whether a particular symbol (function, variable, #define, type
   definition, etc) is declared in the specified header, you can
   specify external dependencies to use with `dependencies` keyword
-  argument. *(since 0.50.0)* The `required` keyword argument can be 
+  argument. *(since 0.50.0)* The `required` keyword argument can be
   used to abort if the symbol cannot be found.
 
 - `has_member(typename, membername)`: takes two arguments, type name
@@ -2270,7 +2270,7 @@ The following keyword arguments can be used:
   pass a library name `-lfoo` for `has_function` to check for a function.
   Supported by all methods except `get_id`, `version`, and `find_library`.
 
-- `include_directories` *(since 0.38.0)*: specifies extra directories for 
+- `include_directories` *(since 0.38.0)*: specifies extra directories for
   header searches.
 
 - `name`: the name to use for printing a message about the compiler
@@ -2359,8 +2359,8 @@ page](Configuration.md) It has three methods:
 
 - `has(varname)`: returns `true` if the specified variable is set
 
-- `merge_from(other)` *(since 0.42.0)*: takes as argument a different 
-  configuration data object and copies all entries from that object to 
+- `merge_from(other)` *(since 0.42.0)*: takes as argument a different
+  configuration data object and copies all entries from that object to
   the current.
 
 - `set(varname, value)`, sets a variable to a given value
@@ -2419,9 +2419,13 @@ an external dependency with the following methods:
    *(since 0.45.0)* A warning is issued if the variable is not defined,
    unless a `default` parameter is specified.
 
+   *(Deprecated since 0.56.0*) use `get_variable(pkgconfig : ...)` instead
+
  - `get_configtool_variable(varname)` *(since 0.44.0)*: gets the
    command line argument from the config tool (with `--` prepended), or,
    if invoked on a non config-tool dependency, error out.
+
+   *(Deprecated since 0.56.0*) use `get_variable(configtool : ...)` instead
 
  - `type_name()`: returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
