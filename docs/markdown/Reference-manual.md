@@ -2067,6 +2067,8 @@ The following methods are defined for all [dictionaries](Syntax.md#dictionaries)
   fallback value given as the second argument. If a single argument
   was given and the key was not found, causes a fatal error
 
+- `keys()`: returns an array of keys in the dictionary
+
 You can also iterate over dictionaries with the [`foreach`
 statement](Syntax.md#foreach-statements).
 
