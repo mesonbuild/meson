@@ -32,9 +32,9 @@ from .. import mlog
 from ..environment import detect_cpu_family
 from ..dependencies.base import (
     DependencyMethods, ExternalDependency,
-    ExternalProgram, PkgConfigDependency,
-    NonExistingExternalProgram, NotFoundDependency
+    PkgConfigDependency, NotFoundDependency
 )
+from ..programs import ExternalProgram, NonExistingExternalProgram
 
 mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)

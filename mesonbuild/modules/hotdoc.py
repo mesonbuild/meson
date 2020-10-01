@@ -23,9 +23,10 @@ from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
 from . import get_include_args
-from ..dependencies import Dependency, InternalDependency, ExternalProgram
+from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs
 from ..interpreter import CustomTargetHolder
+from ..programs import ExternalProgram
 
 
 def ensure_list(value):

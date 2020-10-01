@@ -34,7 +34,7 @@ from .mixins.gnu import GnuCompiler
 
 if T.TYPE_CHECKING:
     from .compilers import Compiler as CompilerMixinBase
-    from ..dependencies import Dependency, ExternalProgram
+    from ..programs import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker

@@ -61,7 +61,8 @@ from mesonbuild.mesonlib import (
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
-from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.programs import ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig

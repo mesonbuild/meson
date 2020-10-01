@@ -41,9 +41,10 @@ from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    from ...dependencies import Dependency, ExternalProgram
+    from ...dependencies import Dependency
     from ...environment import Environment
     from ...compilers.compilers import Compiler
+    from ...programs import ExternalProgram
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

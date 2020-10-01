@@ -28,14 +28,14 @@ from ..mesonlib import (
 from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
-from .base import ExternalDependency, NonExistingExternalProgram
+from .base import ExternalDependency
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
-from .base import find_external_program
+from ..programs import find_external_program, NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .base import ExternalProgram
+    from ..programs import ExternalProgram
 
 
 class GLDependencySystem(ExternalDependency):

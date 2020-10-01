@@ -25,6 +25,7 @@ from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
+from ..programs import ExternalProgram
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
@@ -750,7 +751,6 @@ class ConverterCustomTarget:
                 if target:
                     # When cross compiling, binaries have to be executed with an exe_wrapper (for instance wine for mingw-w64)
                     if self.env.exe_wrapper is not None and self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
-                        from ..dependencies import ExternalProgram
                         assert isinstance(self.env.exe_wrapper, ExternalProgram)
                         cmd += self.env.exe_wrapper.get_command()
                     cmd += [target]
