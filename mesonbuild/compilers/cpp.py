@@ -707,6 +707,10 @@ class IntelClCPPCompiler(VisualStudioLikeCPPCompilerMixin, IntelVisualStudioLike
         cpp_stds = ['none', 'c++11', 'vc++11', 'c++14', 'vc++14', 'c++17', 'vc++17', 'c++latest']
         return self._get_options_impl(super().get_options(), cpp_stds)
 
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        # XXX: this is a hack because so much GnuLike stuff is in the base CPPCompiler class.
+        return IntelVisualStudioLikeCompiler.get_compiler_check_args(self, mode)
+
 
 class ArmCPPCompiler(ArmCompiler, CPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
