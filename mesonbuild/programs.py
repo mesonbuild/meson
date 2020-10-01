@@ -31,14 +31,17 @@ if T.TYPE_CHECKING:
 
 
 class ExternalProgram:
+
+    """A program that is found on the system."""
+
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    # An 'ExternalProgram' always runs on the build machine
     for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
                  extra_search_dirs: T.Optional[T.List[str]] = None):
         self.name = name
+        self.path = None  # type: T.Optional[str]
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -61,15 +64,16 @@ class ExternalProgram:
                 if self.found():
                     break
 
-        # Set path to be the last item that is actually a file (in order to
-        # skip options in something like ['python', '-u', 'file.py']. If we
-        # can't find any components, default to the last component of the path.
-        self.path = self.command[-1]
-        for i in range(len(self.command) - 1, -1, -1):
-            arg = self.command[i]
-            if arg is not None and os.path.isfile(arg):
-                self.path = arg
-                break
+        if self.found():
+            # Set path to be the last item that is actually a file (in order to
+            # skip options in something like ['python', '-u', 'file.py']. If we
+            # can't find any components, default to the last component of the path.
+            for arg in reversed(self.command):
+                if arg is not None and os.path.isfile(arg):
+                    self.path = arg
+                    break
+            else:
+                self.path = self.command[-1]
 
         if not silent:
             # ignore the warning because derived classes never call this __init__
@@ -94,7 +98,7 @@ class ExternalProgram:
         return ' '.join(self.command)
 
     @classmethod
-    def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name):
+    def from_bin_list(cls, env: 'Environment', for_machine: MachineChoice, name: str) -> 'ExternalProgram':
         # There is a static `for_machine` for this class because the binary
         # aways runs on the build platform. (It's host platform is our build
         # platform.) But some external programs have a target platform, so this
@@ -129,20 +133,22 @@ class ExternalProgram:
         return os.pathsep.join(paths)
 
     @staticmethod
-    def from_entry(name, command):
+    def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
         # We cannot do any searching if the command is a list, and we don't
         # need to search if the path is an absolute path.
         if isinstance(command, list) or os.path.isabs(command):
+            if isinstance(command, str):
+                command = [command]
             return ExternalProgram(name, command=command, silent=True)
         assert isinstance(command, str)
         # Search for the command using the specified string!
         return ExternalProgram(command, silent=True)
 
     @staticmethod
-    def _shebang_to_cmd(script: str) -> T.Optional[list]:
+    def _shebang_to_cmd(script: str) -> T.Optional[T.List[str]]:
         """
         Check if the file has a shebang and manually parse it to figure out
         the interpreter to use. This is useful if the script is not executable
@@ -184,11 +190,11 @@ class ExternalProgram:
                         commands = mesonlib.python_command + commands[1:]
                 return commands + [script]
         except Exception as e:
-            mlog.debug(e)
+            mlog.debug(str(e))
         mlog.debug(f'Unusable script {script!r}')
         return None
 
-    def _is_executable(self, path):
+    def _is_executable(self, path: str) -> bool:
         suffix = os.path.splitext(path)[-1].lower()[1:]
         execmask = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
         if mesonlib.is_windows():
@@ -217,7 +223,7 @@ class ExternalProgram:
                         return [trial_ext]
         return None
 
-    def _search_windows_special_cases(self, name: str, command: str) -> list:
+    def _search_windows_special_cases(self, name: str, command: str) -> T.List[T.Optional[str]]:
         '''
         Lots of weird Windows quirks:
         1. PATH search for @name returns files with extensions from PATHEXT,
@@ -260,7 +266,7 @@ class ExternalProgram:
                 return commands
         return [None]
 
-    def _search(self, name: str, search_dir: T.Optional[str]) -> list:
+    def _search(self, name: str, search_dir: T.Optional[str]) -> T.List[T.Optional[str]]:
         '''
         Search in the specified dir for the specified executable by name
         and if not found search in PATH
@@ -285,7 +291,7 @@ class ExternalProgram:
     def get_command(self) -> T.List[str]:
         return self.command[:]
 
-    def get_path(self) -> str:
+    def get_path(self) -> T.Optional[str]:
         return self.path
 
     def get_name(self) -> str:
@@ -314,16 +320,16 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     such as a cross file exe_wrapper to represent that it's not required.
     '''
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.name = None
         self.command = []
         self.path = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{} {!r} -> {!r}>'
         return r.format(self.__class__.__name__, self.name, self.command)
 
-    def found(self):
+    def found(self) -> bool:
         return True
 
 
