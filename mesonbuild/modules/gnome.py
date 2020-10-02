@@ -34,8 +34,8 @@ from ..mesonlib import (
     join_args, unholder,
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..programs import ExternalProgram
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..programs import ExternalProgram, OverrideProgram
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -492,7 +492,7 @@ class GnomeModule(ExtensionModule):
         exe = self.giscanner
         if hasattr(exe, 'held_object'):
             exe = exe.held_object
-        if isinstance(exe, interpreter.OverrideProgram):
+        if isinstance(exe, OverrideProgram):
             # Handle overridden g-ir-scanner
             assert option in ['--extra-library', '--sources-top-dirs']
             return True

@@ -22,7 +22,7 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
-from .programs import ExternalProgram, NonExistingExternalProgram
+from .programs import ExternalProgram, NonExistingExternalProgram, OverrideProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
 from .interpreterbase import InterpreterBase, typed_pos_args
@@ -70,10 +70,6 @@ def stringifyUserArguments(args, quote=False):
     elif isinstance(args, str):
         return f"'{args}'" if quote else args
     raise InvalidArguments('Function accepts only strings, integers, lists, dictionaries and lists thereof.')
-
-
-class OverrideProgram(ExternalProgram):
-    pass
 
 
 class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOption]):

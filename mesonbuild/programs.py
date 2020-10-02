@@ -333,6 +333,11 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
         return True
 
 
+class OverrideProgram(ExternalProgram):
+
+    """A script overriding a program."""
+
+
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
                           display_name: str, default_names: T.List[str],
                           allow_default_for_cross: bool = True) -> T.Generator['ExternalProgram', None, None]:
