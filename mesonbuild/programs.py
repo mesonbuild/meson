@@ -16,6 +16,7 @@
 
 import functools
 import os
+import re
 import shutil
 import stat
 import sys
@@ -40,9 +41,11 @@ class ExternalProgram:
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
-                 extra_search_dirs: T.Optional[T.List[str]] = None):
+                 extra_search_dirs: T.Optional[T.List[str]] = None,
+                 version_func: T.Optional[T.Callable[['ExternalProgram'], T.Optional[str]]] = None):
         self.name = name
         self.path = None  # type: T.Optional[str]
+        self.version_func = version_func
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -293,6 +296,20 @@ class ExternalProgram:
     def get_name(self) -> str:
         return self.name
 
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        if self.version_func is not None:
+            return self.version_func(self)
+        cmd = self.get_command() + ['--version']
+        p, out, err = mesonlib.Popen_safe(cmd)
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
+        if not out:
+            out = err
+        match = re.search(r'([0-9][0-9\.]+)', out)
+        if not match:
+            return None
+        return str(match.group(0))
 
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
@@ -308,6 +325,10 @@ class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-i
 
     def found(self) -> bool:
         return False
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        return None
 
 
 class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
@@ -327,6 +348,10 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
 
     def found(self) -> bool:
         return True
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        return None
 
 
 class OverrideProgram(ExternalProgram):
