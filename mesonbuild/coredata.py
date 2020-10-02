@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 from . import mlog, mparser
 import pickle, os, uuid
 import sys
@@ -33,13 +34,17 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from . import dependencies
+    from .build import Executable
     from .compilers.compilers import Compiler, CompileResult  # noqa: F401
     from .environment import Environment
-    from .mesonlib import OptionOverrideProxy
+    from .mesonlib import OptionOverrideProxy, FileOrString
+    from .programs import ExternalProgram
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, str, T.Tuple[str, ...], str]
+    # format is (name of program, search_paths)
+    ProgramCacheKey = T.Tuple['FileOrString', T.Tuple[str, ...]]
 
 version = '0.56.99'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']
@@ -392,6 +397,9 @@ class CoreData:
         build_cache = DependencyCache(self.options, MachineChoice.BUILD)
         host_cache = DependencyCache(self.options, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
+        self.programs: PerMachine[T.DefaultDict['ProgramCacheKey', T.List['ExternalProgram']]] = \
+            PerMachine(collections.defaultdict(list), collections.defaultdict(list))
+
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
         # Only to print a warning if it changes between Meson invocations.

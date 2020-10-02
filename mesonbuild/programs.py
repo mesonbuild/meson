@@ -132,7 +132,8 @@ class ExternalProgram:
         return os.pathsep.join(paths)
 
     @classmethod
-    def from_entry(cls, name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
+    def from_entry(cls, name: str, command: T.Union[str, T.List[str]],
+                   silent: bool = False) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -141,10 +142,10 @@ class ExternalProgram:
         if isinstance(command, list) or os.path.isabs(command):
             if isinstance(command, str):
                 command = [command]
-            return cls(name, command=command)
+            return cls(name, command=command, silent=silent)
         assert isinstance(command, str)
         # Search for the command using the specified string!
-        return cls(command)
+        return cls(command, silent=silent)
 
     @staticmethod
     def _shebang_to_cmd(script: str) -> T.Optional[T.List[str]]:
@@ -371,9 +372,25 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
         return None
 
 
+class ScriptProgram(ExternalProgram):
+
+    """A wrapper around a local script."""
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        try:
+            return super().get_version()
+        except mesonlib.MesonException:
+            # Scripts may not implement --version, that's fine
+            return None
+
+
 class OverrideProgram(ExternalProgram):
 
     """A script overriding a program."""
+
+    def found(self) -> bool:
+        return True
 
 
 class InternalProgram(ExternalProgram):
