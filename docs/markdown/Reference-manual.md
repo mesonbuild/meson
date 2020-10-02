@@ -698,11 +698,22 @@ The returned object also has methods that are documented in the
 ```
 
 `program_name1` here is a string that can be an executable or script
-to be searched for in `PATH`, or a script in the current source
-directory. The search order is: program overrides (set via meson.override_find_program());
-subprojects (if wrap_mode is set to `forcefallback`); your project's source tree;
-$PATH; the python3 libdir if your command starts with `python3` and finally
-subprojects again, if wrap_mode is set to anything but `nofallback`.
+to be searched for in `PATH` or other places inside the project.
+The search order is:
+
+1. Program overrides set via [`meson.override_find_program()`](Reference-manual.md#meson-object)
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section)
+   in subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to `forcefallback`
+1. [`[binaries]` section](Machine-files.md#binaries) in your machine files
+1. Directories provided using the `dirs:` kwarg (see below)
+1. Project's source tree relative to the current subdir
+   - If you use the return value of [`configure_file()`](#configure_file), the
+     current subdir inside the build tree is used instead
+1. `PATH` environment variable
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section) in
+   subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to anything other than `nofallback`
 
 *(since 0.37.0)* `program_name2` and later positional arguments are used as fallback
 strings to search for. This is meant to be used for cases where the
