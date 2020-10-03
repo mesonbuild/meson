@@ -28,6 +28,8 @@ def manual_clangformat(srcdir_name: str, builddir_name: str) -> int:
     returncode = 0
     with ThreadPoolExecutor() as e:
         for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
+            if f.is_dir():
+                continue
             strf = str(f)
             if strf.startswith(builddir_name):
                 continue

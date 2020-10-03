@@ -4212,9 +4212,11 @@ recommended as it is not supported on some platforms''')
         if is_osx():
             raise unittest.SkipTest('Apple ships a broken clang-tidy that chokes on -pipe.')
         testdir = os.path.join(self.unit_test_dir, '70 clang-tidy')
+        dummydir = os.path.join(testdir, 'dummydir.h')
         self.init(testdir, override_envvars={'CXX': 'c++'})
         out = self.run_target('clang-tidy')
         self.assertIn('cttest.cpp:4:20', out)
+        self.assertNotIn(dummydir, out)
 
     def test_identity_cross(self):
         testdir = os.path.join(self.unit_test_dir, '71 cross')

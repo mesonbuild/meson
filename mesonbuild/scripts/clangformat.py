@@ -27,6 +27,8 @@ def clangformat(exelist: T.List[str], srcdir_name: str, builddir_name: str) -> i
     futures = []
     with ThreadPoolExecutor() as e:
         for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
+            if f.is_dir():
+                continue
             strf = str(f)
             if strf.startswith(builddir_name):
                 continue
