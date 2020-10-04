@@ -10,16 +10,12 @@ modules = [
     # fully typed submodules
     'mesonbuild/ast',
     'mesonbuild/cmake',
-    'mesonbuild/compilers/mixins',
+    'mesonbuild/compilers',
     'mesonbuild/scripts',
     'mesonbuild/wrap',
 
     # specific files
     'mesonbuild/arglist.py',
-    'mesonbuild/compilers/compilers.py',
-    'mesonbuild/compilers/c_function_attributes.py',
-    'mesonbuild/compilers/objc.py',
-    'mesonbuild/compilers/objcpp.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/dependencies/boost.py',
     'mesonbuild/dependencies/hdf5.py',

@@ -14,6 +14,7 @@
 
 import abc
 import contextlib, os.path, re, tempfile
+import enum
 import itertools
 import typing as T
 from functools import lru_cache
@@ -164,6 +165,14 @@ def is_known_suffix(fname: 'mesonlib.FileOrString') -> bool:
     suffix = fname.split('.')[-1]
 
     return suffix in all_suffixes
+
+
+class CompileCheckMode(enum.Enum):
+
+    PREPROCESS = 'preprocess'
+    COMPILE = 'compile'
+    LINK = 'link'
+
 
 cuda_buildtype_args = {'plain': [],
                        'debug': [],
@@ -452,6 +461,7 @@ class Compiler(metaclass=abc.ABCMeta):
     if T.TYPE_CHECKING:
         language = 'unset'
         id = ''
+        warn_args = {}  # type: T.Dict[str, T.List[str]]
 
     def __init__(self, exelist: T.List[str], version: str,
                  for_machine: MachineChoice, info: 'MachineInfo',
@@ -632,20 +642,6 @@ class Compiler(metaclass=abc.ABCMeta):
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
         raise EnvironmentException('Language %s does not support header symbol checks.' % self.get_display_language())
 
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('Language %s does not support compile checks.' % self.get_display_language())
-
-    def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
-              dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        raise EnvironmentException('Language %s does not support link checks.' % self.get_display_language())
-
     def run(self, code: str, env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
             dependencies: T.Optional[T.List['Dependency']] = None) -> RunResult:
@@ -715,14 +711,16 @@ class Compiler(metaclass=abc.ABCMeta):
             suffix = 'obj'
         return os.path.join(dirname, 'output.' + suffix)
 
-    def get_compiler_args_for_mode(self, mode: str) -> T.List[str]:
+    def get_compiler_args_for_mode(self, mode: CompileCheckMode) -> T.List[str]:
         # TODO: mode should really be an enum
         args = []  # type: T.List[str]
         args += self.get_always_args()
-        if mode == 'compile':
+        if mode is CompileCheckMode.COMPILE:
             args += self.get_compile_only_args()
-        if mode == 'preprocess':
+        elif mode is CompileCheckMode.PREPROCESS:
             args += self.get_preprocess_only_args()
+        else:
+            assert mode is CompileCheckMode.LINK
         return args
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CompilerArgs:
@@ -760,7 +758,7 @@ class Compiler(metaclass=abc.ABCMeta):
                 if mode != 'preprocess':
                     output = self._get_compile_output(tmpdirname, mode)
                     commands += self.get_output_args(output)
-                commands.extend(self.get_compiler_args_for_mode(mode))
+                commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
                 # extra_args must be last because it could contain '/link' to
                 # pass args to VisualStudio's linker. In that case everything
                 # in the command line after '/link' is given to the linker.
@@ -862,6 +860,9 @@ class Compiler(metaclass=abc.ABCMeta):
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
+        return self.linker.thread_flags(env)
+
     def openmp_flags(self) -> T.List[str]:
         raise EnvironmentException('Language %s does not support OpenMP flags.' % self.get_display_language())
 
@@ -952,6 +953,9 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def bitcode_args(self) -> T.List[str]:
         return self.linker.bitcode_args()
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        raise EnvironmentException('{} does not implement get_buildtype_args'.format(self.id))
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
@@ -1046,6 +1050,153 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def name_string(self) -> str:
         return ' '.join(self.exelist)
+
+    @abc.abstractmethod
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+        """Check that this compiler actually works.
+
+        This should provide a simple compile/link test. Somthing as simple as:
+        ```python
+        main(): return 0
+        ```
+        is good enough here.
+        """
+
+    def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
+        return None, fname
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return []
+
+    def get_std_exe_link_args(self) -> T.List[str]:
+        # TODO: is this a linker property?
+        return []
+
+    def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
+        return []
+
+    def depfile_for_object(self, objfile: str) -> str:
+        return objfile + '.' + self.get_depfile_suffix()
+
+    def get_depfile_suffix(self) -> str:
+        raise EnvironmentError('{} does not implement get_depfile_suffix'.format(self.id))
+
+    def get_no_stdinc_args(self) -> T.List[str]:
+        """Arguments to turn off default inclusion of standard libraries."""
+        return []
+
+    def get_warn_args(self, level: str) -> T.List[str]:
+        return []
+
+    def get_werror_args(self) -> T.List[str]:
+        return []
+
+    @abc.abstractmethod
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        pass
+
+    def get_module_incdir_args(self) -> T.Tuple[str, ...]:
+        raise EnvironmentError('{} does not implement get_module_incdir_args'.format(self.id))
+
+    def get_module_outdir_args(self, path: str) -> T.List[str]:
+        raise EnvironmentError('{} does not implement get_module_outdir_args'.format(self.id))
+
+    def module_name_to_filename(self, module_name: str) -> str:
+        raise EnvironmentError('{} does not implement module_name_to_filename'.format(self.id))
+
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        """Arguments to pass the compiler and/or linker for checks.
+
+        The default implementation turns off optimizations. mode should be
+        one of:
+
+        Examples of things that go here:
+          - extra arguments for error checking
+        """
+        return self.get_no_optimization_args()
+
+    def get_no_optimization_args(self) -> T.List[str]:
+        """Arguments to the compiler to turn off all optimizations."""
+        return []
+
+    def build_wrapper_args(self, env: 'Environment',
+                           extra_args: T.Union[None, CompilerArgs, T.List[str]],
+                           dependencies: T.Optional[T.List['Dependency']],
+                           mode: CompileCheckMode = CompileCheckMode.COMPILE) -> CompilerArgs:
+        """Arguments to pass the build_wrapper helper.
+
+        This generally needs to be set on a per-language baises. It provides
+        a hook for languages to handle dependencies and extra args. The base
+        implementation handles the most common cases, namely adding the
+        check_arguments, unwrapping dependencies, and appending extra args.
+        """
+        if callable(extra_args):
+            extra_args = extra_args(mode)
+        if extra_args is None:
+            extra_args = []
+        if dependencies is None:
+            dependencies = []
+
+        # Collect compiler arguments
+        args = self.compiler_args(self.get_compiler_check_args(mode))
+        for d in dependencies:
+            # Add compile flags needed by dependencies
+            args += d.get_compile_args()
+            if mode is CompileCheckMode.LINK:
+                # Add link flags needed to find dependencies
+                args += d.get_link_args()
+
+        if mode is CompileCheckMode.COMPILE:
+            # Add DFLAGS from the env
+            args += env.coredata.get_external_args(self.for_machine, self.language)
+        elif mode is CompileCheckMode.LINK:
+            # Add LDFLAGS from the env
+            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+        # extra_args must override all other arguments, so we add them last
+        args += extra_args
+        return args
+
+    @contextlib.contextmanager
+    def _build_wrapper(self, code: str, env: 'Environment',
+                       extra_args: T.Union[None, CompilerArgs, T.List[str]] = None,
+                       dependencies: T.Optional[T.List['Dependency']] = None,
+                       mode: str = 'compile', want_output: bool = False,
+                       disable_cache: bool = False,
+                       temp_dir: str = None) -> T.Iterator[T.Optional[CompileResult]]:
+        """Helper for getting a cacched value when possible.
+
+        This method isn't meant to be called externally, it's mean to be
+        wrapped by other methods like compiles() and links().
+        """
+        args = self.build_wrapper_args(env, extra_args, dependencies, CompileCheckMode(mode))
+        if disable_cache or want_output:
+            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
+                yield r
+        else:
+            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
+                yield r
+
+    def compiles(self, code: str, env: 'Environment', *,
+                 extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+                 dependencies: T.Optional[T.List['Dependency']] = None,
+                 mode: str = 'compile',
+                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
+            return p.returncode == 0, p.cached
+
+
+    def links(self, code: str, env: 'Environment', *,
+              extra_args: T.Union[None, T.List[str], CompilerArgs] = None,
+              dependencies: T.Optional[T.List['Dependency']] = None,
+              mode: str = 'compile',
+              disable_cache: bool = False) -> T.Tuple[bool, bool]:
+        return self.compiles(code, env, extra_args=extra_args,
+                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
+
+    def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
+        """Used by D for extra language features."""
+        # TODO: using a TypeDict here would improve this
+        raise EnvironmentError('{} does not implement get_feature_args'.format(self.id))
 
 
 def get_args_from_envvars(lang: str,

@@ -220,7 +220,7 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
                 sub_core_options[sub + ':' + k] = o
         core_options.update(sub_core_options)
 
-    def add_keys(options: T.Dict[str, cdata.UserOption], section: str, machine: str = 'any') -> None:
+    def add_keys(options: 'cdata.OptionDictType', section: str, machine: str = 'any') -> None:
         for key in sorted(options.keys()):
             opt = options[key]
             optdict = {'name': key, 'value': opt.value, 'section': section, 'machine': machine}

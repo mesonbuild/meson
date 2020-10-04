@@ -1205,7 +1205,7 @@ class Environment:
 
                 return cls(
                     ccache + compiler, version, for_machine, is_cross,
-                    info, exe_wrap, defines, full_version=full_version,
+                    info, exe_wrap, defines=defines, full_version=full_version,
                     linker=linker)
 
             if 'Emscripten' in out:
@@ -1264,8 +1264,8 @@ class Environment:
                 cls = ClangClCCompiler if lang == 'c' else ClangClCPPCompiler
                 linker = self._guess_win_linker(['lld-link'], cls, for_machine)
                 return cls(
-                    compiler, version, for_machine, is_cross, info, exe_wrap,
-                    target, linker=linker)
+                    compiler, version, for_machine, is_cross, info, target,
+                    exe_wrap, linker=linker)
             if 'clang' in out or 'Clang' in out:
                 linker = None
 
@@ -1291,7 +1291,7 @@ class Environment:
 
                 return cls(
                     ccache + compiler, version, for_machine, is_cross, info,
-                    exe_wrap, defines, full_version=full_version, linker=linker)
+                    exe_wrap, defines=defines, full_version=full_version, linker=linker)
 
             if 'Intel(R) C++ Intel(R)' in err:
                 version = search_version(err)
@@ -1300,8 +1300,8 @@ class Environment:
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                 linker = XilinkDynamicLinker(for_machine, [], version=version)
                 return cls(
-                    compiler, version, for_machine, is_cross, info=info,
-                    exe_wrap=exe_wrap, target=target, linker=linker)
+                    compiler, version, for_machine, is_cross, info, target,
+                    exe_wrap, linker=linker)
             if 'Microsoft' in out or 'Microsoft' in err:
                 # Latest versions of Visual Studio print version
                 # number to stderr but earlier ones print version
@@ -1324,8 +1324,8 @@ class Environment:
                 cls = VisualStudioCCompiler if lang == 'c' else VisualStudioCPPCompiler
                 linker = self._guess_win_linker(['link'], cls, for_machine)
                 return cls(
-                    compiler, version, for_machine, is_cross, info, exe_wrap,
-                    target, full_version=cl_signature, linker=linker)
+                    compiler, version, for_machine, is_cross, info, target,
+                    exe_wrap, full_version=cl_signature, linker=linker)
             if 'PGI Compilers' in out:
                 cls = PGICCompiler if lang == 'c' else PGICPPCompiler
                 self.coredata.add_lang_args(cls.language, cls, for_machine, self)
@@ -1495,8 +1495,8 @@ class Environment:
                     self.coredata.add_lang_args(cls.language, cls, for_machine, self)
                     linker = XilinkDynamicLinker(for_machine, [], version=version)
                     return cls(
-                        compiler, version, for_machine, is_cross, target,
-                        info, exe_wrap, linker=linker)
+                        compiler, version, for_machine, is_cross, info,
+                        target, exe_wrap, linker=linker)
 
                 if 'ifort (IFORT)' in out:
                     linker = self._guess_nix_linker(compiler, IntelFortranCompiler, for_machine)

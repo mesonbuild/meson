@@ -65,7 +65,7 @@ class C2000Compiler(Compiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
-                          '3': default_warn_args + []}
+                          '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
 
     def get_pic_args(self) -> T.List[str]:
         # PIC support is not enabled by default for c2000,
@@ -79,10 +79,6 @@ class C2000Compiler(Compiler):
         return 'pch'
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
-        return []
-
-    # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return []
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:

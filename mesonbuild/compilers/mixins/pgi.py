@@ -50,7 +50,8 @@ class PGICompiler(Compiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args,
-                          '3': default_warn_args}
+                          '3': default_warn_args
+        }  # type: T.Dict[str, T.List[str]]
 
     def get_module_incdir_args(self) -> T.Tuple[str]:
         return ('-module', )
@@ -84,9 +85,6 @@ class PGICompiler(Compiler):
             if i[:2] == '-I' or i[:2] == '-L':
                 parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
         return parameter_list
-
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
 
     def get_always_args(self) -> T.List[str]:
         return []

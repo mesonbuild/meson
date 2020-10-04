@@ -1171,8 +1171,11 @@ class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
     id = 'xilink'
 
-    def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str],
-                 *, version: str = 'unknown version'):
+    def __init__(self, for_machine: mesonlib.MachineChoice, always_args: T.List[str], *,
+                 exelist: T.Optional[T.List[str]] = None,
+                 prefix: T.Union[str, T.List[str]] = '',
+                 machine: str = 'x86', version: str = 'unknown version',
+                 direct: bool = True):
         super().__init__(['xilink.exe'], for_machine, '', always_args, version=version)
 
 

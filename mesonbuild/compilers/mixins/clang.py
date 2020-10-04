@@ -20,6 +20,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers import AppleDynamicLinker
+from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -76,11 +77,13 @@ class ClangCompiler(GnuLikeCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
-        myargs = ['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument']
-        if mesonlib.version_compare(self.version, '>=3.6.0'):
-            myargs.append('-Werror=ignored-optimization-argument')
-        return super().has_multi_arguments(myargs + args, env)
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        myargs = []  # type: T.List[str]
+        if mode is CompileCheckMode.COMPILE:
+            myargs.extend(['-Werror=unknown-warning-option', '-Werror=unused-command-line-argument'])
+            if mesonlib.version_compare(self.version, '>=3.6.0'):
+                myargs.append('-Werror=ignored-optimization-argument')
+        return super().get_compiler_check_args(mode) + myargs
 
     def has_function(self, funcname: str, prefix: str, env: 'Environment', *,
                      extra_args: T.Optional[T.List[str]] = None,

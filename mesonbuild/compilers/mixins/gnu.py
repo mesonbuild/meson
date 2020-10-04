@@ -27,7 +27,7 @@ from ... import mlog
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
-    from .clike import CLikeCompiler as Compiler
+    from ..compilers import Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
     # Compiler, so we get all of the methods and attributes defined for us, but

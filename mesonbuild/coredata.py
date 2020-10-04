@@ -34,8 +34,9 @@ if T.TYPE_CHECKING:
     from . import dependencies
     from .compilers.compilers import Compiler, CompileResult  # noqa: F401
     from .environment import Environment
+    from .mesonlib import OptionOverrideProxy
 
-    OptionDictType = T.Dict[str, 'UserOption[T.Any]']
+    OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, str, T.Tuple[str, ...], str]
 
 version = '0.55.999'

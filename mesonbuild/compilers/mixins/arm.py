@@ -81,7 +81,7 @@ class ArmCompiler(Compiler):
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
-                          '3': default_warn_args + []}
+                          '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
         # Assembly
         self.can_compile_suffixes.add('s')
 
@@ -96,7 +96,6 @@ class ArmCompiler(Compiler):
     def get_always_args(self) -> T.List[str]:
         return []
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--depend_target', outtarget, '--depend', outfile, '--depend_single_line']
 
@@ -171,7 +170,6 @@ class ArmclangCompiler(Compiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', '-MT', outtarget, '-MF', outfile]
 

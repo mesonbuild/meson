@@ -1696,7 +1696,7 @@ class OptionProxy(T.Generic[_T]):
         self.value = value
 
 
-class OptionOverrideProxy:
+class OptionOverrideProxy(collections.abc.MutableMapping):
 
     '''Mimic an option list but transparently override selected option
     values.
@@ -1706,23 +1706,30 @@ class OptionOverrideProxy:
     # python 3.8 or typing_extensions
 
     def __init__(self, overrides: T.Dict[str, T.Any], *options: 'OptionDictType'):
-        self.overrides = overrides
-        self.options = options
+        self.overrides = overrides.copy()
+        self.options = {}  # type: T.Dict[str, UserOption]
+        for o in options:
+            self.options.update(o)
 
-    def __getitem__(self, option_name: str) -> T.Any:
-        for opts in self.options:
-            if option_name in opts:
-                return self._get_override(option_name, opts[option_name])
-        raise KeyError('Option not found', option_name)
+    def __getitem__(self, key: str) -> T.Union['UserOption', OptionProxy]:
+        if key in self.options:
+            opt = self.options[key]
+            if key in self.overrides:
+                return OptionProxy(opt.validate_value(self.overrides[key]))
+            return opt
+        raise KeyError('Option not found', key)
 
-    def _get_override(self, option_name: str, base_opt: 'UserOption[T.Any]') -> T.Union[OptionProxy[T.Any], 'UserOption[T.Any]']:
-        if option_name in self.overrides:
-            return OptionProxy(base_opt.validate_value(self.overrides[option_name]))
-        return base_opt
+    def __setitem__(self, key: str, value: T.Union['UserOption', OptionProxy]) -> None:
+        self.overrides[key] = value.value
 
-    def copy(self) -> T.Dict[str, T.Any]:
-        result = {}  # type: T.Dict[str, T.Any]
-        for opts in self.options:
-            for option_name in opts:
-                result[option_name] = self._get_override(option_name, opts[option_name])
-        return result
+    def __delitem__(self, key: str) -> None:
+        del self.overrides[key]
+
+    def __iter__(self) -> T.Iterator[str]:
+        return iter(self.options)
+
+    def __len__(self) -> int:
+        return len(self.options)
+
+    def copy(self) -> 'OptionOverrideProxy':
+        return OptionOverrideProxy(self.overrides.copy(), self.options.copy())

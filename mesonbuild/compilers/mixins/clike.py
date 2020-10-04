@@ -20,7 +20,6 @@ of this is to have mixin's, which are classes that are designed *not* to be
 standalone, they only work through inheritance.
 """
 
-import contextlib
 import collections
 import functools
 import glob
@@ -37,6 +36,7 @@ from ... import mlog
 from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
 from .. import compilers
+from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
@@ -140,7 +140,7 @@ class CLikeCompiler(Compiler):
         if not exe_wrapper or not exe_wrapper.found() or not exe_wrapper.get_command():
             self.exe_wrapper = None
         else:
-            self.exe_wrapper = exe_wrapper.get_command()
+            self.exe_wrapper = exe_wrapper
 
     def compiler_args(self, args: T.Optional[T.Iterable[str]] = None) -> CLikeCompilerArgs:
         # This is correct, mypy just doesn't understand co-operative inheritance
@@ -169,12 +169,6 @@ class CLikeCompiler(Compiler):
         # Almost every compiler uses this for disabling warnings
         return ['-w']
 
-    def split_shlib_to_parts(self, fname: str) -> T.Tuple[T.Optional[str], str]:
-        return None, fname
-
-    def depfile_for_object(self, objfile: str) -> str:
-        return objfile + '.' + self.get_depfile_suffix()
-
     def get_depfile_suffix(self) -> str:
         return 'd'
 
@@ -190,22 +184,11 @@ class CLikeCompiler(Compiler):
     def get_no_optimization_args(self) -> T.List[str]:
         return ['-O0']
 
-    def get_compiler_check_args(self) -> T.List[str]:
-        '''
-        Get arguments useful for compiler checks such as being permissive in
-        the code quality and not doing any optimization.
-        '''
-        return self.get_no_optimization_args()
-
     def get_output_args(self, target: str) -> T.List[str]:
         return ['-o', target]
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
-
-    def get_std_exe_link_args(self) -> T.List[str]:
-        # TODO: is this a linker property?
-        return []
 
     def get_include_args(self, path: str, is_system: bool) -> T.List[str]:
         if path == '':
@@ -306,7 +289,7 @@ class CLikeCompiler(Compiler):
 
         source_name = os.path.join(work_dir, sname)
         binname = sname.rsplit('.', 1)[0]
-        mode = 'link'
+        mode = CompileCheckMode.LINK
         if self.is_cross:
             binname += '_cross'
             if self.exe_wrapper is None:
@@ -315,7 +298,7 @@ class CLikeCompiler(Compiler):
                 # on OSX the compiler binary is the same but you need
                 # a ton of compiler flags to differentiate between
                 # arm and x86_64. So just compile.
-                mode = 'compile'
+                mode = CompileCheckMode.COMPILE
         cargs, largs = self._get_basic_compiler_args(environment, mode)
         extra_flags = cargs + self.linker_to_compiler_args(largs)
 
@@ -343,7 +326,7 @@ class CLikeCompiler(Compiler):
             if self.exe_wrapper is None:
                 # Can't check if the binaries run so we have to assume they do
                 return
-            cmdlist = self.exe_wrapper + [binary_name]
+            cmdlist = self.exe_wrapper.get_command() + [binary_name]
         else:
             cmdlist = [binary_name]
         mlog.debug('Running test binary command: ' + ' '.join(cmdlist))
@@ -401,10 +384,10 @@ class CLikeCompiler(Compiler):
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def _get_basic_compiler_args(self, env: 'Environment', mode: str) -> T.Tuple[T.List[str], T.List[str]]:
+    def _get_basic_compiler_args(self, env: 'Environment', mode: CompileCheckMode) -> T.Tuple[T.List[str], T.List[str]]:
         cargs = []  # type: T.List[str]
         largs = []  # type: T.List[str]
-        if mode == 'link':
+        if mode is CompileCheckMode.LINK:
             # Sometimes we need to manually select the CRT to use with MSVC.
             # One example is when trying to do a compiler check that involves
             # linking with static libraries since MSVC won't select a CRT for
@@ -425,7 +408,7 @@ class CLikeCompiler(Compiler):
         cleaned_sys_args = self.remove_linkerlike_args(sys_args)
         cargs += cleaned_sys_args
 
-        if mode == 'link':
+        if mode is CompileCheckMode.LINK:
             ld_value = env.lookup_binary_entry(self.for_machine, self.language + '_ld')
             if ld_value is not None:
                 largs += self.use_linker_args(ld_value[0])
@@ -439,17 +422,17 @@ class CLikeCompiler(Compiler):
         cargs += self.get_compiler_args_for_mode(mode)
         return cargs, largs
 
-    def _get_compiler_check_args(self, env: 'Environment',
-                                 extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
-                                 dependencies: T.Optional[T.List['Dependency']],
-                                 mode: str = 'compile') -> arglist.CompilerArgs:
+    def build_wrapper_args(self, env: 'Environment',
+                           extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]],
+                           dependencies: T.Optional[T.List['Dependency']],
+                           mode: CompileCheckMode = CompileCheckMode.COMPILE) -> arglist.CompilerArgs:
         # TODO: the caller should handle the listfing of these arguments
         if extra_args is None:
             extra_args = []
         else:
             # TODO: we want to do this in the caller
             extra_args = mesonlib.listify(extra_args)
-        extra_args = mesonlib.listify([e(mode) if callable(e) else e for e in extra_args])
+        extra_args = mesonlib.listify([e(mode.value) if callable(e) else e for e in extra_args])
 
         if dependencies is None:
             dependencies = []
@@ -462,7 +445,7 @@ class CLikeCompiler(Compiler):
         for d in dependencies:
             # Add compile flags needed by dependencies
             cargs += d.get_compile_args()
-            if mode == 'link':
+            if mode is CompileCheckMode.LINK:
                 # Add link flags needed to find dependencies
                 largs += d.get_link_args()
 
@@ -470,7 +453,7 @@ class CLikeCompiler(Compiler):
         cargs += ca
         largs += la
 
-        cargs += self.get_compiler_check_args()
+        cargs += self.get_compiler_check_args(mode)
 
         # on MSVC compiler and linker flags must be separated by the "/link" argument
         # at this point, the '/link' argument may already be part of extra_args, otherwise, it is added here
@@ -479,37 +462,6 @@ class CLikeCompiler(Compiler):
 
         args = cargs + extra_args + largs
         return args
-
-    def compiles(self, code: str, env: 'Environment', *,
-                 extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
-                 dependencies: T.Optional[T.List['Dependency']] = None,
-                 mode: str = 'compile',
-                 disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        with self._build_wrapper(code, env, extra_args, dependencies, mode, disable_cache=disable_cache) as p:
-            return p.returncode == 0, p.cached
-
-    @contextlib.contextmanager
-    def _build_wrapper(self, code: str, env: 'Environment',
-                       extra_args: T.Union[None, arglist.CompilerArgs, T.List[str]] = None,
-                       dependencies: T.Optional[T.List['Dependency']] = None,
-                       mode: str = 'compile', want_output: bool = False,
-                       disable_cache: bool = False,
-                       temp_dir: str = None) -> T.Iterator[T.Optional[compilers.CompileResult]]:
-        args = self._get_compiler_check_args(env, extra_args, dependencies, mode)
-        if disable_cache or want_output:
-            with self.compile(code, extra_args=args, mode=mode, want_output=want_output, temp_dir=env.scratch_dir) as r:
-                yield r
-        else:
-            with self.cached_compile(code, env.coredata, extra_args=args, mode=mode, temp_dir=env.scratch_dir) as r:
-                yield r
-
-    def links(self, code: str, env: 'Environment', *,
-              extra_args: T.Union[None, T.List[str], arglist.CompilerArgs] = None,
-              dependencies: T.Optional[T.List['Dependency']] = None,
-              mode: str = 'compile',
-              disable_cache: bool = False) -> T.Tuple[bool, bool]:
-        return self.compiles(code, env, extra_args=extra_args,
-                             dependencies=dependencies, mode='link', disable_cache=disable_cache)
 
     def run(self, code: str, env: 'Environment', *,
             extra_args: T.Optional[T.List[str]] = None,
@@ -524,7 +476,7 @@ class CLikeCompiler(Compiler):
                     p.returncode))
                 return compilers.RunResult(False)
             if need_exe_wrapper:
-                cmdlist = self.exe_wrapper + [p.output_name]
+                cmdlist = self.exe_wrapper.get_command() + [p.output_name]
             else:
                 cmdlist = [p.output_name]
             try:
@@ -729,8 +681,8 @@ class CLikeCompiler(Compiler):
         # define {define}
         #endif
         {delim}\n{define}'''
-        args = self._get_compiler_check_args(env, extra_args, dependencies,
-                                             mode='preprocess').to_native()
+        args = self.build_wrapper_args(env, extra_args, dependencies,
+                                             mode=CompileCheckMode.PREPROCESS).to_native()
         func = functools.partial(self.cached_compile, code.format(**fargs), env.coredata, extra_args=args, mode='preprocess')
         if disable_cache:
             func = functools.partial(self.compile, code.format(**fargs), extra_args=args, mode='preprocess', temp_dir=env.scratch_dir)
@@ -976,7 +928,7 @@ class CLikeCompiler(Compiler):
         }
         #endif
         '''
-        args = self.get_compiler_check_args()
+        args = self.get_compiler_check_args(CompileCheckMode.COMPILE)
         n = 'symbols_have_underscore_prefix'
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
@@ -1263,9 +1215,6 @@ class CLikeCompiler(Compiler):
             return []
         return ['-pthread']
 
-    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
-        return self.linker.thread_flags(env)
-
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return args.copy()
 
@@ -1273,7 +1222,7 @@ class CLikeCompiler(Compiler):
                       mode: str) -> T.Tuple[bool, bool]:
         return self.compiles(code, env, extra_args=args, mode=mode)
 
-    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def _has_multi_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
         new_args = []  # type: T.List[str]
         for arg in args:
             # some compilers, e.g. GCC, don't warn for unsupported warning-disable
@@ -1291,17 +1240,21 @@ class CLikeCompiler(Compiler):
                              'other similar method can be used instead.'
                              .format(arg))
             new_args.append(arg)
-        code = 'extern int i;\nint i;\n'
         return self.has_arguments(new_args, env, code, mode='compile')
 
-    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+    def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_arguments(args, env, 'extern int i;\nint i;\n')
+
+    def _has_multi_link_arguments(self, args: T.List[str], env: 'Environment', code: str) -> T.Tuple[bool, bool]:
         # First time we check for link flags we need to first check if we have
         # --fatal-warnings, otherwise some linker checks could give some
         # false positive.
         args = self.linker.fatal_warnings() + args
         args = self.linker_to_compiler_args(args)
-        code = 'int main(void) { return 0; }\n'
         return self.has_arguments(args, env, code, mode='link')
+
+    def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
+        return self._has_multi_link_arguments(args, env, 'int main(void) { return 0; }\n')
 
     @staticmethod
     def _concatenate_string_literals(s: str) -> str:
