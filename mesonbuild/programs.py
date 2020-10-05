@@ -37,15 +37,17 @@ class ExternalProgram:
     """A program that is found on the system."""
 
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    for_machine = MachineChoice.BUILD
+    _VERSION_ARG = ['--version']
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
                  extra_search_dirs: T.Optional[T.List[str]] = None,
-                 for_machine: MachineChoice = MachineChoice.BUILD):
+                 for_machine: MachineChoice = MachineChoice.BUILD,
+                 version_arg: T.Optional[T.List[str]] = None):
         self.name = name
         self.path = None  # type: T.Optional[str]
         self.for_machine = for_machine
+        self.version_arg = version_arg if version_arg is not None else self._VERSION_ARG
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -299,7 +301,7 @@ class ExternalProgram:
 
     @functools.lru_cache()
     def get_version(self) -> T.Optional[str]:
-        cmd = self.get_command() + ['--version']
+        cmd = self.get_command() + self.version_arg
         p, out, err = mesonlib.Popen_safe(cmd)
         if p.returncode != 0:
             raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
@@ -389,6 +391,14 @@ class OverrideProgram(ExternalProgram):
 
     """A script overriding a program."""
 
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        try:
+            return super().get_version()
+        except mesonlib.MesonException:
+            # Scripts may not implement --version, that's fine
+            return None
+
     def found(self) -> bool:
         return True
 
@@ -411,25 +421,51 @@ class InternalProgram(ExternalProgram):
         return self.version
 
 
-def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
-                          display_name: str, default_names: T.List[str],
-                          allow_default_for_cross: bool = True) -> T.Generator[ExternalProgram, None, None]:
-    """Find an external program, chcking the cross file plus any default options."""
-    # Lookup in cross or machine file.
-    potential_cmd = env.lookup_binary_entry(for_machine, name)
-    if potential_cmd is not None:
-        mlog.debug('{} binary for {} specified from cross file, native file, '
-                    'or env var as {}'.format(display_name, for_machine, potential_cmd))
-        yield ExternalProgram.from_entry(name, potential_cmd)
-        # We never fallback if the user-specified option is no good, so
-        # stop returning options.
-        return
-    mlog.debug('{} binary missing from cross or native file, or env var undefined.'.format(display_name))
-    # Fallback on hard-coded defaults, if a default binary is allowed for use
-    # with cross targets, or if this is not a cross target
-    if allow_default_for_cross or not (for_machine is MachineChoice.HOST and env.is_cross_build(for_machine)):
-        for potential_path in default_names:
-            mlog.debug('Trying a default {} fallback at'.format(display_name), potential_path)
-            yield ExternalProgram(potential_path, silent=True)
-    else:
-        mlog.debug('Default target is not allowed for cross use')
+class ExternalProgramCMake(ExternalProgram):
+
+    """Special external program for cmake.
+    """
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        cmd = self.get_command() + ['--version']
+        p, out, err = mesonlib.Popen_safe(cmd)
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
+        if not out:
+            out = err
+        match = re.search(r'(cmake|cmake3)\s*version\s*([\d.]+)', out)
+        if not match:
+            return None
+        return match.group(2)
+
+
+class ExternalProgramPkgConfig(ExternalProgram):
+
+    """Special external program for PkgConfig.
+    """
+
+
+class ExternalProgramQMake(ExternalProgram):
+
+    """Special program for qmake."""
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        cmd = self.get_command() + ['-v']
+        p, out, err = mesonlib.Popen_safe(cmd)
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
+        if not out:
+            out = err
+        match = re.search(r'Using Qt version ([\d+.]+)', out)
+        if not match:
+            return None
+        return match.group(1)
+
+
+SPECIAL_PROGRAMS = {
+    'cmake': ExternalProgramCMake,
+    'pkg-config': ExternalProgramPkgConfig,
+    'qmake': ExternalProgramQMake,
+}  # type: T.Dict[str, T.Type[ExternalProgram]]

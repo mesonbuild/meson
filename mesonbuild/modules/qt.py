@@ -48,7 +48,7 @@ class QtBaseModule(ExtensionModule):
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         if qt.found():
             # Get all tools and then make sure that they are the right version
-            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
+            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect()
             if version_compare(qt.version, '>=5.14.0'):
                 self.rcc_supports_depfiles = True
             else:

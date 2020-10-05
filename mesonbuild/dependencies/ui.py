@@ -31,11 +31,10 @@ from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency
 from .base import ExtraFrameworkDependency, PkgConfigDependency
 from .base import ConfigToolDependency, DependencyFactory
-from ..programs import find_external_program, NonExistingExternalProgram
+from ..programs import NonExistingExternalProgram, ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..programs import ExternalProgram
 
 
 class GLDependencySystem(ExternalDependency):
@@ -212,7 +211,7 @@ class QtBaseDependency(ExternalDependency):
             methods.append('pkgconfig')
         if not self.is_found and DependencyMethods.QMAKE in self.methods:
             mlog.debug('Trying to find qt with qmake')
-            self.from_text = self._qmake_detect(mods, kwargs)
+            self._detect_qmake(mods, kwargs)
             methods.append('qmake-' + self.name)
             methods.append('qmake')
         if not self.is_found:
@@ -222,7 +221,7 @@ class QtBaseDependency(ExternalDependency):
             self.from_text = mlog.format_list(methods)
             self.version = None
 
-    def compilers_detect(self, interp_obj):
+    def compilers_detect(self):
         "Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
@@ -251,18 +250,10 @@ class QtBaseDependency(ExternalDependency):
             else:
                 arg = ['-v']
 
-            # Ensure that the version of qt and each tool are the same
-            def get_version(p):
-                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
-                if b.startswith('lrelease') or not self.version.startswith('4'):
-                    care = out
-                else:
-                    care = err
-                return care.split(' ')[-1].replace(')', '').strip()
+            p, cached  = self.env.find_program([b], self.for_machine, [wanted], version_arg=arg)
+            assert isinstance(p, ExternalProgram)
+            p.log(cached)
 
-            p = interp_obj.find_program_impl([b], required=False,
-                                             version_func=get_version,
-                                             wanted=wanted).held_object
             if p.found():
                 found[name] = p
 
@@ -329,31 +320,21 @@ class QtBaseDependency(ExternalDependency):
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def search_qmake(self) -> T.Generator['ExternalProgram', None, None]:
-        for qmake in ('qmake-' + self.name, 'qmake'):
-            yield from find_external_program(self.env, self.for_machine, qmake, 'QMake', [qmake])
-
-    def _qmake_detect(self, mods, kwargs):
-        for qmake in self.search_qmake():
-            if not qmake.found():
-                continue
-            # Check that the qmake is for qt5
-            pc, stdo = Popen_safe(qmake.get_command() + ['-v'])[0:2]
-            if pc.returncode != 0:
-                continue
-            if not 'Qt version ' + self.qtver in stdo:
-                mlog.log('QMake is not for ' + self.qtname)
-                continue
-            # Found qmake for Qt5!
-            self.qmake = qmake
-            break
-        else:
-            # Didn't find qmake :(
+    def _detect_qmake(self, mods: T.List[str], kwargs: T.Dict) -> None:
+        """Find Qmake for this version of qt."""
+        qmake, cached = self.env.find_program(
+            ['qmake-{}'.format(self.name), 'qmake'], self.for_machine,
+            ['>= {}'.format(self.qtver), '< {}'.format(int(self.qtver) + 1)])
+        assert isinstance(qmake, ExternalProgram)
+        if not cached:
+            qmake.log(cached)
+        if not qmake.found():
             self.is_found = False
             return
-        self.version = re.search(self.qtver + r'(\.\d+)+', stdo).group(0)
+        self.qmake = qmake
+        self.version = qmake.get_version()
+
         # Query library path, header path, and binary path
-        mlog.log("Found qmake:", mlog.bold(self.qmake.get_path()), '(%s)' % self.version)
         stdo = Popen_safe(self.qmake.get_command() + ['-query'])[1]
         qvars = {}
         for line in stdo.split('\n'):

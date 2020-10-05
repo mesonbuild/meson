@@ -29,7 +29,7 @@ from .mesonlib import (
 from . import mlog
 from .programs import (
     ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
-    InternalProgram, OverrideProgram,
+    InternalProgram, OverrideProgram, ScriptProgram, SPECIAL_PROGRAMS
 )
 from .wrap import WrapMode
 
@@ -747,8 +747,8 @@ class Environment:
         self.cuda_static_linker = ['nvlink']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
-        self.default_cmake = ['cmake']
-        self.default_pkgconfig = ['pkg-config']
+        self.default_cmake = ['cmake', 'Cmake']           # type: T.List[str]
+        self.default_pkgconfig = ['pkg-config', 'Pkg-config', 'pkgconfig']  # type: T.List[str]
         self.wrap_resolver = None  # type: T.Optional[Resolver]
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
@@ -2159,7 +2159,8 @@ class Environment:
 
     def find_program(self, commands: T.Sequence['mesonlib.FileOrString'], for_machine: MachineChoice,
                      versions: T.List[str], search_dirs: T.Optional[T.List[str]] = None,
-                     subdir: T.Optional[str] = None, required: bool = False) -> \
+                     subdir: T.Optional[str] = None, required: bool = False,
+                     version_arg: T.Optional[T.List[str]] = None) -> \
                          T.Tuple[T.Union[ExternalProgram, str], bool]:
         """Find a program from the program cache, or find it new.
 
@@ -2198,6 +2199,15 @@ class Environment:
             """
             self.coredata.programs[for_machine][(command, tuple(search_dirs))].append(prog)
 
+        # Check for special program handling, such as with cmake and pkg-config
+        # We must iterate because any of the names could match the special program
+        for command in commands:
+            if command in SPECIAL_PROGRAMS:
+                class_ = SPECIAL_PROGRAMS[command]
+                break
+        else:
+            class_ = ExternalProgram
+
         # If that fails check to see if we need to go to a wrap.
         fallback = None
         wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
@@ -2206,7 +2216,7 @@ class Environment:
         if fallback and wrap_mode is WrapMode.forcefallback:
             # If we don't have a subdir, we don't have an interpreter, and
             # therefore cannot initialize a subproject
-            if not subdir:
+            if subdir is None:
                 raise mesonlib.MesonException(
                     'A subproject is required, but cannot be initalized currently.')
             return (fallback, False)
@@ -2221,7 +2231,7 @@ class Environment:
             cmd = self.lookup_binary_entry(for_machine, command)
             if cmd is None:
                 continue
-            prog = ExternalProgram.from_entry(command, cmd, silent=True)
+            prog = class_.from_entry(command, cmd, silent=True)
             if prog.found():
                 version = prog.get_version()
                 if versions:
@@ -2239,7 +2249,7 @@ class Environment:
         for command in commands:
             if isinstance(command, mesonlib.File):
                 command = command.fname
-            prog = ExternalProgram(command, silent=True)
+            prog = class_(command, silent=True, version_arg=version_arg)
             if prog.found():
                 version = prog.get_version()
                 if versions:
@@ -2283,7 +2293,7 @@ class Environment:
         # If we still haven't found it, look for a few special cases
         for command in commands:
             if isinstance(command, str) and command.endswith('python3'):
-                prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
+                prog = class_('python3', mesonlib.python_command, silent=True, version_arg=version_arg)
                 if versions and mesonlib.version_compare_many(prog.get_version(), versions):
                     cache(prog)
                     return (prog, False)
@@ -2291,7 +2301,7 @@ class Environment:
         # if we reach this point and still havent found anything, but have a
         # valid wrap to try do that.
         if required and fallback:
-            if not subdir:
+            if subdir is None:
                 raise mesonlib.MesonException(
                     'A subproject is required, but cannot be initalized currently.')
             return (fallback, False)

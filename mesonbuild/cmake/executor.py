@@ -24,12 +24,11 @@ import os
 
 from .. import mlog
 from ..environment import Environment
-from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, is_windows, OptionKey
-from ..programs import find_external_program, NonExistingExternalProgram
+from ..mesonlib import Popen_safe, MachineChoice, is_windows, OptionKey
+from ..programs import NonExistingExternalProgram, ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..programs import ExternalProgram
 
 TYPE_result    = T.Tuple[int, T.Optional[str], T.Optional[str]]
 TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, str]]]
@@ -37,92 +36,36 @@ TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, s
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakebin = PerMachine(None, None)   # type: PerMachine[T.Optional[ExternalProgram]]
-    class_cmakevers = PerMachine(None, None)  # type: PerMachine[T.Optional[str]]
     class_cmake_cache = {}  # type: T.Dict[T.Any, TYPE_result]
 
     def __init__(self, environment: 'Environment', version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
         self.environment = environment
         self.for_machine = for_machine
-        self.cmakebin, self.cmakevers = self.find_cmake_binary(self.environment, silent=silent)
         self.always_capture_stderr = True
         self.print_cmout = False
         self.prefix_paths = []      # type: T.List[str]
         self.extra_cmake_args = []  # type: T.List[str]
 
-        if self.cmakebin is None:
-            return
-
-        if not version_compare(self.cmakevers, self.min_version):
-            mlog.warning(
-                'The version of CMake', mlog.bold(self.cmakebin.get_path()),
-                'is', mlog.bold(self.cmakevers), 'but version', mlog.bold(self.min_version),
-                'is required')
+        prog, cached = environment.find_program(
+            environment.default_cmake, self.for_machine, [self.min_version])
+        assert isinstance(prog, ExternalProgram)
+        if not silent:
+            prog.log(cached)
+        if prog.found():
+            self.cmakebin = prog   # type: ExternalProgram
+            # TODO: since prog.get_version() is cached it make be fine to just delete this
+            self.cmakevers = prog.get_version() or ''
+        else:
             self.cmakebin = None
+            self.cmakevers = ''
+
+        if self.cmakebin is None:
             return
 
         self.prefix_paths = self.environment.coredata.options[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
-
-    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple[T.Optional['ExternalProgram'], T.Optional[str]]:
-        # Only search for CMake the first time and store the result in the class
-        # definition
-        if isinstance(CMakeExecutor.class_cmakebin[self.for_machine], NonExistingExternalProgram):
-            mlog.debug('CMake binary for %s is cached as not found' % self.for_machine)
-            return None, None
-        elif CMakeExecutor.class_cmakebin[self.for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % self.for_machine)
-        else:
-            assert CMakeExecutor.class_cmakebin[self.for_machine] is None
-
-            mlog.debug('CMake binary for %s is not cached' % self.for_machine)
-            for potential_cmakebin in find_external_program(
-                    environment, self.for_machine, 'cmake', 'CMake',
-                    environment.default_cmake, allow_default_for_cross=False):
-                version_if_ok = self.check_cmake(potential_cmakebin)
-                if not version_if_ok:
-                    continue
-                if not silent:
-                    mlog.log('Found CMake:', mlog.bold(potential_cmakebin.get_path()),
-                             '({})'.format(version_if_ok))
-                CMakeExecutor.class_cmakebin[self.for_machine] = potential_cmakebin
-                CMakeExecutor.class_cmakevers[self.for_machine] = version_if_ok
-                break
-            else:
-                if not silent:
-                    mlog.log('Found CMake:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                CMakeExecutor.class_cmakebin[self.for_machine] = NonExistingExternalProgram()
-                CMakeExecutor.class_cmakevers[self.for_machine] = None
-                return None, None
-
-        return CMakeExecutor.class_cmakebin[self.for_machine], CMakeExecutor.class_cmakevers[self.for_machine]
-
-    def check_cmake(self, cmakebin: 'ExternalProgram') -> T.Optional[str]:
-        if not cmakebin.found():
-            mlog.log('Did not find CMake {!r}'.format(cmakebin.name))
-            return None
-        try:
-            p, out = Popen_safe(cmakebin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found CMake {!r} but couldn\'t run it'
-                             ''.format(' '.join(cmakebin.get_command())))
-                return None
-        except FileNotFoundError:
-            mlog.warning('We thought we found CMake {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(cmakebin.get_command())))
-            return None
-        except PermissionError:
-            msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
-            if not is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        cmvers = re.search(r'(cmake|cmake3)\s*version\s*([\d.]+)', out).group(2)
-        return cmvers
 
     def set_exec_mode(self, print_cmout: T.Optional[bool] = None, always_capture_stderr: T.Optional[bool] = None) -> None:
         if print_cmout is not None:

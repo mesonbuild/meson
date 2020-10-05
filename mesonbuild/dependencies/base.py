@@ -36,7 +36,7 @@ from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType, OptionKey
 from ..mesondata import mesondata
-from ..programs import ExternalProgram, find_external_program
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import CompilerType  # noqa: F401
@@ -422,56 +422,35 @@ class ConfigToolDependency(ExternalDependency):
             return
         self.version = version
 
-    def _sanitize_version(self, version):
+    def version_func(self, prog: ExternalProgram) -> str:
         """Remove any non-numeric, non-point version suffixes."""
-        m = self.__strip_version.match(version)
+        cmd = prog.get_command() + [self.version_arg]
+        p, out, err = mesonlib.Popen_safe(cmd)
+        if p.returncode != 0:
+            raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
+        if not out:
+            out = err
+        out = out.strip()
+        m = self.__strip_version.match(out)
         if m:
             # Ensure that there isn't a trailing '.', such as an input like
             # `1.2.3.git-1234`
             return m.group(0).rstrip('.')
-        return version
+        return out
 
     def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) \
-            -> T.Tuple[T.Optional[str], T.Optional[str]]:
+            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
-        best_match = (None, None)  # type: T.Tuple[T.Optional[str], T.Optional[str]]
-        for potential_bin in find_external_program(
-                self.env, self.for_machine, self.tool_name,
-                self.tool_name, self.tools, allow_default_for_cross=False):
-            if not potential_bin.found():
-                continue
-            tool = potential_bin.get_command()
-            try:
-                p, out = Popen_safe(tool + [self.version_arg])[:2]
-            except (FileNotFoundError, PermissionError):
-                continue
-            if p.returncode != returncode:
-                continue
-
-            out = self._sanitize_version(out.strip())
-            # Some tools, like pcap-config don't supply a version, but also
-            # don't fail with --version, in that case just assume that there is
-            # only one version and return it.
-            if not out:
-                return (tool, None)
-            if versions:
-                is_found = version_compare_many(out, versions)[0]
-                # This allows returning a found version without a config tool,
-                # which is useful to inform the user that you found version x,
-                # but y was required.
-                if not is_found:
-                    tool = None
-            if best_match[1]:
-                if version_compare(out, '> {}'.format(best_match[1])):
-                    best_match = (tool, out)
-            else:
-                best_match = (tool, out)
-
-        return best_match
+        prog, _ = self.env.find_program(self.tools, self.for_machine, versions, version_func=self.version_func)
+        assert isinstance(prog, ExternalProgram)
+        # TODO: change this function to not return just the prog
+        if prog.found():
+            return (prog.get_command(), prog.get_version())
+        return (None, None)
 
     def report_config(self, version, req_version):
         """Helper method to print messages about the tool."""
@@ -542,9 +521,6 @@ class ConfigToolDependency(ExternalDependency):
 
 
 class PkgConfigDependency(ExternalDependency):
-    # The class's copy of the pkg-config path. Avoids having to search for it
-    # multiple times in the same Meson invocation.
-    class_pkgbin = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache = {}
 
@@ -552,46 +528,19 @@ class PkgConfigDependency(ExternalDependency):
         super().__init__('pkgconfig', environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
-        # Store a copy of the pkg-config path on the object itself so it is
-        # stored in the pickled coredata and recovered.
-        self.pkgbin = None
-
-        # Only search for pkg-config for each machine the first time and store
-        # the result in the class definition
-        if PkgConfigDependency.class_pkgbin[self.for_machine] is False:
-            mlog.debug('Pkg-config binary for %s is cached as not found.' % self.for_machine)
-        elif PkgConfigDependency.class_pkgbin[self.for_machine] is not None:
-            mlog.debug('Pkg-config binary for %s is cached.' % self.for_machine)
-        else:
-            assert PkgConfigDependency.class_pkgbin[self.for_machine] is None
-            mlog.debug('Pkg-config binary for %s is not cached.' % self.for_machine)
-            for potential_pkgbin in find_external_program(
-                    self.env, self.for_machine, 'pkgconfig', 'Pkg-config',
-                    environment.default_pkgconfig, allow_default_for_cross=False):
-                version_if_ok = self.check_pkgconfig(potential_pkgbin)
-                if not version_if_ok:
-                    continue
-                if not self.silent:
-                    mlog.log('Found pkg-config:', mlog.bold(potential_pkgbin.get_path()),
-                             '(%s)' % version_if_ok)
-                PkgConfigDependency.class_pkgbin[self.for_machine] = potential_pkgbin
-                break
-            else:
-                if not self.silent:
-                    mlog.log('Found Pkg-config:', mlog.red('NO'))
-                # Set to False instead of None to signify that we've already
-                # searched for it and not found it
-                PkgConfigDependency.class_pkgbin[self.for_machine] = False
-
-        self.pkgbin = PkgConfigDependency.class_pkgbin[self.for_machine]
-        if self.pkgbin is False:
-            self.pkgbin = None
-            msg = 'Pkg-config binary for machine %s not found. Giving up.' % self.for_machine
+        prog, cached = environment.find_program(
+            environment.default_pkgconfig, self.for_machine, [])
+        assert isinstance(prog, ExternalProgram)
+        if not cached:
+            # Don't announce 1000 times that we've pulled this out of the cache
+            prog.log(cached)
+        if not prog.found():
+            msg = 'Could not find a pkg-config binary for machine {}.'.format(self.for_machine)
             if self.required:
                 raise DependencyException(msg)
-            else:
-                mlog.debug(msg)
-                return
+            mlog.debug(msg)
+            return
+        self.pkgbin = prog  # type: ExternalProgram
 
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
@@ -906,28 +855,6 @@ class PkgConfigDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.PKGCONFIG]
-
-    def check_pkgconfig(self, pkgbin):
-        if not pkgbin.found():
-            mlog.log('Did not find pkg-config by name {!r}'.format(pkgbin.name))
-            return None
-        try:
-            p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
-            if p.returncode != 0:
-                mlog.warning('Found pkg-config {!r} but it failed when run'
-                             ''.format(' '.join(pkgbin.get_command())))
-                return None
-        except FileNotFoundError:
-            mlog.warning('We thought we found pkg-config {!r} but now it\'s not there. How odd!'
-                         ''.format(' '.join(pkgbin.get_command())))
-            return None
-        except PermissionError:
-            msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
-            if not self.env.machines.build.is_windows():
-                msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
-            mlog.warning(msg)
-            return None
-        return out.strip()
 
     def extract_field(self, la_file, fieldname):
         with open(la_file) as f:

@@ -852,6 +852,7 @@ class InternalTests(unittest.TestCase):
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
+    @mock.patch.dict(PkgConfigDependency.pkgbin_cache, clear=True)
     def test_pkgconfig_parse_libs(self):
         '''
         Unit test for parsing of pkg-config output to search for libraries
@@ -870,8 +871,12 @@ class InternalTests(unittest.TestCase):
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
+            # This will put a pkg-config in the cache, which will be used by
+            # the PkgConfigDependency
+            pkgbin, cached = env.find_program(['pkg-config'], MachineChoice.HOST, [])
+            assert not cached
+            assert isinstance(pkgbin, ExternalProgram)
             compiler = env.detect_c_compiler(MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
             env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
@@ -901,16 +906,11 @@ class InternalTests(unittest.TestCase):
                 if args[-1] == 'internal':
                     return 0, '-L{} -lpthread -lm -lc -lrt -ldl'.format(p1.as_posix()), ''
 
-            old_call = PkgConfigDependency._call_pkgbin
-            old_check = PkgConfigDependency.check_pkgconfig
-            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
-            # Test begins
-            try:
+            with mock.patch.object(PkgConfigDependency, '_call_pkgbin', fake_call_pkgbin):
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
-                                 [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
+                                [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
                 bar_dep = PkgConfigDependency('bar', env, kwargs)
                 self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
                 internal_dep = PkgConfigDependency('internal', env, kwargs)
@@ -921,13 +921,6 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
-            finally:
-                # Test ends
-                PkgConfigDependency._call_pkgbin = old_call
-                PkgConfigDependency.check_pkgconfig = old_check
-                # Reset dependency class to ensure that in-process configure doesn't mess up
-                PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -6201,7 +6194,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
-    def test_qt5dependency_qmake_detection(self):
+    def test_find_program_qmake_qt5(self) -> None:
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary
         test case because it involves setting the environment.
@@ -6213,13 +6206,10 @@ class LinuxlikeTests(BasePlatformTests):
             output = subprocess.getoutput('qmake --version')
             if 'Qt version 5' not in output:
                 raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
-        # Disable pkg-config codepath and force searching with qmake/qmake-qt5
-        testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, extra_args=['-Dmethod=qmake'])
-        # Confirm that the dependency was found with qmake
-        mesonlog = self.get_meson_log()
-        self.assertRegex('\n'.join(mesonlog),
-                         r'Run-time dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
+        env = get_fake_env()
+        prog, _ = env.find_program(
+            ['qmake-qt5', 'qmake'], MachineChoice.HOST, ['>= 5'])
+        self.assertTrue(prog.found())
 
     def glob_sofiles_without_privdir(self, g):
         files = glob(g)
