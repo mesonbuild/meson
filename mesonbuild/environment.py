@@ -2270,7 +2270,7 @@ class Environment:
                     search_dir = source_dir
                     extra_search_dirs = search_dirs
 
-                prog = ExternalProgram(
+                prog = ScriptProgram(
                     command, search_dir=search_dir,
                     extra_search_dirs=extra_search_dirs,
                     silent=True)

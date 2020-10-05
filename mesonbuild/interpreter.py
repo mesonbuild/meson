@@ -22,7 +22,10 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
-from .programs import ExternalProgram, NonExistingExternalProgram, OverrideProgram
+from .programs import (
+    ExternalProgram, NonExistingExternalProgram, OverrideProgram,
+    InternalProgram, ScriptProgram,
+)
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
 from .interpreterbase import InterpreterBase
@@ -55,6 +58,7 @@ if T.TYPE_CHECKING:
     from .envconfig import MachineInfo
     from .environment import Environment
     from .modules import ExtensionModule
+    from .interpreterbase import FeatureCheckBase
 
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
@@ -100,16 +104,21 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+def extract_required_kwarg(kwargs: T.Dict[str, T.Any], subproject: str,
+                           feature_check: T.Optional['FeatureCheckBase'] = None,
+                           default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
     val = kwargs.get('required', default)
+    if not isinstance(val, (bool, FeatureOptionHolder)):
+        raise InterpreterException('required keyword argument must be boolean or a feature option')
+
     disabled = False
     required = False
-    feature = None
+    feature = None  # T.Optional[FeatureOptionHolder]
     if isinstance(val, FeatureOptionHolder):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
         feature_check.use(subproject)
-        option = val.held_object
+        option = val.held_object  # type: coredata.UserFeatureOption
         feature = val.name
         if option.is_disabled():
             disabled = True
@@ -117,8 +126,6 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
             required = True
     elif isinstance(val, bool):
         required = val
-    else:
-        raise InterpreterException('required keyword argument must be boolean or a feature option')
 
     # Keep boolean value in kwargs to simplify other places where this kwarg is
     # checked.
@@ -126,9 +133,9 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
 
     return disabled, required, feature
 
-def extract_search_dirs(kwargs):
-    search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
-    search_dirs = [Path(d).expanduser() for d in search_dirs]
+def extract_search_dirs(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+    _search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
+    search_dirs = [Path(d).expanduser() for d in _search_dirs]
     for d in search_dirs:
         if mesonlib.is_windows() and d.root.startswith('\\'):
             # a Unix-path starting with `/` that is not absolute on Windows.
@@ -136,7 +143,7 @@ def extract_search_dirs(kwargs):
             continue
         if not d.is_absolute():
             raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
-    return list(map(str, search_dirs))
+    return [str(d) for d in search_dirs]
 
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
@@ -563,41 +570,28 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     def _full_path(self):
         exe = self.held_object
-        if isinstance(exe, build.Executable):
+        if isinstance(exe, InternalProgram):
             return self.backend.get_target_filename_abs(exe)
         return exe.get_path()
 
     def found(self):
-        return isinstance(self.held_object, build.Executable) or self.held_object.found()
+        return self.held_object.found()
 
     def get_command(self):
         return self.held_object.get_command()
 
     def get_name(self):
-        exe = self.held_object
-        if isinstance(exe, build.Executable):
-            return exe.name
-        return exe.get_name()
+        return self.held_object.get_name()
 
-    def get_version(self, interpreter):
-        if isinstance(self.held_object, build.Executable):
-            return self.held_object.project_version
-        if not self.cached_version:
-            raw_cmd = self.get_command() + ['--version']
-            cmd = [self, '--version']
-            res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
-            if res.returncode != 0:
-                m = 'Running {!r} failed'
-                raise InterpreterException(m.format(raw_cmd))
-            output = res.stdout.strip()
-            if not output:
-                output = res.stderr.strip()
-            match = re.search(r'([0-9][0-9\.]+)', output)
-            if not match:
-                m = 'Could not find a version number in output of {!r}'
-                raise InterpreterException(m.format(raw_cmd))
-            self.cached_version = match.group(1)
-        return self.cached_version
+    def get_version(self, interpreter) -> str:
+        try:
+            ver = self.held_object.get_version()
+        except mesonlib.MesonException as e:
+            raise InterpreterException(str(e))
+        if ver is None:
+            m = 'Could not find a version number in output of {}'
+            raise InterpreterException(m.format(' '.join(self.get_command())))
+        return ver
 
 class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def __init__(self, el, pv):
@@ -2159,8 +2153,9 @@ class MesonMain(InterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @permittedKwargs({})
-    def override_find_program_method(self, args, kwargs):
+    @FeatureNewKwargs('meson.override_find_program', '0.56.0', ['native'])
+    @permittedKwargs({'native'})
+    def override_find_program_method(self, args: T.List[T.Any], kwargs: T.Dict[str, T.Any]) -> None:
         if len(args) != 2:
             raise InterpreterException('Override needs two arguments')
         name, exe = args
@@ -2174,9 +2169,25 @@ class MesonMain(InterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = OverrideProgram(name, abspath)
-        if not isinstance(exe, (ExternalProgram, build.Executable)):
-            raise InterpreterException('Second argument must be an external program or executable.')
-        self.interpreter.add_find_program_override(name, exe)
+        elif isinstance(exe, ScriptProgram):
+            exe = OverrideProgram(
+                exe.name, exe.command, silent=True,
+                for_machine=exe.for_machine,
+                version_arg=exe.version_arg)
+        elif isinstance(exe, build.Executable):
+            exe = InternalProgram(exe, self.interpreter.build.project_version)
+        elif isinstance(exe, ExternalProgram):
+            exe = OverrideProgram(
+                exe.name, exe.command, silent=True,
+                for_machine=exe.for_machine,
+                version_arg=exe.version_arg)
+        else:
+            raise InterpreterException(
+                'Second argument must be a File, external program, or executable.')
+
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+
+        self.interpreter.environment.override_program(name, exe, for_machine)
 
     @FeatureNew('meson.override_dependency', '0.54.0')
     @permittedKwargs({'native'})
@@ -2813,7 +2824,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         expanded_args = []
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
-            if isinstance(cmd, build.Executable):
+            if isinstance(cmd, (build.Executable, InternalProgram)):
                 progname = node.args.arguments[0].value
                 msg = 'Program {!r} was overridden with the compiled executable {!r}'\
                       ' and therefore cannot be used during configuration'
@@ -3452,15 +3463,6 @@ external dependencies (including libraries) must go to "dependencies".''')
             if isinstance(name, str):
                 self.build.searched_programs.add(name)
 
-    def add_find_program_override(self, name, exe):
-        if name in self.build.searched_programs:
-            raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
-                                       % name)
-        if name in self.build.find_overrides:
-            raise InterpreterException('Tried to override executable "%s" which has already been overridden.'
-                                       % name)
-        self.build.find_overrides[name] = exe
-
     def notfound_program(self, args):
         return ExternalProgramHolder(NonExistingExternalProgram(' '.join(args)), self.subproject)
 
@@ -3539,21 +3541,44 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['find_program'])
-    def func_find_program(self, node, args, kwargs):
+    def func_find_program(self, node: mparser.BaseNode, args: T.Union[T.Any, T.List[T.Any]], kwargs: T.Dict[str, T.Any]):
         if not args:
-            raise InterpreterException('No program name specified.')
-
+            raise InterpreterException('No program name(s) specified to find_program().')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args)
 
+        args = listify(args)
+        for n in args:
+            if not isinstance(n, (str, mesonlib.File)):
+                raise InterpreterException('Arguments to find_program must be strings or File objects')
+        args = T.cast(T.List['mesonlib.FileOrString'], args)
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required,
-                                      silent=False, wanted=wanted,
-                                      search_dirs=search_dirs)
+
+        prog_or_fallback, cached = self.environment.find_program(
+            args, for_machine, versions=wanted, search_dirs=search_dirs,
+            subdir=self.subdir, required=required)
+
+        if isinstance(prog_or_fallback, str):
+            mlog.log('Fallback to subproject', mlog.bold(prog_or_fallback), 'which provides program',
+                     mlog.bold(' '.join(args)))
+            sp_kwargs = {'required': required}
+            self.do_subproject(prog_or_fallback, 'meson', sp_kwargs)
+
+            # Do the lookup again, as we should find a cached version
+            prog_or_fallback, cached = self.environment.find_program(
+                args, for_machine, wanted, search_dirs, self.subdir)
+            assert isinstance(prog_or_fallback, ExternalProgram), prog_or_fallback
+
+        prog_or_fallback.log(cached)
+        if not prog_or_fallback.found() and required:
+            m = 'Program {!r} not found'
+            raise InterpreterException(m.format(prog_or_fallback.name))
+
+        return ExternalProgramHolder(prog_or_fallback, self.subproject)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
