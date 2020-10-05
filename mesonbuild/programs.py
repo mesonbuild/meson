@@ -309,6 +309,24 @@ class ExternalProgram:
             return None
         return str(match.group(0))
 
+    def log(self, cached: bool) -> None:
+        """Function that logs that an executable was found."""
+        info = []  # type: T.List[T.Union[str, mlog.AnsiDecorator]]
+        if self.found():
+            info.append(mlog.green('YES'))
+            version = self.get_version()
+            if version:
+                info.append(mlog.normal_cyan(version))
+                # TODO: explict?
+            if isinstance(self, (OverrideProgram, InternalProgram)):
+                info.append(mlog.blue('(overridden)'))
+            elif cached:
+                info.append(mlog.blue('(cached)'))
+        else:
+            info.append(mlog.red('NO'))
+
+        mlog.log('Program', mlog.bold(self.name), 'found:', *info)
+
 
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
