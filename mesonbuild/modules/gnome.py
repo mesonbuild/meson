@@ -39,6 +39,7 @@ from ..programs import ExternalProgram, OverrideProgram
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
+    from ..environment import Environment
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -48,6 +49,20 @@ if T.TYPE_CHECKING:
 gresource_dep_needed_version = '>= 2.51.1'
 
 native_glib_version = None
+
+
+def get_program(env: 'Environment', names: T.List[str],
+                versions: T.Optional[T.List[str]] = None,
+                machine: MachineChoice = MachineChoice.HOST) -> ExternalProgram:
+    """Helper to get a program and assert that it's found, and is not a fallback."""
+    # TODO: these currently are set to HOST, but I think they should be BUILD
+    prog, cached = env.find_program(names, machine, versions or [])
+    assert isinstance(prog, ExternalProgram)
+    prog.log(cached)
+    if not prog.found():
+        raise mesonlib.MesonException('Required program {} not found'.format(', '.join(names)))
+    return prog
+
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
@@ -422,20 +437,8 @@ class GnomeModule(ExtensionModule):
             kwargs = {'native': True, 'required': True}
             holder = self.interpreter.func_dependency(state.current_node, ['gobject-introspection-1.0'], kwargs)
             self.gir_dep = holder.held_object
-            giscanner = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-scanner')
-            if giscanner is not None:
-                self.giscanner = ExternalProgram.from_entry('g-ir-scanner', giscanner)
-            elif self.gir_dep.type_name == 'pkgconfig':
-                self.giscanner = ExternalProgram('g_ir_scanner', self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {}))
-            else:
-                self.giscanner = self.interpreter.find_program_impl('g-ir-scanner')
-            gicompiler = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-compiler')
-            if gicompiler is not None:
-                self.gicompiler = ExternalProgram.from_entry('g-ir-compiler', gicompiler)
-            elif self.gir_dep.type_name == 'pkgconfig':
-                self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
-            else:
-                self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
+            self.giscanner = get_program(state.environment, [self.gir_dep.get_variable(pkgconfig='gi_ir_scanner', default_value='g-ir-scanner')])
+            self.gicompiler = get_program(state.environment, [self.gir_dep.get_variable(pkgconfig='gi_ir_compiler', default_value='g-ir-compiler')])
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
@@ -848,9 +851,8 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [self.interpreter.find_program_impl('glib-compile-schemas')]
-        cmd += ['--targetdir', outdir, srcdir]
-        kwargs['command'] = cmd
+        prog = get_program(state.environment, ['glib-compile-schemas'])
+        kwargs['command'] = prog.get_command() + ['--targetdir', outdir, srcdir]
         kwargs['input'] = []
         kwargs['output'] = 'gschemas.compiled'
         if state.subdir == '':
@@ -990,8 +992,8 @@ class GnomeModule(ExtensionModule):
                 '--mode=' + mode]
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
-            program = self.interpreter.find_program_impl(program_name)
-            path = program.held_object.get_path()
+            program = get_program(state.environment, [program_name])
+            path = program.get_path()
             args.append('--{}={}'.format(program_name, path))
         if namespace:
             args.append('--namespace=' + namespace)
@@ -1042,7 +1044,7 @@ class GnomeModule(ExtensionModule):
         custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs.get('check', False):
-            check_cmd = self.interpreter.find_program_impl('gtkdoc-check')
+            program = get_program(state.environment, ['gtkdoc-check'])
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
             check_args = [targetname + '-check', check_cmd]
@@ -1146,7 +1148,8 @@ class GnomeModule(ExtensionModule):
             raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
         xml_files = args[1:]
-        cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
+        program = get_program(state.environment, ['gdbus-codegen'])
+        cmd = program.get_command()
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
         # Autocleanup supported?
@@ -1316,7 +1319,8 @@ class GnomeModule(ExtensionModule):
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     'Mkenums does not take a %s keyword argument.' % (arg, ))
-        cmd = [self.interpreter.find_program_impl(['glib-mkenums', 'mkenums'])] + cmd
+        program = get_program(state.environment, ['glib-mkenums', 'mkenums'])
+        cmd = program.get_command() + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -1513,7 +1517,8 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
+        program = get_program(state.environment, ['glib-genmarshal'])
+        cmd = program.get_command()
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -1655,10 +1660,9 @@ G_END_DECLS'''
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
-        if 'VAPIGEN' in os.environ:
-            cmd = [self.interpreter.find_program_impl(os.environ['VAPIGEN'])]
-        else:
-            cmd = [self.interpreter.find_program_impl('vapigen')]
+        # FIXME: this hsould be handled from a central lookup
+        program = get_program(state.environment, [os.environ.get('VAPIGEN', 'vapigen')])
+        cmd = program.get_command()
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)

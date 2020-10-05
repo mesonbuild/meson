@@ -748,7 +748,7 @@ class Environment:
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake', 'Cmake']           # type: T.List[str]
-        self.default_pkgconfig = ['pkg-config', 'Pkg-config', 'pkgconfig']  # type: T.List[str]
+        self.default_pkgconfig = ['pkg-config', 'Pkg-config', 'pkgconf']  # type: T.List[str]
         self.wrap_resolver = None  # type: T.Optional[Resolver]
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
