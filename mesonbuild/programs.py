@@ -131,8 +131,8 @@ class ExternalProgram:
                 paths.append(os.path.dirname(sys.executable))
         return os.pathsep.join(paths)
 
-    @staticmethod
-    def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
+    @classmethod
+    def from_entry(cls, name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -141,10 +141,10 @@ class ExternalProgram:
         if isinstance(command, list) or os.path.isabs(command):
             if isinstance(command, str):
                 command = [command]
-            return ExternalProgram(name, command=command, silent=True)
+            return cls(name, command=command)
         assert isinstance(command, str)
         # Search for the command using the specified string!
-        return ExternalProgram(command, silent=True)
+        return cls(command)
 
     @staticmethod
     def _shebang_to_cmd(script: str) -> T.Optional[T.List[str]]:
