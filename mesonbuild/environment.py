@@ -964,6 +964,12 @@ class Environment:
                 errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
         raise EnvironmentException(errmsg)
 
+    @staticmethod
+    def __failed_to_detect_linker(compiler: T.List[str], args: T.List[str], stdout: str, stderr: str) -> 'T.NoReturn':
+        msg = 'Unable to detect linker for compiler "{} {}"\nstdout: {}\nstderr: {}'.format(
+            ' '.join(compiler), ' '.join(args), stdout, stderr)
+        raise EnvironmentException(msg)
+
     def _guess_win_linker(self, compiler: T.List[str], comp_class: Compiler,
                           for_machine: MachineChoice, *,
                           use_linker_prefix: bool = True, invoked_directly: bool = True,
@@ -1026,7 +1032,7 @@ class Environment:
                 "Found GNU link.exe instead of MSVC link.exe. This link.exe "
                 "is not a linker. You may need to reorder entries to your "
                 "%PATH% variable to resolve this.")
-        raise EnvironmentException('Unable to determine dynamic linker')
+        self.__failed_to_detect_linker(compiler, check_args, o, e)
 
     def _guess_nix_linker(self, compiler: T.List[str], comp_class: T.Type[Compiler],
                           for_machine: MachineChoice, *,
@@ -1117,7 +1123,7 @@ class Environment:
                 compiler, for_machine, comp_class.LINKER_PREFIX, override,
                 version=search_version(e))
         else:
-            raise EnvironmentException('Unable to determine dynamic linker')
+            self.__failed_to_detect_linker(compiler, check_args, o, e)
         return linker
 
     def _detect_c_or_cpp_compiler(self, lang: str, for_machine: MachineChoice) -> Compiler:
