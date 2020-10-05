@@ -34,7 +34,7 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..envconfig import get_env_var
 from ..environment import BinaryTable, Environment, MachineInfo
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
@@ -1087,10 +1087,10 @@ class CMakeDependency(ExternalDependency):
         # AttributeError exceptions in derived classes
         self.traceparser = None  # type: CMakeTraceParser
 
-        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
+        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, MachineChoice.BUILD, silent=self.silent)
         if not self.cmakebin.found():
             self.cmakebin = None
-            msg = 'No CMake binary for machine %s not found. Giving up.' % self.for_machine
+            msg = 'No CMake binary for machine {} not found. Giving up.'.format(MachineChoice.BUILD)
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
@@ -1136,12 +1136,14 @@ class CMakeDependency(ExternalDependency):
         gen_list += CMakeDependency.class_cmake_generators
 
         temp_parser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
+        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
+        toolchain.write()
 
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
 
             # Prepare options
-            cmake_opts = temp_parser.trace_args() + ['.']
+            cmake_opts = temp_parser.trace_args() + toolchain.get_cmake_args() + ['.']
             cmake_opts += cm_args
             if len(i) > 0:
                 cmake_opts = ['-G', i] + cmake_opts
@@ -1320,6 +1322,8 @@ class CMakeDependency(ExternalDependency):
 
         # Map the components
         comp_mapped = self._map_component_list(modules, components)
+        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
+        toolchain.write()
 
         for i in gen_list:
             mlog.debug('Try CMake generator: {}'.format(i if len(i) > 0 else 'auto'))
@@ -1331,6 +1335,7 @@ class CMakeDependency(ExternalDependency):
             cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
             cmake_opts += args
             cmake_opts += self.traceparser.trace_args()
+            cmake_opts += toolchain.get_cmake_args()
             cmake_opts += self._extra_cmake_opts()
             cmake_opts += ['.']
             if len(i) > 0:
@@ -1537,6 +1542,13 @@ class CMakeDependency(ExternalDependency):
         # Setup the CMake build environment and return the "build" directory
         build_dir = self._get_build_dir()
 
+        # Remove old CMake cache so we can try out multiple generators
+        cmake_cache = build_dir / 'CMakeCache.txt'
+        cmake_files = build_dir / 'CMakeFiles'
+        if cmake_cache.exists():
+            cmake_cache.unlink()
+        shutil.rmtree(cmake_files.as_posix(), ignore_errors=True)
+
         # Insert language parameters into the CMakeLists.txt and write new CMakeLists.txt
         cmake_txt = mesondata['dependencies/data/' + cmake_file].data
 
@@ -1552,10 +1564,10 @@ class CMakeDependency(ExternalDependency):
         if not cmake_language:
             cmake_language += ['NONE']
 
-        cmake_txt = """
-cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
-project(MesonTemp LANGUAGES {})
-""".format(' '.join(cmake_language)) + cmake_txt
+        cmake_txt = textwrap.dedent("""
+            cmake_minimum_required(VERSION ${{CMAKE_VERSION}})
+            project(MesonTemp LANGUAGES {})
+        """).format(' '.join(cmake_language)) + cmake_txt
 
         cm_file = build_dir / 'CMakeLists.txt'
         cm_file.write_text(cmake_txt)
@@ -1565,7 +1577,7 @@ project(MesonTemp LANGUAGES {})
 
     def _call_cmake(self, args, cmake_file: str, env=None):
         build_dir = self._setup_cmake_dir(cmake_file)
-        return self.cmakebin.call_with_fake_build(args, build_dir, env=env)
+        return self.cmakebin.call(args, build_dir, env=env)
 
     @staticmethod
     def get_methods():
