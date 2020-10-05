@@ -1,7 +1,5 @@
 {
   "installed": [
-    {"type": "expr", "file": "usr/?lib/libcm_cmModLib?so"},
-    {"type": "implib", "file": "usr/lib/libcm_cmModLib"},
     {"type": "exe", "file": "usr/bin/cm_testEXE"}
   ],
   "tools": {

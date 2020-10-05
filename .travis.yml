@@ -34,10 +34,10 @@ matrix:
   # Also hijack one cross build to test long commandline handling codepath (and avoid overloading Travis)
   - os: linux
     compiler: gcc
-    env: RUN_TESTS_ARGS="--cross ubuntu-armhf.txt --cross linux-mingw-w64-64bit.txt" MESON_RSP_THRESHOLD=0
+    env: RUN_TESTS_ARGS="--cross ubuntu-armhf.json --cross linux-mingw-w64-64bit.json" MESON_RSP_THRESHOLD=0
   - os: linux
     compiler: gcc
-    env: RUN_TESTS_ARGS="--cross ubuntu-armhf.txt --cross linux-mingw-w64-64bit.txt" MESON_ARGS="--unity=on"
+    env: RUN_TESTS_ARGS="--cross ubuntu-armhf.json --cross linux-mingw-w64-64bit.json" MESON_ARGS="--unity=on"
 
 before_install:
   - python ./skip_ci.py --base-branch-env=TRAVIS_BRANCH --is-pull-env=TRAVIS_PULL_REQUEST
