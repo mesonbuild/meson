@@ -27,6 +27,7 @@ from . import mlog
 from .mesonlib import MachineChoice
 
 if T.TYPE_CHECKING:
+    from .build import Executable
     from .environment import Environment
 
 
@@ -331,6 +332,24 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
 class OverrideProgram(ExternalProgram):
 
     """A script overriding a program."""
+
+
+class InternalProgram(ExternalProgram):
+
+    """A Program that is actually being built by us."""
+
+    def __init__(self, exe: 'Executable', version: T.Optional[str] = None) -> None:
+        self.name = exe.name
+        self.path = exe.filename
+        self.command = exe.outputs
+        self.version = version
+
+    def found(self) -> bool:
+        return True
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        return self.version
 
 
 def find_external_program(env: 'Environment', for_machine: MachineChoice, name: str,
