@@ -42,10 +42,10 @@ class ExternalProgram:
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
                  extra_search_dirs: T.Optional[T.List[str]] = None,
-                 version_func: T.Optional[T.Callable[['ExternalProgram'], T.Optional[str]]] = None):
+                 for_machine: MachineChoice = MachineChoice.BUILD):
         self.name = name
         self.path = None  # type: T.Optional[str]
-        self.version_func = version_func
+        self.for_machine = for_machine
         if command is not None:
             self.command = mesonlib.listify(command)
             if mesonlib.is_windows():
@@ -298,8 +298,6 @@ class ExternalProgram:
 
     @functools.lru_cache()
     def get_version(self) -> T.Optional[str]:
-        if self.version_func is not None:
-            return self.version_func(self)
         cmd = self.get_command() + ['--version']
         p, out, err = mesonlib.Popen_safe(cmd)
         if p.returncode != 0:
@@ -310,6 +308,7 @@ class ExternalProgram:
         if not match:
             return None
         return str(match.group(0))
+
 
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
