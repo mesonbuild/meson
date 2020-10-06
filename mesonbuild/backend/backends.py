@@ -198,7 +198,7 @@ class Backend:
             return
         self.build = build
         self.interpreter = interpreter
-        self.environment = build.environment
+        self.environment = interpreter.environment
         self.processed_targets = {}
         self.name = '<UNKNOWN>'
         self.build_dir = self.environment.get_build_dir()
