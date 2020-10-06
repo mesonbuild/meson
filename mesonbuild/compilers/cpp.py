@@ -505,6 +505,9 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             c_stds += ['c++17']
         if version_compare(self.version, '>=17.0.0'):
             g_stds += ['gnu++14']
+        if version_compare(self.version, '>=19.1.0'):
+            c_stds += ['c++2a']
+            g_stds += ['gnu++2a']
         opts.update({
             'eh': coredata.UserComboOption(
                 'C++ exception handling type.',
