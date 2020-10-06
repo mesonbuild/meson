@@ -89,6 +89,7 @@ set in the cross file.
 | dspic               | 16 bit Microchip dsPIC   |
 | e2k                 | MCST Elbrus processor    |
 | ia64                | Itanium processor        |
+| loongarch64         | 64 bit Loongson processor|
 | m68k                | Motorola 68000 processor |
 | microblaze          | MicroBlaze processor     |
 | mips                | 32 bit MIPS processor    |
