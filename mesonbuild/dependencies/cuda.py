@@ -219,7 +219,7 @@ class CudaDependency(ExternalDependency):
                 raise DependencyException(msg.format(arch, 'Windows'))
             return os.path.join('lib', libdirs[arch])
         elif machine.is_linux():
-            libdirs = {'x86_64': 'lib64', 'ppc64': 'lib', 'aarch64': 'lib64'}
+            libdirs = {'x86_64': 'lib64', 'ppc64': 'lib', 'aarch64': 'lib64', 'loongarch64': 'lib64'}
             if arch not in libdirs:
                 raise DependencyException(msg.format(arch, 'Linux'))
             return libdirs[arch]
