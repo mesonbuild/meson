@@ -1907,11 +1907,10 @@ class Summary:
         mlog.log(*line, sep=list_sep)
 
 class MesonMain(InterpreterObject):
-    def __init__(self, build, interpreter):
+    def __init__(self, build, interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
         self.build = build
         self.interpreter = interpreter
-        self._found_source_scripts = {}
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build': self.is_cross_build_method,
                              'has_exe_wrapper': self.has_exe_wrapper_method,
@@ -1939,7 +1938,7 @@ class MesonMain(InterpreterObject):
                              'backend': self.backend_method,
                              })
 
-    def _find_source_script(self, prog: T.Union[str, ExecutableHolder], args):
+    def _find_source_script(self, prog: T.Union[str, ExecutableHolder, ExternalProgramHolder], args):
         if isinstance(prog, ExecutableHolder):
             prog_path = self.interpreter.backend.get_target_filename(prog.held_object)
             return build.RunScript([prog_path], args)
@@ -1949,16 +1948,15 @@ class MesonMain(InterpreterObject):
         # Prefer scripts in the current source directory
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
-        key = (prog, search_dir)
-        if key in self._found_source_scripts:
-            found = self._found_source_scripts[key]
-        else:
-            found = ExternalProgram(prog, search_dir=search_dir)
-            if found.found():
-                self._found_source_scripts[key] = found
-            else:
-                m = 'Script or command {!r} not found or not executable'
-                raise InterpreterException(m.format(prog))
+        found, cached = self.interpreter.environment.find_program(
+            [prog], MachineChoice.BUILD, [], search_dirs=[search_dir],
+            subdir=self.interpreter.subdir)
+        assert isinstance(found, ExternalProgram)
+        if not cached:
+            # Only log the script once, we don't really care if we found src/dothing.py 10 times
+            found.log(cached)
+        if not found.found():
+            raise InterpreterException('Could not find script {}'.format(prog))
         return build.RunScript(found.get_command(), args)
 
     def _process_script_args(
