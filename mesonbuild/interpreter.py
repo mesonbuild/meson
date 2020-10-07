@@ -2757,7 +2757,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return DependencyHolder(dep, self.subproject)
 
     @noKwargs
-    def func_assert(self, node, args, kwargs):
+    def func_assert(self, node: mparser.ArrayNode, args: T.List[T.Any], kwargs: T.Dict[str, T.Any]) -> None:
         if len(args) == 1:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
             value = args[0]
