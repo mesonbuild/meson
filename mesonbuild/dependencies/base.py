@@ -401,11 +401,12 @@ class ConfigToolDependency(ExternalDependency):
     tools = None
     tool_name = None
     version_arg = '--version'
-    __strip_version = re.compile(r'^[0-9][0-9.]+')
 
     def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
         super().__init__('config-tool', environment, kwargs, language=language)
         self.name = name
+        self.config = None   # type: T.Optional[T.List[str]]
+        self.version = None  # type: T.Optional[str]
         # You may want to overwrite the class version in some cases
         self.tools = listify(kwargs.get('tools', self.tools))
         if not self.tool_name:
@@ -414,61 +415,23 @@ class ConfigToolDependency(ExternalDependency):
             self.version_arg = kwargs['version_arg']
 
         req_version = kwargs.get('version', None)
-        tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0))
-        self.config = tool
-        self.is_found = self.report_config(version, req_version)
-        if not self.is_found:
-            self.config = None
-            return
-        self.version = version
+        self.find_config(req_version, kwargs.get('returncode_value', 0))
 
-    def version_func(self, prog: ExternalProgram) -> str:
-        """Remove any non-numeric, non-point version suffixes."""
-        cmd = prog.get_command() + [self.version_arg]
-        p, out, err = mesonlib.Popen_safe(cmd)
-        if p.returncode != 0:
-            raise mesonlib.MesonException('Failed running "{}"'.format(' ' .join(cmd)))
-        if not out:
-            out = err
-        out = out.strip()
-        m = self.__strip_version.match(out)
-        if m:
-            # Ensure that there isn't a trailing '.', such as an input like
-            # `1.2.3.git-1234`
-            return m.group(0).rstrip('.')
-        return out
-
-    def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) \
-            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
+    def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) -> None:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
-        prog, _ = self.env.find_program(self.tools, self.for_machine, versions, version_func=self.version_func)
+        prog, cached = self.env.find_program(
+            self.tools, self.for_machine, versions, version_arg=[self.version_arg],
+            configtool=True)
         assert isinstance(prog, ExternalProgram)
-        # TODO: change this function to not return just the prog
+        prog.log(cached)
         if prog.found():
-            return (prog.get_command(), prog.get_version())
-        return (None, None)
-
-    def report_config(self, version, req_version):
-        """Helper method to print messages about the tool."""
-
-        found_msg = [mlog.bold(self.tool_name), 'found:']
-
-        if self.config is None:
-            found_msg.append(mlog.red('NO'))
-            if version is not None and req_version is not None:
-                found_msg.append('found {!r} but need {!r}'.format(version, req_version))
-            elif req_version:
-                found_msg.append('need {!r}'.format(req_version))
-        else:
-            found_msg += [mlog.green('YES'), '({})'.format(' '.join(self.config)), version]
-
-        mlog.log(*found_msg)
-
-        return self.config is not None
+            self.is_found = True
+            self.config = prog.get_command()
+            self.version = prog.get_version()
 
     def get_config_value(self, args: T.List[str], stage: str) -> T.List[str]:
         p, out, err = Popen_safe(self.config + args)

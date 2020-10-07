@@ -421,6 +421,23 @@ class InternalProgram(ExternalProgram):
         return self.version
 
 
+class ExternalProgramConfigTool(ExternalProgram):
+
+    """A special case of ExternalProgram for config tools."""
+
+    __strip_version = re.compile(r'^[0-9][0-9.]+')
+
+    @functools.lru_cache()
+    def get_version(self) -> T.Optional[str]:
+        out = super().get_version()
+        m = self.__strip_version.match(out)
+        if m:
+            # Ensure that there isn't a trailing '.', such as an input like
+            # `1.2.3.git-1234`
+            return m.group(0).rstrip('.')
+        return out
+
+
 class ExternalProgramCMake(ExternalProgram):
 
     """Special external program for cmake.

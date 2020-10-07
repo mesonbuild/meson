@@ -29,7 +29,8 @@ from .mesonlib import (
 from . import mlog
 from .programs import (
     ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
-    InternalProgram, OverrideProgram, ScriptProgram, SPECIAL_PROGRAMS
+    InternalProgram, OverrideProgram, ScriptProgram, SPECIAL_PROGRAMS,
+    ExternalProgramConfigTool,
 )
 from .wrap import WrapMode
 
@@ -2161,7 +2162,8 @@ class Environment:
     def find_program(self, commands: T.Sequence['mesonlib.FileOrString'], for_machine: MachineChoice,
                      versions: T.List[str], search_dirs: T.Optional[T.List[str]] = None,
                      subdir: T.Optional[str] = None, required: bool = False,
-                     version_arg: T.Optional[T.List[str]] = None) -> \
+                     version_arg: T.Optional[T.List[str]] = None,
+                     configtool: bool = False) -> \
                          T.Tuple[T.Union[ExternalProgram, str], bool]:
         """Find a program from the program cache, or find it new.
 
@@ -2202,6 +2204,8 @@ class Environment:
 
         # Check for special program handling, such as with cmake and pkg-config
         # We must iterate because any of the names could match the special program
+        if configtool:
+            class_ = ExternalProgramConfigTool
         for command in commands:
             if command in SPECIAL_PROGRAMS:
                 class_ = SPECIAL_PROGRAMS[command]
