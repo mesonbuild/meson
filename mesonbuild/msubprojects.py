@@ -120,11 +120,33 @@ def update_git(wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
         return True
-    revision = wrap.get('revision')
-    if not revision:
+    revision = wrap.values.get('revision')
+    url = wrap.values.get('url')
+    push_url = wrap.values.get('push-url')
+    if not revision or not url:
         # It could be a detached git submodule for example.
-        mlog.log('  -> No revision specified.')
+        mlog.log('  -> No revision or URL specified.')
         return True
+    try:
+        origin_url = git_output(['remote', 'get-url', 'origin'], repo_dir).strip()
+    except GitException as e:
+        mlog.log('  -> Failed to determine current origin URL in', mlog.bold(repo_dir))
+        mlog.log(mlog.red(e.output))
+        mlog.log(mlog.red(str(e)))
+        return False
+    if options.reset:
+        try:
+            git_output(['remote', 'set-url', 'origin', url], repo_dir)
+            if push_url:
+                git_output(['remote', 'set-url', '--push', 'origin', push_url], repo_dir)
+        except GitException as e:
+            mlog.log('  -> Failed to reset origin URL in', mlog.bold(repo_dir))
+            mlog.log(mlog.red(e.output))
+            mlog.log(mlog.red(str(e)))
+            return False
+    elif url != origin_url:
+        mlog.log('  -> URL changed from {!r} to {!r}'.format(origin_url, url))
+        return False
     try:
         # Same as `git branch --show-current` but compatible with older git version
         branch = git_output(['rev-parse', '--abbrev-ref', 'HEAD'], repo_dir).strip()

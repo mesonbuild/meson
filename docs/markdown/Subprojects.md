@@ -300,7 +300,7 @@ To pull latest version of all your subprojects at once, just run the command:
   prevent from any loss of local changes.
 - If subproject is currently in detached mode, a checkout of the revision from
   wrap file is performed. *Since 0.56.0* a rebase is also performed in case the
-  revision already existed locally by was outdated. If `--reset` is specified,
+  revision already existed locally but was outdated. If `--reset` is specified,
   a hard reset is performed instead of rebase.
 - If subproject is currently at the same branch as specified by the wrap file,
   a rebase on `origin` commit is performed. *Since 0.56.0* If `--reset` is
@@ -312,6 +312,9 @@ To pull latest version of all your subprojects at once, just run the command:
   file is performed and a rebase is also performed in case the revision already
   existed locally by was outdated. If `--reset` is specified, a hard reset is
   performed instead of rebase.
+- *Since 0.56.0* if the `url` specified in wrap file is different to the URL set
+  on `origin` for a git repository it will not be updated, unless `--reset` is
+  specified in which case the URL of `origin` will be reset first.
 
 ### Start a topic branch across all git subprojects
 
