@@ -993,13 +993,13 @@ This will become a hard error in a future Meson release.''')
             if m.is_darwin() or m.is_windows():
                 self.pic = True
             else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic')
-        if isinstance(self, Executable):
+                self.pic = self._extract_pic_pie(kwargs, 'pic', environment, 'b_staticpic')
+        if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
             # Executables must be PIE on Android
             if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie')
+                self.pie = self._extract_pic_pie(kwargs, 'pie', environment, 'b_pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -1017,14 +1017,20 @@ This will become a hard error in a future Meson release.''')
             raise InvalidArguments('Invalid value for win_subsystem: {}.'.format(value))
         return value
 
-    def _extract_pic_pie(self, kwargs, arg):
+    def _extract_pic_pie(self, kwargs, arg, environment, option):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning("Use the '{}' kwarg instead of passing '{}' manually to {!r}".format(arg, '-f' + arg, self.name))
             return True
 
-        val = kwargs.get(arg, False)
+        if arg in kwargs:
+            val = kwargs[arg]
+        elif option in environment.coredata.base_options:
+            val = environment.coredata.base_options[option].value
+        else:
+            val = False
+
         if not isinstance(val, bool):
             raise InvalidArguments('Argument {} to {!r} must be boolean'.format(arg, self.name))
         return val
@@ -1637,8 +1643,6 @@ class StaticLibrary(BuildTarget):
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'static library'
-        if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
-            kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
