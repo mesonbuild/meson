@@ -3707,21 +3707,30 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.notfound_dependency()
 
         fallback = kwargs.get('fallback', None)
+        allow_fallback = kwargs.get('allow_fallback', None)
+        if allow_fallback is not None:
+            FeatureNew.single_use('"allow_fallback" keyword argument for dependency', '0.56.0', self.subproject)
+            if fallback is not None:
+                raise InvalidArguments('"fallback" and "allow_fallback" arguments are mutually exclusive')
+            if not isinstance(allow_fallback, bool):
+                raise InvalidArguments('"allow_fallback" argument must be boolean')
 
         # If "fallback" is absent, look for an implicit fallback.
-        if name and fallback is None:
+        if name and fallback is None and allow_fallback is not False:
             # Add an implicit fallback if we have a wrap file or a directory with the same name,
             # but only if this dependency is required. It is common to first check for a pkg-config,
             # then fallback to use find_library() and only afterward check again the dependency
             # with a fallback. If the fallback has already been configured then we have to use it
             # even if the dependency is not required.
             provider = self.environment.wrap_resolver.find_dep_provider(name)
+            if not provider and allow_fallback is True:
+                raise InvalidArguments('Fallback wrap or subproject not found for dependency \'%s\'' % name)
             dirname = mesonlib.listify(provider)[0]
-            if provider and (required or self.get_subproject(dirname)):
+            if provider and (allow_fallback is True or required or self.get_subproject(dirname)):
                 fallback = provider
 
         if 'default_options' in kwargs and not fallback:
-            mlog.warning('The "default_options" keyworg argument does nothing without a "fallback" keyword argument.',
+            mlog.warning('The "default_options" keyword argument does nothing without a fallback subproject.',
                          location=self.current_node)
 
         # writing just "dependency('')" is an error, because it can only fail

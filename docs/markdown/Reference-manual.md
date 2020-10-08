@@ -454,15 +454,15 @@ Dependencies can also be resolved in two other ways:
 * by a fallback subproject which, if needed, will be brought into the current
   build specification as if [`subproject()`](#subproject) had been called.
   The subproject can be specified with the `fallback` argument.  Alternatively,
-  if the `fallback` argument is absent and `required` is `true` or
-  [`enabled`](Build-options.md#features), *since 0.55.0* Meson will
+  if the `fallback` argument is absent, *since 0.55.0* Meson can
   automatically identify a subproject as a fallback if a wrap file
   [provides](Wrap-dependency-system-manual.md#provide-section) the
   dependency, or if a subproject has the same name as the dependency.
   In the latter case, the subproject must use `meson.override_dependency` to
   specify the replacement, or Meson will report a hard error.  See the
   [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
-  for more details.
+  for more details.  This automatic search can be controlled using the
+  `allow_fallback` keyword argument.
 
 This function supports the following keyword arguments:
 
@@ -471,7 +471,16 @@ This function supports the following keyword arguments:
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
-- `fallback`: manually specifies a subproject
+- `allow_fallback` (boolean argument, *since 0.56.0*): specifies whether Meson
+  should automatically pick a fallback subproject in case the dependency
+  is not found in the system.  If `true` and the dependency is not found
+  on the system, Meson will fallback to a subproject that provides this
+  dependency. If `false`, Meson will not fallback even if a subproject
+  provides this dependency.  By default, Meson will do so if `required`
+  is `true` or  [`enabled`](Build-options.md#features); see the [Wrap
+  documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.
+- `fallback` (string or array argument): manually specifies a subproject
   fallback to use in case the dependency is not found in the system.
   This is useful if the automatic search is not applicable or if you
   want to support versions of Meson older than 0.55.0.  If the value is an
