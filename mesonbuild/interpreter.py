@@ -2642,10 +2642,9 @@ class Interpreter(InterpreterBase):
                     FeatureNew.single_use('stdlib without variable name', '0.56.0', self.subproject)
                 kwargs = {'fallback': di,
                           'native': for_machine is MachineChoice.BUILD,
-                          'force_fallback': True,
                           }
                 name = display_name = l + '_stdlib'
-                dep = self.dependency_impl(name, display_name, kwargs)
+                dep = self.dependency_impl(name, display_name, kwargs, force_fallback=True)
                 self.build.stdlibs[for_machine][l] = dep
 
     def import_module(self, modname):
@@ -3701,7 +3700,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     build.DependencyOverride(d.held_object, node, explicit=False)
         return d
 
-    def dependency_impl(self, name, display_name, kwargs):
+    def dependency_impl(self, name, display_name, kwargs, force_fallback=False):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Dependency', mlog.bold(display_name), 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -3743,21 +3742,21 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise DependencyException(m.format(display_name))
             return DependencyHolder(cached_dep, self.subproject)
 
-        # If the dependency has already been configured, possibly by
-        # a higher level project, try to use it first.
         if fallback:
+            # If the dependency has already been configured, possibly by
+            # a higher level project, try to use it first.
             dirname, varname = self.get_subproject_infos(fallback)
             if self.get_subproject(dirname):
                 return self.get_subproject_dep(name, display_name, dirname, varname, kwargs)
 
-        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-        force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
-        force_fallback = kwargs.get('force_fallback', False)
-        forcefallback = fallback and (wrap_mode == WrapMode.forcefallback or \
-                                      name in force_fallback_for or \
-                                      dirname in force_fallback_for or \
-                                      force_fallback)
-        if name != '' and not forcefallback:
+            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+            force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+            force_fallback = (force_fallback or
+                              wrap_mode == WrapMode.forcefallback or
+                              name in force_fallback_for or
+                              dirname in force_fallback_for)
+
+        if name != '' and (not fallback or not force_fallback):
             self._handle_featurenew_dependencies(name)
             kwargs['required'] = required and not fallback
             dep = dependencies.find_external_dependency(name, self.environment, kwargs)

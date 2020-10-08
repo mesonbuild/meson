@@ -2322,7 +2322,7 @@ def get_dep_identifier(name, kwargs) -> T.Tuple:
         # 'required' is irrelevant for caching; the caller handles it separately
         # 'fallback' subprojects cannot be cached -- they must be initialized
         # 'default_options' is only used in fallback case
-        if key in ('version', 'native', 'required', 'fallback', 'default_options', 'force_fallback'):
+        if key in ('version', 'native', 'required', 'fallback', 'default_options'):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
