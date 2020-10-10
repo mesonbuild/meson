@@ -3,7 +3,7 @@ import argparse
 from ._pathlib import Path
 
 from . import mlog
-from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException
+from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
 from .wrap.wrap import API_ROOT, Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
@@ -26,7 +26,7 @@ def update_wrapdb_file(wrap, repo_dir, options):
     mlog.log(*msg)
     return True
 
-def update_file(wrap, repo_dir, options):
+def update_file(r, wrap, repo_dir, options):
     patch_url = wrap.values.get('patch_url', '')
     if patch_url.startswith(API_ROOT):
         return update_wrapdb_file(wrap, repo_dir, options)
@@ -116,10 +116,25 @@ def git_checkout_and_rebase(repo_dir, revision):
         success = git_rebase(repo_dir, revision)
     return success
 
-def update_git(wrap, repo_dir, options):
+def update_git(r, wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
         return True
+    if not os.path.exists(os.path.join(repo_dir, '.git')):
+        if options.reset:
+            # Delete existing directory and redownload
+            windows_proof_rmtree(repo_dir)
+            try:
+                r.resolve(wrap.name, 'meson')
+                update_git_done(repo_dir)
+                return True
+            except WrapException as e:
+                mlog.log('  ->', mlog.red(str(e)))
+                return False
+        else:
+            mlog.log('  -> Not a git repository.')
+            mlog.log('Pass --reset option to delete directory and redownload.')
+            return False
     revision = wrap.values.get('revision')
     url = wrap.values.get('url')
     push_url = wrap.values.get('push-url')
@@ -193,13 +208,15 @@ def update_git(wrap, repo_dir, options):
             success = git_checkout_and_reset(repo_dir, revision)
         else:
             success = git_rebase(repo_dir, revision)
-
     if success:
-        git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
-        git_show(repo_dir)
+        update_git_done(repo_dir)
     return success
 
-def update_hg(wrap, repo_dir, options):
+def update_git_done(repo_dir):
+    git_output(['submodule', 'update', '--checkout', '--recursive'], repo_dir)
+    git_show(repo_dir)
+
+def update_hg(r, wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
         return True
@@ -215,7 +232,7 @@ def update_hg(wrap, repo_dir, options):
             subprocess.check_call(['hg', 'checkout', revno], cwd=repo_dir)
     return True
 
-def update_svn(wrap, repo_dir, options):
+def update_svn(r, wrap, repo_dir, options):
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not used.')
         return True
@@ -233,21 +250,21 @@ def update_svn(wrap, repo_dir, options):
         subprocess.check_call(['svn', 'update', '-r', revno], cwd=repo_dir)
     return True
 
-def update(wrap, repo_dir, options):
+def update(r, wrap, repo_dir, options):
     mlog.log('Updating {}...'.format(wrap.name))
     if wrap.type == 'file':
-        return update_file(wrap, repo_dir, options)
+        return update_file(r, wrap, repo_dir, options)
     elif wrap.type == 'git':
-        return update_git(wrap, repo_dir, options)
+        return update_git(r, wrap, repo_dir, options)
     elif wrap.type == 'hg':
-        return update_hg(wrap, repo_dir, options)
+        return update_hg(r, wrap, repo_dir, options)
     elif wrap.type == 'svn':
-        return update_svn(wrap, repo_dir, options)
+        return update_svn(r, wrap, repo_dir, options)
     else:
         mlog.log('  -> Cannot update', wrap.type, 'subproject')
     return True
 
-def checkout(wrap, repo_dir, options):
+def checkout(r, wrap, repo_dir, options):
     if wrap.type != 'git' or not os.path.isdir(repo_dir):
         return True
     branch_name = options.branch_name if options.branch_name else wrap.get('revision')
@@ -260,13 +277,12 @@ def checkout(wrap, repo_dir, options):
         return True
     return False
 
-def download(wrap, repo_dir, options):
+def download(r, wrap, repo_dir, options):
     mlog.log('Download {}...'.format(wrap.name))
     if os.path.isdir(repo_dir):
         mlog.log('  -> Already downloaded')
         return True
     try:
-        r = Resolver(os.path.dirname(repo_dir))
         r.resolve(wrap.name, 'meson')
         mlog.log('  -> done')
     except WrapException as e:
@@ -274,7 +290,7 @@ def download(wrap, repo_dir, options):
         return False
     return True
 
-def foreach(wrap, repo_dir, options):
+def foreach(r, wrap, repo_dir, options):
     mlog.log('Executing command in {}'.format(repo_dir))
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
@@ -362,7 +378,7 @@ def run(options):
         if types and wrap.type not in types:
             continue
         dirname = Path(subprojects_dir, wrap.directory).as_posix()
-        if not options.subprojects_func(wrap, dirname, options):
+        if not options.subprojects_func(r, wrap, dirname, options):
             failures.append(wrap.name)
     if failures:
         m = 'Please check logs above as command failed in some subprojects which could have been left in conflict state: '

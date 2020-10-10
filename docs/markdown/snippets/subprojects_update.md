@@ -19,13 +19,18 @@ subprojects, but at the end an error code is now returned.
 The `update` subcommand has been reworked:
 - In the case the URL of `origin` is different as the `url` set in wrap file,
   the subproject will not be updated unless `--reset` is specified (see below).
+- In the case a subproject directory exists and is not a git repository but has
+  a `[wrap-git]`, meson used to run git commands that would wrongly apply to the
+  main project. It now skip the subproject unless `--reset` is specified (see below).
 - The `--rebase` behaviour is now the default for consistency: it was
   already rebasing when current branch and revision are the same, it is
   less confusing to rebase when they are different too.
 - Add `--reset` mode that checkout the new branch and hard reset that
   branch to remote commit. This new mode guarantees that every
   subproject are exactly at the wrap's revision. In addition the URL of `origin`
-  is updated in case it changed in the wrap file.
+  is updated in case it changed in the wrap file. If the subproject directory is
+  not a git repository but has a `[wrap-git]` the directory is deleted and the
+  new repository is cloned.
 - Local changes are always stashed first to avoid any data loss. In the
   worst case scenario the user can always check reflog and stash list to
   rollback.

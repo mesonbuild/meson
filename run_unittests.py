@@ -9151,6 +9151,20 @@ class SubprojectsCommandTests(BasePlatformTests):
         self.assertEqual(self._git_local_branch(subp_name), '')
         self.assertEqual(self._git_local_commit(subp_name), new_commit)
 
+        # Create a local project not in a git repository, then update it with
+        # a git wrap. Without --reset it should print error message and return
+        # failure. With --reset it should delete existing project and clone the
+        # new project.
+        subp_name = 'sub2'
+        self._create_project(self.subprojects_dir / subp_name)
+        self._git_create_remote_repo(subp_name)
+        self._wrap_create_git(subp_name)
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self._subprojects_cmd(['update'])
+        self.assertIn('Not a git repository', cm.exception.output)
+        self._subprojects_cmd(['update', '--reset'])
+        self.assertEqual(self._git_local_commit(subp_name), self._git_remote_commit(subp_name))
+
     @skipIfNoExecutable('true')
     def test_foreach(self):
         self._create_project(self.subprojects_dir / 'sub_file')

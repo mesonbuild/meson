@@ -315,6 +315,9 @@ To pull latest version of all your subprojects at once, just run the command:
 - *Since 0.56.0* if the `url` specified in wrap file is different to the URL set
   on `origin` for a git repository it will not be updated, unless `--reset` is
   specified in which case the URL of `origin` will be reset first.
+- *Since 0.56.0* If the subproject directory is not a git repository but has a
+  `[wrap-git]` the subproject is ignored, unless `--reset` is specified in which
+  case the directory is deleted and the new repository is cloned.
 
 ### Start a topic branch across all git subprojects
 
