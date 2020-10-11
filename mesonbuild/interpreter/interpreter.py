@@ -999,7 +999,8 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'Subproject {subp_name} version is {pv} but {wanted} required.')
         self.active_projectname = current_active
         self.subprojects.update(subi.subprojects)
-        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings)
+        self.subprojects[subp_name] = SubprojectHolder(subi, subdir, warnings=subi_warnings,
+                                                       callstack=self.subproject_stack)
         # Duplicates are possible when subproject uses files from project root
         if build_def_files:
             self.build_def_files.update(build_def_files)
@@ -1370,13 +1371,16 @@ class Interpreter(InterpreterBase, HoldableObject):
         # Add automatic 'Subprojects' section in main project.
         all_subprojects = collections.OrderedDict()
         for name, subp in sorted(self.subprojects.items()):
-            value = subp.found()
+            value = [subp.found()]
             if subp.disabled_feature:
-                value = [value, f'Feature {subp.disabled_feature!r} disabled']
+                value += [f'Feature {subp.disabled_feature!r} disabled']
             elif subp.exception:
-                value = [value, str(subp.exception)]
+                value += [str(subp.exception)]
             elif subp.warnings > 0:
-                value = [value, f'{subp.warnings} warnings']
+                value += [f'{subp.warnings} warnings']
+            if subp.callstack:
+                stack = ' => '.join(subp.callstack)
+                value += [f'(from {stack})']
             all_subprojects[name] = value
         if all_subprojects:
             self.summary_impl('Subprojects', all_subprojects,
