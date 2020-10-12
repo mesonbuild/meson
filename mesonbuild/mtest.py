@@ -1186,16 +1186,6 @@ class TestHarness:
             self.process_test_result(result.result())
             self.print_stats(test_count, name_max_len, tests, name, result.result(), i)
 
-    def run_special(self) -> int:
-        '''Tests run by the user, usually something like "under gdb 1000 times".'''
-        if self.is_run:
-            raise RuntimeError('Can not use run_special after a full run.')
-        tests = self.get_tests()
-        if not tests:
-            return 0
-        self.run_tests(tests)
-        return self.total_failure_count()
-
 
 def list_tests(th: TestHarness) -> bool:
     tests = th.get_tests()
@@ -1256,9 +1246,7 @@ def run(options: argparse.Namespace) -> int:
         try:
             if options.list:
                 return list_tests(th)
-            if not options.args:
-                return th.doit()
-            return th.run_special()
+            return th.doit()
         except TestException as e:
             print('Meson test encountered an error:\n')
             if os.environ.get('MESON_FORCE_BACKTRACE'):
