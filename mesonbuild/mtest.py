@@ -15,7 +15,7 @@
 # A tool to run tests in many different ways.
 
 from ._pathlib import Path
-from collections import namedtuple
+from collections import deque, namedtuple
 from copy import deepcopy
 import argparse
 import asyncio
@@ -1197,7 +1197,8 @@ class TestHarness:
 
     async def _run_tests(self, tests: T.List[TestSerialisation]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
-        futures = []  # type: T.List[asyncio.Future]
+        futures = deque()  # type: T.Deque[asyncio.Future]
+        running_tests = dict() # type: T.Dict[asyncio.Future, str]
         test_count = len(tests)
         name_max_len = max([len(self.get_pretty_suite(test)) for test in tests])
         self.open_log_files()
@@ -1220,18 +1221,43 @@ class TestHarness:
             if not f.cancelled():
                 f.result()
             futures.remove(f)
+            try:
+                del running_tests[f]
+            except KeyError:
+                pass
 
-        def cancel_all_futures() -> None:
+        def cancel_one_test(warn: bool) -> None:
+            future = futures.popleft()
+            futures.append(future)
+            if warn:
+                mlog.warning('CTRL-C detected, interrupting {}'.format(running_tests[future]))
+            del running_tests[future]
+            future.cancel()
+
+        def sigterm_handler() -> None:
             nonlocal interrupted
             if interrupted:
                 return
             interrupted = True
-            mlog.warning('CTRL-C detected, interrupting')
-            for f in futures:
-                f.cancel()
+            mlog.warning('Received SIGTERM, exiting')
+            while running_tests:
+                cancel_one_test(False)
+
+        def sigint_handler() -> None:
+            # We always pick the longest-running future that has not been cancelled
+            # If all the tests have been CTRL-C'ed, just stop
+            nonlocal interrupted
+            if interrupted:
+                return
+            if running_tests:
+                cancel_one_test(True)
+            else:
+                mlog.warning('CTRL-C detected, exiting')
+                interrupted = True
 
         if sys.platform != 'win32':
-            asyncio.get_event_loop().add_signal_handler(signal.SIGINT, cancel_all_futures)
+            asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
+            asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
             for _ in range(self.options.repeat):
                 for i, test in enumerate(tests, 1):
@@ -1242,6 +1268,7 @@ class TestHarness:
                         await complete_all(futures)
                     future = asyncio.ensure_future(run_test(single_test, visible_name, i))
                     futures.append(future)
+                    running_tests[future] = visible_name
                     future.add_done_callback(test_done)
                     if not test.is_parallel or single_test.options.gdb:
                         await complete(future)
@@ -1257,6 +1284,7 @@ class TestHarness:
         finally:
             if sys.platform != 'win32':
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGINT)
+                asyncio.get_event_loop().remove_signal_handler(signal.SIGTERM)
             os.chdir(startdir)
 
 def list_tests(th: TestHarness) -> bool:
