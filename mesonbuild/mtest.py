@@ -665,92 +665,10 @@ class SingleTestRunner:
                 self.test.timeout = None
             return self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
 
-    def _run_cmd(self, cmd: T.List[str]) -> TestRun:
-        starttime = time.time()
-
-        if self.test.extra_paths:
-            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
-            winecmd = []
-            for c in cmd:
-                winecmd.append(c)
-                if os.path.basename(c).startswith('wine'):
-                    self.env['WINEPATH'] = get_wine_shortpath(
-                        winecmd,
-                        ['Z:' + p for p in self.test.extra_paths] + self.env.get('WINEPATH', '').split(';')
-                    )
-                    break
-
-        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-        # (i.e., the test or the environment don't explicitly set it), set
-        # it ourselves. We do this unconditionally for regular tests
-        # because it is extremely useful to have.
-        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
-            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
-
-        stdout = None
-        stderr = None
-        if not self.options.verbose:
-            stdout = tempfile.TemporaryFile("wb+")
-            stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
-        if self.test.protocol is TestProtocol.TAP and stderr is stdout:
-            stdout = tempfile.TemporaryFile("wb+")
-
-        # Let gdb handle ^C instead of us
-        if self.options.gdb:
-            previous_sigint_handler = signal.getsignal(signal.SIGINT)
-            # Make the meson executable ignore SIGINT while gdb is running.
-            signal.signal(signal.SIGINT, signal.SIG_IGN)
-
-        def preexec_fn() -> None:
-            if self.options.gdb:
-                # Restore the SIGINT handler for the child process to
-                # ensure it can handle it.
-                signal.signal(signal.SIGINT, signal.SIG_DFL)
-            else:
-                # We don't want setsid() in gdb because gdb needs the
-                # terminal in order to handle ^C and not show tcsetpgrp()
-                # errors avoid not being able to use the terminal.
-                os.setsid()
-
-        extra_cmd = []  # type: T.List[str]
-        if self.test.protocol is TestProtocol.GTEST:
-            gtestname = self.test.name
-            if self.test.workdir:
-                gtestname = os.path.join(self.test.workdir, self.test.name)
-            extra_cmd.append('--gtest_output=xml:{}.xml'.format(gtestname))
-
-        p = subprocess.Popen(cmd + extra_cmd,
-                             stdout=stdout,
-                             stderr=stderr,
-                             env=self.env,
-                             cwd=self.test.workdir,
-                             preexec_fn=preexec_fn if not is_windows() else None)
-        timed_out = False
-        kill_test = False
-        if self.test.timeout is None:
-            timeout = None
-        elif self.options.timeout_multiplier is not None:
-            timeout = self.test.timeout * self.options.timeout_multiplier
-        else:
-            timeout = self.test.timeout
-        try:
-            p.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            if self.options.verbose:
-                print('{} time out (After {} seconds)'.format(self.test.name, timeout))
-            timed_out = True
-        except KeyboardInterrupt:
-            mlog.warning('CTRL-C detected while running {}'.format(self.test.name))
-            kill_test = True
-        finally:
-            if self.options.gdb:
-                # Let us accept ^C again
-                signal.signal(signal.SIGINT, previous_sigint_handler)
-
-        additional_error = None
-
-        if kill_test or timed_out:
+    def _run_subprocess(self, args: T.List[str], *, timeout: T.Optional[int],
+                        stdout: T.IO, stderr: T.IO,
+                        env: T.Dict[str, str], cwd: T.Optional[str]) -> T.Tuple[T.Optional[int], bool, T.Optional[str]]:
+        def kill_process(p: subprocess.Popen) -> T.Optional[str]:
             # Python does not provide multiplatform support for
             # killing a process and all its children so we need
             # to roll our own.
@@ -791,6 +709,104 @@ class SingleTestRunner:
                     additional_error = 'Test process could not be killed.'
             except ValueError:
                 additional_error = 'Could not read output. Maybe the process has redirected its stdout/stderr?'
+            return additional_error
+
+        # Let gdb handle ^C instead of us
+        if self.options.gdb:
+            previous_sigint_handler = signal.getsignal(signal.SIGINT)
+            # Make the meson executable ignore SIGINT while gdb is running.
+            signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        def preexec_fn() -> None:
+            if self.options.gdb:
+                # Restore the SIGINT handler for the child process to
+                # ensure it can handle it.
+                signal.signal(signal.SIGINT, signal.SIG_DFL)
+            else:
+                # We don't want setsid() in gdb because gdb needs the
+                # terminal in order to handle ^C and not show tcsetpgrp()
+                # errors avoid not being able to use the terminal.
+                os.setsid()
+
+        p = subprocess.Popen(args,
+                             stdout=stdout,
+                             stderr=stderr,
+                             env=env,
+                             cwd=cwd,
+                             preexec_fn=preexec_fn if not is_windows() else None)
+        timed_out = False
+        kill_test = False
+        try:
+            p.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            if self.options.verbose:
+                print('{} time out (After {} seconds)'.format(self.test.name, timeout))
+            timed_out = True
+        except KeyboardInterrupt:
+            mlog.warning('CTRL-C detected while running {}'.format(self.test.name))
+            kill_test = True
+        finally:
+            if self.options.gdb:
+                # Let us accept ^C again
+                signal.signal(signal.SIGINT, previous_sigint_handler)
+
+        if kill_test or timed_out:
+            additional_error = kill_process(p)
+            return p.returncode, timed_out, additional_error
+        else:
+            return p.returncode, False, None
+
+    def _run_cmd(self, cmd: T.List[str]) -> TestRun:
+        starttime = time.time()
+
+        if self.test.extra_paths:
+            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
+            winecmd = []
+            for c in cmd:
+                winecmd.append(c)
+                if os.path.basename(c).startswith('wine'):
+                    self.env['WINEPATH'] = get_wine_shortpath(
+                        winecmd,
+                        ['Z:' + p for p in self.test.extra_paths] + self.env.get('WINEPATH', '').split(';')
+                    )
+                    break
+
+        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+        # (i.e., the test or the environment don't explicitly set it), set
+        # it ourselves. We do this unconditionally for regular tests
+        # because it is extremely useful to have.
+        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
+            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
+
+        stdout = None
+        stderr = None
+        if not self.options.verbose:
+            stdout = tempfile.TemporaryFile("wb+")
+            stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
+        if self.test.protocol is TestProtocol.TAP and stderr is stdout:
+            stdout = tempfile.TemporaryFile("wb+")
+
+        extra_cmd = []  # type: T.List[str]
+        if self.test.protocol is TestProtocol.GTEST:
+            gtestname = self.test.name
+            if self.test.workdir:
+                gtestname = os.path.join(self.test.workdir, self.test.name)
+            extra_cmd.append('--gtest_output=xml:{}.xml'.format(gtestname))
+
+        if self.test.timeout is None:
+            timeout = None
+        elif self.options.timeout_multiplier is not None:
+            timeout = self.test.timeout * self.options.timeout_multiplier
+        else:
+            timeout = self.test.timeout
+
+        returncode, timed_out, additional_error = self._run_subprocess(cmd + extra_cmd,
+                                                                       timeout=timeout,
+                                                                       stdout=stdout,
+                                                                       stderr=stderr,
+                                                                       env=self.env,
+                                                                       cwd=self.test.workdir)
         endtime = time.time()
         duration = endtime - starttime
         if additional_error is None:
@@ -808,16 +824,16 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
+            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
-                return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+                return TestRun.make_exitcode(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
             elif self.test.protocol is TestProtocol.GTEST:
-                return TestRun.make_gtest(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+                return TestRun.make_gtest(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
-                return TestRun.make_tap(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+                return TestRun.make_tap(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
 
 
 class TestHarness:
