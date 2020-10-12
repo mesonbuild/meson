@@ -34,7 +34,6 @@ import subprocess
 import sys
 import tempfile
 import textwrap
-import threading
 import time
 import typing as T
 import xml.etree.ElementTree as et
@@ -680,7 +679,7 @@ class SingleTestRunner:
     async def _run_subprocess(self, args: T.List[str], *, timeout: T.Optional[int],
                               stdout: T.IO, stderr: T.IO,
                               env: T.Dict[str, str], cwd: T.Optional[str]) -> T.Tuple[int, TestResult, T.Optional[str]]:
-        async def kill_process(p: subprocess.Popen, f: asyncio.Future) -> T.Optional[str]:
+        async def kill_process(p: asyncio.subprocess.Process) -> T.Optional[str]:
             # Python does not provide multiplatform support for
             # killing a process and all its children so we need
             # to roll our own.
@@ -694,39 +693,30 @@ class SingleTestRunner:
 
                     # Make sure the termination signal actually kills the process
                     # group, otherwise retry with a SIGKILL.
-                    await try_wait_one(f, timeout=0.5)
-                    if f.done():
+                    await try_wait_one(p.wait(), timeout=0.5)
+                    if p.returncode is not None:
                         return None
 
                     os.killpg(p.pid, signal.SIGKILL)
 
-                await try_wait_one(f, timeout=1)
-                if f.done():
+                await try_wait_one(p.wait(), timeout=1)
+                if p.returncode is not None:
                     return None
 
                 # An earlier kill attempt has not worked for whatever reason.
                 # Try to kill it one last time with a direct call.
                 # If the process has spawned children, they will remain around.
                 p.kill()
-                await try_wait_one(f, timeout=1)
-                if f.done():
+                await try_wait_one(p.wait(), timeout=1)
+                if p.returncode is not None:
                     return None
                 return 'Test process could not be killed.'
             except ProcessLookupError:
                 # Sometimes (e.g. with Wine) this happens.  There's nothing
                 # we can do, probably the process already died so just wait
                 # for the event loop to pick that up.
-                await f
+                await p.wait()
                 return None
-
-        def wait(p: subprocess.Popen, loop: asyncio.AbstractEventLoop, f: asyncio.Future) -> None:
-            try:
-                p.wait()
-                loop.call_soon_threadsafe(f.set_result, p.returncode)
-            except BaseException as e:   # lgtm [py/catch-base-exception]
-                # The exception will be raised again in the main thread,
-                # so catching BaseException is okay.
-                loop.call_soon_threadsafe(f.set_exception, e)
 
         # Let gdb handle ^C instead of us
         if self.options.gdb:
@@ -745,37 +735,31 @@ class SingleTestRunner:
                 # errors avoid not being able to use the terminal.
                 os.setsid()
 
-        p = subprocess.Popen(args,
-                             stdout=stdout,
-                             stderr=stderr,
-                             env=env,
-                             cwd=cwd,
-                             preexec_fn=preexec_fn if not is_windows() else None)
+        p = await asyncio.create_subprocess_exec(*args,
+                                                 stdout=stdout,
+                                                 stderr=stderr,
+                                                 env=env,
+                                                 cwd=cwd,
+                                                 preexec_fn=preexec_fn if not is_windows() else None)
         result = None
         additional_error = None
-        loop = asyncio.get_event_loop()
-        future = asyncio.get_event_loop().create_future()
-        threading.Thread(target=wait, args=(p, loop, future), daemon=True).start()
         try:
-            await try_wait_one(future, timeout=timeout)
-            if not future.done():
+            await try_wait_one(p.wait(), timeout=timeout)
+            if p.returncode is None:
                 if self.options.verbose:
                     print('{} time out (After {} seconds)'.format(self.test.name, timeout))
-                additional_error = await kill_process(p, future)
+                additional_error = await kill_process(p)
                 result = TestResult.TIMEOUT
         except asyncio.CancelledError:
             # The main loop must have seen Ctrl-C.
-            additional_error = await kill_process(p, future)
+            additional_error = await kill_process(p)
             result = TestResult.INTERRUPT
         finally:
             if self.options.gdb:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
-        if future.done():
-            return future.result(), result, None
-        else:
-            return 0, result, additional_error
+        return p.returncode or 0, result, additional_error
 
     async def _run_cmd(self, cmd: T.List[str]) -> TestRun:
         starttime = time.time()
