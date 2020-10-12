@@ -672,44 +672,37 @@ class SingleTestRunner:
             # Python does not provide multiplatform support for
             # killing a process and all its children so we need
             # to roll our own.
-            if is_windows():
-                subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
-            else:
-
-                def _send_signal_to_process_group(pgid: int, signum: int) -> None:
-                    """ sends a signal to a process group """
-                    try:
-                        os.killpg(pgid, signum)
-                    except ProcessLookupError:
-                        # Sometimes (e.g. with Wine) this happens.
-                        # There's nothing we can do (maybe the process
-                        # already died) so carry on.
-                        pass
-
-                # Send a termination signal to the process group that setsid()
-                # created - giving it a chance to perform any cleanup.
-                _send_signal_to_process_group(p.pid, signal.SIGTERM)
-
-                # Make sure the termination signal actually kills the process
-                # group, otherwise retry with a SIGKILL.
-                try:
-                    p.communicate(timeout=0.5)
-                except subprocess.TimeoutExpired:
-                    _send_signal_to_process_group(p.pid, signal.SIGKILL)
             try:
-                p.communicate(timeout=1)
-            except subprocess.TimeoutExpired:
-                # An earlier kill attempt has not worked for whatever reason.
-                # Try to kill it one last time with a direct call.
-                # If the process has spawned children, they will remain around.
-                p.kill()
+                if is_windows():
+                    subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
+                else:
+                    # Send a termination signal to the process group that setsid()
+                    # created - giving it a chance to perform any cleanup.
+                    os.killpg(p.pid, signal.SIGTERM)
+
+                    # Make sure the termination signal actually kills the process
+                    # group, otherwise retry with a SIGKILL.
+                    try:
+                        p.communicate(timeout=0.5)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(p.pid, signal.SIGKILL)
                 try:
                     p.communicate(timeout=1)
                 except subprocess.TimeoutExpired:
-                    additional_error = 'Test process could not be killed.'
-            except ValueError:
-                additional_error = 'Could not read output. Maybe the process has redirected its stdout/stderr?'
-            return additional_error
+                    # An earlier kill attempt has not worked for whatever reason.
+                    # Try to kill it one last time with a direct call.
+                    # If the process has spawned children, they will remain around.
+                    p.kill()
+                    try:
+                        p.communicate(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        return 'Test process could not be killed.'
+            except ProcessLookupError:
+                # Sometimes (e.g. with Wine) this happens.
+                # There's nothing we can do (probably the process
+                # already died) so carry on.
+                pass
+            return None
 
         # Let gdb handle ^C instead of us
         if self.options.gdb:
