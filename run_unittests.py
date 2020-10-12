@@ -6026,7 +6026,8 @@ class LinuxlikeTests(BasePlatformTests):
         # See common/47 pkgconfig-gen/meson.build for description of the case this test
         with open(os.path.join(privatedir1, 'simple2.pc')) as f:
             content = f.read()
-            self.assertIn('Libs: -L${libdir} -lsimple2 -lz -lsimple1', content)
+            self.assertIn('Libs: -L${libdir} -lsimple2 -lsimple1', content)
+            self.assertIn('Libs.private: -lz', content)
 
         with open(os.path.join(privatedir1, 'simple3.pc')) as f:
             content = f.read()
