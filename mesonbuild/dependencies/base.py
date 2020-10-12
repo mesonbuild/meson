@@ -2320,9 +2320,11 @@ def get_dep_identifier(name, kwargs) -> T.Tuple:
         # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `for_machine`
         # 'required' is irrelevant for caching; the caller handles it separately
-        # 'fallback' subprojects cannot be cached -- they must be initialized
+        # 'fallback' and 'allow_fallback' is not part of the cache because,
+        #     once a dependency has been found through a fallback, it should
+        #     be used for the rest of the Meson run.
         # 'default_options' is only used in fallback case
-        if key in ('version', 'native', 'required', 'fallback', 'default_options', 'force_fallback'):
+        if key in ('version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options'):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
