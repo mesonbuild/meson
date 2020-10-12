@@ -326,7 +326,6 @@ class TAPParser:
                 yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
 
 
-
 class JunitBuilder:
 
     """Builder for Junit test results.
@@ -740,7 +739,7 @@ class SingleTestRunner:
                 subprocess.run(['taskkill', '/F', '/T', '/PID', str(p.pid)])
             else:
 
-                def _send_signal_to_process_group(pgid : int, signum : int) -> None:
+                def _send_signal_to_process_group(pgid: int, signum: int) -> None:
                     """ sends a signal to a process group """
                     try:
                         os.killpg(pgid, signum)
@@ -841,7 +840,7 @@ class TestHarness:
 
     def close_logfiles(self) -> None:
         for f in ['logfile', 'jsonlogfile']:
-            lfile =  getattr(self, f)
+            lfile = getattr(self, f)
             if lfile:
                 lfile.close()
                 setattr(self, f, None)
@@ -956,7 +955,7 @@ class TestHarness:
             Skipped:            {:<4}
             Timeout:            {:<4}
             ''').format(self.success_count, self.expectedfail_count, self.fail_count,
-           self.unexpectedpass_count, self.skip_count, self.timeout_count)
+                        self.unexpectedpass_count, self.skip_count, self.timeout_count)
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
