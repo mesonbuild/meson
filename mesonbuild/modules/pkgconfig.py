@@ -173,7 +173,7 @@ class DependenciesHelper:
         for t in link_whole_targets:
             self._add_link_whole(t, public)
         # And finally its external dependencies
-        add_libs(external_deps)
+        self.add_priv_libs(external_deps)
 
     def _add_link_whole(self, t, public):
         # Don't include static libraries that we link_whole. But we still need to
