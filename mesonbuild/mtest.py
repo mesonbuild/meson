@@ -168,6 +168,7 @@ class TestResult(enum.Enum):
 
     OK = 'OK'
     TIMEOUT = 'TIMEOUT'
+    INTERRUPT = 'INTERRUPT'
     SKIP = 'SKIP'
     FAIL = 'FAIL'
     EXPECTEDFAIL = 'EXPECTEDFAIL'
@@ -376,7 +377,8 @@ class JunitBuilder:
                 'testsuite',
                 name=suitename,
                 tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results if r is TestResult.ERROR)),
+                errors=str(sum(1 for r in test.results if r in
+                               {TestResult.INTERRUPT, TestResult.ERROR})),
                 failures=str(sum(1 for r in test.results if r in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
                 skipped=str(sum(1 for r in test.results if r is TestResult.SKIP)),
@@ -395,6 +397,9 @@ class JunitBuilder:
                 elif result is TestResult.UNEXPECTEDPASS:
                     fail = et.SubElement(testcase, 'failure')
                     fail.text = 'Test unexpected passed.'
+                elif result is TestResult.INTERRUPT:
+                    fail = et.SubElement(testcase, 'failure')
+                    fail.text = 'Test was interrupted by user.'
                 elif result is TestResult.TIMEOUT:
                     fail = et.SubElement(testcase, 'failure')
                     fail.text = 'Test did not finish before configured timeout.'
@@ -667,7 +672,7 @@ class SingleTestRunner:
 
     def _run_subprocess(self, args: T.List[str], *, timeout: T.Optional[int],
                         stdout: T.IO, stderr: T.IO,
-                        env: T.Dict[str, str], cwd: T.Optional[str]) -> T.Tuple[T.Optional[int], bool, T.Optional[str]]:
+                        env: T.Dict[str, str], cwd: T.Optional[str]) -> T.Tuple[T.Optional[int], TestResult, T.Optional[str]]:
         def kill_process(p: subprocess.Popen) -> T.Optional[str]:
             # Python does not provide multiplatform support for
             # killing a process and all its children so we need
@@ -727,27 +732,25 @@ class SingleTestRunner:
                              env=env,
                              cwd=cwd,
                              preexec_fn=preexec_fn if not is_windows() else None)
-        timed_out = False
-        kill_test = False
+        result = None
+        additional_error = None
         try:
             p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             if self.options.verbose:
                 print('{} time out (After {} seconds)'.format(self.test.name, timeout))
-            timed_out = True
+            additional_error = kill_process(p)
+            result = TestResult.TIMEOUT
         except KeyboardInterrupt:
             mlog.warning('CTRL-C detected while running {}'.format(self.test.name))
-            kill_test = True
+            additional_error = kill_process(p)
+            result = TestResult.INTERRUPT
         finally:
             if self.options.gdb:
                 # Let us accept ^C again
                 signal.signal(signal.SIGINT, previous_sigint_handler)
 
-        if kill_test or timed_out:
-            additional_error = kill_process(p)
-            return p.returncode, timed_out, additional_error
-        else:
-            return p.returncode, False, None
+        return p.returncode, result, additional_error
 
     def _run_cmd(self, cmd: T.List[str]) -> TestRun:
         starttime = time.time()
@@ -794,12 +797,12 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout
 
-        returncode, timed_out, additional_error = self._run_subprocess(cmd + extra_cmd,
-                                                                       timeout=timeout,
-                                                                       stdout=stdout,
-                                                                       stderr=stderr,
-                                                                       env=self.env,
-                                                                       cwd=self.test.workdir)
+        returncode, result, additional_error = self._run_subprocess(cmd + extra_cmd,
+                                                                    timeout=timeout,
+                                                                    stdout=stdout,
+                                                                    stderr=stderr,
+                                                                    env=self.env,
+                                                                    cwd=self.test.workdir)
         endtime = time.time()
         duration = endtime - starttime
         if additional_error is None:
@@ -816,8 +819,8 @@ class SingleTestRunner:
         else:
             stdo = ""
             stde = additional_error
-        if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], returncode, starttime, duration, stdo, stde, cmd)
+        if result:
+            return TestRun(self.test, self.test_env, result, [], returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
                 return TestRun.make_exitcode(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
@@ -919,7 +922,7 @@ class TestHarness:
             self.skip_count += 1
         elif result.res is TestResult.OK:
             self.success_count += 1
-        elif result.res is TestResult.FAIL or result.res is TestResult.ERROR:
+        elif result.res in {TestResult.FAIL, TestResult.ERROR, TestResult.INTERRUPT}:
             self.fail_count += 1
         elif result.res is TestResult.EXPECTEDFAIL:
             self.expectedfail_count += 1
@@ -932,7 +935,7 @@ class TestHarness:
                     tests: T.List[TestSerialisation],
                     name: str, result: TestRun, i: int) -> None:
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
-        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT,
+        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR)
         result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
             numlen=len(str(test_count)),
