@@ -370,6 +370,7 @@ a hard error in the future.'''.format(name))
         self.build_always_stale = False
         self.option_overrides_base = {}
         self.option_overrides_compiler = defaultdict(dict)
+        self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
@@ -518,7 +519,6 @@ class BuildTarget(Target):
         self.pch = {}
         self.extra_args = {}
         self.generated = []
-        self.extra_files = []
         self.d_features = {}
         self.pic = False
         self.pie = False
@@ -1011,7 +1011,7 @@ This will become a hard error in a future Meson release.''')
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
 
-    def validate_win_subsystem(self, value: str) -> str: 
+    def validate_win_subsystem(self, value: str) -> str:
         value = value.lower()
         if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
             raise InvalidArguments('Invalid value for win_subsystem: {}.'.format(value))
@@ -2058,7 +2058,6 @@ class CustomTarget(Target):
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
         self.process_kwargs(kwargs, backend)
-        self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
         unknowns = []

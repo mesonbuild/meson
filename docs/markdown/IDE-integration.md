@@ -59,6 +59,7 @@ for one target is defined as follows:
     "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
     "target_sources": [],
+    "extra_files": ["/path/to/file1.hpp", "/path/to/file2.hpp"],
     "installed": true / false,
 }
 ```
@@ -70,6 +71,9 @@ is set to `null`.
 
 The `subproject` key specifies the name of the subproject this target was
 defined in, or `null` if the target was defined in the top level project.
+
+*(New in 0.56.0)* The `extra_files` key lists all files specified via the
+`extra_files` kwarg of a build target. See [`executable()`](Reference-manual.md#executable).
 
 A target usually generates only one file. However, it is possible for custom
 targets to have multiple outputs.

@@ -1,2 +1,3 @@
 SRC_static = ['static.c']
-staticlib = static_library('staticTestLib', SRC_static)
+extra_static = files(['static.h'])
+staticlib = static_library('staticTestLib', SRC_static, extra_files: extra_static)

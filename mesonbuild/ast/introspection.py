@@ -194,42 +194,51 @@ class IntrospectionInterpreter(AstInterpreter):
             return None
         name = args[0]
         srcqueue = [node]
+        extra_queue = []
 
         # Process the sources BEFORE flattening the kwargs, to preserve the original nodes
         if 'sources' in kwargs_raw:
             srcqueue += mesonlib.listify(kwargs_raw['sources'])
 
+        if 'extra_files' in kwargs_raw:
+            extra_queue += mesonlib.listify(kwargs_raw['extra_files'])
+
         kwargs = self.flatten_kwargs(kwargs_raw, True)
 
-        source_nodes = []  # type: T.List[BaseNode]
-        while srcqueue:
-            curr = srcqueue.pop(0)
-            arg_node = None
-            assert(isinstance(curr, BaseNode))
-            if isinstance(curr, FunctionNode):
-                arg_node = curr.args
-            elif isinstance(curr, ArrayNode):
-                arg_node = curr.args
-            elif isinstance(curr, IdNode):
-                # Try to resolve the ID and append the node to the queue
-                assert isinstance(curr.value, str)
-                var_name = curr.value
-                if var_name in self.assignments:
-                    tmp_node = self.assignments[var_name]
-                    if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
-                        srcqueue += [tmp_node]
-            elif isinstance(curr, ArithmeticNode):
-                srcqueue += [curr.left, curr.right]
-            if arg_node is None:
-                continue
-            arg_nodes = arg_node.arguments.copy()
-            # Pop the first element if the function is a build target function
-            if isinstance(curr, FunctionNode) and curr.func_name in build_target_functions:
-                arg_nodes.pop(0)
-            elemetary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
-            srcqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
-            if elemetary_nodes:
-                source_nodes += [curr]
+        def traverse_nodes(inqueue: T.List[BaseNode]) -> T.List[BaseNode]:
+            res = []  # type: T.List[BaseNode]
+            while inqueue:
+                curr = inqueue.pop(0)
+                arg_node = None
+                assert(isinstance(curr, BaseNode))
+                if isinstance(curr, FunctionNode):
+                    arg_node = curr.args
+                elif isinstance(curr, ArrayNode):
+                    arg_node = curr.args
+                elif isinstance(curr, IdNode):
+                    # Try to resolve the ID and append the node to the queue
+                    assert isinstance(curr.value, str)
+                    var_name = curr.value
+                    if var_name in self.assignments:
+                        tmp_node = self.assignments[var_name]
+                        if isinstance(tmp_node, (ArrayNode, IdNode, FunctionNode)):
+                            inqueue += [tmp_node]
+                elif isinstance(curr, ArithmeticNode):
+                    inqueue += [curr.left, curr.right]
+                if arg_node is None:
+                    continue
+                arg_nodes = arg_node.arguments.copy()
+                # Pop the first element if the function is a build target function
+                if isinstance(curr, FunctionNode) and curr.func_name in build_target_functions:
+                    arg_nodes.pop(0)
+                elemetary_nodes = [x for x in arg_nodes if isinstance(x, (str, StringNode))]
+                inqueue += [x for x in arg_nodes if isinstance(x, (FunctionNode, ArrayNode, IdNode, ArithmeticNode))]
+                if elemetary_nodes:
+                    res += [curr]
+            return res
+
+        source_nodes = traverse_nodes(srcqueue)
+        extraf_nodes = traverse_nodes(extra_queue)
 
         # Make sure nothing can crash when creating the build class
         kwargs_reduced = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs and k in ['install', 'build_by_default', 'build_always']}
@@ -251,6 +260,7 @@ class IntrospectionInterpreter(AstInterpreter):
             'installed': target.should_install(),
             'outputs': target.get_outputs(),
             'sources': source_nodes,
+            'extra_files': extraf_nodes,
             'kwargs': kwargs,
             'node': node,
         }

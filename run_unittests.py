@@ -4295,10 +4295,22 @@ recommended as it is not supported on some platforms''')
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
 
-        def assertKeyTypes(key_type_list, obj):
+        def assertKeyTypes(key_type_list, obj, strict: bool = True):
             for i in key_type_list:
+                if isinstance(i[1], (list, tuple)) and None in i[1]:
+                    i = (i[0], tuple([x for x in i[1] if x is not None]))
+                    if i[0] not in obj or obj[i[0]] is None:
+                        continue
                 self.assertIn(i[0], obj)
                 self.assertIsInstance(obj[i[0]], i[1])
+            if strict:
+                for k in obj.keys():
+                    found = False
+                    for i in key_type_list:
+                        if k == i[0]:
+                            found = True
+                            break
+                    self.assertTrue(found, 'Key "{}" not in expected list'.format(k))
 
         root_keylist = [
             ('benchmarks', list),
@@ -4320,6 +4332,8 @@ recommended as it is not supported on some platforms''')
             ('is_parallel', bool),
             ('protocol', str),
             ('depends', list),
+            ('workdir', (str, None)),
+            ('priority', int),
         ]
 
         buildoptions_keylist = [
@@ -4328,6 +4342,8 @@ recommended as it is not supported on some platforms''')
             ('type', str),
             ('description', str),
             ('machine', str),
+            ('choices', (list, None)),
+            ('value', (str, int, bool, list)),
         ]
 
         buildoptions_typelist = [
@@ -4356,6 +4372,9 @@ recommended as it is not supported on some platforms''')
             ('filename', list),
             ('build_by_default', bool),
             ('target_sources', list),
+            ('extra_files', list),
+            ('subproject', (str, None)),
+            ('install_filename', (list, None)),
             ('installed', bool),
         ]
 
@@ -4409,7 +4428,7 @@ recommended as it is not supported on some platforms''')
             for j in buildoptions_typelist:
                 if i['type'] == j[0]:
                     self.assertIsInstance(i['value'], j[1])
-                    assertKeyTypes(j[2], i)
+                    assertKeyTypes(j[2], i, strict=False)
                     valid_type = True
                     break
 
@@ -9269,18 +9288,20 @@ def main():
              'LinuxlikeTests', 'LinuxCrossArmTests', 'LinuxCrossMingwTests',
              'WindowsTests', 'DarwinTests']
 
-    # Don't use pytest-xdist when running single unit tests since it wastes
-    # time spawning a lot of processes to distribute tests to in that case.
-    if not running_single_tests(sys.argv, cases):
-        try:
-            import pytest # noqa: F401
-            # Need pytest-xdist for `-n` arg
-            import xdist # noqa: F401
-            pytest_args = ['-n', 'auto', './run_unittests.py']
-            pytest_args += convert_args(sys.argv[1:])
-            return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
-        except ImportError:
-            print('pytest-xdist not found, using unittest instead')
+    try:
+        import pytest # noqa: F401
+        # Need pytest-xdist for `-n` arg
+        import xdist # noqa: F401
+        pytest_args = []
+        # Don't use pytest-xdist when running single unit tests since it wastes
+        # time spawning a lot of processes to distribute tests to in that case.
+        if not running_single_tests(sys.argv, cases):
+            pytest_args += ['-n', 'auto']
+        pytest_args += ['./run_unittests.py']
+        pytest_args += convert_args(sys.argv[1:])
+        return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
+    except ImportError:
+        print('pytest-xdist not found, using unittest instead')
     # Fallback to plain unittest.
     return unittest.main(defaultTest=cases, buffer=True)
 
