@@ -15,10 +15,11 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration
+from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, ReplyCMakeInputs, ReplyCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
+from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
 from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible
@@ -69,6 +70,7 @@ disable_policy_warnings = [
     'CMP0067',
     'CMP0082',
     'CMP0089',
+    'CMP0102',
 ]
 
 backend_generator_map = {
@@ -78,18 +80,6 @@ backend_generator_map = {
     'vs2015': 'Visual Studio 15 2017',
     'vs2017': 'Visual Studio 15 2017',
     'vs2019': 'Visual Studio 16 2019',
-}
-
-language_map = {
-    'c': 'C',
-    'cpp': 'CXX',
-    'cuda': 'CUDA',
-    'objc': 'OBJC',
-    'objcpp': 'OBJCXX',
-    'cs': 'CSharp',
-    'java': 'Java',
-    'fortran': 'Fortran',
-    'swift': 'Swift',
 }
 
 target_type_map = {
@@ -221,8 +211,9 @@ class OutputTargetMap:
         return '__art_{}__'.format(fname.name)
 
 class ConverterTarget:
-    def __init__(self, target: CMakeTarget, env: 'Environment') -> None:
+    def __init__(self, target: CMakeTarget, env: 'Environment', for_machine: MachineChoice) -> None:
         self.env            = env
+        self.for_machine    = for_machine
         self.artifacts      = target.artifacts
         self.src_dir        = target.src_dir
         self.build_dir      = target.build_dir
@@ -653,7 +644,7 @@ class ConverterCustomTarget:
     tgt_counter = 0  # type: int
     out_counter = 0  # type: int
 
-    def __init__(self, target: CMakeGeneratorTarget) -> None:
+    def __init__(self, target: CMakeGeneratorTarget, env: 'Environment', for_machine: MachineChoice) -> None:
         assert target.current_bin_dir is not None
         assert target.current_src_dir is not None
         self.name = target.name
@@ -671,6 +662,8 @@ class ConverterCustomTarget:
         self.depends          = []                      # type: T.List[T.Union[ConverterTarget, ConverterCustomTarget]]
         self.current_bin_dir  = target.current_bin_dir  # type: Path
         self.current_src_dir  = target.current_src_dir  # type: Path
+        self.env              = env
+        self.for_machine      = for_machine
         self._raw_target      = target
 
         # Convert the target name to a valid meson target name
@@ -723,6 +716,11 @@ class ConverterCustomTarget:
                     continue
                 target = output_target_map.executable(j)
                 if target:
+                    # When cross compiling, binaries have to be executed with an exe_wrapper (for instance wine for mingw-w64)
+                    if self.env.exe_wrapper is not None and self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
+                        from ..dependencies import ExternalProgram
+                        assert isinstance(self.env.exe_wrapper, ExternalProgram)
+                        cmd += self.env.exe_wrapper.get_command()
                     cmd += [target]
                     continue
                 elif j in trace.targets:
@@ -821,6 +819,7 @@ class CMakeInterpreter:
         self.build_dir      = Path(env.get_build_dir()) / self.build_dir_rel
         self.install_prefix = install_prefix
         self.env            = env
+        self.for_machine    = MachineChoice.HOST # TODO make parameter
         self.backend_name   = backend.name
         self.linkers        = set()  # type: T.Set[str]
         self.cmake_api      = CMakeAPI.SERVER
@@ -844,65 +843,53 @@ class CMakeInterpreter:
         self.generated_targets = {}  # type: T.Dict[str, T.Dict[str, T.Optional[str]]]
         self.internal_name_map = {}  # type: T.Dict[str, str]
 
-    def configure(self, extra_cmake_options: T.List[str]) -> None:
-        for_machine = MachineChoice.HOST # TODO make parameter
+        # Do some special handling for object libraries for certain configurations
+        self._object_lib_workaround = False
+        if self.backend_name.startswith('vs'):
+            for comp in self.env.coredata.compilers[self.for_machine].values():
+                if comp.get_linker_id() == 'link':
+                    self._object_lib_workaround = True
+                    break
+
+    def configure(self, extra_cmake_options: T.List[str]) -> CMakeExecutor:
         # Find CMake
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
+        cmake_exe = CMakeExecutor(self.env, '>=3.7', MachineChoice.BUILD)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
         preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
-
-        # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
-        # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
-        preload_var = 'CMAKE_PROJECT_INCLUDE'
-        if version_compare(cmake_exe.version(), '<3.15'):
-            preload_var = 'CMAKE_TOOLCHAIN_FILE'
+        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir.parent, preload_file)
+        toolchain_file = toolchain.write()
 
         generator = backend_generator_map[self.backend_name]
         cmake_args = []
+        cmake_args += ['-G', generator]
+        cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
+        cmake_args += extra_cmake_options
         trace_args = self.trace.trace_args()
         cmcmp_args = ['-DCMAKE_POLICY_WARNING_{}=OFF'.format(x) for x in disable_policy_warnings]
-        pload_args = ['-D{}={}'.format(preload_var, str(preload_file))]
 
         if version_compare(cmake_exe.version(), '>=3.14'):
             self.cmake_api = CMakeAPI.FILE
             self.fileapi.setup_request()
 
-        # Map meson compiler to CMake variables
-        for lang, comp in self.env.coredata.compilers[for_machine].items():
-            if lang not in language_map:
-                continue
-            self.linkers.add(comp.get_linker_id())
-            cmake_lang = language_map[lang]
-            exelist = comp.get_exelist()
-            if len(exelist) == 1:
-                cmake_args += ['-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[0])]
-            elif len(exelist) == 2:
-                cmake_args += ['-DCMAKE_{}_COMPILER_LAUNCHER={}'.format(cmake_lang, exelist[0]),
-                               '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
-            if hasattr(comp, 'get_linker_exelist') and comp.get_id() == 'clang-cl':
-                cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
-        cmake_args += ['-G', generator]
-        cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
-        cmake_args += extra_cmake_options
-
         # Run CMake
         mlog.log()
         with mlog.nested():
             mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
-            mlog.log(mlog.bold('Running:'), ' '.join(cmake_args))
+            mlog.log(mlog.bold('Running CMake with:'), ' '.join(cmake_args))
             mlog.log(mlog.bold('  - build directory:         '), self.build_dir.as_posix())
             mlog.log(mlog.bold('  - source directory:        '), self.src_dir.as_posix())
-            mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
+            mlog.log(mlog.bold('  - toolchain file:          '), toolchain_file.as_posix())
             mlog.log(mlog.bold('  - preload file:            '), preload_file.as_posix())
+            mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
             mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
             mlog.log()
             self.build_dir.mkdir(parents=True, exist_ok=True)
             os_env = environ.copy()
             os_env['LC_ALL'] = 'C'
-            final_args = cmake_args + trace_args + cmcmp_args + pload_args + [self.src_dir.as_posix()]
+            final_args = cmake_args + trace_args + cmcmp_args + toolchain.get_cmake_args() + [self.src_dir.as_posix()]
 
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
             rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
@@ -913,11 +900,13 @@ class CMakeInterpreter:
         if rc != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
+        return cmake_exe
+
     def initialise(self, extra_cmake_options: T.List[str]) -> None:
         # Run configure the old way because doing it
         # with the server doesn't work for some reason
         # Additionally, the File API requires a configure anyway
-        self.configure(extra_cmake_options)
+        cmake_exe = self.configure(extra_cmake_options)
 
         # Continue with the file API If supported
         if self.cmake_api is CMakeAPI.FILE:
@@ -934,7 +923,7 @@ class CMakeInterpreter:
             self.codemodel_configs = self.fileapi.get_cmake_configurations()
             return
 
-        with self.client.connect():
+        with self.client.connect(cmake_exe):
             generator = backend_generator_map[self.backend_name]
             self.client.do_handshake(self.src_dir, self.build_dir, generator, 1)
 
@@ -982,7 +971,7 @@ class CMakeInterpreter:
                     # dummy CMake internal target types
                     if k_0.type not in skip_targets and k_0.name not in added_target_names:
                         added_target_names += [k_0.name]
-                        self.targets += [ConverterTarget(k_0, self.env)]
+                        self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
 
         # Add interface targets from trace, if not already present.
         # This step is required because interface targets were removed from
@@ -997,10 +986,10 @@ class CMakeInterpreter:
                 'sourceDirectory': self.src_dir,
                 'buildDirectory': self.build_dir,
             })
-            self.targets += [ConverterTarget(dummy, self.env)]
+            self.targets += [ConverterTarget(dummy, self.env, self.for_machine)]
 
         for i_2 in self.trace.custom_targets:
-            self.custom_targets += [ConverterCustomTarget(i_2)]
+            self.custom_targets += [ConverterCustomTarget(i_2, self.env, self.for_machine)]
 
         # generate the output_target_map
         for i_3 in [*self.targets, *self.custom_targets]:
@@ -1020,7 +1009,7 @@ class CMakeInterpreter:
 
         # Second pass: Detect object library dependencies
         for tgt in self.targets:
-            tgt.process_object_libs(object_libs, self._object_lib_workaround())
+            tgt.process_object_libs(object_libs, self._object_lib_workaround)
 
         # Third pass: Reassign dependencies to avoid some loops
         for tgt in self.targets:
@@ -1279,7 +1268,7 @@ class CMakeInterpreter:
             detect_cycle(tgt)
             tgt_var = tgt.name  # type: str
 
-            def resolve_source(x: T.Any) -> T.Any:
+            def resolve_source(x: T.Union[str, ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> T.Union[str, IdNode, IndexNode]:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
                         process_target(x)
@@ -1296,7 +1285,7 @@ class CMakeInterpreter:
                     return x
 
             # Generate the command list
-            command = []
+            command = []  # type: T.List[T.Union[str, IdNode, IndexNode]]
             command += mesonlib.meson_command
             command += ['--internal', 'cmake_run_ctgt']
             command += ['-o', '@OUTPUT@']
@@ -1346,6 +1335,3 @@ class CMakeInterpreter:
 
     def target_list(self) -> T.List[str]:
         return list(self.internal_name_map.keys())
-
-    def _object_lib_workaround(self) -> bool:
-        return 'link' in self.linkers and self.backend_name.startswith('vs')

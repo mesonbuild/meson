@@ -30,6 +30,7 @@ from . import mlog
 from .envconfig import (
     BinaryTable, MachineInfo,
     Properties, known_cpu_families, get_env_var_pair,
+    CMakeVariables,
 )
 from . import compilers
 from .compilers import (
@@ -569,14 +570,17 @@ class Environment:
         # Stores machine infos, the only *three* machine one because we have a
         # target machine info on for the user (Meson never cares about the
         # target machine.)
-        machines = PerThreeMachineDefaultable()
+        machines = PerThreeMachineDefaultable()  # type: PerMachineDefaultable[MachineInfo]
 
         # Similar to coredata.compilers, but lower level in that there is no
         # meta data, only names/paths.
-        binaries = PerMachineDefaultable()
+        binaries = PerMachineDefaultable()  # type: PerMachineDefaultable[BinaryTable]
 
         # Misc other properties about each machine.
-        properties = PerMachineDefaultable()
+        properties = PerMachineDefaultable()  # type: PerMachineDefaultable[Properties]
+
+        # CMake toolchain variables
+        cmakevars = PerMachineDefaultable()  # type: PerMachineDefaultable[CMakeVariables]
 
         # We only need one of these as project options are not per machine
         user_options = collections.defaultdict(dict)  # type: T.DefaultDict[str, T.Dict[str, object]]
@@ -653,6 +657,7 @@ class Environment:
             config = coredata.parse_machine_files(self.coredata.config_files)
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
+            cmakevars.build = CMakeVariables(config.get('cmake', {}))
 
             # Don't run this if there are any cross files, we don't want to use
             # the native values if we're doing a cross build
@@ -674,6 +679,7 @@ class Environment:
             config = coredata.parse_machine_files(self.coredata.cross_files)
             properties.host = Properties(config.get('properties', {}))
             binaries.host = BinaryTable(config.get('binaries', {}))
+            cmakevars.host = CMakeVariables(config.get('cmake', {}))
             if 'host_machine' in config:
                 machines.host = MachineInfo.from_literal(config['host_machine'])
             if 'target_machine' in config:
@@ -694,6 +700,7 @@ class Environment:
         self.machines = machines.default_missing()
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
+        self.cmakevars = cmakevars.default_missing()
         self.user_options = user_options
         self.meson_options = meson_options.default_missing()
         self.base_options = _base_options

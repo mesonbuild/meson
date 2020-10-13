@@ -20,6 +20,18 @@ from .. import mlog
 from .._pathlib import Path
 import typing as T
 
+language_map = {
+    'c': 'C',
+    'cpp': 'CXX',
+    'cuda': 'CUDA',
+    'objc': 'OBJC',
+    'objcpp': 'OBJCXX',
+    'cs': 'CSharp',
+    'java': 'Java',
+    'fortran': 'Fortran',
+    'swift': 'Swift',
+}
+
 class CMakeException(MesonException):
     pass
 

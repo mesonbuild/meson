@@ -16,8 +16,6 @@
 # or an interpreter-based tool.
 
 from .common import CMakeException, CMakeConfiguration, CMakeBuildFile
-from .executor import CMakeExecutor
-from ..mesonlib import MachineChoice
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
@@ -27,6 +25,7 @@ import json
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .executor import CMakeExecutor
 
 CMAKE_SERVER_BEGIN_STR = '[== "CMake Server" ==['
 CMAKE_SERVER_END_STR = ']== "CMake Server" ==]'
@@ -331,20 +330,17 @@ class CMakeClient:
         return ReplyCMakeInputs(data['cookie'], Path(data['cmakeRootDirectory']), Path(data['sourceDirectory']), files)
 
     @contextmanager
-    def connect(self) -> T.Generator[None, None, None]:
-        self.startup()
+    def connect(self, cmake_exe: 'CMakeExecutor') -> T.Generator[None, None, None]:
+        self.startup(cmake_exe)
         try:
             yield
         finally:
             self.shutdown()
 
-    def startup(self) -> None:
+    def startup(self, cmake_exe: 'CMakeExecutor') -> None:
         if self.proc is not None:
             raise CMakeException('The CMake server was already started')
-        for_machine = MachineChoice.HOST # TODO make parameter
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
-        if not cmake_exe.found():
-            raise CMakeException('Unable to find CMake')
+        assert cmake_exe.found()
 
         mlog.debug('Starting CMake server with CMake', mlog.bold(' '.join(cmake_exe.get_command())), 'version', mlog.cyan(cmake_exe.version()))
         self.proc = Popen(cmake_exe.get_command() + ['-E', 'server', '--experimental', '--debug'], stdin=PIPE, stdout=PIPE)

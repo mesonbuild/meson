@@ -21,58 +21,18 @@ from threading import Thread
 import typing as T
 import re
 import os
-import shutil
-import ctypes
-import textwrap
 
-from .. import mlog, mesonlib
-from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice
-from ..environment import Environment
+from .. import mlog
+from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, is_windows
 from ..envconfig import get_env_var
-from ..compilers import (
-    AppleClangCCompiler, AppleClangCPPCompiler, AppleClangObjCCompiler,
-    AppleClangObjCPPCompiler
-)
 
 if T.TYPE_CHECKING:
+    from ..environment import Environment
     from ..dependencies.base import ExternalProgram
     from ..compilers import Compiler
 
 TYPE_result    = T.Tuple[int, T.Optional[str], T.Optional[str]]
 TYPE_cache_key = T.Tuple[str, T.Tuple[str, ...], str, T.FrozenSet[T.Tuple[str, str]]]
-
-_MESON_TO_CMAKE_MAPPING = {
-    'arm':          'ARMCC',
-    'armclang':     'ARMClang',
-    'clang':        'Clang',
-    'clang-cl':     'MSVC',
-    'flang':        'Flang',
-    'g95':          'G95',
-    'gcc':          'GNU',
-    'intel':        'Intel',
-    'intel-cl':     'MSVC',
-    'msvc':         'MSVC',
-    'pathscale':    'PathScale',
-    'pgi':          'PGI',
-    'sun':          'SunPro',
-}
-
-def meson_compiler_to_cmake_id(cobj: 'Compiler') -> str:
-    """Translate meson compiler's into CMAKE compiler ID's.
-
-    Most of these can be handled by a simple table lookup, with a few
-    exceptions.
-
-    Clang and Apple's Clang are both identified as "clang" by meson. To make
-    things more complicated gcc and vanilla clang both use Apple's ld64 on
-    macOS. The only way to know for sure is to do an isinstance() check.
-    """
-    if isinstance(cobj, (AppleClangCCompiler, AppleClangCPPCompiler,
-                         AppleClangObjCCompiler, AppleClangObjCPPCompiler)):
-        return 'AppleClang'
-    # If no mapping, try GNU and hope that the build files don't care
-    return _MESON_TO_CMAKE_MAPPING.get(cobj.get_id(), 'GNU')
-
 
 class CMakeExecutor:
     # The class's copy of the CMake path. Avoids having to search for it
@@ -81,7 +41,7 @@ class CMakeExecutor:
     class_cmakevers = PerMachine(None, None)  # type: PerMachine[T.Optional[str]]
     class_cmake_cache = {}  # type: T.Dict[T.Any, TYPE_result]
 
-    def __init__(self, environment: Environment, version: str, for_machine: MachineChoice, silent: bool = False):
+    def __init__(self, environment: 'Environment', version: str, for_machine: MachineChoice, silent: bool = False):
         self.min_version = version
         self.environment = environment
         self.for_machine = for_machine
@@ -109,7 +69,7 @@ class CMakeExecutor:
             'CMAKE_PREFIX_PATH')
         if env_pref_path_raw is not None:
             env_pref_path = []  # type: T.List[str]
-            if mesonlib.is_windows():
+            if is_windows():
                 # Cannot split on ':' on Windows because its in the drive letter
                 env_pref_path = env_pref_path_raw.split(os.pathsep)
             else:
@@ -123,7 +83,7 @@ class CMakeExecutor:
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 
-    def find_cmake_binary(self, environment: Environment, silent: bool = False) -> T.Tuple[T.Optional['ExternalProgram'], T.Optional[str]]:
+    def find_cmake_binary(self, environment: 'Environment', silent: bool = False) -> T.Tuple[T.Optional['ExternalProgram'], T.Optional[str]]:
         from ..dependencies.base import find_external_program, NonExistingExternalProgram
 
         # Only search for CMake the first time and store the result in the class
@@ -176,7 +136,7 @@ class CMakeExecutor:
             return None
         except PermissionError:
             msg = 'Found CMake {!r} but didn\'t have permissions to run it.'.format(' '.join(cmakebin.get_command()))
-            if not mesonlib.is_windows():
+            if not is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
@@ -257,11 +217,12 @@ class CMakeExecutor:
         rc = ret.returncode
         out = ret.stdout.decode(errors='ignore')
         err = ret.stderr.decode(errors='ignore')
-        call = ' '.join(cmd)
-        mlog.debug("Called `{}` in {} -> {}".format(call, build_dir, rc))
         return rc, out, err
 
     def _call_impl(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]]) -> TYPE_result:
+        mlog.debug('Calling CMake ({}) in {} with:'.format(self.cmakebin.get_command(), build_dir))
+        for i in args:
+            mlog.debug('  - "{}"'.format(i))
         if not self.print_cmout:
             return self._call_quiet(args, build_dir, env)
         else:
@@ -284,132 +245,6 @@ class CMakeExecutor:
         if key not in cache:
             cache[key] = self._call_impl(args, build_dir, env)
         return cache[key]
-
-    def call_with_fake_build(self, args: T.List[str], build_dir: Path, env: T.Optional[T.Dict[str, str]] = None) -> TYPE_result:
-        # First check the cache
-        cache = CMakeExecutor.class_cmake_cache
-        key = self._cache_key(args, build_dir, env)
-        if key in cache:
-            return cache[key]
-
-        build_dir.mkdir(exist_ok=True, parents=True)
-
-        # Try to set the correct compiler for C and C++
-        # This step is required to make try_compile work inside CMake
-        fallback = Path(__file__).resolve()  # A file used as a fallback wehen everything else fails
-        compilers = self.environment.coredata.compilers[MachineChoice.BUILD]
-
-        def make_abs(exe: str, lang: str) -> str:
-            if Path(exe).is_absolute():
-                return exe
-
-            p = shutil.which(exe)
-            if p is None:
-                mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
-                return str(fallback)
-            return p
-
-        def choose_compiler(lang: str) -> T.Tuple[str, str, str, str]:
-            comp_obj = None
-            exe_list = []
-            if lang in compilers:
-                comp_obj = compilers[lang]
-            else:
-                try:
-                    comp_obj = self.environment.compiler_from_language(lang, MachineChoice.BUILD)
-                except Exception:
-                    pass
-
-            if comp_obj is not None:
-                exe_list = comp_obj.get_exelist()
-                comp_id = meson_compiler_to_cmake_id(comp_obj)
-                comp_version = comp_obj.version.upper()
-
-            if len(exe_list) == 1:
-                return make_abs(exe_list[0], lang), '', comp_id, comp_version
-            elif len(exe_list) == 2:
-                return make_abs(exe_list[1], lang), make_abs(exe_list[0], lang), comp_id, comp_version
-            else:
-                mlog.debug('Failed to find a {} compiler for CMake. This might cause CMake to fail.'.format(lang))
-                return str(fallback), '', 'GNU', ''
-
-        c_comp, c_launcher, c_id, c_version = choose_compiler('c')
-        cxx_comp, cxx_launcher, cxx_id, cxx_version = choose_compiler('cpp')
-        fortran_comp, fortran_launcher, _, _ = choose_compiler('fortran')
-
-        # on Windows, choose_compiler returns path with \ as separator - replace by / before writing to CMAKE file
-        c_comp = c_comp.replace('\\', '/')
-        c_launcher = c_launcher.replace('\\', '/')
-        cxx_comp = cxx_comp.replace('\\', '/')
-        cxx_launcher = cxx_launcher.replace('\\', '/')
-        fortran_comp = fortran_comp.replace('\\', '/')
-        fortran_launcher = fortran_launcher.replace('\\', '/')
-
-        # Reset the CMake cache
-        (build_dir / 'CMakeCache.txt').write_text('CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1\n')
-
-        # Fake the compiler files
-        comp_dir = build_dir / 'CMakeFiles' / self.cmakevers
-        comp_dir.mkdir(parents=True, exist_ok=True)
-
-        c_comp_file = comp_dir / 'CMakeCCompiler.cmake'
-        cxx_comp_file = comp_dir / 'CMakeCXXCompiler.cmake'
-        fortran_comp_file = comp_dir / 'CMakeFortranCompiler.cmake'
-
-        if c_comp and not c_comp_file.is_file():
-            is_gnu = '1' if c_id == 'GNU' else ''
-            c_comp_file.write_text(textwrap.dedent('''\
-                # Fake CMake file to skip the boring and slow stuff
-                set(CMAKE_C_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
-                set(CMAKE_C_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
-                set(CMAKE_COMPILER_IS_GNUCC {})
-                set(CMAKE_C_COMPILER_ID "{}")
-                set(CMAKE_C_COMPILER_VERSION "{}")
-                set(CMAKE_C_COMPILER_LOADED 1)
-                set(CMAKE_C_COMPILER_FORCED 1)
-                set(CMAKE_C_COMPILER_WORKS TRUE)
-                set(CMAKE_C_ABI_COMPILED TRUE)
-                set(CMAKE_C_SOURCE_FILE_EXTENSIONS c;m)
-                set(CMAKE_C_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
-                set(CMAKE_SIZEOF_VOID_P "{}")
-            '''.format(c_comp, c_launcher, is_gnu, c_id, c_version,
-                       ctypes.sizeof(ctypes.c_void_p))))
-
-        if cxx_comp and not cxx_comp_file.is_file():
-            is_gnu = '1' if cxx_id == 'GNU' else ''
-            cxx_comp_file.write_text(textwrap.dedent('''\
-                # Fake CMake file to skip the boring and slow stuff
-                set(CMAKE_CXX_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
-                set(CMAKE_CXX_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
-                set(CMAKE_COMPILER_IS_GNUCXX {})
-                set(CMAKE_CXX_COMPILER_ID "{}")
-                set(CMAKE_CXX_COMPILER_VERSION "{}")
-                set(CMAKE_CXX_COMPILER_LOADED 1)
-                set(CMAKE_CXX_COMPILER_FORCED 1)
-                set(CMAKE_CXX_COMPILER_WORKS TRUE)
-                set(CMAKE_CXX_ABI_COMPILED TRUE)
-                set(CMAKE_CXX_IGNORE_EXTENSIONS inl;h;hpp;HPP;H;o;O;obj;OBJ;def;DEF;rc;RC)
-                set(CMAKE_CXX_SOURCE_FILE_EXTENSIONS C;M;c++;cc;cpp;cxx;mm;CPP)
-                set(CMAKE_SIZEOF_VOID_P "{}")
-            '''.format(cxx_comp, cxx_launcher, is_gnu, cxx_id, cxx_version,
-                       ctypes.sizeof(ctypes.c_void_p))))
-
-        if fortran_comp and not fortran_comp_file.is_file():
-            fortran_comp_file.write_text(textwrap.dedent('''\
-                # Fake CMake file to skip the boring and slow stuff
-                set(CMAKE_Fortran_COMPILER "{}") # Should be a valid compiler for try_compile, etc.
-                set(CMAKE_Fortran_COMPILER_LAUNCHER "{}") # The compiler launcher (if presentt)
-                set(CMAKE_Fortran_COMPILER_ID "GNU") # Pretend we have found GCC
-                set(CMAKE_COMPILER_IS_GNUG77 1)
-                set(CMAKE_Fortran_COMPILER_LOADED 1)
-                set(CMAKE_Fortran_COMPILER_WORKS TRUE)
-                set(CMAKE_Fortran_ABI_COMPILED TRUE)
-                set(CMAKE_Fortran_IGNORE_EXTENSIONS h;H;o;O;obj;OBJ;def;DEF;rc;RC)
-                set(CMAKE_Fortran_SOURCE_FILE_EXTENSIONS f;F;fpp;FPP;f77;F77;f90;F90;for;For;FOR;f95;F95)
-                set(CMAKE_SIZEOF_VOID_P "{}")
-            '''.format(fortran_comp, fortran_launcher, ctypes.sizeof(ctypes.c_void_p))))
-
-        return self.call(args, build_dir, env)
 
     def found(self) -> bool:
         return self.cmakebin is not None

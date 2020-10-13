@@ -1239,6 +1239,7 @@ class InternalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             with chdir(tmpdir):
                 env = get_fake_env()
+                env.scratch_dir = tmpdir
 
                 f = b.DependencyFactory(
                     'test_dep',

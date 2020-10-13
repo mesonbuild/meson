@@ -1163,6 +1163,7 @@ def check_format():
         '.dub',                         # external deps are here
         '.pytest_cache',
         'meson-logs', 'meson-private',
+        'work area',
         '.eggs', '_cache',              # e.g. .mypy_cache
         'venv',                         # virtualenvs have DOS line endings
     }
