@@ -2943,20 +2943,22 @@ class AllPlatformTests(BasePlatformTests):
         # the source tree leads to all kinds of trouble.
         with tempfile.TemporaryDirectory() as project_dir:
             with open(os.path.join(project_dir, 'meson.build'), 'w') as ofile:
-                ofile.write('''project('disttest', 'c', version : '1.4.3')
-e = executable('distexe', 'distexe.c')
-test('dist test', e)
-subproject('vcssub', required : false)
-subproject('tarballsub', required : false)
-''')
+                ofile.write(textwrap.dedent('''\
+                    project('disttest', 'c', version : '1.4.3')
+                    e = executable('distexe', 'distexe.c')
+                    test('dist test', e)
+                    subproject('vcssub', required : false)
+                    subproject('tarballsub', required : false)
+                    '''))
             with open(os.path.join(project_dir, 'distexe.c'), 'w') as ofile:
-                ofile.write('''#include<stdio.h>
+                ofile.write(textwrap.dedent('''\
+                    #include<stdio.h>
 
-int main(int argc, char **argv) {
-    printf("I am a distribution test.\\n");
-    return 0;
-}
-''')
+                    int main(int argc, char **argv) {
+                        printf("I am a distribution test.\\n");
+                        return 0;
+                    }
+                    '''))
             xz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
             xz_checksumfile = xz_distfile + '.sha256sum'
             zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
@@ -3615,8 +3617,8 @@ int main(int argc, char **argv) {
         """
         tdir = os.path.join(self.unit_test_dir, '30 shared_mod linking')
         out = self.init(tdir)
-        msg = ('''WARNING: target links against shared modules. This is not
-recommended as it is not supported on some platforms''')
+        msg = ('WARNING: target links against shared modules. This is not '
+               'recommended as it is not supported on some platforms')
         self.assertIn(msg, out)
 
     def test_ndebug_if_release_disabled(self):
@@ -7265,16 +7267,18 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '61 identity cross')
 
         nativefile = tempfile.NamedTemporaryFile(mode='w')
-        nativefile.write('''[binaries]
-c = ['{0}']
-'''.format(os.path.join(testdir, 'build_wrapper.py')))
+        nativefile.write(textwrap.dedent('''\
+            [binaries]
+            c = ['{0}']
+            '''.format(os.path.join(testdir, 'build_wrapper.py'))))
         nativefile.flush()
         self.meson_native_file = nativefile.name
 
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        crossfile.write('''[binaries]
-c = ['{0}']
-'''.format(os.path.join(testdir, 'host_wrapper.py')))
+        crossfile.write(textwrap.dedent('''\
+            [binaries]
+            c = ['{0}']
+            '''.format(os.path.join(testdir, 'host_wrapper.py'))))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
 
@@ -7287,9 +7291,10 @@ c = ['{0}']
             'CC_FOR_BUILD': '"' + os.path.join(testdir, 'build_wrapper.py') + '"',
         }
         crossfile = tempfile.NamedTemporaryFile(mode='w')
-        crossfile.write('''[binaries]
-c = ['{0}']
-'''.format(os.path.join(testdir, 'host_wrapper.py')))
+        crossfile.write(textwrap.dedent('''\
+            [binaries]
+            c = ['{0}']
+            '''.format(os.path.join(testdir, 'host_wrapper.py'))))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         # TODO should someday be explicit about build platform only here
