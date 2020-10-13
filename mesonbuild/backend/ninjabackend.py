@@ -1489,7 +1489,7 @@ int dummy;
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
-    def generate_rust_target(self, target):
+    def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
@@ -1533,7 +1533,8 @@ int dummy;
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
         args += target.get_extra_args('rust')
-        args += ['-o', os.path.join(target.subdir, target.get_filename())]
+        args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
+        args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = OrderedDict()
         for d in target.link_targets:
