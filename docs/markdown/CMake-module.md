@@ -133,7 +133,10 @@ kept for compatibility. It will not work together with the `options` kwarg.
 This object is returned by the `subproject` function described above
 and supports the following methods:
 
- - `dependency(target)` returns a dependency object for any CMake target.
+ - `dependency(target)` returns a dependency object for any CMake target. The
+   `include_type` kwarg *(new in 0.56.0)* controls the include type of the
+   returned dependency object similar to the same kwarg in the
+   [`dependency()`](Reference-manual.md#dependency) function.
  - `include_directories(target)` returns a meson `include_directories()`
    object for the specified target. Using this function is not necessary
    if the dependency object is used.
