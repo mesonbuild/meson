@@ -1619,9 +1619,9 @@ class Environment:
             return comp_class(exelist, version, for_machine, info, is_cross)
         raise EnvironmentException('Unknown compiler "' + ' '.join(exelist) + '"')
 
-    def detect_rust_compiler(self, for_machine):
-        popen_exceptions = {}
-        compilers, ccache, exe_wrap = self._get_compilers('rust', for_machine)
+    def detect_rust_compiler(self, for_machine: MachineChoice) -> RustCompiler:
+        popen_exceptions = {}  # type: T.Dict[str, Exception]
+        compilers, _, exe_wrap = self._get_compilers('rust', for_machine)
         is_cross = self.is_cross_build(for_machine)
         info = self.machines[for_machine]
 
@@ -1634,7 +1634,7 @@ class Environment:
                 compiler = [compiler]
             arg = ['--version']
             try:
-                p, out = Popen_safe(compiler + arg)[0:2]
+                out = Popen_safe(compiler + arg)[1]
             except OSError as e:
                 popen_exceptions[' '.join(compiler + arg)] = e
                 continue
@@ -1658,9 +1658,8 @@ class Environment:
                         compiler.extend(['-C', 'linker={}'.format(cc.linker.exelist[0])])
                         extra_args['direct'] = True
                         extra_args['machine'] = cc.linker.machine
-                    elif not ((info.is_darwin() and isinstance(cc, AppleClangCCompiler)) or
-                              isinstance(cc, GnuCCompiler)):
-                        c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
+                    else:
+                        c = cc.linker.exelist[1] if cc.linker.exelist[0].endswith('ccache') else cc.linker.exelist[0]
                         compiler.extend(['-C', 'linker={}'.format(c)])
 
                     # This trickery with type() gets us the class of the linker
@@ -1675,7 +1674,10 @@ class Environment:
                 elif 'link' in override[0]:
                     linker = self._guess_win_linker(
                         override, RustCompiler, for_machine, use_linker_prefix=False)
+                    # rustc takes linker arguments without a prefix, and
+                    # inserts the correct prefix itself.
                     linker.direct = True
+                    compiler.extend(['-C', 'linker={}'.format(linker.exelist[0])])
                 else:
                     # We're creating a new type of "C" compiler, that has rust
                     # as it's language. This is gross, but I can't figure out
