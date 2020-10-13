@@ -95,6 +95,17 @@ class CCompiler(CLikeCompiler, Compiler):
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
+    def get_options(self) -> 'OptionDictType':
+        opts = super().get_options()
+        opts.update({
+            'std': coredata.UserComboOption(
+                'C langauge standard to use',
+                ['none'],
+                'none',
+            )
+        })
+        return opts
+
 
 class ClangCCompiler(ClangCompiler, CCompiler):
 
@@ -130,13 +141,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
         if version_compare(self.version, self._C2X_VERSION):
             c_stds += ['c2x']
             g_stds += ['gnu2x']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none'] + c_stds + g_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 'winlibs': coredata.UserArrayOption(
@@ -207,13 +212,7 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none', 'c90', 'c99', 'c11', 'gnu90', 'gnu99', 'gnu11'],
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none', 'c90', 'c99', 'c11', 'gnu90', 'gnu99', 'gnu11']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -255,13 +254,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if version_compare(self.version, self._C2X_VERSION):
             c_stds += ['c2x']
             g_stds += ['gnu2x']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none'] + c_stds + g_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 'winlibs': coredata.UserArrayOption(
@@ -327,17 +320,11 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                [
-                    'none', 'c89', 'c90', 'c9x', 'c99', 'c1x', 'c11',
-                    'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11',
-                    'iso9899:2011', 'iso9899:1990', 'iso9899:199409', 'iso9899:1999',
-                ],
-                'none',
-            ),
-        })
+        opts['std'].choices = [  # type: ignore
+            'none', 'c89', 'c90', 'c9x', 'c99', 'c1x', 'c11',
+            'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11',
+            'iso9899:2011', 'iso9899:1990', 'iso9899:199409', 'iso9899:1999',
+        ]
         return opts
 
     # Elbrus C compiler does not have lchmod, but there is only linker warning, not compiler error.
@@ -374,13 +361,7 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
         g_stds = ['gnu89', 'gnu99']
         if version_compare(self.version, '>=16.0.0'):
             c_stds += ['c11']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none'] + c_stds + g_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -433,13 +414,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
                   # that set c_std to e.g. gnu99.
                   # https://github.com/mesonbuild/meson/issues/7611
                   'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                c_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = c_stds  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -472,13 +447,7 @@ class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompile
                   # that set c_std to e.g. gnu99.
                   # https://github.com/mesonbuild/meson/issues/7611
                   'gnu89', 'gnu90', 'gnu9x', 'gnu99']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                c_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = c_stds  # type: ignore
         return opts
 
 
@@ -498,14 +467,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
 
     def get_options(self) -> 'OptionDictType':
         opts = super().get_options()
-        c_stds = ['none', 'c89', 'c99', 'c11']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                c_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none', 'c89', 'c99', 'c11']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -531,13 +493,7 @@ class ArmCCompiler(ArmCompiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none', 'c90', 'c99'],
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none', 'c89', 'c99', 'c11']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -564,13 +520,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({
-            'std': coredata.UserComboOption(
-                'C language standard to use',
-                ['none', 'c89', 'c99'],
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none', 'c89', 'c99']  # type: ignore
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
@@ -615,9 +565,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'std': coredata.UserComboOption('C language standard to use',
-                                                     ['none', 'c89', 'c99', 'gnu89', 'gnu99'],
-                                                     'none')})
+        opts['std'].choices = ['none', 'c89', 'c99', 'gnu89', 'gnu99']  # type: ignore
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
@@ -660,9 +608,7 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'std': coredata.UserComboOption('C language standard to use',
-                                                     ['none', 'c89', 'c99'],
-                                                     'none')})
+        opts['std'].choices = ['none', 'c89', 'c99']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -698,9 +644,7 @@ class C2000CCompiler(C2000Compiler, CCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CCompiler.get_options(self)
-        opts.update({'std': coredata.UserComboOption('C language standard to use',
-                                                     ['none', 'c89', 'c99', 'c11'],
-                                                     'none')})
+        opts['std'].choices = ['none', 'c89', 'c99', 'c11']  # type: ignore
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:

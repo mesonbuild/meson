@@ -150,6 +150,17 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, env, 'stop; end program')
 
+    def get_options(self) -> 'OptionDictType':
+        opts = super().get_options()
+        opts.update({
+            'std': coredata.UserComboOption(
+                'Fortran language standard to use',
+                ['none'],
+                'none',
+            ),
+        })
+        return opts
+
 
 class GnuFortranCompiler(GnuCompiler, FortranCompiler):
 
@@ -175,13 +186,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
             fortran_stds += ['f2008']
         if version_compare(self.version, '>=8.0.0'):
             fortran_stds += ['f2018']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'Fortran language standard to use',
-                ['none'] + fortran_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['none'] + fortran_stds  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -310,14 +315,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
-        fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'Fortran language standard to use',
-                ['none'] + fortran_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -367,14 +365,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
-        fortran_stds = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']
-        opts.update({
-            'std': coredata.UserComboOption(
-                'Fortran language standard to use',
-                ['none'] + fortran_stds,
-                'none',
-            ),
-        })
+        opts['std'].choices = ['legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
