@@ -28,7 +28,7 @@ from . import mlog
 from .backend import backends
 from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
 from .interpreter import Interpreter
-from ._pathlib import PurePath
+from ._pathlib import Path, PurePath
 import typing as T
 import os
 import argparse
@@ -119,9 +119,10 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
     tlist = []  # type: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]
-    for i in intr.targets:
-        sources = []  # type: T.List[str]
-        for n in i['sources']:
+    root_dir = Path(intr.source_root)
+    def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
+        res = []  # type: T.List[Path]
+        for n in node_list:
             args = []  # type: T.List[BaseNode]
             if isinstance(n, FunctionNode):
                 args = list(n.args.arguments)
@@ -134,9 +135,16 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
             for j in args:
                 if isinstance(j, StringNode):
                     assert isinstance(j.value, str)
-                    sources += [j.value]
+                    res += [Path(j.value)]
                 elif isinstance(j, str):
-                    sources += [j]
+                    res += [Path(j)]
+        res = [root_dir / i['subdir'] / x for x in res]
+        res = [x.resolve() for x in res]
+        return res
+
+    for i in intr.targets:
+        sources = nodes_to_paths(i['sources'])
+        extra_f = nodes_to_paths(i['extra_files'])
 
         tlist += [{
             'name': i['name'],
@@ -149,9 +157,10 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
                 'language': 'unknown',
                 'compiler': [],
                 'parameters': [],
-                'sources': [os.path.normpath(os.path.join(os.path.abspath(intr.source_root), i['subdir'], x)) for x in sources],
+                'sources': [str(x) for x in sources],
                 'generated_sources': []
             }],
+            'extra_files': [str(x) for x in extra_f],
             'subproject': None, # Subprojects are not supported
             'installed': i['installed']
         }]
@@ -182,6 +191,7 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
             'filename': [os.path.join(build_dir, target.subdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
             'target_sources': backend.get_introspection_data(idname, target),
+            'extra_files': [os.path.normpath(os.path.join(src_dir, x.subdir, x.fname)) for x in target.extra_files],
             'subproject': target.subproject or None
         }
 

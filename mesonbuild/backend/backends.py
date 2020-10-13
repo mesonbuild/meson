@@ -1390,7 +1390,7 @@ class Backend:
         This is a limited fallback / reference implementation. The backend should override this method.
         '''
         if isinstance(target, (build.CustomTarget, build.BuildTarget)):
-            source_list_raw = target.sources + target.extra_files
+            source_list_raw = target.sources
             source_list = []
             for j in source_list_raw:
                 if isinstance(j, mesonlib.File):
