@@ -3687,9 +3687,17 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not_found_message:
                 self.message_impl([not_found_message])
             raise
+        assert isinstance(d, DependencyHolder)
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
             self.message_impl([not_found_message])
+        # Ensure the correct include type
+        if 'include_type' in kwargs:
+            wanted = kwargs['include_type']
+            actual = d.include_type_method([], {})
+            if wanted != actual:
+                mlog.debug('Current include type of {} is {}. Converting to requested {}'.format(name, actual, wanted))
+                d = d.as_system_method([wanted], {})
         # Override this dependency to have consistent results in subsequent
         # dependency lookups.
         if name and d.found():
