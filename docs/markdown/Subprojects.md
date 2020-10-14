@@ -258,6 +258,13 @@ the following command-line options:
     `glib-2.0` must also be forced to fallback, in this case with
     `--force-fallback-for=glib,gsteamer`.
 
+* **--wrap-mode=nopromote**
+
+    *Since 0.56.0* Meson will automatically use wrap files found in subprojects
+    and copy them into the main project. That new behavior can be disabled by
+    passing `--wrap-mode=nopromote`. In that case only wraps found in the main
+    project will be used.
+
 ## `meson subprojects` command
 
 *Since 0.49.0*

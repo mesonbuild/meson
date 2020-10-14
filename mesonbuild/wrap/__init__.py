@@ -40,6 +40,7 @@ string_to_value = {'default': 1,
                    'nofallback': 2,
                    'nodownload': 3,
                    'forcefallback': 4,
+                   'nopromote': 5,
                    }
 
 class WrapMode(Enum):
@@ -47,6 +48,7 @@ class WrapMode(Enum):
     nofallback = 2
     nodownload = 3
     forcefallback = 4
+    nopromote = 5
 
     def __str__(self) -> str:
         return self.name

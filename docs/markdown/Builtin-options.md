@@ -79,7 +79,7 @@ for details.
 | unity_size {>=2}                     | 4             | Unity file block size                                          | no             | no                |
 | warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             | yes               |
 | werror                               | false         | Treat warnings as errors                                       | no             | yes               |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             | no                |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
 | force_fallback_for                   | []            | Force fallback for those dependencies                          | no             | no                |
 
 <a name="build-type-options"></a>
