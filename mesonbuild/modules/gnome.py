@@ -157,8 +157,14 @@ class GnomeModule(ExtensionModule):
             output = args[0] + '.gresource'
             name = args[0] + '_gresource'
         else:
-            output = args[0] + '.c'
-            name = args[0] + '_c'
+            if 'c' in state.environment.coredata.compilers.host.keys():
+                output = args[0] + '.c'
+                name = args[0] + '_c'
+            elif 'cpp' in state.environment.coredata.compilers.host.keys():
+                output = args[0] + '.cpp'
+                name = args[0] + '_cpp'
+            else:
+                raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
 
         if kwargs.get('install', False) and not gresource:
             raise MesonException('The install kwarg only applies to gresource bundles, see install_header')
