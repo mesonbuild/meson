@@ -170,16 +170,29 @@ class CudaCompiler(Compiler):
                           env: 'Environment', *,
                           extra_args: T.Optional[T.List[str]] = None,
                           dependencies: T.Optional[T.List['Dependency']] = None) -> T.Tuple[bool, bool]:
-        result, cached = super().has_header_symbol(hname, symbol, prefix, env, extra_args=extra_args, dependencies=dependencies)
-        if result:
-            return True, cached
         if extra_args is None:
             extra_args = []
         fargs = {'prefix': prefix, 'header': hname, 'symbol': symbol}
+        # Check if it's a C-like symbol
+        t = '''{prefix}
+        #include <{header}>
+        int main(void) {{
+            /* If it's not defined as a macro, try to use as a symbol */
+            #ifndef {symbol}
+                {symbol};
+            #endif
+            return 0;
+        }}'''
+        found, cached = self.compiles(t.format(**fargs), env, extra_args=extra_args, dependencies=dependencies)
+        if found:
+            return True, cached
+        # Check if it's a class or a template
         t = '''{prefix}
         #include <{header}>
         using {symbol};
-        int main(void) {{ return 0; }}'''
+        int main(void) {{
+            return 0;
+        }}'''
         return self.compiles(t.format(**fargs), env, extra_args=extra_args, dependencies=dependencies)
 
     def get_options(self) -> 'OptionDictType':
