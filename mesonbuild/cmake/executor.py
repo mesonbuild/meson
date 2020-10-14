@@ -62,6 +62,12 @@ class CMakeExecutor:
             return
 
         self.prefix_paths = self.environment.coredata.options[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
+        if not self.prefix_paths:
+            self.prefix_paths = []
+        if self.environment.coredata.options[OptionKey('default_dependency_sources', machine=self.for_machine)].value == 'both':
+            cmake_path_in_prefix = self.environment.get_prefix()
+            if os.path.isdir(cmake_path_in_prefix) and cmake_path_in_prefix not in self.prefix_paths:
+                self.prefix_paths.append(cmake_path_in_prefix)
         if self.prefix_paths:
             self.extra_cmake_args += ['-DCMAKE_PREFIX_PATH={}'.format(';'.join(self.prefix_paths))]
 

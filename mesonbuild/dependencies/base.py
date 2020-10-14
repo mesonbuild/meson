@@ -663,6 +663,12 @@ class PkgConfigDependency(ExternalDependency):
         sysroot = environment.properties[for_machine].get_sys_root()
         if sysroot:
             env['PKG_CONFIG_SYSROOT_DIR'] = sysroot
+        # Add the pkgconfig directory from the installation prefix to PKG_CONFIG_PATH:
+        if environment.coredata.options[OptionKey('default_dependency_sources', machine=for_machine)].value == 'both':
+            pkg_config_libdir_prefix = os.path.join(
+                environment.get_prefix(), environment.get_libdir(), "pkgconfig")
+            if os.path.isdir(pkg_config_libdir_prefix) and pkg_config_libdir_prefix not in extra_paths:
+                extra_paths.append(pkg_config_libdir_prefix)
         new_pkg_config_path = ':'.join([p for p in extra_paths])
         mlog.debug('PKG_CONFIG_PATH: ' + new_pkg_config_path)
         env['PKG_CONFIG_PATH'] = new_pkg_config_path

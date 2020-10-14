@@ -1,0 +1,2 @@
+set(proj1_LIBRARIES "-lproj1")
+
