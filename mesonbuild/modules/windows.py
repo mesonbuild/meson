@@ -128,7 +128,9 @@ class WindowsModule(ExtensionModule):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 
-                name_formatted = src.get_filename()
+                # Chances are that src.get_filename() is already the name of that
+                # target, add a prefix to avoid name clash.
+                name_formatted = 'windows_compile_resources_' + src.get_filename()
                 name = src.get_id()
             else:
                 raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
