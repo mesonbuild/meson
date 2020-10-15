@@ -1651,6 +1651,13 @@ class Environment:
                 # the default use that, and second add the necessary arguments
                 # to rust to use -fuse-ld
 
+                if any(a.startswith('linker=') for a in compiler):
+                    mlog.warning(
+                        'Please do not put -C linker= in your compiler '
+                        'command, set rust_ld=command in your cross file '
+                        'or use the RUST_LD environment variable. meson '
+                        'will override your seletion otherwise.')
+
                 if override is None:
                     extra_args = {}
                     always_args = []
