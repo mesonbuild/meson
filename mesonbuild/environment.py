@@ -1655,12 +1655,12 @@ class Environment:
                     extra_args = {}
                     always_args = []
                     if is_link_exe:
-                        compiler.extend(['-C', 'linker={}'.format(cc.linker.exelist[0])])
+                        compiler.extend(RustCompiler.use_linker_args(cc.linker.exelist[0]))
                         extra_args['direct'] = True
                         extra_args['machine'] = cc.linker.machine
                     else:
                         c = cc.linker.exelist[1] if cc.linker.exelist[0].endswith('ccache') else cc.linker.exelist[0]
-                        compiler.extend(['-C', 'linker={}'.format(c)])
+                        compiler.extend(RustCompiler.use_linker_args(c))
 
                     # This trickery with type() gets us the class of the linker
                     # so we can initialize a new copy for the Rust Compiler
@@ -1677,21 +1677,21 @@ class Environment:
                     # rustc takes linker arguments without a prefix, and
                     # inserts the correct prefix itself.
                     linker.direct = True
-                    compiler.extend(['-C', 'linker={}'.format(linker.exelist[0])])
+                    compiler.extend(RustCompiler.use_linker_args(linker.exelist[0]))
                 else:
                     # We're creating a new type of "C" compiler, that has rust
                     # as it's language. This is gross, but I can't figure out
                     # another way to handle this, because rustc is actually
                     # invoking the c compiler as it's linker.
+                    breakpoint()
                     b = type('b', (type(cc), ), {})
-                    b.language = RustCompiler.language
-                    linker = self._guess_nix_linker(cc.exelist, b, for_machine)
+                    linker = self._guess_nix_linker(override, b, for_machine)
+                    linker = cc.linker
 
                     # Of course, we're not going to use any of that, we just
                     # need it to get the proper arguments to pass to rustc
                     c = cc.exelist[1] if cc.exelist[0].endswith('ccache') else cc.exelist[0]
-                    compiler.extend(['-C', 'linker={}'.format(c)])
-                    compiler.extend(['-C', 'link-args={}'.format(' '.join(cc.use_linker_args(override[0])))])
+                    compiler.extend(RustCompiler.use_linker_args(c))
 
                 self.coredata.add_lang_args(RustCompiler.language, RustCompiler, for_machine, self)
                 return RustCompiler(

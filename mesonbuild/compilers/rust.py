@@ -119,6 +119,10 @@ class RustCompiler(Compiler):
     def get_output_args(self, outputname: str) -> T.List[str]:
         return ['-o', outputname]
 
+    @classmethod
+    def use_linker_args(cls, linker: str) -> T.List[str]:
+        return ['-C', 'linker={}'.format(linker)]
+
     # Rust does not have a use_linker_args because it dispatches to a gcc-like
     # C compiler for dynamic linking, as such we invoke the C compiler's
     # use_linker_args method instead.
