@@ -4656,6 +4656,9 @@ different subdirectory.
             elif arg in optargs:
                 mlog.warning('Consider using the built-in optimization level instead of using "{}".'.format(arg),
                              location=self.current_node)
+            elif arg == '-Werror':
+                mlog.warning('Consider using the built-in werror option instead of using "{}".'.format(arg),
+                             location=self.current_node)
             elif arg == '-g':
                 mlog.warning('Consider using the built-in debug option instead of using "{}".'.format(arg),
                              location=self.current_node)
