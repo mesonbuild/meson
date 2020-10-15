@@ -513,31 +513,17 @@ class PkgConfigModule(ExtensionModule):
 
         deps.remove_dups()
 
-        def parse_variable_list(stringlist):
+        def parse_variable_list(vardict):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
-            for var in stringlist:
-                # foo=bar=baz is ('foo', 'bar=baz')
-                l = var.split('=', 1)
-                if len(l) < 2:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                name, value = l[0].strip(), l[1].strip()
-                if not name or not value:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                # Variable names must not contain whitespaces
-                if any(c.isspace() for c in name):
-                    raise mesonlib.MesonException('Invalid whitespace in assignment "{}"'.format(var))
-
+            for name, value in vardict.items():
                 if name in reserved:
                     raise mesonlib.MesonException('Variable "{}" is reserved'.format(name))
-
                 variables.append((name, value))
-
             return variables
 
-        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
+        variables = self.interpreter.extract_variables(kwargs, dict_new=True)
+        variables = parse_variable_list(variables)
 
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir', default_install_dir)
@@ -552,7 +538,9 @@ class PkgConfigModule(ExtensionModule):
                                      version, pcfile, conflicts, variables,
                                      False, dataonly)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
-        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('uninstalled_variables', [])))
+        variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
+        variables = parse_variable_list(variables)
+
         pcfile = filebase + '-uninstalled.pc'
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,

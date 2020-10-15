@@ -2680,6 +2680,32 @@ class Interpreter(InterpreterBase):
     def func_files(self, node, args, kwargs):
         return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
 
+    # Used by declare_dependency() and pkgconfig.generate()
+    def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
+        variables = kwargs.get(argname, {})
+        if isinstance(variables, dict):
+            if dict_new and variables:
+                FeatureNew.single_use('variables as dictionary', '0.56.0', self.subproject)
+        else:
+            varlist = mesonlib.stringlistify(variables)
+            if list_new:
+                FeatureNew.single_use('variables as list of strings', '0.56.0', self.subproject)
+            variables = {}
+            for v in varlist:
+                try:
+                    (key, value) = v.split('=', 1)
+                except ValueError:
+                    raise InterpreterException('Variable {!r} must have a value separated by equals sign.'.format(v))
+                variables[key.strip()] = value.strip()
+        for k, v in variables.items():
+            if not k or not v:
+                raise InterpreterException('Empty variable name or value')
+            if any(c.isspace() for c in k):
+                raise InterpreterException('Invalid whitespace in variable name "{}"'.format(k))
+            if not isinstance(v, str):
+                raise InterpreterException('variables values must be strings.')
+        return variables
+
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
     @permittedKwargs(permitted_kwargs['declare_dependency'])
@@ -2696,12 +2722,7 @@ class Interpreter(InterpreterBase):
         deps = unholder(extract_as_list(kwargs, 'dependencies'))
         compile_args = mesonlib.stringlistify(kwargs.get('compile_args', []))
         link_args = mesonlib.stringlistify(kwargs.get('link_args', []))
-        variables = kwargs.get('variables', {})
-        if not isinstance(variables, dict):
-            raise InterpreterException('variables must be a dict.')
-        if not all(isinstance(v, str) for v in variables.values()):
-            # Because that is how they will come from pkg-config and cmake
-            raise InterpreterException('variables values be strings.')
+        variables = self.extract_variables(kwargs, list_new=True)
         final_deps = []
         for d in deps:
             try:

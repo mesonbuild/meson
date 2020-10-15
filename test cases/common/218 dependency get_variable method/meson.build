@@ -59,3 +59,6 @@ idep = declare_dependency()
 assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo',
                          default_value : default) == default,
        'something went wrong with an InternalDependency with no variables.')
+
+idep = declare_dependency(variables : ['foo=value'])
+assert(idep.get_variable(internal: 'foo') == 'value')
