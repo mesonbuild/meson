@@ -6040,6 +6040,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(libhello_nolib.found())
         self.assertEqual(libhello_nolib.get_link_args(), [])
         self.assertEqual(libhello_nolib.get_compile_args(), [])
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', {}), 'bar')
 
     def test_pkgconfig_gen_deps(self):
         '''

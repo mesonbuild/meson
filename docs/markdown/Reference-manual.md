@@ -427,7 +427,7 @@ keyword arguments:
 - `version`: the version of this dependency, such as `1.2.3`
 - `variables` *(since 0.54.0)*: a dictionary of arbitrary strings, this is meant to be used
   in subprojects where special variables would be provided via cmake or
-  pkg-config.
+  pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
 
 ### dependency()
 

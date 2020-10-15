@@ -64,7 +64,8 @@ pkgg.generate(
   name : 'libhello_nolib',
   description : 'A minimalistic pkgconfig file.',
   version : libver,
-  dataonly: true
+  dataonly: true,
+  variables : {'foo': 'bar'},
 )
 
 # Regression test for 2 cases:
