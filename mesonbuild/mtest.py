@@ -1329,6 +1329,10 @@ def run(options: argparse.Namespace) -> int:
     if options.wrapper:
         check_bin = options.wrapper[0]
 
+    if sys.platform == 'win32':
+        loop = asyncio.ProactorEventLoop()
+        asyncio.set_event_loop(loop)
+
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
         if not exe.found():
