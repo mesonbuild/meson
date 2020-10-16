@@ -666,6 +666,28 @@ class JunitBuilder(TestLogger):
             tree.write(f, encoding='utf-8', xml_declaration=True)
 
 
+def parse_rust_test(stdout: str) -> T.Dict[str, TestResult]:
+    """Parse the output of rust tests."""
+    res = {}  # type; T.Dict[str, TestResult]
+
+    def parse_res(res: str) -> TestResult:
+        if res == 'ok':
+            return TestResult.OK
+        elif res == 'ignored':
+            return TestResult.SKIP
+        elif res == 'FAILED':
+            return TestResult.FAIL
+        raise MesonException('Unsupported output from rust test: {}'.format(res))
+
+    for line in stdout.splitlines():
+        if line.startswith('test ') and not line.startswith('test result'):
+            _, name, _, result = line.split(' ')
+            name = name.replace('::', '.')
+            res[name] = parse_res(result)
+
+    return res
+
+
 class TestRun:
     TEST_NUM = 0
 
@@ -746,6 +768,21 @@ class TestRun:
                 res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
+
+        self.complete(res, results, returncode, stdo, stde, cmd)
+
+    def complete_rust(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
+        results = parse_rust_test(stdo)
+
+        failed = TestResult.FAIL in results.values()
+        # Now determine the overall result of the test based on the outcome of the subcases
+        if all(t is TestResult.SKIP for t in results.values()):
+            # This includes the case where num_tests is zero
+            res = TestResult.SKIP
+        elif self.should_fail:
+            res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
+        else:
+            res = TestResult.FAIL if failed else TestResult.OK
 
         self.complete(res, results, returncode, stdo, stde, cmd)
 
@@ -1069,6 +1106,8 @@ class SingleTestRunner:
                 self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
             elif self.test.protocol is TestProtocol.GTEST:
                 self.runobj.complete_gtest(returncode, stdo, stde, cmd)
+            elif self.test.protocol is TestProtocol.RUST:
+                return self.runobj.complete_rust(returncode, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')

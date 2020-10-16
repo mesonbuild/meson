@@ -4159,8 +4159,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if not isinstance(timeout, int):
             raise InterpreterException('Timeout must be an integer.')
         protocol = kwargs.get('protocol', 'exitcode')
-        if protocol not in {'exitcode', 'tap', 'gtest'}:
-            raise InterpreterException('Protocol must be "exitcode", "tap", or "gtest".')
+        if protocol not in {'exitcode', 'tap', 'gtest', 'rust'}:
+            raise InterpreterException('Protocol must be one of "exitcode", "tap", "gtest", or "rust".')
         suite = []
         prj = self.subproject if self.is_subproject() else self.build.project_name
         for s in mesonlib.stringlistify(kwargs.get('suite', '')):
