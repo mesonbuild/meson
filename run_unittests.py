@@ -7360,8 +7360,9 @@ class LinuxlikeTests(BasePlatformTests):
         self._check_ld('ld.lld', 'lld', 'c', 'ld.lld')
 
     @skip_if_not_language('rust')
+    @skipIfNoExecutable('ld.gold')  # need an additional check here because _check_ld checks for gcc
     def test_ld_environment_variable_rust(self):
-        self._check_ld('ld.gold', 'gold', 'rust', 'ld.gold')
+        self._check_ld('gcc', 'gcc -fuse-ld=gold', 'rust', 'ld.gold')
 
     def test_ld_environment_variable_cpp(self):
         self._check_ld('ld.gold', 'gold', 'cpp', 'ld.gold')
