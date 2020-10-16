@@ -1,0 +1,17 @@
+{
+  "matrix": {
+    "options": {
+      "method": [
+        { "val": "config-tool" },
+        { "val": "cmake" }
+      ],
+      "link-static": [
+        { "val": true },
+        { "val": false }
+      ]
+    },
+    "exclude": [
+      { "method": "cmake", "link-static": false }
+    ]
+  }
+}

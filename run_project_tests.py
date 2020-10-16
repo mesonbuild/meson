@@ -865,6 +865,12 @@ def skippable(suite, test):
     if any([x in test for x in ['16 sdl', '17 mpi']]):
         return True
 
+    # We test cmake, and llvm-config. Some linux spins don't provide cmake or
+    # don't provide either the static or shared llvm libraries (fedora and
+    # opensuse only have the dynamic ones, for example).
+    if test.endswith('15 llvm'):
+        return True
+
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
     if mesonlib.is_linux():
