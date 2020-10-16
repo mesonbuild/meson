@@ -1740,6 +1740,7 @@ test(..., env: nomalloc, ...)
     to record the outcome of the test).
   - `tap`: [Test Anything Protocol](https://www.testanything.org/).
   - `gtest` *(since 0.55.0)*: for Google Tests.
+  - `rust` *(since 0.56.0)*: for native rust tests
 
 - `priority` *(since 0.52.0)*:specifies the priority of a test. Tests with a
   higher priority are *started* before tests with a lower priority.

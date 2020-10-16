@@ -326,7 +326,6 @@ class TAPParser:
                 yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
 
 
-
 class JunitBuilder:
 
     """Builder for Junit test results.
@@ -443,6 +442,28 @@ class JunitBuilder:
             tree.write(f, encoding='utf-8', xml_declaration=True)
 
 
+def parse_rust_test(stdout: str) -> T.Dict[str, TestResult]:
+    """Parse the output of rust tests."""
+    res = {}  # type; T.Dict[str, TestResult]
+
+    def parse_res(res: str) -> TestResult:
+        if res == 'ok':
+            return TestResult.OK
+        elif res == 'ignored':
+            return TestResult.SKIP
+        elif res == 'FAILED':
+            return TestResult.FAIL
+        raise MesonException('Unsupported output from rust test: {}'.format(res))
+
+    for line in stdout.splitlines():
+        if line.startswith('test ') and not line.startswith('test result'):
+            _, name, _, result = line.split(' ')
+            name = name.replace('::', '.')
+            res[name] = parse_res(result)
+
+    return res
+
+
 class TestRun:
 
     @classmethod
@@ -509,6 +530,25 @@ class TestRun:
                 res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
+
+        return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
+
+    @classmethod
+    def make_rust(cls, test: TestSerialisation, test_env: T.Dict[str, str],
+                  returncode: int, starttime: float, duration: float,
+                  stdo: str, stde: str,
+                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
+        results = parse_rust_test(stdo)
+
+        failed = TestResult.FAIL in results.values()
+        # Now determine the overall result of the test based on the outcome of the subcases
+        if all(t is TestResult.SKIP for t in results.values()):
+            # This includes the case where num_tests is zero
+            res = TestResult.SKIP
+        elif test.should_fail:
+            res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
+        else:
+            res = TestResult.FAIL if failed else TestResult.OK
 
         return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
 
@@ -796,6 +836,8 @@ class SingleTestRunner:
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             elif self.test.protocol is TestProtocol.GTEST:
                 return TestRun.make_gtest(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
+            elif self.test.protocol is TestProtocol.RUST:
+                return TestRun.make_rust(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
