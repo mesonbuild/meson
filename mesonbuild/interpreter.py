@@ -50,6 +50,11 @@ import typing as T
 
 import importlib
 
+if T.TYPE_CHECKING:
+    from .envconfig import MachineInfo
+    from .environment import Environment
+    from .modules import ExtensionModule
+
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
                            'sources'},
@@ -1759,14 +1764,37 @@ class CompilerHolder(InterpreterObject):
         return self.compiler.get_argument_syntax()
 
 
-ModuleState = collections.namedtuple('ModuleState', [
-    'source_root', 'build_to_src', 'subproject', 'subdir', 'current_lineno', 'environment',
-    'project_name', 'project_version', 'backend', 'targets',
-    'data', 'headers', 'man', 'global_args', 'project_args', 'build_machine',
-    'host_machine', 'target_machine', 'current_node'])
+class ModuleState(T.NamedTuple):
+
+    """Object passed to a module when it a method is called.
+
+    holds the current state of the meson process at a given method call in
+    the interpreter.
+    """
+
+    source_root: str
+    build_to_src: str
+    subproject: str
+    subdir: str
+    current_lineno: str
+    environment: 'Environment'
+    project_name: str
+    project_version: str
+    backend: str
+    targets: T.Dict[str, build.Target]
+    data: T.List[build.Data]
+    headers: T.List[build.Headers]
+    man: T.List[build.Man]
+    global_args: T.Dict[str, T.List[str]]
+    project_args: T.Dict[str, T.List[str]]
+    build_machine: 'MachineInfo'
+    host_machine: 'MachineInfo'
+    target_machine: 'MachineInfo'
+    current_node: mparser.BaseNode
+
 
 class ModuleHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, modname, module, interpreter):
+    def __init__(self, modname: str, module: 'ExtensionModule', interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, module)
         self.modname = modname
