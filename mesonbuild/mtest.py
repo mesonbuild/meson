@@ -376,16 +376,16 @@ class JunitBuilder:
                 'testsuite',
                 name=suitename,
                 tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results if r is TestResult.ERROR)),
-                failures=str(sum(1 for r in test.results if r in
+                errors=str(sum(1 for r in test.results.values() if r is TestResult.ERROR)),
+                failures=str(sum(1 for r in test.results.values() if r in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
-                skipped=str(sum(1 for r in test.results if r is TestResult.SKIP)),
+                skipped=str(sum(1 for r in test.results.values() if r is TestResult.SKIP)),
             )
 
-            for i, result in enumerate(test.results):
+            for i, result in test.results.items():
                 # Both name and classname are required. Set them both to the
                 # number of the test in a TAP test, as TAP doesn't give names.
-                testcase = et.SubElement(suite, 'testcase', name=str(i), classname=str(i))
+                testcase = et.SubElement(suite, 'testcase', name=i, classname=i)
                 if result is TestResult.SKIP:
                     et.SubElement(testcase, 'skipped')
                 elif result is TestResult.ERROR:
@@ -472,7 +472,7 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd, **kwargs)
+        return cls(test, test_env, res, {}, returncode, starttime, duration, stdo, stde, cmd, **kwargs)
 
     @classmethod
     def make_tap(cls, test: TestSerialisation, test_env: T.Dict[str, str],
@@ -480,19 +480,19 @@ class TestRun:
                  stdo: str, stde: str,
                  cmd: T.Optional[T.List[str]]) -> 'TestRun':
         res = None    # type: T.Optional[TestResult]
-        results = []  # type: T.List[TestResult]
+        results = {}  # type: T.Dict[str, TestResult]
         failed = False
 
-        for i in TAPParser(io.StringIO(stdo)).parse():
+        for n, i in enumerate(TAPParser(io.StringIO(stdo)).parse()):
             if isinstance(i, TAPParser.Bailout):
-                results.append(TestResult.ERROR)
+                results[str(n)] = TestResult.ERROR
                 failed = True
             elif isinstance(i, TAPParser.Test):
-                results.append(i.result)
+                results[str(n)] = i.result
                 if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL, TestResult.SKIP}:
                     failed = True
             elif isinstance(i, TAPParser.Error):
-                results.append(TestResult.ERROR)
+                results[str(n)] = TestResult.ERROR
                 stde += '\nTAP parsing error: ' + i.message
                 failed = True
 
@@ -502,7 +502,7 @@ class TestRun:
 
         if res is None:
             # Now determine the overall result of the test based on the outcome of the subcases
-            if all(t is TestResult.SKIP for t in results):
+            if all(t is TestResult.SKIP for t in results.values()):
                 # This includes the case where num_tests is zero
                 res = TestResult.SKIP
             elif test.should_fail:
@@ -513,13 +513,13 @@ class TestRun:
         return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 res: TestResult, results: T.List[TestResult], returncode:
+                 res: TestResult, results: T.Dict[str, TestResult], returncode:
                  int, starttime: float, duration: float,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.Optional[T.List[str]], *, junit: T.Optional[et.ElementTree] = None):
         assert isinstance(res, TestResult)
         self.res = res
-        self.results = results  # May be an empty list
+        self.results = results  # May be empty
         self.returncode = returncode
         self.starttime = starttime
         self.duration = duration
@@ -640,7 +640,7 @@ class SingleTestRunner:
         cmd = self._get_cmd()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(self.test, self.test_env, TestResult.SKIP, [], GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
+            return TestRun(self.test, self.test_env, TestResult.SKIP, {}, GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -790,7 +790,7 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if timed_out:
-            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, [], p.returncode, starttime, duration, stdo, stde, cmd)
+            return TestRun(self.test, self.test_env, TestResult.TIMEOUT, {}, p.returncode, starttime, duration, stdo, stde, cmd)
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
                 return TestRun.make_exitcode(self.test, self.test_env, p.returncode, starttime, duration, stdo, stde, cmd)
