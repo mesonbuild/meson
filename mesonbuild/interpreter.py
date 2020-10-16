@@ -763,34 +763,20 @@ class InstallDir(InterpreterObject):
         self.strip_directory = strip_directory
         self.from_source_dir = from_source_dir
 
-class Man(InterpreterObject):
+class ManHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, sources, kwargs):
+    def __init__(self, obj: build.Man):
         InterpreterObject.__init__(self)
-        self.sources = sources
-        self.validate_sources()
-        self.custom_install_dir = kwargs.get('install_dir', None)
-        self.custom_install_mode = kwargs.get('install_mode', None)
-        if self.custom_install_dir is not None and not isinstance(self.custom_install_dir, str):
-            raise InterpreterException('Custom_install_dir must be a string.')
+        ObjectHolder.__init__(self, obj)
 
-    def validate_sources(self):
-        for s in self.sources:
-            try:
-                num = int(s.split('.')[-1])
-            except (IndexError, ValueError):
-                num = 0
-            if num < 1 or num > 8:
-                raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
+    def get_custom_install_dir(self) -> T.Optional[str]:
+        return self.held_object.custom_install_dir
 
-    def get_custom_install_dir(self):
-        return self.custom_install_dir
+    def get_custom_install_mode(self) -> T.Optional[FileMode]:
+        return self.held_object.custom_install_mode
 
-    def get_custom_install_mode(self):
-        return self.custom_install_mode
-
-    def get_sources(self):
-        return self.sources
+    def get_sources(self) -> T.List[mesonlib.File]:
+        return self.held_object.sources
 
 class GeneratedObjectsHolder(InterpreterObject, ObjectHolder):
     def __init__(self, held_object):
@@ -4201,11 +4187,23 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_man'])
     def func_install_man(self, node, args, kwargs):
-        fargs = self.source_strings_to_files(args)
-        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
-        m = Man(fargs, kwargs)
+        sources = self.source_strings_to_files(args)
+        for s in sources:
+            try:
+                num = int(s.split('.')[-1])
+            except (IndexError, ValueError):
+                num = 0
+            if num < 1 or num > 8:
+                raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
+        custom_install_mode = self._get_kwarg_install_mode(kwargs)
+        custom_install_dir = kwargs.get('install_dir', None)
+        if custom_install_dir is not None and not isinstance(custom_install_dir, str):
+            raise InterpreterException('install_dir must be a string.')
+
+        m = build.Man(sources, custom_install_dir, custom_install_mode)
         self.build.man.append(m)
-        return m
+
+        return ManHolder(m)
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs(permitted_kwargs['subdir'])

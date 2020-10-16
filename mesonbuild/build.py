@@ -151,6 +151,24 @@ class Headers:
         return self.custom_install_mode
 
 
+class Man:
+
+    def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
+                 install_mode: T.Optional['FileMode']):
+        self.sources = sources
+        self.custom_install_dir = install_dir
+        self.custom_install_mode = install_mode
+
+    def get_custom_install_dir(self) -> T.Optional[str]:
+        return self.custom_install_dir
+
+    def get_custom_install_mode(self) -> T.Optional['FileMode']:
+        return self.custom_install_mode
+
+    def get_sources(self) -> T.List['File']:
+        return self.sources
+
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -170,7 +188,7 @@ class Build:
         self.tests = []                               # type: T.List['Test']
         self.benchmarks = []                          # type: T.List['Test']
         self.headers: T.List[Headers] = []
-        self.man = []
+        self.man: T.List[Man] = []
         self.data = []
         self.static_linker = PerMachine(None, None)   # type: PerMachine[StaticLinker]
         self.subprojects = {}
