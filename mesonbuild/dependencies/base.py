@@ -34,7 +34,7 @@ from .. import mesonlib
 from ..compilers import clib_langs
 from ..envconfig import get_env_var
 from ..environment import BinaryTable, Environment, MachineInfo
-from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope
+from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
 from ..mesonlib import Version, LibType
@@ -1100,6 +1100,7 @@ class CMakeDependency(ExternalDependency):
         self.traceparser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
 
         cm_args = stringlistify(extract_as_list(kwargs, 'cmake_args'))
+        cm_args = check_cmake_args(cm_args)
         if CMakeDependency.class_cmakeinfo[self.for_machine] is None:
             CMakeDependency.class_cmakeinfo[self.for_machine] = self._get_cmake_info(cm_args)
         self.cmakeinfo = CMakeDependency.class_cmakeinfo[self.for_machine]

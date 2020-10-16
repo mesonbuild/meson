@@ -31,9 +31,10 @@ __all__ = [
     'parse_generator_expressions',
     'language_map',
     'cmake_defines_to_args',
+    'check_cmake_args',
 ]
 
-from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map
+from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map, check_cmake_args
 from .client import CMakeClient
 from .executor import CMakeExecutor
 from .fileapi import CMakeFileAPI
