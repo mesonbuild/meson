@@ -35,6 +35,15 @@ language_map = {
 blacklist_cmake_defs = [
     'CMAKE_TOOLCHAIN_FILE',
     'CMAKE_PROJECT_INCLUDE',
+    'MESON_PRELOAD_FILE',
+    'MESON_PS_CMAKE_CURRENT_BINARY_DIR',
+    'MESON_PS_CMAKE_CURRENT_SOURCE_DIR',
+    'MESON_PS_DELAYED_CALLS',
+    'MESON_PS_LOADED',
+    'MESON_FIND_ROOT_PATH',
+    'MESON_CMAKE_SYSROOT',
+    'MESON_PATHS_LIST',
+    'MESON_CMAKE_ROOT',
 ]
 
 class CMakeException(MesonException):
