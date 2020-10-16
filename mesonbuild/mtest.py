@@ -595,17 +595,17 @@ class JunitBuilder(TestLogger):
                 'testsuite',
                 name=suitename,
                 tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results if r in
+                errors=str(sum(1 for r in test.results.values() if r in
                                {TestResult.INTERRUPT, TestResult.ERROR})),
-                failures=str(sum(1 for r in test.results if r in
+                failures=str(sum(1 for r in test.results.values() if r in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
-                skipped=str(sum(1 for r in test.results if r is TestResult.SKIP)),
+                skipped=str(sum(1 for r in test.results.values() if r is TestResult.SKIP)),
             )
 
-            for i, result in enumerate(test.results):
+            for i, result in test.results.items():
                 # Both name and classname are required. Set them both to the
                 # number of the test in a TAP test, as TAP doesn't give names.
-                testcase = et.SubElement(suite, 'testcase', name=str(i), classname=str(i))
+                testcase = et.SubElement(suite, 'testcase', name=i, classname=i)
                 if result is TestResult.SKIP:
                     et.SubElement(testcase, 'skipped')
                 elif result is TestResult.ERROR:
@@ -675,7 +675,7 @@ class TestRun:
         self.test = test
         self._num = None       # type: T.Optional[int]
         self.name = name
-        self.results = list()  # type: T.List[TestResult]
+        self.results: T.Dict[str, TestResult] = {}
         self.returncode = 0
         self.starttime = None  # type: T.Optional[float]
         self.duration = None   # type: T.Optional[float]
@@ -713,23 +713,23 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        self.complete(res, [], returncode, stdo, stde, cmd, **kwargs)
+        self.complete(res, {}, returncode, stdo, stde, cmd, **kwargs)
 
     def complete_tap(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
         res = None    # type: T.Optional[TestResult]
-        results = []  # type: T.List[TestResult]
+        results = {}  # type: T.Dict[str, TestResult]
         failed = False
 
-        for i in TAPParser(io.StringIO(stdo)).parse():
+        for n, i in enumerate(TAPParser(io.StringIO(stdo)).parse()):
             if isinstance(i, TAPParser.Bailout):
-                results.append(TestResult.ERROR)
+                results[str(n)] = TestResult.ERROR
                 failed = True
             elif isinstance(i, TAPParser.Test):
-                results.append(i.result)
+                results[str(n)] = i.result
                 if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL, TestResult.SKIP}:
                     failed = True
             elif isinstance(i, TAPParser.Error):
-                results.append(TestResult.ERROR)
+                results[str(n)] = TestResult.ERROR
                 stde += '\nTAP parsing error: ' + i.message
                 failed = True
 
@@ -739,7 +739,7 @@ class TestRun:
 
         if res is None:
             # Now determine the overall result of the test based on the outcome of the subcases
-            if all(t is TestResult.SKIP for t in results):
+            if all(t is TestResult.SKIP for t in results.values()):
                 # This includes the case where num_tests is zero
                 res = TestResult.SKIP
             elif self.should_fail:
@@ -756,13 +756,13 @@ class TestRun:
             self._num = TestRun.TEST_NUM
         return self._num
 
-    def complete(self, res: TestResult, results: T.List[TestResult],
+    def complete(self, res: TestResult, results: T.Dict[str, TestResult],
                  returncode: int,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
         assert isinstance(res, TestResult)
         self.res = res
-        self.results = results
+        self.results = results  # May be empty
         self.returncode = returncode
         self.duration = time.time() - self.starttime
         self.stdo = stdo
@@ -906,7 +906,7 @@ class SingleTestRunner:
         self.runobj.start()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            self.runobj.complete(TestResult.SKIP, [], GNU_SKIP_RETURNCODE, skip_stdout, None, None)
+            self.runobj.complete(TestResult.SKIP, {}, GNU_SKIP_RETURNCODE, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -1063,7 +1063,7 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if result:
-            self.runobj.complete(result, [], returncode, stdo, stde, cmd)
+            self.runobj.complete(result, {}, returncode, stdo, stde, cmd)
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
                 self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
