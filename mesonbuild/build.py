@@ -39,6 +39,7 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from .interpreter import Test
+    from .mesonlib import FileMode
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -122,6 +123,34 @@ class DependencyOverride:
         self.node = node
         self.explicit = explicit
 
+class Headers:
+
+    def __init__(self, sources: T.List[File], install_subdir: T.Optional[str],
+                 install_dir: T.Optional[str], install_mode: T.Optional['FileMode']):
+        self.sources = sources
+        self.install_subdir = install_subdir
+        self.custom_install_dir = install_dir
+        self.custom_install_mode = install_mode
+
+    # TODO: we really don't need any of these methods, but they're preserved to
+    # keep APIs relying on them working.
+
+    def set_install_subdir(self, subdir: str) -> None:
+        self.install_subdir = subdir
+
+    def get_install_subdir(self) -> str:
+        return self.install_subdir
+
+    def get_sources(self) -> T.List[File]:
+        return self.sources
+
+    def get_custom_install_dir(self) -> T.Optional[str]:
+        return self.custom_install_dir
+
+    def get_custom_install_mode(self) -> T.Optional['FileMode']:
+        return self.custom_install_mode
+
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -140,7 +169,7 @@ class Build:
         self.projects_link_args = PerMachine({}, {})  # type: PerMachine[T.Dict[str, T.List[str]]]
         self.tests = []                               # type: T.List['Test']
         self.benchmarks = []                          # type: T.List['Test']
-        self.headers = []
+        self.headers: T.List[Headers] = []
         self.man = []
         self.data = []
         self.static_linker = PerMachine(None, None)   # type: PerMachine[StaticLinker]

@@ -716,34 +716,26 @@ class IncludeDirsHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, idobj)
 
-class Headers(InterpreterObject):
+class HeadersHolder(InterpreterObject, ObjectHolder):
 
-    def __init__(self, sources, kwargs):
+    def __init__(self, obj: build.Headers):
         InterpreterObject.__init__(self)
-        self.sources = sources
-        self.install_subdir = kwargs.get('subdir', '')
-        if os.path.isabs(self.install_subdir):
-            mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
-        self.custom_install_dir = kwargs.get('install_dir', None)
-        self.custom_install_mode = kwargs.get('install_mode', None)
-        if self.custom_install_dir is not None:
-            if not isinstance(self.custom_install_dir, str):
-                raise InterpreterException('Custom_install_dir must be a string.')
+        ObjectHolder.__init__(self, obj)
 
     def set_install_subdir(self, subdir):
-        self.install_subdir = subdir
+        self.held_object.install_subdir = subdir
 
     def get_install_subdir(self):
-        return self.install_subdir
+        return self.held_object.install_subdir
 
     def get_sources(self):
-        return self.sources
+        return self.held_object.sources
 
     def get_custom_install_dir(self):
-        return self.custom_install_dir
+        return self.held_object.custom_install_dir
 
     def get_custom_install_mode(self):
-        return self.custom_install_mode
+        return self.held_object.custom_install_mode
 
 class DataHolder(InterpreterObject, ObjectHolder):
     def __init__(self, data):
@@ -4189,10 +4181,22 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @permittedKwargs(permitted_kwargs['install_headers'])
     def func_install_headers(self, node, args, kwargs):
         source_files = self.source_strings_to_files(args)
-        kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
-        h = Headers(source_files, kwargs)
+        install_mode = self._get_kwarg_install_mode(kwargs)
+
+        install_subdir = kwargs.get('subdir', '')
+        if not isinstance(install_subdir, str):
+            raise InterpreterException('subdir keyword argument must be a string')
+        elif os.path.isabs(install_subdir):
+            mlog.deprecation('Subdir keyword must not be an absolute path. This will be a hard error in the next release.')
+
+        install_dir = kwargs.get('install_dir', None)
+        if install_dir is not None and not isinstance(install_dir, str):
+            raise InterpreterException('install_dir keyword argument must be a string if provided')
+
+        h = build.Headers(source_files, install_subdir, install_dir, install_mode)
         self.build.headers.append(h)
-        return h
+
+        return HeadersHolder(h)
 
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_man'])
@@ -4251,10 +4255,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             pass
         self.subdir = prev_subdir
 
-    def _get_kwarg_install_mode(self, kwargs):
+    def _get_kwarg_install_mode(self, kwargs: T.Dict[str, T.Any]) -> T.Optional[FileMode]:
         if kwargs.get('install_mode', None) is None:
             return None
-        install_mode = []
+        install_mode: T.List[str] = []
         mode = mesonlib.typeslistify(kwargs.get('install_mode', []), (str, int))
         for m in mode:
             # We skip any arguments that are set to `false`
@@ -4806,11 +4810,11 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
         if sproj_name != self.subproject_directory_name:
             raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
 
-    def source_strings_to_files(self, sources):
-        results = []
+    def source_strings_to_files(self, sources: T.List[str]) -> T.List[mesonlib.File]:
         mesonlib.check_direntry_issues(sources)
         if not isinstance(sources, list):
             sources = [sources]
+        results: T.List[mesonlib.File] = []
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
                               TargetHolder, CustomTargetIndexHolder,
