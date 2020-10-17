@@ -428,7 +428,11 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
 
     def get_options(self) -> 'OptionDictType':
         opts = super().get_options()
-        c_stds = ['none', 'c89', 'c99', 'c11']
+        c_stds = ['none', 'c89', 'c99', 'c11',
+                  # Need to have these to be compatible with projects
+                  # that set c_std to e.g. gnu99.
+                  # https://github.com/mesonbuild/meson/issues/7611
+                  'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11']
         opts.update({
             'std': coredata.UserComboOption(
                 'C language standard to use',
@@ -442,8 +446,8 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         args = []
         std = options['std']
         # As of MVSC 16.7, /std:c11 is the only valid C standard option.
-        if std.value in {'c11'}:
-            args.append('/std:' + std.value)
+        if std.value in {'c11', 'gnu11'}:
+            args.append('/std:c11')
         return args
 
 
