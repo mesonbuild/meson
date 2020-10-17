@@ -15,7 +15,7 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map
+from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, check_cmake_args
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, ReplyCMakeInputs, ReplyCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
@@ -861,6 +861,9 @@ class CMakeInterpreter:
         preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
         toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir.parent, preload_file)
         toolchain_file = toolchain.write()
+
+        # TODO: drop this check once the deprecated `cmake_args` kwarg is removed
+        extra_cmake_options = check_cmake_args(extra_cmake_options)
 
         generator = backend_generator_map[self.backend_name]
         cmake_args = []

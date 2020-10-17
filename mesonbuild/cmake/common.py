@@ -32,6 +32,20 @@ language_map = {
     'swift': 'Swift',
 }
 
+blacklist_cmake_defs = [
+    'CMAKE_TOOLCHAIN_FILE',
+    'CMAKE_PROJECT_INCLUDE',
+    'MESON_PRELOAD_FILE',
+    'MESON_PS_CMAKE_CURRENT_BINARY_DIR',
+    'MESON_PS_CMAKE_CURRENT_SOURCE_DIR',
+    'MESON_PS_DELAYED_CALLS',
+    'MESON_PS_LOADED',
+    'MESON_FIND_ROOT_PATH',
+    'MESON_CMAKE_SYSROOT',
+    'MESON_PATHS_LIST',
+    'MESON_CMAKE_ROOT',
+]
+
 class CMakeException(MesonException):
     pass
 
@@ -83,6 +97,11 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
             raise MesonException('Invalid CMake defines. Expected a dict, but got a {}'.format(type(i).__name__))
         for key, val in i.items():
             assert isinstance(key, str)
+            if key in blacklist_cmake_defs:
+                mlog.warning('Setting', mlog.bold(key), 'is not supported. See the meson docs for cross compilation support:')
+                mlog.warning('  - URL: https://mesonbuild.com/CMake-module.html#cross-compilation')
+                mlog.warning('  --> Ignoring this option')
+                continue
             if isinstance(val, (str, int, float)):
                 res += ['-D{}={}'.format(key, val)]
             elif isinstance(val, bool):
@@ -91,6 +110,20 @@ def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
             else:
                 raise MesonException('Type "{}" of "{}" is not supported as for a CMake define value'.format(type(val).__name__, key))
 
+    return res
+
+# TODO: this functuin will become obsolete once the `cmake_args` kwarg is dropped
+def check_cmake_args(args: T.List[str]) -> T.List[str]:
+    res = []  # type: T.List[str]
+    dis = ['-D' + x for x in blacklist_cmake_defs]
+    assert dis  # Ensure that dis is not empty.
+    for i in args:
+        if any([i.startswith(x) for x in dis]):
+            mlog.warning('Setting', mlog.bold(i), 'is not supported. See the meson docs for cross compilation support:')
+            mlog.warning('  - URL: https://mesonbuild.com/CMake-module.html#cross-compilation')
+            mlog.warning('  --> Ignoring this option')
+            continue
+        res += [i]
     return res
 
 class CMakeInclude:
