@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import os
+import re
 import shutil
 from .. import mlog
 from .. import build
-from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram
+from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare, Popen_safe
+from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram, ExternalDependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -59,6 +61,15 @@ class QtBaseModule(ExtensionModule):
             self.uic = NonExistingExternalProgram(name='uic' + suffix)
             self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
             self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
+
+
+    def _is_static(self, env, method, required=True):
+        kwargs = {'required': required, 'modules': 'Core', 'method': method}
+        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
+        if qt.found():
+            return qt.static
+
+        return False
 
     def qrc_nodes(self, state, rcc_file):
         if type(rcc_file) is str:
@@ -263,3 +274,118 @@ class QtBaseModule(ExtensionModule):
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])
         else:
             return ModuleReturnValue(translations, translations)
+
+    @noPosargs
+    @permittedKwargs({'method', 'required'})
+    @FeatureNew('qt.is_static', '0.55.0')
+    def is_static(self, state, args, kwargs):
+        method = kwargs.get('method', 'auto')
+        return ModuleReturnValue(self._is_static(state.environment, method, required=False), [])
+
+    @staticmethod
+    def _link_args(libdir, prl):
+        with open(prl) as prl_file:
+            content = prl_file.read()
+
+        re_libs = re.compile(r'.*QMAKE_PRL_TARGET = (?P<archive>\S+).*QMAKE_PRL_LIBS = (?P<libs>.*)\nQMAKE', re.DOTALL)
+        match = re_libs.match(content)
+        if match:
+            groups = match.groupdict()
+            tail = groups['libs'].replace('$$[QT_INSTALL_LIBS]', libdir, -1)
+
+            return [os.path.join(os.path.dirname(prl), groups['archive'])] + tail.split(' ')
+        raise MesonException('failed to parse ' + prl)
+
+    @staticmethod
+    def _generate_importer(qt, state, classname):
+        script = '''print('#include <QtPlugin>')\nprint('Q_IMPORT_PLUGIN({})')'''.format(classname)
+        cmd = ['python3', '-c', script]
+        kwargs = {
+            'output': 'qt_plugin_{}_importer.cpp'.format(classname.lower()),
+            'capture': True,
+            'command': cmd,
+        }
+        return build.CustomTarget('qt-gen-plugin-import-{}'.format(classname.lower()), state.subdir, state.subproject, kwargs)
+
+    @staticmethod
+    def _parse_pri(pripath):
+        regex = re.compile(r'QT_PLUGIN.\S*.TYPE = (?P<type>\S*)\n.*\n.*\nQT_PLUGIN.\S*.CLASS_NAME = (?P<classname>\S*)\nQT_PLUGINS \+= (?P<name>\S*)')
+        with open(pripath) as pri:
+            match = regex.match(pri.read())
+        if match:
+            return match.groupdict()
+        raise MesonException('failed to parse pri file:', pripath)
+
+    def _get_qml(self, state, rcc):
+        if not rcc:
+            return []
+        nodes  = self.parse_qrc_deps(state, rcc)
+        return [x.fname for x in nodes if os.path.splitext(x.fname)[1] in ['.qml', '.js']]
+
+
+    def _find_prl(self, dir, name):
+        templates = ['{}.prl', 'lib{}.prl']
+        for template in templates:
+            path = os.path.join(dir, template.format(name))
+            if os.path.exists(path):
+                return path
+        raise MesonException('failed to find .prl file for plugin \"{}\"'.format(name))
+
+
+    @permittedKwargs({'method', 'qresources', 'qmlfiles', 'plugins'})
+    @FeatureNew('qt.static_qml_plugins', '0.56.0')
+    def static_plugins_dep(self, state, args, kwargs):
+        method = kwargs.get('method', 'auto')
+
+        qt = _QT_DEPS_LUT[self.qt_version](state.environment, {'modules': 'Core', 'method': method})
+        if not qt.found():
+            raise MesonException('couldn\'t find qt')
+
+        if not qt.static:
+            empty_dep = ExternalDependency('qt-static-plugins', state.environment, {'static': False, 'required': False})
+            return ModuleReturnValue(empty_dep, [])
+
+        link_args = []
+        sources = []
+
+        qresources = kwargs.get('qresources', None)
+        qmlfiles = extract_as_list(kwargs, 'qmlfiles', pop=True)
+        if qresources or qmlfiles:
+            scanner = os.path.join(qt.bindir, 'qmlimportscanner')
+            if not os.path.isfile(scanner) or not os.access(scanner, os.X_OK):
+                raise MesonException('qmlimportscanner not found')
+            qmldir = os.path.join(qt.install_prefix, 'qml')
+
+
+            qmlfiles_abs =  [os.path.join(state.source_root, state.subdir, f) for f in qmlfiles]
+            scan_files = self._get_qml(state, qresources) + qmlfiles_abs
+            cmd  = [scanner, '-qmlFiles'] + scan_files + ['-importPath', qmldir]
+            stdout = Popen_safe(cmd)[1]
+            added = set()
+            for plugin in json.loads(stdout):
+                if 'plugin' in plugin and plugin['classname'] not in added:
+                    plugindir = os.path.join(qmldir, plugin['relativePath'])
+                    prl =  self._find_prl(plugindir, plugin['plugin'])
+
+                    link_args.extend(self._link_args(qt.libdir, prl))
+                    sources.append(self._generate_importer(qt, state, plugin['classname']))
+                    added.add(plugin['classname'])
+
+        cpp_plugins = extract_as_list(kwargs, 'plugins', pop=True)
+        if cpp_plugins:
+            pridir = os.path.join(qt.install_prefix, 'mkspecs', 'modules')
+            for cpp_plugin in cpp_plugins:
+                pripath = os.path.join(pridir, 'qt_plugin_{}.pri'.format(cpp_plugin))
+                plugin_data = self._parse_pri(pripath)
+
+                plugindir = os.path.join(qt.install_prefix, 'plugins', plugin_data['type'])
+                prl = self._find_prl(plugindir, cpp_plugin)
+
+                link_args.extend(self._link_args(qt.libdir, prl))
+                sources.append(self._generate_importer(qt, state, plugin_data['classname']))
+
+        dep = ExternalDependency('qt-static-plugins', state.environment, {'static': True})
+        dep.link_args = link_args
+        dep.sources = sources
+        dep.is_found = link_args and sources
+        return ModuleReturnValue(dep, sources)

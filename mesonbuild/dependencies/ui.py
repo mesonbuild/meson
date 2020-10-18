@@ -258,7 +258,7 @@ class QtBaseDependency(ExternalDependency):
                     care = out
                 else:
                     care = err
-                return care.split(' ')[-1].replace(')', '')
+                return care.split(' ')[-1].replace(')', '').rstrip()
 
             p = interp_obj.find_program_impl([b], required=False,
                                              version_func=get_version,
@@ -323,11 +323,14 @@ class QtBaseDependency(ExternalDependency):
         # Try to detect moc, uic, rcc
         # Used by self.compilers_detect()
         self.bindir = self.get_pkgconfig_host_bins(core)
+        self.install_prefix = core.get_pkgconfig_variable('exec_prefix', {})
+        self.libdir = core.get_pkgconfig_variable('libdir', {})
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = core.get_pkgconfig_variable('exec_prefix', {})
-            if prefix:
-                self.bindir = os.path.join(prefix, 'bin')
+            if self.install_prefix:
+                self.bindir = os.path.join(self.install_prefix, 'bin')
+        self.qtconfig = core.get_pkgconfig_variable('qt_config', {}).split(' ')
+        self.static = 'static' in self.qtconfig
 
     def search_qmake(self) -> T.Generator['ExternalProgram', None, None]:
         for qmake in ('qmake-' + self.name, 'qmake'):
@@ -378,7 +381,17 @@ class QtBaseDependency(ExternalDependency):
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by self.compilers_detect()
         self.bindir = self.get_qmake_host_bins(qvars)
+        self.libdir = libdir
+        self.install_prefix = qvars['QT_INSTALL_PREFIX']
         self.is_found = True
+
+        qconfig_path = os.path.join(qvars['QT_INSTALL_PREFIX'], 'mkspecs', 'qconfig.pri')
+        with open(qconfig_path) as qconfigfile:
+            line_identifier = 'QT.global.enabled_features = '
+            for line in qconfigfile.readlines():
+                if line.startswith(line_identifier):
+                    self.qconfig = line.replace(line_identifier, '').split(' ')
+                    self.static = 'static' in self.qconfig
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
