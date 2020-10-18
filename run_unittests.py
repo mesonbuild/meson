@@ -3388,7 +3388,9 @@ int main(int argc, char **argv) {
         s3dir = os.path.join(spdir, 's3')
         scommondir = os.path.join(spdir, 'scommon')
         self.assertFalse(os.path.isdir(s3dir))
-        subprocess.check_call(self.wrap_command + ['promote', 's3'], cwd=workdir)
+        subprocess.check_call(self.wrap_command + ['promote', 's3'],
+                              cwd=workdir,
+                              stdout=subprocess.DEVNULL)
         self.assertTrue(os.path.isdir(s3dir))
         self.assertFalse(os.path.isdir(scommondir))
         self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'scommon'],
