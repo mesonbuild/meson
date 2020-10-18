@@ -65,6 +65,16 @@ class XCodeBackend(backends.Backend):
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    def get_target_frameworks(self, target):
+        frameworks = set()
+        if not isinstance(target, build.BuildTarget):
+            return frameworks
+        for dep in target.get_external_deps():
+            if isinstance(dep, dependencies.AppleFrameworks):
+                for f in dep.frameworks:
+                    frameworks.add(f)
+        return frameworks
+
     def target_to_build_root(self, target):
         if self.get_target_dir(target) == '':
             return ''
@@ -78,21 +88,7 @@ class XCodeBackend(backends.Backend):
 
     def generate(self):
         test_data = self.serialize_tests()[0]
-        self.generate_filemap()
-        self.generate_buildmap()
-        self.generate_buildstylemap()
-        self.generate_build_phase_map()
-        self.generate_build_configuration_map()
-        self.generate_build_configurationlist_map()
-        self.generate_project_configurations_map()
-        self.generate_buildall_configurations_map()
-        self.generate_test_configurations_map()
-        self.generate_native_target_map()
-        self.generate_native_frameworks_map()
-        self.generate_source_phase_map()
-        self.generate_target_dependency_map()
-        self.generate_pbxdep_map()
-        self.generate_containerproxy_map()
+        self.generate_maps()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
@@ -118,102 +114,66 @@ class XCodeBackend(backends.Backend):
         xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
-            mlog.warning('Unknown file type "%s" fallbacking to "%s". Xcode project might be malformed.' % (fname, xcodetype))
+            mlog.warning('Unknown file type "%s" falling back to "%s". Xcode project might be malformed.' % (fname, xcodetype))
         return xcodetype
 
-    def generate_filemap(self):
+    def generate_maps(self):
         self.filemap = {} # Key is source file relative to src root.
         self.target_filemap = {}
+        self.buildmap = {}
+        self.buildconfmap = {}
+        self.buildconflistmap = {}
+        self.native_targets = {}
+        self.native_frameworks = {}
+        self.native_frameworks_fileref = {}
+        self.target_dependency_map = {}
+        self.pbx_dep_map = {}
+        self.containerproxy_map = {}
+        self.source_phase = {}
+
         for name, t in self.build.targets.items():
-            for s in t.sources:
+            for s in t.get_sources():
+                print('source', s, type(s))
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
-                    self.filemap[s] = self.gen_id()
-            for o in t.objects:
+                self.filemap[s] = self.gen_id()
+                self.buildmap[s] = self.gen_id()
+
+            for o in t.get_outputs():
+                print('output', o, type(o))
                 if isinstance(o, str):
                     o = os.path.join(t.subdir, o)
-                    self.filemap[o] = self.gen_id()
+                self.filemap[o] = self.gen_id()
+                self.buildmap[o] = self.gen_id()
+
+            for f in self.get_target_frameworks(t):
+                self.native_frameworks[f] = self.gen_id()
+                self.native_frameworks_fileref[f] = self.gen_id()
+
+            if isinstance(t, build.BuildTarget):
+                for target in t.link_targets:
+                    self.target_dependency_map[(name, target.get_basename())] = self.gen_id()
+
             self.target_filemap[name] = self.gen_id()
+            self.buildconfmap[name] = {'debug': self.gen_id()}
+            self.buildconflistmap[name] = self.gen_id()
+            self.native_targets[name] = self.gen_id()
+            self.pbx_dep_map[name] = self.gen_id()
+            self.containerproxy_map[name] = self.gen_id()
+            self.source_phase[name] = self.gen_id()
 
-    def generate_buildmap(self):
-        self.buildmap = {}
-        for t in self.build.targets.values():
-            for s in t.sources:
-                s = os.path.join(s.subdir, s.fname)
-                self.buildmap[s] = self.gen_id()
-            for o in t.objects:
-                o = os.path.join(t.subdir, o)
-                if isinstance(o, str):
-                    self.buildmap[o] = self.gen_id()
-
-    def generate_buildstylemap(self):
-        self.buildstylemap = {'debug': self.gen_id()}
-
-    def generate_build_phase_map(self):
-        for tname, t in self.build.targets.items():
             # generate id for our own target-name
             t.buildphasemap = {}
-            t.buildphasemap[tname] = self.gen_id()
+            t.buildphasemap[name] = self.gen_id()
             # each target can have it's own Frameworks/Sources/..., generate id's for those
             t.buildphasemap['Frameworks'] = self.gen_id()
             t.buildphasemap['Resources'] = self.gen_id()
             t.buildphasemap['Sources'] = self.gen_id()
 
-    def generate_build_configuration_map(self):
-        self.buildconfmap = {}
-        for t in self.build.targets:
-            bconfs = {'debug': self.gen_id()}
-            self.buildconfmap[t] = bconfs
-
-    def generate_project_configurations_map(self):
+        self.buildstylemap = {'debug': self.gen_id()}
         self.project_configurations = {'debug': self.gen_id()}
-
-    def generate_buildall_configurations_map(self):
         self.buildall_configurations = {'debug': self.gen_id()}
-
-    def generate_test_configurations_map(self):
         self.test_configurations = {'debug': self.gen_id()}
-
-    def generate_build_configurationlist_map(self):
-        self.buildconflistmap = {}
-        for t in self.build.targets:
-            self.buildconflistmap[t] = self.gen_id()
-
-    def generate_native_target_map(self):
-        self.native_targets = {}
-        for t in self.build.targets:
-            self.native_targets[t] = self.gen_id()
-
-    def generate_native_frameworks_map(self):
-        self.native_frameworks = {}
-        self.native_frameworks_fileref = {}
-        for t in self.build.targets.values():
-            for dep in t.get_external_deps():
-                if isinstance(dep, dependencies.AppleFrameworks):
-                    for f in dep.frameworks:
-                        self.native_frameworks[f] = self.gen_id()
-                        self.native_frameworks_fileref[f] = self.gen_id()
-
-    def generate_target_dependency_map(self):
-        self.target_dependency_map = {}
-        for tname, t in self.build.targets.items():
-            for target in t.link_targets:
-                self.target_dependency_map[(tname, target.get_basename())] = self.gen_id()
-
-    def generate_pbxdep_map(self):
-        self.pbx_dep_map = {}
-        for t in self.build.targets:
-            self.pbx_dep_map[t] = self.gen_id()
-
-    def generate_containerproxy_map(self):
-        self.containerproxy_map = {}
-        for t in self.build.targets:
-            self.containerproxy_map[t] = self.gen_id()
-
-    def generate_source_phase_map(self):
-        self.source_phase = {}
-        for t in self.build.targets:
-            self.source_phase[t] = self.gen_id()
 
     def generate_pbx_aggregate_target(self):
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build.targets))
@@ -256,25 +216,22 @@ class XCodeBackend(backends.Backend):
         otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
 
         for t in self.build.targets.values():
+            for f in self.get_target_frameworks(t):
+                self.write_line('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' % (self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
 
-            for dep in t.get_external_deps():
-                if isinstance(dep, dependencies.AppleFrameworks):
-                    for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = %s /* %s.framework */; };\n' % (self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
-
-            for s in t.sources:
+            for s in t.get_sources():
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
 
                 if isinstance(s, str):
-                    s = os.path.join(t.subdir, s)
                     idval = self.buildmap[s]
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
                     compiler_args = ''
                     self.write_line(templ % (idval, fullpath, fileref, fullpath2, compiler_args))
-            for o in t.objects:
+
+            for o in t.get_outputs():
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
                 fileref = self.filemap[o]
@@ -317,10 +274,8 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_file_reference(self):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
         for t in self.build.targets.values():
-            for dep in t.get_external_deps():
-                if isinstance(dep, dependencies.AppleFrameworks):
-                    for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' % (self.native_frameworks_fileref[f], f, f, f))
+            for f in self.get_target_frameworks(t):
+                self.write_line('%s /* %s.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = %s.framework; path = System/Library/Frameworks/%s.framework; sourceTree = SDKROOT; };\n' % (self.native_frameworks_fileref[f], f, f, f))
         src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
@@ -354,10 +309,8 @@ class XCodeBackend(backends.Backend):
             self.write_line('buildActionMask = %s;\n' % (2147483647))
             self.write_line('files = (\n')
             self.indent_level += 1
-            for dep in t.get_external_deps():
-                if isinstance(dep, dependencies.AppleFrameworks):
-                    for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework in Frameworks */,\n' % (self.native_frameworks[f], f))
+            for f in self.get_target_frameworks(t):
+                self.write_line('%s /* %s.framework in Frameworks */,\n' % (self.native_frameworks[f], f))
             self.indent_level -= 1
             self.write_line(');\n')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
@@ -424,10 +377,8 @@ class XCodeBackend(backends.Backend):
         self.indent_level += 1
 
         for t in self.build.targets.values():
-            for dep in t.get_external_deps():
-                if isinstance(dep, dependencies.AppleFrameworks):
-                    for f in dep.frameworks:
-                        self.write_line('%s /* %s.framework */,\n' % (self.native_frameworks_fileref[f], f))
+            for f in self.get_target_frameworks(t):
+                self.write_line('%s /* %s.framework */,\n' % (self.native_frameworks_fileref[f], f))
 
         self.indent_level -= 1
         self.write_line(');')
