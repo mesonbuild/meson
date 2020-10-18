@@ -3328,6 +3328,15 @@ int main(int argc, char **argv) {
         self.setconf("-Dfree_array_opt=['a,b', 'c,d']", will_build=False)
         self.opt_has('free_array_opt', ['a,b', 'c,d'])
 
+    # When running under Travis Mac CI, the file updates seem to happen
+    # too fast so the timestamps do not get properly updated.
+    # Call this method before file operations in appropriate places
+    # to make things work.
+    def mac_ci_delay(self):
+        if is_osx() and is_ci():
+            import time
+            time.sleep(1)
+
     def test_options_with_choices_changing(self) -> None:
         """Detect when options like arrays or combos have their choices change."""
         testdir = Path(os.path.join(self.unit_test_dir, '84 change option choices'))
@@ -3340,6 +3349,7 @@ int main(int argc, char **argv) {
 
         shutil.copy(options1, real_options)
         self.init(str(testdir))
+        self.mac_ci_delay()
         shutil.copy(options2, real_options)
 
         self.build()
@@ -3353,10 +3363,12 @@ int main(int argc, char **argv) {
                 self.assertEqual(item['choices'], ['b', 'c', 'd'])
 
         self.wipe()
+        self.mac_ci_delay()
 
         # When the old options are valid they should remain
         shutil.copy(options1, real_options)
         self.init(str(testdir), extra_args=['-Dcombo=c', '-Darray=b,c'])
+        self.mac_ci_delay()
         shutil.copy(options2, real_options)
         self.build()
         opts = self.introspect('--buildoptions')
