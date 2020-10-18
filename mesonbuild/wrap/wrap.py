@@ -264,7 +264,7 @@ class Resolver:
         self.directory = packagename
         self.wrap = self.wraps.get(packagename)
         if not self.wrap:
-            m = 'Subproject directory not found and {}.wrap file not found'
+            m = 'Neither a subproject directory nor a {}.wrap file was found.'
             raise WrapNotFoundException(m.format(self.packagename))
         self.directory = self.wrap.directory
 
