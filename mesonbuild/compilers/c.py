@@ -420,6 +420,11 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
+        if std.value.startswith('gnu'):
+            mlog.log(
+                'cl.exe does not actually support gnu standards, and meson '
+                'will instead demote to the nearest ISO C standard. This '
+                'may cause compilation to fail.', once=True)
         # As of MVSC 16.7, /std:c11 is the only valid C standard option.
         if std.value in {'c11', 'gnu11'}:
             args.append('/std:c11')
@@ -449,6 +454,13 @@ class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompile
                   'gnu89', 'gnu90', 'gnu9x', 'gnu99']
         opts['std'].choices = c_stds  # type: ignore
         return opts
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+        if options['std'].value.startswith('gnu'):
+            mlog.warning(
+                'Clang-cl does not actually support gnu standards, and '
+                'meson will instead demote to the nearest ISO C standard. This '
+                'may cause compilation to fail.', once=True)
+        return []
 
 
 class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
@@ -474,7 +486,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         args = []
         std = options['std']
         if std.value == 'c89':
-            mlog.warning("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
+            mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
         elif std.value != 'none':
             args.append('/Qstd:' + std.value)
         return args
