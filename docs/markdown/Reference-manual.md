@@ -709,7 +709,7 @@ be passed to [shared and static libraries](#library).
 - `win_subsystem` *(since 0.56.0)* specifies the subsystem type to use
   on the Windows platform. Typical values include `console` for text
   mode programs and `windows` for gui apps. The value can also contain
-  version specification such as `windows,6.0'. See [MSDN
+  version specification such as `windows,6.0`. See [MSDN
   documentation](https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem)
   for the full list. The default value is `console`.
 
