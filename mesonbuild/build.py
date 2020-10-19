@@ -929,7 +929,6 @@ This will become a hard error in a future Meson release.''')
             # was not specified and win_subsystem should be used instead.
             self.gui_app = None
             if 'gui_app' in kwargs:
-                mlog.deprecation('The gui_app kwarg is deprecated, use win_subsystem instead.')
                 if 'win_subsystem' in kwargs:
                     raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
                 self.gui_app = kwargs['gui_app']
