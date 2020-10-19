@@ -3873,8 +3873,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self.get_subproject_dep(name, display_name, subp_name, varname, kwargs)
 
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
-    @permittedKwargs(permitted_kwargs['executable'])
+    @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
+    @permittedKwargs(permitted_kwargs['executable'])
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
 
