@@ -368,7 +368,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'arm'
     elif trial.startswith(('powerpc64', 'ppc64')):
         trial = 'ppc64'
-    elif trial.startswith(('powerpc', 'ppc')) or trial in {'macppc', 'power machintosh'}:
+    elif trial.startswith(('powerpc', 'ppc')) or trial in {'macppc', 'power macintosh'}:
         trial = 'ppc'
     elif trial in ('amd64', 'x64', 'i86pc'):
         trial = 'x86_64'
