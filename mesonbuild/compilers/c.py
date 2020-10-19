@@ -462,6 +462,25 @@ class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompile
                            full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
+    def get_options(self) -> 'OptionDictType':
+        # Clang-cl can compile up to c99, but doesn't have a std-swtich for
+        # them. Unlike recent versions of MSVC it doesn't (as of 10.0.1)
+        # support c11
+        opts = super().get_options()
+        c_stds = ['none', 'c89', 'c99',
+                  # Need to have these to be compatible with projects
+                  # that set c_std to e.g. gnu99.
+                  # https://github.com/mesonbuild/meson/issues/7611
+                  'gnu89', 'gnu90', 'gnu9x', 'gnu99']
+        opts.update({
+            'std': coredata.UserComboOption(
+                'C language standard to use',
+                c_stds,
+                'none',
+            ),
+        })
+        return opts
+
 
 class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
