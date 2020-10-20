@@ -435,10 +435,7 @@ class ConverterTarget:
             x = x.resolve()
             assert x.is_absolute()
             if not x.exists() and not any([x.name.endswith(y) for y in obj_suffixes]) and not is_generated:
-                if (
-                    any([path_is_in_root(root_src_dir / y, x.resolve(), resolve=True) for y in self.generated_raw])
-                        and path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True)
-                    ):
+                if path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True):
                     x.mkdir(parents=True, exist_ok=True)
                     return x.relative_to(Path(self.env.get_build_dir()) / subdir)
                 else:
