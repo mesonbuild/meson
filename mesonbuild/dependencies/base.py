@@ -132,6 +132,9 @@ class Dependency:
         s = '<{0} {1}: {2}>'
         return s.format(self.__class__.__name__, self.name, self.is_found)
 
+    def is_built(self) -> bool:
+        return False
+
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
             converted = []
@@ -260,6 +263,11 @@ class InternalDependency(Dependency):
             else:
                 setattr(result, k, copy.deepcopy(v, memo))
         return result
+
+    def is_built(self) -> bool:
+        if self.sources or self.libraries or self.whole_libraries:
+            return True
+        return any(d.is_built() for d in self.ext_deps)
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException('Method "get_pkgconfig_variable()" is '

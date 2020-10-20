@@ -1120,14 +1120,18 @@ class CompilerHolder(InterpreterObject):
             return endl
         if endl is None:
             endl = ''
-        tpl = msg_many if len(deps) > 1 else msg_single
         names = []
         for d in deps:
+            if isinstance(d, dependencies.InternalDependency):
+                continue
             if isinstance(d, dependencies.ExternalLibrary):
                 name = '-l' + d.name
             else:
                 name = d.name
             names.append(name)
+        if not names:
+            return None
+        tpl = msg_many if len(names) > 1 else msg_single
         return tpl.format(', '.join(names)) + endl
 
     @noPosargs
@@ -1165,16 +1169,15 @@ class CompilerHolder(InterpreterObject):
     def determine_dependencies(self, kwargs, endl=':'):
         deps = kwargs.get('dependencies', None)
         if deps is not None:
-            deps = listify(deps)
             final_deps = []
-            for d in deps:
-                try:
-                    d = d.held_object
-                except Exception:
-                    pass
-                if isinstance(d, InternalDependency) or not isinstance(d, Dependency):
-                    raise InterpreterException('Dependencies must be external dependencies')
-                final_deps.append(d)
+            while deps:
+                next_deps = []
+                for d in unholder(listify(deps)):
+                    if not isinstance(d, Dependency) or d.is_built():
+                        raise InterpreterException('Dependencies must be external dependencies')
+                    final_deps.append(d)
+                    next_deps.extend(d.ext_deps)
+                deps = next_deps
             deps = final_deps
         return deps, self._dep_msg(deps, endl)
 
