@@ -11,6 +11,11 @@ endmacro()
 macro(meson_ps_reload_vars)
 endmacro()
 
+macro(meson_ps_disabled_function)
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
+                  "This should not be an issue but may lead to compilaton errors.")
+endmacro()
+
 # Helper macro to inspect the current CMake state
 macro(meson_ps_inspect_vars)
   set(MESON_PS_CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
@@ -62,6 +67,11 @@ function(set_source_files_properties)
     endif()
   endwhile()
 endfunction()
+
+# Disable some functions that would mess up the CMake meson integration
+macro(target_precompile_headers)
+  meson_ps_disabled_function(target_precompile_headers)
+endmacro()
 
 set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()
