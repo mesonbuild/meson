@@ -19,6 +19,7 @@
 ####
 
 
+# TODO: Remember to remove this also from tools/gen_data.py
 from ._pathlib import Path
 import typing as T
 
@@ -272,6 +273,11 @@ endmacro()
 macro(meson_ps_reload_vars)
 endmacro()
 
+macro(meson_ps_disabled_function)
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
+                  "This should not be an issue but may lead to compilaton errors.")
+endmacro()
+
 # Helper macro to inspect the current CMake state
 macro(meson_ps_inspect_vars)
   set(MESON_PS_CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
@@ -324,6 +330,11 @@ function(set_source_files_properties)
   endwhile()
 endfunction()
 
+# Disable some functions that would mess up the CMake meson integration
+macro(target_precompile_headers)
+  meson_ps_disabled_function(target_precompile_headers)
+endmacro()
+
 set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()
 '''
@@ -368,7 +379,7 @@ mesondata = {
     ),
     'cmake/data/preload.cmake': DataFile(
         Path('cmake/data/preload.cmake'),
-        '064d047b18a5c919ad016b838bed50c5d40aebe9e53da0e70eff9d52a2c1ca1f',
+        'bbc441ededf2c7da2d0e640038ccbf4e818b73a2ba75084e1b4dbf05d8bca865',
         file_3_data_preload_cmake,
     ),
 }

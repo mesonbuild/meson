@@ -123,6 +123,7 @@ class CMakeTraceParser:
             # meaning here in the trace parser.
             'meson_ps_execute_delayed_calls': self._meson_ps_execute_delayed_calls,
             'meson_ps_reload_vars': self._meson_ps_reload_vars,
+            'meson_ps_disabled_function': self._meson_ps_disabled_function,
         }  # type: T.Dict[str, T.Callable[[CMakeTraceLine], None]]
 
     def trace_args(self) -> T.List[str]:
@@ -617,6 +618,13 @@ class CMakeTraceParser:
 
     def _meson_ps_reload_vars(self, tline: CMakeTraceLine) -> None:
         self.delayed_commands = self.get_cmake_var('MESON_PS_DELAYED_CALLS')
+
+    def _meson_ps_disabled_function(self, tline: CMakeTraceLine) -> None:
+        args = list(tline.args)
+        if not args:
+            mlog.error('Invalid preload.cmake script! At least one argument to `meson_ps_disabled_function` is expected')
+            return
+        mlog.warning('The CMake function "{}" was disabed to avoid compatibility issues with Meson.'.format(args[0]))
 
     def _lex_trace_human(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         # The trace format is: '<file>(<line>):  <func>(<args -- can contain \n> )\n'
