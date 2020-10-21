@@ -4,6 +4,9 @@ endif()
 
 set(MESON_PS_LOADED ON)
 
+cmake_policy(PUSH)
+cmake_policy(SET CMP0054 NEW) # https://cmake.org/cmake/help/latest/policy/CMP0054.html
+
 # Dummy macros that have a special meaning in the meson code
 macro(meson_ps_execute_delayed_calls)
 endmacro()
@@ -75,3 +78,5 @@ endmacro()
 
 set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()
+
+cmake_policy(POP)

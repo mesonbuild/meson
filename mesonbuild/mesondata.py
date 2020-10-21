@@ -266,6 +266,9 @@ endif()
 
 set(MESON_PS_LOADED ON)
 
+cmake_policy(PUSH)
+cmake_policy(SET CMP0054 NEW) # https://cmake.org/cmake/help/latest/policy/CMP0054.html
+
 # Dummy macros that have a special meaning in the meson code
 macro(meson_ps_execute_delayed_calls)
 endmacro()
@@ -337,6 +340,8 @@ endmacro()
 
 set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()
+
+cmake_policy(POP)
 '''
 
 
@@ -379,7 +384,7 @@ mesondata = {
     ),
     'cmake/data/preload.cmake': DataFile(
         Path('cmake/data/preload.cmake'),
-        'bbc441ededf2c7da2d0e640038ccbf4e818b73a2ba75084e1b4dbf05d8bca865',
+        '2b4e632aeb74acb2b441880cf85c0b6fcab03e75b182d3077715a97e739a7918',
         file_3_data_preload_cmake,
     ),
 }
