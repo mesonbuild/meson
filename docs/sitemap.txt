@@ -34,24 +34,25 @@ index.md
 		Disabler.md
 		Modules.md
 			CMake-module.md
+			Cuda-module.md
 			Dlang-module.md
+			External-Project-module.md
 			Fs-module.md
 			Gnome-module.md
 			Hotdoc-module.md
-			i18n-module.md
 			Icestorm-module.md
+			Keyval-module.md
 			Pkgconfig-module.md
-			Python-module.md
 			Python-3-module.md
+			Python-module.md
 			Qt4-module.md
 			Qt5-module.md
 			RPM-module.md
+			Rust-module.md
 			Simd-module.md
 			SourceSet-module.md
 			Windows-module.md
-			Cuda-module.md
-			Keyval-module.md
-			External-Project-module.md
+			i18n-module.md
 		Java.md
 		Vala.md
 		D.md

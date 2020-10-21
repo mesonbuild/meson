@@ -5,28 +5,29 @@
     Modules <span class="caret"></span>
   </a>
   <ul class="dropdown-menu" id="modules-menu">
-    @for tup in ( \
-					 ("CMake-module.html","CMake"), \
-					 ("Cuda-module.html","CUDA"), \
-           ("Dlang-module.html","Dlang"), \
-           ("Fs-module.html","Filesystem"), \
-					 ("Gnome-module.html","GNOME"), \
-					 ("Hotdoc-module.html","Hotdoc"), \
-					 ("i18n-module.html","i18n"), \
-					 ("Icestorm-module.html","Icestorm"), \
-					 ("Keyval-module.html","Keyval"), \
-           ("Pkgconfig-module.html","Pkgconfig"), \
-           ("Python-module.html","Python"), \
-           ("Python-3-module.html","Python 3"), \
-           ("Qt4-module.html","Qt4"), \
-           ("Qt5-module.html","Qt5"), \
-           ("RPM-module.html","RPM"), \
-           ("SourceSet-module.html","SourceSet"), \
-           ("Windows-module.html","Windows")):
-			<li>
-				<a href="@tup[0]">@tup[1]</a>
-			</li>
-		@end
+    @for tup in [ \
+            ("CMake-module.html","CMake"), \
+            ("Cuda-module.html","CUDA"), \
+            ("Dlang-module.html","Dlang"), \
+            ("Fs-module.html","Filesystem"), \
+            ("Gnome-module.html","GNOME"), \
+            ("Hotdoc-module.html","Hotdoc"), \
+            ("Icestorm-module.html","Icestorm"), \
+            ("Keyval-module.html","Keyval"), \
+            ("Pkgconfig-module.html","Pkgconfig"), \
+            ("Python-3-module.html","Python 3"), \
+            ("Python-module.html","Python"), \
+            ("Qt4-module.html","Qt4"), \
+            ("Qt5-module.html","Qt5"), \
+            ("RPM-module.html","RPM"), \
+            ("Rust-module.html","Rust"), \
+            ("SourceSet-module.html","SourceSet"), \
+            ("Windows-module.html","Windows"), \
+            ("i18n-module.html","i18n")]:
+        <li>
+            <a href="@tup[0]">@tup[1]</a>
+        </li>
+    @end
 	</ul>
 </li>
 \
