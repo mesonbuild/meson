@@ -2593,6 +2593,8 @@ class Interpreter(InterpreterBase):
                 self.process_new_values(v.sources[0])
             elif isinstance(v, InstallDir):
                 self.build.install_dirs.append(v)
+            elif isinstance(v, Test):
+                self.build.tests.append(v)
             elif hasattr(v, 'held_object'):
                 pass
             elif isinstance(v, (int, str, bool, Disabler)):
