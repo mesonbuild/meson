@@ -39,7 +39,7 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from .interpreter import Test
-    from .mesonlib import FileMode
+    from .mesonlib import FileMode, FileOrString
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -541,7 +541,8 @@ a hard error in the future.'''.format(name))
 class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], objects, environment: environment.Environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_builtin_option('unity')
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
@@ -564,7 +565,7 @@ class BuildTarget(Target):
         self.outputs = [self.filename]
         self.need_install = False
         self.pch = {}
-        self.extra_args = {}
+        self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
         self.generated = []
         self.d_features = {}
         self.pic = False
@@ -1286,7 +1287,7 @@ You probably should put it in link_with instead.''')
             ids = [IncludeDirs(x.get_curdir(), x.get_incdirs(), is_system, x.get_extra_build_dirs()) for x in ids]
         self.include_dirs += ids
 
-    def add_compiler_args(self, language, args):
+    def add_compiler_args(self, language: str, args: T.List['FileOrString']) -> None:
         args = listify(args)
         for a in args:
             if not isinstance(a, (str, File)):
@@ -1388,9 +1389,9 @@ You probably should put it in link_with instead.''')
         m = 'Could not get a dynamic linker for build target {!r}'
         raise AssertionError(m.format(self.name))
 
-    def get_using_rustc(self):
-        if len(self.sources) > 0 and self.sources[0].fname.endswith('.rs'):
-            return True
+    def get_using_rustc(self) -> bool:
+        """Is this target a rust target."""
+        return self.sources and self.sources[0].fname.endswith('.rs')
 
     def get_using_msvc(self):
         '''
@@ -1591,7 +1592,8 @@ class GeneratedList:
 class Executable(BuildTarget):
     known_kwargs = known_exe_kwargs
 
-    def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
+    def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
+                 sources: T.List[File], objects, environment: environment.Environment, kwargs):
         self.typename = 'executable'
         if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
             kwargs['pie'] = environment.coredata.base_options['b_pie'].value

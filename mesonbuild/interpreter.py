@@ -861,7 +861,7 @@ class BuildTargetHolder(TargetHolder):
         return self.held_object.name
 
 class ExecutableHolder(BuildTargetHolder):
-    def __init__(self, target, interp):
+    def __init__(self, target: build.Executable, interp: 'Interpreter'):
         super().__init__(target, interp)
 
 class StaticLibraryHolder(BuildTargetHolder):
