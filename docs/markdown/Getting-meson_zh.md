@@ -1,84 +1,56 @@
-# Getting meson
+# 获取Meson
 
-Meson is implemented in Python 3, and requires 3.5 or newer. If your operating
-system provides a package manager, you should install it with that. For
-platforms that don't have a package manager, you need to download it from
-[Python's home page]. See below for [platform-specific Python3
-quirks](#platformspecific-install-quirks).
+Meson基于Python3运行，要求Python版本3.5以上。 如果你的操作系统提供包管理器, 你应该用包管理器安装meson；如果没有包管理器，你应该在[Python主页]下载合适的Python3。相关请参阅[特殊平台的安装特例](#特殊平台的安装特例).
 
-## Downloading Meson
+## 下载Meson
 
-Meson releases can be downloaded from the [GitHub release page], and you can
-run `./meson.py` from inside a release or the git repository itself without
-doing anything special.
+Meson发行版可在 [GitHub发行页面]下载, 你可以在release的解压目录或者git仓库目录里直接运行 `./meson.py` ，不需要进行任何特殊操作。
 
-On Windows, if you did not install Python with the installer options that make
-Python scripts executable, you will have to run `python /path/to/meson.py`,
-where `python` is Python 3.5 or newer.
+在Windows下,如果你安装Python时没有将Python路径添加到环境变量, 那你应该使用`python /path/to/meson.py`命令运行Meson,当然`python` 的版本应该大于3.5。
 
-The newest development code can be obtained directly from [Git], and we strive
-to ensure that it will always be working and usable. All commits go through
-a pull-request process that runs CI and tests several platforms.
+最新的开发版本的源码可以直接通过[Git]获得,我们尽可能保证它总是可以正常使用。所有的提交通过pull-request进行，此过程将运行 CI 并且会在多个平台进行测试。
 
-## Installing Meson with pip
+## 使用pip安装Meson
 
-Meson is available in the [Python Package Index] and can be installed with
-`pip3 install meson` which requires root and will install it system-wide.
+Meson在[Python包索引]中，可通过`pip3 install meson`命令安装，如果在root环境下，它会在系统范围内安装。
 
-Alternatively, you can use `pip3 install --user meson` which will install it
-for your user and does not require any special privileges. This will install
-the package in `~/.local/`, so you will have to add `~/.local/bin` to your
-`PATH`.
+相反,你也可以使用 `pip3 install --user meson`命令来为`user`用户单独安装，此过程不需要任何特殊权限. Meson会被安装到`~/.local/`目录下,所以你需要将 `~/.local/bin`添加至你的`PATH`.
 
-## Installing Meson and Ninja with the MSI installer
+## 使用MSI安装包安装Meson和Ninja
 
-We provide an MSI installer on the [GitHub release page] that can be used to
-install both Meson and Ninja at once for Windows. It also contains an embedded
-copy of Python, so scripts that use the [Python module](Python-module.md) and
-do not have any external dependencies will continue to work as expected.
+我们也在[GitHub发行页面]提供MSI安装包，可以同时为Windows安装 Meson和Ninja。 它也包含一份嵌入性的Python拷贝, 所以[Python module](Python-module.md)可以不靠任何外部依赖的情况下正如期望般的正常工作。
 
-Please note that this is a new feature, so bug reports are expected and welcome!
+因为这是新特性，请多留意，如果出现BUG欢迎反馈！
 
-## Dependencies
+## 所需依赖
 
-In the most common case, you will need the [Ninja executable] for using the
-`ninja` backend, which is the default in Meson. This backend can be used on all
-platforms and with all toolchains, including GCC, Clang, Visual Studio, MinGW,
-ICC, ARMCC, etc.
+最主要的, 你需要 [Ninja可执行程序] 来使用Meson默认的
+`ninja` 后端参数。这个参数可以用于所有平台和工具链包括 GCC, Clang, Visual Studio, MinGW,ICC, ARMCC.
 
-You can use the version provided by your package manager if possible, otherwise
-download the binary executable from the [Ninja project's release
-page](https://github.com/ninja-build/ninja/releases).
+如果可能，你应该使用包管理器提供的版本，否则的话，你应该
+在[Ninja发行页面]下载可执行二进制文件。(https://github.com/ninja-build/ninja/releases).
 
-If you will only use the Visual Studio backend (`--backend=vs`) to generate
-Visual Studio solutions on Windows or the XCode backend (`--backend=xcode`) to
-generate XCode projects on macOS, you do not need Ninja.
+如果你只用Visual Studio后端参数 (`--backend=vs`)来生成Windows上的Visual Studio工程文件或者XCode后端参数 (`--backend=xcode`) 生成macOS上的
+XCode工程文件, 那么你不需要安装Ninja.
 
-# Platform-specific install quirks
+# 特殊平台的安装特例
 
-## Windows Python3 quirks
+## Windows Python3
 
-When installing Python 3, it is highly recommended (but not required) that you
-select the installer options as follows:
+安装Python3时,强烈推荐以下安装器选项 (非必须，请结合实际) :
 
 ![installer step 1](images/py3-install-1.png "Enable 'Add Python 3.6 to PATH' and click 'Customize installation'")
 ![installer step 2](images/py3-install-2.png "Optional Features: ensure 'pip' is enabled")
 ![installer step 3](images/py3-install-3.png "Advanced Options: enable 'Install for all users'")
 
-With this, you will have `python` and `pip` in `PATH`, and you can install
-Meson with pip. You will also be able to directly run `meson` in any shell on
-Windows instead of having to run `py -3` with the full path to the `meson.py`
-script.
+完成这个之后, `python` 和`pip`的路径会收录进`PATH`,你可以使用pip安装Meson. 你也可以在Windows任何终端下直接运行`meson`而不是不得不输入`py -3`完整路径去运行 `meson.py`脚本.
 
-## MSYS2 Python3 quirks
+## MSYS2 Python3
 
-If you are using MSYS2 on Windows as your development environment, please make
-sure that you **do not use** the `msys/python` package to provide Python 3. Use
-either `mingw32/mingw-w64-i686-python3` or `mingw64/mingw-w64-x86_64-python3`
-depending on which MinGW target you are building for.
+如果你使用MSYS2作为你的Windows开发环境,请确信你**没有**将 `msys/python` 当作你的默认Python使用. 请使用 `mingw32/mingw-w64-i686-python3` 或者 `mingw64/mingw-w64-x86_64-python3`，这取决于MinGW不同的构建对象.
 
-  [GitHub release page]: https://github.com/mesonbuild/meson/releases
-  [Python Package Index]: https://pypi.python.org/pypi/meson/
+  [GitHub发行页面]: https://github.com/mesonbuild/meson/releases
+  [Python包索引]: https://pypi.python.org/pypi/meson/
   [Git]: https://github.com/mesonbuild/meson
-  [Python's home page]: https://www.python.org/downloads/
-  [Ninja executable]: https://ninja-build.org/
+  [Python主页]: https://www.python.org/downloads/
+  [Ninja可执行程序]: https://ninja-build.org/
