@@ -236,8 +236,8 @@ string `len(string) - start` as well as negative `end`.
 
 ```meson
 string = 'foobar'
-target.substring(-5, -3) # => 'oo'
-target.substring(1, -1) # => 'ooba'
+string.substring(-5, -3) # => 'oo'
+string.substring(1, -1) # => 'ooba'
 ```
 
 #### .split(), .join()
