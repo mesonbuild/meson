@@ -258,7 +258,7 @@ class QtBaseDependency(ExternalDependency):
                     care = out
                 else:
                     care = err
-                return care.split(' ')[-1].replace(')', '')
+                return care.split(' ')[-1].replace(')', '').strip()
 
             p = interp_obj.find_program_impl([b], required=False,
                                              version_func=get_version,
