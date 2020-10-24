@@ -26,6 +26,7 @@ from ... import mlog
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...dependencies import Dependency
     from .clike import CLikeCompiler as Compiler
 else:
     # This is a bit clever, for mypy we pretend that these mixins descend from
@@ -437,3 +438,16 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def get_pch_base_name(self, header: str) -> str:
         return header
+
+
+    def get_dependency_compile_args(self, dep: 'Dependency') -> T.List[str]:
+        if dep.get_include_type() == 'system':
+            converted = []
+            for i in dep.get_compile_args():
+                if i.startswith('-isystem'):
+                    converted += ['/clang:' + i]
+                else:
+                    converted += [i]
+            return converted
+        else:
+            return dep.get_compile_args()
