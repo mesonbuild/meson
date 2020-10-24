@@ -131,19 +131,45 @@ class CudaModule(ExtensionModule):
 
         return cuda_version, arch_list, detected
 
+    def _filter_cuda_arch_list(self, cuda_arch_list, lo=None, hi=None, saturate=None):
+        """
+        Filter CUDA arch list (no codenames) for >= low and < hi architecture
+        bounds, and deduplicate.
+        If saturate is provided, architectures >= hi are replaced with saturate.
+        """
+
+        filtered_cuda_arch_list = []
+        for arch in cuda_arch_list:
+            if arch:
+                if lo and version_compare(arch, '<' + lo):
+                    continue
+                if hi and version_compare(arch, '>=' + hi):
+                    if not saturate:
+                        continue
+                    arch = saturate
+                if arch not in filtered_cuda_arch_list:
+                    filtered_cuda_arch_list.append(arch)
+        return filtered_cuda_arch_list
+
     def _nvcc_arch_flags(self, cuda_version, cuda_arch_list='Auto', detected=''):
         """
-        Using the CUDA Toolkit version (the NVCC version) and the target
-        architectures, compute the NVCC architecture flags.
+        Using the CUDA Toolkit version and the target architectures, compute
+        the NVCC architecture flags.
         """
 
-        cuda_known_gpu_architectures  = ['Fermi', 'Kepler', 'Maxwell']  # noqa: E221
-        cuda_common_gpu_architectures = ['3.0', '3.5', '5.0']           # noqa: E221
-        cuda_limit_gpu_architecture   = None                            # noqa: E221
-        cuda_all_gpu_architectures    = ['3.0', '3.2', '3.5', '5.0']    # noqa: E221
+        # Replicates much of the logic of
+        #     https://github.com/Kitware/CMake/blob/master/Modules/FindCUDA/select_compute_arch.cmake
+        # except that a bug with cuda_arch_list="All" is worked around by
+        # tracking both lower and upper limits on GPU architectures.
+
+        cuda_known_gpu_architectures   = ['Fermi', 'Kepler', 'Maxwell']  # noqa: E221
+        cuda_common_gpu_architectures  = ['3.0', '3.5', '5.0']           # noqa: E221
+        cuda_hi_limit_gpu_architecture = None                            # noqa: E221
+        cuda_lo_limit_gpu_architecture = '2.0'                           # noqa: E221
+        cuda_all_gpu_architectures     = ['3.0', '3.2', '3.5', '5.0']    # noqa: E221
 
         if version_compare(cuda_version, '<7.0'):
-            cuda_limit_gpu_architecture = '5.2'
+            cuda_hi_limit_gpu_architecture = '5.2'
 
         if version_compare(cuda_version, '>=7.0'):
             cuda_known_gpu_architectures  += ['Kepler+Tegra', 'Kepler+Tesla', 'Maxwell+Tegra']  # noqa: E221
@@ -151,7 +177,7 @@ class CudaModule(ExtensionModule):
 
             if version_compare(cuda_version, '<8.0'):
                 cuda_common_gpu_architectures += ['5.2+PTX']  # noqa: E221
-                cuda_limit_gpu_architecture    = '6.0'        # noqa: E221
+                cuda_hi_limit_gpu_architecture = '6.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=8.0'):
             cuda_known_gpu_architectures  += ['Pascal', 'Pascal+Tegra']  # noqa: E221
@@ -160,23 +186,45 @@ class CudaModule(ExtensionModule):
 
             if version_compare(cuda_version, '<9.0'):
                 cuda_common_gpu_architectures += ['6.1+PTX']  # noqa: E221
-                cuda_limit_gpu_architecture    = '7.0'        # noqa: E221
+                cuda_hi_limit_gpu_architecture = '7.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=9.0'):
-            cuda_known_gpu_architectures  += ['Volta', 'Xavier']                   # noqa: E221
-            cuda_common_gpu_architectures += ['7.0', '7.0+PTX']                    # noqa: E221
-            cuda_all_gpu_architectures    += ['7.0', '7.0+PTX', '7.2', '7.2+PTX']  # noqa: E221
+            cuda_known_gpu_architectures  += ['Volta', 'Xavier'] # noqa: E221
+            cuda_common_gpu_architectures += ['7.0']             # noqa: E221
+            cuda_all_gpu_architectures    += ['7.0', '7.2']      # noqa: E221
+            # https://docs.nvidia.com/cuda/archive/9.0/cuda-toolkit-release-notes/index.html#unsupported-features
+            cuda_lo_limit_gpu_architecture = '3.0'               # noqa: E221
 
             if version_compare(cuda_version, '<10.0'):
-                cuda_limit_gpu_architecture = '7.5'
+                cuda_common_gpu_architectures += ['7.2+PTX']  # noqa: E221
+                cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
 
         if version_compare(cuda_version, '>=10.0'):
-            cuda_known_gpu_architectures  += ['Turing']          # noqa: E221
-            cuda_common_gpu_architectures += ['7.5', '7.5+PTX']  # noqa: E221
-            cuda_all_gpu_architectures    += ['7.5', '7.5+PTX']  # noqa: E221
+            cuda_known_gpu_architectures  += ['Turing'] # noqa: E221
+            cuda_common_gpu_architectures += ['7.5']    # noqa: E221
+            cuda_all_gpu_architectures    += ['7.5']    # noqa: E221
 
             if version_compare(cuda_version, '<11.0'):
-                cuda_limit_gpu_architecture = '8.0'
+                cuda_common_gpu_architectures += ['7.5+PTX']  # noqa: E221
+                cuda_hi_limit_gpu_architecture = '8.0'        # noqa: E221
+
+        if version_compare(cuda_version, '>=11.0'):
+            cuda_known_gpu_architectures  += ['Ampere'] # noqa: E221
+            cuda_common_gpu_architectures += ['8.0']    # noqa: E221
+            cuda_all_gpu_architectures    += ['8.0']    # noqa: E221
+            # https://docs.nvidia.com/cuda/archive/11.0/cuda-toolkit-release-notes/index.html#deprecated-features
+            cuda_lo_limit_gpu_architecture = '3.5'      # noqa: E221
+
+            if version_compare(cuda_version, '<11.1'):
+                cuda_common_gpu_architectures += ['8.0+PTX']  # noqa: E221
+                cuda_hi_limit_gpu_architecture = '8.6'        # noqa: E221
+
+        if version_compare(cuda_version, '>=11.1'):
+            cuda_common_gpu_architectures += ['8.6', '8.6+PTX']  # noqa: E221
+            cuda_all_gpu_architectures    += ['8.6']             # noqa: E221
+
+            if version_compare(cuda_version, '<12.0'):
+                cuda_hi_limit_gpu_architecture = '9.0'        # noqa: E221
 
         if not cuda_arch_list:
             cuda_arch_list = 'Auto'
@@ -191,16 +239,10 @@ class CudaModule(ExtensionModule):
                     cuda_arch_list = detected
                 else:
                     cuda_arch_list = self._break_arch_string(detected)
-
-                if cuda_limit_gpu_architecture:
-                    filtered_cuda_arch_list = []
-                    for arch in cuda_arch_list:
-                        if arch:
-                            if version_compare(arch, '>=' + cuda_limit_gpu_architecture):
-                                arch = cuda_common_gpu_architectures[-1]
-                            if arch not in filtered_cuda_arch_list:
-                                filtered_cuda_arch_list.append(arch)
-                    cuda_arch_list = filtered_cuda_arch_list
+                cuda_arch_list = self._filter_cuda_arch_list(cuda_arch_list,
+                                                             cuda_lo_limit_gpu_architecture,
+                                                             cuda_hi_limit_gpu_architecture,
+                                                             cuda_common_gpu_architectures[-1])
             else:
                 cuda_arch_list = cuda_common_gpu_architectures
         elif isinstance(cuda_arch_list, str):
@@ -232,6 +274,7 @@ class CudaModule(ExtensionModule):
                     'Volta':         (['7.0'],             ['7.0']),
                     'Xavier':        (['7.2'],             []),
                     'Turing':        (['7.5'],             ['7.5']),
+                    'Ampere':        (['8.0'],             ['8.0']),
                 }.get(arch_name, (None, None))
 
             if arch_bin is None:
@@ -245,10 +288,6 @@ class CudaModule(ExtensionModule):
                     arch_ptx = arch_bin
                 cuda_arch_ptx += arch_ptx
 
-        cuda_arch_bin = re.sub('\\.', '', ' '.join(cuda_arch_bin))
-        cuda_arch_ptx = re.sub('\\.', '', ' '.join(cuda_arch_ptx))
-        cuda_arch_bin = re.findall('[0-9()]+', cuda_arch_bin)
-        cuda_arch_ptx = re.findall('[0-9]+',   cuda_arch_ptx)
         cuda_arch_bin = sorted(list(set(cuda_arch_bin)))
         cuda_arch_ptx = sorted(list(set(cuda_arch_ptx)))
 
@@ -256,15 +295,37 @@ class CudaModule(ExtensionModule):
         nvcc_archs_readable = []
 
         for arch in cuda_arch_bin:
-            m = re.match('([0-9]+)\\(([0-9]+)\\)', arch)
-            if m:
-                nvcc_flags += ['-gencode', 'arch=compute_' + m[2] + ',code=sm_' + m[1]]
-                nvcc_archs_readable += ['sm_' + m[1]]
+            arch, codev = re.fullmatch(
+                '([0-9]+\\.[0-9])(?:\\(([0-9]+\\.[0-9])\\))?', arch).groups()
+
+            if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
+                continue
+            if version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
+                continue
+
+            if codev:
+                arch = arch.replace('.', '')
+                codev = codev.replace('.', '')
+                nvcc_flags += ['-gencode', 'arch=compute_' + codev + ',code=sm_' + arch]
+                nvcc_archs_readable += ['sm_' + arch]
             else:
+                arch = arch.replace('.', '')
                 nvcc_flags += ['-gencode', 'arch=compute_' + arch + ',code=sm_' + arch]
                 nvcc_archs_readable += ['sm_' + arch]
 
         for arch in cuda_arch_ptx:
+            arch, codev = re.fullmatch(
+                '([0-9]+\\.[0-9])(?:\\(([0-9]+\\.[0-9])\\))?', arch).groups()
+
+            if codev:
+                arch = codev
+
+            if version_compare(arch, '<' + cuda_lo_limit_gpu_architecture):
+                continue
+            if version_compare(arch, '>=' + cuda_hi_limit_gpu_architecture):
+                continue
+
+            arch = arch.replace('.', '')
             nvcc_flags += ['-gencode', 'arch=compute_' + arch + ',code=compute_' + arch]
             nvcc_archs_readable += ['compute_' + arch]
 
