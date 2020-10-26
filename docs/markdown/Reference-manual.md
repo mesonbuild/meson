@@ -2408,6 +2408,9 @@ page](Configuration.md) It has three methods:
 
 - `has(varname)`: returns `true` if the specified variable is set
 
+- `keys()`*(since 0.57.0)*: returns all keys of the configuration data object
+  as an iteratable list.
+
 - `merge_from(other)` *(since 0.42.0)*: takes as argument a different
   configuration data object and copies all entries from that object to
   the current.
