@@ -1524,10 +1524,13 @@ int dummy;
             for a in rustc.linker.get_always_args():
                 args += ['-C', 'link-arg={}'.format(a)]
 
+        opt_proxy = self.get_compiler_options_for_target(target)[rustc.language]
+
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += rustc.get_debug_args(self.get_option_for_target('debug', target))
         args += rustc.get_optimization_args(self.get_option_for_target('optimization', target))
+        args += rustc.get_option_compile_args(opt_proxy)
         args += self.build.get_global_args(rustc, target.for_machine)
         args += self.build.get_project_args(rustc, target.subproject, target.for_machine)
         depfile = os.path.join(target.subdir, target.name + '.d')
