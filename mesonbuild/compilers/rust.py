@@ -16,14 +16,17 @@ import subprocess, os.path
 import textwrap
 import typing as T
 
+from .. import coredata
 from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
+    from ..coredata import OptionDictType
     from ..dependencies import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
     from ..linkers import DynamicLinker
+
 
 rust_optimization_args = {
     '0': [],
@@ -122,3 +125,19 @@ class RustCompiler(Compiler):
     # Rust does not have a use_linker_args because it dispatches to a gcc-like
     # C compiler for dynamic linking, as such we invoke the C compiler's
     # use_linker_args method instead.
+
+    def get_options(self) -> 'OptionDictType':
+        return {
+            'std': coredata.UserComboOption(
+                'Rust Eddition to use',
+                ['none', '2015', '2018'],
+                'none',
+            ),
+        }
+
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+        args = []
+        std = options['std']
+        if std.value != 'none':
+            args.append('--edition=' + std.value)
+        return args
