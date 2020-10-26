@@ -25,6 +25,15 @@ line options in `meson_options.txt`, native-file or cross-file.
 Where possible, symlinks and parent directory notation are resolved to an
 absolute path.
 
+### expandglob
+
+Takes one or more string arguments and returns a list of files matched
+by any of the string arguments.  Wildcards `*`, `?` and `**` are supported
+and duplicates are removed.  If an arguments does not match any file, it
+does _not_ appear in the result (this is different from how a POSIX shell
+behaves, but almost always the desired behavior).  The result will
+include files, directories or special entries such as a device node.
+
 ### exists
 
 Takes a single string argument and returns true if an entity with that
