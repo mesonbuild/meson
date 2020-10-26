@@ -51,25 +51,33 @@ class GTestDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
-        self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/googletest/src']
+        self.prefer_prebuilt = kwargs.get('prefer_prebuilt', True)
+        self.src_dirs = ['/usr/src/gtest/src', '/usr/src/googletest/src/', '/usr/src/googletest/googletest/src']
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
             return
-        self.detect()
 
-    def detect(self):
+        if self.prefer_prebuilt:
+            self.is_found = self.detect_prebuilt() or self.detect_source()
+        else:
+            self.is_found = self.detect_source() or self.detect_prebuilt()
+
+    def detect_prebuilt(self):
         gtest_detect = self.clib_compiler.find_library("gtest", self.env, [])
         gtest_main_detect = self.clib_compiler.find_library("gtest_main", self.env, [])
+
         if gtest_detect and (not self.main or gtest_main_detect):
-            self.is_found = True
             self.compile_args = []
             self.link_args = gtest_detect
             if self.main:
                 self.link_args += gtest_main_detect
             self.sources = []
             self.prebuilt = True
-        elif self.detect_srcdir():
-            self.is_found = True
+            return True
+        return False
+
+    def detect_source(self):
+        if self.detect_srcdir():
             self.compile_args = ['-I' + d for d in self.src_include_dirs]
             self.link_args = []
             if self.main:
@@ -77,8 +85,8 @@ class GTestDependencySystem(ExternalDependency):
             else:
                 self.sources = [self.all_src]
             self.prebuilt = False
-        else:
-            self.is_found = False
+            return True
+        return False
 
     def detect_srcdir(self):
         for s in self.src_dirs:
@@ -121,6 +129,7 @@ class GMockDependencySystem(ExternalDependency):
     def __init__(self, name: str, environment, kwargs):
         super().__init__(name, environment, kwargs, language='cpp')
         self.main = kwargs.get('main', False)
+        self.prefer_prebuilt = kwargs.get('prefer_prebuilt', True)
         if not self._add_sub_dependency(threads_factory(environment, self.for_machine, {})):
             self.is_found = False
             return
@@ -139,21 +148,25 @@ class GMockDependencySystem(ExternalDependency):
             self.is_found = False
             return
 
-        # GMock may be a library or just source.
-        # Work with both.
+        if self.prefer_prebuilt:
+            self.is_found = self.detect_prebuilt() or self.detect_source()
+        else:
+            self.is_found = self.detect_source() or self.detect_prebuilt()
+
+    def detect_prebuilt(self):
         gmock_detect = self.clib_compiler.find_library("gmock", self.env, [])
         gmock_main_detect = self.clib_compiler.find_library("gmock_main", self.env, [])
         if gmock_detect and (not self.main or gmock_main_detect):
-            self.is_found = True
             self.link_args += gmock_detect
             if self.main:
                 self.link_args += gmock_main_detect
             self.prebuilt = True
-            return
+            return True
+        return False
 
+    def detect_source(self):
         for d in ['/usr/src/googletest/googlemock/src', '/usr/src/gmock/src', '/usr/src/gmock']:
             if os.path.exists(d):
-                self.is_found = True
                 # Yes, we need both because there are multiple
                 # versions of gmock that do different things.
                 d2 = os.path.normpath(os.path.join(d, '..'))
@@ -165,9 +178,8 @@ class GMockDependencySystem(ExternalDependency):
                 else:
                     self.sources += [all_src]
                 self.prebuilt = False
-                return
-
-        self.is_found = False
+                return True
+        return False
 
     def log_info(self):
         if self.prebuilt:
