@@ -1187,7 +1187,7 @@ class InternalTests(unittest.TestCase):
         ]:
             d = mesonbuild.depfile.DepFile(f)
             deps = d.get_all_dependencies(target)
-            self.assertEqual(deps, expdeps)
+            self.assertEqual(sorted(deps), sorted(expdeps))
 
     def test_log_once(self):
         f = io.StringIO()

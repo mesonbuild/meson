@@ -82,4 +82,4 @@ class DepFile:
         deps.update(target.deps)
         for dep in target.deps:
             deps.update(self.get_all_dependencies(dep, visited))
-        return deps
+        return sorted(deps)
