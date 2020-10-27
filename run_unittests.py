@@ -5247,6 +5247,20 @@ recommended as it is not supported on some platforms''')
         wrap = PackageDefinition(redirect_wrap)
         self.assertEqual(wrap.get('url'), 'http://invalid')
 
+    @skip_if_no_cmake
+    def test_nested_cmake_rebuild(self) -> None:
+        # This checks a bug where if a non-meson project is used as a third
+        # level (or deeper) subproject it doesn't cause a rebuild if the build
+        # files for that project are changed
+        testdir = os.path.join(self.unit_test_dir, '85 nested subproject regenerate depends')
+        cmakefile = Path(testdir) / 'subprojects' / 'sub2' / 'CMakeLists.txt'
+        self.init(testdir)
+        self.build()
+        with cmakefile.open('a') as f:
+            os.utime(str(cmakefile))
+        self.assertReconfiguredBuildIsNoop()
+
+
 class FailureTests(BasePlatformTests):
     '''
     Tests that test failure conditions. Build files here should be dynamically
