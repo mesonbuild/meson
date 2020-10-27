@@ -404,7 +404,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
 
     @FeatureNew('configuration_data.keys()', '0.57.0')
     def keys_method(self, args, kwargs):
-        return list(self.keys())
+        return sorted(self.keys())
 
     def keys(self):
         return self.held_object.values.keys()
