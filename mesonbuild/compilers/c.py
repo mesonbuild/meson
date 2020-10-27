@@ -1,4 +1,4 @@
-# Copyright 2012-2017 The Meson development team
+# Copyright 2012-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,11 +107,38 @@ class CCompiler(CLikeCompiler, Compiler):
         return opts
 
 
-class ClangCCompiler(ClangCompiler, CCompiler):
+class _ClangCStds(CompilerMixinBase):
+
+    """Mixin class for clang based compilers for setting C standards.
+
+    This is used by both ClangCCompiler and ClangClCompiler, as they share
+    the same versions
+    """
 
     _C17_VERSION = '>=6.0.0'
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'
+
+    def get_options(self) -> 'OptionDictType':
+        opts = super().get_options()
+        c_stds = ['c89', 'c99', 'c11']
+        g_stds = ['gnu89', 'gnu99', 'gnu11']
+        # https://releases.llvm.org/6.0.0/tools/clang/docs/ReleaseNotes.html
+        # https://en.wikipedia.org/wiki/Xcode#Latest_versions
+        if version_compare(self.version, self._C17_VERSION):
+            c_stds += ['c17']
+            g_stds += ['gnu17']
+        if version_compare(self.version, self._C18_VERSION):
+            c_stds += ['c18']
+            g_stds += ['gnu18']
+        if version_compare(self.version, self._C2X_VERSION):
+            c_stds += ['c2x']
+            g_stds += ['gnu2x']
+        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
+        return opts
+
+
+class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
 
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -127,21 +154,7 @@ class ClangCCompiler(ClangCompiler, CCompiler):
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
     def get_options(self) -> 'OptionDictType':
-        opts = CCompiler.get_options(self)
-        c_stds = ['c89', 'c99', 'c11']
-        g_stds = ['gnu89', 'gnu99', 'gnu11']
-        # https://releases.llvm.org/6.0.0/tools/clang/docs/ReleaseNotes.html
-        # https://en.wikipedia.org/wiki/Xcode#Latest_versions
-        if version_compare(self.version, self._C17_VERSION):
-            c_stds += ['c17']
-            g_stds += ['gnu17']
-        if version_compare(self.version, self._C18_VERSION):
-            c_stds += ['c18']
-            g_stds += ['gnu18']
-        if version_compare(self.version, self._C2X_VERSION):
-            c_stds += ['c2x']
-            g_stds += ['gnu2x']
-        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
+        opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
                 'winlibs': coredata.UserArrayOption(
@@ -431,7 +444,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         return args
 
 
-class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
+class ClangClCCompiler(_ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -442,24 +455,10 @@ class ClangClCCompiler(ClangClCompiler, VisualStudioLikeCCompilerMixin, CCompile
                            full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
-    def get_options(self) -> 'OptionDictType':
-        # Clang-cl can compile up to c99, but doesn't have a std-swtich for
-        # them. Unlike recent versions of MSVC it doesn't (as of 10.0.1)
-        # support c11
-        opts = super().get_options()
-        c_stds = ['none', 'c89', 'c99',
-                  # Need to have these to be compatible with projects
-                  # that set c_std to e.g. gnu99.
-                  # https://github.com/mesonbuild/meson/issues/7611
-                  'gnu89', 'gnu90', 'gnu9x', 'gnu99']
-        opts['std'].choices = c_stds  # type: ignore
-        return opts
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
-        if options['std'].value.startswith('gnu'):
-            mlog.warning(
-                'Clang-cl does not actually support gnu standards, and '
-                'meson will instead demote to the nearest ISO C standard. This '
-                'may cause compilation to fail.', once=True)
+        std = options['std'].value
+        if std != "none":
+            return ['/clang:-std={}'.format(std)]
         return []
 
 
