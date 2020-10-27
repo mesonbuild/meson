@@ -699,8 +699,8 @@ class SingleTestRunner:
         if self.test.protocol is TestProtocol.GTEST:
             gtestname = '{}.xml'.format(self.test.name)
             if self.test.workdir:
-                gtestname = '{}:{}'.format(self.test.workdir, self.test.name)
-            extra_cmd.append('--gtest_output=xml:{}'.format(gtestname))
+                gtestname = '{}/{}'.format(self.test.workdir, self.test.name)
+            extra_cmd.append('--gtest_output=xml:{}.xml'.format(gtestname))
 
         p = subprocess.Popen(cmd + extra_cmd,
                              stdout=stdout,
