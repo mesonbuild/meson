@@ -539,7 +539,7 @@ def run(opts):
     if not os.path.exists(os.path.join(opts.wd, datafilename)):
         sys.exit('Install data not found. Run this command in build directory root.')
     if not opts.no_rebuild:
-        if not rebuild_all(opts.wd):
+        if not rebuild_all(opts.wd, 'all'):
             sys.exit(-1)
     os.chdir(opts.wd)
     with open(os.path.join(log_dir, 'install-log.txt'), 'w') as lf:

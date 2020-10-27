@@ -1,8 +1,7 @@
 # Comment on the first line
 project('trivial test',
   # Comment inside a function call + array for language list
-  ['c'], default_options: ['buildtype=debug'],
-  meson_version : '>=0.52.0')
+  ['c'], default_options: ['buildtype=debug'])
 #this is a comment
 sources = 'trivial.c'
 
@@ -16,6 +15,7 @@ endif
 
 exe = executable('trivialprog', sources : sources)
 assert(exe.name() == 'trivialprog')
+
 test('runtest', exe) # This is a comment
 
 has_not_changed = false

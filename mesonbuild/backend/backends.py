@@ -987,17 +987,30 @@ class Backend:
         for name, t in self.build.get_targets().items():
             if t.build_by_default:
                 result[name] = t
-        # Get all targets used as test executables and arguments. These must
-        # also be built by default. XXX: Sometime in the future these should be
-        # built only before running tests.
+        return result
+
+    def get_test_targets(self):
+        result = OrderedDict()
+        # Get all targets used as test executables and arguments.
         for t in self.build.get_tests():
             exe = unholder(t.exe)
-            if isinstance(exe, (build.CustomTarget, build.BuildTarget)):
-                result[exe.get_id()] = exe
-            for arg in unholder(t.cmd_args):
-                if not isinstance(arg, (build.CustomTarget, build.BuildTarget)):
-                    continue
-                result[arg.get_id()] = arg
+            for arg in [exe] + unholder(t.cmd_args):
+                if isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    result[arg.get_id()] = arg
+            for dep in t.depends:
+                assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
+                result[dep.get_id()] = dep
+        return result
+
+    def get_benchmark_targets(self):
+        result = OrderedDict()
+        # Get all targets used as test executables and arguments.
+        for t in self.build.get_benchmarks():
+            for arg in [t.exe] + t.cmd_args:
+                if hasattr(arg, 'held_object'):
+                    arg = arg.held_object
+                if isinstance(arg, (build.CustomTarget, build.BuildTarget)):
+                    result[arg.get_id()] = arg
             for dep in t.depends:
                 assert isinstance(dep, (build.CustomTarget, build.BuildTarget))
                 result[dep.get_id()] = dep

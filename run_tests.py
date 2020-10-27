@@ -210,6 +210,7 @@ def get_builddir_target_args(backend, builddir, target):
 def get_backend_commands(backend, debug=False):
     install_cmd = []
     uninstall_cmd = []
+    buildtests_cmd = []
     if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
@@ -226,12 +227,13 @@ def get_backend_commands(backend, debug=False):
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
+        buildtests_cmd = cmd + ['meson-build-tests', 'meson-build-benchmarks']
         test_cmd = cmd + ['test', 'benchmark']
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']
     else:
         raise AssertionError('Unknown backend: {!r}'.format(backend))
-    return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
+    return cmd, clean_cmd, buildtests_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
     global NINJA_1_9_OR_NEWER

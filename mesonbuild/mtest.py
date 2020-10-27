@@ -1204,7 +1204,7 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_all(wd: str) -> bool:
+def rebuild_all(wd: str, target: str) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild tests before running them.')
         return True
@@ -1214,7 +1214,7 @@ def rebuild_all(wd: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    ret = subprocess.run(ninja + ['-C', wd]).returncode
+    ret = subprocess.run(ninja + ['-C', wd, target]).returncode
     if ret != 0:
         print('Could not rebuild {}'.format(wd))
         return False
@@ -1247,7 +1247,7 @@ def run(options: argparse.Namespace) -> int:
             return 1
 
     if not options.list and not options.no_rebuild:
-        if not rebuild_all(options.wd):
+        if not rebuild_all(options.wd, 'meson-build-benchmarks' if options.benchmark else 'meson-build-tests'):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current commit should be skipped.
             # Thus users can directly use `meson test` to bisect without needing to handle the does-not-build case separately in a wrapper script.

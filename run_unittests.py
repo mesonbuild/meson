@@ -1551,7 +1551,7 @@ class BasePlatformTests(unittest.TestCase):
         self.wrap_command = self.meson_command + ['wrap']
         self.rewrite_command = self.meson_command + ['rewrite']
         # Backend-specific build commands
-        self.build_command, self.clean_command, self.test_command, self.install_command, \
+        self.build_command, self.clean_command, self.buildtests_command, self.test_command, self.install_command, \
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
@@ -1563,11 +1563,11 @@ class BasePlatformTests(unittest.TestCase):
         # Misc stuff
         self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
-            self.no_rebuild_stdout = ['ninja: no work to do.', 'samu: nothing to do']
+            self.no_rebuild_stdout = {'ninja: no work to do.', 'samu: nothing to do'}
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = ['UNKNOWN BACKEND {!r}'.format(self.backend.name)]
+            self.no_rebuild_stdout = {'UNKNOWN BACKEND {!r}'.format(self.backend.name)}
 
         self.builddirs = []
         self.new_builddir()
@@ -1701,6 +1701,8 @@ class BasePlatformTests(unittest.TestCase):
         self._run(self.clean_command + dir_args, workdir=self.builddir, override_envvars=override_envvars)
 
     def run_tests(self, *, inprocess=False, override_envvars=None):
+        if self.buildtests_command:
+            self._run(self.buildtests_command, workdir=self.builddir, override_envvars=override_envvars)
         if not inprocess:
             self._run(self.test_command, workdir=self.builddir, override_envvars=override_envvars)
         else:
@@ -1856,7 +1858,7 @@ class BasePlatformTests(unittest.TestCase):
     def assertBuildIsNoop(self):
         ret = self.build()
         if self.backend is Backend.ninja:
-            self.assertIn(ret.split('\n')[-2], self.no_rebuild_stdout)
+            self.assertIn(ret.split('\n')[-2].rstrip(), self.no_rebuild_stdout)
         elif self.backend is Backend.vs:
             # Ensure that some target of each type said that no rebuild was done
             # We always have at least one CustomBuild target for the regen checker
@@ -4882,6 +4884,19 @@ recommended as it is not supported on some platforms''')
             # Explicitly clean the target through msbuild interface
             self._run([*self.meson_command, 'compile', '-C', self.builddir, '--vs-args=-t:{}:Clean'.format(re.sub(r'[\%\$\@\;\.\(\)\']', '_', get_exe_name('trivialprog')))])
             self.assertPathDoesNotExist(os.path.join(self.builddir, get_exe_name('trivialprog')))
+
+    def test_tests_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '132 build by default targets in tests')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
+        self.run_tests()
+
+    def test_benchmark_not_default(self):
+        testdir = os.path.join(self.common_test_dir, '95 benchmark')
+        self.init(testdir)
+        self.build()
+        self.assertBuildIsNoop()
 
     def test_spurious_reconfigure_built_dep_file(self):
         testdir = os.path.join(self.unit_test_dir, '75 dep files')
