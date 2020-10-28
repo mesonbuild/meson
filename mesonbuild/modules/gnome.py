@@ -554,15 +554,16 @@ class GnomeModule(ExtensionModule):
             else:
                 # Because of https://gitlab.gnome.org/GNOME/gobject-introspection/merge_requests/72
                 # we can't use the full path until this is merged.
+                libpath = os.path.join(girtarget.get_subdir(), girtarget.get_filename())
                 if isinstance(girtarget, build.SharedLibrary):
+                    # need to put our output directory first as we need to use the
+                    # generated libraries instead of any possibly installed system/prefix
+                    # ones.
+                    ret += ["-L@BUILD_ROOT@/{}".format(os.path.dirname(libpath))]
                     libname = girtarget.get_basename()
                 else:
-                    libname = os.path.join("@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id(), girtarget.get_filename())
+                    libname = os.path.join("@BUILD_ROOT@/{}".format(libpath))
                 ret += ['--library', libname]
-                # need to put our output directory first as we need to use the
-                # generated libraries instead of any possibly installed system/prefix
-                # ones.
-                ret += ["-L@PRIVATE_OUTDIR_ABS_%s@" % girtarget.get_id()]
                 # Needed for the following binutils bug:
                 # https://github.com/mesonbuild/meson/issues/1911
                 # However, g-ir-scanner does not understand -Wl,-rpath
