@@ -541,11 +541,7 @@ class BoostDependency(SystemDependency):
         system_dirs = [x for x in system_dirs if mesonlib.path_is_in_root(x, root)]
         system_dirs = list(mesonlib.OrderedSet(system_dirs))
 
-        if system_dirs:
-            return system_dirs
-
-        # No system include paths were found --> fall back to manually looking
-        # for library dirs in root
+        # In addition to the system include paths, also look in "lib"
         dirs = []     # type: T.List[Path]
         subdirs = []  # type: T.List[Path]
         for i in root.iterdir():
@@ -561,7 +557,7 @@ class BoostDependency(SystemDependency):
         # Filter out paths that don't match the target arch to avoid finding
         # the wrong libraries. See https://github.com/mesonbuild/meson/issues/7110
         if not self.arch:
-            return dirs + subdirs
+            return system_dirs + dirs + subdirs
 
         arch_list_32 = ['32', 'i386']
         arch_list_64 = ['64']
@@ -615,15 +611,19 @@ class BoostDependency(SystemDependency):
         return libs
 
     def detect_libraries(self, libdir: Path) -> T.List[BoostLibraryFile]:
-        libs = []  # type: T.List[BoostLibraryFile]
+        libs = []  # type: T.List[Path]
         for i in libdir.iterdir():
-            if not i.is_file() or i.is_symlink():
+            if not i.is_file():
                 continue
             if not any([i.name.startswith(x) for x in ['libboost_', 'boost_']]):
                 continue
 
-            libs += [BoostLibraryFile(i)]
-        return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
+            libs += [i.resolve()]
+
+        # Remove duplicate libraries caused by resolving symlinks
+        blibs = [BoostLibraryFile(i) for i in set(libs)] # type: T.List[BoostLibraryFile]
+
+        return [x for x in blibs if x.is_boost()]  # Filter out no boost libraries
 
     def detect_split_root(self, inc_dir: Path, lib_dir: Path) -> None:
         boost_inc_dir = None
