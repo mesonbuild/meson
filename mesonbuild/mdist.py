@@ -23,7 +23,7 @@ import json
 from glob import glob
 from pathlib import Path
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import windows_proof_rmtree, MesonException
+from mesonbuild.mesonlib import windows_proof_rmtree, MesonException, quiet_git
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build
 
@@ -96,9 +96,21 @@ def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
             print('Failed to run dist script {!r}'.format(name))
             sys.exit(1)
 
+def git_root(src_root):
+    # Cannot use --show-toplevel here because git in our CI prints cygwin paths
+    # that python cannot resolve. Workaround this by taking parent of src_root.
+    prefix = quiet_git(['rev-parse', '--show-prefix'], src_root, check=True)[1].strip()
+    if not prefix:
+        return Path(src_root)
+    prefix_level = len(Path(prefix).parents)
+    return Path(src_root).parents[prefix_level - 1]
+
 def is_git(src_root):
-    _git = os.path.join(src_root, '.git')
-    return os.path.isdir(_git) or os.path.isfile(_git)
+    '''
+    Checks if meson.build file at the root source directory is tracked by git.
+    It could be a subproject part of the parent project git repository.
+    '''
+    return quiet_git(['ls-files', '--error-unmatch', 'meson.build'], src_root)[0]
 
 def git_have_dirty_index(src_root):
     '''Check whether there are uncommitted changes in git'''
@@ -110,8 +122,20 @@ def git_clone(src_root, distdir):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
     if os.path.exists(distdir):
         shutil.rmtree(distdir)
-    os.makedirs(distdir)
-    subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
+    repo_root = git_root(src_root)
+    if repo_root.samefile(src_root):
+        os.makedirs(distdir)
+        subprocess.check_call(['git', 'clone', '--shared', src_root, distdir])
+    else:
+        subdir = Path(src_root).relative_to(repo_root)
+        tmp_distdir = distdir + '-tmp'
+        if os.path.exists(tmp_distdir):
+            shutil.rmtree(tmp_distdir)
+        os.makedirs(tmp_distdir)
+        subprocess.check_call(['git', 'clone', '--shared', '--no-checkout', str(repo_root), tmp_distdir])
+        subprocess.check_call(['git', 'checkout', 'HEAD', '--', str(subdir)], cwd=tmp_distdir)
+        Path(tmp_distdir, subdir).rename(distdir)
+        shutil.rmtree(tmp_distdir)
     process_submodules(distdir)
     del_gitfiles(distdir)
 
