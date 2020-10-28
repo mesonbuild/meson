@@ -870,6 +870,10 @@ def skippable(suite, test):
     if test.endswith('15 llvm'):
         return True
 
+    # This test breaks with gobject-introspection <= 1.58.1
+    if test.endswith('34 gir static lib'):
+        return True
+
     # No frameworks test should be skipped on linux CI, as we expect all
     # prerequisites to be installed
     if mesonlib.is_linux():
