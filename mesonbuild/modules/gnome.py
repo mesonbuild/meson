@@ -487,7 +487,8 @@ class GnomeModule(ExtensionModule):
                     depends += [inc]
                 else:
                     raise MesonException(
-                        'Gir includes must be str, GirTarget, or list of them')
+                        'Gir includes must be str, GirTarget, or list of them. '
+                        'Got %s.' % type(inc).__name__)
 
         return ret
 
