@@ -121,7 +121,7 @@ def git_clone(src_root, distdir):
     if git_have_dirty_index(src_root):
         mlog.warning('Repository has uncommitted changes that will not be included in the dist tarball')
     if os.path.exists(distdir):
-        shutil.rmtree(distdir)
+        windows_proof_rmtree(distdir)
     repo_root = git_root(src_root)
     if repo_root.samefile(src_root):
         os.makedirs(distdir)
@@ -130,12 +130,12 @@ def git_clone(src_root, distdir):
         subdir = Path(src_root).relative_to(repo_root)
         tmp_distdir = distdir + '-tmp'
         if os.path.exists(tmp_distdir):
-            shutil.rmtree(tmp_distdir)
+            windows_proof_rmtree(tmp_distdir)
         os.makedirs(tmp_distdir)
         subprocess.check_call(['git', 'clone', '--shared', '--no-checkout', str(repo_root), tmp_distdir])
         subprocess.check_call(['git', 'checkout', 'HEAD', '--', str(subdir)], cwd=tmp_distdir)
         Path(tmp_distdir, subdir).rename(distdir)
-        shutil.rmtree(tmp_distdir)
+        windows_proof_rmtree(tmp_distdir)
     process_submodules(distdir)
     del_gitfiles(distdir)
 
@@ -157,7 +157,7 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
         compressed_name = distdir + archive_extension[a]
         shutil.make_archive(distdir, a, root_dir=dist_sub, base_dir=dist_name)
         output_names.append(compressed_name)
-    shutil.rmtree(distdir)
+    windows_proof_rmtree(distdir)
     return output_names
 
 def is_hg(src_root):
