@@ -10,6 +10,7 @@ import typing as T
 modules = [
     # fully typed submodules
     'mesonbuild/ast',
+    'mesonbuild/cargo',
     'mesonbuild/cmake',
     'mesonbuild/compilers',
     'mesonbuild/scripts',
