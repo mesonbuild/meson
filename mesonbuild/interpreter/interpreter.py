@@ -241,7 +241,7 @@ class Interpreter(InterpreterBase):
         self.processed_buildfiles = set() # type: T.Set[str]
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
-        self.subprojects = {}
+        self.subprojects: T.Dict['SubprojectKeyType', SubprojectHolder] = {}
         self.subproject_stack = []
         self.configure_file_outputs = {}
         # Passed from the outside, only used in subprojects.
@@ -695,20 +695,20 @@ external dependencies (including libraries) must go to "dependencies".''')
         subp_name = args[0]
         return self.do_subproject(subp_name, 'meson', kwargs)
 
-    def disabled_subproject(self, subp_name, disabled_feature=None, exception=None):
+    def disabled_subproject(self, subp_name: 'SubprojectKeyType', disabled_feature=None, exception=None):
         sub = SubprojectHolder(None, os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
         self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
-    def get_subproject(self, subp_name):
+    def get_subproject(self, subp_name: 'SubprojectKeyType') -> T.Optional[SubprojectHolder]:
         sub = self.subprojects.get(subp_name)
         if sub and sub.found():
             return sub
         return None
 
-    def do_subproject(self, subp_name: str, method: str, kwargs):
+    def do_subproject(self, subp_name: 'SubprojectKeyType', method: str, kwargs) -> SubprojectHolder:
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Subproject', mlog.bold(subp_name), ':', 'skipped: feature', mlog.bold(feature), 'disabled')
@@ -1459,7 +1459,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             m = 'Inconsistency: Subproject has overridden the dependency with another variable than {!r}'
             raise DependencyException(m.format(varname))
 
-    def get_subproject_dep(self, name, display_name, subp_name, varname, kwargs):
+    def get_subproject_dep(self, name, display_name, subp_name: 'SubprojectKeyType', varname, kwargs):
         required = kwargs.get('required', True)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         dep = self.notfound_dependency()
