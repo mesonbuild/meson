@@ -1,0 +1,13 @@
+[package]
+name = "functional_test_mixed_2015"
+version = "1.0.0"
+edition = '2018'
+
+[lib]
+name = "mylib"
+path = "src/lib.rs"
+test = false
+
+[[test]]
+name = "manual_test_with_auto"
+path = "tests/test.rs"

@@ -1,0 +1,8 @@
+[package]
+name = "mixed_bins"
+version = "1.0.0"
+autobins = true
+
+[[bin]]
+name = "printer"
+path = "src/app2.rs"

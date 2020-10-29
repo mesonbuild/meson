@@ -55,7 +55,8 @@ from run_tests import guess_backend
 ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala',  'rust', 'd', 'objective c', 'objective c++',
-             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm'
+             'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm',
+             'cargo',
              ]
 
 
@@ -1002,6 +1003,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
             self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
     all_tests = [
+        TestCategory('cargo', 'cargo', not shutil.which('cargo') or should_skip_rust(backend)),
         TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
         TestCategory('common', 'common'),
         TestCategory('native', 'native'),
@@ -1033,7 +1035,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     ]
 
     categories = [t.category for t in all_tests]
-    assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
+    assert sorted(categories) == sorted(ALL_TESTS), 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
         for key in only.keys():

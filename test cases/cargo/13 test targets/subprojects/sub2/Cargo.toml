@@ -1,0 +1,8 @@
+[package]
+name = "functional_test_auto"
+version = "1.0.0"
+
+[lib]
+name = "mylib"
+path = "src/lib.rs"
+test = false

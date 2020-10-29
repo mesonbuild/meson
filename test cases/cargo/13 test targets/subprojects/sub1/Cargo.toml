@@ -1,0 +1,13 @@
+[package]
+name = "functional_tests"
+version = "1.0.0"
+autotests = false
+
+[lib]
+name = "mylib"
+path = "src/lib.rs"
+test = false
+
+[[test]]
+name = "mylib_test"
+path = "src/tests/test.rs"

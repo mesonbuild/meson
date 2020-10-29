@@ -1,0 +1,10 @@
+[package]
+name = "test-function"
+version = "1.0.0"
+autolibs = false
+autotests = false
+autobins = false
+
+[lib]
+path = "src/lib.rs"
+test = false

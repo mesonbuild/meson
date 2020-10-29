@@ -1,0 +1,12 @@
+[package]
+name = "manual_bins"
+version = "1.0.0"
+autobins = false
+
+[[bin]]
+name = "app"
+path = "src/app.rs"
+
+[[bin]]
+name = "printer"
+path = "src/app2.rs"

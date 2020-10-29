@@ -1,0 +1,12 @@
+[package]
+name = "has_features"
+version = "1.0.0"
+
+[features]
+default = ["default_feature"]
+test_feature = []
+default_feature = []
+
+[lib]
+name = "lib"
+path = "lib.rs"

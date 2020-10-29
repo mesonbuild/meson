@@ -1,0 +1,9 @@
+[package]
+name = "sub1"
+version = "1.0.1"
+edition = "2018"
+
+[[bin]]
+name = "app_2015"
+path = "src/app2.rs"
+edition = "2015"

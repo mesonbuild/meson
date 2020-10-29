@@ -1,0 +1,8 @@
+[package]
+name = "auto_bins_2018_with_manual"
+version = "1.0.0"
+edition = "2018"
+
+[[bin]]
+name = "foo"
+path = "src/foo.rs"

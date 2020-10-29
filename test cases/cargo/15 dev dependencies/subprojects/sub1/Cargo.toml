@@ -1,0 +1,13 @@
+[package]
+name = "test-package"
+version = "1.0.0"
+autolibs = false
+autotests = false
+autobins = false
+
+[dev-dependencies]
+test-function = ">= 1.0.0"
+
+[lib]
+name = "mylib"
+path = "src/lib.rs"

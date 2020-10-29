@@ -1,0 +1,7 @@
+[package]
+name = "mylib"
+version = "2.0.0"
+
+[lib]
+name = "cool_lib"
+path = "src/cool-lib.rs"

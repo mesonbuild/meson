@@ -1,0 +1,11 @@
+[package]
+name = "manual_auto_clash"
+version = "1.0.0"
+
+[features]
+need_to_build = []
+
+[[bin]]
+name = "foo"
+path = "src/bin/foo.rs"
+features

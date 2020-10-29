@@ -1,0 +1,4 @@
+[package]
+name = "autobins_project"
+version = "1.0.0"
+edition = "2018"
