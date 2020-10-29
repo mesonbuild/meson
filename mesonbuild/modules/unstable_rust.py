@@ -16,6 +16,7 @@ import os
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue
+from .. import cargo
 from .. import mlog
 from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
 from ..dependencies import Dependency, ExternalLibrary
@@ -38,6 +39,7 @@ class RustModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional['ExternalProgram'] = None
+        self.snippets.add('subproject')
 
     @permittedKwargs(permitted_test_kwargs | {'dependencies'} ^ {'protocol'})
     @typed_pos_args('rust.test', str, BuildTargetHolder)
@@ -202,6 +204,22 @@ class RustModule(ExtensionModule):
         )
 
         return ModuleReturnValue([target], [CustomTargetHolder(target, self.interpreter)])
+
+    def subproject(self, interpreter: 'Interpreter', state: 'ModuleState',
+                   args: T.List, kwargs: T.Dict[str, T.Any]) -> 'SubprojectHolder':
+        """Create a subproject from a cargo manifest.
+
+        This method
+        """
+        if not cargo.HAS_TOML:
+            raise InterpreterException('cargo integration requires the python toml module.')
+        dirname: str = args[0]
+        if not isinstance(dirname, str):
+            raise InvalidArguments('rust.subproject "name" positional arugment must be a string.')
+
+        subp = interpreter.do_subproject(dirname, 'cargo', kwargs)
+
+        return subp
 
 
 def initialize(*args: T.List, **kwargs: T.Dict) -> RustModule:
