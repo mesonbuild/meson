@@ -306,14 +306,17 @@ class Resolver:
 
         meson_file = os.path.join(self.dirname, 'meson.build')
         cmake_file = os.path.join(self.dirname, 'CMakeLists.txt')
+        cargo_file = os.path.join(self.dirname, 'Cargo.toml')
 
-        if method not in ['meson', 'cmake']:
-            raise WrapException('Only the methods "meson" and "cmake" are supported')
+        if method not in {'meson', 'cmake', 'cargo'}:
+            raise WrapException('Only the methods "meson", "cmake", and "cargo" are supported')
 
         # The directory is there and has meson.build? Great, use it.
         if method == 'meson' and os.path.exists(meson_file):
             return rel_path
-        if method == 'cmake' and os.path.exists(cmake_file):
+        elif method == 'cmake' and os.path.exists(cmake_file):
+            return rel_path
+        elif method == 'cargo' and os.path.exists(cargo_file):
             return rel_path
 
         # Check if the subproject is a git submodule
@@ -340,8 +343,10 @@ class Resolver:
         # A meson.build or CMakeLists.txt file is required in the directory
         if method == 'meson' and not os.path.exists(meson_file):
             raise WrapException('Subproject exists but has no meson.build file')
-        if method == 'cmake' and not os.path.exists(cmake_file):
+        elif method == 'cmake' and not os.path.exists(cmake_file):
             raise WrapException('Subproject exists but has no CMakeLists.txt file')
+        elif method == 'cargo' and not os.path.exists(cargo_file):
+            raise WrapException('Subproject exists but has no Cargo.toml file')
 
         return rel_path
 
