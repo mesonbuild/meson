@@ -2058,6 +2058,10 @@ are immutable, all operations return their results as a new string.
 
 - `to_upper()`: creates an upper case version of the string.
 
+- `is_lower()`: returns true if all characters in the string are lowercase.
+
+- `is_upper()`: returns true if all characters in the string are uppercase.
+
 - `underscorify()`: creates a string where every non-alphabetical
   non-number character is replaced with `_`.
 

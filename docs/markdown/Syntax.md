@@ -202,6 +202,14 @@ upper = target.to_upper() # t now has the value 'X86_FREEBSD'
 lower = target.to_lower() # t now has the value 'x86_freebsd'
 ```
 
+#### .is_upper(), .is_lower()
+
+```meson
+target = 'x86_freebsd'
+upper = target.is_upper() # boolean value 'false'
+lower = target.is_lower() # boolean value 'true'
+```
+
 #### .to_int()
 
 ```meson
