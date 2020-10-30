@@ -266,7 +266,7 @@ build directory with the name `output:` in the current directory.
 These are all the supported keyword arguments:
 
 - `capture` *(since 0.41.0)*: when this argument is set to true,
-  Meson captures `stdout` of the `command` and writes it to the target 
+  Meson captures `stdout` of the `command` and writes it to the target
   file specified as `output`.
 - `command`: as explained above, if specified, Meson does not create
   the file itself but rather runs the specified command, which allows
@@ -392,10 +392,14 @@ the following special string substitutions:
 - `@BASENAME@`: the input filename, with extension removed
 - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
 
-*(since 0.47.0)* The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@` substitutions. 
+*(since 0.47.0)* The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@` substitutions.
 
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
+
+**Note:** Assuming that `command:` is executed by a POSIX `sh` shell is not
+portable, notably to Windows. Instead, consider using a `native: true`
+[executable()](#executable), or a python script.
 
 ### declare_dependency()
 
@@ -423,7 +427,7 @@ keyword arguments:
 - `version`: the version of this dependency, such as `1.2.3`
 - `variables` *(since 0.54.0)*: a dictionary of arbitrary strings, this is meant to be used
   in subprojects where special variables would be provided via cmake or
-  pkg-config.
+  pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
 
 ### dependency()
 
@@ -436,33 +440,61 @@ system) with the given name with `pkg-config` and [with
 CMake](Dependencies.md#cmake) if `pkg-config` fails. Additionally,
 frameworks (OSX only) and [library-specific fallback detection
 logic](Dependencies.md#dependencies-with-custom-lookup-functionality)
-are also supported. This function supports the following keyword
-arguments:
+are also supported.
+
+Dependencies can also be resolved in two other ways:
+
+* if the same name was used in a `meson.override_dependency` prior to
+  the call to `dependency`, the overriding dependency will be returned
+  unconditionally; that is, the overriding dependency will be used
+  independent of whether an external dependency is installed in the system.
+  Typically, `meson.override_dependency` will have been used by a
+  subproject.
+
+* by a fallback subproject which, if needed, will be brought into the current
+  build specification as if [`subproject()`](#subproject) had been called.
+  The subproject can be specified with the `fallback` argument.  Alternatively,
+  if the `fallback` argument is absent, *since 0.55.0* Meson can
+  automatically identify a subproject as a fallback if a wrap file
+  [provides](Wrap-dependency-system-manual.md#provide-section) the
+  dependency, or if a subproject has the same name as the dependency.
+  In the latter case, the subproject must use `meson.override_dependency` to
+  specify the replacement, or Meson will report a hard error.  See the
+  [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.  This automatic search can be controlled using the
+  `allow_fallback` keyword argument.
+
+This function supports the following keyword arguments:
 
 - `default_options` *(since 0.37.0)*: an array of default option values
   that override those set in the subproject's `meson_options.txt`
   (like `default_options` in [`project()`](#project), they only have
   effect when Meson is run for the first time, and command line
   arguments override any default options in build files)
-- `fallback`: specifies a subproject fallback to use in case the
-  dependency is not found in the system. The value is an array
-  `['subproj_name', 'subproj_dep']` where the first value is the name
+- `allow_fallback` (boolean argument, *since 0.56.0*): specifies whether Meson
+  should automatically pick a fallback subproject in case the dependency
+  is not found in the system.  If `true` and the dependency is not found
+  on the system, Meson will fallback to a subproject that provides this
+  dependency. If `false`, Meson will not fallback even if a subproject
+  provides this dependency.  By default, Meson will do so if `required`
+  is `true` or  [`enabled`](Build-options.md#features); see the [Wrap
+  documentation](Wrap-dependency-system-manual.md#provide-section)
+  for more details.
+- `fallback` (string or array argument): manually specifies a subproject
+  fallback to use in case the dependency is not found in the system.
+  This is useful if the automatic search is not applicable or if you
+  want to support versions of Meson older than 0.55.0.  If the value is an
+  array `['subproj_name', 'subproj_dep']`, the first value is the name
   of the subproject and the second is the variable name in that
   subproject that contains a dependency object such as the return
   value of [`declare_dependency`](#declare_dependency) or
   [`dependency()`](#dependency), etc. Note that this means the
   fallback dependency may be a not-found dependency, in which
   case the value of the `required:` kwarg will be obeyed.
-  *(since 0.54.0)* `'subproj_dep'` argument can be omitted in the case the
-  subproject used `meson.override_dependency('dependency_name', subproj_dep)`.
-  In that case, the `fallback` keyword argument can be a single string instead
-  of a list of 2 strings. *Since 0.55.0* the `fallback` keyword argument can be
-  omitted when there is a wrap file or a directory with the same `dependency_name`,
-  and subproject registered the dependency using
-  `meson.override_dependency('dependency_name', subproj_dep)`, or when the wrap
-  file has `dependency_name` in its `[provide]` section.
-  See [Wrap documentation](Wrap-dependency-system-manual.md#provide-section)
-  for more details.
+  *Since 0.54.0* the value can be a single string, the subproject name;
+  in this case the subproject must use
+  `meson.override_dependency('dependency_name', subproj_dep)`
+  to specify the dependency object used in the superproject.
 - `language` *(since 0.42.0)*: defines what language-specific
   dependency to find if it's available for multiple languages.
 - `method`: defines the way the dependency is detected, the default is
@@ -484,7 +516,7 @@ arguments:
   by all dependency backends)
 - `version` *(since 0.37.0)*: specifies the required version, a string containing a
   comparison operator followed by the version string, examples include
-  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching. 
+  `>1.0.0`, `<=2.3.5` or `3.1.4` for exact matching.
   You can also specify multiple restrictions by passing a list to this
   keyword argument, such as: `['>=3.14.0', '<=4.1.0']`.
   These requirements are never met if the version is unknown.
@@ -595,8 +627,9 @@ be passed to [shared and static libraries](#library).
 - `extra_files`: not used for the build itself but are shown as
   source files in IDEs that group files by targets (such as Visual
   Studio)
-- `gui_app`: when set to true flags this target as a GUI application on
-  platforms where this makes a difference (e.g. Windows).
+- `gui_app`: when set to true flags this target as a GUI application
+  on platforms where this makes a differerence, **deprecated** since
+  0.56.0, use `win_subsystem` instead.
 - `link_args`: flags to use during linking. You can use UNIX-style
   flags here for all platforms.
 - `link_depends`: strings, files, or custom targets the link step
@@ -616,8 +649,8 @@ be passed to [shared and static libraries](#library).
   custom targets. The user must ensure that the output is a library in
   the correct format.
 - `link_with`: one or more shared or static libraries (built by this
-  project) that this target should be linked with. *(since 0.41.0)* If passed a 
-  list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets. 
+  project) that this target should be linked with. *(since 0.41.0)* If passed a
+  list this list will be flattened. *(since 0.51.0)* The arguments can also be custom targets.
   In this case Meson will assume that merely adding the output file in the linker command
   line is sufficient to make linking work. If this is not sufficient,
   then the build system writer must write all other steps manually.
@@ -673,6 +706,12 @@ be passed to [shared and static libraries](#library).
 - `pie` *(since 0.49.0)*: build a position-independent executable
 - `native`: is a boolean controlling whether the target is compiled for the
   build or host machines. Defaults to false, building for the host machine.
+- `win_subsystem` *(since 0.56.0)* specifies the subsystem type to use
+  on the Windows platform. Typical values include `console` for text
+  mode programs and `windows` for gui apps. The value can also contain
+  version specification such as `windows,6.0`. See [MSDN
+  documentation](https://docs.microsoft.com/en-us/cpp/build/reference/subsystem-specify-subsystem)
+  for the full list. The default value is `console`.
 
 The list of `sources`, `objects`, and `dependencies` is always
 flattened, which means you can freely nest and add lists while
@@ -694,8 +733,22 @@ The returned object also has methods that are documented in the
 ```
 
 `program_name1` here is a string that can be an executable or script
-to be searched for in `PATH`, or a script in the current source
-directory.
+to be searched for in `PATH` or other places inside the project.
+The search order is:
+
+1. Program overrides set via [`meson.override_find_program()`](Reference-manual.md#meson-object)
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section)
+   in subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to `forcefallback`
+1. [`[binaries]` section](Machine-files.md#binaries) in your machine files
+1. Directories provided using the `dirs:` kwarg (see below)
+1. Project's source tree relative to the current subdir
+   - If you use the return value of [`configure_file()`](#configure_file), the
+     current subdir inside the build tree is used instead
+1. `PATH` environment variable
+1. [`[provide]` sections](Wrap-dependency-system-manual.md#provide-section) in
+   subproject wrap files, if [`wrap_mode`](Builtin-options.md#core-options) is
+   set to anything other than `nofallback`
 
 *(since 0.37.0)* `program_name2` and later positional arguments are used as fallback
 strings to search for. This is meant to be used for cases where the
@@ -721,7 +774,7 @@ Keyword arguments are the following:
 
 - `disabler` *(since 0.49.0)*: if `true` and the program couldn't be found, return a
   [disabler object](#disabler-object) instead of a not-found object.
-  
+
 
 - `version` *(since 0.52.0)*: specifies the required version, see
   [`dependency()`](#dependency) for argument format. The version of the program
@@ -1312,11 +1365,7 @@ My Project 1.0
 ```
 
 The first argument to this function must be a string defining the name
-of this project. It is followed by programming languages that the
-project uses. Supported values for languages are `c`, `cpp` (for
-`C++`), `cuda`, `d`, `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`),
-`vala` and `rust`. *(since 0.40.0)* The list of languages
-is optional.
+of this project.
 
 The project name can be any string you want, it's not used for
 anything except descriptive purposes. However since it is written to
@@ -1324,6 +1373,18 @@ e.g. the dependency manifest is usually makes sense to have it be the
 same as the project tarball or pkg-config name. So for example you
 would probably want to use the name _libfoobar_ instead of _The Foobar
 Library_.
+
+It may be followed by the list of programming languages that the project uses.
+
+*(since 0.40.0)* The list of languages is optional.
+
+These languages may be used both for `native: false` (the default) (host
+machine) targets and for `native: true` (build machine) targets. *(since
+0.56.0)* The build machine compilers for the specified languages are not
+required.
+
+Supported values for languages are `c`, `cpp` (for `C++`), `cuda`, `d`,
+`objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`), `vala` and `rust`.
 
 Project supports the following keyword arguments.
 
@@ -1776,7 +1837,7 @@ the following methods.
 
   `MESONINTROSPECT` contains the path to the introspect command that
   corresponds to the `meson` executable that was used to configure the
-  build. (This might be a different path then the first executable
+  build. (This might be a different path than the first executable
   found in `PATH`.) It can be used to query build configuration. Note
   that the value will contain many parts, f.ex., it may be `python3
   /path/to/meson.py introspect`. The user is responsible for splitting
@@ -1796,17 +1857,23 @@ the following methods.
   or `xcode`.
 
 - `build_root()`: returns a string with the absolute path to the build
-  root directory. Note: this function will return the build root of
-  the parent project if called from a subproject, which is usually
-  not what you want. Try using `current_build_dir()`.
+  root directory. *(deprecated since 0.56.0)*: this function will return the
+  build root of the parent project if called from a subproject, which is usually
+  not what you want. Try using `current_build_dir()` or `project_build_root()`.
 
 - `source_root()`: returns a string with the absolute path to the
   source root directory. Note: you should use the `files()` function
   to refer to files in the root source directory instead of
-  constructing paths manually with `meson.source_root()`. This
-  function will return the source root of the parent project if called
-  from a subproject, which is usually not what you want. Try using
-  `current_source_dir()`.
+  constructing paths manually with `meson.source_root()`.
+  *(deprecated since 0.56.0)*: This function will return the source root of the
+  parent project if called from a subproject, which is usually not what you want.
+  Try using `current_source_dir()` or `project_source_root()`.
+
+- `project_build_root()` *(since 0.56.0)*: returns a string with the absolute path
+  to the build root directory of the current (sub)project.
+
+- `project_source_root()` *(since 0.56.0)*: returns a string with the absolute path
+  to the source root directory of the current (sub)project.
 
 - `current_build_dir()`: returns a string with the absolute path to the
   current build directory.
@@ -2049,6 +2116,8 @@ The following methods are defined for all [dictionaries](Syntax.md#dictionaries)
   fallback value given as the second argument. If a single argument
   was given and the key was not found, causes a fatal error
 
+- `keys()`: returns an array of keys in the dictionary
+
 You can also iterate over dictionaries with the [`foreach`
 statement](Syntax.md#foreach-statements).
 
@@ -2155,33 +2224,33 @@ the following methods:
   `args` keyword, you can specify external dependencies to use with
   `dependencies` keyword argument.
 
-- `check_header` *(since 0.47.0)*: returns true if the specified header is *usable* with
-  the specified prefix, dependencies, and arguments.
-  You can specify external dependencies to use with `dependencies`
-  keyword argument and extra code to put above the header test with
-  the `prefix` keyword. In order to look for headers in a specific
-  directory you can use `args : '-I/extra/include/dir`, but this
-  should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`. *(since 0.50.0)* The
-  `required` keyword argument can be used to abort if the header cannot be
-  found.
+- `check_header(header_name)` *(since 0.47.0)*: returns true if the
+  specified header is *usable* with the specified prefix,
+  dependencies, and arguments. You can specify external dependencies
+  to use with `dependencies` keyword argument and extra code to put
+  above the header test with the `prefix` keyword. In order to look
+  for headers in a specific directory you can use `args :
+  '-I/extra/include/dir`, but this should only be used in exceptional
+  cases for includes that can't be detected via pkg-config and passed
+  via `dependencies`. *(since 0.50.0)* The `required` keyword argument
+  can be used to abort if the header cannot be found.
 
-- `has_header`: returns true if the specified header *exists*, and is
-  faster than `check_header()` since it only does a pre-processor check.
-  You can specify external dependencies to use with `dependencies`
-  keyword argument and extra code to put above the header test with
-  the `prefix` keyword. In order to look for headers in a specific
-  directory you can use `args : '-I/extra/include/dir`, but this
-  should only be used in exceptional cases for includes that can't be
-  detected via pkg-config and passed via `dependencies`. *(since 0.50.0)* The
-  `required` keyword argument can be used to abort if the header cannot be
-  found.
+- `has_header(header_name)`: returns true if the specified header
+  *exists*, and is faster than `check_header()` since it only does a
+  pre-processor check. You can specify external dependencies to use
+  with `dependencies` keyword argument and extra code to put above the
+  header test with the `prefix` keyword. In order to look for headers
+  in a specific directory you can use `args : '-I/extra/include/dir`,
+  but this should only be used in exceptional cases for includes that
+  can't be detected via pkg-config and passed via `dependencies`.
+  *(since 0.50.0)* The `required` keyword argument can be used to
+  abort if the header cannot be found.
 
 - `has_header_symbol(headername, symbolname)`: detects
   whether a particular symbol (function, variable, #define, type
   definition, etc) is declared in the specified header, you can
   specify external dependencies to use with `dependencies` keyword
-  argument. *(since 0.50.0)* The `required` keyword argument can be 
+  argument. *(since 0.50.0)* The `required` keyword argument can be
   used to abort if the symbol cannot be found.
 
 - `has_member(typename, membername)`: takes two arguments, type name
@@ -2250,7 +2319,7 @@ The following keyword arguments can be used:
   pass a library name `-lfoo` for `has_function` to check for a function.
   Supported by all methods except `get_id`, `version`, and `find_library`.
 
-- `include_directories` *(since 0.38.0)*: specifies extra directories for 
+- `include_directories` *(since 0.38.0)*: specifies extra directories for
   header searches.
 
 - `name`: the name to use for printing a message about the compiler
@@ -2339,8 +2408,8 @@ page](Configuration.md) It has three methods:
 
 - `has(varname)`: returns `true` if the specified variable is set
 
-- `merge_from(other)` *(since 0.42.0)*: takes as argument a different 
-  configuration data object and copies all entries from that object to 
+- `merge_from(other)` *(since 0.42.0)*: takes as argument a different
+  configuration data object and copies all entries from that object to
   the current.
 
 - `set(varname, value)`, sets a variable to a given value
@@ -2399,9 +2468,13 @@ an external dependency with the following methods:
    *(since 0.45.0)* A warning is issued if the variable is not defined,
    unless a `default` parameter is specified.
 
+   *(Deprecated since 0.56.0*) use `get_variable(pkgconfig : ...)` instead
+
  - `get_configtool_variable(varname)` *(since 0.44.0)*: gets the
    command line argument from the config tool (with `--` prepended), or,
    if invoked on a non config-tool dependency, error out.
+
+   *(Deprecated since 0.56.0*) use `get_variable(configtool : ...)` instead
 
  - `type_name()`: returns a string describing the type of the
    dependency, the most common values are `internal` for deps created
@@ -2417,6 +2490,13 @@ an external dependency with the following methods:
  - `as_system(value)`: returns a copy of the dependency object, which has changed
    the value of `include_type` to `value`. The `value` argument is optional and
    defaults to `'preserve'`.
+
+ - `as_link_whole()` *Since 0.56.0* Only dependencies created with
+   `declare_dependency()`, returns a copy of the dependency object with all
+   link_with arguments changed to link_whole. This is useful for example for
+   fallback dependency from a subproject built with `default_library=static`.
+   Note that all `link_with` objects must be static libraries otherwise an error
+   will be raised when trying to `link_whole` a shared library.
 
  - `partial_dependency(compile_args : false, link_args : false, links
    : false, includes : false, sources : false)` *(since 0.46.0)*: returns

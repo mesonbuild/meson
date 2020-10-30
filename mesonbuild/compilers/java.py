@@ -15,6 +15,7 @@
 import os.path
 import shutil
 import subprocess
+import textwrap
 import typing as T
 
 from ..mesonlib import EnvironmentException, MachineChoice
@@ -23,60 +24,40 @@ from .mixins.islinker import BasicLinkerIsCompilerMixin
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
+    from ..environment import Environment
 
 class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
     language = 'java'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 info: 'MachineInfo', full_version: T.Optional[str] = None):
+        super().__init__(exelist, version, for_machine, info, full_version=full_version)
         self.id = 'unknown'
-        self.is_cross = False
         self.javarunner = 'java'
 
-    def get_werror_args(self):
+    def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
 
-    def split_shlib_to_parts(self, fname):
-        return None, fname
-
-    def get_dependency_gen_args(self, outtarget, outfile):
-        return []
-
-    def get_compile_only_args(self):
-        return []
-
-    def get_output_args(self, subdir):
+    def get_output_args(self, subdir: str) -> T.List[str]:
         if subdir == '':
             subdir = './'
         return ['-d', subdir, '-s', subdir]
 
-    def get_coverage_args(self):
+    def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_std_exe_link_args(self):
+    def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    def get_include_args(self, path):
-        return []
-
-    def get_pic_args(self):
-        return []
-
-    def name_string(self):
-        return ' '.join(self.exelist)
-
-    def get_pch_use_args(self, pch_dir, header):
-        return []
-
-    def get_pch_name(self, header_name):
+    def get_pch_name(self, name: str) -> str:
         return ''
 
-    def get_buildtype_args(self, buildtype):
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
         return java_buildtype_args[buildtype]
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
+                                               build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i in ['-cp', '-classpath', '-sourcepath'] and idx + 1 < len(parameter_list):
                 path_list = parameter_list[idx + 1].split(os.pathsep)
@@ -85,17 +66,18 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir, environment):
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         src = 'SanityCheck.java'
         obj = 'SanityCheck'
         source_name = os.path.join(work_dir, src)
         with open(source_name, 'w') as ofile:
-            ofile.write('''class SanityCheck {
-  public static void main(String[] args) {
-    int i;
-  }
-}
-''')
+            ofile.write(textwrap.dedent(
+                '''class SanityCheck {
+                  public static void main(String[] args) {
+                    int i;
+                  }
+                }
+                '''))
         pc = subprocess.Popen(self.exelist + [src], cwd=work_dir)
         pc.wait()
         if pc.returncode != 0:
@@ -115,5 +97,8 @@ class JavaCompiler(BasicLinkerIsCompilerMixin, Compiler):
                 "all about it."
             raise EnvironmentException(m)
 
-    def needs_static_linker(self):
+    def needs_static_linker(self) -> bool:
         return False
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return []

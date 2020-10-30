@@ -34,10 +34,10 @@ function DownloadFile([String] $Source, [String] $Destination) {
 }
 
 
-if ($env:backend -eq 'ninja') { $dmd = $true } else { $dmd = $false }
+if (($env:backend -eq 'ninja') -and ($env:arch -ne 'arm64')) { $dmd = $true } else { $dmd = $false }
 
-DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci2/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
-echo "Extracting  ci_data.zip"
+DownloadFile -Source https://github.com/mesonbuild/cidata/releases/download/ci3/ci_data.zip -Destination $env:AGENT_WORKFOLDER\ci_data.zip
+echo "Extracting ci_data.zip"
 Expand-Archive $env:AGENT_WORKFOLDER\ci_data.zip -DestinationPath $env:AGENT_WORKFOLDER\ci_data
 & "$env:AGENT_WORKFOLDER\ci_data\install.ps1" -Arch $env:arch -Compiler $env:compiler -Boost $true -DMD $dmd
 
@@ -75,4 +75,4 @@ echo "=== Start running tests ==="
 # Starting from VS2019 Powershell(?) will fail the test run
 # if it prints anything to stderr. Python's test runner
 # does that by default so we need to forward it.
-cmd /c 'python 2>&1' run_tests.py --backend $env:backend
+cmd /c "python 2>&1 run_tests.py --backend $env:backend $env:extraargs"

@@ -20,11 +20,19 @@ import abc
 import os
 import typing as T
 
+from ... import arglist
 from ... import mesonlib
 from ... import mlog
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from .clike import CLikeCompiler as Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 vs32_instruction_set_args = {
     'mmx': ['/arch:SSE'], # There does not seem to be a flag just for MMX
@@ -54,10 +62,10 @@ vs64_instruction_set_args = {
 
 msvc_buildtype_args = {
     'plain': [],
-    'debug': ["/ZI", "/Ob0", "/Od", "/RTC1"],
-    'debugoptimized': ["/Zi", "/Ob1"],
-    'release': ["/Ob2", "/Gw"],
-    'minsize': ["/Zi", "/Gw"],
+    'debug': ["/ZI", "/RTC1"],
+    'debugoptimized': [],
+    'release': [],
+    'minsize': [],
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
@@ -71,21 +79,21 @@ clangcl_buildtype_args = msvc_buildtype_args.copy()
 clangcl_buildtype_args['debug'] = ['/Zi', '/Ob0', '/Od', '/RTC1']
 
 msvc_optimization_args = {
-    '0': [],
+    '0': ['/Od', '/Ob0'],
     'g': ['/O0'],
     '1': ['/O1'],
-    '2': ['/O2'],
-    '3': ['/O2'],
-    's': ['/O1'], # Implies /Os.
+    '2': ['/O2', '/Ob1'],
+    '3': ['/O2', '/Ob2', '/Gw'],
+    's': ['/O1', '/Gw'], # Implies /Os.
 }  # type: T.Dict[str, T.List[str]]
 
 msvc_debug_args = {
     False: [],
-    True: []  # Fixme!
+    True: ['/Zi']
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
+class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
 
     """A common interface for all compilers implementing an MSVC-style
     interface.
@@ -97,10 +105,8 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
 
     std_warn_args = ['/W3']
     std_opt_args = ['/O2']
-    # XXX: this is copied in this patch only to avoid circular dependencies
-    #ignore_libs = unixy_compiler_internal_libs
-    ignore_libs = ('m', 'c', 'pthread', 'dl', 'rt', 'execinfo')
-    internal_libs = ()
+    ignore_libs = arglist.UNIXY_COMPILER_INTERNAL_LIBS + ['execinfo']
+    internal_libs = []  # type: T.List[str]
 
     crt_args = {
         'none': [],
@@ -131,8 +137,13 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             self.machine = 'x64'
         elif '86' in target:
             self.machine = 'x86'
+        elif 'aarch64' in target:
+            self.machine = 'arm64'
+        elif 'arm' in target:
+            self.machine = 'arm'
         else:
             self.machine = target
+        assert self.linker is not None
         self.linker.machine = self.machine
 
     # Override CCompiler.get_always_args
@@ -171,14 +182,17 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return ['/Fe' + target]
         return ['/Fo' + target]
 
-    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
-        return msvc_optimization_args[optimization_level]
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return msvc_buildtype_args[buildtype]
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return msvc_debug_args[is_debug]
 
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        args = msvc_optimization_args[optimization_level]
+        if mesonlib.version_compare(self.version, '<18.0'):
+            args = [arg for arg in args if arg != '/Gw']
+        return args
 
     def linker_to_compiler_args(self, args: T.List[str]) -> T.List[str]:
         return ['/link'] + args
@@ -190,6 +204,9 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
             return ['/SUBSYSTEM:WINDOWS']
         else:
             return ['/SUBSYSTEM:CONSOLE']
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return ['/SUBSYSTEM:' + value.upper()]
 
     def get_pic_args(self) -> T.List[str]:
         return [] # PIC is handled by the loader on Windows
@@ -287,12 +304,12 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     # Visual Studio is special. It ignores some arguments it does not
     # understand and you can't tell it to error out on those.
     # http://stackoverflow.com/questions/15259720/how-can-i-make-the-microsoft-c-compiler-treat-unknown-flags-as-errors-rather-t
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         warning_text = '4044' if mode == 'link' else '9002'
         with self._build_wrapper(code, env, extra_args=args, mode=mode) as p:
             if p.returncode != 0:
                 return False, p.cached
-            return not(warning_text in p.stde or warning_text in p.stdo), p.cached
+            return not(warning_text in p.stderr or warning_text in p.stdout), p.cached
 
     def get_compile_debugfile_args(self, rel_obj: str, pch: bool = False) -> T.List[str]:
         pdbarr = rel_obj.split('.')[:-1]
@@ -345,18 +362,23 @@ class VisualStudioLikeCompiler(metaclass=abc.ABCMeta):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         if crt_val in self.crt_args:
             return self.crt_args[crt_val]
-        assert(crt_val == 'from_buildtype')
+        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+        dbg = 'mdd'
+        rel = 'md'
+        if crt_val == 'static_from_buildtype':
+            dbg = 'mtd'
+            rel = 'mt'
         # Match what build type flags used to do.
         if buildtype == 'plain':
             return []
         elif buildtype == 'debug':
-            return self.crt_args['mdd']
+            return self.crt_args[dbg]
         elif buildtype == 'debugoptimized':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         elif buildtype == 'release':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         elif buildtype == 'minsize':
-            return self.crt_args['md']
+            return self.crt_args[rel]
         else:
             assert(buildtype == 'custom')
             raise mesonlib.EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
@@ -398,12 +420,6 @@ class MSVCCompiler(VisualStudioLikeCompiler):
             return None
         return super().get_instruction_set_args(instruction_set)
 
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        args = msvc_buildtype_args[buildtype]
-        if mesonlib.version_compare(self.version, '<18.0'):
-            args = [arg for arg in args if arg != '/Gw']
-        return args
-
     def get_pch_base_name(self, header: str) -> str:
         return os.path.basename(header)
 
@@ -416,7 +432,7 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'clang-cl'
 
-    def has_arguments(self, args: T.List[str], env: 'Environment', code, mode: str) -> T.Tuple[bool, bool]:
+    def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument']
         return super().has_arguments(args, env, code, mode)

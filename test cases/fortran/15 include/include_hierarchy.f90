@@ -1,3 +1,4 @@
+program test_include_hier
 
 implicit none
 

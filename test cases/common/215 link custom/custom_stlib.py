@@ -18,7 +18,7 @@ void flob(void) {
 
 def get_pic_args():
     platname = platform.system().lower()
-    if platname in ['windows', 'mingw', 'darwin'] or platname.startswith('cygwin'):
+    if platname in ['windows', 'darwin'] or sys.platform == 'cygwin':
         return []
     return ['-fPIC']
 

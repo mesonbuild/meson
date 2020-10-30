@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
+
 meson_executable_template = '''project('{project_name}', '{language}',
   version : '{version}',
   default_options : [{default_options}])
@@ -33,7 +35,7 @@ jar('{executable}',
 '''
 
 
-def create_meson_build(options):
+def create_meson_build(options: argparse.Namespace) -> None:
     if options.type != 'executable':
         raise SystemExit('\nGenerating a meson.build file from existing sources is\n'
                          'supported only for project type "executable".\n'

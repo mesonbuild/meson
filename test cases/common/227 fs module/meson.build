@@ -96,6 +96,9 @@ f1 = 'meson.build'
 f2 = 'subdir/../meson.build'
 assert(fs.is_samepath(f1, f2), 'is_samepath not detercting same files')
 assert(fs.is_samepath(meson.source_root(), 'subdir/..'), 'is_samepath not detecting same directory')
+assert(fs.is_samepath(meson.project_source_root(), 'subdir/..'), 'is_samepath not detecting same directory')
+# This fails with python3.5. It can be uncommented when we depend on python >= 3.6
+#assert(fs.is_samepath(meson.project_build_root(), meson.current_build_dir() / 'subdir/..'), 'is_samepath not detecting same directory')
 assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad comparison')
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
@@ -111,3 +114,5 @@ assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
 
 subdir('subdir')
+
+subproject('subbie')

@@ -1,4 +1,4 @@
-# Copyright 2012-2019 The Meson development team
+# Copyright 2012-2020 Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,22 @@
 """Representations specific to the arm family of compilers."""
 
 import os
-import re
 import typing as T
 
 from ... import mesonlib
+from ...linkers import ArmClangDynamicLinker
 from ..compilers import clike_debug_args
 from .clang import clang_color_args
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 arm_buildtype_args = {
     'plain': [],
@@ -62,9 +69,11 @@ armclang_optimization_args = {
 }  # type: T.Dict[str, T.List[str]]
 
 
-class ArmCompiler:
-    # Functionality that is common to all ARM family compilers.
-    def __init__(self):
+class ArmCompiler(Compiler):
+
+    """Functionality that is common to all ARM family compilers."""
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armcc supports only cross-compilation.')
         self.id = 'arm'
@@ -72,7 +81,7 @@ class ArmCompiler:
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
-                          '3': default_warn_args + []}
+                          '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
         # Assembly
         self.can_compile_suffixes.add('s')
 
@@ -87,7 +96,6 @@ class ArmCompiler:
     def get_always_args(self) -> T.List[str]:
         return []
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['--depend_target', outtarget, '--depend', outfile, '--depend_single_line']
 
@@ -126,32 +134,15 @@ class ArmCompiler:
         return parameter_list
 
 
-class ArmclangCompiler:
-    def __init__(self):
+class ArmclangCompiler(Compiler):
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink' is available in path
-        self.linker_exe = 'armlink'
-        args = '--vsn'
-        try:
-            p, stdo, stderr = mesonlib.Popen_safe(self.linker_exe, args)
-        except OSError as e:
-            err_msg = 'Unknown linker\nRunning "{0}" gave \n"{1}"'.format(' '.join([self.linker_exe] + [args]), e)
-            raise mesonlib.EnvironmentException(err_msg)
-        # Verify the armlink version
-        ver_str = re.search('.*Component.*', stdo)
-        if ver_str:
-            ver_str = ver_str.group(0)
-        else:
-            raise mesonlib.EnvironmentException('armlink version string not found')
-        assert ver_str  # makes mypy happy
-        # Using the regular expression from environment.search_version,
-        # which is used for searching compiler version
-        version_regex = r'(?<!(\d|\.))(\d{1,2}(\.\d+)+(-[a-zA-Z0-9]+)?)'
-        linker_ver = re.search(version_regex, ver_str)
-        if linker_ver:
-            linker_ver = linker_ver.group(0)
-        if not mesonlib.version_compare(self.version, '==' + linker_ver):
+        if not isinstance(self.linker, ArmClangDynamicLinker):
+            raise mesonlib.EnvironmentException('Unsupported Linker {}, must be armlink'.format(self.linker.exelist))
+        if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'
         self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_sanitize', 'b_coverage',
@@ -179,7 +170,6 @@ class ArmclangCompiler:
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
-    # Override CCompiler.get_dependency_gen_args
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
         return ['-MD', '-MT', outtarget, '-MF', outfile]
 

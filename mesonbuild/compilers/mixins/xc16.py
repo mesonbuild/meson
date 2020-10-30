@@ -21,6 +21,13 @@ from ...mesonlib import EnvironmentException
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 xc16_buildtype_args = {
     'plain': [],
@@ -46,8 +53,9 @@ xc16_debug_args = {
 }  # type: T.Dict[bool, T.List[str]]
 
 
-class Xc16Compiler:
-    def __init__(self):
+class Xc16Compiler(Compiler):
+
+    def __init__(self) -> None:
         if not self.is_cross:
             raise EnvironmentException('xc16 supports only cross-compilation.')
         self.id = 'xc16'
@@ -57,7 +65,7 @@ class Xc16Compiler:
         self.warn_args = {'0': [],
                           '1': default_warn_args,
                           '2': default_warn_args + [],
-                          '3': default_warn_args + []}
+                          '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
 
     def get_always_args(self) -> T.List[str]:
         return []
@@ -76,16 +84,12 @@ class Xc16Compiler:
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
         return []
 
-    # Override CCompiler.get_dependency_gen_args
-    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        return []
-
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
     def get_coverage_args(self) -> T.List[str]:
         return []
-    
+
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['-nostdinc']
 

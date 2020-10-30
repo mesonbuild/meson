@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
+from .._pathlib import Path
 import functools
 import os
 import typing as T
@@ -109,10 +109,10 @@ class MKLPkgConfigDependency(PkgConfigDependency):
         if self.clib_compiler.id == 'gcc':
             for i, a in enumerate(self.link_args):
                 # only replace in filename, not in directory names
-                parts = list(os.path.split(a))
-                if 'mkl_intel_lp64' in parts[-1]:
-                    parts[-1] = parts[-1].replace('intel', 'gf')
-                    self.link_args[i] = '/' + os.path.join(*parts)
+                dirname, basename = os.path.split(a)
+                if 'mkl_intel_lp64' in basename:
+                    basename = basename.replace('intel', 'gf')
+                    self.link_args[i] = '/' + os.path.join(dirname, basename)
         # MKL pkg-config omits scalapack
         # be sure "-L" and "-Wl" are first if present
         i = 0

@@ -15,21 +15,21 @@
 from .common import CMakeException, CMakeBuildFile, CMakeConfiguration
 import typing as T
 from .. import mlog
-import os
+from .._pathlib import Path
 import json
 import re
 
 STRIP_KEYS = ['cmake', 'reply', 'backtrace', 'backtraceGraph', 'version']
 
 class CMakeFileAPI:
-    def __init__(self, build_dir: str):
-        self.build_dir = build_dir
-        self.api_base_dir = os.path.join(self.build_dir, '.cmake', 'api', 'v1')
-        self.request_dir = os.path.join(self.api_base_dir, 'query', 'client-meson')
-        self.reply_dir = os.path.join(self.api_base_dir, 'reply')
-        self.cmake_sources = []
-        self.cmake_configurations = []
-        self.kind_resolver_map = {
+    def __init__(self, build_dir: Path):
+        self.build_dir            = build_dir
+        self.api_base_dir         = self.build_dir / '.cmake' / 'api' / 'v1'
+        self.request_dir          = self.api_base_dir / 'query' / 'client-meson'
+        self.reply_dir            = self.api_base_dir / 'reply'
+        self.cmake_sources        = []   # type: T.List[CMakeBuildFile]
+        self.cmake_configurations = []   # type: T.List[CMakeConfiguration]
+        self.kind_resolver_map    = {
             'codemodel': self._parse_codemodel,
             'cmakeFiles': self._parse_cmakeFiles,
         }
@@ -41,7 +41,7 @@ class CMakeFileAPI:
         return self.cmake_configurations
 
     def setup_request(self) -> None:
-        os.makedirs(self.request_dir, exist_ok=True)
+        self.request_dir.mkdir(parents=True, exist_ok=True)
 
         query = {
             'requests': [
@@ -50,18 +50,17 @@ class CMakeFileAPI:
             ]
         }
 
-        with open(os.path.join(self.request_dir, 'query.json'), 'w') as fp:
-            json.dump(query, fp, indent=2)
+        query_file = self.request_dir / 'query.json'
+        query_file.write_text(json.dumps(query, indent=2))
 
     def load_reply(self) -> None:
-        if not os.path.isdir(self.reply_dir):
+        if not self.reply_dir.is_dir():
             raise CMakeException('No response from the CMake file API')
 
-        files = os.listdir(self.reply_dir)
         root = None
         reg_index = re.compile(r'^index-.*\.json$')
-        for i in files:
-            if reg_index.match(i):
+        for i in self.reply_dir.iterdir():
+            if reg_index.match(i.name):
                 root = i
                 break
 
@@ -74,10 +73,10 @@ class CMakeFileAPI:
         index = self._strip_data(index)          # Strip unused data (again for loaded files)
 
         # Debug output
-        debug_json = os.path.normpath(os.path.join(self.build_dir, '..', 'fileAPI.json'))
-        with open(debug_json, 'w') as fp:
-            json.dump(index, fp, indent=2)
-        mlog.cmd_ci_include(debug_json)
+        debug_json = self.build_dir / '..' / 'fileAPI.json'
+        debug_json = debug_json.resolve()
+        debug_json.write_text(json.dumps(index, indent=2))
+        mlog.cmd_ci_include(debug_json.as_posix())
 
         # parse the JSON
         for i in index['objects']:
@@ -87,7 +86,7 @@ class CMakeFileAPI:
 
             self.kind_resolver_map[i['kind']](i)
 
-    def _parse_codemodel(self, data: dict) -> None:
+    def _parse_codemodel(self, data: T.Dict[str, T.Any]) -> None:
         assert('configurations' in data)
         assert('paths' in data)
 
@@ -100,17 +99,17 @@ class CMakeFileAPI:
         # resolved and the resulting data structure is identical
         # to the CMake serve output.
 
-        def helper_parse_dir(dir_entry: dict) -> T.Tuple[str, str]:
-            src_dir = dir_entry.get('source', '.')
-            bld_dir = dir_entry.get('build', '.')
-            src_dir = src_dir if os.path.isabs(src_dir) else os.path.join(source_dir, src_dir)
-            bld_dir = bld_dir if os.path.isabs(bld_dir) else os.path.join(source_dir, bld_dir)
-            src_dir = os.path.normpath(src_dir)
-            bld_dir = os.path.normpath(bld_dir)
+        def helper_parse_dir(dir_entry: T.Dict[str, T.Any]) -> T.Tuple[Path, Path]:
+            src_dir = Path(dir_entry.get('source', '.'))
+            bld_dir = Path(dir_entry.get('build', '.'))
+            src_dir = src_dir if src_dir.is_absolute() else source_dir / src_dir
+            bld_dir = bld_dir if bld_dir.is_absolute() else build_dir  / bld_dir
+            src_dir = src_dir.resolve()
+            bld_dir = bld_dir.resolve()
 
             return src_dir, bld_dir
 
-        def parse_sources(comp_group: dict, tgt: dict) -> T.Tuple[T.List[str], T.List[str], T.List[int]]:
+        def parse_sources(comp_group: T.Dict[str, T.Any], tgt: T.Dict[str, T.Any]) -> T.Tuple[T.List[Path], T.List[Path], T.List[int]]:
             gen = []
             src = []
             idx = []
@@ -120,21 +119,21 @@ class CMakeFileAPI:
                 if i >= len(src_list_raw) or 'path' not in src_list_raw[i]:
                     continue
                 if src_list_raw[i].get('isGenerated', False):
-                    gen += [src_list_raw[i]['path']]
+                    gen += [Path(src_list_raw[i]['path'])]
                 else:
-                    src += [src_list_raw[i]['path']]
+                    src += [Path(src_list_raw[i]['path'])]
                 idx += [i]
 
             return src, gen, idx
 
-        def parse_target(tgt: dict) -> dict:
+        def parse_target(tgt: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
             src_dir, bld_dir = helper_parse_dir(cnf.get('paths', {}))
 
             # Parse install paths (if present)
             install_paths = []
             if 'install' in tgt:
-                prefix = tgt['install']['prefix']['path']
-                install_paths = [os.path.join(prefix, x['path']) for x in tgt['install']['destinations']]
+                prefix = Path(tgt['install']['prefix']['path'])
+                install_paths = [prefix / x['path'] for x in tgt['install']['destinations']]
                 install_paths = list(set(install_paths))
 
             # On the first look, it looks really nice that the CMake devs have
@@ -160,7 +159,7 @@ class CMakeFileAPI:
             #      maybe we can make use of that in addition to the
             #      implicit dependency detection
             tgt_data = {
-                'artifacts': [x.get('path', '') for x in tgt.get('artifacts', [])],
+                'artifacts': [Path(x.get('path', '')) for x in tgt.get('artifacts', [])],
                 'sourceDirectory': src_dir,
                 'buildDirectory': bld_dir,
                 'name': tgt.get('name', ''),
@@ -230,7 +229,7 @@ class CMakeFileAPI:
                 }]
             return tgt_data
 
-        def parse_project(pro: dict) -> dict:
+        def parse_project(pro: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
             # Only look at the first directory specified in directoryIndexes
             # TODO Figure out what the other indexes are there for
             p_src_dir = source_dir
@@ -268,15 +267,15 @@ class CMakeFileAPI:
 
             self.cmake_configurations += [CMakeConfiguration(cnf_data)]
 
-    def _parse_cmakeFiles(self, data: dict) -> None:
-        assert('inputs' in data)
-        assert('paths' in data)
+    def _parse_cmakeFiles(self, data: T.Dict[str, T.Any]) -> None:
+        assert 'inputs' in data
+        assert 'paths' in data
 
-        src_dir = data['paths']['source']
+        src_dir = Path(data['paths']['source'])
 
         for i in data['inputs']:
-            path = i['path']
-            path = path if os.path.isabs(path) else os.path.join(src_dir, path)
+            path = Path(i['path'])
+            path = path if path.is_absolute() else src_dir / path
             self.cmake_sources += [CMakeBuildFile(path, i.get('isCMake', False), i.get('isGenerated', False))]
 
     def _strip_data(self, data: T.Any) -> T.Any:
@@ -309,10 +308,13 @@ class CMakeFileAPI:
 
         return data
 
-    def _reply_file_content(self, filename: str) -> dict:
-        real_path = os.path.join(self.reply_dir, filename)
-        if not os.path.exists(real_path):
+    def _reply_file_content(self, filename: Path) -> T.Dict[str, T.Any]:
+        real_path = self.reply_dir / filename
+        if not real_path.exists():
             raise CMakeException('File "{}" does not exist'.format(real_path))
 
-        with open(real_path, 'r') as fp:
-            return json.load(fp)
+        data = json.loads(real_path.read_text())
+        assert isinstance(data, dict)
+        for i in data.keys():
+            assert isinstance(i, str)
+        return data

@@ -48,12 +48,12 @@ class BoostLibrary():
         self.single = sorted(set(single))
         self.multi = sorted(set(multi))
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostLibrary):
             return self.name < other.name
         return NotImplemented
 
-    def __eq__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, BoostLibrary):
             return self.name == other.name
         elif isinstance(other, str):
@@ -71,7 +71,7 @@ class BoostModule():
         self.desc = desc
         self.libs = libs
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, 'NotImplemented']:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostModule):
             return self.key < other.key
         return NotImplemented

@@ -11,9 +11,10 @@ universal options, base options, compiler options.
 ## Universal options
 
 A list of these options can be found by running `meson --help`. All
-these can be set by passing to `meson` (aka `meson setup`) in any of
-these ways: `--option=value`, `--option value`, `-Doption=value`, or
+these can be set by passing `-Doption=value` to `meson` (aka `meson setup`), or
 by setting them inside `default_options` of `project()` in your `meson.build`.
+Some options can also be set by `--option=value`, or `--option value`--- a list
+is shown by running `meson setup --help`.
 
 For legacy reasons `--warnlevel` is the cli argument for the `warning_level` option.
 
@@ -78,7 +79,7 @@ for details.
 | unity_size {>=2}                     | 4             | Unity file block size                                          | no             | no                |
 | warning_level {0, 1, 2, 3}           | 1             | Set the warning level. From 0 = none to 3 = highest            | no             | yes               |
 | werror                               | false         | Treat warnings as errors                                       | no             | yes               |
-| wrap_mode {default, nofallback,<br>nodownload, forcefallback} | default | Wrap mode to use                            | no             | no                |
+| wrap_mode {default, nofallback,<br>nodownload, forcefallback, nopromote} | default | Wrap mode to use                 | no             | no                |
 | force_fallback_for                   | []            | Force fallback for those dependencies                          | no             | no                |
 
 <a name="build-type-options"></a>
@@ -101,7 +102,9 @@ All other combinations of `debug` and `optimization` set `buildtype` to `'custom
 
 ## Base options
 
-These are set in the same way as universal options, but cannot be shown in the
+These are set in the same way as universal options, either by `-Doption=value`, 
+or by setting them inside `default_options` of `project()` in your `meson.build`.
+However, they cannot be shown in the
 output of `meson --help` because they depend on both the current platform and
 the compiler that will be selected. The only way to see them is to setup
 a builddir and then run `meson configure` on it with no options.
@@ -123,23 +126,23 @@ platforms or with all compilers:
 | b_sanitize  | none          | see below               | Code sanitizer to use |
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
 | b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
-| b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype | VS runtime library to use (since 0.48.0) |
+| b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
 
 <a name="b_vscrt-from_buildtype"></a>
-The default value of `b_vscrt` is `from_buildtype`. In that case, the following
-table is used internally to pick the CRT compiler arguments based on the value
-of the `buildtype` option:
+The default value of `b_vscrt` is `from_buildtype`. The following table is used
+internally to pick the CRT compiler arguments for `from_buildtype` or
+`static_from_buildtype` *(since 0.56)* based on the value of the `buildtype` option:
 
-| buildtype      | Visual Studio CRT |
-| --------       | ----------------- |
-| debug          | `/MDd`            |
-| debugoptimized | `/MD`             |
-| release        | `/MD`             |
-| minsize        | `/MD`             |
-| custom         | error!            |
+| buildtype      | from_buildtype | static_from_buildtype |
+| --------       | -------------- | --------------------- |
+| debug          | `/MDd`         | `/MTd`                |
+| debugoptimized | `/MD`          | `/MT`                 |
+| release        | `/MD`          | `/MT`                 |
+| minsize        | `/MD`          | `/MT`                 |
+| custom         | error!         | error!                |
 
 ### Notes about Apple Bitcode support
 
@@ -155,7 +158,8 @@ embedded because `-Wl,-bitcode_bundle` is incompatible with both `-bundle` and
 
 Same caveats as base options above.
 
-The following options are available. Note that both the options themselves and
+The following options are available. They can be set by passing `-Doption=value`
+to `meson`. Note that both the options themselves and
 the possible values they can take will depend on the target platform or
 compiler being used:
 
@@ -168,7 +172,7 @@ compiler being used:
 | c_thread_count   | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_args         |               | free-form comma-separated list           | C++ compile arguments to use |
 | cpp_link_args    |               | free-form comma-separated list           | C++ link arguments to use |
-| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
+| cpp_std          | none          | none, c++98, c++03, c++11, c++14, c++17, c++2a <br/>c++1z, gnu++03, gnu++11, gnu++14, gnu++17, gnu++1z, gnu++2a, <br/> vc++14, vc++17, vc++latest | C++ language standard to use |
 | cpp_debugstl     | false         | true, false                              | C++ STL debug mode |
 | cpp_eh           | default       | none, default, a, s, sc                  | C++ exception handling type |
 | cpp_rtti         | true          | true, false                              | Whether to enable RTTI (runtime type identification) |

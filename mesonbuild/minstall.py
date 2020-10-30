@@ -20,6 +20,9 @@ from .scripts import depfixer
 from .scripts import destdir_join
 from .mesonlib import is_windows, Popen_safe
 from .mtest import rebuild_all
+from .backend.backends import InstallData
+from .coredata import major_versions_differ, MesonVersionMismatchException
+from .coredata import version as coredata_version
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -343,9 +346,18 @@ class Installer:
                 self.do_copyfile(abs_src, abs_dst)
                 set_mode(abs_dst, install_mode, data.install_umask)
 
+    @staticmethod
+    def check_installdata(obj: InstallData) -> InstallData:
+        if not isinstance(obj, InstallData) or not hasattr(obj, 'version'):
+            raise MesonVersionMismatchException('<unknown>', coredata_version)
+        if major_versions_differ(obj.version, coredata_version):
+            raise MesonVersionMismatchException(obj.version, coredata_version)
+        return obj
+
     def do_install(self, datafilename):
         with open(datafilename, 'rb') as ifile:
-            d = pickle.load(ifile)
+            d = self.check_installdata(pickle.load(ifile))
+
         d.destdir = os.environ.get('DESTDIR', '')
         d.fullprefix = destdir_join(d.destdir, d.prefix)
 
@@ -437,11 +449,13 @@ class Installer:
             self.log('Running custom install script {!r}'.format(name))
             try:
                 rc = subprocess.call(script + args, env=child_env)
-                if rc != 0:
-                    sys.exit(rc)
             except OSError:
-                print('Failed to run install script {!r}'.format(name))
-                sys.exit(1)
+                print('FAILED: install script \'{}\' could not be run, stopped'.format(name))
+                # POSIX shells return 127 when a command could not be found
+                sys.exit(127)
+            if rc != 0:
+                print('FAILED: install script \'{}\' exit code {}, stopped'.format(name, rc))
+                sys.exit(rc)
 
     def install_targets(self, d):
         for t in d.targets:
@@ -469,7 +483,7 @@ class Installer:
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
-                        self.log('Not stripping jar target:', os.path.basename(fname))
+                        self.log('Not stripping jar target: {}'.format(os.path.basename(fname)))
                         continue
                     self.log('Stripping target {!r} using {}.'.format(fname, d.strip_bin[0]))
                     ps, stdo, stde = Popen_safe(d.strip_bin + [outname])

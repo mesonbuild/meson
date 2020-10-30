@@ -78,7 +78,8 @@ def main() -> int:
         ####
 
 
-        from pathlib import Path
+        # TODO: Remember to remove this also from tools/gen_data.py
+        from ._pathlib import Path
         import typing as T
 
         if T.TYPE_CHECKING:

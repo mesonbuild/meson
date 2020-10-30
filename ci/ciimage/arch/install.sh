@@ -26,7 +26,7 @@ PACMAN_OPTS='--needed --noprogressbar --noconfirm'
 # Patch config files
 sed -i 's/#Color/Color/g'                            /etc/pacman.conf
 sed -i 's,#MAKEFLAGS="-j2",MAKEFLAGS="-j$(nproc)",g' /etc/makepkg.conf
-sed -i "s,PKGEXT='.pkg.tar.xz',PKGEXT='.pkg.tar',g"  /etc/makepkg.conf
+sed -i "s,PKGEXT='.pkg.tar.zst',PKGEXT='.pkg.tar',g" /etc/makepkg.conf
 
 # Install packages
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"

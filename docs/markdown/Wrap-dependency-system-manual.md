@@ -182,10 +182,12 @@ endif
   `dependency('foo-1.0', required: get_option('foo_opt'))` will only fallback
   when the user sets `foo_opt` to `enabled` instead of `auto`.
 
-If it is desired to fallback for an optional dependency, the `fallback` keyword
-argument must be passed explicitly. For example
-`dependency('foo-1.0', required: get_option('foo_opt'), fallback: 'foo')` will
-use the fallback even when `foo_opt` is set to `auto`.
+If it is desired to fallback for an optional dependency, the `fallback`
+or `allow_fallback` keyword arguments must be passed explicitly. *Since
+0.56.0*, `dependency('foo-1.0', required: get_option('foo_opt'),
+allow_fallback: true)` will use the fallback even when `foo_opt` is set
+to `auto`.  On version *0.55.0* the same effect could be achieved with
+`dependency('foo-1.0', required: get_option('foo_opt'), fallback: 'foo')`.
 
 This mechanism assumes the subproject calls `meson.override_dependency('foo-1.0', foo_dep)`
 so Meson knows which dependency object should be used as fallback. Since that

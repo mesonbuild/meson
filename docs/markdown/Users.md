@@ -30,6 +30,7 @@ topic](https://github.com/topics/meson).
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
  - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
+ - [Entangle](https://entangle-photo.org/), tethered camera control and capture desktop application
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson), sample project for using the ESP8266 Arduino port with Meson
  - [FeedReader](https://github.com/jangernert/FeedReader), a modern desktop application designed to complement existing web-based RSS accounts
  - [Flecs](https://github.com/SanderMertens/flecs), a Fast and Lightweight ECS (Entity Component System) C library
@@ -105,6 +106,7 @@ format files
  - [Orc](https://gitlab.freedesktop.org/gstreamer/orc), the Optimized Inner Loop Runtime Compiler
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
+ - [p11-kit](https://github.com/p11-glue/p11-kit), PKCS#11 module aggregator
  - [Pacman](https://git.archlinux.org/pacman.git/tree/), a package manager for Arch Linux
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip

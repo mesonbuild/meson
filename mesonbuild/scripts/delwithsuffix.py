@@ -13,8 +13,9 @@
 # limitations under the License.
 
 import os, sys
+import typing as T
 
-def run(args):
+def run(args: T.List[str]) -> int:
     if len(args) != 2:
         print('delwithsuffix.py <root of subdir to process> <suffix to delete>')
         sys.exit(1)

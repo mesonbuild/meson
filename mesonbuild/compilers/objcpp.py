@@ -23,23 +23,30 @@ from .mixins.gnu import GnuCompiler
 from .mixins.clang import ClangCompiler
 
 if T.TYPE_CHECKING:
+    from ..dependencies import ExternalProgram
     from ..envconfig import MachineInfo
+    from ..environment import Environment
+    from ..linkers import DynamicLinker
 
 class ObjCPPCompiler(CLikeCompiler, Compiler):
 
     language = 'objcpp'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
-                 exe_wrap: T.Optional[str], **kwargs):
-        Compiler.__init__(self, exelist, version, for_machine, info, **kwargs)
-        CLikeCompiler.__init__(self, is_cross, exe_wrap)
+                 exe_wrap: T.Optional['ExternalProgram'],
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        Compiler.__init__(self, exelist, version, for_machine, info,
+                          is_cross=is_cross, full_version=full_version,
+                          linker=linker)
+        CLikeCompiler.__init__(self, exe_wrap)
 
     @staticmethod
-    def get_display_language():
+    def get_display_language() -> str:
         return 'Objective-C++'
 
-    def sanity_check(self, work_dir, environment):
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         # TODO try to use sanity_check_impl instead of duplicated code
         source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
         binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
@@ -67,10 +74,14 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 defines=None, **kwargs):
-        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                              info, exe_wrapper, linker=linker, full_version=full_version)
         GnuCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
@@ -80,11 +91,16 @@ class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
 
 
 class ClangObjCPPCompiler(ClangCompiler, ObjCPPCompiler):
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo', exe_wrapper=None,
-                 **kwargs):
-        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, **kwargs)
-        ClangCompiler.__init__(self, [])
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 defines: T.Optional[T.Dict[str, str]] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        ObjCPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                              info, exe_wrapper, linker=linker, full_version=full_version)
+        ClangCompiler.__init__(self, defines)
         default_warn_args = ['-Wall', '-Winvalid-pch', '-Wnon-virtual-dtor']
         self.warn_args = {'0': [],
                           '1': default_warn_args,

@@ -75,12 +75,23 @@ When Meson is run it prints the following output.
 
 Now we are ready to build our code.
 
+
+```console
+$ cd builddir
+$ ninja
 ```
+
+If your Meson version is newer than 0.55.0, you can use the new
+backend-agnostic build command:
+
+```console
 $ cd builddir
 $ meson compile
 ```
 
-Once that is done we can run the resulting binary.
+For the rest of this document we are going to use the latter form.
+
+Once the executable is built we can run it.
 
 ```console
 $ ./demo
@@ -135,7 +146,7 @@ need to recreate our build directory, run any sort of magical commands
 or the like. Instead we just type the exact same command as if we were
 rebuilding our code without any build system changes.
 
-```
+```console
 $ meson compile
 ```
 

@@ -17,7 +17,7 @@
 from concurrent.futures import ProcessPoolExecutor, CancelledError
 from enum import Enum
 from io import StringIO
-from pathlib import Path, PurePath
+from mesonbuild._pathlib import Path, PurePath
 import argparse
 import functools
 import itertools
@@ -50,7 +50,7 @@ from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
 from run_tests import guess_backend
 
-ALL_TESTS = ['cmake', 'common', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
+ALL_TESTS = ['cmake', 'common', 'native', 'warning-meson', 'failing-meson', 'failing-build', 'failing-test',
              'keyval', 'platform-osx', 'platform-windows', 'platform-linux',
              'java', 'C#', 'vala',  'rust', 'd', 'objective c', 'objective c++',
              'fortran', 'swift', 'cuda', 'python3', 'python', 'fpga', 'frameworks', 'nasm', 'wasm'
@@ -216,7 +216,7 @@ class TestDef:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
         return self.path.as_posix()
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, TestDef):
             # None is not sortable, so replace it with an empty string
             s_id = int(self.path.name.split(' ')[0])
@@ -242,12 +242,11 @@ class AutoDeletedDir:
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
-under_xenial_ci = under_ci and ('XENIAL' in os.environ)
 skip_scientific = under_ci and ('SKIP_SCIENTIFIC' in os.environ)
 do_debug = under_ci or print_debug
 no_meson_log_msg = 'No meson-log.txt found.'
 
-system_compiler = None
+host_c_compiler = None
 compiler_id_map = {}  # type: T.Dict[str, str]
 tool_vers_map = {}    # type: T.Dict[str, str]
 
@@ -828,8 +827,8 @@ def have_java():
     return False
 
 def skippable(suite, test):
-    # Everything is optional when not running on CI, or on Ubuntu 16.04 CI
-    if not under_ci or under_xenial_ci:
+    # Everything is optional when not running on CI
+    if not under_ci:
         return True
 
     if not suite.endswith('frameworks'):
@@ -863,6 +862,12 @@ def skippable(suite, test):
 
     # These create OS specific tests, and need to be skippable
     if any([x in test for x in ['16 sdl', '17 mpi']]):
+        return True
+
+    # We test cmake, and llvm-config. Some linux spins don't provide cmake or
+    # don't provide either the static or shared llvm libraries (fedora and
+    # opensuse only have the dynamic ones, for example).
+    if test.endswith('15 llvm'):
         return True
 
     # No frameworks test should be skipped on linux CI, as we expect all
@@ -961,6 +966,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
     all_tests = [
         TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
         TestCategory('common', 'common'),
+        TestCategory('native', 'native'),
         TestCategory('warning-meson', 'warning', stdout_mandatory=True),
         TestCategory('failing-meson', 'failing', stdout_mandatory=True),
         TestCategory('failing-build', 'failing build'),
@@ -1009,7 +1015,7 @@ def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str, failfast: bool,
                extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
-    global stop, executor, futures, system_compiler
+    global stop, executor, futures, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time = 0
@@ -1062,7 +1068,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             t.skip = skipped or t.skip
             result = executor.submit(run_test, t, extra_args + suite_args + t.args,
-                                     system_compiler, backend, backend_flags, commands, should_fail, use_tmp)
+                                     host_c_compiler, backend, backend_flags, commands, should_fail, use_tmp)
             futures.append((testname, t, result))
         for (testname, t, result) in futures:
             sys.stdout.flush()
@@ -1162,6 +1168,7 @@ def check_format():
         '.dub',                         # external deps are here
         '.pytest_cache',
         'meson-logs', 'meson-private',
+        'work area',
         '.eggs', '_cache',              # e.g. .mypy_cache
         'venv',                         # virtualenvs have DOS line endings
     }
@@ -1185,6 +1192,11 @@ def check_meson_commands_work(options):
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
             raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
+        print('Checking that introspect works...')
+        pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
+        json.loads(o)
+        if pc.returncode != 0:
+            raise RuntimeError('Failed to introspect --targets {!r}:\n{}\n{}'.format(testdir, e, o))
         print('Checking that building works...')
         dir_args = get_backend_args_for_dir(backend, build_dir)
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
@@ -1202,31 +1214,49 @@ def check_meson_commands_work(options):
 
 
 def detect_system_compiler(options):
-    global system_compiler, compiler_id_map
+    global host_c_compiler, compiler_id_map
 
     with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
         fake_opts = get_fake_options('/')
         if options.cross_file:
             fake_opts.cross_file = [options.cross_file]
+        if options.native_file:
+            fake_opts.native_file = [options.native_file]
+
         env = environment.Environment(None, build_dir, fake_opts)
-        print()
+
+        print_compilers(env, MachineChoice.HOST)
+        if options.cross_file:
+            print_compilers(env, MachineChoice.BUILD)
+
         for lang in sorted(compilers.all_languages):
             try:
                 comp = env.compiler_from_language(lang, MachineChoice.HOST)
-                details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
+                # note compiler id for later use with test.json matrix
                 compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
                 comp = None
-                details = '[not found]'
-            print('%-7s: %s' % (lang, details))
 
             # note C compiler for later use by platform_fix_name()
             if lang == 'c':
                 if comp:
-                    system_compiler = comp.get_id()
+                    host_c_compiler = comp.get_id()
                 else:
                     raise RuntimeError("Could not find C compiler.")
-        print()
+
+
+def print_compilers(env, machine):
+    print()
+    print('{} machine compilers'.format(machine.get_lower_case_name()))
+    print()
+    for lang in sorted(compilers.all_languages):
+        try:
+            comp = env.compiler_from_language(lang, machine)
+            details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
+        except mesonlib.MesonException:
+            details = '[not found]'
+        print('%-7s: %s' % (lang, details))
+
 
 def print_tool_versions():
     tools = [
@@ -1268,6 +1298,10 @@ def print_tool_versions():
 
         return '{} (unknown)'.format(exe)
 
+    print()
+    print('tools')
+    print()
+
     max_width = max([len(x['tool']) for x in tools] + [7])
     for tool in tools:
         print('{0:<{2}}: {1}'.format(tool['tool'], get_version(tool), max_width))
@@ -1284,10 +1318,14 @@ if __name__ == '__main__':
                         help='Not used, only here to simplify run_tests.py')
     parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
+    parser.add_argument('--native-file', action='store', help='File describing native compilation environment.')
     parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
     options = parser.parse_args()
+
     if options.cross_file:
         options.extra_args += ['--cross-file', options.cross_file]
+    if options.native_file:
+        options.extra_args += ['--native-file', options.native_file]
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0])

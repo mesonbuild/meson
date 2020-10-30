@@ -30,7 +30,8 @@ if T.TYPE_CHECKING:
 class ElbrusCompiler(GnuLikeCompiler):
     # Elbrus compiler is nearly like GCC, but does not support
     # PCH, LTO, sanitizers and color output as of version 1.21.x.
-    def __init__(self):
+
+    def __init__(self) -> None:
         super().__init__()
         self.id = 'lcc'
         self.base_options = ['b_pgo', 'b_coverage',

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, types
-from pathlib import PurePath
+from .._pathlib import PurePath
 
 from .. import build
 from .. import dependencies
@@ -173,7 +173,7 @@ class DependenciesHelper:
         for t in link_whole_targets:
             self._add_link_whole(t, public)
         # And finally its external dependencies
-        add_libs(external_deps)
+        self.add_priv_libs(external_deps)
 
     def _add_link_whole(self, t, public):
         # Don't include static libraries that we link_whole. But we still need to
@@ -329,18 +329,17 @@ class PkgConfigModule(ExtensionModule):
         else:
             outdir = state.environment.scratch_dir
             prefix = PurePath(coredata.get_builtin_option('prefix'))
-            # These always return paths relative to prefix
-            libdir = PurePath(coredata.get_builtin_option('libdir'))
-            incdir = PurePath(coredata.get_builtin_option('includedir'))
+        # These always return paths relative to prefix
+        libdir = PurePath(coredata.get_builtin_option('libdir'))
+        incdir = PurePath(coredata.get_builtin_option('includedir'))
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
             if not dataonly:
                 ofile.write('prefix={}\n'.format(self._escape(prefix)))
                 if uninstalled:
                     ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
-                else:
-                    ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
-                    ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
+                ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
+                ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
             if variables:
                 ofile.write('\n')
             for k, v in variables:
@@ -513,31 +512,17 @@ class PkgConfigModule(ExtensionModule):
 
         deps.remove_dups()
 
-        def parse_variable_list(stringlist):
+        def parse_variable_list(vardict):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
-            for var in stringlist:
-                # foo=bar=baz is ('foo', 'bar=baz')
-                l = var.split('=', 1)
-                if len(l) < 2:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                name, value = l[0].strip(), l[1].strip()
-                if not name or not value:
-                    raise mesonlib.MesonException('Invalid variable "{}". Variables must be in \'name=value\' format'.format(var))
-
-                # Variable names must not contain whitespaces
-                if any(c.isspace() for c in name):
-                    raise mesonlib.MesonException('Invalid whitespace in assignment "{}"'.format(var))
-
+            for name, value in vardict.items():
                 if name in reserved:
                     raise mesonlib.MesonException('Variable "{}" is reserved'.format(name))
-
                 variables.append((name, value))
-
             return variables
 
-        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('variables', [])))
+        variables = self.interpreter.extract_variables(kwargs, dict_new=True)
+        variables = parse_variable_list(variables)
 
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir', default_install_dir)
@@ -552,7 +537,9 @@ class PkgConfigModule(ExtensionModule):
                                      version, pcfile, conflicts, variables,
                                      False, dataonly)
         res = build.Data(mesonlib.File(True, state.environment.get_scratch_dir(), pcfile), pkgroot)
-        variables = parse_variable_list(mesonlib.stringlistify(kwargs.get('uninstalled_variables', [])))
+        variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
+        variables = parse_variable_list(variables)
+
         pcfile = filebase + '-uninstalled.pc'
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,

@@ -1,0 +1,19 @@
+name: Cross-only compilation environment
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  cross-only-armhf:
+    runs-on: ubuntu-latest
+    container: mesonbuild/eoan:latest
+    steps:
+    - run: |
+        apt-get -y purge clang gcc gdc
+        apt-get -y autoremove
+    - uses: actions/checkout@v2
+    - name: Run tests
+      run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS --cross ubuntu-armhf.json --cross-only'

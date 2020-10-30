@@ -97,6 +97,7 @@ __all__ = [
     'CcrxCCompiler',
     'CcrxCPPCompiler',
     'Xc16CCompiler',
+    'CompCertCCompiler',
     'C2000CCompiler',
     'C2000CPPCompiler',
     'SunFortranCompiler',
@@ -126,6 +127,7 @@ from .compilers import (
     is_library,
     is_known_suffix,
     lang_suffixes,
+    languages_using_ldflags,
     sort_clink,
 )
 from .c import (
@@ -144,6 +146,7 @@ from .c import (
     PGICCompiler,
     CcrxCCompiler,
     Xc16CCompiler,
+    CompCertCCompiler,
     C2000CCompiler,
     VisualStudioCCompiler,
 )

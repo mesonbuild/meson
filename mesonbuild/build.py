@@ -37,6 +37,9 @@ from .compilers import (
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
+if T.TYPE_CHECKING:
+    from .interpreter import Test
+
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
 lang_arg_kwargs = set([
@@ -85,6 +88,7 @@ buildtarget_kwargs = set([
     'sources',
     'gnu_symbol_visibility',
     'link_language',
+    'win_subsystem',
 ])
 
 known_build_target_kwargs = (
@@ -128,14 +132,14 @@ class Build:
         self.project_version = None
         self.environment = environment
         self.projects = {}
-        self.targets = OrderedDict()
+        self.targets = OrderedDict()                  # type: T.Dict[str, 'Target']
         self.run_target_names = set() # type: T.Set[T.Tuple[str, str]]
         self.global_args = PerMachine({}, {})         # type: PerMachine[T.Dict[str, T.List[str]]]
         self.projects_args = PerMachine({}, {})       # type: PerMachine[T.Dict[str, T.List[str]]]
         self.global_link_args = PerMachine({}, {})    # type: PerMachine[T.Dict[str, T.List[str]]]
         self.projects_link_args = PerMachine({}, {})  # type: PerMachine[T.Dict[str, T.List[str]]]
-        self.tests = []
-        self.benchmarks = []
+        self.tests = []                               # type: T.List['Test']
+        self.benchmarks = []                          # type: T.List['Test']
         self.headers = []
         self.man = []
         self.data = []
@@ -178,13 +182,13 @@ class Build:
     def get_subproject_dir(self):
         return self.subproject_dir
 
-    def get_targets(self):
+    def get_targets(self) -> T.Dict[str, 'Target']:
         return self.targets
 
-    def get_tests(self):
+    def get_tests(self) -> T.List['Test']:
         return self.tests
 
-    def get_benchmarks(self):
+    def get_benchmarks(self) -> T.List['Test']:
         return self.benchmarks
 
     def get_headers(self):
@@ -366,25 +370,26 @@ a hard error in the future.'''.format(name))
         self.build_always_stale = False
         self.option_overrides_base = {}
         self.option_overrides_compiler = defaultdict(dict)
+        self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
 
-    def __lt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __lt__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() < other.get_id()
 
-    def __le__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __le__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() <= other.get_id()
 
-    def __gt__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __gt__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() > other.get_id()
 
-    def __ge__(self, other: T.Any) -> T.Union[bool, type(NotImplemented)]:
+    def __ge__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
             return NotImplemented
         return self.get_id() >= other.get_id()
@@ -403,13 +408,13 @@ a hard error in the future.'''.format(name))
             outdirs[0] = default_install_dir
         return outdirs, custom_install_dir
 
-    def get_basename(self):
+    def get_basename(self) -> str:
         return self.name
 
-    def get_subdir(self):
+    def get_subdir(self) -> str:
         return self.subdir
 
-    def get_typename(self):
+    def get_typename(self) -> str:
         return self.typename
 
     @staticmethod
@@ -423,7 +428,7 @@ a hard error in the future.'''.format(name))
         return h.hexdigest()[:7]
 
     @staticmethod
-    def construct_id_from_path(subdir, name, type_suffix):
+    def construct_id_from_path(subdir: str, name: str, type_suffix: str) -> str:
         """Construct target ID from subdir, name and type suffix.
 
         This helper function is made public mostly for tests."""
@@ -441,7 +446,7 @@ a hard error in the future.'''.format(name))
             return subdir_part + '@@' + my_id
         return my_id
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.construct_id_from_path(
             self.subdir, self.name, self.type_suffix())
 
@@ -459,10 +464,10 @@ a hard error in the future.'''.format(name))
 
         for k, v in option_overrides.items():
             if '_' in k:
-               lang, k2 = k.split('_', 1)
-               if lang in all_languages:
-                   self.option_overrides_compiler[lang][k2] = v
-                   continue
+                lang, k2 = k.split('_', 1)
+                if lang in all_languages:
+                    self.option_overrides_compiler[lang][k2] = v
+                    continue
             self.option_overrides_base[k] = v
 
     def parse_overrides(self, kwargs) -> dict:
@@ -478,6 +483,12 @@ a hard error in the future.'''.format(name))
         return result
 
     def is_linkable_target(self) -> bool:
+        return False
+
+    def get_outputs(self) -> T.List[str]:
+        return []
+
+    def should_install(self) -> bool:
         return False
 
 class BuildTarget(Target):
@@ -508,7 +519,6 @@ class BuildTarget(Target):
         self.pch = {}
         self.extra_args = {}
         self.generated = []
-        self.extra_files = []
         self.d_features = {}
         self.pic = False
         self.pie = False
@@ -915,11 +925,20 @@ This will become a hard error in a future Meson release.''')
             raise InvalidArguments('Main class must be a string')
         self.main_class = main_class
         if isinstance(self, Executable):
-            self.gui_app = kwargs.get('gui_app', False)
-            if not isinstance(self.gui_app, bool):
-                raise InvalidArguments('Argument gui_app must be boolean.')
+            # This kwarg is deprecated. The value of "none" means that the kwarg
+            # was not specified and win_subsystem should be used instead.
+            self.gui_app = None
+            if 'gui_app' in kwargs:
+                if 'win_subsystem' in kwargs:
+                    raise InvalidArguments('Can specify only gui_app or win_subsystem for a target, not both.')
+                self.gui_app = kwargs['gui_app']
+                if not isinstance(self.gui_app, bool):
+                    raise InvalidArguments('Argument gui_app must be boolean.')
+            self.win_subsystem = self.validate_win_subsystem(kwargs.get('win_subsystem', 'console'))
         elif 'gui_app' in kwargs:
             raise InvalidArguments('Argument gui_app can only be used on executables.')
+        elif 'win_subsystem' in kwargs:
+            raise InvalidArguments('Argument win_subsystem can only be used on executables.')
         extra_files = extract_as_list(kwargs, 'extra_files')
         for i in extra_files:
             assert(isinstance(i, File))
@@ -973,13 +992,13 @@ This will become a hard error in a future Meson release.''')
             if m.is_darwin() or m.is_windows():
                 self.pic = True
             else:
-                self.pic = self._extract_pic_pie(kwargs, 'pic')
-        if isinstance(self, Executable):
+                self.pic = self._extract_pic_pie(kwargs, 'pic', environment, 'b_staticpic')
+        if isinstance(self, Executable) or (isinstance(self, StaticLibrary) and not self.pic):
             # Executables must be PIE on Android
             if self.environment.machines[self.for_machine].is_android():
                 self.pie = True
             else:
-                self.pie = self._extract_pic_pie(kwargs, 'pie')
+                self.pie = self._extract_pic_pie(kwargs, 'pie', environment, 'b_pie')
         self.implicit_include_directories = kwargs.get('implicit_include_directories', True)
         if not isinstance(self.implicit_include_directories, bool):
             raise InvalidArguments('Implicit_include_directories must be a boolean.')
@@ -991,14 +1010,26 @@ This will become a hard error in a future Meson release.''')
             if self.gnu_symbol_visibility not in permitted:
                 raise InvalidArguments('GNU symbol visibility arg {} not one of: {}'.format(self.symbol_visibility, ', '.join(permitted)))
 
-    def _extract_pic_pie(self, kwargs, arg):
+    def validate_win_subsystem(self, value: str) -> str:
+        value = value.lower()
+        if re.fullmatch(r'(boot_application|console|efi_application|efi_boot_service_driver|efi_rom|efi_runtime_driver|native|posix|windows)(,\d+(\.\d+)?)?', value) is None:
+            raise InvalidArguments('Invalid value for win_subsystem: {}.'.format(value))
+        return value
+
+    def _extract_pic_pie(self, kwargs, arg, environment, option):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning("Use the '{}' kwarg instead of passing '{}' manually to {!r}".format(arg, '-f' + arg, self.name))
             return True
 
-        val = kwargs.get(arg, False)
+        if arg in kwargs:
+            val = kwargs[arg]
+        elif option in environment.coredata.base_options:
+            val = environment.coredata.base_options[option].value
+        else:
+            val = False
+
         if not isinstance(val, bool):
             raise InvalidArguments('Argument {} to {!r} must be boolean'.format(arg, self.name))
         return val
@@ -1006,7 +1037,7 @@ This will become a hard error in a future Meson release.''')
     def get_filename(self):
         return self.filename
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outputs
 
     def get_extra_args(self, language):
@@ -1036,7 +1067,7 @@ This will become a hard error in a future Meson release.''')
     def get_generated_sources(self):
         return self.generated
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return self.need_install
 
     def has_pch(self):
@@ -1104,10 +1135,16 @@ You probably should put it in link_with instead.''')
 
     def link(self, target):
         for t in unholder(listify(target)):
-            if isinstance(self, StaticLibrary) and self.need_install and t.is_internal():
-                # When we're a static library and we link_with to an
-                # internal/convenience library, promote to link_whole.
-                return self.link_whole(t)
+            if isinstance(self, StaticLibrary) and self.need_install:
+                if isinstance(t, (CustomTarget, CustomTargetIndex)):
+                    if not t.should_install():
+                        mlog.warning('Try to link an installed static library target {} with a custom target '
+                                     'that is not installed, this might cause problems when you try to use '
+                                     'this static library'.format(self.name))
+                elif t.is_internal():
+                    # When we're a static library and we link_with to an
+                    # internal/convenience library, promote to link_whole.
+                    return self.link_whole(t)
             if not isinstance(t, (Target, CustomTargetIndex)):
                 raise InvalidArguments('{!r} is not a target.'.format(t))
             if not t.is_linkable_target():
@@ -1474,7 +1511,7 @@ class GeneratedList:
     def get_inputs(self):
         return self.infilelist
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outfilelist
 
     def get_outputs_for(self, filename):
@@ -1605,8 +1642,6 @@ class StaticLibrary(BuildTarget):
 
     def __init__(self, name, subdir, subproject, for_machine: MachineChoice, sources, objects, environment, kwargs):
         self.typename = 'static library'
-        if 'pic' not in kwargs and 'b_staticpic' in environment.coredata.base_options:
-            kwargs['pic'] = environment.coredata.base_options['b_staticpic'].value
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         if 'cs' in self.compilers:
             raise InvalidArguments('Static libraries not supported for C#.')
@@ -2026,7 +2061,6 @@ class CustomTarget(Target):
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
         self.process_kwargs(kwargs, backend)
-        self.extra_files = []
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
         unknowns = []
@@ -2192,7 +2226,7 @@ class CustomTarget(Target):
     def get_dependencies(self):
         return self.dependencies
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return self.install
 
     def get_custom_install_dir(self):
@@ -2201,7 +2235,7 @@ class CustomTarget(Target):
     def get_custom_install_mode(self):
         return self.install_mode
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return self.outputs
 
     def get_filename(self):
@@ -2223,7 +2257,7 @@ class CustomTarget(Target):
     def get_dep_outname(self, infilenames):
         if self.depfile is None:
             raise InvalidArguments('Tried to get depfile name for custom_target that does not have depfile defined.')
-        if len(infilenames):
+        if infilenames:
             plainname = os.path.basename(infilenames[0])
             basename = os.path.splitext(plainname)[0]
             return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
@@ -2236,7 +2270,7 @@ class CustomTarget(Target):
         if len(self.outputs) != 1:
             return False
         suf = os.path.splitext(self.outputs[0])[-1]
-        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
+        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so' or suf == '.dylib':
             return True
 
     def get_link_deps_mapping(self, prefix, environment):
@@ -2247,6 +2281,18 @@ class CustomTarget(Target):
 
     def get_all_link_deps(self):
         return []
+
+    def is_internal(self) -> bool:
+        if not self.should_install():
+            return True
+        for out in self.get_outputs():
+            # Can't check if this is a static library, so try to guess
+            if not out.endswith(('.a', '.lib')):
+                return False
+        return True
+
+    def extract_all_objects_recurse(self):
+        return self.get_outputs()
 
     def type_suffix(self):
         return "@cus"
@@ -2289,13 +2335,13 @@ class RunTarget(Target):
     def get_sources(self):
         return []
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return False
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.name
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         if isinstance(self.name, str):
             return [self.name]
         elif isinstance(self.name, list):
@@ -2367,7 +2413,7 @@ class CustomTargetIndex:
         return '<CustomTargetIndex: {!r}[{}]>'.format(
             self.target, self.target.get_outputs().index(self.output))
 
-    def get_outputs(self):
+    def get_outputs(self) -> T.List[str]:
         return [self.output]
 
     def get_subdir(self):
@@ -2392,6 +2438,15 @@ class CustomTargetIndex:
         suf = os.path.splitext(self.output)[-1]
         if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so':
             return True
+
+    def should_install(self) -> bool:
+        return self.target.should_install()
+
+    def is_internal(self) -> bool:
+        return self.target.is_internal()
+
+    def extract_all_objects_recurse(self):
+        return self.target.extract_all_objects_recurse()
 
 class ConfigureFile:
 
@@ -2509,6 +2564,6 @@ def load(build_dir: str) -> Build:
         raise MesonException(load_fail_msg)
     return obj
 
-def save(obj, filename):
+def save(obj: Build, filename: str) -> None:
     with open(filename, 'wb') as f:
         pickle.dump(obj, f)

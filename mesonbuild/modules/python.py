@@ -17,7 +17,7 @@ import json
 import shutil
 import typing as T
 
-from pathlib import Path
+from .._pathlib import Path
 from .. import mesonlib
 from ..mesonlib import MachineChoice, MesonException
 from . import ExtensionModule
@@ -34,7 +34,7 @@ from ..environment import detect_cpu_family
 from ..dependencies.base import (
     DependencyMethods, ExternalDependency,
     ExternalProgram, PkgConfigDependency,
-    NonExistingExternalProgram
+    NonExistingExternalProgram, NotFoundDependency
 )
 
 mod_kwargs = set(['subdir'])
@@ -356,7 +356,14 @@ class PythonInstallation(ExternalProgramHolder):
                          'positional arguments. It always returns a Python '
                          'dependency. This will become an error in the future.',
                          location=self.interpreter.current_node)
-        dep = PythonDependency(self, self.interpreter.environment, kwargs)
+        disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
+        if disabled:
+            mlog.log('Dependency', mlog.bold('python'), 'skipped: feature', mlog.bold(feature), 'disabled')
+            dep = NotFoundDependency(self.interpreter.environment)
+        else:
+            dep = PythonDependency(self, self.interpreter.environment, kwargs)
+            if required and not dep.found():
+                raise mesonlib.MesonException('Python dependency not found')
         return self.interpreter.holderify(dep)
 
     @permittedKwargs(['pure', 'subdir'])

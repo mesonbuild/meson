@@ -15,15 +15,19 @@
 import os
 from . import coredata, environment, mesonlib, build, mintro, mlog
 from .ast import AstIDGenerator
+import typing as T
 
-def add_arguments(parser):
+if T.TYPE_CHECKING:
+    import argparse
+
+def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
 
 
-def make_lower_case(val):
+def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
         return str(val).lower()
     elif isinstance(val, list):
@@ -193,19 +197,13 @@ class Conf:
         test_options = {k: o for k, o in self.coredata.builtins.items() if k in test_option_names}
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
 
-        def insert_build_prefix(k):
-            idx = k.find(':')
-            if idx < 0:
-                return 'build.' + k
-            return k[:idx + 1] + 'build.' + k[idx + 1:]
-
         core_options = self.split_options_per_subproject(core_options)
         host_compiler_options = self.split_options_per_subproject(
             dict(self.coredata.flatten_lang_iterator(
                 self.coredata.compiler_options.host.items())))
         build_compiler_options = self.split_options_per_subproject(
             dict(self.coredata.flatten_lang_iterator(
-                (insert_build_prefix(k), o)
+                (self.coredata.insert_build_prefix(k), o)
                 for k, o in self.coredata.compiler_options.build.items())))
         project_options = self.split_options_per_subproject(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
@@ -214,7 +212,7 @@ class Conf:
         self.print_options('Core options', core_options[''])
         self.print_options('', self.coredata.builtins_per_machine.host)
         if show_build_options:
-            self.print_options('', {insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
+            self.print_options('', {self.coredata.insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
         self.print_options('Compiler options', host_compiler_options.get('', {}))

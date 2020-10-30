@@ -25,9 +25,3 @@ t = custom_target(
 
 meson.add_install_script('myinstall.py', 'customtarget', t, '--mode=copy')
 meson.add_install_script('myinstall.py', 'customtargetindex', t[0], '--mode=copy')
-
-meson.add_install_script(exe, 'generated.txt')
-wrap = find_program('wrap.py')
-# Yes, these are getting silly
-meson.add_install_script(wrap, exe, 'wrapped.txt')
-meson.add_install_script(wrap, wrap, exe, 'wrapped2.txt')

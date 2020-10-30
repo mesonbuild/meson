@@ -83,7 +83,8 @@ class GnomeModule(ExtensionModule):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
-        cmd = ['glib-compile-resources', '@INPUT@']
+        glib_compile_resources = self.interpreter.find_program_impl('glib-compile-resources')
+        cmd = [glib_compile_resources, '@INPUT@']
 
         source_dirs, dependencies = [mesonlib.extract_as_list(kwargs, c, pop=True) for c in  ['source_dir', 'dependencies']]
 
@@ -92,45 +93,49 @@ class GnomeModule(ExtensionModule):
                                  'and the path to the XML file are required')
 
         # Validate dependencies
-        for (ii, dep) in enumerate(dependencies):
-            if hasattr(dep, 'held_object'):
-                dependencies[ii] = dep = dep.held_object
-            if not isinstance(dep, (mesonlib.File, build.CustomTarget, build.CustomTargetIndex)):
-                m = 'Unexpected dependency type {!r} for gnome.compile_resources() ' \
-                    '"dependencies" argument.\nPlease pass the return value of ' \
-                    'custom_target() or configure_file()'
-                raise MesonException(m.format(dep))
-            if isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
+        subdirs = []
+        depends = []
+        for (ii, dep) in enumerate(unholder(dependencies)):
+            if isinstance(dep, mesonlib.File):
+                subdirs.append(dep.subdir)
+            elif isinstance(dep, (build.CustomTarget, build.CustomTargetIndex)):
+                depends.append(dep)
+                subdirs.append(dep.get_subdir())
                 if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
                     m = 'The "dependencies" argument of gnome.compile_resources() can not\n' \
                         'be used with the current version of glib-compile-resources due to\n' \
                         '<https://bugzilla.gnome.org/show_bug.cgi?id=774368>'
                     raise MesonException(m)
-
-        ifile = args[1]
-        if isinstance(ifile, mesonlib.File):
-            # glib-compile-resources will be run inside the source dir,
-            # so we need either 'src_to_build' or the absolute path.
-            # Absolute path is the easiest choice.
-            if ifile.is_built:
-                ifile = os.path.join(state.environment.get_build_dir(), ifile.subdir, ifile.fname)
             else:
-                ifile = os.path.join(ifile.subdir, ifile.fname)
-        elif isinstance(ifile, str):
-            ifile = os.path.join(state.subdir, ifile)
-        elif isinstance(ifile, (interpreter.CustomTargetHolder,
-                                interpreter.CustomTargetIndexHolder,
-                                interpreter.GeneratedObjectsHolder)):
-            m = 'Resource xml files generated at build-time cannot be used ' \
-                'with gnome.compile_resources() because we need to scan ' \
-                'the xml for dependencies. Use configure_file() instead ' \
-                'to generate it at configure-time.'
-            raise MesonException(m)
-        else:
-            raise MesonException('Invalid file argument: {!r}'.format(ifile))
+                m = 'Unexpected dependency type {!r} for gnome.compile_resources() ' \
+                    '"dependencies" argument.\nPlease pass the return value of ' \
+                    'custom_target() or configure_file()'
+                raise MesonException(m.format(dep))
 
-        depend_files, depends, subdirs = self._get_gresource_dependencies(
-            state, ifile, source_dirs, dependencies)
+        if not mesonlib.version_compare(glib_version, gresource_dep_needed_version):
+            ifile = args[1]
+            if isinstance(ifile, mesonlib.File):
+                # glib-compile-resources will be run inside the source dir,
+                # so we need either 'src_to_build' or the absolute path.
+                # Absolute path is the easiest choice.
+                if ifile.is_built:
+                    ifile = os.path.join(state.environment.get_build_dir(), ifile.subdir, ifile.fname)
+                else:
+                    ifile = os.path.join(ifile.subdir, ifile.fname)
+            elif isinstance(ifile, str):
+                ifile = os.path.join(state.subdir, ifile)
+            elif isinstance(ifile, (interpreter.CustomTargetHolder,
+                                    interpreter.CustomTargetIndexHolder,
+                                    interpreter.GeneratedObjectsHolder)):
+                m = 'Resource xml files generated at build-time cannot be used ' \
+                    'with gnome.compile_resources() because we need to scan ' \
+                    'the xml for dependencies. Use configure_file() instead ' \
+                    'to generate it at configure-time.'
+                raise MesonException(m)
+            else:
+                raise MesonException('Invalid file argument: {!r}'.format(ifile))
+            depend_files, depends, subdirs = self._get_gresource_dependencies(
+                state, ifile, source_dirs, dependencies)
 
         # Make source dirs relative to build dir now
         source_dirs = [os.path.join(state.build_to_src, state.subdir, d) for d in source_dirs]
@@ -157,8 +162,14 @@ class GnomeModule(ExtensionModule):
             output = args[0] + '.gresource'
             name = args[0] + '_gresource'
         else:
-            output = args[0] + '.c'
-            name = args[0] + '_c'
+            if 'c' in state.environment.coredata.compilers.host.keys():
+                output = args[0] + '.c'
+                name = args[0] + '_c'
+            elif 'cpp' in state.environment.coredata.compilers.host.keys():
+                output = args[0] + '.cpp'
+                name = args[0] + '_cpp'
+            else:
+                raise MesonException('Compiling GResources into code is only supported in C and C++ projects')
 
         if kwargs.get('install', False) and not gresource:
             raise MesonException('The install kwarg only applies to gresource bundles, see install_header')

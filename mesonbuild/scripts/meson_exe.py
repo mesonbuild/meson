@@ -16,29 +16,21 @@ import os
 import sys
 import argparse
 import pickle
-import platform
 import subprocess
+import typing as T
 
 from .. import mesonlib
 from ..backend.backends import ExecutableSerialisation
 
 options = None
 
-def buildparser():
+def buildparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Custom executable wrapper for Meson. Do not run on your own, mmm\'kay?')
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     return parser
 
-def is_windows():
-    platname = platform.system().lower()
-    return platname == 'windows' or 'mingw' in platname
-
-def is_cygwin():
-    platname = platform.system().lower()
-    return 'cygwin' in platname
-
-def run_exe(exe):
+def run_exe(exe: ExecutableSerialisation) -> int:
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
@@ -63,9 +55,12 @@ def run_exe(exe):
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
+    if exe.pickled and p.returncode != 0:
+        print('while executing {!r}'.format(cmd_args))
+
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
-        raise FileNotFoundError('Missing DLLs on calling {!r}'.format(exe.name))
+        raise FileNotFoundError('due to missing DLLs')
 
     if exe.capture and p.returncode == 0:
         skip_write = False
@@ -83,7 +78,7 @@ def run_exe(exe):
         sys.stderr.buffer.write(stderr)
     return p.returncode
 
-def run(args):
+def run(args: T.List[str]) -> int:
     global options
     parser = buildparser()
     options, cmd_args = parser.parse_known_args(args)
@@ -98,6 +93,7 @@ def run(args):
             parser.error('no other arguments can be used with --unpickle')
         with open(options.unpickle, 'rb') as f:
             exe = pickle.load(f)
+            exe.pickled = True
     else:
         exe = ExecutableSerialisation(cmd_args, capture=options.capture)
 

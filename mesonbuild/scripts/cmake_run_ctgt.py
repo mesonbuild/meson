@@ -3,12 +3,12 @@
 import argparse
 import subprocess
 import shutil
-import os
 import sys
 from pathlib import Path
+import typing as T
 
-def run(argsv):
-    commands = [[]]
+def run(argsv: T.List[str]) -> int:
+    commands = [[]]  # type: T.List[T.List[str]]
     SEPARATOR = ';;;'
 
     # Generate CMD parameters
@@ -20,13 +20,14 @@ def run(argsv):
 
     # Parse
     args = parser.parse_args(argsv)
+    directory = Path(args.directory)
 
     dummy_target = None
     if len(args.outputs) == 1 and len(args.original_outputs) == 0:
-        dummy_target = args.outputs[0]
+        dummy_target = Path(args.outputs[0])
     elif len(args.outputs) != len(args.original_outputs):
         print('Length of output list and original output list differ')
-        sys.exit(1)
+        return 1
 
     for i in args.commands:
         if i == SEPARATOR:
@@ -62,39 +63,40 @@ def run(argsv):
                 cmd += [j]
 
         try:
-            os.makedirs(args.directory, exist_ok=True)
+            directory.mkdir(parents=True, exist_ok=True)
 
-            res = subprocess.run(cmd, stdout=stdout, stderr=stderr, cwd=args.directory, check=True)
+            res = subprocess.run(cmd, stdout=stdout, stderr=stderr, cwd=str(directory), check=True)
             if capture_file:
-                out_file = Path(args.directory) / capture_file
+                out_file = directory / capture_file
                 out_file.write_bytes(res.stdout)
         except subprocess.CalledProcessError:
-            sys.exit(1)
+            return 1
 
     if dummy_target:
-        with open(dummy_target, 'a'):
-            os.utime(dummy_target, None)
-        sys.exit(0)
+        dummy_target.touch()
+        return 0
 
     # Copy outputs
-    zipped_outputs = zip(args.outputs, args.original_outputs)
+    zipped_outputs = zip([Path(x) for x in args.outputs], [Path(x) for x in args.original_outputs])
     for expected, generated in zipped_outputs:
         do_copy = False
-        if not os.path.exists(expected):
-            if not os.path.exists(generated):
+        if not expected.exists():
+            if not generated.exists():
                 print('Unable to find generated file. This can cause the build to fail:')
                 print(generated)
                 do_copy = False
             else:
                 do_copy = True
-        elif os.path.exists(generated):
-            if os.path.getmtime(generated) > os.path.getmtime(expected):
+        elif generated.exists():
+            if generated.stat().st_mtime > expected.stat().st_mtime:
                 do_copy = True
 
         if do_copy:
-            if os.path.exists(expected):
-                os.remove(expected)
-            shutil.copyfile(generated, expected)
+            if expected.exists():
+                expected.unlink()
+            shutil.copyfile(str(generated), str(expected))
+
+    return 0
 
 if __name__ == '__main__':
-    sys.run(sys.argv[1:])
+    sys.exit(run(sys.argv[1:]))

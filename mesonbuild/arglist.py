@@ -164,7 +164,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __getitem__(self, index: slice) -> T.MutableSequence[str]:  # noqa: F811
         pass
 
-    def __getitem__(self, index):  # noqa: F811
+    def __getitem__(self, index: T.Union[int, slice]) -> T.Union[str, T.MutableSequence[str]]:  # noqa: F811
         self.flush_pre_post()
         return self._container[index]
 
@@ -176,9 +176,9 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __setitem__(self, index: slice, value: T.Iterable[str]) -> None:  # noqa: F811
         pass
 
-    def __setitem__(self, index, value) -> None:  # noqa: F811
+    def __setitem__(self, index: T.Union[int, slice], value: T.Union[str, T.Iterable[str]]) -> None:  # noqa: F811
         self.flush_pre_post()
-        self._container[index] = value
+        self._container[index] = value  # type: ignore  # TODO: fix 'Invalid index type' and 'Incompatible types in assignment' erros
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
         self.flush_pre_post()
@@ -314,7 +314,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         new += self
         return new
 
-    def __eq__(self, other: T.Any) -> T.Union[bool]:
+    def __eq__(self, other: object) -> T.Union[bool]:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):

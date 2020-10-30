@@ -258,7 +258,30 @@ the following command-line options:
     `glib-2.0` must also be forced to fallback, in this case with
     `--force-fallback-for=glib,gsteamer`.
 
-## Download subprojects
+* **--wrap-mode=nopromote**
+
+    *Since 0.56.0* Meson will automatically use wrap files found in subprojects
+    and copy them into the main project. That new behavior can be disabled by
+    passing `--wrap-mode=nopromote`. In that case only wraps found in the main
+    project will be used.
+
+## `meson subprojects` command
+
+*Since 0.49.0*
+
+`meson subprojects` has various subcommands to manage all subprojects. If the
+subcommand fails on any subproject the execution continues with other subprojects.
+All subcommands accept `--sourcedir` argument pointing to the root source dir
+of the main project.
+
+*Since 0.56.0* all subcommands accept `--types <file|git|hg|svn>` argument to
+run the subcommands only on subprojects of the given types. Multiple types can
+be set as comma separated list e.g. `--types git,file`.
+
+*Since 0.56.0* If the subcommand fails on any subproject an error code is returned
+at the end instead of retuning success.
+
+### Download subprojects
 
 *Since 0.49.0*
 
@@ -269,7 +292,7 @@ offline. The command-line `meson subprojects download` can be used for that, it
 will download all missing subprojects, but will not update already fetched
 subprojects.
 
-## Update subprojects
+### Update subprojects
 
 *Since 0.49.0*
 
@@ -282,15 +305,28 @@ To pull latest version of all your subprojects at once, just run the command:
   be pulled and used next time meson reconfigure the project. This can be
   triggered using `meson --reconfigure`. Previous source tree is not deleted, to
   prevent from any loss of local changes.
-- If the wrap file points to a git commit or tag, a checkout of that commit is
-  performed.
-- If the wrap file points to a git branch, and the current branch has the same
-  name, a `git pull` is performed.
-- If the wrap file points to a git branch, and the current branch is different,
-  it is skipped. Unless `--rebase` option is passed in which case
-  `git pull --rebase` is performed.
+- If subproject is currently in detached mode, a checkout of the revision from
+  wrap file is performed. *Since 0.56.0* a rebase is also performed in case the
+  revision already existed locally but was outdated. If `--reset` is specified,
+  a hard reset is performed instead of rebase.
+- If subproject is currently at the same branch as specified by the wrap file,
+  a rebase on `origin` commit is performed. *Since 0.56.0* If `--reset` is
+  specified, a hard reset is performed instead of rebase.
+- If subproject is currently in a different branch as specified by the wrap file,
+  it is skipped unless `--rebase` option is passed in which case a rebase on
+  `origin` commit is performed. *Since 0.56.0* the `--rebase` argument is
+  deprecated and has no effect. Instead, a checkout of the revision from wrap file
+  file is performed and a rebase is also performed in case the revision already
+  existed locally by was outdated. If `--reset` is specified, a hard reset is
+  performed instead of rebase.
+- *Since 0.56.0* if the `url` specified in wrap file is different to the URL set
+  on `origin` for a git repository it will not be updated, unless `--reset` is
+  specified in which case the URL of `origin` will be reset first.
+- *Since 0.56.0* If the subproject directory is not a git repository but has a
+  `[wrap-git]` the subproject is ignored, unless `--reset` is specified in which
+  case the directory is deleted and the new repository is cloned.
 
-## Start a topic branch across all git subprojects
+### Start a topic branch across all git subprojects
 
 *Since 0.49.0*
 
@@ -303,7 +339,9 @@ changes.
 To come back to the revision set in wrap file (i.e. master), just run
 `meson subprojects checkout` with no branch name.
 
-## Execute a command on all subprojects
+*Since 0.56.0* any pending changes are now stashed before checkout a new branch.
+
+### Execute a command on all subprojects
 
 *Since 0.51.0*
 

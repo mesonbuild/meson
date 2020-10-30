@@ -14,7 +14,7 @@
 
 from .boost import BoostDependency
 from .cuda import CudaDependency
-from .hdf5 import HDF5Dependency
+from .hdf5 import hdf5_factory
 from .base import (  # noqa: F401
     Dependency, DependencyException, DependencyMethods, ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
     ExternalDependency, NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency, InternalDependency,
@@ -51,7 +51,7 @@ packages.update({
 
     # per-file
     'coarray': coarray_factory,
-    'hdf5': HDF5Dependency,
+    'hdf5': hdf5_factory,
     'mpi': mpi_factory,
     'scalapack': scalapack_factory,
 

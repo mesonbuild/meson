@@ -35,25 +35,34 @@ ESCAPE_SEQUENCE_SINGLE_RE = re.compile(r'''
     )''', re.UNICODE | re.VERBOSE)
 
 class MesonUnicodeDecodeError(MesonException):
-    def __init__(self, match):
-        super().__init__("%s" % match)
+    def __init__(self, match: str) -> None:
+        super().__init__(match)
         self.match = match
 
-def decode_match(match):
+def decode_match(match: T.Match[str]) -> str:
     try:
-        return codecs.decode(match.group(0), 'unicode_escape')
+        return codecs.decode(match.group(0).encode(), 'unicode_escape')
     except UnicodeDecodeError:
         raise MesonUnicodeDecodeError(match.group(0))
 
 class ParseException(MesonException):
-    def __init__(self, text, line, lineno, colno):
+    def __init__(self, text: str, line: str, lineno: int, colno: int) -> None:
         # Format as error message, followed by the line with the error, followed by a caret to show the error column.
-        super().__init__("%s\n%s\n%s" % (text, line, '%s^' % (' ' * colno)))
+        super().__init__("{}\n{}\n{}".format(text, line, '{}^'.format(' ' * colno)))
         self.lineno = lineno
         self.colno = colno
 
 class BlockParseException(MesonException):
-    def __init__(self, text, line, lineno, colno, start_line, start_lineno, start_colno):
+    def __init__(
+                self,
+                text: str,
+                line: str,
+                lineno: int,
+                colno: int,
+                start_line: str,
+                start_lineno: int,
+                start_colno: int,
+            ) -> None:
         # This can be formatted in two ways - one if the block start and end are on the same line, and a different way if they are on different lines.
 
         if lineno == start_lineno:
@@ -88,10 +97,12 @@ class Token(T.Generic[TV_TokenTypes]):
         self.bytespan = bytespan      # type: T.Tuple[int, int]
         self.value = value            # type: TV_TokenTypes
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, str):
             return self.tid == other
-        return self.tid == other.tid
+        elif isinstance(other, Token):
+            return self.tid == other.tid
+        return NotImplemented
 
 class Lexer:
     def __init__(self, code: str):
@@ -261,7 +272,7 @@ class IdNode(ElementaryNode[str]):
         super().__init__(token)
         assert isinstance(self.value, str)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Id node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
 class NumberNode(ElementaryNode[int]):
@@ -274,7 +285,7 @@ class StringNode(ElementaryNode[str]):
         super().__init__(token)
         assert isinstance(self.value, str)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
 
 class ContinueNode(ElementaryNode):
@@ -703,7 +714,7 @@ class Parser:
             s = self.statement()
         return a
 
-    def method_call(self, source_object) -> MethodNode:
+    def method_call(self, source_object: BaseNode) -> MethodNode:
         methodname = self.e9()
         if not(isinstance(methodname, IdNode)):
             raise ParseException('Method name must be plain id',
@@ -717,7 +728,7 @@ class Parser:
             return self.method_call(method)
         return method
 
-    def index_call(self, source_object) -> IndexNode:
+    def index_call(self, source_object: BaseNode) -> IndexNode:
         index_statement = self.statement()
         self.expect('rbracket')
         return IndexNode(source_object, index_statement)
@@ -750,7 +761,7 @@ class Parser:
         clause.elseblock = self.elseblock()
         return clause
 
-    def elseifblock(self, clause) -> None:
+    def elseifblock(self, clause: IfClauseNode) -> None:
         while self.accept('elif'):
             s = self.statement()
             self.expect('eol')

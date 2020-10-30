@@ -27,9 +27,16 @@ from ... import mesonlib
 if T.TYPE_CHECKING:
     from ...coredata import OptionDictType
     from ...environment import Environment
+    from ...compilers.compilers import Compiler
+else:
+    # This is a bit clever, for mypy we pretend that these mixins descend from
+    # Compiler, so we get all of the methods and attributes defined for us, but
+    # for runtime we make them descend from object (which all classes normally
+    # do). This gives up DRYer type checking, with no runtime impact
+    Compiler = object
 
 
-class BasicLinkerIsCompilerMixin:
+class BasicLinkerIsCompilerMixin(Compiler):
 
     """Provides a baseline of methods that a linker would implement.
 
@@ -90,8 +97,7 @@ class BasicLinkerIsCompilerMixin:
         return []
 
     def get_coverage_link_args(self) -> T.List[str]:
-        m = "Linker {} doesn't implement coverage data generation.".format(self.id)
-        raise mesonlib.EnvironmentException(m)
+        return []
 
     def no_undefined_link_args(self) -> T.List[str]:
         return []
@@ -99,8 +105,8 @@ class BasicLinkerIsCompilerMixin:
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException("This linker doesn't support bitcode bundles")
 
-    def get_soname_args(self, for_machine: 'mesonlib.MachineChoice',
-                        prefix: str, shlib_name: str, suffix: str, soversion: str,
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str,
                         darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
         raise mesonlib.MesonException("This linker doesn't support soname args")

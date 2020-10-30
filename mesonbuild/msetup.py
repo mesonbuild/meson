@@ -31,7 +31,7 @@ from . import mintro
 from .mconf import make_lower_case
 from .mesonlib import MesonException
 
-def add_arguments(parser):
+def add_arguments(parser: argparse.ArgumentParser) -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('--native-file',
                         default=[],
@@ -59,7 +59,7 @@ def add_arguments(parser):
     parser.add_argument('sourcedir', nargs='?', default=None)
 
 class MesonApp:
-    def __init__(self, options):
+    def __init__(self, options: argparse.Namespace) -> None:
         (self.source_dir, self.build_dir) = self.validate_dirs(options.builddir,
                                                                options.sourcedir,
                                                                options.reconfigure,
@@ -150,15 +150,17 @@ class MesonApp:
                 raise SystemExit('Directory does not contain a valid build tree:\n{}'.format(build_dir))
         return src_dir, build_dir
 
-    def generate(self):
+    def generate(self) -> None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
+        if env.coredata.builtins['backend'].value == 'xcode':
+            mlog.warning('xcode backend is currently unmaintained, patches welcome')
         with mesonlib.BuildDirLock(self.build_dir):
             self._generate(env)
 
-    def _generate(self, env):
+    def _generate(self, env: environment.Environment) -> None:
         mlog.debug('Build started at', datetime.datetime.now().isoformat())
         mlog.debug('Main binary:', sys.executable)
         mlog.debug('Build Options:', coredata.get_cmd_line_options(self.build_dir, self.options))
@@ -178,12 +180,18 @@ class MesonApp:
             logger_fun = mlog.log
         else:
             logger_fun = mlog.debug
-        logger_fun('Build machine cpu family:', mlog.bold(intr.builtin['build_machine'].cpu_family_method([], {})))
-        logger_fun('Build machine cpu:', mlog.bold(intr.builtin['build_machine'].cpu_method([], {})))
-        mlog.log('Host machine cpu family:', mlog.bold(intr.builtin['host_machine'].cpu_family_method([], {})))
-        mlog.log('Host machine cpu:', mlog.bold(intr.builtin['host_machine'].cpu_method([], {})))
-        logger_fun('Target machine cpu family:', mlog.bold(intr.builtin['target_machine'].cpu_family_method([], {})))
-        logger_fun('Target machine cpu:', mlog.bold(intr.builtin['target_machine'].cpu_method([], {})))
+        build_machine = intr.builtin['build_machine']
+        host_machine = intr.builtin['build_machine']
+        target_machine = intr.builtin['target_machine']
+        assert isinstance(build_machine, interpreter.MachineHolder)
+        assert isinstance(host_machine, interpreter.MachineHolder)
+        assert isinstance(target_machine, interpreter.MachineHolder)
+        logger_fun('Build machine cpu family:', mlog.bold(build_machine.cpu_family_method([], {})))
+        logger_fun('Build machine cpu:', mlog.bold(build_machine.cpu_method([], {})))
+        mlog.log('Host machine cpu family:', mlog.bold(host_machine.cpu_family_method([], {})))
+        mlog.log('Host machine cpu:', mlog.bold(host_machine.cpu_method([], {})))
+        logger_fun('Target machine cpu family:', mlog.bold(target_machine.cpu_family_method([], {})))
+        logger_fun('Target machine cpu:', mlog.bold(target_machine.cpu_method([], {})))
         try:
             if self.options.profile:
                 fname = os.path.join(self.build_dir, 'meson-private', 'profile-interpreter.log')
@@ -239,7 +247,7 @@ class MesonApp:
                     os.unlink(cdf)
             raise
 
-def run(options) -> int:
+def run(options: argparse.Namespace) -> int:
     coredata.parse_cmd_line_options(options)
     app = MesonApp(options)
     app.generate()

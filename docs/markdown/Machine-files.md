@@ -5,6 +5,9 @@ documentation on the common values used by both, for the specific values of
 one or the other see the [cross compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
+*Changed in 0.56.0* Keys within sections are now case sensitive. This is
+*required to make project options work correctly.
+
 ## Data Types
 
 There are four basic data types in a machine file:
@@ -43,6 +46,7 @@ The following sections are allowed:
 - binaries
 - paths
 - properties
+- cmake
 - project options
 - built-in options
 
@@ -199,6 +203,62 @@ section may contain random key value pairs accessed using the
 *Changed in 0.56.0* putting `<lang>_args` and `<lang>_link_args` in the
 properties section has been deprecated, and should be put in the built-in
 options section.
+
+#### Supported properties
+
+This is a non exhaustive list of supported variables in the `[properties]`
+section.
+
+- `cmake_toolchain_file` specifies an absoulte path to an already existing
+  CMake toolchain file that will be loaded with `include()` as the last
+  instruction of the automatically generated CMake toolchain file from meson.
+  (*new in 0.56.0*)
+- `cmake_defaults` is a boolean that specifies whether meson should automatically
+  generate default toolchain varaibles from other sections (`binaries`,
+  `host_machine`, etc.) in the machine file. Defaults are always overwritten
+  by variables set in the `[cmake]` section. The default is `true`. (*new in 0.56.0*)
+- `cmake_skip_compiler_test` is an enum that specifies when meson should
+  automatically generate toolchain variables to skip the CMake compiler
+  sanity checks. This only has an effect if `cmake_defaults` is `true`.
+  Supported values are `always`, `never`, `dep_only`. The default is `dep_only`.
+  (*new in 0.56.0*)
+- `cmake_use_exe_wrapper` is a boolean that controlls whether to use the
+  `exe_wrapper` specified in `[binaries]` to run generated executables in CMake
+  subprojects. This setting has no effect if the `exe_wrapper` was not specified.
+  The default value is `true`. (*new in 0.56.0*)
+
+### CMake variables
+
+*New in 0.56.0*
+
+All variables set in the `[cmake]` section will be added to the generate CMake
+toolchain file used for both CMake dependencies and CMake subprojects. The type
+of each entry must be either a string or a list of strings.
+
+**Note:** All occurances of `\` in the value of all keys will be replaced with
+          a `/` since CMake has a lot of issues with correctly escaping `\` when
+          dealing with variables (even in cases where a path in `CMAKE_C_COMPILER`
+          is correctly escaped, CMake will still trip up internaly for instance)
+
+          A custom toolchain file should be used (via the `cmake_toolchain_file`
+          property) if `\` support is required.
+
+```ini
+[cmake]
+
+CMAKE_C_COMPILER    = '/usr/bin/gcc'
+CMAKE_CXX_COMPILER  = 'C:\\user\\bin\\g++'
+CMAKE_SOME_VARIABLE = ['some', 'value with spaces']
+```
+
+For instance, the `[cmake]` section from above will generate the following
+code in the CMake toolchain file:
+
+```cmake
+set(CMAKE_C_COMPILER    "/usr/bin/gcc")
+set(CMAKE_C_COMPILER    "C:/usr/bin/g++")
+set(CMAKE_SOME_VARIABLE "some" "value with spaces")
+```
 
 ### Project specific options
 

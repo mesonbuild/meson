@@ -1,8 +1,5 @@
 {
   "installed": [
-    {"type": "expr", "file": "usr/?lib/libcm_cmModLib?so"},
-    {"type": "implib", "platform": "cygwin", "file": "usr/lib/libcm_cmModLib"},
-    {"type": "implib", "platform": "!cygwin", "file": "usr/bin/libcm_cmModLib"},
     {"type": "exe", "file": "usr/bin/cm_testEXE"}
   ],
   "tools": {

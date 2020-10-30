@@ -59,6 +59,7 @@ for one target is defined as follows:
     "filename": ["list", "of", "generated", "files"],
     "build_by_default": true / false,
     "target_sources": [],
+    "extra_files": ["/path/to/file1.hpp", "/path/to/file2.hpp"],
     "installed": true / false,
 }
 ```
@@ -70,6 +71,9 @@ is set to `null`.
 
 The `subproject` key specifies the name of the subproject this target was
 defined in, or `null` if the target was defined in the top level project.
+
+*(New in 0.56.0)* The `extra_files` key lists all files specified via the
+`extra_files` kwarg of a build target. See [`executable()`](Reference-manual.md#executable).
 
 A target usually generates only one file. However, it is possible for custom
 targets to have multiple outputs.
@@ -247,12 +251,18 @@ line arguments, environment variable settings and how to process the output.
     "is_parallel": true / false,
     "protocol": "exitcode" / "tap",
     "cmd": ["command", "to", "run"],
+    "depends": ["target1-id", "target2-id"],
     "env": {
         "VARIABLE1": "value 1",
         "VARIABLE2": "value 2"
     }
 }
 ```
+
+The `depends` entry *(since 0.56.0)* contains target ids; they can be
+looked up in the targets introspection data.  The executable
+pointed to by `cmd` is also included in the entry, as are any
+arguments to the test that are build products.
 
 ## Build system files
 

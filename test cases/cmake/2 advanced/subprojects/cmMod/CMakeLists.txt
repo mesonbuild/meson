@@ -25,4 +25,4 @@ target_link_libraries(testEXE cmModLib)
 
 target_compile_definitions(cmModLibStatic PUBLIC CMMODLIB_STATIC_DEFINE)
 
-install(TARGETS cmModLib testEXE LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
+install(TARGETS testEXE LIBRARY DESTINATION lib RUNTIME DESTINATION bin)

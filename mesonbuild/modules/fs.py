@@ -14,7 +14,7 @@
 
 import typing as T
 import hashlib
-from pathlib import Path, PurePath, PureWindowsPath
+from .._pathlib import Path, PurePath, PureWindowsPath
 
 from .. import mlog
 from . import ExtensionModule
@@ -24,11 +24,11 @@ from ..interpreterbase import FeatureNew
 
 from ..interpreterbase import stringArgs, noKwargs
 if T.TYPE_CHECKING:
-    from ..interpreter import ModuleState
+    from ..interpreter import Interpreter, ModuleState
 
 class FSModule(ExtensionModule):
 
-    def __init__(self, interpreter):
+    def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self.snippets.add('generate_dub_file')
 
@@ -36,7 +36,7 @@ class FSModule(ExtensionModule):
         """
         make an absolute path from a relative path, WITHOUT resolving symlinks
         """
-        return Path(state.source_root) / state.subdir / Path(arg).expanduser()
+        return Path(state.source_root) / Path(state.subdir) / Path(arg).expanduser()
 
     def _resolve_dir(self, state: 'ModuleState', arg: str) -> Path:
         """
@@ -193,5 +193,5 @@ class FSModule(ExtensionModule):
         new = original.stem
         return ModuleReturnValue(str(new), [])
 
-def initialize(*args, **kwargs) -> FSModule:
+def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
     return FSModule(*args, **kwargs)
