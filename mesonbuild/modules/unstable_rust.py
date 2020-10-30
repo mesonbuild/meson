@@ -1,4 +1,5 @@
-# Copyright © 2020 Intel Corporation
+# SPDX-license-identifier: Apache-2.0
+# Copyright © 2020-2021 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +27,7 @@ from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..interpreter import Interpreter
+    from ..interpreter import Interpreter, SubprojectHolder
     from ..programs import ExternalProgram
     from ..interpreter.interpreter import SourceOutputs
 
@@ -205,19 +206,18 @@ class RustModule(ExtensionModule):
 
         return ModuleReturnValue([target], [CustomTargetHolder(target, self.interpreter)])
 
+    # TODO: keyword argument enforcement
+    @typed_pos_args('rustmod.subproject', str)
     def subproject(self, interpreter: 'Interpreter', state: 'ModuleState',
-                   args: T.List, kwargs: T.Dict[str, T.Any]) -> 'SubprojectHolder':
+                   args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> 'SubprojectHolder':
         """Create a subproject from a cargo manifest.
 
-        This method
+        TODO
         """
         if not cargo.HAS_TOML:
             raise InterpreterException('cargo integration requires the python toml module.')
-        dirname: str = args[0]
-        if not isinstance(dirname, str):
-            raise InvalidArguments('rust.subproject "name" positional arugment must be a string.')
 
-        subp = interpreter.do_subproject(dirname, 'cargo', kwargs)
+        subp = interpreter.do_subproject(args[0], 'cargo', kwargs)
 
         return subp
 

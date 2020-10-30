@@ -1,0 +1,11 @@
+[package]
+name = "sub3"
+version = "1.0.0"
+autotests = false
+autobins = false
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+sub2 = "1.2.*"
+
+[target.'cfg(not(target_arch = "aarch64"))'.dependencies]
+sub2 = "1.2.*"

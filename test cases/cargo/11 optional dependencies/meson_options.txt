@@ -1,5 +1,0 @@
-option(
-    'needs_to_be_on',
-    type : 'boolean',
-    value : true,
-)

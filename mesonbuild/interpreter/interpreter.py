@@ -73,6 +73,16 @@ if T.TYPE_CHECKING:
                             build.BuildTarget, build.CustomTargetIndex,
                             build.GeneratedList]
 
+
+class CrateSubprojectKey(T.NamedTuple):
+
+    """Subproject key used by rust projects."""
+
+    name: str
+    version: str
+    options: T.Tuple[str, ...]
+
+
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
@@ -702,15 +712,25 @@ external dependencies (including libraries) must go to "dependencies".''')
         subp_name = args[0]
         return self.do_subproject(subp_name, 'meson', kwargs)
 
-    def disabled_subproject(self, subp_name: 'SubprojectKeyType', disabled_feature=None, exception=None):
+    @staticmethod
+    def _subproject_key_as_str(key: 'SubprojectKeyType') -> str:
+        if isinstance(key, str):
+            return key
+        return f'{key.name}-{key.version}-{hash(key.options)}'
+
+    def disabled_subproject(self, key: 'SubprojectKeyType', disabled_feature=None, exception=None):
+        if isinstance(key, str):
+            subp_name = key
+        else:
+            subp_name = key.name
         sub = SubprojectHolder(None, os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
-        self.subprojects[subp_name] = sub
+        self.subprojects[key] = sub
         self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
-    def get_subproject(self, subp_name: 'SubprojectKeyType') -> T.Optional[SubprojectHolder]:
-        sub = self.subprojects.get(subp_name)
+    def get_subproject(self, key: 'SubprojectKeyType') -> T.Optional[SubprojectHolder]:
+        sub = self.subprojects.get(key)
         if sub and sub.found():
             return sub
         return None
@@ -893,17 +913,26 @@ external dependencies (including libraries) must go to "dependencies".''')
         return result
 
     def _do_subproject_cargo(self, subp_name: str, subdir: str, subdir_abs: str, kwargs: T.Dict[str, T.Any]) -> SubprojectHolder:
+        features = mesonlib.stringlistify(kwargs.get('features', []))
+        default_features = kwargs.get('default_features', True)
+        if not isinstance(default_features, bool):
+            raise InvalidArguments('rust.subproject keyword argument "default_features" must be a bool.')
+        version = mesonlib.stringlistify(kwargs.get('version', []))
+
         with mlog.nested(subp_name):
             new_build = self.build.copy()
             prefix = self.coredata.options[OptionKey('prefix')].value
-            interp = ManifestInterpreter(new_build, Path(subdir), Path(subdir_abs), Path(prefix), new_build.environment, self.backend)
+            interp = ManifestInterpreter(
+                new_build, Path(subdir), Path(subdir_abs), Path(prefix),
+                new_build.environment, self.backend, set(features), version,
+                default_features)
 
             # Generate a meson ast and execute it with the normal do_subproject_meson
             ast, opt_ast = interp.parse()
             self.__print_generated_ast('cargo.toml', subdir, ast, opt_ast)
 
             result = self._do_subproject_meson(
-                subp_name, subdir, [], kwargs, ast, [interp.manifest_file],
+                subp_name, str(interp.build_dir), [], kwargs, ast, [interp.manifest_file],
                 opt_ast=opt_ast, is_translated=True)
             # result.cm_interpreter = cm_int  # TODO: what do we need this for?
 

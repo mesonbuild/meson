@@ -378,19 +378,9 @@ def any_compiler_has_define(compilers: CompilersDict, define):
             pass
     return False
 
-def detect_cpu_family(compilers: CompilersDict) -> str:
-    """
-    Python is inconsistent in its platform module.
-    It returns different values for the same cpu.
-    For x86 it might return 'x86', 'i686' or somesuch.
-    Do some canonicalization.
-    """
-    if mesonlib.is_windows():
-        trial = detect_windows_arch(compilers)
-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
-        trial = platform.processor().lower()
-    else:
-        trial = platform.machine().lower()
+
+def normalize_cpu_family(trial: str) -> str:
+    """Normalizes cpu family values into the form meson expects."""
     if trial.startswith('i') and trial.endswith('86'):
         trial = 'x86'
     elif trial == 'bepc':
@@ -414,6 +404,23 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
             trial = 'mips64'
     elif trial in {'ip30', 'ip35'}:
         trial = 'mips64'
+    return trial
+
+
+def detect_cpu_family(compilers: CompilersDict) -> str:
+    """
+    Python is inconsistent in its platform module.
+    It returns different values for the same cpu.
+    For x86 it might return 'x86', 'i686' or somesuch.
+    Do some canonicalization.
+    """
+    if mesonlib.is_windows():
+        trial = detect_windows_arch(compilers)
+    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
+        trial = platform.processor().lower()
+    else:
+        trial = platform.machine().lower()
+    trial = normalize_cpu_family(trial)
 
     # On Linux (and maybe others) there can be any mixture of 32/64 bit code in
     # the kernel, Python, system, 32-bit chroot on 64-bit host, etc. The only

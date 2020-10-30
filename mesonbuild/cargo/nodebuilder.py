@@ -1,4 +1,4 @@
-# Copyright © 2020 Intel Corporation
+# Copyright © 2020-2021 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ worrying about building the AST correctly.
 
 from pathlib import Path
 import contextlib
+import enum
 import typing as T
 
 from .. import mparser
@@ -29,6 +30,13 @@ if T.TYPE_CHECKING:
     TYPE_mixed = T.Union[str, int, bool, Path, mparser.BaseNode]
     TYPE_mixed_list = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]
     TYPE_mixed_dict = T.Dict[str, TYPE_mixed_list]
+
+    try:
+        from typing import Literal
+    except ImportError:
+        from typing_extensions import Literal
+
+    ComparisonOps = Literal['==', '!=', '<', '<=', '>=', '>', 'in', 'not in']
 
 
 __all__ = ['NodeBuilder']
@@ -42,7 +50,7 @@ class _Builder:
         self.subdir = subdir
         # Keep a public set of all assigned build targtets
         # This is neede to reference a target later
-        self.variables: T.Set[str] = set()
+        self.variables: T.Set[str] = {'host_machine', 'build_machine', 'target_machine', 'meson'}
 
     def empty(self) -> mparser.BaseNode:
         return mparser.BaseNode(0, 0, '')
@@ -100,6 +108,16 @@ class _Builder:
 
     def method(self, name: str, base: mparser.BaseNode, args: mparser.ArgumentNode) -> mparser.MethodNode:
         return mparser.MethodNode('', 0, 0, base, name, args)
+
+    def comparison(self, operator: str, left: mparser.BaseNode, right: mparser.BaseNode) -> mparser.ComparisonNode:
+        assert operator in mparser.comparison_map
+        return mparser.ComparisonNode(operator, left, right)
+
+    def and_(self, left: mparser.BaseNode, right: mparser.BaseNode) -> mparser.AndNode:
+        return mparser.AndNode(left, right)
+
+    def or_(self, left: mparser.BaseNode, right: mparser.BaseNode) -> mparser.OrNode:
+        return mparser.OrNode(left, right)
 
 
 class ArgumentBuilder:
@@ -214,6 +232,8 @@ class IfBuilder:
         b = NodeBuilder(_builder=self._builder)
         yield b
         cond = b.finalize()
+        if len(cond.lines) != 1:
+            import pdb; pdb.set_trace()
         assert len(cond.lines) == 1, 'this is a bit of a hack'
         self._condition = cond.lines[0]
 
@@ -265,7 +285,13 @@ class ObjectBuilder:
     def method_builder(self, name: str) -> T.Iterator[ArgumentBuilder]:
         b = ArgumentBuilder(self._builder)
         yield b
-        self._methods.append((name, b.finalize()))
+        self.method_call(name, b)
+
+    def method_call(self, name: str, b: T.Optional[ArgumentBuilder] = None) -> None:
+        if b is None:
+            self._methods.append((name, self._builder.arguments([], {})))
+        else:
+            self._methods.append((name, b.finalize()))
 
     def finalize(self) -> mparser.MethodNode:
         cur: T.Union[mparser.IdNode, mparser.MethodNode] = self._object
@@ -275,6 +301,77 @@ class ObjectBuilder:
         assert isinstance(cur, mparser.MethodNode), 'mypy and pylance need this'
         return cur
 
+
+class ComparisonBuilder:
+
+    def __init__(self, op: 'ComparisonOps', builder: _Builder):
+        self._op = op
+        self._builder = builder
+        self._left: T.Optional['NodeBuilder'] = None
+        self._right: T.Optional['NodeBuilder'] = None
+
+    @contextlib.contextmanager
+    def left_builder(self) -> T.Iterable['NodeBuilder']:
+        self._left = NodeBuilder(_builder=self._builder)
+        yield self._left
+
+    @contextlib.contextmanager
+    def right_builder(self) -> T.Iterable['NodeBuilder']:
+        self._right = NodeBuilder(_builder=self._builder)
+        yield self._right
+
+    def finalize(self) -> mparser.ComparisonNode:
+        assert self._left is not None and self._right is not None
+
+        left = self._left.finalize()
+        assert len(left.lines) == 1, 'must have exactly one line on left hand of equality'
+        right = self._right.finalize()
+        assert len(right.lines) == 1, 'must have exactly one line on right hand of equality'
+
+        return mparser.ComparisonNode(self._op, left.lines[0], right.lines[0])
+
+
+class LogicalBuilder:
+
+    """Logic building.
+
+    This does not allow for nested building, as cargo doesn't need it.
+    """
+
+    class OP(enum.Enum):
+        AND = enum.auto()
+        OR = enum.auto()
+
+    def __init__(self, root: mparser.BaseNode, builder: _Builder):
+        self._builder = builder
+        self._stuff: T.List[T.Union[mparser.BaseNode, self.OP]] = [root]
+
+    def and_(self, node: mparser.BaseNode) -> None:
+        self._stuff.extend([self.OP.AND, node])
+
+    def or_(self, node: mparser.BaseNode) -> None:
+        self._stuff.extend([self.OP.OR, node])
+
+    def finalize(self) -> T.Union[mparser.AndNode, mparser.OrNode]:
+        if len(self._stuff) == 1:
+            return self._stuff[0]
+        assert len(self._stuff) % 2 == 1
+
+        i = iter(self._stuff)
+        root = next(i)
+        while True:
+            try:
+                op = next(i)
+            except StopIteration:
+                break
+
+            n = next(i)
+            if op is self.OP.AND:
+                root = self._builder.and_(root, n)
+            elif op is self.OP.OR:
+                root = self._builder.or_(root, n)
+
+        return root
 
 class NodeBuilder:
 
@@ -302,8 +399,20 @@ class NodeBuilder:
             raise MesonException(f'Cannot create ID for non-existant variable {name}')
         return self._builder.id(name)
 
+    def object(self, name: str) -> ObjectBuilder:
+        return ObjectBuilder(name, self._builder)
+
+    def arguments(self) -> ObjectBuilder:
+        return ArgumentBuilder(self._builder)
+
+    def string(self, value: str) -> mparser.StringNode:
+        return self._builder.string(value)
+
     def finalize(self) -> mparser.CodeBlockNode:
         return self.__node
+
+    def new(self) -> 'NodeBuilder':
+        return NodeBuilder(_builder=self._builder)
 
     @contextlib.contextmanager
     def function_builder(self, name: str) -> T.Iterator[ArgumentBuilder]:
@@ -339,5 +448,24 @@ class NodeBuilder:
     @contextlib.contextmanager
     def object_builder(self, name: str) -> T.Iterator[ObjectBuilder]:
         b = ObjectBuilder(name, self._builder)
+        yield b
+        self.append(b.finalize())
+
+    @contextlib.contextmanager
+    def equality_builder(self, equal: bool) -> T.Iterator[ComparisonBuilder]:
+        b = ComparisonBuilder(equal, self._builder)
+        yield b
+        self.append(b.finalize())
+
+    @contextlib.contextmanager
+    def array_builder(self) -> T.Iterator[ArgumentBuilder]:
+        b = ArgumentBuilder(self._builder)
+        yield b
+        array = mparser.ArrayNode(b.finalize(), 0, 0, 0, 0) # _builder.array expects raw arguments
+        self.append(array)
+
+    @contextlib.contextmanager
+    def logic_builder(self, first: mparser.BaseNode) -> T.Iterator[LogicalBuilder]:
+        b = LogicalBuilder(first, self._builder)
         yield b
         self.append(b.finalize())

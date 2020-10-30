@@ -1,5 +1,0 @@
-option(
-    'test_feature',
-    type : 'boolean',
-    value : true
-)

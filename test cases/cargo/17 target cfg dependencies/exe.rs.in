@@ -1,0 +1,5 @@
+extern crate @crate@;
+
+pub fn main() {
+    std::process::exit(@crate@::fun());
+}

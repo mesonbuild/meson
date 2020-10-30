@@ -731,7 +731,7 @@ class InterpreterBase:
         elif isinstance(cur, self.elementary_types):
             return cur
         else:
-            raise InvalidCode("Unknown statement.")
+            raise InvalidCode(f"Unknown statement: {cur}")
         return None
 
     def evaluate_arraystatement(self, cur: mparser.ArrayNode) -> list:

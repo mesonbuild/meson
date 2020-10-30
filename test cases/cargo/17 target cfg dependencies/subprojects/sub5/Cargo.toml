@@ -1,0 +1,8 @@
+[package]
+name = "sub5"
+version = "1.0.0"
+autotests = false
+autobins = false
+
+[target.'cfg(all(target_arch = "x86_64", target_os = "linux")'.dependencies]
+sub2 = "1.2.*"
