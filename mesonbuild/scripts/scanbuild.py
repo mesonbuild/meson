@@ -21,7 +21,6 @@ from pathlib import Path
 import typing as T
 from ast import literal_eval
 import os
-import argparse
 
 def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
     with tempfile.TemporaryDirectory(dir=str(privdir)) as scandir:
