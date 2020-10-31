@@ -4789,21 +4789,6 @@ This will probably not work.
 Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value),
                          location=self.current_node)
 
-    def evaluate_subproject_info(self, path_from_source_root, subproject_dir):
-        depth = 0
-        subproj_name = ''
-        segs = PurePath(path_from_source_root).parts
-        segs_spd = PurePath(subproject_dir).parts
-        while segs and segs[0] == segs_spd[0]:
-            if len(segs_spd) == 1:
-                subproj_name = segs[1]
-                segs = segs[2:]
-                depth += 1
-            else:
-                segs_spd = segs_spd[1:]
-                segs = segs[1:]
-        return (depth, subproj_name)
-
     # Check that the indicated file is within the same subproject
     # as we currently are. This is to stop people doing
     # nasty things like:
@@ -4815,26 +4800,19 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
     # subproject than it is defined in (due to e.g. a
     # declare_dependency).
     def validate_within_subproject(self, subdir, fname):
-        norm = os.path.normpath(os.path.join(subdir, fname))
-        if os.path.isabs(norm):
-            if not norm.startswith(self.environment.source_dir):
-                # Grabbing files outside the source tree is ok.
-                # This is for vendor stuff like:
-                #
-                # /opt/vendorsdk/src/file_with_license_restrictions.c
-                return
-            norm = os.path.relpath(norm, self.environment.source_dir)
-            assert(not os.path.isabs(norm))
-        (num_sps, sproj_name) = self.evaluate_subproject_info(norm, self.subproject_dir)
-        plain_filename = os.path.basename(norm)
-        if num_sps == 0:
-            if not self.is_subproject():
-                return
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
-        if num_sps > 1:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a nested subproject.' % plain_filename)
-        if sproj_name != self.subproject_directory_name:
-            raise InterpreterException('Sandbox violation: Tried to grab file %s from a different subproject.' % plain_filename)
+        srcdir = Path(self.environment.source_dir)
+        norm = Path(srcdir, subdir, fname).resolve()
+        if srcdir not in norm.parents:
+            # Grabbing files outside the source tree is ok.
+            # This is for vendor stuff like:
+            #
+            # /opt/vendorsdk/src/file_with_license_restrictions.c
+            return
+        project_root = Path(srcdir, self.root_subdir)
+        if project_root not in norm.parents:
+            raise InterpreterException('Sandbox violation: Tried to grab file {} outside current (sub)project.'.format(norm.name))
+        if project_root / self.subproject_dir in norm.parents:
+            raise InterpreterException('Sandbox violation: Tried to grab file {} from a nested subproject.'.format(norm.name))
 
     def source_strings_to_files(self, sources: T.List[str]) -> T.List[mesonlib.File]:
         mesonlib.check_direntry_issues(sources)
