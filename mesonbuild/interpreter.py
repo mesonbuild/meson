@@ -2342,7 +2342,12 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                            'variables',
                                            },
                     'executable': build.known_exe_kwargs,
-                    'find_program': {'required', 'native', 'version', 'dirs'},
+                    'find_program': {'required',
+                                     'native',
+                                     'version',
+                                     'dirs',
+                                     'fallback',
+                                     },
                     'generator': {'arguments',
                                   'output',
                                   'depends',
@@ -3467,11 +3472,12 @@ external dependencies (including libraries) must go to "dependencies".''')
     # the host machine.
     def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
                           required=True, silent=True, wanted='', search_dirs=None,
-                          version_func=None):
+                          version_func=None, fallback=None):
         args = mesonlib.listify(args)
 
         extra_info = []
-        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
+        progobj = self.program_lookup(
+                args, for_machine, required, search_dirs, extra_info, fallback)
         if progobj is None:
             progobj = self.notfound_program(args)
 
@@ -3503,17 +3509,20 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.green('YES'), *extra_info)
         return progobj
 
-    def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
+    def program_lookup(
+            self, args, for_machine, required, search_dirs, extra_info,
+            fallback=None):
         progobj = self.program_from_overrides(args, extra_info)
         if progobj:
             return progobj
 
-        fallback = None
-        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-        if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
-            fallback = self.environment.wrap_resolver.find_program_provider(args)
-        if fallback and wrap_mode == WrapMode.forcefallback:
-            return self.find_program_fallback(fallback, args, required, extra_info)
+        # if the user has not specified `fallback`, then check the wrap mode
+        if fallback is None:
+            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+            if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
+                fallback = self.environment.wrap_resolver.find_program_provider(args)
+            if fallback and wrap_mode == WrapMode.forcefallback:
+                return self.find_program_fallback(fallback, args, required, extra_info)
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
@@ -3529,10 +3538,17 @@ external dependencies (including libraries) must go to "dependencies".''')
     def find_program_fallback(self, fallback, args, required, extra_info):
         mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
                  mlog.bold(' '.join(args)))
-        sp_kwargs = { 'required': required }
-        self.do_subproject(fallback, 'meson', sp_kwargs)
+        sp_kwargs = {'required': required}
+        subproject = self.do_subproject(fallback, 'meson', sp_kwargs)
+        if subproject.found():
+            targets = subproject.held_object.build.get_targets().values()
+            exes = filter(lambda t: isinstance(t, build.Executable), targets)
+            for exe in exes:
+                if exe.name == args[0]:
+                    return ExternalProgramHolder(exe, subproject, 'meson')
         return self.program_from_overrides(args, extra_info)
 
+    @FeatureNewKwargs('find_program', '0.58.0', ['fallback'])
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
@@ -3550,9 +3566,16 @@ external dependencies (including libraries) must go to "dependencies".''')
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
+        fallback = kwargs.get('fallback')
+        if not isinstance(fallback, (type(None), str)):
+            raise InterpreterException(
+                'find_program(..., fallback:) keyword argument accepts a single'
+                ' string of the name of the subproject containing the program')
+
         return self.find_program_impl(args, for_machine, required=required,
                                       silent=False, wanted=wanted,
-                                      search_dirs=search_dirs)
+                                      search_dirs=search_dirs,
+                                      fallback=kwargs.get('fallback'))
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
@@ -3667,9 +3690,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             # that will be printed later.
             extra_info.append(mlog.blue('(Variable {!r} not found)'.format(varname)))
 
-        if not isinstance(dep, DependencyHolder):
+        if not isinstance(dep, (ExecutableHolder, DependencyHolder)):
             raise InvalidCode('Fetched variable {!r} in the subproject {!r} is '
                               'not a dependency object.'.format(varname, subp_name))
+
+        if isinstance(dep, ExecutableHolder):
+            return ExternalProgramHolder(dep.held_object)
 
         if not dep.found():
             mlog.log('Dependency', mlog.bold(display_name), 'from subproject',
