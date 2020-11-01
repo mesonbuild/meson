@@ -1019,6 +1019,10 @@ The result of this is undefined and will become a hard error in a future Meson r
             return obj.upper()
         elif method_name == 'to_lower':
             return obj.lower()
+        elif method_name == 'is_upper':
+            return obj.isupper()
+        elif method_name == 'is_lower':
+            return obj.islower()
         elif method_name == 'underscorify':
             return re.sub(r'[^a-zA-Z0-9]', '_', obj)
         elif method_name == 'split':

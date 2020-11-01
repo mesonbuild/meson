@@ -39,6 +39,14 @@ assert(long.to_upper() == 'ABCDE', 'Broken to_upper')
 
 assert(long.to_upper().to_lower() == long, 'Broken to_lower')
 
+assert(long.is_lower(), 'Broken is_lower')
+
+assert(not long.to_upper().is_lower(), 'Broken is_lower')
+
+assert(long.to_upper().is_upper(), 'Broken is_upper')
+
+assert(not long.to_lower().is_upper(), 'Broken is_upper')
+
 assert('struct stat.st_foo'.underscorify() == 'struct_stat_st_foo', 'Broken underscorify')
 
 assert('#include <foo/bar.h>'.underscorify() == '_include__foo_bar_h_', 'Broken underscorify')
@@ -71,7 +79,7 @@ assert(version_number.version_compare('<2.0'), 'Version_compare major less broke
 assert(version_number.version_compare('>0.9'), 'Version_compare major greater broken')
 
 assert(' spaces	tabs	'.strip() == 'spaces	tabs', 'Spaces and tabs badly stripped')
-assert(''' 
+assert('''
 multiline string	'''.strip() == '''multiline string''', 'Newlines badly stripped')
 assert('"1.1.20"'.strip('"') == '1.1.20', '" badly stripped')
 assert('"1.1.20"'.strip('".') == '1.1.20', '". badly stripped')
