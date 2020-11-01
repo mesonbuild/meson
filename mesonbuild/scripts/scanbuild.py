@@ -16,9 +16,11 @@ import subprocess
 import shutil
 import tempfile
 from ..environment import detect_ninja, detect_scanbuild
+from ..coredata import get_cmd_line_file, CmdLineFileParser
 from pathlib import Path
 import typing as T
-
+from ast import literal_eval
+import os
 
 def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
     with tempfile.TemporaryDirectory(dir=str(privdir)) as scandir:
@@ -32,15 +34,27 @@ def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, l
 
 def run(args: T.List[str]) -> int:
     srcdir = Path(args[0])
-    blddir = Path(args[1])
+    bldpath = Path(args[1])
+    blddir = args[1]
     meson_cmd = args[2:]
-    privdir = blddir / 'meson-private'
-    logdir = blddir / 'meson-logs' / 'scanbuild'
+    privdir = bldpath / 'meson-private'
+    logdir = bldpath / 'meson-logs' / 'scanbuild'
     shutil.rmtree(str(logdir), ignore_errors=True)
+
+    # if any cross or native files are specified we should use them
+    cmd = get_cmd_line_file(blddir)
+    data = CmdLineFileParser()
+    data.read(cmd)
+
+    if 'cross_file' in data['properties']:
+        meson_cmd.extend([f'--cross-file={os.path.abspath(f)}' for f in literal_eval(data['properties']['cross_file'])])
+
+    if 'native_file' in data['properties']:
+        meson_cmd.extend([f'--native-file={os.path.abspath(f)}' for f in literal_eval(data['properties']['native_file'])])
 
     exelist = detect_scanbuild()
     if not exelist:
         print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
 
-    return scanbuild(exelist, srcdir, blddir, privdir, logdir, meson_cmd)
+    return scanbuild(exelist, srcdir, bldpath, privdir, logdir, meson_cmd)
