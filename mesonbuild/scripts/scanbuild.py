@@ -34,10 +34,11 @@ def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, l
 
 def run(args: T.List[str]) -> int:
     srcdir = Path(args[0])
-    blddir = Path(args[1])
+    bldpath = Path(args[1])
+    blddir = args[1]
     meson_cmd = args[2:]
-    privdir = blddir / 'meson-private'
-    logdir = blddir / 'meson-logs' / 'scanbuild'
+    privdir = bldpath / 'meson-private'
+    logdir = bldpath / 'meson-logs' / 'scanbuild'
     shutil.rmtree(str(logdir), ignore_errors=True)
 
     # if any cross or native files are specified we should use them
@@ -56,4 +57,4 @@ def run(args: T.List[str]) -> int:
         print('Could not execute scan-build "%s"' % ' '.join(exelist))
         return 1
 
-    return scanbuild(exelist, srcdir, blddir, privdir, logdir, meson_cmd)
+    return scanbuild(exelist, srcdir, bldpath, privdir, logdir, meson_cmd)
