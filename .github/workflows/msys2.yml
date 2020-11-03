@@ -60,7 +60,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile
+          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-xdist
 
       - name: Run Tests
         run: |
