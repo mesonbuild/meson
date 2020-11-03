@@ -74,7 +74,21 @@ The language version can also be set on a per-target basis.
 
 ```meson
 executable(..., override_options : ['c_std=c11'])
+
+
 ```
+## Set the project version
+
+```meson
+project('myproj', 'c', 'cpp', version: '1.2.3')
+```
+Some projects have their version in a file in the repository which can be read
+by meson at configure time:
+
+```meson
+project('myproj', 'c', 'cpp', version: meson.read_file('VERSION').strip())
+```
+meson will automatically reconfigure when this file changes
 
 ## Enable threads
 
@@ -129,6 +143,22 @@ endif
 txt = run_command('script', 'argument').stdout().strip()
 cdata = configuration_data()
 cdata.set('SOMETHING', txt)
+configure_file(...)
+```
+
+## Generate configuration data from files
+
+`meson.read_file()` enables adding the contents of arbitrary files to
+configuration data (among other uses):
+
+```meson
+cdata = configuration_data()
+copyright = meson.read_file('LICENSE')
+cdata.set('COPYRIGHT', copyright)
+if build_machine.system() == 'linux'
+    os_release = meson.read_file('/etc/os-release', allow_absolute: true)
+    cdata.set('LINUX_BUILDER', os_release)
+endif
 configure_file(...)
 ```
 

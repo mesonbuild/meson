@@ -1941,6 +1941,7 @@ class MesonMain(InterpreterObject):
                              'get_cross_property': self.get_cross_property_method,
                              'get_external_property': self.get_external_property_method,
                              'backend': self.backend_method,
+                             'read_file': self.read_file_method,
                              })
 
     def _find_source_script(self, prog: T.Union[str, ExecutableHolder], args):
@@ -2262,6 +2263,69 @@ class MesonMain(InterpreterObject):
                 return self.get_cross_property_method(args, kwargs)
             else:
                 return _get_native()
+
+    @permittedKwargs({'encoding', 'allow_absolute'})
+    @FeatureNew('meson.read_file', '0.57.0')
+    def read_file_method(
+        self,
+        args: T.Sequence[mesonlib.FileOrString],
+        kwargs: T.Dict[str, T.Any]
+    ) -> str:
+        '''
+        Read a file from the source tree and return its value as a decoded
+        string. If the encoding is not specified, the file is assumed to be
+        utf-8 encoded. Paths must be relative by default (to prevent accidents)
+        and are forbidden to be read from the build directory (to prevent build
+        loops)
+        '''
+        if len(args) != 1:
+            raise InterpreterException('expected single positional <path> arg')
+
+        path = args[0]
+        if not isinstance(path, (str, mesonlib.File)):
+            raise InterpreterException(
+                '<path> positional argument must be string or files() object')
+
+        encoding = kwargs.get('encoding', 'utf-8')
+        if not isinstance(encoding, str):
+            raise InterpreterException('`encoding` parameter must be a string')
+
+        allow_absolute = kwargs.get('allow_absolute', False)
+        if not isinstance(allow_absolute, bool):
+            raise InterpreterException(
+                '`allow_absolute` parameter must be a bool')
+
+        src_dir = self.interpreter.environment.source_dir
+        sub_dir = self.interpreter.subdir
+        build_dir = self.interpreter.environment.get_build_dir()
+
+        if isinstance(path, mesonlib.File):
+            if path.is_built:
+                raise InterpreterException(
+                    'meson.read_file does not accept built files()')
+            path = os.path.join(src_dir, path.relative_name())
+        else:
+            if not allow_absolute and os.path.isabs(path):
+                raise InterpreterException(
+                    'paths must be relative unless `allow_absolute` is set')
+            if sub_dir:
+                src_dir = os.path.join(src_dir, sub_dir)
+            path = os.path.join(src_dir, path)
+
+        path = os.path.abspath(path)
+        if mesonlib.path_is_in_root(Path(path), Path(build_dir), resolve=True):
+            raise InterpreterException('path must not be in the build tree')
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                data = f.read()
+        except UnicodeDecodeError:
+            raise InterpreterException(f'decoding failed for {path}')
+        # Reconfigure meson when this file changes as it can contain data used
+        # by any part of the build configuration (e.g. `project(..., version:
+        # meson.read_file('VERSION')` or `configure_file(...)`
+        self.interpreter.add_build_def_file(path)
+        return data
+
 
 known_library_kwargs = (
     build.known_shlib_kwargs |

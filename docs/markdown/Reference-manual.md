@@ -1958,6 +1958,18 @@ the following methods.
 
 - `version()`: return a string with the version of Meson.
 
+- `read_file(path, encoding: 'utf-8', allow_absolute: false)` *(since 0.57.0)*:
+   return a [string](Syntax.md#strings) with the contents of the given `path`.
+   If the `encoding` keyword argument is not specified, the file specified by
+   `path` is assumed to be utf-8 encoded. Binary files are not supported. The
+   provided paths should be relative to the current `meson.current_source_dir()`
+   unless `allow_absolute` is given as `true`, in which case any accessible path
+   outside the build directory is accepted. If the file specified by `path`
+   changes, this will trigger meson to reconfigure the project. If the file
+   specified by `path` is a meson `files()` object it cannot refer to a built
+   file.
+
+
 ### `build_machine` object
 
 Provides information about the build machine — the machine that is
