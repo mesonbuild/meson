@@ -187,12 +187,12 @@ def get_directory(subdir_root: str, packagename: str) -> str:
         return wrap.directory
     return packagename
 
-def verbose_git(*args, **kwargs):
+def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
     '''
     Wrapper to convert GitException to WrapException caught in interpreter.
     '''
     try:
-        return mesonlib.verbose_git(*args, **kwargs)
+        return mesonlib.verbose_git(cmd, workingdir, check=check)
     except mesonlib.GitException as e:
         raise WrapException(str(e))
 
