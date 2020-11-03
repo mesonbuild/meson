@@ -22,4 +22,5 @@ enable=
     singleton-comparison,
     too-many-function-args,
     unexpected-keyword-arg,
-    unreachable
+    unreachable,
+    bare-except
