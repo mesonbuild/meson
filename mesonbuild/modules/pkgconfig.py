@@ -131,7 +131,7 @@ class DependenciesHelper:
                 if obj.found():
                     processed_libs += obj.get_link_args()
                     processed_cflags += obj.get_compile_args()
-                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public)
+                    self._add_lib_dependencies(obj.libraries, obj.whole_libraries, obj.ext_deps, public, private_external_deps=True)
             elif isinstance(obj, dependencies.Dependency):
                 if obj.found():
                     processed_libs += obj.get_link_args()
@@ -160,7 +160,7 @@ class DependenciesHelper:
 
         return processed_libs, processed_reqs, processed_cflags
 
-    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public):
+    def _add_lib_dependencies(self, link_targets, link_whole_targets, external_deps, public, private_external_deps=False):
         add_libs = self.add_pub_libs if public else self.add_priv_libs
         # Recursively add all linked libraries
         for t in link_targets:
@@ -173,7 +173,10 @@ class DependenciesHelper:
         for t in link_whole_targets:
             self._add_link_whole(t, public)
         # And finally its external dependencies
-        self.add_priv_libs(external_deps)
+        if private_external_deps:
+            self.add_priv_libs(external_deps)
+        else:
+            add_libs(external_deps)
 
     def _add_link_whole(self, t, public):
         # Don't include static libraries that we link_whole. But we still need to
