@@ -199,3 +199,14 @@ suffix
 fs.stem('foo/bar/baz.dll')  # baz
 fs.stem('foo/bar/baz.dll.a')  # baz.dll
 ```
+
+### read
+- `read(path, encoding: 'utf-8')` *(since 0.57.0)*:
+   return a [string](Syntax.md#strings) with the contents of the given `path`.
+   If the `encoding` keyword argument is not specified, the file specified by
+   `path` is assumed to be utf-8 encoded. Binary files are not supported. The
+   provided paths should be relative to the current `meson.current_source_dir()`
+   or an absolute path outside the build directory is accepted. If the file
+   specified by `path` changes, this will trigger Meson to reconfigure the
+   project. If the file specified by `path` is a `files()` object it
+   cannot refer to a built file.

@@ -2617,7 +2617,7 @@ class Interpreter(InterpreterBase):
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
 
-    def add_build_def_file(self, f):
+    def add_build_def_file(self, f: mesonlib.FileOrString) -> None:
         # Use relative path for files within source directory, and absolute path
         # for system files. Skip files within build directory. Also skip not regular
         # files (e.g. /dev/stdout) Normalize the path to avoid duplicates, this

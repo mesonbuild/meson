@@ -139,6 +139,23 @@ cdata.set('SOMETHING', txt)
 configure_file(...)
 ```
 
+## Generate configuration data from files
+
+`The [fs module](#Fs-modules) offers the `read` function` which enables adding
+the contents of arbitrary files to configuration data (among other uses):
+
+```meson
+fs = import('fs')
+cdata = configuration_data()
+copyright = fs.read('LICENSE')
+cdata.set('COPYRIGHT', copyright)
+if build_machine.system() == 'linux'
+    os_release = fs.read('/etc/os-release')
+    cdata.set('LINUX_BUILDER', os_release)
+endif
+configure_file(...)
+```
+
 ## Generate a runnable script with `configure_file`
 
 `configure_file` preserves metadata so if your template file has
