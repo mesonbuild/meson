@@ -14,17 +14,24 @@
 
 import typing as T
 import hashlib
+import os
 from pathlib import Path, PurePath, PureWindowsPath
 
 from .. import mlog
 from . import ExtensionModule
 from . import ModuleReturnValue
-from ..mesonlib import MesonException
+from ..mesonlib import (
+    File,
+    FileOrString,
+    MesonException,
+    path_is_in_root,
+)
 from ..interpreterbase import FeatureNew
 
 from ..interpreterbase import stringArgs, noKwargs
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter, ModuleState
+
 
 class FSModule(ExtensionModule):
 
@@ -192,6 +199,62 @@ class FSModule(ExtensionModule):
         original = PurePath(args[0])
         new = original.stem
         return ModuleReturnValue(str(new), [])
+
+    #@permittedKwargs({'encoding'})
+    @FeatureNew('fs.read', '0.57.0')
+    def read(
+        self,
+        state: 'ModuleState',
+        args: T.Sequence['FileOrString'],
+        kwargs: T.Dict[str, T.Any]
+    ) -> ModuleReturnValue:
+        '''
+        Read a file from the source tree and return its value as a decoded
+        string. If the encoding is not specified, the file is assumed to be
+        utf-8 encoded. Paths must be relative by default (to prevent accidents)
+        and are forbidden to be read from the build directory (to prevent build
+        loops)
+        '''
+        if len(args) != 1:
+            raise MesonException('expected single positional <path> arg')
+
+        path = args[0]
+        if not isinstance(path, (str, File)):
+            raise MesonException(
+                '<path> positional argument must be string or files() object')
+
+        encoding = kwargs.get('encoding', 'utf-8')
+        if not isinstance(encoding, str):
+            raise MesonException('`encoding` parameter must be a string')
+
+        src_dir = self.interpreter.environment.source_dir
+        sub_dir = self.interpreter.subdir
+        build_dir = self.interpreter.environment.get_build_dir()
+
+        if isinstance(path, File):
+            if path.is_built:
+                raise MesonException(
+                    'fs.read_file does not accept built files() objects')
+            path = os.path.join(src_dir, path.relative_name())
+        else:
+            if sub_dir:
+                src_dir = os.path.join(src_dir, sub_dir)
+            path = os.path.join(src_dir, path)
+
+        path = os.path.abspath(path)
+        if path_is_in_root(Path(path), Path(build_dir), resolve=True):
+            raise MesonException('path must not be in the build tree')
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                data = f.read()
+        except UnicodeDecodeError:
+            raise MesonException(f'decoding failed for {path}')
+        # Reconfigure when this file changes as it can contain data used by any
+        # part of the build configuration (e.g. `project(..., version:
+        # fs.read_file('VERSION')` or `configure_file(...)`
+        self.interpreter.add_build_def_file(path)
+        return ModuleReturnValue(data, [])
+
 
 def initialize(*args: T.Any, **kwargs: T.Any) -> FSModule:
     return FSModule(*args, **kwargs)
