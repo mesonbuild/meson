@@ -920,7 +920,7 @@ def generate_def_opts(options) -> T.List[dict]:
         'options': list_to_dict(options.options),
     }]
 
-def genreate_cmd(options) -> T.List[dict]:
+def generate_cmd(options) -> T.List[dict]:
     if os.path.exists(options.json):
         with open(options.json, 'r') as fp:
             return json.load(fp)
@@ -934,8 +934,8 @@ cli_type_map = {
     'kwargs': generate_kwargs,
     'default-options': generate_def_opts,
     'def': generate_def_opts,
-    'command': genreate_cmd,
-    'cmd': genreate_cmd,
+    'command': generate_cmd,
+    'cmd': generate_cmd,
 }
 
 def run(options):
