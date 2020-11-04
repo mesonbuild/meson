@@ -79,7 +79,8 @@ executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
 ```
 
 Sometimes, translations are embedded inside the binary using qresource files.
-In this case the ts files do not need to be explicitly listed. For example:
+In this case the ts files do not need to be explicitly listed, but will be
+inferred from the built qm files listed in the qresource file. For example:
 
 ```meson
 qt5 = import('qt5')
