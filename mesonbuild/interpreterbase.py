@@ -66,6 +66,25 @@ class ObjectHolder(T.Generic[TV_InterpreterObject]):
     def __repr__(self) -> str:
         return '<Holder: {!r}>'.format(self.held_object)
 
+class UnsafeArray(collections.abc.Sequence):
+    def __init__(self, items: T.List[T.Any]):
+        self.items = items
+
+    def __eq__(self, other_list):
+        return other_list == self.items
+
+    def __ne__(self, other_list):
+        return other_list != self.items
+
+    def __getitem__(self, index):
+        return self.items[index]
+
+    def __len__(self):
+        return len(self.items)
+
+    def __iter__(self):
+        return iter(self.items)
+
 class MesonVersionString(str):
     pass
 
@@ -153,6 +172,8 @@ def flatten(args: T.Union[TYPE_nvar, T.List[TYPE_nvar]]) -> T.List[TYPE_nvar]:
             result = result + rest
         elif isinstance(a, mparser.StringNode):
             result.append(a.value)
+        elif isinstance(a, UnsafeArray):
+            raise InvalidArguments('Glob result cannot be passed as a function argument.')
         else:
             result.append(a)
     return result
@@ -647,15 +668,19 @@ class InterpreterBase:
             self.evaluate_codeblock(node.elseblock)
         return None
 
+    @staticmethod
+    def comparison_type(val: T.Any) -> T.Type[T.Any]:
+        if isinstance(val, UnsafeArray):
+            return list
+        return type(val)
+
     def validate_comparison_types(self, val1: T.Any, val2: T.Any) -> bool:
-        if type(val1) != type(val2):
-            return False
-        return True
+        return self.comparison_type(val1) == self.comparison_type(val2)
 
     def evaluate_in(self, val1: T.Any, val2: T.Any) -> bool:
         if not isinstance(val1, (str, int, float, ObjectHolder)):
             raise InvalidArguments('lvalue of "in" operator must be a string, integer, float, or object')
-        if not isinstance(val2, (list, dict)):
+        if not isinstance(val2, (list, UnsafeArray, dict)):
             raise InvalidArguments('rvalue of "in" operator must be an array or a dict')
         return val1 in val2
 
@@ -808,7 +833,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         assert(isinstance(node, mparser.ForeachClauseNode))
         items = self.evaluate_statement(node.items)
 
-        if isinstance(items, list):
+        if isinstance(items, (list, UnsafeArray)):
             if len(node.varnames) != 1:
                 raise InvalidArguments('Foreach on array does not unpack')
             varname = node.varnames[0]
@@ -862,6 +887,8 @@ The result of this is undefined and will become a hard error in a future Meson r
                 raise InvalidArguments('The += operator requires a dict on the right hand side if the variable on the left is a dict')
             new_value = {**old_variable, **addition}
         # Add other data types here.
+        elif isinstance(old_variable, UnsafeArray):
+            raise InvalidArguments('This list is read-only and does not support the += operator')
         else:
             raise InvalidArguments('The += operator currently only works with arrays, dicts, strings or ints')
         self.set_variable(varname, new_value)
@@ -928,7 +955,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             return self.bool_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, int):
             return self.int_method_call(obj, method_name, args, kwargs)
-        if isinstance(obj, list):
+        if isinstance(obj, (list, UnsafeArray)):
             return self.array_method_call(obj, method_name, args, kwargs)
         if isinstance(obj, dict):
             return self.dict_method_call(obj, method_name, args, kwargs)
@@ -1247,7 +1274,7 @@ To specify a keyword argument, use : instead of =.''')
 
     def is_assignable(self, value: T.Any) -> bool:
         return isinstance(value, (InterpreterObject, dependencies.Dependency,
-                                  str, int, list, dict, mesonlib.File))
+                                  str, int, list, dict, UnsafeArray, mesonlib.File))
 
     def validate_extraction(self, buildtarget: InterpreterObject) -> None:
         raise InterpreterException('validate_extraction is not implemented in this context (please file a bug)')

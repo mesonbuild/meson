@@ -27,4 +27,8 @@ else
   assert(fs.expandglob('**/sub*') == ['subprojectfile.txt', 'subsub', 'subsub/subsubfile.txt'],
          'Incorrect glob for **/sub*.')
 endif
+
+# Hack around unsafe array limitations
+install_data(fs.expandglob('*.txt')[0])
+
 subdir('subsub')

@@ -5360,6 +5360,16 @@ class FailureTests(BasePlatformTests):
         for contents, match in a:
             self.assertMesonRaises(contents, match)
 
+    def test_unsafe_array(self):
+        fs = '''fs = import('fs')
+        '''
+        self.assertMesonRaises(fs + "executable('foo', fs.expandglob('*.c'))",
+                               "Glob result")
+        self.assertMesonRaises(fs + "executable('foo', sources: fs.expandglob('*.c'))",
+                               "Glob result")
+        self.assertMesonRaises(fs + "message(([] + fs.expandglob('*.c'))[0])",
+                               "Invalid use of addition")
+
     def test_apple_frameworks_dependency(self):
         if not is_osx():
             raise unittest.SkipTest('only run on macOS')

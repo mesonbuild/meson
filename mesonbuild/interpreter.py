@@ -30,7 +30,7 @@ from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, str
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
-from .interpreterbase import ObjectHolder, MesonVersionString
+from .interpreterbase import ObjectHolder, MesonVersionString, UnsafeArray
 from .interpreterbase import TYPE_var, TYPE_nkwargs
 from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
@@ -2548,6 +2548,8 @@ class Interpreter(InterpreterBase):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
+        elif isinstance(item, UnsafeArray):
+            return UnsafeArray([self.holderify(x) for x in item])
         elif hasattr(item, 'held_object'):
             return item
         elif isinstance(item, InterpreterObject):
@@ -4800,6 +4802,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
             elif isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
+            elif isinstance(s, UnsafeArray):
+                raise InvalidArguments('Glob result cannot be passed as a sources argument.')
             else:
                 raise InterpreterException('Source item is {!r} instead of '
                                            'string or File-type object'.format(s))

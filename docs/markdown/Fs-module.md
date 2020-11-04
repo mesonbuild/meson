@@ -34,6 +34,10 @@ does _not_ appear in the result (this is different from how a POSIX shell
 behaves, but almost always the desired behavior).  The result will
 include files, directories or special entries such as a device node.
 
+This function is experimental.  Usage of the arrays returned by the
+function is currently limited to method calls, comparisons and foreach
+loops.
+
 ### exists
 
 Takes a single string argument and returns true if an entity with that
