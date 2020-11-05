@@ -1398,13 +1398,14 @@ Project supports the following keyword arguments.
   specific options are used normally even in subprojects.
 
 
-- `license`: takes a string or array of strings describing the
-  license(s) the code is under. Usually this would be something like
-  `license : 'GPL2+'`, but if the code has multiple licenses you can
-  specify them as an array like this: `license : ['proprietary',
-  'GPL3']`. Note that the text is informal and is only written to
-  the dependency manifest. Meson does not do any license validation,
-  you are responsible for verifying that you abide by all licensing
+- `license`: takes a string or array of strings describing the license(s) the
+  code is under. To avoid ambiguity it is recommended to use a standardized
+  license identifier from the [SPDX license list](https://spdx.org/licenses/).
+  Usually this would be something like `license : 'GPL-2.0-or-later'`, but if
+  the code has multiple licenses you can specify them as an array like this:
+  `license : ['proprietary', 'GPL-3.0-only']`. Note that the text is informal
+  and is only written to the dependency manifest. Meson does not do any license
+  validation, you are responsible for verifying that you abide by all licensing
   terms. You can access the value in your Meson build files with
   `meson.project_license()`.
 
