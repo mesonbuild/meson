@@ -57,7 +57,7 @@ particularly the paths section may be necessary.
 ### Core options
 
 Options that are labeled "per machine" in the table are set per machine. See
-the [specifying options per machine](#Specifying-options-per-machine) section
+the [specifying options per machine](#specifying-options-per-machine) section
 for details.
 
 | Option                               | Default value | Description                                                    | Is per machine | Is per subproject |
@@ -185,7 +185,7 @@ argument forms, but the libraries are: kernel32, user32, gdi32, winspool,
 shell32, ole32, oleaut32, uuid, comdlg32, advapi32.
 
 All these `<lang>_*` options are specified per machine. See below in the
-[specifying options per machine](#Specifying-options-per-machine) section on
+[specifying options per machine](#specifying-options-per-machine) section on
 how to do this in cross builds.
 
 When using MSVC, `cpp_eh=none` will result in no exception flags being passed,
