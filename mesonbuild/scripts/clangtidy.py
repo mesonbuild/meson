@@ -49,8 +49,7 @@ def clangformat(srcdir_name: str, builddir_name: str) -> int:
         return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) +').*$']).returncode
     else:
         print('Could not find run-clang-tidy, running checks manually.')
-        manual_clangformat(srcdir_name, builddir_name)
-    return 0
+        return manual_clangformat(srcdir_name, builddir_name)
 
 def run(args: T.List[str]) -> int:
     srcdir_name = args[0]
