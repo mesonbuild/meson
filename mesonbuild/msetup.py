@@ -181,7 +181,7 @@ class MesonApp:
         else:
             logger_fun = mlog.debug
         build_machine = intr.builtin['build_machine']
-        host_machine = intr.builtin['build_machine']
+        host_machine = intr.builtin['host_machine']
         target_machine = intr.builtin['target_machine']
         assert isinstance(build_machine, interpreter.MachineHolder)
         assert isinstance(host_machine, interpreter.MachineHolder)
