@@ -22,7 +22,7 @@ import typing as T
 
 from ..compilers import lang_suffixes
 
-def manual_clangformat(srcdir_name: str, builddir_name: str) -> int:
+def manual_clangtidy(srcdir_name: str, builddir_name: str) -> int:
     srcdir = pathlib.Path(srcdir_name)
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
@@ -39,7 +39,7 @@ def manual_clangformat(srcdir_name: str, builddir_name: str) -> int:
         [max(returncode, x.result().returncode) for x in futures]
     return returncode
 
-def clangformat(srcdir_name: str, builddir_name: str) -> int:
+def clangtidy(srcdir_name: str, builddir_name: str) -> int:
     run_clang_tidy = None
     for rct in ('run-clang-tidy', 'run-clang-tidy.py'):
         if shutil.which(rct):
@@ -49,10 +49,9 @@ def clangformat(srcdir_name: str, builddir_name: str) -> int:
         return subprocess.run([run_clang_tidy, '-p', builddir_name, '^(?!' + re.escape(builddir_name + os.path.sep) +').*$']).returncode
     else:
         print('Could not find run-clang-tidy, running checks manually.')
-        manual_clangformat(srcdir_name, builddir_name)
-    return 0
+        return manual_clangtidy(srcdir_name, builddir_name)
 
 def run(args: T.List[str]) -> int:
     srcdir_name = args[0]
     builddir_name = args[1]
-    return clangformat(srcdir_name, builddir_name)
+    return clangtidy(srcdir_name, builddir_name)
