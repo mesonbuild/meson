@@ -77,6 +77,13 @@ class ClangCompiler(GnuLikeCompiler):
         # so it might change semantics at any time.
         return ['-include-pch', os.path.join(pch_dir, self.get_pch_name(header))]
 
+    def get_lto_compile_args(self, lto_type: str) -> T.List[str]:
+        if lto_type == 'thin':
+            return ['-flto=thin']
+        if lto_type == 'true':
+            return ['-flto']
+        return []
+
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         myargs = []  # type: T.List[str]
         if mode is CompileCheckMode.COMPILE:

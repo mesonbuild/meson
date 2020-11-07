@@ -411,7 +411,7 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         m = 'Linker {} does not support position-independent executable'
         raise mesonlib.EnvironmentException(m.format(self.id))
 
-    def get_lto_args(self) -> T.List[str]:
+    def get_lto_args(self, lto_type: str) -> T.List[str]:
         return []
 
     def sanitizer_args(self, value: str) -> T.List[str]:
@@ -550,8 +550,10 @@ class GnuLikeDynamicLinkerMixin:
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix('--allow-shlib-undefined')
 
-    def get_lto_args(self) -> T.List[str]:
-        return ['-flto']
+    def get_lto_args(self, lto_type: str) -> T.List[str]:
+        if lto_type != 'false':
+            return ['-flto']
+        return []
 
     def sanitizer_args(self, value: str) -> T.List[str]:
         if value == 'none':
