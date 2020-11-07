@@ -295,8 +295,10 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_lto_compile_args(self) -> T.List[str]:
-        return ['-flto']
+    def get_lto_compile_args(self, lto_type: str) -> T.List[str]:
+        if lto_type != 'false':
+            return ['-flto']
+        return []
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
         if value == 'none':
