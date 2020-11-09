@@ -2,6 +2,7 @@
 /mesonbuild/modules/pkgconfig.py @xclaesse
 /mesonbuild/modules/cmake.py @mensinda
 /mesonbuild/modules/unstable_external_project.py @xclaesse
+/mesonbuild/modules/unstable_rust.py @dcbaker
 /mesonbuild/ast/ @mensinda
 /mesonbuild/cmake/ @mensinda
 /mesonbuild/compilers/ @dcbaker
