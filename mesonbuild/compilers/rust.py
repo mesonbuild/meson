@@ -17,7 +17,7 @@ import textwrap
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe
+from ..mesonlib import EnvironmentException, MachineChoice, MesonException, Popen_safe
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
@@ -52,6 +52,7 @@ class RustCompiler(Compiler):
                          linker=linker)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
+        self.base_options.append('b_colorout')
         if 'link' in self.linker.id:
             self.base_options.append('b_vscrt')
 
@@ -147,3 +148,8 @@ class RustCompiler(Compiler):
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
         # Rust handles this for us, we don't need to do anything
         return []
+
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
+        if colortype in {'always', 'never', 'auto'}:
+            return [f'--color={colortype}']
+        raise MesonException(f'Invalid color type for rust {colortype}')
