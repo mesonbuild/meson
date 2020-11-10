@@ -33,3 +33,28 @@ jobs:
         export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
         export PATH="$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin"
         ./run_unittests.py
+
+  project-tests-appleclang:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        unity: ["on", "off"]
+    steps:
+    - uses: actions/checkout@v2
+    # use python3 from homebrew because it is a valid framework, unlike the actions one:
+    # https://github.com/actions/setup-python/issues/58
+    - run: brew install pkg-config ninja llvm qt boost ldc hdf5 openmpi lapack scalapack sdl2 python3
+    - run: |
+        python3 -m pip install --upgrade setuptools
+        python3 -m pip install --upgrade pip
+        python3 -m pip install cython
+    - env:
+        CPPFLAGS: "-I/usr/local/include"
+        LDFLAGS: "-L/usr/local/lib"
+        MESON_ARGS: --unity=${{ matrix.unity }}
+        CI: 1
+        # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
+      run: |
+        export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
+        export PATH="$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin"
+        ./run_project_tests.py --backend=ninja
