@@ -52,6 +52,8 @@ class RustCompiler(Compiler):
                          linker=linker)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
+        if 'link' in self.linker.id:
+            self.base_options.append('b_vscrt')
 
     def needs_static_linker(self) -> bool:
         return False
@@ -141,3 +143,7 @@ class RustCompiler(Compiler):
         if std.value != 'none':
             args.append('--edition=' + std.value)
         return args
+
+    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+        # Rust handles this for us, we don't need to do anything
+        return []
