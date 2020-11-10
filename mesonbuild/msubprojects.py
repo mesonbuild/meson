@@ -55,6 +55,9 @@ if T.TYPE_CHECKING:
         apply: bool
         save: bool
 
+    class DownloadArguments(Arguments):
+        dest: T.Optional[str]
+
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
 
 def read_archive_files(path: Path, base_path: Path) -> T.Set[Path]:
@@ -457,6 +460,13 @@ class Runner:
 
     def download(self) -> bool:
         self.log(f'Download {self.wrap.name}...')
+        options = T.cast('DownloadArguments', self.options)
+        if options.dest:
+            dest = Path(options.dest)
+            dest.mkdir(parents=True, exist_ok=True)
+            self.wrap_resolver = Resolver(dest.parent, dest.name, download_only=True)
+            self.wrap_resolver.wraps[self.wrap.name] = self.wrap
+            self.repo_dir = Path(dest, self.wrap.directory).as_posix()
         if os.path.isdir(self.repo_dir):
             self.log('  -> Already downloaded')
             return True
@@ -656,6 +666,9 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     p = subparsers.add_parser('download', help='Ensure subprojects are fetched, even if not in use. ' +
                                                'Already downloaded subprojects are not modified. ' +
                                                'This can be used to pre-fetch all subprojects and avoid downloads during configure.')
+    p.add_argument('--dest', default=None,
+                   help="Destination directory where to download subprojects. " +
+                        "This can be used to generate a cache outside of project's subprojects directory")
     add_common_arguments(p)
     add_subprojects_argument(p)
     p.set_defaults(subprojects_func=Runner.download)

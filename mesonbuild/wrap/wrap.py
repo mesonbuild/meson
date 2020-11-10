@@ -285,6 +285,7 @@ class Resolver:
     wrap_mode: WrapMode = WrapMode.default
     wrap_frontend: bool = False
     allow_insecure: bool = False
+    download_only: bool = False
 
     def __post_init__(self) -> None:
         self.subdir_root = os.path.join(self.source_dir, self.subdir)
@@ -426,7 +427,7 @@ class Resolver:
                 self.dirname = os.path.join(self.subdir_root, self.directory)
             # Check if the wrap comes from the main project.
             main_fname = os.path.join(self.subdir_root, self.wrap.basename)
-            if self.wrap.filename != main_fname:
+            if self.wrap.filename != main_fname and not self.download_only:
                 rel = os.path.relpath(self.wrap.filename, self.source_dir)
                 mlog.log('Using', mlog.bold(rel))
                 # Write a dummy wrap file in main project that redirect to the
@@ -479,6 +480,9 @@ class Resolver:
             except Exception:
                 windows_proof_rmtree(self.dirname)
                 raise
+
+        if self.download_only:
+            return rel_path
 
         # A meson.build or CMakeLists.txt file is required in the directory
         if not os.path.exists(buildfile):
@@ -540,6 +544,8 @@ class Resolver:
 
     def get_file(self) -> None:
         path = self.get_file_internal('source')
+        if self.download_only:
+            return
         extract_dir = self.subdir_root
         # Some upstreams ship packages that do not have a leading directory.
         # Create one for them.
@@ -775,6 +781,8 @@ class Resolver:
             raise WrapException(m)
         if 'patch_filename' in self.wrap.values:
             path = self.get_file_internal('patch')
+            if self.download_only:
+                return
             try:
                 shutil.unpack_archive(path, self.subdir_root)
             except Exception:
@@ -782,6 +790,8 @@ class Resolver:
                     shutil.unpack_archive(path, workdir)
                     self.copy_tree(workdir, self.subdir_root)
         elif 'patch_directory' in self.wrap.values:
+            if self.download_only:
+                return
             patch_dir = self.wrap.values['patch_directory']
             src_dir = os.path.join(self.wrap.filesdir, patch_dir)
             if not os.path.isdir(src_dir):
@@ -789,6 +799,8 @@ class Resolver:
             self.copy_tree(src_dir, self.dirname)
 
     def apply_diff_files(self) -> None:
+        if self.download_only:
+            return
         for filename in self.wrap.diff_files:
             mlog.log(f'Applying diff file "{filename}"')
             path = Path(self.wrap.filesdir) / filename

@@ -313,6 +313,13 @@ configure can be performed offline. The command-line `meson
 subprojects download` can be used for that, it will download all
 missing subprojects, but will not update already fetched subprojects.
 
+*Since 1.2.0* `--dest` argument can be used to specify in which directory
+subprojects should be downloaded. The destination directory will contain only
+the `packagecache` directory for `wrap-file` and their patches (they are not extracted),
+and complete checkout for other wrap types. This is used to store a cache of
+subprojects (e.g. in CI docker images) that can then be copied into project's
+`subprojects/` directory to build offline (i.e. with `--wrap-mode=nodownload`).
+
 ### Update subprojects
 
 *Since 0.49.0*
