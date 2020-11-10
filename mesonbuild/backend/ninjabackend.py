@@ -1494,6 +1494,10 @@ int dummy;
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
+        base_proxy = self.get_base_options_for_target(target)
+        args = rustc.compiler_args()
+        # Compiler args for compiling this target
+        args += compilers.get_base_compile_args(base_proxy, rustc)
         main_rust_file = None
         for i in target.get_sources():
             if not rustc.can_compile(i):
@@ -1503,7 +1507,6 @@ int dummy;
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
-        args = ['--crate-type']
         if isinstance(target, build.Executable):
             cratetype = 'bin'
         elif hasattr(target, 'rust_crate_type'):
@@ -1514,7 +1517,7 @@ int dummy;
             cratetype = 'rlib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
-        args.append(cratetype)
+        args.extend(['--crate-type', cratetype])
 
         # If we're dynamically linking, add those arguments
         #
