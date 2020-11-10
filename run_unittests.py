@@ -7294,6 +7294,11 @@ class LinuxlikeTests(BasePlatformTests):
             with mock.patch.dict(os.environ, {envvar: name}):
                 env = get_fake_env()
                 comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                if isinstance(comp, (mesonbuild.compilers.AppleClangCCompiler,
+                                     mesonbuild.compilers.AppleClangCPPCompiler,
+                                     mesonbuild.compilers.AppleClangObjCCompiler,
+                                     mesonbuild.compilers.AppleClangObjCPPCompiler)):
+                    raise unittest.SkipTest('AppleClang is currently only supported with ld64')
                 if lang != 'rust' and comp.use_linker_args('bfd') == []:
                     raise unittest.SkipTest(
                         'Compiler {} does not support using alternative linkers'.format(comp.id))
