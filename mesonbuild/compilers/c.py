@@ -428,7 +428,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
 
     def get_options(self) -> 'OptionDictType':
         opts = super().get_options()
-        c_stds = ['none', 'c89', 'c99', 'c11']
+        c_stds = ['none', 'c89', 'c99', 'c11', 'c17']
         opts.update({
             'std': coredata.UserComboOption(
                 'C language standard to use',
@@ -441,8 +441,8 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
-        # As of MVSC 16.7, /std:c11 is the only valid C standard option.
-        if std.value in {'c11'}:
+        # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
+        if std.value in {'c11', 'c17'}:
             args.append('/std:' + std.value)
         return args
 
