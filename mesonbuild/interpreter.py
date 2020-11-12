@@ -4641,7 +4641,11 @@ different subdirectory.
         self.add_project_arguments(node, self.build.projects_link_args[for_machine], args, kwargs)
 
     def warn_about_builtin_args(self, args):
-        warnargs = ('/W1', '/W2', '/W3', '/W4', '/Wall', '-Wall', '-Wextra', '-Wpedantic')
+        # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
+        # see e.g.
+        # https://github.com/mesonbuild/meson/issues/3275#issuecomment-641354956
+        # https://github.com/mesonbuild/meson/issues/3742
+        warnargs = ('/W1', '/W2', '/W3', '/W4', '/Wall', '-Wall', '-Wextra')
         optargs = ('-O0', '-O2', '-O3', '-Os', '/O1', '/O2', '/Os')
         for arg in args:
             if arg in warnargs:
