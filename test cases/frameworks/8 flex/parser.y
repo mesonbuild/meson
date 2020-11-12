@@ -1,3 +1,8 @@
+%{
+extern int yylex(void);
+extern int yyerror();
+%}
+
 %token BOOLEAN
 
 %%

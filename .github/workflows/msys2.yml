@@ -2,7 +2,15 @@ name: msys2
 
 on:
   push:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/msys.yml"
   pull_request:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/msys.yml"
 
 jobs:
   test:

@@ -1,0 +1,85 @@
+name: macos
+
+on:
+  push:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/macos.yml"
+  pull_request:
+    paths:
+      - "mesonbuild/**"
+      - "test cases/**"
+      - ".github/workflows/macos.yml"
+
+jobs:
+  unittests-appleclang:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-xdist jsonschema
+    - run: brew install pkg-config ninja llvm qt
+    - env:
+        CPPFLAGS: "-I/usr/local/include"
+        LDFLAGS: "-L/usr/local/lib"
+        MESON_UNIT_TEST_BACKEND: ninja
+        # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
+      run: |
+        export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
+        export PATH="$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin"
+        ./run_unittests.py
+
+  project-tests-appleclang:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        unity: ["on", "off"]
+    steps:
+    - uses: actions/checkout@v2
+    # use python3 from homebrew because it is a valid framework, unlike the actions one:
+    # https://github.com/actions/setup-python/issues/58
+    - run: brew install pkg-config ninja llvm qt boost ldc hdf5 openmpi lapack scalapack sdl2 python3
+    - run: |
+        python3 -m pip install --upgrade setuptools
+        python3 -m pip install --upgrade pip
+        python3 -m pip install cython
+    - env:
+        CPPFLAGS: "-I/usr/local/include"
+        LDFLAGS: "-L/usr/local/lib"
+        MESON_ARGS: --unity=${{ matrix.unity }}
+        CI: 1
+        # These cannot evaluate anything, so we cannot set PATH or SDKROOT here
+      run: |
+        export SDKROOT="$(xcodebuild -version -sdk macosx Path)"
+        export PATH="$HOME/tools:/usr/local/opt/qt/bin:$PATH:$(brew --prefix llvm)/bin"
+        ./run_project_tests.py --backend=ninja
+
+  Qt4macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    - run: python -m pip install -e .
+    - run: brew install pkg-config ninja gcc
+    - run: brew tap cartr/qt4
+    - run: brew install qt@4
+    - run: meson setup "test cases/frameworks/4 qt" build -Drequired=qt4
+    - run: meson compile -C build
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Qt4_Mac_build
+        path: build/meson-logs/meson-log.txt
+    - run: meson test -C build -v
+    - uses: actions/upload-artifact@v1
+      if: failure()
+      with:
+        name: Qt4_Mac_test
+        path: build/meson-logs/testlog.txt
