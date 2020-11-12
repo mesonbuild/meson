@@ -308,6 +308,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
                              'set_quoted': self.set_quoted_method,
                              'has': self.has_method,
                              'get': self.get_method,
+                             'keys': self.keys_method,
                              'get_unquoted': self.get_unquoted_method,
                              'merge_from': self.merge_from_method,
                              })
@@ -400,6 +401,10 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
 
     def get(self, name):
         return self.held_object.values[name] # (val, desc)
+
+    @FeatureNew('configuration_data.keys()', '0.57.0')
+    def keys_method(self, args, kwargs):
+        return sorted(self.keys())
 
     def keys(self):
         return self.held_object.values.keys()
