@@ -23,5 +23,5 @@ if get_option('b_lto') == 'true'
 endif
 ```
 
-This should not affect any comman line invocations as configuring LTO
+This should not affect any command line invocations as configuring LTO
 with `-Db_lto=true` still works and behaves the same way as before.
