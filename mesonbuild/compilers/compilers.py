@@ -266,9 +266,7 @@ clike_debug_args = {False: [],
                     True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
 base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', True),
-                'b_lto': coredata.UserComboOption('Use link time optimization',
-                                                  ['false', 'true', 'thin'],
-                                                  'false'),
+                'b_lto': coredata.UserBooleanOption('Use link time optimization', False),
                 'b_sanitize': coredata.UserComboOption('Code sanitizer to use',
                                                        ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
                                                        'none'),
@@ -309,7 +307,8 @@ def option_enabled(boptions: T.List[str], options: 'OptionDictType',
 def get_base_compile_args(options: 'OptionDictType', compiler: 'Compiler') -> T.List[str]:
     args = []  # type T.List[str]
     try:
-        args.extend(compiler.get_lto_compile_args(options['b_lto'].value))
+        if options['b_lto'].value:
+            args.extend(compiler.get_lto_compile_args())
     except KeyError:
         pass
     try:
@@ -358,7 +357,8 @@ def get_base_link_args(options: 'OptionDictType', linker: 'Compiler',
                        is_shared_module: bool) -> T.List[str]:
     args = []  # type: T.List[str]
     try:
-        args.extend(linker.get_lto_link_args(options['b_lto'].value))
+        if options['b_lto'].value:
+            args.extend(linker.get_lto_link_args())
     except KeyError:
         pass
     try:
@@ -940,11 +940,11 @@ class Compiler(metaclass=abc.ABCMeta):
             ret.append(arg)
         return ret
 
-    def get_lto_compile_args(self, lto_type: str) -> T.List[str]:
+    def get_lto_compile_args(self) -> T.List[str]:
         return []
 
-    def get_lto_link_args(self, lto_type: str) -> T.List[str]:
-        return self.linker.get_lto_args(lto_type)
+    def get_lto_link_args(self) -> T.List[str]:
+        return self.linker.get_lto_args()
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
         return []
