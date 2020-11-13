@@ -6832,13 +6832,16 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        crossfile.write(textwrap.dedent('''\
+
+        tool_path = os.path.join(testdir, 'some_cross_tool.py')
+
+        crossfile.write(textwrap.dedent(f'''\
             [binaries]
-            c = '/usr/bin/{1}'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
-            sometool.py = ['{0}']
-            someothertool.py = '{0}'
+            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            ar = '{shutil.which('ar')}'
+            strip = '{shutil.which('strip')}'
+            sometool.py = ['{tool_path}']
+            someothertool.py = '{tool_path}'
 
             [properties]
 
@@ -6847,8 +6850,7 @@ class LinuxlikeTests(BasePlatformTests):
             cpu_family = 'arm'
             cpu = 'armv7' # Not sure if correct.
             endian = 'little'
-            ''').format(os.path.join(testdir, 'some_cross_tool.py'),
-                        'gcc' if is_sunos() else 'cc'))
+            '''))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         self.init(testdir)
@@ -8567,29 +8569,23 @@ class CrossFileTests(BasePlatformTests):
                               exe_wrapper: T.Optional[T.List[str]] = None) -> str:
         if is_windows():
             raise unittest.SkipTest('Cannot run this test on non-mingw/non-cygwin windows')
-        if is_sunos():
-            cc = 'gcc'
-        else:
-            cc = 'cc'
 
-        return textwrap.dedent("""\
+        return textwrap.dedent(f"""\
             [binaries]
-            c = '/usr/bin/{}'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
-            {}
+            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            ar = '{shutil.which('ar')}'
+            strip = '{shutil.which('strip')}'
+            exe_wrapper = {str(exe_wrapper) if exe_wrapper is not None else '[]'}
 
             [properties]
-            needs_exe_wrapper = {}
+            needs_exe_wrapper = {needs_exe_wrapper}
 
             [host_machine]
             system = 'linux'
             cpu_family = 'x86'
             cpu = 'i686'
             endian = 'little'
-            """.format(cc,
-                       'exe_wrapper = {}'.format(str(exe_wrapper)) if exe_wrapper is not None else '',
-                       needs_exe_wrapper))
+            """)
 
     def _stub_exe_wrapper(self) -> str:
         return textwrap.dedent('''\
