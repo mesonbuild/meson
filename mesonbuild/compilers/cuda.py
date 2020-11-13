@@ -197,9 +197,9 @@ class CudaCompiler(Compiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = super().get_options()
-        opts.update({'cuda_std': coredata.UserComboOption('C++ language standard to use',
-                                                          ['none', 'c++03', 'c++11', 'c++14'],
-                                                          'none')})
+        opts.update({'std': coredata.UserComboOption('C++ language standard to use with cuda',
+                                                     ['none', 'c++03', 'c++11', 'c++14'],
+                                                     'none')})
         return opts
 
     def _to_host_compiler_options(self, options: 'OptionDictType') -> 'OptionDictType':
@@ -212,7 +212,7 @@ class CudaCompiler(Compiler):
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            std = options['cuda_std']
+            std = options['std']
             if std.value != 'none':
                 args.append('--std=' + std.value)
 
