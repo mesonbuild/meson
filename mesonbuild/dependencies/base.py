@@ -420,6 +420,7 @@ class ConfigToolDependency(ExternalDependency):
     tool_name: T.Optional[str] = None
     version_arg: str = '--version'
     __strip_version = re.compile(r'^[0-9][0-9.]+')
+    _variable_template = '--{}'
 
     def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         super().__init__('config-tool', environment, kwargs, language=language)
@@ -524,7 +525,7 @@ class ConfigToolDependency(ExternalDependency):
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name: str) -> str:
-        p, out, _ = Popen_safe(self.config + ['--{}'.format(variable_name)])
+        p, out, _ = Popen_safe(self.config + [self._variable_template.format(variable_name)])
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
