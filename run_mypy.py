@@ -20,6 +20,7 @@ modules = [
     # 'mesonbuild/coredata.py',
     'mesonbuild/dependencies/boost.py',
     'mesonbuild/dependencies/hdf5.py',
+    'mesonbuild/dependencies/languages.py',
     'mesonbuild/dependencies/mpi.py',
     'mesonbuild/envconfig.py',
     'mesonbuild/interpreterbase.py',

@@ -31,6 +31,7 @@ from .misc import (
 )
 from .platform import AppleFrameworks
 from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+from .languages import PerlDependency
 
 
 # This is a dict where the keys should be strings, and the values must be one
@@ -48,6 +49,9 @@ packages.update({
 
     'boost': BoostDependency,
     'cuda': CudaDependency,
+
+    # programing/scripting languages
+    'perl': PerlDependency,
 
     # per-file
     'coarray': coarray_factory,
