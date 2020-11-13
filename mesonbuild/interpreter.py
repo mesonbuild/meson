@@ -3175,6 +3175,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.build.project_name = proj_name
         self.active_projectname = proj_name
         self.project_version = kwargs.get('version', 'undefined')
+        if not isinstance(self.project_version, str):
+            raise InvalidCode('The version keyword argument must be a string.')
         if self.build.project_version is None:
             self.build.project_version = self.project_version
         proj_license = mesonlib.stringlistify(kwargs.get('license', 'unknown'))
