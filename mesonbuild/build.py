@@ -102,7 +102,7 @@ known_build_target_kwargs = (
 known_exe_kwargs = known_build_target_kwargs | {'implib', 'export_dynamic', 'pie'}
 known_shlib_kwargs = known_build_target_kwargs | {'version', 'soversion', 'vs_module_defs', 'darwin_versions'}
 known_shmod_kwargs = known_build_target_kwargs | {'vs_module_defs'}
-known_stlib_kwargs = known_build_target_kwargs | {'pic'}
+known_stlib_kwargs = known_build_target_kwargs | {'pic', 'prelink'}
 known_jar_kwargs = known_exe_kwargs | {'main_class'}
 
 @lru_cache(maxsize=None)
@@ -1280,6 +1280,23 @@ You probably should put it in link_with instead.''')
 
         return langs
 
+    def get_prelinker(self):
+        all_compilers = self.environment.coredata.compilers[self.for_machine]
+        if self.link_language:
+            comp = all_compilers[self.link_language]
+            return comp
+        for l in clink_langs:
+            if l in self.compilers:
+                try:
+                    prelinker = all_compilers[l]
+                except KeyError:
+                    raise MesonException(
+                        'Could not get a prelinker linker for build target {!r}. '
+                        'Requires a compiler for language "{}", but that is not '
+                        'a project language.'.format(self.name, l))
+                return prelinker
+        raise MesonException('Could not determine prelinker for {!r}.'.format(self.name))
+
     def get_clink_dynamic_linker_and_stdlibs(self):
         '''
         We use the order of languages in `clink_langs` to determine which
@@ -1674,6 +1691,9 @@ class StaticLibrary(BuildTarget):
                 self.suffix = 'a'
         self.filename = self.prefix + self.name + '.' + self.suffix
         self.outputs = [self.filename]
+        self.prelink = kwargs.get('prelink', False)
+        if not isinstance(self.prelink, bool):
+            raise InvalidArguments('Prelink keyword argument must be a boolean.')
 
     def get_link_deps_mapping(self, prefix, environment):
         return {}

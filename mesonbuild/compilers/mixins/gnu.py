@@ -394,3 +394,6 @@ class GnuCompiler(GnuLikeCompiler):
         # GCC only warns about unknown or ignored attributes, so force an
         # error.
         return ['-Werror=attributes']
+
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        return ['-r', '-o', prelink_name] + obj_list

@@ -840,7 +840,11 @@ int dummy;
             for src in self.generate_unity_files(target, unity_src):
                 obj_list.append(self.generate_single_compile(target, src, True, unity_deps + header_deps))
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-        elem = self.generate_link(target, outname, obj_list, linker, pch_objects, stdlib_args=stdlib_args)
+        if isinstance(target, build.StaticLibrary) and target.prelink:
+            final_obj_list = self.generate_prelink(target, obj_list)
+        else:
+            final_obj_list = obj_list
+        elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
@@ -2682,6 +2686,21 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 raise
 
         return guessed_dependencies + absolute_libs
+
+    def generate_prelink(self, target, obj_list):
+        assert(isinstance(target, build.StaticLibrary))
+        prelink_name = os.path.join(self.get_target_private_dir(target), target.name + '-prelink.o')
+        elem = NinjaBuildElement(self.all_outputs, [prelink_name], 'CUSTOM_COMMAND', obj_list)
+
+        prelinker = target.get_prelinker()
+        cmd = prelinker.exelist[:]
+        cmd += prelinker.get_prelink_args(prelink_name, obj_list)
+
+        cmd = self.replace_paths(target, cmd)
+        elem.add_item('COMMAND', cmd)
+        elem.add_item('description', 'Prelinking {}.'.format(prelink_name))
+        self.add_build(elem)
+        return [prelink_name]
 
     def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
