@@ -1200,6 +1200,8 @@ class Compiler(metaclass=abc.ABCMeta):
         # TODO: using a TypeDict here would improve this
         raise EnvironmentError('{} does not implement get_feature_args'.format(self.id))
 
+    def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
+        raise EnvironmentException('{} does not know how to do prelinking.'.format(self.id))
 
 def get_args_from_envvars(lang: str,
                           for_machine: MachineChoice,

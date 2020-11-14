@@ -1574,6 +1574,10 @@ has one argument the others don't have:
    option has no effect on Windows and OS X since it doesn't make
    sense on Windows and PIC cannot be disabled on OS X.
 
+- `prelink` *since0.57.0*: if `true` the object files in the target
+  will be prelinked, meaning that it will contain only one prelinked
+  object file rather than the individual object files.
+
 ### subdir()
 
 ``` meson
