@@ -1,0 +1,4 @@
+project('zigtest-shared-lib', 'zig')
+
+lib = shared_library('hello', 'lib/hello.zig')
+executable('zigtest-shared-lib', 'src/main.zig', link_with: lib)
