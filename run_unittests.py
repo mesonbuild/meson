@@ -3506,53 +3506,15 @@ class AllPlatformTests(BasePlatformTests):
         ninja = detect_ninja()
         if ninja is None:
             raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+
         langs = ['c']
         env = get_fake_env()
-        try:
-            env.detect_cpp_compiler(MachineChoice.HOST)
-            langs.append('cpp')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_cs_compiler(MachineChoice.HOST)
-            langs.append('cs')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_d_compiler(MachineChoice.HOST)
-            langs.append('d')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_java_compiler(MachineChoice.HOST)
-            langs.append('java')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_cuda_compiler(MachineChoice.HOST)
-            langs.append('cuda')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_fortran_compiler(MachineChoice.HOST)
-            langs.append('fortran')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_objc_compiler(MachineChoice.HOST)
-            langs.append('objc')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_objcpp_compiler(MachineChoice.HOST)
-            langs.append('objcpp')
-        except EnvironmentException:
-            pass
-        # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
-        if not is_windows():
+        for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
             try:
-                env.detect_rust_compiler(MachineChoice.HOST)
-                langs.append('rust')
+                comp = getattr(env, f'detect_{l}_compiler')(MachineChoice.HOST)
+                with tempfile.TemporaryDirectory() as d:
+                    comp.sanity_check(d, env)
+                langs.append(l)
             except EnvironmentException:
                 pass
 
@@ -3567,12 +3529,12 @@ class AllPlatformTests(BasePlatformTests):
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
             # test directory with existing code file
-            if lang in ('c', 'cpp', 'd'):
+            if lang in {'c', 'cpp', 'd'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
                         f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
-            elif lang in ('java'):
+            elif lang in {'java'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'Foo.' + lang), 'w') as f:
                         f.write('public class Foo { public static void main() {} }')
