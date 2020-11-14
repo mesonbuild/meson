@@ -106,6 +106,7 @@ __all__ = [
     'VisualStudioLikeCompiler',
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
+    'ZigCompiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -211,3 +212,4 @@ from .mixins.visualstudio import VisualStudioLikeCompiler
 from .mixins.gnu import GnuCompiler, GnuLikeCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
+from .zig import ZigCompiler

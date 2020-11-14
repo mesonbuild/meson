@@ -703,6 +703,9 @@ int dummy;
         if self.is_rust_target(target):
             self.generate_rust_target(target)
             return
+        if 'zig' in target.compilers:
+            self.generate_zig_target(target)
+            return
         if 'cs' in target.compilers:
             self.generate_cs_target(target)
             return
@@ -1597,6 +1600,64 @@ int dummy;
             self.generate_shsym(target)
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
+    def generate_zig_target(self, target):
+        zig = target.compilers['zig']
+        args = zig.compiler_args()
+
+        target_name = os.path.join(target.subdir, target.get_filename())
+
+        # Adapted from the rust target generation logic, Zig behaves similarly
+        # in that it only requires a single, so called "root source file"
+        root_src_file = None
+        for i in target.get_sources():
+            if not zig.can_compile(i):
+                raise InvalidArguments('Zig target {} contains a non-zig source file.'.format(target.get_basename()))
+            if root_src_file is None:
+                root_src_file = i.rel_to_builddir(self.build_to_src)
+        if root_src_file is None:
+            raise RuntimeError('A Zig target has no Zig sources. This is weird. Also a bug. Please report')
+
+        # Zig uses different subcommands for executables and libraries,
+        # shared libraries are selected via the -dynamic flag
+        if isinstance(target, build.Executable):
+            args.append('build-exe')
+        elif isinstance(target, build.StaticLibrary):
+            args.append('build-lib')
+        elif isinstance(target, build.SharedLibrary):
+            args += ['build-lib', '-dynamic']
+            args += zig.get_pic_args()
+        else:
+            raise InvalidArguments('Unknown target type for zig.')
+
+        # Add otherwise needed flags
+        args += ['--cache-dir', self.environment.get_build_dir().join(['zig-cache'])]
+        args += zig.get_optimization_args(self.get_option_for_target('optimization', target))
+        args += zig.get_output_args(target_name)
+        args += target.get_extra_args('zig')
+
+        # Provide the libaries the target links against
+        for d in target.link_targets:
+            reldir = self.get_target_dir(d)
+            if reldir == '':
+                reldir = '.'
+            ldir = os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))
+            args += ['-L{}'.format(ldir)]
+            # Also add shared libraries to rpath
+            if isinstance(d, build.SharedLibrary):
+                if d.should_install():
+                    args += ['-rpath', d.get_install_dir(self.environment)]
+                else:
+                    args += ['-rpath', ldir]
+
+        compiler_name = self.get_compiler_rule_name('zig', target.for_machine)
+        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, root_src_file)
+        element.add_item('ARGS', args)
+        self.add_build(element)
+
+        # Generate symbol files for runtime linking
+        if isinstance(target, build.SharedLibrary):
+            self.generate_shsym(target)
+
     @staticmethod
     def get_rule_suffix(for_machine: MachineChoice) -> str:
         return PerMachine('_FOR_BUILD', '')[for_machine]
@@ -1799,6 +1860,7 @@ int dummy;
                 if langname == 'java' \
                         or langname == 'vala' \
                         or langname == 'rust' \
+                        or langname == 'zig' \
                         or langname == 'cs':
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
@@ -1858,6 +1920,12 @@ int dummy;
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
 
+    def generate_zig_compile_rules(self, compiler):
+        rule = self.compiler_to_rule_name(compiler)
+        command = compiler.get_exelist() + ['$ARGS', '$in']
+        description = 'Compiling Zig source $in'
+        self.add_rule(NinjaRule(rule, command, [], description))
+
     def generate_swift_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
         full_exe = self.environment.get_build_command() + [
@@ -1906,6 +1974,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         if langname == 'rust':
             self.generate_rust_compile_rules(compiler)
+            return
+        if langname == 'zig':
+            self.generate_zig_compile_rules(compiler)
             return
         if langname == 'swift':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
