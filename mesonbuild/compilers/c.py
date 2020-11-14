@@ -410,6 +410,9 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
 
 class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompiler):
 
+    _C11_VERSION = '>=19.28'
+    _C17_VERSION = '>=19.28'
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo', target: str,
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -422,25 +425,33 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
 
     def get_options(self) -> 'OptionDictType':
         opts = super().get_options()
-        c_stds = ['none', 'c89', 'c99', 'c11',
+        c_stds = ['c89', 'c99']
                   # Need to have these to be compatible with projects
                   # that set c_std to e.g. gnu99.
                   # https://github.com/mesonbuild/meson/issues/7611
-                  'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11']
-        opts['std'].choices = c_stds  # type: ignore
+        g_stds = ['gnu89', 'gnu90', 'gnu9x', 'gnu99']
+        if version_compare(self.version, self._C11_VERSION):
+            c_stds += ['c11']
+            g_stds += ['gnu1x', 'gnu11']
+        if version_compare(self.version, self._C17_VERSION):
+            c_stds += ['c17', 'c18']
+            g_stds += ['gnu17', 'gnu18']
+        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
         args = []
         std = options['std']
         if std.value.startswith('gnu'):
-            mlog.log(
+            mlog.log_once(
                 'cl.exe does not actually support gnu standards, and meson '
                 'will instead demote to the nearest ISO C standard. This '
-                'may cause compilation to fail.', once=True)
-        # As of MVSC 16.7, /std:c11 is the only valid C standard option.
-        if std.value in {'c11', 'gnu11'}:
+                'may cause compilation to fail.')
+        # As of MVSC 16.8, /std:c11 and /std:c17 are the only valid C standard options.
+        if std.value in {'c11', 'gnu1x', 'gnu11'}:
             args.append('/std:c11')
+        elif std.value in {'c17', 'c18', 'gnu17', 'gnu18'}:
+            args.append('/std:c17')
         return args
 
 
@@ -485,7 +496,7 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
         args = []
         std = options['std']
         if std.value == 'c89':
-            mlog.log("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.", once=True)
+            mlog.log_once("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.")
         elif std.value != 'none':
             args.append('/Qstd:' + std.value)
         return args
