@@ -1359,11 +1359,12 @@ You probably should put it in link_with instead.''')
         for link_target in self.link_targets:
             if isinstance(link_target, SharedModule):
                 if self.environment.machines[self.for_machine].is_darwin():
-                    raise MesonException('''target links against shared modules.
-This is not permitted on OSX''')
+                    raise MesonException(
+                        'target links against shared modules. This is not permitted on OSX')
                 else:
-                    mlog.warning('''target links against shared modules. This is not
-recommended as it is not supported on some platforms''')
+                    mlog.warning('target links against shared modules. This '
+                                 'is not recommended as it is not supported on some '
+                                 'platforms')
                 return
 
 class Generator:
