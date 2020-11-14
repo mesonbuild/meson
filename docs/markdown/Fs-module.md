@@ -220,10 +220,22 @@ fs.stem('foo/bar/baz.dll.a')  # baz.dll
 *since 0.64.0*
 
 Given two absolute paths, returns a version of the first path relative to the second.
-If a path is given as the 'within' argument is specified, the function will return the
-first path unchanged if it is not inside 'within'.
+If a path is given as the 'within' argument, the function will return the first path
+unchanged if it is not inside 'within'.
+
+The `relative_to` function is system dependent. It accepts the `native: true` argument
+to compute relative paths on the build system. Otherwise it uses the host system.
+
+
+Examples: 
 
 ```meson
+# On windows:
+fs.relative_to('c:\\proj1\\foo', 'c:\\proj1\\bar')  # '..\\foo'
+fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar')  # ERROR, since the relative path does not exist
+fs.relative_to('c:\\proj1\\foo', 'd:\\proj1\\bar', within: 'd:\\')  # 'c:\\proj1\\foo', within allows to get an absolute path
+
+# On other systems:
 fs.relative_to('/prefix/lib', '/prefix/bin')  # '../lib'
 fs.relative_to('/prefix/lib/foo', '/prefix')  # 'lib/foo'
 fs.relative_to('/usr/lib/foo', '/usr/bin', within: '/usr')  # '../lib/foo'

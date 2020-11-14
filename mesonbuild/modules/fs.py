@@ -124,7 +124,7 @@ class FSModule(ExtensionModule):
         return PureWindowsPath(args[0]).as_posix()
 
     @stringArgs
-    @permittedKwargs({"within"})
+    @permittedKwargs({"within", "native"})
     @FeatureNew('fs.relative_to', '0.64.0')
     def relative_to(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
         """
@@ -134,17 +134,29 @@ class FSModule(ExtensionModule):
         argument unchanged if it is not within the 'within' path.
         """
         if len(args) != 2:
-            raise MesonException('fs.relative_to takes two arguments and optionally a "within" argument.')
-        path_to = PurePath(args[0])
+            raise MesonException('fs.relative_to takes two arguments and optionally a "within" and a "native" argument.')
+        # pathlib requires to use PureWindowsPath for Windows paths for absolute and relative
+        # path computations
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        if for_machine == MachineChoice.BUILD:
+            system = state.build_machine.system
+        else:
+            system = state.host_machine.system
+        if system == "windows":
+            path_class = PureWindowsPath  # type: T.Union[T.Type[PurePosixPath], T.Type[PureWindowsPath]]
+        else:
+            path_class = PurePosixPath
+        
+        path_to = path_class(args[0])
         if not path_to.is_absolute():
-            raise MesonException('The first argument must be an absolute path.')
-        path_from = PurePath(args[1])
+            raise MesonException(f'The first argument ({path_to}) must be an absolute path.')
+        path_from = path_class(args[1])
         if not path_from.is_absolute():
-            raise MesonException('The second argument must be an absolute path.')
+            raise MesonException(f'The second argument ({path_from}) must be an absolute path.')
         if "within" in kwargs:
-            path_within = PurePath(kwargs["within"])
+            path_within = path_class(kwargs["within"])
             if not path_within.is_absolute():
-                raise MesonException('The "within" argument must be an absolute path.')
+                raise MesonException('The "within" argument ({path_within}) must be an absolute path.')
             # Return path_to if it is not relative to path_within
             try:
                 path_to.relative_to(path_within)
@@ -162,18 +174,19 @@ class FSModule(ExtensionModule):
         parts_to = path_to.parts
         parts_from = path_from.parts
         if parts_to[0] != parts_from[0]:
-            raise MesonException("The first and second argument do not have a common root")
+            raise MesonException(f"{path_to} and {path_from} do not have a common root." +
+                                 "Use the \"within\" argument if you want an absolute path instead of an error.")
         parts_root = []
         for part_to, part_from in zip(parts_to, parts_from):
             if part_to != part_from:
                 break
             parts_root.append(part_to)
-        root = PurePath(parts_root[0]) / PurePath("/".join(parts_root[1:]))
+        root = path_class(parts_root[0]) / path_class("/".join(parts_root[1:]))
 
         # Then find how many levels do we need to go from path_from to the root:
         num_levels = len(path_from.parts) - len(root.parts)
         # And build the final path, going from path_from to the root and then to path_to:
-        path = PurePath("/".join(num_levels*['..'])) / path_to.relative_to(root)
+        path = path_class("/".join(num_levels*['..'])) / path_to.relative_to(root)
         return ModuleReturnValue(str(path), [])
 
 
