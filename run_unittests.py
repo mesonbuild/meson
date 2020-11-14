@@ -135,7 +135,15 @@ def is_pull():
     return False
 
 def _git_init(project_dir):
-    subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
+    # If a user has git configuration init.defaultBranch set we want to override that
+    with tempfile.TemporaryDirectory() as d:
+        out = git(['--version'], str(d))[1]
+    if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+        extra_cmd = ['--initial-branch', 'master']
+    else:
+        extra_cmd = []
+
+    subprocess.check_call(['git', 'init'] + extra_cmd, cwd=project_dir, stdout=subprocess.DEVNULL)
     subprocess.check_call(['git', 'config',
                            'user.name', 'Author Person'], cwd=project_dir)
     subprocess.check_call(['git', 'config',
@@ -9154,8 +9162,16 @@ class SubprojectsCommandTests(BasePlatformTests):
         return self._git_remote(['rev-parse', ref], name)
 
     def _git_create_repo(self, path):
+        # If a user has git configuration init.defaultBranch set we want to override that
+        with tempfile.TemporaryDirectory() as d:
+            out = git(['--version'], str(d))[1]
+        if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+            extra_cmd = ['--initial-branch', 'master']
+        else:
+            extra_cmd = []
+
         self._create_project(path)
-        self._git(['init'], path)
+        self._git(['init'] + extra_cmd, path)
         self._git_config(path)
         self._git(['add', '.'], path)
         self._git(['commit', '-m', 'Initial commit'], path)
