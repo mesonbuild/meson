@@ -53,7 +53,7 @@ class ZigCompiler(Compiler):
     def get_pic_args(self) -> T.List[str]:
         return ['-fPIC']
 
-    def needs_static_linker(self):
+    def needs_static_linker(self) -> bool:
         return False
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
