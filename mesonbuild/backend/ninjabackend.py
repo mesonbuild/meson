@@ -1622,6 +1622,7 @@ int dummy;
         # shared libraries are selected via the -dynamic flag
         if isinstance(target, build.Executable):
             args.append('build-exe')
+            args += zig.get_win_subsystem_args(target.win_subsystem)
         elif isinstance(target, build.StaticLibrary):
             args.append('build-lib')
         elif isinstance(target, build.SharedLibrary):
