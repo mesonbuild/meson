@@ -54,6 +54,9 @@ class ZigCompiler(BasicLinkerIsCompilerMixin, Compiler):
     def get_pic_args(self) -> T.List[str]:
         return ['-fPIC']
 
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return ['--subsystem', value]
+
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype == 'auto':
             return ['--color', 'auto']
