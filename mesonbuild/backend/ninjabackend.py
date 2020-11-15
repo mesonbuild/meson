@@ -1642,6 +1642,17 @@ int dummy;
         args += zig.get_output_args(target_name)
         args += target.get_extra_args('zig')
 
+        # Handle target include directories, adapted from the Swift generation logic
+        for i in reversed(target.get_include_dirs()):
+            basedir = i.get_curdir()
+            for d in i.get_incdirs():
+                if d not in ('', '.'):
+                    expdir = os.path.join(basedir, d)
+                else:
+                    expdir = basedir
+                srctreedir = os.path.normpath(os.path.join(self.environment.get_build_dir(), self.build_to_src, expdir))
+                args += [f'-I{srctreedir}']
+
         # Provide the libaries the target links against
         for d in target.link_targets:
             reldir = self.get_target_dir(d)
@@ -1658,9 +1669,12 @@ int dummy;
 
         # Handle external dependencies
         for d in target.get_external_deps():
-            # TODO(e820): this will probably break for some deps without processing
-            args += d.get_compile_args()
-            args += d.get_link_args()
+            if isinstance(d, dependencies.platform.AppleFrameworks):
+                args += ['-framework', d.get_name()]
+            else:
+                # TODO(e820): this will probably break for some deps without processing
+                args += d.get_compile_args()
+                args += d.get_link_args()
 
         compiler_name = self.get_compiler_rule_name('zig', target.for_machine)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, root_src_file)
