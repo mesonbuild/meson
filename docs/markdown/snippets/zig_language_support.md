@@ -1,13 +1,5 @@
-## Meson now has Zig support
+## Basic support for the Zig language
 
-This patch adds:
-
-* A new language: `zig`
-* A new kwarg: `zig_args`
-
-The initial support should work for most project setups,
-however there are some possible additions for future
-updates:
-
-* Zig is a C compiler, however Meson doesn't know this
-and instead uses the default compiler for C targets
+Meson now supports the compilation of basic Zig
+programs. Support for more advanced scenarios
+is not implemented yet.

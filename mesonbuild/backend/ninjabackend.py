@@ -1607,7 +1607,8 @@ int dummy;
         target_name = os.path.join(target.subdir, target.get_filename())
 
         # Adapted from the rust target generation logic, Zig behaves similarly
-        # in that it only requires a single, so called "root source file"
+        # in that it can work off of a single, so called "root source file" that
+        # imports other project source files
         root_src_file = None
         for i in target.get_sources():
             if not zig.can_compile(i):
@@ -1615,7 +1616,7 @@ int dummy;
             if root_src_file is None:
                 root_src_file = i.rel_to_builddir(self.build_to_src)
         if root_src_file is None:
-            raise RuntimeError('A Zig target has no Zig sources. This is weird. Also a bug. Please report')
+            raise MesonException('A Zig target has no Zig sources. This is weird. Also a bug. Please report')
 
         # Zig uses different subcommands for executables and libraries,
         # shared libraries are selected via the -dynamic flag
@@ -1624,13 +1625,18 @@ int dummy;
         elif isinstance(target, build.StaticLibrary):
             args.append('build-lib')
         elif isinstance(target, build.SharedLibrary):
-            args += ['build-lib', '-dynamic']
+            args += ['build-lib']
+            args += zig.get_std_shared_lib_link_args()
             args += zig.get_pic_args()
         else:
             raise InvalidArguments('Unknown target type for zig.')
 
+        # Add built-in options
+        base_proxy = self.get_base_options_for_target(target)
+        args += compilers.get_base_compile_args(base_proxy, zig)
+        
         # Add otherwise needed flags
-        args += ['--cache-dir', self.environment.get_build_dir().join(['zig-cache'])]
+        args += ['--enable-cache', '--cache-dir', self.environment.get_build_dir().join(['zig-cache'])]
         args += zig.get_optimization_args(self.get_option_for_target('optimization', target))
         args += zig.get_output_args(target_name)
         args += target.get_extra_args('zig')
@@ -1857,12 +1863,9 @@ int dummy;
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
-                if langname == 'java' \
-                        or langname == 'vala' \
-                        or langname == 'rust' \
-                        or langname == 'zig' \
-                        or langname == 'cs':
+                if langname in {'java', 'vala', 'rust', 'zig', 'cs'}:
                     continue
+
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
                 args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
