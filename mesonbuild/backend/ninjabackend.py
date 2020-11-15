@@ -1656,6 +1656,12 @@ int dummy;
                 else:
                     args += ['-rpath', ldir]
 
+        # Handle external dependencies
+        for d in target.get_external_deps():
+            # TODO(e820): this will probably break for some deps without processing
+            args += d.get_compile_args()
+            args += d.get_link_args()
+
         compiler_name = self.get_compiler_rule_name('zig', target.for_machine)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, root_src_file)
         element.add_item('ARGS', args)
