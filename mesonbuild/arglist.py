@@ -119,7 +119,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     # This correctly deduplicates the entries after _can_dedup definition
     # Note: This function is designed to work without delete operations, as deletions are worsening the performance a lot.
     def flush_pre_post(self) -> None:
-        pre_flush = collections.deque()   # type: T.Deque[str]
+        new = list()                      # type: T.List[str]
         pre_flush_set = set()             # type: T.Set[str]
         post_flush = collections.deque()  # type: T.Deque[str]
         post_flush_set = set()            # type: T.Set[str]
@@ -128,7 +128,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         for a in self.pre:
             dedup = self._can_dedup(a)
             if a not in pre_flush_set:
-                pre_flush.append(a)
+                new.append(a)
                 if dedup is Dedup.OVERRIDEN:
                     pre_flush_set.add(a)
         for a in reversed(self.post):
@@ -140,12 +140,15 @@ class CompilerArgs(collections.abc.MutableSequence):
 
         #pre and post will overwrite every element that is in the container
         #only copy over args that are in _container but not in the post flush or pre flush set
+        if pre_flush_set or post_flush_set:
+            for a in self._container:
+                if a not in post_flush_set and a not in pre_flush_set:
+                    new.append(a)
+        else:
+            new.extend(self._container)
+        new.extend(post_flush)
 
-        for a in self._container:
-            if a not in post_flush_set and a not in pre_flush_set:
-                pre_flush.append(a)
-
-        self._container = list(pre_flush) + list(post_flush)
+        self._container = new
         self.pre.clear()
         self.post.clear()
 
@@ -161,7 +164,7 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __getitem__(self, index: slice) -> T.MutableSequence[str]:  # noqa: F811
         pass
 
-    def __getitem__(self, index):  # noqa: F811
+    def __getitem__(self, index: T.Union[int, slice]) -> T.Union[str, T.MutableSequence[str]]:  # noqa: F811
         self.flush_pre_post()
         return self._container[index]
 
@@ -173,9 +176,9 @@ class CompilerArgs(collections.abc.MutableSequence):
     def __setitem__(self, index: slice, value: T.Iterable[str]) -> None:  # noqa: F811
         pass
 
-    def __setitem__(self, index, value) -> None:  # noqa: F811
+    def __setitem__(self, index: T.Union[int, slice], value: T.Union[str, T.Iterable[str]]) -> None:  # noqa: F811
         self.flush_pre_post()
-        self._container[index] = value
+        self._container[index] = value  # type: ignore  # TODO: fix 'Invalid index type' and 'Incompatible types in assignment' erros
 
     def __delitem__(self, index: T.Union[int, slice]) -> None:
         self.flush_pre_post()
@@ -311,7 +314,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         new += self
         return new
 
-    def __eq__(self, other: T.Any) -> T.Union[bool]:
+    def __eq__(self, other: object) -> T.Union[bool]:
         self.flush_pre_post()
         # Only allow equality checks against other CompilerArgs and lists instances
         if isinstance(other, CompilerArgs):

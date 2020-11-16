@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from pathlib import Path
+from .._pathlib import Path
 import enum
 import json
 import os
@@ -29,13 +29,14 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
+from ..compilers import languages_using_ldflags
 from ..mesonlib import (
     File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder
 )
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
+    from ..interpreter import Interpreter, Test
 
 
 class TestProtocol(enum.Enum):
@@ -73,7 +74,7 @@ class CleanTrees:
 
 class InstallData:
     def __init__(self, source_dir, build_dir, prefix, strip_bin,
-                 install_umask, mesonintrospect):
+                 install_umask, mesonintrospect, version):
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
@@ -88,6 +89,7 @@ class InstallData:
         self.install_scripts = []
         self.install_subdirs = []
         self.mesonintrospect = mesonintrospect
+        self.version = version
 
 class TargetInstallData:
     def __init__(self, fname, outdir, aliases, strip, install_name_mappings, rpath_dirs_to_remove, install_rpath, install_mode, optional=False):
@@ -103,7 +105,7 @@ class TargetInstallData:
 
 class ExecutableSerialisation:
     def __init__(self, cmd_args, env=None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None):
+                 workdir=None, extra_paths=None, capture=None) -> None:
         self.cmd_args = cmd_args
         self.env = env or {}
         if exe_wrapper is not None:
@@ -112,6 +114,7 @@ class ExecutableSerialisation:
         self.workdir = workdir
         self.extra_paths = extra_paths
         self.capture = capture
+        self.pickled = False
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
@@ -120,7 +123,7 @@ class TestSerialisation:
                  env: build.EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
                  extra_paths: T.List[str], protocol: TestProtocol, priority: int,
-                 cmd_is_built: bool):
+                 cmd_is_built: bool, depends: T.List[str], version: str):
         self.name = name
         self.project_name = project
         self.suite = suite
@@ -140,6 +143,8 @@ class TestSerialisation:
         self.priority = priority
         self.needs_exe_wrapper = needs_exe_wrapper
         self.cmd_is_built = cmd_is_built
+        self.depends = depends
+        self.version = version
 
 
 def get_backend_from_name(backend: str, build: T.Optional[build.Build] = None, interpreter: T.Optional['Interpreter'] = None) -> T.Optional['Backend']:
@@ -179,10 +184,14 @@ class Backend:
         self.interpreter = interpreter
         self.environment = build.environment
         self.processed_targets = {}
+        self.name = '<UNKNOWN>'
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
+
+    def generate(self) -> None:
+        raise RuntimeError('generate is not implemented in {}'.format(type(self).__name__))
 
     def get_target_filename(self, t, *, warn_multi_output: bool = True):
         if isinstance(t, build.CustomTarget):
@@ -351,18 +360,11 @@ class Backend:
         return obj_list
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
-                             for_machine=MachineChoice.BUILD,
                              extra_bdeps=None, capture=None, force_serialize=False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         import hashlib
-        machine = self.environment.machines[for_machine]
-        if machine.is_windows() or machine.is_cygwin():
-            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
-        else:
-            extra_paths = []
-
         if isinstance(exe, dependencies.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
@@ -372,6 +374,12 @@ class Backend:
         else:
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
+
+        machine = self.environment.machines[exe_for_machine]
+        if machine.is_windows() or machine.is_cygwin():
+            extra_paths = self.determine_windows_extra_paths(exe, extra_bdeps or [])
+        else:
+            extra_paths = []
 
         is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
         if is_cross_built and self.environment.need_exe_wrapper():
@@ -388,13 +396,30 @@ class Backend:
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
-        force_serialize = force_serialize or extra_paths or workdir or \
-            exe_wrapper or any('\n' in c for c in cmd_args)
+        reasons = []
+        if extra_paths:
+            reasons.append('to set PATH')
+
+        if exe_wrapper:
+            reasons.append('to use exe_wrapper')
+
+        if workdir:
+            reasons.append('to set workdir')
+
+        if any('\n' in c for c in cmd_args):
+            reasons.append('because command contains newlines')
+
+        force_serialize = force_serialize or bool(reasons)
+
+        if capture:
+            reasons.append('to capture output')
+
         if not force_serialize:
             if not capture:
-                return None
-            return (self.environment.get_build_command() +
-                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args)
+                return None, ''
+            return ((self.environment.get_build_command() +
+                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args),
+                    ', '.join(reasons))
 
         workdir = workdir or self.environment.get_build_dir()
         env = {}
@@ -418,7 +443,8 @@ class Backend:
                                          exe_wrapper, workdir,
                                          extra_paths, capture)
             pickle.dump(es, f)
-        return self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data]
+        return (self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data],
+                ', '.join(reasons))
 
     def serialize_tests(self):
         test_data = os.path.join(self.environment.get_scratch_dir(), 'meson_test_setup.dat')
@@ -450,8 +476,7 @@ class Backend:
     def get_external_rpath_dirs(self, target):
         dirs = set()
         args = []
-        # FIXME: is there a better way?
-        for lang in ['c', 'cpp']:
+        for lang in languages_using_ldflags:
             try:
                 args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
             except Exception:
@@ -657,14 +682,14 @@ class Backend:
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
-        commands += self.get_cross_stdlib_args(target, compiler)
+        commands += self.get_no_stdlib_args(target, compiler)
         # Add things like /NOLOGO or -pipe; usually can't be overridden
         commands += compiler.get_always_args()
         # Only add warning-flags by default if the buildtype enables it, and if
         # we weren't explicitly asked to not emit warnings (for Vala, f.ex)
         if no_warn_args:
             commands += compiler.get_no_warn_args()
-        elif self.get_option_for_target('buildtype', target) != 'plain':
+        else:
             commands += compiler.get_warn_args(self.get_option_for_target('warning_level', target))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
@@ -679,6 +704,10 @@ class Backend:
         commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
         commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
         commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
+        # MSVC debug builds have /ZI argument by default and /Zi is added with debug flag
+        # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
+        if ('/ZI' in commands) and ('/Zi' in commands):
+            commands.remove('/Zi')
         # Add compile args added using add_project_arguments()
         commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         # Add compile args added using add_global_arguments()
@@ -694,7 +723,7 @@ class Backend:
         # Set -fPIC for static libraries by default unless explicitly disabled
         if isinstance(target, build.StaticLibrary) and target.pic:
             commands += compiler.get_pic_args()
-        if isinstance(target, build.Executable) and target.pie:
+        elif isinstance(target, (build.StaticLibrary, build.Executable)) and target.pie:
             commands += compiler.get_pie_args()
         # Add compile args needed to find external dependencies. Link args are
         # added while generating the link command.
@@ -793,7 +822,7 @@ class Backend:
     def write_test_file(self, datafile):
         self.write_test_serialisation(self.build.get_tests(), datafile)
 
-    def create_test_serialisation(self, tests):
+    def create_test_serialisation(self, tests: T.List['Test']) -> T.List[TestSerialisation]:
         arr = []
         for t in sorted(tests, key=lambda tst: -1 * tst.priority):
             exe = t.get_exe()
@@ -831,7 +860,12 @@ class Backend:
                 extra_paths = []
 
             cmd_args = []
+            depends = set(t.depends)
+            if isinstance(exe, build.Target):
+                depends.add(exe)
             for a in unholder(t.cmd_args):
+                if isinstance(a, build.Target):
+                    depends.add(a)
                 if isinstance(a, build.BuildTarget):
                     extra_paths += self.determine_windows_extra_paths(a, [])
                 if isinstance(a, mesonlib.File):
@@ -853,11 +887,13 @@ class Backend:
                                    t.is_parallel, cmd_args, t.env,
                                    t.should_fail, t.timeout, t.workdir,
                                    extra_paths, t.protocol, t.priority,
-                                   isinstance(exe, build.Executable))
+                                   isinstance(exe, build.Executable),
+                                   [x.get_id() for x in depends],
+                                   self.environment.coredata.version)
             arr.append(ts)
         return arr
 
-    def write_test_serialisation(self, tests, datafile):
+    def write_test_serialisation(self, tests: T.List['Test'], datafile: str):
         pickle.dump(self.create_test_serialisation(tests), datafile)
 
     def construct_target_rel_path(self, a, workdir):
@@ -881,7 +917,7 @@ class Backend:
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
         definition needs to be regenerated.'''
-        deps = [os.path.join(self.build_to_src, df)
+        deps = [str(Path(self.build_to_src) / df)
                 for df in self.interpreter.get_build_def_files()]
         if self.environment.is_cross_build():
             deps.extend(self.environment.coredata.cross_files)
@@ -906,9 +942,9 @@ class Backend:
             if delta > 0.001:
                 raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
 
-    def build_target_to_cmd_array(self, bt):
+    def build_target_to_cmd_array(self, bt, check_cross):
         if isinstance(bt, build.BuildTarget):
-            if isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
+            if check_cross and isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
                 if (self.environment.is_cross_build() and
                         self.environment.exe_wrapper is None and
                         self.environment.need_exe_wrapper()):
@@ -1048,9 +1084,11 @@ class Backend:
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list
         cmd = []
+        index = -1
         for i in target.command:
+            index += 1
             if isinstance(i, build.BuildTarget):
-                cmd += self.build_target_to_cmd_array(i)
+                cmd += self.build_target_to_cmd_array(i, (index == 0))
                 continue
             elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
@@ -1121,7 +1159,7 @@ class Backend:
         cmd = [i.replace('\\', '/') for i in cmd]
         return inputs, outputs, cmd
 
-    def run_postconf_scripts(self):
+    def run_postconf_scripts(self) -> None:
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
@@ -1133,7 +1171,7 @@ class Backend:
             cmd = s['exe'] + s['args']
             subprocess.check_call(cmd, env=child_env)
 
-    def create_install_data(self):
+    def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
         if strip_bin is None:
             if self.environment.is_cross_build():
@@ -1146,7 +1184,8 @@ class Backend:
                         self.environment.get_prefix(),
                         strip_bin,
                         self.environment.coredata.get_builtin_option('install_umask'),
-                        self.environment.get_build_command() + ['introspect'])
+                        self.environment.get_build_command() + ['introspect'],
+                        self.environment.coredata.version)
         self.generate_depmf_install(d)
         self.generate_target_install(d)
         self.generate_header_install(d)
@@ -1321,7 +1360,11 @@ class Backend:
 
     def generate_subdir_install(self, d):
         for sd in self.build.get_install_subdirs():
-            src_dir = os.path.join(self.environment.get_source_dir(),
+            if sd.from_source_dir:
+                from_dir = self.environment.get_source_dir()
+            else:
+                from_dir = self.environment.get_build_dir()
+            src_dir = os.path.join(from_dir,
                                    sd.source_subdir,
                                    sd.installable_subdir).rstrip('/')
             dst_dir = os.path.join(self.environment.get_prefix(),
@@ -1331,7 +1374,7 @@ class Backend:
             d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
                                       sd.exclude])
 
-    def get_introspection_data(self, target_id, target):
+    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
         '''
         Returns a list of source dicts with the following format for a given target:
         [
@@ -1347,7 +1390,7 @@ class Backend:
         This is a limited fallback / reference implementation. The backend should override this method.
         '''
         if isinstance(target, (build.CustomTarget, build.BuildTarget)):
-            source_list_raw = target.sources + target.extra_files
+            source_list_raw = target.sources
             source_list = []
             for j in source_list_raw:
                 if isinstance(j, mesonlib.File):

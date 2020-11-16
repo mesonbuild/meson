@@ -17,11 +17,7 @@
 "   let meson_space_error_highlight = 1
 "
 
-" For version 5.x: Clear all syntax items.
-" For version 6.x: Quit when a syntax file was already loaded.
-if version < 600
-  syntax clear
-elseif exists("b:current_syntax")
+if exists("b:current_syntax")
   finish
 endif
 
@@ -132,31 +128,20 @@ if exists("meson_space_error_highlight")
   syn match   mesonSpaceError	display "\t\+ "
 endif
 
-if version >= 508 || !exists("did_meson_syn_inits")
-  if version <= 508
-    let did_meson_syn_inits = 1
-    command -nargs=+ HiLink hi link <args>
-  else
-    command -nargs=+ HiLink hi def link <args>
-  endif
-
-  " The default highlight links.  Can be overridden later.
-  HiLink mesonStatement		Statement
-  HiLink mesonConditional	Conditional
-  HiLink mesonRepeat		Repeat
-  HiLink mesonOperator		Operator
-  HiLink mesonComment		Comment
-  HiLink mesonTodo		Todo
-  HiLink mesonString		String
-  HiLink mesonEscape		Special
-  HiLink mesonNumber		Number
-  HiLink mesonBuiltin		Function
-  HiLink mesonConstant		Number
-  if exists("meson_space_error_highlight")
-    HiLink mesonSpaceError	Error
-  endif
-
-  delcommand HiLink
+" The default highlight links.  Can be overridden later.
+hi def link mesonStatement	Statement
+hi def link mesonConditional	Conditional
+hi def link mesonRepeat	Repeat
+hi def link mesonOperator	Operator
+hi def link mesonComment	Comment
+hi def link mesonTodo		Todo
+hi def link mesonString	String
+hi def link mesonEscape	Special
+hi def link mesonNumber	Number
+hi def link mesonBuiltin	Function
+hi def link mesonConstant	Number
+if exists("meson_space_error_higlight")
+  hi def link mesonSpaceError	Error
 endif
 
 let b:current_syntax = "meson"

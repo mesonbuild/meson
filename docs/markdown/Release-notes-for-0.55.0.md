@@ -305,3 +305,11 @@ $ meson compile "--ninja-args=['a,b', 'c d']"
 dumping the AST (--ast): **new in 0.55.0**
 - prints the AST of a meson.build as JSON
 
+## `--backend=vs` now matches `-Db_vscrt=from_buildtype` behaviour in the Ninja backend
+
+When `--buildtype=debugoptimized` is used with the Ninja backend, the VS CRT
+option used is `/MD`, which is the [behaviour documented for all
+backends](https://mesonbuild.com/Builtin-options.html#b_vscrt-from_buildtype).
+However, the Visual Studio backend was pass `/MT` in that case, which is inconsistent.
+
+If you need to use the MultiThreaded CRT, you should explicitly pass `-Db_vscrt=mt`

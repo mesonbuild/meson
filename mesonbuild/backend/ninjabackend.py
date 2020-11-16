@@ -20,7 +20,7 @@ import subprocess
 from collections import OrderedDict
 from enum import Enum, unique
 import itertools
-from pathlib import PurePath, Path
+from .._pathlib import PurePath, Path
 from functools import lru_cache
 
 from . import backends
@@ -114,13 +114,17 @@ rsp_threshold = get_rsp_threshold()
 # from, etc.), so it must not be shell quoted.
 raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep'}
 
+NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
+NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
+
 def ninja_quote(text, is_build_line=False):
     if is_build_line:
-        qcs = ('$', ' ', ':')
+        quote_re = NINJA_QUOTE_BUILD_PAT
     else:
-        qcs = ('$', ' ')
-    for char in qcs:
-        text = text.replace(char, '$' + char)
+        quote_re = NINJA_QUOTE_VAR_PAT
+    # Fast path for when no quoting is necessary
+    if not quote_re.search(text):
+        return text
     if '\n' in text:
         errmsg = '''Ninja does not support newlines in rules. The content was:
 
@@ -128,7 +132,7 @@ def ninja_quote(text, is_build_line=False):
 
 Please report this error with a test case to the Meson bug tracker.'''.format(text)
         raise MesonException(errmsg)
-    return text
+    return quote_re.sub(r'$\g<0>', text)
 
 @unique
 class Quoting(Enum):
@@ -261,18 +265,20 @@ class NinjaRule:
 
         # expand variables in command
         command = ' '.join([self._quoter(x) for x in self.command + self.args])
-        expanded_command = ''
-        for m in re.finditer(r'(\${\w*})|(\$\w*)|([^$]*)', command):
-            chunk = m.group()
-            if chunk.startswith('$'):
-                chunk = chunk[1:]
-                chunk = re.sub(r'{(.*)}', r'\1', chunk)
-                chunk = ninja_vars.get(chunk, [])  # undefined ninja variables are empty
-                chunk = ' '.join(chunk)
-            expanded_command += chunk
+        estimate = len(command)
+        for m in re.finditer(r'(\${\w+}|\$\w+)?[^$]*', command):
+            if m.start(1) != -1:
+                estimate -= m.end(1) - m.start(1) + 1
+                chunk = m.group(1)
+                if chunk[1] == '{':
+                    chunk = chunk[2:-1]
+                else:
+                    chunk = chunk[1:]
+                chunk = ninja_vars.get(chunk, []) # undefined ninja variables are empty
+                estimate += len(' '.join(chunk))
 
         # determine command length
-        return len(expanded_command)
+        return estimate
 
 class NinjaBuildElement:
     def __init__(self, all_outputs, outfilenames, rulename, infilenames, implicit_outs=None):
@@ -380,10 +386,9 @@ class NinjaBuildElement:
             newelems = []
             for i in elems:
                 if not should_quote or i == '&&': # Hackety hack hack
-                    quoter = ninja_quote
+                    newelems.append(ninja_quote(i))
                 else:
-                    quoter = lambda x: ninja_quote(qf(x))
-                newelems.append(quoter(i))
+                    newelems.append(ninja_quote(qf(i)))
             line += ' '.join(newelems)
             line += '\n'
             outfile.write(line)
@@ -459,8 +464,13 @@ int dummy;
         # different locales have different messages with a different
         # number of colons. Match up to the the drive name 'd:\'.
         # When used in cross compilation, the path separator is a
-        # forward slash rather than a backslash so handle both.
-        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|\/).*stdio.h$")
+        # forward slash rather than a backslash so handle both; i.e.
+        # the path is /MyDir/include/stdio.h.
+        # With certain cross compilation wrappings of MSVC, the paths
+        # use backslashes, but without the leading drive name, so
+        # allow the path to start with any path separator, i.e.
+        # \MyDir\include\stdio.h.
+        matchre = re.compile(rb"^(.*\s)([a-zA-Z]:\\|[\\\/]).*stdio.h$")
 
         def detect_prefix(out):
             for line in re.split(rb'\r?\n', out):
@@ -538,12 +548,12 @@ int dummy;
         # rule store as being wanted in compdb
         for for_machine in MachineChoice:
             for lang in self.environment.coredata.compilers[for_machine]:
-                rules += [ "%s%s" % (rule, ext) for rule in [self.get_compiler_rule_name(lang, for_machine)]
-                                                for ext in ['', '_RSP']]
-                rules += [ "%s%s" % (rule, ext) for rule in [self.get_pch_rule_name(lang, for_machine)]
-                                                for ext in ['', '_RSP']]
+                rules += ["%s%s" % (rule, ext) for rule in [self.get_compiler_rule_name(lang, for_machine)]
+                          for ext in ['', '_RSP']]
+                rules += ["%s%s" % (rule, ext) for rule in [self.get_pch_rule_name(lang, for_machine)]
+                          for ext in ['', '_RSP']]
         compdb_options = ['-x'] if mesonlib.version_compare(self.ninja_version, '>=1.9') else []
-        ninja_compdb = [self.ninja_command, '-t', 'compdb'] + compdb_options + rules
+        ninja_compdb = self.ninja_command + ['-t', 'compdb'] + compdb_options + rules
         builddir = self.environment.get_build_dir()
         try:
             jsondb = subprocess.check_output(ninja_compdb, cwd=builddir)
@@ -860,7 +870,7 @@ int dummy;
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
-        desc = 'Generating {0} with a {1} command'
+        desc = 'Generating {0} with a custom command{1}'
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
@@ -874,15 +884,14 @@ int dummy;
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        meson_exe_cmd = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                  for_machine=target.for_machine,
-                                                  extra_bdeps=target.get_transitive_build_target_deps(),
-                                                  capture=ofilenames[0] if target.capture else None)
+        meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                          extra_bdeps=target.get_transitive_build_target_deps(),
+                                                          capture=ofilenames[0] if target.capture else None)
         if meson_exe_cmd:
             cmd = meson_exe_cmd
-            cmd_type = 'meson_exe.py custom'
+            cmd_type = ' (wrapped by meson {})'.format(reason)
         else:
-            cmd_type = 'custom'
+            cmd_type = ''
         if target.depfile is not None:
             depfile = target.get_dep_outname(elem.infilenames)
             rel_dfile = os.path.join(self.get_target_dir(target), depfile)
@@ -986,7 +995,7 @@ int dummy;
                                     self.build.get_subproject_dir()),
                        self.environment.get_build_dir(),
                        self.environment.get_log_dir()] +
-                      ['--use_llvm_cov'] if use_llvm_cov else [])
+                      (['--use_llvm_cov'] if use_llvm_cov else []))
 
     def generate_coverage_rules(self):
         e = NinjaBuildElement(self.all_outputs, 'meson-coverage', 'CUSTOM_COMMAND', 'PHONY')
@@ -1102,7 +1111,10 @@ int dummy;
 
         if build.rulename != 'phony':
             # reference rule
-            build.rule = self.ruledict[build.rulename]
+            if build.rulename in self.ruledict:
+                build.rule = self.ruledict[build.rulename]
+            else:
+                mlog.warning("build statement for {} references non-existent rule {}".format(build.outfilenames, build.rulename))
 
     def write_rules(self, outfile):
         for b in self.build_elements:
@@ -1477,11 +1489,15 @@ int dummy;
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
-    def generate_rust_target(self, target):
+    def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
         # figures out what other files are needed via import
         # statements and magic.
+        base_proxy = self.get_base_options_for_target(target)
+        args = rustc.compiler_args()
+        # Compiler args for compiling this target
+        args += compilers.get_base_compile_args(base_proxy, rustc)
         main_rust_file = None
         for i in target.get_sources():
             if not rustc.can_compile(i):
@@ -1491,7 +1507,6 @@ int dummy;
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
-        args = ['--crate-type']
         if isinstance(target, build.Executable):
             cratetype = 'bin'
         elif hasattr(target, 'rust_crate_type'):
@@ -1502,7 +1517,7 @@ int dummy;
             cratetype = 'rlib'
         else:
             raise InvalidArguments('Unknown target type for rustc.')
-        args.append(cratetype)
+        args.extend(['--crate-type', cratetype])
 
         # If we're dynamically linking, add those arguments
         #
@@ -1512,16 +1527,20 @@ int dummy;
             for a in rustc.linker.get_always_args():
                 args += ['-C', 'link-arg={}'.format(a)]
 
+        opt_proxy = self.get_compiler_options_for_target(target)[rustc.language]
+
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
         args += rustc.get_debug_args(self.get_option_for_target('debug', target))
         args += rustc.get_optimization_args(self.get_option_for_target('optimization', target))
+        args += rustc.get_option_compile_args(opt_proxy)
         args += self.build.get_global_args(rustc, target.for_machine)
         args += self.build.get_project_args(rustc, target.subproject, target.for_machine)
         depfile = os.path.join(target.subdir, target.name + '.d')
         args += ['--emit', 'dep-info={}'.format(depfile), '--emit', 'link']
         args += target.get_extra_args('rust')
-        args += ['-o', os.path.join(target.subdir, target.get_filename())]
+        args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
+        args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = OrderedDict()
         for d in target.link_targets:
@@ -1556,13 +1575,13 @@ int dummy;
                                                                self.get_target_dir(target))
             else:
                 target_slashname_workaround_dir = self.get_target_dir(target)
-            (rpath_args, target.rpath_dirs_to_remove) = \
-                         rustc.build_rpath_args(self.environment,
-                                                self.environment.get_build_dir(),
-                                                target_slashname_workaround_dir,
-                                                self.determine_rpath_dirs(target),
-                                                target.build_rpath,
-                                                target.install_rpath)
+            rpath_args, target.rpath_dirs_to_remove = (
+                rustc.build_rpath_args(self.environment,
+                                       self.environment.get_build_dir(),
+                                       target_slashname_workaround_dir,
+                                       self.determine_rpath_dirs(target),
+                                       target.build_rpath,
+                                       target.install_rpath))
             # ... but then add rustc's sysroot to account for rustup
             # installations
             for rpath_arg in rpath_args:
@@ -1677,7 +1696,7 @@ int dummy;
                 else:
                     expdir = basedir
                 srctreedir = os.path.normpath(os.path.join(self.environment.get_build_dir(), self.build_to_src, expdir))
-                sargs = swiftc.get_include_args(srctreedir)
+                sargs = swiftc.get_include_args(srctreedir, False)
                 compile_args += sargs
         link_args = swiftc.get_output_args(os.path.join(self.environment.get_build_dir(), self.get_target_filename(target)))
         link_args += self.build.get_project_link_args(swiftc, target.subproject, target.for_machine)
@@ -1688,7 +1707,7 @@ int dummy;
         abs_module_dirs = self.determine_swift_dep_dirs(target)
         module_includes = []
         for x in abs_module_dirs:
-            module_includes += swiftc.get_include_args(x)
+            module_includes += swiftc.get_include_args(x, False)
         link_deps = self.get_swift_link_deps(target)
         abs_link_deps = [os.path.join(self.environment.get_build_dir(), x) for x in link_deps]
         for d in target.link_targets:
@@ -1747,7 +1766,7 @@ int dummy;
         for for_machine in MachineChoice:
             static_linker = self.build.static_linker[for_machine]
             if static_linker is None:
-                return
+                continue
             rule = 'STATIC_LINKER{}'.format(self.get_rule_suffix(for_machine))
             cmdlist = []
             args = ['$in']
@@ -1970,7 +1989,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         generator = genlist.get_generator()
         subdir = genlist.subdir
         exe = generator.get_exe()
-        exe_arr = self.build_target_to_cmd_array(exe)
+        exe_arr = self.build_target_to_cmd_array(exe, True)
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
         extra_dependencies = self.get_custom_target_depend_files(genlist)
@@ -2000,9 +2019,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            meson_exe_cmd = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
-                                                      cmdlist[0], cmdlist[1:],
-                                                      capture=outfiles[0] if generator.capture else None)
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
+                                                              cmdlist[0], cmdlist[1:],
+                                                              capture=outfiles[0] if generator.capture else None)
             if meson_exe_cmd:
                 cmdlist = meson_exe_cmd
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
@@ -2014,11 +2033,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 elem.add_item('DEPFILE', depfile)
             if len(extra_dependencies) > 0:
                 elem.add_dep(extra_dependencies)
+
             if len(generator.outputs) == 1:
-                elem.add_item('DESC', 'Generating {!r}.'.format(sole_output))
+                what = '{!r}'.format(sole_output)
             else:
                 # since there are multiple outputs, we log the source that caused the rebuild
-                elem.add_item('DESC', 'Generating source from {!r}.'.format(sole_output))
+                what = 'from {!r}.'.format(sole_output)
+            if reason:
+                reason = ' (wrapped by meson {})'.format(reason)
+            elem.add_item('DESC', 'Generating {}{}.'.format(what, reason))
+
             if isinstance(exe, build.BuildTarget):
                 elem.add_dep(self.get_target_filename(exe))
             elem.add_item('COMMAND', cmdlist)
@@ -2088,12 +2112,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         mod_files = _scan_fortran_file_deps(src, srcdir, dirname, tdeps, compiler)
         return mod_files
 
-    def get_cross_stdlib_args(self, target, compiler):
-        if self.environment.machines.matches_build_machine(target.for_machine):
-            return []
-        if not self.environment.properties.host.has_stdlib(compiler.language):
-            return []
-        return compiler.get_no_stdinc_args()
+    def get_no_stdlib_args(self, target, compiler):
+        if compiler.language in self.build.stdlibs[target.for_machine]:
+            return compiler.get_no_stdinc_args()
+        return []
+
+    def get_no_stdlib_link_args(self, target, linker):
+        if hasattr(linker, 'language') and linker.language in self.build.stdlibs[target.for_machine]:
+            return linker.get_no_stdlib_link_args()
+        return []
 
     def get_compile_debugfile_args(self, compiler, target, objfile):
         # The way MSVC uses PDB files is documented exactly nowhere so
@@ -2520,14 +2547,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('CROSS', '--cross-host=' + self.environment.machines[target.for_machine].system)
         self.add_build(elem)
 
-    def get_cross_stdlib_link_args(self, target, linker):
-        if isinstance(target, build.StaticLibrary) or \
-           self.environment.machines.matches_build_machine(target.for_machine):
-            return []
-        if not self.environment.properties.host.has_stdlib(linker.language):
-            return []
-        return linker.get_no_stdlib_link_args()
-
     def get_import_filename(self, target):
         return os.path.join(self.get_target_dir(target), target.import_filename)
 
@@ -2575,12 +2594,15 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             # If gui_app is significant on this platform, add the appropriate linker arguments.
             # Unfortunately this can't be done in get_target_type_link_args, because some misguided
             # libraries (such as SDL2) add -mwindows to their link flags.
-            commands += linker.get_gui_app_args(target.gui_app)
+            if target.gui_app is not None:
+                commands += linker.get_gui_app_args(target.gui_app)
+            else:
+                commands += linker.get_win_subsystem_args(target.win_subsystem)
         return commands
 
     def get_link_whole_args(self, linker, target):
         target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-        return linker.get_link_whole_for(target_args) if len(target_args) else []
+        return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)
     def guess_library_absolute_path(self, linker, libname, search_dirs, patterns):
@@ -2640,10 +2662,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         guessed_dependencies = []
         # TODO The get_library_naming requirement currently excludes link targets that use d or fortran as their main linker
-        if hasattr(linker, 'get_library_naming'):
-            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs(self.environment))
+        try:
             static_patterns = linker.get_library_naming(self.environment, LibType.STATIC, strict=True)
             shared_patterns = linker.get_library_naming(self.environment, LibType.SHARED, strict=True)
+            search_dirs = tuple(search_dirs) + tuple(linker.get_library_dirs(self.environment))
             for libname in libs:
                 # be conservative and record most likely shared and static resolution, because we don't know exactly
                 # which one the linker will prefer
@@ -2655,6 +2677,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     guessed_dependencies.append(staticlibs.resolve().as_posix())
                 if sharedlibs:
                     guessed_dependencies.append(sharedlibs.resolve().as_posix())
+        except (mesonlib.MesonException, AttributeError) as e:
+            if 'get_library_naming' not in str(e):
+                raise
 
         return guessed_dependencies + absolute_libs
 
@@ -2689,7 +2714,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                                                      linker,
                                                      isinstance(target, build.SharedModule))
         # Add -nostdlib if needed; can't be overridden
-        commands += self.get_cross_stdlib_link_args(target, linker)
+        commands += self.get_no_stdlib_link_args(target, linker)
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
@@ -2778,13 +2803,13 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 self.get_target_dir(target))
         else:
             target_slashname_workaround_dir = self.get_target_dir(target)
-        (rpath_args, target.rpath_dirs_to_remove) = \
-                    linker.build_rpath_args(self.environment,
-                                            self.environment.get_build_dir(),
-                                            target_slashname_workaround_dir,
-                                            self.determine_rpath_dirs(target),
-                                            target.build_rpath,
-                                            target.install_rpath)
+        (rpath_args, target.rpath_dirs_to_remove) = (
+            linker.build_rpath_args(self.environment,
+                                    self.environment.get_build_dir(),
+                                    target_slashname_workaround_dir,
+                                    self.determine_rpath_dirs(target),
+                                    target.build_rpath,
+                                    target.install_rpath))
         commands += rpath_args
         # Add libraries generated by custom targets
         custom_target_libraries = self.get_custom_target_provided_libraries(target)
@@ -2959,7 +2984,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
 
         elem = NinjaBuildElement(self.all_outputs, 'meson-clean', 'CUSTOM_COMMAND', 'PHONY')
-        elem.add_item('COMMAND', [self.ninja_command, '-t', 'clean'])
+        elem.add_item('COMMAND', self.ninja_command + ['-t', 'clean'])
         elem.add_item('description', 'Cleaning')
         # Alias that runs the above-defined meson-clean target
         self.create_target_alias('meson-clean')
@@ -2998,7 +3023,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         elem = NinjaBuildElement(self.all_outputs, deps, 'phony', '')
         self.add_build(elem)
 
-    def get_introspection_data(self, target_id, target):
+    def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
         if target_id not in self.introspection_data or len(self.introspection_data[target_id]) == 0:
             return super().get_introspection_data(target_id, target)
 
@@ -3006,12 +3031,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         for i in self.introspection_data[target_id].values():
             result += [i]
         return result
-
-def load(build_dir):
-    filename = os.path.join(build_dir, 'meson-private', 'install.dat')
-    with open(filename, 'rb') as f:
-        obj = pickle.load(f)
-    return obj
 
 
 def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compiler) -> T.List[str]:
@@ -3042,7 +3061,9 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
             # included files
             incmatch = incre.match(line)
             if incmatch is not None:
-                incfile = srcdir / incmatch.group(1)
+                incfile = src.parent / incmatch.group(1)
+                # NOTE: src.parent is most general, in particular for CMake subproject with Fortran file
+                # having an `include 'foo.f'` statement.
                 if incfile.suffix.lower()[1:] in compiler.file_suffixes:
                     mod_files.extend(_scan_fortran_file_deps(incfile, srcdir, dirname, tdeps, compiler))
             # modules

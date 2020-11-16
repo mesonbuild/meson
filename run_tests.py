@@ -25,7 +25,8 @@ import argparse
 from io import StringIO
 from enum import Enum
 from glob import glob
-from pathlib import Path
+from mesonbuild._pathlib import Path
+from unittest import mock
 from mesonbuild import compilers
 from mesonbuild import dependencies
 from mesonbuild import mesonlib
@@ -42,7 +43,7 @@ NINJA_CMD = None
 # test that we run.
 if 'CI' in os.environ:
     NINJA_1_9_OR_NEWER = True
-    NINJA_CMD = 'ninja'
+    NINJA_CMD = ['ninja']
 else:
     # Look for 1.9 to see if https://github.com/ninja-build/ninja/issues/1219
     # is fixed
@@ -221,7 +222,7 @@ def get_backend_commands(backend, debug=False):
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD
-        cmd = [NINJA_CMD, '-w', 'dupbuild=err', '-d', 'explain']
+        cmd = NINJA_CMD + ['-w', 'dupbuild=err', '-d', 'explain']
         if debug:
             cmd += ['-v']
         clean_cmd = cmd + ['clean']
@@ -255,42 +256,27 @@ def ensure_backend_detects_changes(backend):
         time.sleep(1)
 
 def run_mtest_inprocess(commandlist):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    try:
+    stderr = StringIO()
+    stdout = StringIO()
+    with mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
         returncode = mtest.run_with_args(commandlist)
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
+    return returncode, stdout.getvalue(), stderr.getvalue()
 
 def clear_meson_configure_class_caches():
-    compilers.CCompiler.library_dirs_cache = {}
-    compilers.CCompiler.program_dirs_cache = {}
     compilers.CCompiler.find_library_cache = {}
     compilers.CCompiler.find_framework_cache = {}
     dependencies.PkgConfigDependency.pkgbin_cache = {}
     dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
 def run_configure_inprocess(commandlist, env=None):
-    old_stdout = sys.stdout
-    sys.stdout = mystdout = StringIO()
-    old_stderr = sys.stderr
-    sys.stderr = mystderr = StringIO()
-    old_environ = os.environ.copy()
-    if env is not None:
-        os.environ.update(env)
-    try:
-        returncode = mesonmain.run(commandlist, get_meson_script())
-    finally:
-        sys.stdout = old_stdout
-        sys.stderr = old_stderr
-        clear_meson_configure_class_caches()
-        os.environ.clear()
-        os.environ.update(old_environ)
-    return returncode, mystdout.getvalue(), mystderr.getvalue()
+    stderr = StringIO()
+    stdout = StringIO()
+    with mock.patch.dict(os.environ, env or {}), mock.patch.object(sys, 'stdout', stdout), mock.patch.object(sys, 'stderr', stderr):
+        try:
+            returncode = mesonmain.run(commandlist, get_meson_script())
+        finally:
+            clear_meson_configure_class_caches()
+    return returncode, stdout.getvalue(), stderr.getvalue()
 
 def run_configure_external(full_command, env=None):
     pc, o, e = mesonlib.Popen_safe(full_command, env=env)
@@ -319,6 +305,7 @@ def main():
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     parser.add_argument('--cross', default=[], dest='cross', action='append')
+    parser.add_argument('--cross-only', action='store_true')
     parser.add_argument('--failfast', action='store_true')
     parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
@@ -330,7 +317,6 @@ def main():
         import coverage
         coverage.process_startup()
     returncode = 0
-    cross = options.cross
     backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
     # Running on a developer machine? Be nice!
@@ -365,7 +351,7 @@ def main():
                 env['PYTHONPATH'] = os.pathsep.join([temp_dir, env.get('PYTHONPATH')])
             else:
                 env['PYTHONPATH'] = temp_dir
-        if not cross:
+        if not options.cross:
             cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
             if options.failfast:
                 cmd += ['--failfast']
@@ -395,6 +381,8 @@ def main():
                 cmd = cross_test_args + ['cross/' + cf]
                 if options.failfast:
                     cmd += ['--failfast']
+                if options.cross_only:
+                    cmd += ['--cross-only']
                 returncode += subprocess.call(cmd, env=env)
                 if options.failfast and returncode != 0:
                     return returncode

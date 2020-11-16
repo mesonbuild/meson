@@ -38,7 +38,7 @@ class CommandLineParser:
         self.commands = {}
         self.hidden_commands = []
         self.parser = argparse.ArgumentParser(prog='meson', formatter_class=self.formatter)
-        self.subparsers = self.parser.add_subparsers(title='Commands',
+        self.subparsers = self.parser.add_subparsers(title='Commands', dest='command',
                                                      description='If no command is specified it defaults to setup command.')
         self.add_command('setup', msetup.add_arguments, msetup.run,
                          help_msg='Configure the project')
@@ -119,7 +119,8 @@ class CommandLineParser:
 
         # Hidden commands have their own parser instead of using the global one
         if args[0] in self.hidden_commands:
-            parser = self.commands[args[0]]
+            command = args[0]
+            parser = self.commands[command]
             args = args[1:]
         else:
             parser = self.parser
@@ -180,8 +181,8 @@ def ensure_stdout_accepts_unicode():
                 sys.stdout.buffer = sys.stdout.raw if hasattr(sys.stdout, 'raw') else sys.stdout
 
 def run(original_args, mainfile):
-    if sys.version_info < (3, 5):
-        print('Meson works correctly only with python 3.5+.')
+    if sys.version_info < (3, 6):
+        print('Meson works correctly only with python 3.6+.')
         print('You have python {}.'.format(sys.version))
         print('Please update your environment')
         return 1

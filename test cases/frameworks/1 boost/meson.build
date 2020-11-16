@@ -51,10 +51,14 @@ extralibexe = executable('extralibexe', 'extralib.cpp', dependencies : extralibd
 python2module = shared_library('python2_module', ['python_module.cpp'], dependencies: [python2dep, bpython2dep], name_prefix: '', cpp_args: ['-DMOD_NAME=python2_module'])
 python3module = shared_library('python3_module', ['python_module.cpp'], dependencies: [python3dep, bpython3dep], name_prefix: '', cpp_args: ['-DMOD_NAME=python3_module'])
 
-test('Boost linktest', linkexe)
-test('Boost UTF test', unitexe)
+test('Boost linktest', linkexe, timeout: 60)
+test('Boost UTF test', unitexe, timeout: 60)
 test('Boost nomod', nomodexe)
-test('Boost extralib test', extralibexe)
+if host_machine.system() != 'darwin' or s
+  # Segfaults on macOS with dynamic linking since Boost 1.73
+  # https://github.com/mesonbuild/meson/issues/7535
+  test('Boost extralib test', extralibexe)
+endif
 
 # explicitly use the correct python interpreter so that we don't have to provide two different python scripts that have different shebang lines
 python2interpreter = find_program(python2.path(), required: false, disabler: true)

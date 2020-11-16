@@ -14,10 +14,12 @@
 
 import os, subprocess
 import typing as T
+from enum import Enum
 
 from . import mesonlib
 from .mesonlib import EnvironmentException, MachineChoice, PerMachine, split_args
 from . import mlog
+from ._pathlib import Path
 
 _T = T.TypeVar('_T')
 
@@ -83,9 +85,15 @@ CPU_FAMILES_64_BIT = [
     'x86_64',
 ]
 
+class CMakeSkipCompilerTest(Enum):
+    ALWAYS = 'always'
+    NEVER = 'never'
+    DEP_ONLY = 'dep_only'
+
+
 def get_env_var_pair(for_machine: MachineChoice,
                      is_cross: bool,
-                     var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
     """
     Returns the exact env var and the value.
     """
@@ -111,20 +119,18 @@ def get_env_var_pair(for_machine: MachineChoice,
 
 def get_env_var(for_machine: MachineChoice,
                 is_cross: bool,
-                var_name: str) -> T.Tuple[T.Optional[str], T.Optional[str]]:
+                var_name: str) -> T.Optional[str]:
     ret = get_env_var_pair(for_machine, is_cross, var_name)
     if ret is None:
         return None
-    else:
-        var, value = ret
-        return value
+    return ret[1]
 
 class Properties:
     def __init__(
             self,
-            properties: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
+            properties: T.Optional[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = None,
     ):
-        self.properties = properties or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
+        self.properties = properties or {}  # type: T.Dict[str, T.Union[str, bool, int, T.List[str]]]
 
     def has_stdlib(self, language: str) -> bool:
         return language + '_stdlib' in self.properties
@@ -133,35 +139,84 @@ class Properties:
     # true, but without heterogenious dict annotations it's not practical to
     # narrow them
     def get_stdlib(self, language: str) -> T.Union[str, T.List[str]]:
-        return self.properties[language + '_stdlib']
+        stdlib = self.properties[language + '_stdlib']
+        if isinstance(stdlib, str):
+            return stdlib
+        assert isinstance(stdlib, list)
+        for i in stdlib:
+            assert isinstance(i, str)
+        return stdlib
 
-    def get_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
-        return self.properties.get('root', None)
+    def get_root(self) -> T.Optional[str]:
+        root = self.properties.get('root', None)
+        assert root is None or isinstance(root, str)
+        return root
 
-    def get_sys_root(self) -> T.Optional[T.Union[str, T.List[str]]]:
-        return self.properties.get('sys_root', None)
+    def get_sys_root(self) -> T.Optional[str]:
+        sys_root = self.properties.get('sys_root', None)
+        assert sys_root is None or isinstance(sys_root, str)
+        return sys_root
 
     def get_pkg_config_libdir(self) -> T.Optional[T.List[str]]:
         p = self.properties.get('pkg_config_libdir', None)
         if p is None:
             return p
-        return mesonlib.listify(p)
+        res = mesonlib.listify(p)
+        for i in res:
+            assert isinstance(i, str)
+        return res
 
-    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
+    def get_cmake_defaults(self) -> bool:
+        if 'cmake_defaults' not in self.properties:
+            return True
+        res = self.properties['cmake_defaults']
+        assert isinstance(res, bool)
+        return res
+
+    def get_cmake_toolchain_file(self) -> T.Optional[Path]:
+        if 'cmake_toolchain_file' not in self.properties:
+            return None
+        raw = self.properties['cmake_toolchain_file']
+        assert isinstance(raw, str)
+        cmake_toolchain_file = Path(raw)
+        if not cmake_toolchain_file.is_absolute():
+            raise EnvironmentException('cmake_toolchain_file ({}) is not absolute'.format(raw))
+        return cmake_toolchain_file
+
+    def get_cmake_skip_compiler_test(self) -> CMakeSkipCompilerTest:
+        if 'cmake_skip_compiler_test' not in self.properties:
+            return CMakeSkipCompilerTest.DEP_ONLY
+        raw = self.properties['cmake_skip_compiler_test']
+        assert isinstance(raw, str)
+        try:
+            return CMakeSkipCompilerTest(raw)
+        except ValueError:
+            raise EnvironmentException(
+                '"{}" is not a valid value for cmake_skip_compiler_test. Supported values are {}'
+                .format(raw, [e.value for e in CMakeSkipCompilerTest]))
+
+    def get_cmake_use_exe_wrapper(self) -> bool:
+        if 'cmake_use_exe_wrapper' not in self.properties:
+            return True
+        res = self.properties['cmake_use_exe_wrapper']
+        assert isinstance(res, bool)
+        return res
+
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.properties == other.properties
         return NotImplemented
 
     # TODO consider removing so Properties is less freeform
-    def __getitem__(self, key: str) -> T.Any:
+    def __getitem__(self, key: str) -> T.Union[str, bool, int, T.List[str]]:
         return self.properties[key]
 
     # TODO consider removing so Properties is less freeform
-    def __contains__(self, item: T.Any) -> bool:
+    def __contains__(self, item: T.Union[str, bool, int, T.List[str]]) -> bool:
         return item in self.properties
 
     # TODO consider removing, for same reasons as above
-    def get(self, key: str, default: T.Any = None) -> T.Any:
+    def get(self, key: str, default: T.Union[str, bool, int, T.List[str]] = None) -> T.Union[str, bool, int, T.List[str]]:
         return self.properties.get(key, default)
 
 class MachineInfo:
@@ -172,8 +227,8 @@ class MachineInfo:
         self.endian = endian
         self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
 
-    def __eq__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, MachineInfo):
             return NotImplemented
         return \
             self.system == other.system and \
@@ -181,8 +236,8 @@ class MachineInfo:
             self.cpu == other.cpu and \
             self.endian == other.endian
 
-    def __ne__(self, other: T.Any) -> 'T.Union[bool, NotImplemented]':
-        if self.__class__ is not other.__class__:
+    def __ne__(self, other: object) -> bool:
+        if not isinstance(other, MachineInfo):
             return NotImplemented
         return not self.__eq__(other)
 
@@ -211,13 +266,13 @@ class MachineInfo:
         """
         Machine is windows?
         """
-        return self.system == 'windows' or 'mingw' in self.system
+        return self.system == 'windows'
 
     def is_cygwin(self) -> bool:
         """
         Machine is cygwin?
         """
-        return self.system.startswith('cygwin')
+        return self.system == 'cygwin'
 
     def is_linux(self) -> bool:
         """
@@ -339,6 +394,7 @@ class BinaryTable:
         'cmake': 'CMAKE',
         'qmake': 'QMAKE',
         'pkgconfig': 'PKG_CONFIG',
+        'make': 'MAKE',
     }  # type: T.Dict[str, str]
 
     # Deprecated environment variables mapped from the new variable to the old one
@@ -407,3 +463,17 @@ class BinaryTable:
         if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):
             command = None
         return command
+
+class CMakeVariables:
+    def __init__(self, variables: T.Optional[T.Dict[str, T.Any]] = None) -> None:
+        variables = variables or {}
+        self.variables = {}  # type: T.Dict[str, T.List[str]]
+
+        for key, value in variables.items():
+            value = mesonlib.listify(value)
+            for i in value:
+                assert isinstance(i, str)
+            self.variables[key] = value
+
+    def get_variables(self) -> T.Dict[str, T.List[str]]:
+        return self.variables

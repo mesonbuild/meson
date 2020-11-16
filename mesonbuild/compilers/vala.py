@@ -18,68 +18,66 @@ import typing as T
 from .. import mlog
 from ..mesonlib import EnvironmentException, MachineChoice, version_compare
 
-from .compilers import Compiler
+from .compilers import Compiler, LibType
 
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
+    from ..environment import Environment
 
 class ValaCompiler(Compiler):
 
     language = 'vala'
 
-    def __init__(self, exelist, version, for_machine: MachineChoice,
-                 is_cross, info: 'MachineInfo'):
-        super().__init__(exelist, version, for_machine, info)
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo'):
+        super().__init__(exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
-        self.is_cross = is_cross
         self.id = 'valac'
         self.base_options = ['b_colorout']
 
-    def name_string(self):
-        return ' '.join(self.exelist)
-
-    def needs_static_linker(self):
+    def needs_static_linker(self) -> bool:
         return False # Because compiles into C.
 
-    def get_optimization_args(self, optimization_level):
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return []
 
-    def get_debug_args(self, is_debug):
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return ['--debug'] if is_debug else []
 
-    def get_output_args(self, target):
+    def get_output_args(self, target: str) -> T.List[str]:
         return [] # Because compiles into C.
 
-    def get_compile_only_args(self):
+    def get_compile_only_args(self) -> T.List[str]:
         return [] # Because compiles into C.
 
-    def get_pic_args(self):
+    def get_pic_args(self) -> T.List[str]:
         return []
 
-    def get_pie_args(self):
+    def get_pie_args(self) -> T.List[str]:
         return []
 
-    def get_pie_link_args(self):
+    def get_pie_link_args(self) -> T.List[str]:
         return []
 
-    def get_always_args(self):
+    def get_always_args(self) -> T.List[str]:
         return ['-C']
 
-    def get_warn_args(self, warning_level):
+    def get_warn_args(self, warning_level: str) -> T.List[str]:
         return []
 
-    def get_no_warn_args(self):
+    def get_no_warn_args(self) -> T.List[str]:
         return ['--disable-warnings']
 
-    def get_werror_args(self):
+    def get_werror_args(self) -> T.List[str]:
         return ['--fatal-warnings']
 
-    def get_colorout_args(self, colortype):
+    def get_colorout_args(self, colortype: str) -> T.List[str]:
         if version_compare(self.version, '>=0.37.1'):
             return ['--color=' + colortype]
         return []
 
-    def compute_parameters_with_absolute_paths(self, parameter_list, build_dir):
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str],
+                                               build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:9] == '--girdir=':
                 parameter_list[idx] = i[:9] + os.path.normpath(os.path.join(build_dir, i[9:]))
@@ -92,7 +90,7 @@ class ValaCompiler(Compiler):
 
         return parameter_list
 
-    def sanity_check(self, work_dir, environment):
+    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class MesonSanityCheck : Object { }'
         extra_flags = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
@@ -102,16 +100,16 @@ class ValaCompiler(Compiler):
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
             if p.returncode != 0:
-                msg = 'Vala compiler {!r} can not compile programs' \
-                      ''.format(self.name_string())
+                msg = 'Vala compiler {!r} can not compile programs'.format(self.name_string())
                 raise EnvironmentException(msg)
 
-    def get_buildtype_args(self, buildtype):
-        if buildtype == 'debug' or buildtype == 'debugoptimized' or buildtype == 'minsize':
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        if buildtype in {'debug', 'debugoptimized', 'minsize'}:
             return ['--debug']
         return []
 
-    def find_library(self, libname, env, extra_dirs, *args):
+    def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
+                     libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
         if extra_dirs and isinstance(extra_dirs, str):
             extra_dirs = [extra_dirs]
         # Valac always looks in the default vapi dir, so only search there if
@@ -133,8 +131,8 @@ class ValaCompiler(Compiler):
         mlog.debug('Searched {!r} and {!r} wasn\'t found'.format(extra_dirs, libname))
         return None
 
-    def thread_flags(self, env):
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
         return []
 
-    def thread_link_flags(self, env):
+    def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []

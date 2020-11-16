@@ -10,6 +10,7 @@ These are return values of the `get_id` (Compiler family) and
 | arm       | ARM compiler                     |                 |
 | armclang  | ARMCLANG compiler                |                 |
 | c2000     | Texas Instruments C2000 compiler |                 |
+| ccomp     | The CompCert formally-verified C compiler |        |
 | ccrx      | Renesas RX Family C/C++ compiler |                 |
 | clang     | The Clang compiler               | gcc             |
 | clang-cl  | The Clang compiler (MSVC compatible driver) | msvc |
@@ -25,6 +26,7 @@ These are return values of the `get_id` (Compiler family) and
 | mono      | Xamarin C# compiler              |                 |
 | msvc      | Microsoft Visual Studio          | msvc            |
 | nagfor    | The NAG Fortran compiler         |                 |
+| nvidia_hpc| NVidia HPC SDK compilers         |                 |
 | open64    | The Open64 Fortran Compiler      |                 |
 | pathscale | The Pathscale Fortran compiler   |                 |
 | pgi       | Portland PGI C/C++/Fortran compilers |             |
@@ -55,6 +57,7 @@ These are return values of the `get_linker_id` method in a compiler object.
 | armlink    | The ARM linker (arm and armclang compilers) |
 | pgi        | Portland/Nvidia PGI                         |
 | nvlink     | Nvidia Linker used with cuda                |
+| ccomp      | CompCert used as the linker driver          |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.

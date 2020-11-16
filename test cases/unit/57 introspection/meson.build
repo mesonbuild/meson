@@ -12,6 +12,7 @@ test_bool = not test_bool
 
 set_variable('list_test_plusassign', [])
 list_test_plusassign += ['bugs everywhere']
+dict_test = {list_test_plusassign[0]: 'even more bugs'}
 
 if not true
   vers_str = '<=99.9.9'
@@ -25,6 +26,9 @@ subdir('staticlib')
 var1 = '1'
 var2 = 2.to_string()
 var3 = 'test3'
+
+cus = custom_target('custom target test', output: 'file2', input: 'cp.py',
+                    command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
 
 t1 = executable('test' + var1, ['t1.cpp'], link_with: [sharedlib], install: not false, build_by_default: get_option('test_opt2'))
 t2 = executable('test@0@'.format('@0@'.format(var2)), sources: ['t2.cpp'], link_with: [staticlib])
@@ -44,8 +48,8 @@ osmesa_lib_name = osmesa_lib_name + osmesa_bits
 message(osmesa_lib_name) # Infinite recursion gets triggered here when the parameter osmesa_lib_name is resolved
 
 test('test case 1', t1)
-test('test case 2', t2)
-benchmark('benchmark 1', t3)
+test('test case 2', t2, depends: t3)
+benchmark('benchmark 1', t3, args: cus)
 
 ### Stuff to test the AST JSON printer
 foreach x : ['a', 'b', 'c']

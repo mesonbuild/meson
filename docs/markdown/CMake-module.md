@@ -133,7 +133,10 @@ kept for compatibility. It will not work together with the `options` kwarg.
 This object is returned by the `subproject` function described above
 and supports the following methods:
 
- - `dependency(target)` returns a dependency object for any CMake target.
+ - `dependency(target)` returns a dependency object for any CMake target. The
+   `include_type` kwarg *(new in 0.56.0)* controls the include type of the
+   returned dependency object similar to the same kwarg in the
+   [`dependency()`](Reference-manual.md#dependency) function.
  - `include_directories(target)` returns a meson `include_directories()`
    object for the specified target. Using this function is not necessary
    if the dependency object is used.
@@ -175,6 +178,43 @@ install specific targets (here `foo`) by setting the `target` kwarg:
 Options that are not set won't affect the generated subproject. So, if for
 instance, `set_install` was not called then the values extracted from CMake will
 be used.
+
+### Cross compilation
+
+*New in 0.56.0*
+
+Meson will try to automatically guess most of the required CMake toolchain
+variables from existing entries in the cross and native files. These variables
+will be stored in an automatically generate CMake toolchain file in the build
+directory. The remaining variables that can't be guessed can be added by the
+user in the `[cmake]` cross/native file section (*new in 0.56.0*).
+
+Adding a manual CMake toolchain file is also supported with the
+`cmake_toolchain_file` setting in the `[properties]` section. Directly setting
+a CMake toolchain file with `-DCMAKE_TOOLCHAIN_FILE=/path/to/some/Toolchain.cmake`
+in the `meson.build` is **not** supported since the automatically generated
+toolchain file is also used by Meson to inject arbitrary code into CMake to
+enable the CMake subproject support.
+
+The closest configuration to only using a manual CMake toolchain file would be
+to set these options in the machine file:
+
+```ini
+[properties]
+
+cmake_toolchain_file = '/path/to/some/Toolchain.cmake'
+cmake_defaults       = false
+
+[cmake]
+
+# No entries in this section
+```
+
+This will result in a toolchain file with just the bare minimum to enable the
+CMake subproject support and `include()` the `cmake_toolchain_file` as the
+last instruction.
+
+For more information see the [cross and native file specification](Machine-files.md).
 
 ## CMake configuration files
 

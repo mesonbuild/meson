@@ -24,11 +24,14 @@ import os
 import typing as T
 
 from ... import mesonlib
+from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 from .visualstudio import VisualStudioLikeCompiler
 
 if T.TYPE_CHECKING:
-    import subprocess  # noqa: F401
+    from ...arglist import CompilerArgs
+    from ...dependencies import Dependency
+    from ...environment import Environment
 
 # XXX: avoid circular dependencies
 # TODO: this belongs in a posix compiler class
@@ -69,7 +72,7 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         's': ['-Os'],
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         # As of 19.0.0 ICC doesn't have sanitizer, color, or lto support.
         #
@@ -97,21 +100,16 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         else:
             return ['-openmp']
 
-    def compiles(self, *args, **kwargs) -> T.Tuple[bool, bool]:
-        # This covers a case that .get('foo', []) doesn't, that extra_args is
-        # defined and is None
-        extra_args = kwargs.get('extra_args') or []
-        kwargs['extra_args'] = [
-            extra_args,
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        extra_args = [
             '-diag-error', '10006',  # ignoring unknown option
             '-diag-error', '10148',  # Option not supported
             '-diag-error', '10155',  # ignoring argument required
             '-diag-error', '10156',  # ignoring not argument allowed
             '-diag-error', '10157',  # Ignoring argument of the wrong type
             '-diag-error', '10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
-            '-diag-error', '1292',   # unknown __attribute__
         ]
-        return super().compiles(*args, **kwargs)
+        return super().get_compiler_check_args(mode) + extra_args
 
     def get_profile_generate_args(self) -> T.List[str]:
         return ['-prof-gen=threadsafe']
@@ -124,6 +122,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
+        return ['-diag-error', '1292']
 
 
 class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
@@ -140,23 +141,22 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
     }  # type: T.Dict[str, T.List[str]]
 
     OPTIM_ARGS = {
-        '0': ['/O0'],
-        'g': ['/O0'],
+        '0': ['/Od'],
+        'g': ['/Od'],
         '1': ['/O1'],
         '2': ['/O2'],
         '3': ['/O3'],
         's': ['/Os'],
     }
 
-    def __init__(self, target: str):
+    def __init__(self, target: str) -> None:
         super().__init__(target)
         self.id = 'intel-cl'
 
-    def compile(self, code, *, extra_args: T.Optional[T.List[str]] = None, **kwargs) -> T.Iterator['subprocess.Popen']:
-        # This covers a case that .get('foo', []) doesn't, that extra_args is
-        if kwargs.get('mode', 'compile') != 'link':
-            extra_args = extra_args.copy() if extra_args is not None else []
-            extra_args.extend([
+    def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
+        args = super().get_compiler_check_args(mode)
+        if mode is not CompileCheckMode.LINK:
+            args.extend([
                 '/Qdiag-error:10006',  # ignoring unknown option
                 '/Qdiag-error:10148',  # Option not supported
                 '/Qdiag-error:10155',  # ignoring argument required
@@ -164,7 +164,7 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
                 '/Qdiag-error:10157',  # Ignoring argument of the wrong type
                 '/Qdiag-error:10158',  # Argument must be separate. Can be hit by trying an option like -foo-bar=foo when -foo=bar is a valid option but -foo-bar isn't
             ])
-        return super().compile(code, extra_args, **kwargs)
+        return args
 
     def get_toolset_version(self) -> T.Optional[str]:
         # Avoid circular dependencies....
@@ -186,3 +186,6 @@ class IntelVisualStudioLikeCompiler(VisualStudioLikeCompiler):
 
     def get_optimization_args(self, optimization_level: str) -> T.List[str]:
         return self.OPTIM_ARGS[optimization_level]
+
+    def get_pch_base_name(self, header: str) -> str:
+        return os.path.basename(header)

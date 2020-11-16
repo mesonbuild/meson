@@ -4,11 +4,19 @@ endif()
 
 set(MESON_PS_LOADED ON)
 
+cmake_policy(PUSH)
+cmake_policy(SET CMP0054 NEW) # https://cmake.org/cmake/help/latest/policy/CMP0054.html
+
 # Dummy macros that have a special meaning in the meson code
 macro(meson_ps_execute_delayed_calls)
 endmacro()
 
 macro(meson_ps_reload_vars)
+endmacro()
+
+macro(meson_ps_disabled_function)
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
+                  "This should not be an issue but may lead to compilaton errors.")
 endmacro()
 
 # Helper macro to inspect the current CMake state
@@ -63,5 +71,12 @@ function(set_source_files_properties)
   endwhile()
 endfunction()
 
+# Disable some functions that would mess up the CMake meson integration
+macro(target_precompile_headers)
+  meson_ps_disabled_function(target_precompile_headers)
+endmacro()
+
 set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
 meson_ps_reload_vars()
+
+cmake_policy(POP)

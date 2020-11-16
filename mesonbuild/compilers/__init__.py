@@ -36,6 +36,8 @@ __all__ = [
 
     'AppleClangCCompiler',
     'AppleClangCPPCompiler',
+    'AppleClangObjCCompiler',
+    'AppleClangObjCPPCompiler',
     'ArmCCompiler',
     'ArmCPPCompiler',
     'ArmclangCCompiler',
@@ -85,6 +87,9 @@ __all__ = [
     'ObjCPPCompiler',
     'Open64FortranCompiler',
     'PathScaleFortranCompiler',
+    'NvidiaHPC_CCompiler',
+    'NvidiaHPC_CPPCompiler',
+    'NvidiaHPC_FortranCompiler',
     'PGICCompiler',
     'PGICPPCompiler',
     'PGIFortranCompiler',
@@ -92,6 +97,7 @@ __all__ = [
     'CcrxCCompiler',
     'CcrxCPPCompiler',
     'Xc16CCompiler',
+    'CompCertCCompiler',
     'C2000CCompiler',
     'C2000CPPCompiler',
     'SunFortranCompiler',
@@ -121,6 +127,7 @@ from .compilers import (
     is_library,
     is_known_suffix,
     lang_suffixes,
+    languages_using_ldflags,
     sort_clink,
 )
 from .c import (
@@ -135,9 +142,11 @@ from .c import (
     EmscriptenCCompiler,
     IntelCCompiler,
     IntelClCCompiler,
+    NvidiaHPC_CCompiler,
     PGICCompiler,
     CcrxCCompiler,
     Xc16CCompiler,
+    CompCertCCompiler,
     C2000CCompiler,
     VisualStudioCCompiler,
 )
@@ -153,6 +162,7 @@ from .cpp import (
     EmscriptenCPPCompiler,
     IntelCPPCompiler,
     IntelClCPPCompiler,
+    NvidiaHPC_CPPCompiler,
     PGICPPCompiler,
     CcrxCPPCompiler,
     C2000CPPCompiler,
@@ -177,17 +187,20 @@ from .fortran import (
     NAGFortranCompiler,
     Open64FortranCompiler,
     PathScaleFortranCompiler,
+    NvidiaHPC_FortranCompiler,
     PGIFortranCompiler,
     SunFortranCompiler,
 )
 from .java import JavaCompiler
 from .objc import (
     ObjCCompiler,
+    AppleClangObjCCompiler,
     ClangObjCCompiler,
     GnuObjCCompiler,
 )
 from .objcpp import (
     ObjCPPCompiler,
+    AppleClangObjCPPCompiler,
     ClangObjCPPCompiler,
     GnuObjCPPCompiler,
 )

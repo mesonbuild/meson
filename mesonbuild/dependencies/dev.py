@@ -281,7 +281,13 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
     def _set_new_link_args(self, environment):
         """How to set linker args for LLVM versions >= 3.9"""
-        mode = self.get_config_value(['--shared-mode'], 'link_args')[0]
+        try:
+            mode = self.get_config_value(['--shared-mode'], 'link_args')[0]
+        except IndexError:
+            mlog.debug('llvm-config --shared-mode returned an error')
+            self.is_found = False
+            return
+
         if not self.static and mode == 'static':
             # If llvm is configured with LLVM_BUILD_LLVM_DYLIB but not with
             # LLVM_LINK_LLVM_DYLIB and not LLVM_BUILD_SHARED_LIBS (which
@@ -480,7 +486,7 @@ class ZlibSystemDependency(ExternalDependency):
             for lib in libs:
                 l = self.clib_compiler.find_library(lib, environment, [])
                 h = self.clib_compiler.has_header('zlib.h', '', environment, dependencies=[self])
-                if l and h:
+                if l and h[0]:
                     self.is_found = True
                     self.link_args = l
                     break

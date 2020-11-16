@@ -17,8 +17,9 @@ what to run, sets up the environment and executes the command."""
 
 import sys, os, subprocess, shutil, shlex
 import re
+import typing as T
 
-def run_command(source_dir, build_dir, subdir, meson_command, command, arguments):
+def run_command(source_dir: str, build_dir: str, subdir: str, meson_command: T.List[str], command: str, arguments: T.List[str]) -> subprocess.Popen:
     env = {'MESON_SOURCE_ROOT': source_dir,
            'MESON_BUILD_ROOT': build_dir,
            'MESON_SUBDIR': subdir,
@@ -50,24 +51,24 @@ def run_command(source_dir, build_dir, subdir, meson_command, command, arguments
         print('Could not execute command "{}": {}'.format(command, err))
         sys.exit(1)
 
-def is_python_command(cmdname):
+def is_python_command(cmdname: str) -> bool:
     end_py_regex = r'python(3|3\.\d+)?(\.exe)?$'
     return re.search(end_py_regex, cmdname) is not None
 
-def run(args):
+def run(args: T.List[str]) -> int:
     if len(args) < 4:
         print('commandrunner.py <source dir> <build dir> <subdir> <command> [arguments]')
         return 1
     src_dir = args[0]
     build_dir = args[1]
     subdir = args[2]
-    meson_command = args[3]
-    if is_python_command(meson_command):
-        meson_command = [meson_command, args[4]]
+    meson_bin = args[3]
+    if is_python_command(meson_bin):
+        meson_command = [meson_bin, args[4]]
         command = args[5]
         arguments = args[6:]
     else:
-        meson_command = [meson_command]
+        meson_command = [meson_bin]
         command = args[4]
         arguments = args[5:]
     pc = run_command(src_dir, build_dir, subdir, meson_command, command, arguments)

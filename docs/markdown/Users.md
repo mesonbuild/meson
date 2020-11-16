@@ -30,6 +30,7 @@ topic](https://github.com/topics/meson).
  - [DXVK](https://github.com/doitsujin/dxvk), a Vulkan-based Direct3D 11 implementation for Linux using Wine
  - [elementary OS](https://github.com/elementary/), Linux desktop oriented distribution
  - [Emeus](https://github.com/ebassi/emeus), constraint based layout manager for GTK+
+ - [Entangle](https://entangle-photo.org/), tethered camera control and capture desktop application
  - [ESP8266 Arduino sample project](https://github.com/trilader/arduino-esp8266-meson), sample project for using the ESP8266 Arduino port with Meson
  - [FeedReader](https://github.com/jangernert/FeedReader), a modern desktop application designed to complement existing web-based RSS accounts
  - [Flecs](https://github.com/SanderMertens/flecs), a Fast and Lightweight ECS (Entity Component System) C library
@@ -88,6 +89,7 @@ lookup based on OpenStreetMap data
 format files
  - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
+ - [Libvirt](https://libvirt.org), a toolkit to manage virtualization platforms
  - [Libzim](https://github.com/openzim/libzim), the reference implementation for the ZIM file format
  - [Marker](https://github.com/fabiocolacio/Marker), a GTK-3 markdown editor
  - [Mesa](https://gitlab.freedesktop.org/mesa/mesa/), an open source graphics driver project
@@ -97,24 +99,28 @@ format files
  - [Nemo](https://github.com/linuxmint/nemo), the file manager for the Cinnamon desktop environment
  - [OcherBook](https://github.com/ccoffing/OcherBook), an open source book reader for Kobo devices
  - [oomd](https://github.com/facebookincubator/oomd), a userspace Out-Of-Memory (OOM) killer for Linux systems
+ - [Owl Chess](https://github.com/michaelbrockus/chess), a chess game written in Rust
  - [OpenH264](https://github.com/cisco/openh264), open source H.264 codec
  - [OpenHMD](https://github.com/OpenHMD/OpenHMD), a free and open source API and drivers for immersive technology, such as head mounted displays with built in head tracking
  - [OpenTitan](https://github.com/lowRISC/opentitan), an open source silicon Root of Trust (RoT) project.
  - [Orc](https://gitlab.freedesktop.org/gstreamer/orc), the Optimized Inner Loop Runtime Compiler
  - [OTS](https://github.com/khaledhosny/ots), the OpenType Sanitizer, parses and serializes OpenType files (OTF, TTF) and WOFF and WOFF2 font files, validating and sanitizing them as it goes. Used by Chromium and Firefox
  - [Outlier](https://github.com/kerolasa/outlier), a small Hello World style meson example project
+ - [p11-kit](https://github.com/p11-glue/p11-kit), PKCS#11 module aggregator
  - [Pacman](https://git.archlinux.org/pacman.git/tree/), a package manager for Arch Linux
  - [Pango](https://git.gnome.org/browse/pango/), an Internationalized text layout and rendering library
  - [Parzip](https://github.com/jpakkane/parzip), a multithreaded reimplementation of Zip
  - [Peek](https://github.com/phw/peek), simple animated GIF screen recorder with an easy to use interface
  - [PicoLibc](https://github.com/keith-packard/picolibc), a standard C library for small embedded systems with limited RAM
  - [PipeWire](https://github.com/PipeWire/pipewire), a framework for video and audio for containerized applications
+ - [Paper Rock Scissors](https://github.com/michaelbrockus/paper_rock_scissors), a game with weapons themed at home paper rock scissors style.
  - [Pithos](https://github.com/pithos/pithos), a Pandora Radio client
  - [Pitivi](https://github.com/pitivi/pitivi/), a nonlinear video editor
  - [Playerctl](https://github.com/acrisci/playerctl), mpris command-line controller and library for spotify, vlc, audacious, bmp, cmus, and others
  - [Polari](https://gitlab.gnome.org/GNOME/polari), an IRC client
  - [qboot](https://github.com/bonzini/qboot), a minimal x86 firmware for booting Linux kernels
  - [radare2](https://github.com/radare/radare2), unix-like reverse engineering framework and commandline tools (not the default)
+ - [QEMU](https://qemu.org), a processor emulator and virtualizer
  - [RxDock](https://gitlab.com/rxdock/rxdock), a protein-ligand docking software designed for high throughput virtual screening (fork of rDock)
  - [scrcpy](https://github.com/Genymobile/scrcpy), a cross platform application that provides display and control of Android devices connected on USB or over TCP/IP
  - [Sequeler](https://github.com/Alecaddd/sequeler), a friendly SQL client for Linux, built with Vala and Gtk

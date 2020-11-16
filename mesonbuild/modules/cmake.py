@@ -20,7 +20,7 @@ from . import ExtensionModule, ModuleReturnValue
 
 from .. import build, dependencies, mesonlib, mlog
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
-from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder
+from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder, DependencyHolder
 from ..interpreterbase import (
     InterpreterObject,
     ObjectHolder,
@@ -92,7 +92,9 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
         tgt = args[0]
         res = self.held_object.cm_interpreter.target_info(tgt)
         if res is None:
-            raise InterpreterException('The CMake target {} does not exist'.format(tgt))
+            raise InterpreterException('The CMake target {} does not exist\n'.format(tgt) +
+                                       '  Use the following command in your meson.build to list all available targets:\n\n' +
+                                       '    message(\'CMaket targets:\\n - \' + \'\\n - \'.join(<cmake_subproject>.target_list()))')
 
         # Make sure that all keys are present (if not this is a bug)
         assert(all([x in res for x in ['inc', 'src', 'dep', 'tgt', 'func']]))
@@ -103,11 +105,18 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
     def get_variable(self, args, kwargs):
         return self.held_object.get_variable_method(args, kwargs)
 
-    @noKwargs
+    @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
+    @permittedKwargs({'include_type'})
     @stringArgs
     def dependency(self, args, kwargs):
         info = self._args_to_info(args)
-        return self.get_variable([info['dep']], kwargs)
+        orig = self.get_variable([info['dep']], {})
+        assert isinstance(orig, DependencyHolder)
+        actual = orig.include_type_method([], {})
+        if 'include_type' in kwargs and kwargs['include_type'] != actual:
+            mlog.debug('Current include type is {}. Converting to requested {}'.format(actual, kwargs['include_type']))
+            return orig.as_system_method([kwargs['include_type']], {})
+        return orig
 
     @noKwargs
     @stringArgs

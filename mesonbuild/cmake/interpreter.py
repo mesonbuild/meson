@@ -15,21 +15,22 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException, CMakeTarget, TargetOptions
-from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel
+from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, check_cmake_args
+from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, ReplyCMakeInputs, ReplyCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
+from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
-from ..environment import Environment
-from ..mesonlib import MachineChoice, OrderedSet, version_compare
+from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible
 from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
 from functools import lru_cache
-from pathlib import Path
+from .._pathlib import Path
 import typing as T
-import os, re
+import re
+from os import environ
 
 from ..mparser import (
     Token,
@@ -51,6 +52,11 @@ from ..mparser import (
 if T.TYPE_CHECKING:
     from ..build import Build
     from ..backend.backends import Backend
+    from ..environment import Environment
+
+TYPE_mixed        = T.Union[str, int, bool, Path, BaseNode]
+TYPE_mixed_list   = T.Union[TYPE_mixed, T.Sequence[TYPE_mixed]]
+TYPE_mixed_kwargs = T.Dict[str, TYPE_mixed_list]
 
 # Disable all warnings automaticall enabled with --trace and friends
 # See https://cmake.org/cmake/help/latest/variable/CMAKE_POLICY_WARNING_CMPNNNN.html
@@ -64,6 +70,7 @@ disable_policy_warnings = [
     'CMP0067',
     'CMP0082',
     'CMP0089',
+    'CMP0102',
 ]
 
 backend_generator_map = {
@@ -73,18 +80,6 @@ backend_generator_map = {
     'vs2015': 'Visual Studio 15 2017',
     'vs2017': 'Visual Studio 15 2017',
     'vs2019': 'Visual Studio 16 2019',
-}
-
-language_map = {
-    'c': 'C',
-    'cpp': 'CXX',
-    'cuda': 'CUDA',
-    'objc': 'OBJC',
-    'objcpp': 'OBJCXX',
-    'cs': 'CSharp',
-    'java': 'Java',
-    'fortran': 'Fortran',
-    'swift': 'Swift',
 }
 
 target_type_map = {
@@ -137,8 +132,8 @@ def _sanitize_cmake_name(name: str) -> str:
 class OutputTargetMap:
     rm_so_version = re.compile(r'(\.[0-9]+)+$')
 
-    def __init__(self, build_dir: str):
-        self.tgt_map = {}
+    def __init__(self, build_dir: Path):
+        self.tgt_map   = {}          # type: T.Dict[str, T.Union['ConverterTarget', 'ConverterCustomTarget']]
         self.build_dir = build_dir
 
     def add(self, tgt: T.Union['ConverterTarget', 'ConverterCustomTarget']) -> None:
@@ -182,73 +177,79 @@ class OutputTargetMap:
             new_name = OutputTargetMap.rm_so_version.sub('', new_name)
             candidates += ['{}.{}'.format(new_name, i)]
         for i in candidates:
-            keys += [self._rel_artifact_key(i), os.path.basename(i), self._base_artifact_key(i)]
+            keys += [self._rel_artifact_key(Path(i)), Path(i).name, self._base_artifact_key(Path(i))]
         return self._return_first_valid_key(keys)
 
-    def generated(self, name: str) -> T.Optional[T.Union['ConverterTarget', 'ConverterCustomTarget']]:
-        return self._return_first_valid_key([self._rel_generated_file_key(name), self._base_generated_file_key(name)])
+    def generated(self, name: Path) -> T.Optional['ConverterCustomTarget']:
+        res = self._return_first_valid_key([self._rel_generated_file_key(name), self._base_generated_file_key(name)])
+        assert res is None or isinstance(res, ConverterCustomTarget)
+        return res
 
     # Utility functions to generate local keys
-    def _rel_path(self, fname: str) -> T.Optional[str]:
-        fname = os.path.normpath(os.path.join(self.build_dir, fname))
-        if os.path.commonpath([self.build_dir, fname]) != self.build_dir:
-            return None
-        return os.path.relpath(fname, self.build_dir)
+    def _rel_path(self, fname: Path) -> T.Optional[Path]:
+        try:
+            return fname.resolve().relative_to(self.build_dir)
+        except ValueError:
+            pass
+        return None
 
     def _target_key(self, tgt_name: str) -> str:
         return '__tgt_{}__'.format(tgt_name)
 
-    def _rel_generated_file_key(self, fname: str) -> T.Optional[str]:
+    def _rel_generated_file_key(self, fname: Path) -> T.Optional[str]:
         path = self._rel_path(fname)
-        return '__relgen_{}__'.format(path) if path else None
+        return '__relgen_{}__'.format(path.as_posix()) if path else None
 
-    def _base_generated_file_key(self, fname: str) -> str:
-        return '__gen_{}__'.format(os.path.basename(fname))
+    def _base_generated_file_key(self, fname: Path) -> str:
+        return '__gen_{}__'.format(fname.name)
 
-    def _rel_artifact_key(self, fname: str) -> T.Optional[str]:
+    def _rel_artifact_key(self, fname: Path) -> T.Optional[str]:
         path = self._rel_path(fname)
-        return '__relart_{}__'.format(path) if path else None
+        return '__relart_{}__'.format(path.as_posix()) if path else None
 
-    def _base_artifact_key(self, fname: str) -> str:
-        return '__art_{}__'.format(os.path.basename(fname))
+    def _base_artifact_key(self, fname: Path) -> str:
+        return '__art_{}__'.format(fname.name)
 
 class ConverterTarget:
-    def __init__(self, target: CMakeTarget, env: Environment):
-        self.env = env
-        self.artifacts = target.artifacts
-        self.src_dir = target.src_dir
-        self.build_dir = target.build_dir
-        self.name = target.name
-        self.cmake_name = target.name
-        self.full_name = target.full_name
-        self.type = target.type
-        self.install = target.install
-        self.install_dir = ''
+    def __init__(self, target: CMakeTarget, env: 'Environment', for_machine: MachineChoice) -> None:
+        self.env            = env
+        self.for_machine    = for_machine
+        self.artifacts      = target.artifacts
+        self.src_dir        = target.src_dir
+        self.build_dir      = target.build_dir
+        self.name           = target.name
+        self.cmake_name     = target.name
+        self.full_name      = target.full_name
+        self.type           = target.type
+        self.install        = target.install
+        self.install_dir    = None  # type: T.Optional[Path]
         self.link_libraries = target.link_libraries
-        self.link_flags = target.link_flags + target.link_lang_flags
-        self.depends_raw = []
-        self.depends = []
+        self.link_flags     = target.link_flags + target.link_lang_flags
+        self.depends_raw    = []  # type: T.List[str]
+        self.depends        = []  # type: T.List[T.Union[ConverterTarget, ConverterCustomTarget]]
 
         if target.install_paths:
             self.install_dir = target.install_paths[0]
 
-        self.languages = []
-        self.sources = []
-        self.generated = []
-        self.includes = []
-        self.sys_includes = []
-        self.link_with = []
-        self.object_libs = []
-        self.compile_opts = {}
-        self.public_compile_opts = []
-        self.pie = False
+        self.languages           = []  # type: T.List[str]
+        self.sources             = []  # type: T.List[Path]
+        self.generated           = []  # type: T.List[Path]
+        self.generated_ctgt      = []  # type: T.List[CustomTargetReference]
+        self.includes            = []  # type: T.List[Path]
+        self.sys_includes        = []  # type: T.List[Path]
+        self.link_with           = []  # type: T.List[T.Union[ConverterTarget, ConverterCustomTarget]]
+        self.object_libs         = []  # type: T.List[ConverterTarget]
+        self.compile_opts        = {}  # type: T.Dict[str, T.List[str]]
+        self.public_compile_opts = []  # type: T.List[str]
+        self.pie                 = False
 
         # Project default override options (c_std, cpp_std, etc.)
-        self.override_options = []
+        self.override_options = []  # type: T.List[str]
 
         # Convert the target name to a valid meson target name
         self.name = _sanitize_cmake_name(self.name)
 
+        self.generated_raw = []  # type: T.List[Path]
         for i in target.files:
             # Determine the meson language
             lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
@@ -264,12 +265,12 @@ class ConverterTarget:
             self.compile_opts[lang] += [x for x in args if x not in self.compile_opts[lang]]
 
             # Handle include directories
-            self.includes += [x['path'] for x in i.includes if x not in self.includes and not x['isSystem']]
-            self.sys_includes += [x['path'] for x in i.includes if x not in self.sys_includes and x['isSystem']]
+            self.includes += [x.path for x in i.includes if x.path not in self.includes and not x.isSystem]
+            self.sys_includes += [x.path for x in i.includes if x.path not in self.sys_includes and x.isSystem]
 
             # Add sources to the right array
             if i.is_generated:
-                self.generated += i.sources
+                self.generated_raw += i.sources
             else:
                 self.sources += i.sources
 
@@ -278,8 +279,8 @@ class ConverterTarget:
 
     std_regex = re.compile(r'([-]{1,2}std=|/std:v?|[-]{1,2}std:)(.*)')
 
-    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, install_prefix: str, trace: CMakeTraceParser) -> None:
-        # Detect setting the C and C++ standard
+    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: Path, subdir: Path, install_prefix: Path, trace: CMakeTraceParser) -> None:
+        # Detect setting the C and C++ standard and do additional compiler args manipulation
         for i in ['c', 'cpp']:
             if i not in self.compile_opts:
                 continue
@@ -287,6 +288,7 @@ class ConverterTarget:
             temp = []
             for j in self.compile_opts[i]:
                 m = ConverterTarget.std_regex.match(j)
+                ctgt = output_target_map.generated(Path(j))
                 if m:
                     std = m.group(2)
                     supported = self._all_lang_stds(i)
@@ -301,6 +303,12 @@ class ConverterTarget:
                     self.override_options += ['{}_std={}'.format(i, std)]
                 elif j in ['-fPIC', '-fpic', '-fPIE', '-fpie']:
                     self.pie = True
+                elif isinstance(ctgt, ConverterCustomTarget):
+                    # Sometimes projects pass generated source files as compiler
+                    # flags. Add these as generated sources to ensure that the
+                    # corresponding custom target is run.2
+                    self.generated_raw += [Path(j)]
+                    temp += [j]
                 elif j in blacklist_compiler_flags:
                     pass
                 else:
@@ -332,10 +340,10 @@ class ConverterTarget:
                 cfg = ''
                 otherDeps = []
                 libraries = []
-                mlog.debug(tgt)
+                mlog.debug(str(tgt))
 
                 if 'INTERFACE_INCLUDE_DIRECTORIES' in tgt.properties:
-                    self.includes += [x for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
+                    self.includes += [Path(x) for x in tgt.properties['INTERFACE_INCLUDE_DIRECTORIES'] if x]
 
                 if 'INTERFACE_LINK_OPTIONS' in tgt.properties:
                     self.link_flags += [x for x in tgt.properties['INTERFACE_LINK_OPTIONS'] if x]
@@ -387,7 +395,7 @@ class ConverterTarget:
                 for j in otherDeps:
                     if j in trace.targets:
                         to_process += [j]
-                    elif reg_is_lib.match(j) or os.path.exists(j):
+                    elif reg_is_lib.match(j) or Path(j).exists():
                         libraries += [j]
 
                 for j in libraries:
@@ -403,7 +411,7 @@ class ConverterTarget:
             # Let meson handle this arcane magic
             if ',-rpath,' in i:
                 continue
-            if not os.path.isabs(i):
+            if not Path(i).is_absolute():
                 link_with = output_target_map.artifact(i)
                 if link_with:
                     self.link_with += [link_with]
@@ -417,71 +425,71 @@ class ConverterTarget:
         for i in self.languages:
             supported += list(lang_suffixes[i])
         supported = ['.{}'.format(x) for x in supported]
-        self.sources = [x for x in self.sources if any([x.endswith(y) for y in supported])]
-        self.generated = [x for x in self.generated if any([x.endswith(y) for y in supported])]
+        self.sources       = [x for x in self.sources       if any([x.name.endswith(y) for y in supported])]
+        self.generated_raw = [x for x in self.generated_raw if any([x.name.endswith(y) for y in supported])]
 
         # Make paths relative
-        def rel_path(x: str, is_header: bool, is_generated: bool) -> T.Optional[str]:
-            if not os.path.isabs(x):
-                x = os.path.normpath(os.path.join(self.src_dir, x))
-            if not os.path.exists(x) and not any([x.endswith(y) for y in obj_suffixes]) and not is_generated:
-                mlog.warning('CMake: path', mlog.bold(x), 'does not exist.')
-                mlog.warning(' --> Ignoring. This can lead to build errors.')
-                return None
-            if Path(x) in trace.explicit_headers:
+        def rel_path(x: Path, is_header: bool, is_generated: bool) -> T.Optional[Path]:
+            if not x.is_absolute():
+                x = self.src_dir / x
+            x = x.resolve()
+            assert x.is_absolute()
+            if not x.exists() and not any([x.name.endswith(y) for y in obj_suffixes]) and not is_generated:
+                if path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True):
+                    x.mkdir(parents=True, exist_ok=True)
+                    return x.relative_to(Path(self.env.get_build_dir()) / subdir)
+                else:
+                    mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'does not exist.')
+                    mlog.warning(' --> Ignoring. This can lead to build errors.')
+                    return None
+            if x in trace.explicit_headers:
                 return None
             if (
-                os.path.isabs(x)
-                    and os.path.commonpath([x, self.env.get_source_dir()]) == self.env.get_source_dir()
+                    path_is_in_root(x, Path(self.env.get_source_dir()))
                     and not (
-                        os.path.commonpath([x, root_src_dir]) == root_src_dir or
-                        os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir()
+                        path_is_in_root(x, root_src_dir) or
+                        path_is_in_root(x, Path(self.env.get_build_dir()))
                     )
                 ):
-                mlog.warning('CMake: path', mlog.bold(x), 'is inside the root project but', mlog.bold('not'), 'inside the subproject.')
+                mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'is inside the root project but', mlog.bold('not'), 'inside the subproject.')
                 mlog.warning(' --> Ignoring. This can lead to build errors.')
                 return None
-            if os.path.isabs(x) and os.path.commonpath([x, self.env.get_build_dir()]) == self.env.get_build_dir():
-                if is_header:
-                    return os.path.relpath(x, os.path.join(self.env.get_build_dir(), subdir))
-                else:
-                    return os.path.relpath(x, root_src_dir)
-            if os.path.isabs(x) and os.path.commonpath([x, root_src_dir]) == root_src_dir:
-                return os.path.relpath(x, root_src_dir)
+            if path_is_in_root(x, Path(self.env.get_build_dir())) and is_header:
+                return x.relative_to(Path(self.env.get_build_dir()) / subdir)
+            if path_is_in_root(x, root_src_dir):
+                return x.relative_to(root_src_dir)
             return x
 
-        def custom_target(x: str):
-            ctgt = output_target_map.generated(x)
-            if ctgt:
-                assert(isinstance(ctgt, ConverterCustomTarget))
-                ref = ctgt.get_ref(x)
-                assert(isinstance(ref, CustomTargetReference) and ref.valid())
-                return ref
-            return x
-
-        build_dir_rel = os.path.relpath(self.build_dir, os.path.join(self.env.get_build_dir(), subdir))
+        build_dir_rel = self.build_dir.relative_to(Path(self.env.get_build_dir()) / subdir)
+        self.generated_raw = [rel_path(x, False, True) for x in self.generated_raw]
         self.includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.includes)] + [build_dir_rel]))
         self.sys_includes = list(OrderedSet([rel_path(x, True, False) for x in OrderedSet(self.sys_includes)]))
         self.sources = [rel_path(x, False, False) for x in self.sources]
-        self.generated = [rel_path(x, False, True) for x in self.generated]
 
         # Resolve custom targets
-        self.generated = [custom_target(x) for x in self.generated]
+        for gen_file in self.generated_raw:
+            ctgt = output_target_map.generated(gen_file)
+            if ctgt:
+                assert isinstance(ctgt, ConverterCustomTarget)
+                ref = ctgt.get_ref(gen_file)
+                assert isinstance(ref, CustomTargetReference) and ref.valid()
+                self.generated_ctgt += [ref]
+            elif gen_file is not None:
+                self.generated += [gen_file]
 
         # Remove delete entries
-        self.includes = [x for x in self.includes if x is not None]
+        self.includes     = [x for x in self.includes     if x is not None]
         self.sys_includes = [x for x in self.sys_includes if x is not None]
-        self.sources = [x for x in self.sources if x is not None]
-        self.generated = [x for x in self.generated if x is not None]
+        self.sources      = [x for x in self.sources      if x is not None]
 
         # Make sure '.' is always in the include directories
-        if '.' not in self.includes:
-            self.includes += ['.']
+        if Path('.') not in self.includes:
+            self.includes += [Path('.')]
 
         # make install dir relative to the install prefix
-        if self.install_dir and os.path.isabs(self.install_dir):
-            if os.path.commonpath([self.install_dir, install_prefix]) == install_prefix:
-                self.install_dir = os.path.relpath(self.install_dir, install_prefix)
+        if self.install_dir and self.install_dir.is_absolute():
+            if path_is_in_root(self.install_dir, install_prefix):
+                self.install_dir = self.install_dir.relative_to(install_prefix)
 
         # Remove blacklisted options and libs
         def check_flag(flag: str) -> bool:
@@ -496,22 +504,19 @@ class ConverterTarget:
 
         # Handle explicit CMake add_dependency() calls
         for i in self.depends_raw:
-            tgt = output_target_map.target(i)
-            if tgt:
-                self.depends.append(tgt)
+            dep_tgt = output_target_map.target(i)
+            if dep_tgt:
+                self.depends.append(dep_tgt)
 
-    def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool):
+    def process_object_libs(self, obj_target_list: T.List['ConverterTarget'], linker_workaround: bool) -> None:
         # Try to detect the object library(s) from the generated input sources
-        temp = [x for x in self.generated if isinstance(x, str)]
-        temp = [os.path.basename(x) for x in temp]
-        temp = [x for x in temp if any([x.endswith('.' + y) for y in obj_suffixes])]
-        temp = [os.path.splitext(x)[0] for x in temp]
+        temp = [x for x in self.generated if any([x.name.endswith('.' + y) for y in obj_suffixes])]
+        stem = [x.stem for x in temp]
         exts = self._all_source_suffixes()
         # Temp now stores the source filenames of the object files
         for i in obj_target_list:
-            source_files = [x for x in i.sources + i.generated if isinstance(x, str)]
-            source_files = [os.path.basename(x) for x in source_files]
-            for j in temp:
+            source_files = [x.name for x in i.sources + i.generated]
+            for j in stem:
                 # On some platforms (specifically looking at you Windows with vs20xy backend) CMake does
                 # not produce object files with the format `foo.cpp.obj`, instead it skipps the language
                 # suffix and just produces object files like `foo.obj`. Thus we have to do our best to
@@ -531,15 +536,17 @@ class ConverterTarget:
                     break
 
         # Filter out object files from the sources
-        self.generated = [x for x in self.generated if not isinstance(x, str) or not any([x.endswith('.' + y) for y in obj_suffixes])]
+        self.generated = [x for x in self.generated if not any([x.name.endswith('.' + y) for y in obj_suffixes])]
 
     def _append_objlib_sources(self, tgt: 'ConverterTarget') -> None:
-        self.includes += tgt.includes
-        self.sources += tgt.sources
-        self.generated += tgt.generated
-        self.sources = list(OrderedSet(self.sources))
-        self.generated = list(OrderedSet(self.generated))
-        self.includes = list(OrderedSet(self.includes))
+        self.includes       += tgt.includes
+        self.sources        += tgt.sources
+        self.generated      += tgt.generated
+        self.generated_ctgt += tgt.generated_ctgt
+        self.includes        = list(OrderedSet(self.includes))
+        self.sources         = list(OrderedSet(self.sources))
+        self.generated       = list(OrderedSet(self.generated))
+        self.generated_ctgt  = list(OrderedSet(self.generated_ctgt))
 
         # Inherit compiler arguments since they may be required for building
         for lang, opts in tgt.compile_opts.items():
@@ -559,9 +566,16 @@ class ConverterTarget:
         lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
         if not lang_opts or 'std' not in lang_opts:
             return []
-        return lang_opts['std'].choices
+        res = lang_opts['std'].choices
 
-    def process_inter_target_dependencies(self):
+        # TODO: Get rid of this once we have propper typing for options
+        assert isinstance(res, list)
+        for i in res:
+            assert isinstance(i, str)
+
+        return res
+
+    def process_inter_target_dependencies(self) -> None:
         # Move the dependencies from all transfer_dependencies_from to the target
         to_process = list(self.depends)
         processed = []
@@ -574,7 +588,7 @@ class ConverterTarget:
                 new_deps += [i]
         self.depends = list(OrderedSet(new_deps))
 
-    def cleanup_dependencies(self):
+    def cleanup_dependencies(self) -> None:
         # Clear the dependencies from targets that where moved from
         if self.meson_func() in transfer_dependencies_from:
             self.depends = []
@@ -588,7 +602,7 @@ class ConverterTarget:
         mlog.log('  -- full_name:      ', mlog.bold(self.full_name))
         mlog.log('  -- type:           ', mlog.bold(self.type))
         mlog.log('  -- install:        ', mlog.bold('true' if self.install else 'false'))
-        mlog.log('  -- install_dir:    ', mlog.bold(self.install_dir))
+        mlog.log('  -- install_dir:    ', mlog.bold(self.install_dir.as_posix() if self.install_dir else ''))
         mlog.log('  -- link_libraries: ', mlog.bold(str(self.link_libraries)))
         mlog.log('  -- link_with:      ', mlog.bold(str(self.link_with)))
         mlog.log('  -- object_libs:    ', mlog.bold(str(self.object_libs)))
@@ -598,6 +612,7 @@ class ConverterTarget:
         mlog.log('  -- sys_includes:   ', mlog.bold(str(self.sys_includes)))
         mlog.log('  -- sources:        ', mlog.bold(str(self.sources)))
         mlog.log('  -- generated:      ', mlog.bold(str(self.generated)))
+        mlog.log('  -- generated_ctgt: ', mlog.bold(str(self.generated_ctgt)))
         mlog.log('  -- pie:            ', mlog.bold('true' if self.pie else 'false'))
         mlog.log('  -- override_opts:  ', mlog.bold(str(self.override_options)))
         mlog.log('  -- depends:        ', mlog.bold(str(self.depends)))
@@ -606,7 +621,7 @@ class ConverterTarget:
             mlog.log('    -', key, '=', mlog.bold(str(val)))
 
 class CustomTargetReference:
-    def __init__(self, ctgt: 'ConverterCustomTarget', index: int):
+    def __init__(self, ctgt: 'ConverterCustomTarget', index: int) -> None:
         self.ctgt = ctgt    # type: ConverterCustomTarget
         self.index = index  # type: int
 
@@ -626,24 +641,27 @@ class ConverterCustomTarget:
     tgt_counter = 0  # type: int
     out_counter = 0  # type: int
 
-    def __init__(self, target: CMakeGeneratorTarget):
-        assert(target.current_bin_dir is not None)
-        assert(target.current_src_dir is not None)
+    def __init__(self, target: CMakeGeneratorTarget, env: 'Environment', for_machine: MachineChoice) -> None:
+        assert target.current_bin_dir is not None
+        assert target.current_src_dir is not None
         self.name = target.name
         if not self.name:
             self.name = 'custom_tgt_{}'.format(ConverterCustomTarget.tgt_counter)
             ConverterCustomTarget.tgt_counter += 1
-        self.cmake_name = str(self.name)
+        self.cmake_name       = str(self.name)
         self.original_outputs = list(target.outputs)
-        self.outputs = [os.path.basename(x) for x in self.original_outputs]
-        self.conflict_map = {}
-        self.command = target.command
-        self.working_dir = target.working_dir
-        self.depends_raw = target.depends
-        self.inputs = []
-        self.depends = []
-        self.current_bin_dir = Path(target.current_bin_dir)
-        self.current_src_dir = Path(target.current_src_dir)
+        self.outputs          = [x.name for x in self.original_outputs]
+        self.conflict_map     = {}                      # type: T.Dict[str, str]
+        self.command          = []                      # type: T.List[T.List[T.Union[str, ConverterTarget]]]
+        self.working_dir      = target.working_dir
+        self.depends_raw      = target.depends
+        self.inputs           = []                      # type: T.List[T.Union[str, CustomTargetReference]]
+        self.depends          = []                      # type: T.List[T.Union[ConverterTarget, ConverterCustomTarget]]
+        self.current_bin_dir  = target.current_bin_dir  # type: Path
+        self.current_src_dir  = target.current_src_dir  # type: Path
+        self.env              = env
+        self.for_machine      = for_machine
+        self._raw_target      = target
 
         # Convert the target name to a valid meson target name
         self.name = _sanitize_cmake_name(self.name)
@@ -651,15 +669,15 @@ class ConverterCustomTarget:
     def __repr__(self) -> str:
         return '<{}: {} {}>'.format(self.__class__.__name__, self.name, self.outputs)
 
-    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: str, subdir: str, all_outputs: T.List[str]) -> None:
+    def postprocess(self, output_target_map: OutputTargetMap, root_src_dir: Path, all_outputs: T.List[str], trace: CMakeTraceParser) -> None:
         # Default the working directory to ${CMAKE_CURRENT_BINARY_DIR}
-        if not self.working_dir:
-            self.working_dir = self.current_bin_dir.as_posix()
+        if self.working_dir is None:
+            self.working_dir = self.current_bin_dir
 
         # relative paths in the working directory are always relative
         # to ${CMAKE_CURRENT_BINARY_DIR}
-        if not os.path.isabs(self.working_dir):
-            self.working_dir = (self.current_bin_dir / self.working_dir).as_posix()
+        if not self.working_dir.is_absolute():
+            self.working_dir = self.current_bin_dir / self.working_dir
 
         # Modify the original outputs if they are relative. Again,
         # relative paths are relative to ${CMAKE_CURRENT_BINARY_DIR}
@@ -668,7 +686,7 @@ class ConverterCustomTarget:
                 return x
             else:
                 return self.current_bin_dir / x
-        self.original_outputs = [ensure_absolute(Path(x)).as_posix() for x in self.original_outputs]
+        self.original_outputs = [ensure_absolute(x) for x in self.original_outputs]
 
         # Ensure that there is no duplicate output in the project so
         # that meson can handle cases where the same filename is
@@ -685,16 +703,32 @@ class ConverterCustomTarget:
         self.outputs = temp_outputs
 
         # Check if the command is a build target
-        commands = []
-        for i in self.command:
-            assert(isinstance(i, list))
-            cmd = []
+        commands = []  # type: T.List[T.List[T.Union[str, ConverterTarget]]]
+        for curr_cmd in self._raw_target.command:
+            assert(isinstance(curr_cmd, list))
+            cmd = []  # type: T.List[T.Union[str, ConverterTarget]]
 
-            for j in i:
+            for j in curr_cmd:
                 if not j:
                     continue
                 target = output_target_map.executable(j)
-                cmd += [target] if target else [j]
+                if target:
+                    # When cross compiling, binaries have to be executed with an exe_wrapper (for instance wine for mingw-w64)
+                    if self.env.exe_wrapper is not None and self.env.properties[self.for_machine].get_cmake_use_exe_wrapper():
+                        from ..dependencies import ExternalProgram
+                        assert isinstance(self.env.exe_wrapper, ExternalProgram)
+                        cmd += self.env.exe_wrapper.get_command()
+                    cmd += [target]
+                    continue
+                elif j in trace.targets:
+                    trace_tgt = trace.targets[j]
+                    if trace_tgt.type == 'EXECUTABLE' and 'IMPORTED_LOCATION' in trace_tgt.properties:
+                        cmd += trace_tgt.properties['IMPORTED_LOCATION']
+                        continue
+                    mlog.debug('CMake: Found invalid CMake target "{}" --> ignoring \n{}'.format(j, trace_tgt))
+
+                # Fallthrough on error
+                cmd += [j]
 
             commands += [cmd]
         self.command = commands
@@ -705,18 +739,17 @@ class ConverterCustomTarget:
             self.outputs = [self.name + '.h']
 
         # Check dependencies and input files
-        root = Path(root_src_dir)
         for i in self.depends_raw:
             if not i:
                 continue
             raw = Path(i)
             art = output_target_map.artifact(i)
             tgt = output_target_map.target(i)
-            gen = output_target_map.generated(i)
+            gen = output_target_map.generated(raw)
 
             rel_to_root = None
             try:
-                rel_to_root = raw.relative_to(root)
+                rel_to_root = raw.relative_to(root_src_dir)
             except ValueError:
                 rel_to_root = None
 
@@ -725,7 +758,7 @@ class ConverterCustomTarget:
             # as outputs from other targets.
             # See https://github.com/mesonbuild/meson/issues/6632
             if not raw.is_absolute() and (self.current_src_dir / raw).exists():
-                self.inputs += [(self.current_src_dir / raw).relative_to(root).as_posix()]
+                self.inputs += [(self.current_src_dir / raw).relative_to(root_src_dir).as_posix()]
             elif raw.is_absolute() and raw.exists() and rel_to_root is not None:
                 self.inputs += [rel_to_root.as_posix()]
             elif art:
@@ -733,9 +766,11 @@ class ConverterCustomTarget:
             elif tgt:
                 self.depends += [tgt]
             elif gen:
-                self.inputs += [gen.get_ref(i)]
+                ctgt_ref = gen.get_ref(raw)
+                assert ctgt_ref is not None
+                self.inputs += [ctgt_ref]
 
-    def process_inter_target_dependencies(self):
+    def process_inter_target_dependencies(self) -> None:
         # Move the dependencies from all transfer_dependencies_from to the target
         to_process = list(self.depends)
         processed = []
@@ -748,12 +783,12 @@ class ConverterCustomTarget:
                 new_deps += [i]
         self.depends = list(OrderedSet(new_deps))
 
-    def get_ref(self, fname: str) -> T.Optional[CustomTargetReference]:
-        fname = os.path.basename(fname)
+    def get_ref(self, fname: Path) -> T.Optional[CustomTargetReference]:
+        name = fname.name
         try:
-            if fname in self.conflict_map:
-                fname = self.conflict_map[fname]
-            idx = self.outputs.index(fname)
+            if name in self.conflict_map:
+                name = self.conflict_map[name]
+            idx = self.outputs.index(name)
             return CustomTargetReference(self, idx)
         except ValueError:
             return None
@@ -773,97 +808,88 @@ class CMakeAPI(Enum):
     FILE = 2
 
 class CMakeInterpreter:
-    def __init__(self, build: 'Build', subdir: str, src_dir: str, install_prefix: str, env: Environment, backend: 'Backend'):
-        assert(hasattr(backend, 'name'))
-        self.build = build
-        self.subdir = subdir
-        self.src_dir = src_dir
-        self.build_dir_rel = os.path.join(subdir, '__CMake_build')
-        self.build_dir = os.path.join(env.get_build_dir(), self.build_dir_rel)
+    def __init__(self, build: 'Build', subdir: Path, src_dir: Path, install_prefix: Path, env: 'Environment', backend: 'Backend'):
+        self.build          = build
+        self.subdir         = subdir
+        self.src_dir        = src_dir
+        self.build_dir_rel  = subdir / '__CMake_build'
+        self.build_dir      = Path(env.get_build_dir()) / self.build_dir_rel
         self.install_prefix = install_prefix
-        self.env = env
-        self.backend_name = backend.name
-        self.linkers = set()  # type: T.Set[str]
-        self.cmake_api = CMakeAPI.SERVER
-        self.client = CMakeClient(self.env)
-        self.fileapi = CMakeFileAPI(self.build_dir)
+        self.env            = env
+        self.for_machine    = MachineChoice.HOST # TODO make parameter
+        self.backend_name   = backend.name
+        self.linkers        = set()  # type: T.Set[str]
+        self.cmake_api      = CMakeAPI.SERVER
+        self.client         = CMakeClient(self.env)
+        self.fileapi        = CMakeFileAPI(self.build_dir)
 
         # Raw CMake results
-        self.bs_files = []
-        self.codemodel_configs = None
-        self.raw_trace = None
+        self.bs_files          = []    # type: T.List[Path]
+        self.codemodel_configs = None  # type: T.Optional[T.List[CMakeConfiguration]]
+        self.raw_trace         = None  # type: T.Optional[str]
 
         # Analysed data
-        self.project_name = ''
-        self.languages = []
-        self.targets = []
-        self.custom_targets = []  # type: T.List[ConverterCustomTarget]
-        self.trace = CMakeTraceParser('', '')  # Will be replaced in analyse
+        self.project_name      = ''
+        self.languages         = []  # type: T.List[str]
+        self.targets           = []  # type: T.List[ConverterTarget]
+        self.custom_targets    = []  # type: T.List[ConverterCustomTarget]
+        self.trace             = CMakeTraceParser('', Path('.'))  # Will be replaced in analyse
         self.output_target_map = OutputTargetMap(self.build_dir)
 
         # Generated meson data
-        self.generated_targets = {}
-        self.internal_name_map = {}
+        self.generated_targets = {}  # type: T.Dict[str, T.Dict[str, T.Optional[str]]]
+        self.internal_name_map = {}  # type: T.Dict[str, str]
 
-    def configure(self, extra_cmake_options: T.List[str]) -> None:
-        for_machine = MachineChoice.HOST # TODO make parameter
+        # Do some special handling for object libraries for certain configurations
+        self._object_lib_workaround = False
+        if self.backend_name.startswith('vs'):
+            for comp in self.env.coredata.compilers[self.for_machine].values():
+                if comp.get_linker_id() == 'link':
+                    self._object_lib_workaround = True
+                    break
+
+    def configure(self, extra_cmake_options: T.List[str]) -> CMakeExecutor:
         # Find CMake
-        cmake_exe = CMakeExecutor(self.env, '>=3.7', for_machine)
+        cmake_exe = CMakeExecutor(self.env, '>=3.7', MachineChoice.BUILD)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
         preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
+        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir.parent, preload_file)
+        toolchain_file = toolchain.write()
 
-        # Prefere CMAKE_PROJECT_INCLUDE over CMAKE_TOOLCHAIN_FILE if possible,
-        # since CMAKE_PROJECT_INCLUDE was actually designed for code injection.
-        preload_var = 'CMAKE_PROJECT_INCLUDE'
-        if version_compare(cmake_exe.version(), '<3.15'):
-            preload_var = 'CMAKE_TOOLCHAIN_FILE'
+        # TODO: drop this check once the deprecated `cmake_args` kwarg is removed
+        extra_cmake_options = check_cmake_args(extra_cmake_options)
 
         generator = backend_generator_map[self.backend_name]
         cmake_args = []
+        cmake_args += ['-G', generator]
+        cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
+        cmake_args += extra_cmake_options
         trace_args = self.trace.trace_args()
         cmcmp_args = ['-DCMAKE_POLICY_WARNING_{}=OFF'.format(x) for x in disable_policy_warnings]
-        pload_args = ['-D{}={}'.format(preload_var, str(preload_file))]
 
         if version_compare(cmake_exe.version(), '>=3.14'):
             self.cmake_api = CMakeAPI.FILE
             self.fileapi.setup_request()
 
-        # Map meson compiler to CMake variables
-        for lang, comp in self.env.coredata.compilers[for_machine].items():
-            if lang not in language_map:
-                continue
-            self.linkers.add(comp.get_linker_id())
-            cmake_lang = language_map[lang]
-            exelist = comp.get_exelist()
-            if len(exelist) == 1:
-                cmake_args += ['-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[0])]
-            elif len(exelist) == 2:
-                cmake_args += ['-DCMAKE_{}_COMPILER_LAUNCHER={}'.format(cmake_lang, exelist[0]),
-                               '-DCMAKE_{}_COMPILER={}'.format(cmake_lang, exelist[1])]
-            if hasattr(comp, 'get_linker_exelist') and comp.get_id() == 'clang-cl':
-                cmake_args += ['-DCMAKE_LINKER={}'.format(comp.get_linker_exelist()[0])]
-        cmake_args += ['-G', generator]
-        cmake_args += ['-DCMAKE_INSTALL_PREFIX={}'.format(self.install_prefix)]
-        cmake_args += extra_cmake_options
-
         # Run CMake
         mlog.log()
         with mlog.nested():
             mlog.log('Configuring the build directory with', mlog.bold('CMake'), 'version', mlog.cyan(cmake_exe.version()))
-            mlog.log(mlog.bold('Running:'), ' '.join(cmake_args))
-            mlog.log(mlog.bold('  - build directory:         '), self.build_dir)
-            mlog.log(mlog.bold('  - source directory:        '), self.src_dir)
+            mlog.log(mlog.bold('Running CMake with:'), ' '.join(cmake_args))
+            mlog.log(mlog.bold('  - build directory:         '), self.build_dir.as_posix())
+            mlog.log(mlog.bold('  - source directory:        '), self.src_dir.as_posix())
+            mlog.log(mlog.bold('  - toolchain file:          '), toolchain_file.as_posix())
+            mlog.log(mlog.bold('  - preload file:            '), preload_file.as_posix())
             mlog.log(mlog.bold('  - trace args:              '), ' '.join(trace_args))
-            mlog.log(mlog.bold('  - preload file:            '), str(preload_file))
             mlog.log(mlog.bold('  - disabled policy warnings:'), '[{}]'.format(', '.join(disable_policy_warnings)))
             mlog.log()
-            os.makedirs(self.build_dir, exist_ok=True)
-            os_env = os.environ.copy()
+            self.build_dir.mkdir(parents=True, exist_ok=True)
+            os_env = environ.copy()
             os_env['LC_ALL'] = 'C'
-            final_args = cmake_args + trace_args + cmcmp_args + pload_args + [self.src_dir]
+            final_args = cmake_args + trace_args + cmcmp_args + toolchain.get_cmake_args() + [self.src_dir.as_posix()]
 
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())
             rc, _, self.raw_trace = cmake_exe.call(final_args, self.build_dir, env=os_env, disable_cache=True)
@@ -874,11 +900,13 @@ class CMakeInterpreter:
         if rc != 0:
             raise CMakeException('Failed to configure the CMake subproject')
 
+        return cmake_exe
+
     def initialise(self, extra_cmake_options: T.List[str]) -> None:
         # Run configure the old way because doing it
         # with the server doesn't work for some reason
         # Additionally, the File API requires a configure anyway
-        self.configure(extra_cmake_options)
+        cmake_exe = self.configure(extra_cmake_options)
 
         # Continue with the file API If supported
         if self.cmake_api is CMakeAPI.FILE:
@@ -888,14 +916,14 @@ class CMakeInterpreter:
             # Load the buildsystem file list
             cmake_files = self.fileapi.get_cmake_sources()
             self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
-            self.bs_files = [os.path.relpath(x, self.env.get_source_dir()) for x in self.bs_files]
+            self.bs_files = [relative_to_if_possible(x, Path(self.env.get_source_dir())) for x in self.bs_files]
             self.bs_files = list(OrderedSet(self.bs_files))
 
             # Load the codemodel configurations
             self.codemodel_configs = self.fileapi.get_cmake_configurations()
             return
 
-        with self.client.connect():
+        with self.client.connect(cmake_exe):
             generator = backend_generator_map[self.backend_name]
             self.client.do_handshake(self.src_dir, self.build_dir, generator, 1)
 
@@ -907,13 +935,15 @@ class CMakeInterpreter:
 
             # Get CMake build system files
             bs_reply = self.client.query_checked(RequestCMakeInputs(), 'Querying build system files')
+            assert isinstance(bs_reply, ReplyCMakeInputs)
 
             # Now get the CMake code model
             cm_reply = self.client.query_checked(RequestCodeModel(), 'Querying the CMake code model')
+            assert isinstance(cm_reply, ReplyCodeModel)
 
         src_dir = bs_reply.src_dir
         self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
-        self.bs_files = [os.path.relpath(os.path.join(src_dir, x), self.env.get_source_dir()) for x in self.bs_files]
+        self.bs_files = [relative_to_if_possible(src_dir / x, Path(self.env.get_source_dir()), resolve=True) for x in self.bs_files]
         self.bs_files = list(OrderedSet(self.bs_files))
         self.codemodel_configs = cm_reply.configs
 
@@ -932,63 +962,64 @@ class CMakeInterpreter:
 
         # Find all targets
         added_target_names = []  # type: T.List[str]
-        for i in self.codemodel_configs:
-            for j in i.projects:
+        for i_0 in self.codemodel_configs:
+            for j_0 in i_0.projects:
                 if not self.project_name:
-                    self.project_name = j.name
-                for k in j.targets:
+                    self.project_name = j_0.name
+                for k_0 in j_0.targets:
                     # Avoid duplicate targets from different configurations and known
                     # dummy CMake internal target types
-                    if k.type not in skip_targets and k.name not in added_target_names:
-                        added_target_names += [k.name]
-                        self.targets += [ConverterTarget(k, self.env)]
+                    if k_0.type not in skip_targets and k_0.name not in added_target_names:
+                        added_target_names += [k_0.name]
+                        self.targets += [ConverterTarget(k_0, self.env, self.for_machine)]
 
         # Add interface targets from trace, if not already present.
         # This step is required because interface targets were removed from
         # the CMake file API output.
         api_target_name_list = [x.name for x in self.targets]
-        for i in self.trace.targets.values():
-            if i.type != 'INTERFACE' or i.name in api_target_name_list or i.imported:
+        for i_1 in self.trace.targets.values():
+            if i_1.type != 'INTERFACE' or i_1.name in api_target_name_list or i_1.imported:
                 continue
             dummy = CMakeTarget({
-                'name': i.name,
+                'name': i_1.name,
                 'type': 'INTERFACE_LIBRARY',
                 'sourceDirectory': self.src_dir,
                 'buildDirectory': self.build_dir,
             })
-            self.targets += [ConverterTarget(dummy, self.env)]
+            self.targets += [ConverterTarget(dummy, self.env, self.for_machine)]
 
-        for i in self.trace.custom_targets:
-            self.custom_targets += [ConverterCustomTarget(i)]
+        for i_2 in self.trace.custom_targets:
+            self.custom_targets += [ConverterCustomTarget(i_2, self.env, self.for_machine)]
 
         # generate the output_target_map
-        for i in [*self.targets, *self.custom_targets]:
-            self.output_target_map.add(i)
+        for i_3 in [*self.targets, *self.custom_targets]:
+            assert isinstance(i_3, (ConverterTarget, ConverterCustomTarget))
+            self.output_target_map.add(i_3)
 
         # First pass: Basic target cleanup
         object_libs = []
         custom_target_outputs = []  # type: T.List[str]
-        for i in self.custom_targets:
-            i.postprocess(self.output_target_map, self.src_dir, self.subdir, custom_target_outputs)
-        for i in self.targets:
-            i.postprocess(self.output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
-            if i.type == 'OBJECT_LIBRARY':
-                object_libs += [i]
-            self.languages += [x for x in i.languages if x not in self.languages]
+        for ctgt in self.custom_targets:
+            ctgt.postprocess(self.output_target_map, self.src_dir, custom_target_outputs, self.trace)
+        for tgt in self.targets:
+            tgt.postprocess(self.output_target_map, self.src_dir, self.subdir, self.install_prefix, self.trace)
+            if tgt.type == 'OBJECT_LIBRARY':
+                object_libs += [tgt]
+            self.languages += [x for x in tgt.languages if x not in self.languages]
 
         # Second pass: Detect object library dependencies
-        for i in self.targets:
-            i.process_object_libs(object_libs, self._object_lib_workaround())
+        for tgt in self.targets:
+            tgt.process_object_libs(object_libs, self._object_lib_workaround)
 
         # Third pass: Reassign dependencies to avoid some loops
-        for i in self.targets:
-            i.process_inter_target_dependencies()
-        for i in self.custom_targets:
-            i.process_inter_target_dependencies()
+        for tgt in self.targets:
+            tgt.process_inter_target_dependencies()
+        for ctgt in self.custom_targets:
+            ctgt.process_inter_target_dependencies()
 
         # Fourth pass: Remove rassigned dependencies
-        for i in self.targets:
-            i.cleanup_dependencies()
+        for tgt in self.targets:
+            tgt.cleanup_dependencies()
 
         mlog.log('CMake project', mlog.bold(self.project_name), 'has', mlog.bold(str(len(self.targets) + len(self.custom_targets))), 'build targets.')
 
@@ -996,8 +1027,8 @@ class CMakeInterpreter:
         if not self.project_name:
             raise CMakeException('CMakeInterpreter was not analysed')
 
-        def token(tid: str = 'string', val='') -> Token:
-            return Token(tid, self.subdir, 0, 0, 0, None, val)
+        def token(tid: str = 'string', val: TYPE_mixed = '') -> Token:
+            return Token(tid, self.subdir.as_posix(), 0, 0, 0, None, val)
 
         def string(value: str) -> StringNode:
             return StringNode(token(val=value))
@@ -1008,50 +1039,56 @@ class CMakeInterpreter:
         def number(value: int) -> NumberNode:
             return NumberNode(token(val=value))
 
-        def nodeify(value):
+        def nodeify(value: TYPE_mixed_list) -> BaseNode:
             if isinstance(value, str):
                 return string(value)
+            if isinstance(value, Path):
+                return string(value.as_posix())
             elif isinstance(value, bool):
                 return BooleanNode(token(val=value))
             elif isinstance(value, int):
                 return number(value)
             elif isinstance(value, list):
                 return array(value)
-            return value
+            elif isinstance(value, BaseNode):
+                return value
+            raise RuntimeError('invalid type of value: {} ({})'.format(type(value).__name__, str(value)))
 
         def indexed(node: BaseNode, index: int) -> IndexNode:
             return IndexNode(node, nodeify(index))
 
-        def array(elements) -> ArrayNode:
+        def array(elements: TYPE_mixed_list) -> ArrayNode:
             args = ArgumentNode(token())
             if not isinstance(elements, list):
                 elements = [args]
             args.arguments += [nodeify(x) for x in elements if x is not None]
             return ArrayNode(args, 0, 0, 0, 0)
 
-        def function(name: str, args=None, kwargs=None) -> FunctionNode:
+        def function(name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> FunctionNode:
             args = [] if args is None else args
             kwargs = {} if kwargs is None else kwargs
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
+                assert isinstance(args, (str, int, bool, Path, BaseNode))
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            func_n = FunctionNode(self.subdir, 0, 0, 0, 0, name, args_n)
+            func_n = FunctionNode(self.subdir.as_posix(), 0, 0, 0, 0, name, args_n)
             return func_n
 
-        def method(obj: BaseNode, name: str, args=None, kwargs=None) -> MethodNode:
+        def method(obj: BaseNode, name: str, args: T.Optional[TYPE_mixed_list] = None, kwargs: T.Optional[TYPE_mixed_kwargs] = None) -> MethodNode:
             args = [] if args is None else args
             kwargs = {} if kwargs is None else kwargs
             args_n = ArgumentNode(token())
             if not isinstance(args, list):
+                assert isinstance(args, (str, int, bool, Path, BaseNode))
                 args = [args]
             args_n.arguments = [nodeify(x) for x in args if x is not None]
             args_n.kwargs = {id_node(k): nodeify(v) for k, v in kwargs.items() if v is not None}
-            return MethodNode(self.subdir, 0, 0, obj, name, args_n)
+            return MethodNode(self.subdir.as_posix(), 0, 0, obj, name, args_n)
 
         def assign(var_name: str, value: BaseNode) -> AssignmentNode:
-            return AssignmentNode(self.subdir, 0, 0, var_name, value)
+            return AssignmentNode(self.subdir.as_posix(), 0, 0, var_name, value)
 
         # Generate the root code block and the project function call
         root_cb = CodeBlockNode(token())
@@ -1060,9 +1097,9 @@ class CMakeInterpreter:
         # Add the run script for custom commands
 
         # Add the targets
-        processing = []
-        processed = {}
-        name_map = {}
+        processing = []   # type: T.List[str]
+        processed  = {}   # type: T.Dict[str, T.Dict[str, T.Optional[str]]]
+        name_map   = {}   # type: T.Dict[str, str]
 
         def extract_tgt(tgt: T.Union[ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> IdNode:
             tgt_name = None
@@ -1079,24 +1116,24 @@ class CMakeInterpreter:
                 raise CMakeException('Cycle in CMake inputs/dependencies detected')
             processing.append(tgt.name)
 
-        def resolve_ctgt_ref(ref: CustomTargetReference) -> BaseNode:
+        def resolve_ctgt_ref(ref: CustomTargetReference) -> T.Union[IdNode, IndexNode]:
             tgt_var = extract_tgt(ref)
             if len(ref.ctgt.outputs) == 1:
                 return tgt_var
             else:
                 return indexed(tgt_var, ref.index)
 
-        def process_target(tgt: ConverterTarget):
+        def process_target(tgt: ConverterTarget) -> None:
             detect_cycle(tgt)
 
             # First handle inter target dependencies
-            link_with = []
-            objec_libs = []  # type: T.List[IdNode]
-            sources = []
-            generated = []
-            generated_filenames = []
-            custom_targets = []
-            dependencies = []
+            link_with           = []  # type: T.List[IdNode]
+            objec_libs          = []  # type: T.List[IdNode]
+            sources             = []  # type: T.List[Path]
+            generated           = []  # type: T.List[T.Union[IdNode, IndexNode]]
+            generated_filenames = []  # type: T.List[str]
+            custom_targets      = []  # type: T.List[ConverterCustomTarget]
+            dependencies        = []  # type: T.List[IdNode]
             for i in tgt.link_with:
                 assert(isinstance(i, ConverterTarget))
                 if i.name not in processed:
@@ -1115,16 +1152,17 @@ class CMakeInterpreter:
                 dependencies += [extract_tgt(i)]
 
             # Generate the source list and handle generated sources
-            for i in tgt.sources + tgt.generated:
-                if isinstance(i, CustomTargetReference):
-                    if i.ctgt.name not in processed:
-                        process_custom_target(i.ctgt)
-                    generated += [resolve_ctgt_ref(i)]
-                    generated_filenames += [i.filename()]
-                    if i.ctgt not in custom_targets:
-                        custom_targets += [i.ctgt]
-                else:
-                    sources += [i]
+            sources += tgt.sources
+            sources += tgt.generated
+
+            for ctgt_ref in tgt.generated_ctgt:
+                ctgt = ctgt_ref.ctgt
+                if ctgt.name not in processed:
+                    process_custom_target(ctgt)
+                generated += [resolve_ctgt_ref(ctgt_ref)]
+                generated_filenames += [ctgt_ref.filename()]
+                if ctgt not in custom_targets:
+                    custom_targets += [ctgt]
 
             # Add all header files from all used custom targets. This
             # ensures that all custom targets are built before any
@@ -1132,12 +1170,12 @@ class CMakeInterpreter:
             # header files are present. This step is necessary because
             # CMake always ensures that a custom target is executed
             # before another target if at least one output is used.
-            for i in custom_targets:
-                for j in i.outputs:
+            for ctgt in custom_targets:
+                for j in ctgt.outputs:
                     if not is_header(j) or j in generated_filenames:
                         continue
 
-                    generated += [resolve_ctgt_ref(i.get_ref(j))]
+                    generated += [resolve_ctgt_ref(ctgt.get_ref(Path(j)))]
                     generated_filenames += [j]
 
             # Determine the meson function to use for the build target
@@ -1164,7 +1202,7 @@ class CMakeInterpreter:
                 'install': install_tgt,
                 'override_options': options.get_override_options(tgt.cmake_name, tgt.override_options),
                 'objects': [method(x, 'extract_all_objects') for x in objec_libs],
-            }
+            }  # type: TYPE_mixed_kwargs
 
             # Only set if installed and only override if it is set
             if install_tgt and tgt.install_dir:
@@ -1186,7 +1224,7 @@ class CMakeInterpreter:
                 'link_with': id_node(tgt_var),
                 'compile_args': tgt.public_compile_opts,
                 'include_directories': id_node(inc_var),
-            }
+            }  # type: TYPE_mixed_kwargs
 
             if dependencies:
                 generated += dependencies
@@ -1204,9 +1242,13 @@ class CMakeInterpreter:
                 tgt_var = None
             else:
                 src_node = assign(src_var, function('files', sources))
-                tgt_node = assign(tgt_var, function(tgt_func, [tgt_var, [id_node(src_var)] + generated], tgt_kwargs))
+                tgt_node = assign(tgt_var, function(tgt_func, [tgt_var, id_node(src_var), *generated], tgt_kwargs))
                 node_list += [src_node, tgt_node]
                 if tgt_func in ['static_library', 'shared_library']:
+                    dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
+                    node_list += [dep_node]
+                elif tgt_func in ['shared_module']:
+                    del dep_kwargs['link_with']
                     dep_node = assign(dep_var, function('declare_dependency', kwargs=dep_kwargs))
                     node_list += [dep_node]
                 else:
@@ -1226,7 +1268,7 @@ class CMakeInterpreter:
             detect_cycle(tgt)
             tgt_var = tgt.name  # type: str
 
-            def resolve_source(x: T.Any) -> T.Any:
+            def resolve_source(x: T.Union[str, ConverterTarget, ConverterCustomTarget, CustomTargetReference]) -> T.Union[str, IdNode, IndexNode]:
                 if isinstance(x, ConverterTarget):
                     if x.name not in processed:
                         process_target(x)
@@ -1243,13 +1285,13 @@ class CMakeInterpreter:
                     return x
 
             # Generate the command list
-            command = []
+            command = []  # type: T.List[T.Union[str, IdNode, IndexNode]]
             command += mesonlib.meson_command
             command += ['--internal', 'cmake_run_ctgt']
             command += ['-o', '@OUTPUT@']
             if tgt.original_outputs:
-                command += ['-O'] + tgt.original_outputs
-            command += ['-d', tgt.working_dir]
+                command += ['-O'] + [x.as_posix() for x in tgt.original_outputs]
+            command += ['-d', tgt.working_dir.as_posix()]
 
             # Generate the commands. Subcommands are separated by ';;;'
             for cmd in tgt.command:
@@ -1260,19 +1302,19 @@ class CMakeInterpreter:
                 'output': tgt.outputs,
                 'command': command,
                 'depends': [resolve_source(x) for x in tgt.depends],
-            }
+            }  # type: TYPE_mixed_kwargs
 
             root_cb.lines += [assign(tgt_var, function('custom_target', [tgt.name], tgt_kwargs))]
             processed[tgt.name] = {'inc': None, 'src': None, 'dep': None, 'tgt': tgt_var, 'func': 'custom_target'}
             name_map[tgt.cmake_name] = tgt.name
 
         # Now generate the target function calls
-        for i in self.custom_targets:
-            if i.name not in processed:
-                process_custom_target(i)
-        for i in self.targets:
-            if i.name not in processed:
-                process_target(i)
+        for ctgt in self.custom_targets:
+            if ctgt.name not in processed:
+                process_custom_target(ctgt)
+        for tgt in self.targets:
+            if tgt.name not in processed:
+                process_target(tgt)
 
         self.generated_targets = processed
         self.internal_name_map = name_map
@@ -1293,6 +1335,3 @@ class CMakeInterpreter:
 
     def target_list(self) -> T.List[str]:
         return list(self.internal_name_map.keys())
-
-    def _object_lib_workaround(self) -> bool:
-        return 'link' in self.linkers and self.backend_name.startswith('vs')

@@ -14,7 +14,7 @@
 
 """Code that creates simple startup projects."""
 
-from pathlib import Path
+from ._pathlib import Path
 from enum import Enum
 import subprocess
 import shutil
@@ -25,6 +25,10 @@ from glob import glob
 from mesonbuild import mesonlib
 from mesonbuild.environment import detect_ninja
 from mesonbuild.templates.samplefactory import sameple_generator
+import typing as T
+
+if T.TYPE_CHECKING:
+    import argparse
 
 '''
 we currently have one meson template at this time.
@@ -49,7 +53,7 @@ meson compile -C builddir
 '''
 
 
-def create_sample(options) -> None:
+def create_sample(options: 'argparse.Namespace') -> None:
     '''
     Based on what arguments are passed we check for a match in language
     then check for project type and create new Meson samples project.
@@ -63,7 +67,7 @@ def create_sample(options) -> None:
         raise RuntimeError('Unreachable code')
     print(INFO_MESSAGE)
 
-def autodetect_options(options, sample: bool = False) -> None:
+def autodetect_options(options: 'argparse.Namespace', sample: bool = False) -> None:
     '''
     Here we autodetect options for args not passed in so don't have to
     think about it.
@@ -129,7 +133,7 @@ def autodetect_options(options, sample: bool = False) -> None:
             raise SystemExit("Can't autodetect language, please specify it with -l.")
         print("Detected language: " + options.language)
 
-def add_arguments(parser):
+def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     '''
     Here we add args for that the user can passed when making a new
     Meson project.
@@ -146,7 +150,7 @@ def add_arguments(parser):
     parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help="project type. default: {} based project".format(DEFAULT_PROJECT))
     parser.add_argument('--version', default=DEFAULT_VERSION, help="project version. default: {}".format(DEFAULT_VERSION))
 
-def run(options) -> int:
+def run(options: 'argparse.Namespace') -> int:
     '''
     Here we generate the new Meson sample project.
     '''
@@ -174,7 +178,7 @@ def run(options) -> int:
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit
-        cmd = [detect_ninja(), '-C', options.builddir]
+        cmd = detect_ninja() + ['-C', options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit

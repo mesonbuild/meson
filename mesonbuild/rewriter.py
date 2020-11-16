@@ -353,7 +353,7 @@ class Rewriter:
         self.sourcedir = sourcedir
         self.interpreter = IntrospectionInterpreter(sourcedir, '', generator, visitors = [AstIDGenerator(), AstIndentationGenerator(), AstConditionLevel()])
         self.skip_errors = skip_errors
-        self.modefied_nodes = []
+        self.modified_nodes = []
         self.to_remove_nodes = []
         self.to_add_nodes = []
         self.functions = {
@@ -589,8 +589,8 @@ class Rewriter:
 
         # Convert the keys back to IdNode's
         arg_node.kwargs = {IdNode(Token('', '', 0, 0, 0, None, k)): v for k, v in arg_node.kwargs.items()}
-        if num_changed > 0 and node not in self.modefied_nodes:
-            self.modefied_nodes += [node]
+        if num_changed > 0 and node not in self.modified_nodes:
+            self.modified_nodes += [node]
 
     def find_assignment_node(self, node: BaseNode) -> AssignmentNode:
         if node.ast_id and node.ast_id in self.interpreter.reverse_assignment:
@@ -671,8 +671,8 @@ class Rewriter:
             # Mark the node as modified
             if arg_node not in to_sort_nodes and not isinstance(node, FunctionNode):
                 to_sort_nodes += [arg_node]
-            if node not in self.modefied_nodes:
-                self.modefied_nodes += [node]
+            if node not in self.modified_nodes:
+                self.modified_nodes += [node]
 
         elif cmd['operation'] == 'src_rm':
             # Helper to find the exact string node and its parent
@@ -705,8 +705,8 @@ class Rewriter:
                 # Mark the node as modified
                 if arg_node not in to_sort_nodes and not isinstance(root, FunctionNode):
                     to_sort_nodes += [arg_node]
-                if root not in self.modefied_nodes:
-                    self.modefied_nodes += [root]
+                if root not in self.modified_nodes:
+                    self.modified_nodes += [root]
 
         elif cmd['operation'] == 'target_add':
             if target is not None:
@@ -781,12 +781,12 @@ class Rewriter:
         self.functions[cmd['type']](cmd)
 
     def apply_changes(self):
-        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modefied_nodes))
+        assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.modified_nodes))
         assert(all(hasattr(x, 'lineno') and hasattr(x, 'colno') and hasattr(x, 'filename') for x in self.to_remove_nodes))
-        assert(all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modefied_nodes))
+        assert(all(isinstance(x, (ArrayNode, FunctionNode)) for x in self.modified_nodes))
         assert(all(isinstance(x, (ArrayNode, AssignmentNode, FunctionNode)) for x in self.to_remove_nodes))
         # Sort based on line and column in reversed order
-        work_nodes = [{'node': x, 'action': 'modify'} for x in self.modefied_nodes]
+        work_nodes = [{'node': x, 'action': 'modify'} for x in self.modified_nodes]
         work_nodes += [{'node': x, 'action': 'rm'} for x in self.to_remove_nodes]
         work_nodes = list(sorted(work_nodes, key=lambda x: (x['node'].lineno, x['node'].colno), reverse=True))
         work_nodes += [{'node': x, 'action': 'add'} for x in self.to_add_nodes]
@@ -920,7 +920,7 @@ def generate_def_opts(options) -> T.List[dict]:
         'options': list_to_dict(options.options),
     }]
 
-def genreate_cmd(options) -> T.List[dict]:
+def generate_cmd(options) -> T.List[dict]:
     if os.path.exists(options.json):
         with open(options.json, 'r') as fp:
             return json.load(fp)
@@ -934,8 +934,8 @@ cli_type_map = {
     'kwargs': generate_kwargs,
     'default-options': generate_def_opts,
     'def': generate_def_opts,
-    'command': genreate_cmd,
-    'cmd': genreate_cmd,
+    'command': generate_cmd,
+    'cmd': generate_cmd,
 }
 
 def run(options):

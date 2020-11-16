@@ -264,7 +264,7 @@ class XCodeBackend(backends.Backend):
 
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
-                    s = s.fname
+                    s = os.path.join(s.subdir, s.fname)
 
                 if isinstance(s, str):
                     s = os.path.join(t.subdir, s)

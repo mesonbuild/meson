@@ -6,7 +6,7 @@ py_mod = import('python')
 py = py_mod.find_installation(get_option('python'), required : false)
 
 if py.found()
-  py_dep = py.dependency()
+  py_dep = py.dependency(required : false)
 
   if py_dep.found()
     subdir('ext')

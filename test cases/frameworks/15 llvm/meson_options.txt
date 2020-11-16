@@ -1,0 +1,10 @@
+option(
+  'method',
+  type : 'combo',
+  choices : ['config-tool', 'cmake']
+)
+option(
+  'link-static',
+  type : 'boolean',
+  value : false,
+)

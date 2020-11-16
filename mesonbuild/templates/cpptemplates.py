@@ -146,7 +146,7 @@ class CppProject(SampleImpl):
         self.name = options.name
         self.version = options.version
 
-    def create_executable(self):
+    def create_executable(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         source_name = lowercase_token + '.cpp'
         open(source_name, 'w').write(hello_cpp_template.format(project_name=self.name))
@@ -155,7 +155,7 @@ class CppProject(SampleImpl):
                                                                        source_name=source_name,
                                                                        version=self.version))
 
-    def create_library(self):
+    def create_library(self) -> None:
         lowercase_token = re.sub(r'[^a-z0-9]', '_', self.name.lower())
         uppercase_token = lowercase_token.upper()
         class_name = uppercase_token[0] + lowercase_token[1:]

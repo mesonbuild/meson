@@ -1,0 +1,13 @@
+[binaries]
+c = 'ccomp'
+ar = 'ccomp'
+strip = 'strip'
+
+[built-in options]
+c_args      = ['-target', 'armv7a-eabi', '-fall']
+
+[host_machine]
+system = 'bare metal'      # Update with your system name - bare metal/OS.
+cpu_family = 'arm'
+cpu = 'Cortex-A9'
+endian = 'little'

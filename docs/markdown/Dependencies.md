@@ -364,6 +364,10 @@ language-specific, you must specify the requested language using the
 
 Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the `HL` high-level HDF5 functions are linked for each language.
 
+`method` may be `auto`, `config-tool` or `pkg-config`.
+
+*New in 0.56.0* the `config-tool` method.
+*New in 0.56.0* the dependencies now return proper dependency types and `get_variable` and similar methods should work as expected.
 
 ## libwmf
 
@@ -610,6 +614,18 @@ on these OSes to link with the bundled version.
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
 *New in 0.54.0* the `system` method.
+
+## Curses
+
+*(Since 0.54.0)*
+
+Curses (and ncurses) are a cross platform pain in the butt. Meson wraps up
+these dependencies in the `curses` dependency. This covers both `ncurses`
+(preferred) and other curses implementations.
+
+`method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
+
+*New in 0.56.0* The `config-tool` and `system` methods.
 
 <hr>
 <a name="footnote1">1</a>: They may appear to be case-insensitive, if the

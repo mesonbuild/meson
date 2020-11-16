@@ -50,6 +50,7 @@ index.md
 			Windows-module.md
 			Cuda-module.md
 			Keyval-module.md
+			External-Project-module.md
 		Java.md
 		Vala.md
 		D.md
@@ -73,12 +74,12 @@ index.md
 		Adding-new-projects-to-wrapdb.md
 		Using-the-WrapDB.md
 		Using-wraptool.md
-		Wrap-maintainer-tools.md
 		Wrap-best-practices-and-tips.md
 		Wrap-review-guidelines.md
 		Shipping-prebuilt-binaries-as-wraps.md
 		fallback-wraptool.md
 	Release-notes.md
+		Release-notes-for-0.56.0.md
 		Release-notes-for-0.55.0.md
 		Release-notes-for-0.54.0.md
 		Release-notes-for-0.53.0.md

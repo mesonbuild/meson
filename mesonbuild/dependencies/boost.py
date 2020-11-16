@@ -16,7 +16,7 @@ import os
 import re
 import functools
 import typing as T
-from pathlib import Path
+from .._pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
@@ -95,7 +95,7 @@ class BoostIncludeDir():
     def __repr__(self) -> str:
         return '<BoostIncludeDir: {} -- {}>'.format(self.version, self.path)
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostIncludeDir):
             return (self.version_int, self.path) < (other.version_int, other.path)
         return NotImplemented
@@ -187,7 +187,7 @@ class BoostLibraryFile():
     def __repr__(self) -> str:
         return '<LIB: {} {:<32} {}>'.format(self.abitag, self.mod_name, self.path)
 
-    def __lt__(self, other: T.Any) -> bool:
+    def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostLibraryFile):
             return (
                 self.mod_name, self.static, self.version_lib, self.arch,
@@ -204,7 +204,7 @@ class BoostLibraryFile():
             )
         return NotImplemented
 
-    def __eq__(self, other: T.Any) -> bool:
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, BoostLibraryFile):
             return self.name == other.name
         return NotImplemented
@@ -339,12 +339,14 @@ class BoostLibraryFile():
         return [self.path.as_posix()]
 
 class BoostDependency(ExternalDependency):
-    def __init__(self, environment: Environment, kwargs):
+    def __init__(self, environment: Environment, kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('boost', environment, kwargs, language='cpp')
-        self.debug = environment.coredata.get_builtin_option('buildtype').startswith('debug')
+        buildtype = environment.coredata.get_builtin_option('buildtype')
+        assert isinstance(buildtype, str)
+        self.debug = buildtype.startswith('debug')
         self.multithreading = kwargs.get('threading', 'multi') == 'multi'
 
-        self.boost_root = None
+        self.boost_root = None  # type: T.Optional[Path]
         self.explicit_static = 'static' in kwargs
 
         # Extract and validate modules
@@ -385,7 +387,7 @@ class BoostDependency(ExternalDependency):
         # Finally, look for paths from .pc files and from searching the filesystem
         self.detect_roots()
 
-    def check_and_set_roots(self, roots) -> None:
+    def check_and_set_roots(self, roots: T.List[Path]) -> None:
         roots = list(mesonlib.OrderedSet(roots))
         for j in roots:
             #   1. Look for the boost headers (boost/version.hpp)
@@ -403,7 +405,7 @@ class BoostDependency(ExternalDependency):
                 self.boost_root = j
                 break
 
-    def detect_boost_machine_file(self, props) -> None:
+    def detect_boost_machine_file(self, props: T.Dict[str, str]) -> None:
         incdir = props.get('boost_includedir')
         libdir = props.get('boost_librarydir')
 
@@ -434,7 +436,7 @@ class BoostDependency(ExternalDependency):
 
         self.check_and_set_roots(paths)
 
-    def detect_boost_env(self):
+    def detect_boost_env(self) -> None:
         boost_includedir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_INCLUDEDIR')
         boost_librarydir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_LIBRARYDIR')
 
@@ -658,7 +660,7 @@ class BoostDependency(ExternalDependency):
             libs += [BoostLibraryFile(i)]
         return [x for x in libs if x.is_boost()]  # Filter out no boost libraries
 
-    def detect_split_root(self, inc_dir, lib_dir) -> None:
+    def detect_split_root(self, inc_dir: Path, lib_dir: Path) -> None:
         boost_inc_dir = None
         for j in [inc_dir / 'version.hpp', inc_dir / 'boost' / 'version.hpp']:
             if j.is_file():

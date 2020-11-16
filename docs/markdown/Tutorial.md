@@ -45,7 +45,10 @@ project('tutorial', 'c')
 executable('demo', 'main.c')
 ```
 
-That is all. We are now ready to build our application. First we need
+That is all. Note that unlike Autotools you [do not need to add any source
+headers to the list of sources](FAQ.md#do-i-need-to-add-my-headers-to-the-sources-list-like-in-autotools).
+
+We are now ready to build our application. First we need
 to initialize the build by going into the source directory and issuing
 the following commands.
 
@@ -72,12 +75,23 @@ When Meson is run it prints the following output.
 
 Now we are ready to build our code.
 
+
+```console
+$ cd builddir
+$ ninja
 ```
+
+If your Meson version is newer than 0.55.0, you can use the new
+backend-agnostic build command:
+
+```console
 $ cd builddir
 $ meson compile
 ```
 
-Once that is done we can run the resulting binary.
+For the rest of this document we are going to use the latter form.
+
+Once the executable is built we can run it.
 
 ```console
 $ ./demo
@@ -118,12 +132,21 @@ gtkdep = dependency('gtk+-3.0')
 executable('demo', 'main.c', dependencies : gtkdep)
 ```
 
+If your app needs to use multiple libraries, you need to use separate
+[`dependency()`](Reference-manual.md#dependency) calls for each, like so:
+
+```meson
+gtkdeps = [dependency('gtk+-3.0'), dependency('gtksourceview-3.0')]
+```
+
+We don't need it for the current example.
+
 Now we are ready to build. The thing to notice is that we do *not*
 need to recreate our build directory, run any sort of magical commands
 or the like. Instead we just type the exact same command as if we were
 rebuilding our code without any build system changes.
 
-```
+```console
 $ meson compile
 ```
 
