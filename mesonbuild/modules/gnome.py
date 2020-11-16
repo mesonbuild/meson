@@ -1430,7 +1430,7 @@ class GnomeModule(ExtensionModule):
 GType
 %s@enum_name@_get_type (void)
 {
-  static volatile gsize gtype_id = 0;
+  static gsize gtype_id = 0;
   static const G@Type@Value values[] = {''' % func_prefix
 
         c_file_kwargs['vprod'] = '    { C_@TYPE@(@VALUENAME@), "@VALUENAME@", "@valuenick@" },'
