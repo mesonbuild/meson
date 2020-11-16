@@ -25,6 +25,7 @@ def clangformat(exelist: T.List[str], srcdir_name: str, builddir_name: str) -> i
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
     futures = []
+    returncode = 0
     with ThreadPoolExecutor() as e:
         for f in (x for suff in suffixes for x in srcdir.glob('**/*.' + suff)):
             if f.is_dir():
@@ -32,9 +33,9 @@ def clangformat(exelist: T.List[str], srcdir_name: str, builddir_name: str) -> i
             strf = str(f)
             if strf.startswith(builddir_name):
                 continue
-            futures.append(e.submit(subprocess.check_call, exelist + ['-style=file', '-i', strf]))
-        [x.result() for x in futures]
-    return 0
+            futures.append(e.submit(subprocess.run, exelist + ['-style=file', '-i', strf]))
+        returncode = max([x.result().returncode for x in futures])
+    return returncode
 
 def run(args: T.List[str]) -> int:
     srcdir_name = args[0]
