@@ -92,7 +92,7 @@ def chdir(path: str):
         os.chdir(curdir)
 
 
-def get_dynamic_section_entry(fname, entry):
+def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
     if is_cygwin() or is_osx():
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
@@ -106,14 +106,21 @@ def get_dynamic_section_entry(fname, entry):
     for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
-            return m.group(1)
+            return str(m.group(1))
     return None # The file did not contain the specified entry.
 
-def get_soname(fname):
+def get_soname(fname: str) -> T.Optional[str]:
     return get_dynamic_section_entry(fname, 'soname')
 
-def get_rpath(fname):
-    return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+def get_rpath(fname: str) -> T.Optional[str]:
+    raw = get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+    # Get both '' and None here
+    if not raw:
+        return None
+    # nix/nixos adds a bunch of stuff to the rpath out of necessity that we
+    # don't check for, so clear those
+    final = ':'.join([e for e in raw.split(':') if not e.startswith('/nix')])
+    return final
 
 def is_tarball():
     if not os.path.isdir('docs'):
