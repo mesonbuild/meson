@@ -183,7 +183,8 @@ class DependenciesHelper:
         # lists in case a library is link_with and link_whole at the same time.
         # See remove_dups() below.
         self.link_whole_targets.append(t)
-        self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
+        if isinstance(t, build.BuildTarget):
+            self._add_lib_dependencies(t.link_targets, t.link_whole_targets, t.external_deps, public)
 
     def add_version_reqs(self, name, version_reqs):
         if version_reqs:

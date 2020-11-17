@@ -18,6 +18,8 @@ if v.version_compare('<0.29')
   error('MESON_SKIP_TEST: pkg-config version \'' + v + '\' too old')
 endif
 
+python = import('python').find_installation()
+fs = import('fs')
 pkgg = import('pkgconfig')
 
 lib = shared_library('simple', 'simple.c')
@@ -124,3 +126,17 @@ if cc.get_id() in ['gcc', 'clang']
     description: 'custom target index'
   )
 endif
+
+# Regression test: A library linking to an uninstalled custom_target static
+# library used to crash when generating its pkgconfig file.
+# Copy libstat2.a to libstat3.a to have a static library as custom target.
+infile = stat2.full_path()
+outfile = meson.current_build_dir() / 'libstat3.a'
+script = 'import shutil ; shutil.copyfile("@0@", "@1@")'.format(infile, outfile)
+ct = custom_target('stat3',
+  input: stat2,
+  output: fs.name(outfile),
+  command: [python, '-c', script],
+)
+simple6 = library('simple6', link_with: ct)
+pkgg.generate(simple6)
