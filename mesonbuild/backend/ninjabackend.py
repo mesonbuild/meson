@@ -1633,11 +1633,6 @@ int dummy;
                 args += zig.get_pic_args()
         elif isinstance(target, build.StaticLibrary):
             args.append('build-lib')
-            try:
-                if base_proxy['b_staticpic'].value:
-                    args.append('-fPIC')
-            except KeyError:
-                pass
         elif isinstance(target, build.SharedLibrary):
             args += ['build-lib']
             args += zig.get_std_shared_lib_link_args()
@@ -1672,14 +1667,17 @@ int dummy;
             if reldir == '':
                 reldir = '.'
             ldir = os.path.normpath(os.path.join(self.environment.get_build_dir(), reldir))
-            args += ['--library', ldir.join([d.get_filename()])]
+            args += [f'-L{ldir}']
             # Also add shared libraries to rpath
             if isinstance(d, build.SharedLibrary):
+                args += [f'-l{ldir.join([d.get_filename()])}']
                 if d.should_install():
                     idir, _ = d.get_install_dir(self.environment)
                     args += ['-rpath', idir[0]]
                 else:
                     args += ['-rpath', ldir]
+            else:
+                args += [f'-l{ldir.join([d.name])}']
 
         # Handle external dependencies
         for d in target.get_external_deps():
