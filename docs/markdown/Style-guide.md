@@ -34,7 +34,11 @@ name.
 
 # Using Subprojects and dependencies 
 
-TODO add paragraph.
+We recommend that you should use the `subprojects` method when using wrap
+files, this will result in less build script definitions and be considered
+more readable. If you need to find a dependency that is not a subproject
+we recommend using `dependency` method for that.
+
 
 # Global arguments
 
