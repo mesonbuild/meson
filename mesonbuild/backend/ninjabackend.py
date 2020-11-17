@@ -1661,6 +1661,9 @@ int dummy;
                 srctreedir = os.path.normpath(os.path.join(self.environment.get_build_dir(), self.build_to_src, expdir))
                 args += [f'-I{srctreedir}']
 
+        compiler_name = self.get_compiler_rule_name('zig', target.for_machine)
+        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, root_src_file)
+
         # Provide the libaries the target links against
         for d in target.link_targets:
             reldir = self.get_target_dir(d)
@@ -1678,6 +1681,7 @@ int dummy;
                     args += ['-rpath', ldir]
             else:
                 args += [f'-l{ldir.join([d.name])}']
+            element.add_dep(d.get_filename())
 
         # Handle external dependencies
         for d in target.get_external_deps():
@@ -1687,8 +1691,6 @@ int dummy;
                 args += d.get_compile_args()
                 args += d.get_link_args()
 
-        compiler_name = self.get_compiler_rule_name('zig', target.for_machine)
-        element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, root_src_file)
         element.add_item('ARGS', args)
         self.add_build(element)
 
