@@ -996,7 +996,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
         TestCategory('frameworks', 'frameworks'),
         TestCategory('nasm', 'nasm'),
         TestCategory('wasm', 'wasm', shutil.which('emcc') is None or backend is not Backend.ninja),
-        TestCategory('zig', 'zig', shutil.which('zig') is None)
+        TestCategory('zig', 'zig', shutil.which('zig') is None or backend is not Backend.ninja)
     ]
 
     categories = [t.category for t in all_tests]
