@@ -16,6 +16,7 @@ pkgs=(
   qt5-default clang
   pkg-config-arm-linux-gnueabihf
   qt4-linguist-tools
+  perl-dev
   python-dev
   libomp-dev
   llvm lcov

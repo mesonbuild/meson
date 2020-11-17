@@ -990,6 +990,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
         TestCategory('swift', 'swift', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('swiftc')),
         # CUDA tests on Windows: use Ninja backend:  python run_project_tests.py --only cuda --backend ninja
         TestCategory('cuda', 'cuda', backend not in (Backend.ninja, Backend.xcode) or not shutil.which('nvcc')),
+        TestCategory('perl', 'perl', not shutil.which('perl')),
         TestCategory('python3', 'python3', backend is not Backend.ninja),
         TestCategory('python', 'python'),
         TestCategory('fpga', 'fpga', shutil.which('yosys') is None),
