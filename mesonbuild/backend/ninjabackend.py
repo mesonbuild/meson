@@ -1633,8 +1633,11 @@ int dummy;
                 args += zig.get_pic_args()
         elif isinstance(target, build.StaticLibrary):
             args.append('build-lib')
-            if base_proxy['b_staticpic'] is not None and base_proxy['b_staticpic'].value:
-                args.append('-fPIC')
+            try:
+                if base_proxy['b_staticpic'].value:
+                    args.append('-fPIC')
+            except KeyError:
+                pass
         elif isinstance(target, build.SharedLibrary):
             args += ['build-lib']
             args += zig.get_std_shared_lib_link_args()
