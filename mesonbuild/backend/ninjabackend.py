@@ -1605,6 +1605,7 @@ int dummy;
         args = zig.compiler_args()
 
         target_name = os.path.join(target.subdir, target.get_filename())
+        base_proxy = self.get_base_options_for_target(target)
 
         # Adapted from the rust target generation logic, Zig behaves similarly
         # in that it can work off of a single, so called "root source file" that
@@ -1618,22 +1619,31 @@ int dummy;
         if root_src_file is None:
             raise MesonException('A Zig target has no Zig sources. This is weird. Also a bug. Please report')
 
+        has_shared_deps = False
+        for dep in target.get_dependencies():
+            if isinstance(dep, build.SharedLibrary):
+                has_shared_deps = True
+
         # Zig uses different subcommands for executables and libraries,
         # shared libraries are selected via the -dynamic flag
         if isinstance(target, build.Executable):
             args.append('build-exe')
             args += zig.get_win_subsystem_args(target.win_subsystem)
+            if has_shared_deps:
+                args += zig.get_pic_args()
         elif isinstance(target, build.StaticLibrary):
             args.append('build-lib')
+            if base_proxy['b_staticpic'].value:
+                args += zig.get_pic_args()
         elif isinstance(target, build.SharedLibrary):
             args += ['build-lib']
             args += zig.get_std_shared_lib_link_args()
             args += zig.get_pic_args()
+            args += ['--version', target.ltversion]
         else:
             raise InvalidArguments('Unknown target type for zig.')
 
         # Add built-in options
-        base_proxy = self.get_base_options_for_target(target)
         args += compilers.get_base_compile_args(base_proxy, zig)
         
         # Add otherwise needed flags
@@ -1663,7 +1673,8 @@ int dummy;
             # Also add shared libraries to rpath
             if isinstance(d, build.SharedLibrary):
                 if d.should_install():
-                    args += ['-rpath', d.get_install_dir(self.environment)]
+                    idir, _ = d.get_install_dir(self.environment)
+                    args += ['-rpath', idir[0]]
                 else:
                     args += ['-rpath', ldir]
 
@@ -1672,7 +1683,6 @@ int dummy;
             if isinstance(d, dependencies.platform.AppleFrameworks):
                 args += ['-framework', d.get_name()]
             else:
-                # TODO(e820): this will probably break for some deps without processing
                 args += d.get_compile_args()
                 args += d.get_link_args()
 

@@ -1,4 +1,4 @@
-project('zigtest-shared-lib', 'zig', version: '0.1.0')
+project('zigtest-shared-lib', 'zig')
 
-lib = shared_library('hello', 'lib/hello.zig')
-executable('zigtest-shared-lib', 'src/main.zig', link_with: lib)
+lib = shared_library('hello', 'lib/hello.zig', version: '1.0.0', install: true)
+executable('zigtest-shared-lib', 'src/main.zig', link_with: lib, install: true)
