@@ -32,6 +32,10 @@ projects. This is especially important for yielding options, because
 they require that both the parent and subproject options have the same
 name.
 
+# Using Subprojects and dependencies 
+
+TODO add paragraph.
+
 # Global arguments
 
 Prefer `add_project_arguments` to `add_global_arguments` because using
