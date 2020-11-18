@@ -43,6 +43,7 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
+from mesonbuild.mlog import bold, green, red, yellow
 from mesonbuild.coredata import backendlist, version as meson_version
 
 from run_tests import get_fake_options, run_configure, get_meson_script
@@ -343,22 +344,6 @@ def log_text_file(logfile, testdir, stdo, stde):
             f[2].cancel()
         executor.shutdown()
         raise StopException()
-
-
-def bold(text):
-    return mlog.bold(text).get_text(mlog.colorize_console())
-
-
-def green(text):
-    return mlog.green(text).get_text(mlog.colorize_console())
-
-
-def red(text):
-    return mlog.red(text).get_text(mlog.colorize_console())
-
-
-def yellow(text):
-    return mlog.yellow(text).get_text(mlog.colorize_console())
 
 
 def _run_ci_include(args: T.List[str]) -> str:
