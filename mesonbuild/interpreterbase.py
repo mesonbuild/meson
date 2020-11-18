@@ -823,7 +823,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         elif isinstance(items, dict):
             if len(node.varnames) != 2:
                 raise InvalidArguments('Foreach on dict unpacks key and value')
-            for key, value in items.items():
+            for key, value in sorted(items.items()):
                 self.set_variable(node.varnames[0], key)
                 self.set_variable(node.varnames[1], value)
                 try:
@@ -1166,7 +1166,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         if method_name == 'keys':
             if len(posargs) != 0:
                 raise InterpreterException('keys() takes no arguments.')
-            return list(obj.keys())
+            return sorted(obj.keys())
 
         raise InterpreterException('Dictionaries do not have a method called "%s".' % method_name)
 

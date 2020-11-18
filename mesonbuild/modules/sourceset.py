@@ -14,7 +14,7 @@
 
 from collections import namedtuple
 from .. import mesonlib
-from ..mesonlib import listify
+from ..mesonlib import listify, OrderedSet
 from . import ExtensionModule
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
@@ -111,7 +111,7 @@ class SourceSetHolder(MutableInterpreterObject, ObjectHolder):
 
     def collect(self, enabled_fn, all_sources, into=None):
         if not into:
-            into = SourceFiles(set(), set())
+            into = SourceFiles(OrderedSet(), OrderedSet())
         for entry in self.held_object:
             if all(x.found() for x in entry.dependencies) and \
                all(enabled_fn(key) for key in entry.keys):

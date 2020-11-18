@@ -359,9 +359,9 @@ class NinjaBuildElement:
             rulename = self.rulename
         line = 'build {}{}: {} {}'.format(outs, implicit_outs, rulename, ins)
         if len(self.deps) > 0:
-            line += ' | ' + ' '.join([ninja_quote(x, True) for x in self.deps])
+            line += ' | ' + ' '.join([ninja_quote(x, True) for x in sorted(self.deps)])
         if len(self.orderdeps) > 0:
-            line += ' || ' + ' '.join([ninja_quote(x, True) for x in self.orderdeps])
+            line += ' || ' + ' '.join([ninja_quote(x, True) for x in sorted(self.orderdeps)])
         line += '\n'
         # This is the only way I could find to make this work on all
         # platforms including Windows command shell. Slash is a dir separator
