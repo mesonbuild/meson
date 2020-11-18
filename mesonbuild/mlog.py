@@ -124,7 +124,7 @@ class AnsiDecorator:
 
     def get_text(self, with_codes: bool) -> str:
         text = self.text
-        if with_codes:
+        if with_codes and self.code:
             text = self.code + self.text + AnsiDecorator.plain_code
         if self.quoted:
             text = '"{}"'.format(text)
@@ -132,6 +132,9 @@ class AnsiDecorator:
 
 def bold(text: str, quoted: bool = False) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1m", quoted=quoted)
+
+def plain(text: str) -> AnsiDecorator:
+    return AnsiDecorator(text, "")
 
 def red(text: str) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1;31m")
