@@ -181,6 +181,13 @@ class TestResult(enum.Enum):
     def maxlen() -> int:
         return 14 # len(UNEXPECTEDPASS)
 
+    def is_ok(self) -> bool:
+        return self in {TestResult.OK, TestResult.EXPECTEDFAIL}
+
+    def is_bad(self) -> bool:
+        return self in {TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
+                        TestResult.UNEXPECTEDPASS, TestResult.ERROR}
+
 
 class TAPParser:
     Plan = namedtuple('Plan', ['count', 'late', 'skipped', 'explanation'])
@@ -961,9 +968,6 @@ class TestHarness:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def print_stats(self, result: TestRun) -> None:
-        ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
-        bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
-                        TestResult.UNEXPECTEDPASS, TestResult.ERROR)
         result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
             numlen=len(str(self.test_count)),
             num=result.num,
@@ -975,17 +979,17 @@ class TestHarness:
             dur=result.duration)
         if result.res is TestResult.FAIL:
             result_str += ' ' + returncode_to_status(result.returncode)
-        if result.res in bad_statuses:
+        if result.res.is_bad():
             self.collected_failures.append(result_str)
-        if not self.options.quiet or result.res not in ok_statuses:
+        if not self.options.quiet or not result.res.is_ok():
             decorator = mlog.plain
-            if result.res in bad_statuses:
+            if result.res.is_bad():
                 decorator = mlog.red
             elif result.res is TestResult.SKIP:
                 decorator = mlog.yellow
             print(decorator(result_str).get_text(mlog.colorize_console()))
         result_str += "\n\n" + result.get_log()
-        if result.res in bad_statuses:
+        if result.res.is_bad():
             if self.options.print_errorlogs:
                 self.collected_logs.append(result_str)
         if self.logfile:
