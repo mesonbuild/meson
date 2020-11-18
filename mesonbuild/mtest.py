@@ -237,9 +237,6 @@ class TAPParser:
     state = _MAIN
     version = 12
 
-    def __init__(self, io: T.Iterator[str]):
-        self.io = io
-
     def parse_test(self, ok: bool, num: int, name: str, directive: T.Optional[str], explanation: T.Optional[str]) -> \
             T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error'], None, None]:
         name = name.strip()
@@ -258,8 +255,8 @@ class TAPParser:
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
-    def parse(self) -> T.Iterator[TYPE_TAPResult]:
-        for line in self.io:
+    def parse(self, io: T.Iterator[str]) -> T.Iterator[TYPE_TAPResult]:
+        for line in io:
             yield from self.parse_line(line)
         yield from self.parse_line(None)
 
@@ -747,7 +744,7 @@ class TestRun:
         results = {}  # type: T.Dict[str, TestResult]
         failed = False
 
-        for n, i in enumerate(TAPParser(io.StringIO(stdo)).parse()):
+        for n, i in enumerate(TAPParser().parse(io.StringIO(stdo))):
             if isinstance(i, TAPParser.Bailout):
                 results[str(n)] = TestResult.ERROR
                 failed = True

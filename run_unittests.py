@@ -8871,8 +8871,8 @@ class TAPParserTests(unittest.TestCase):
             next(events)
 
     def parse_tap(self, s):
-        parser = TAPParser(io.StringIO(s))
-        return iter(parser.parse())
+        parser = TAPParser()
+        return iter(parser.parse(io.StringIO(s)))
 
     def parse_tap_v13(self, s):
         events = self.parse_tap('TAP version 13\n' + s)
