@@ -21,7 +21,6 @@ import argparse
 import asyncio
 import datetime
 import enum
-import io
 import json
 import multiprocessing
 import os
@@ -274,6 +273,13 @@ class TAPParser:
                 yield self.Error('invalid directive "{}"'.format(directive,))
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
+
+    async def parse_async(self, lines: T.AsyncIterator[str]) -> T.AsyncIterator[TYPE_TAPResult]:
+        async for line in lines:
+            for event in self.parse_line(line):
+                yield event
+        for event in self.parse_line(None):
+            yield event
 
     def parse(self, io: T.Iterator[str]) -> T.Iterator[TYPE_TAPResult]:
         for line in io:
@@ -737,11 +743,11 @@ class TestRun:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
         self.complete(returncode, res, stdo, stde, cmd, **kwargs)
 
-    def parse_tap(self, lines: T.Iterator[str]) -> T.Tuple[TestResult, str]:
-        res = None    # type: T.Optional[TestResult]
+    async def parse_tap(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+        res = TestResult.OK
         error = ''
 
-        for i in TAPParser().parse(lines):
+        async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Bailout):
                 res = TestResult.ERROR
             elif isinstance(i, TAPParser.Test):
@@ -755,7 +761,7 @@ class TestRun:
         if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
             res = TestResult.SKIP
-        return res or TestResult.OK, error
+        return res, error
 
     def complete_tap(self, returncode: int, res: TestResult,
                      stdo: str, stde: str, cmd: T.List[str]) -> None:
@@ -765,7 +771,7 @@ class TestRun:
 
         self.complete(returncode, res, stdo, stde, cmd)
 
-    def parse_rust(self, lines: T.Iterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse_rust(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
@@ -777,7 +783,7 @@ class TestRun:
                                   'Unsupported output from rust test: {}'.format(result))
 
         n = 1
-        for line in lines:
+        async for line in lines:
             if line.startswith('test ') and not line.startswith('test result'):
                 _, name, _, result = line.rstrip().split(' ')
                 name = name.replace('::', '.')
@@ -1114,15 +1120,28 @@ class SingleTestRunner:
                                        cwd=self.test.workdir)
 
         stdo = stde = ''
-        stdo_task = stde_task = None
+        stdo_task = stde_task = parse_task = None
 
-        parser = None
+        # Extract lines out of the StreamReader and print them
+        # along the way if requested
+        async def lines() -> T.AsyncIterator[str]:
+            stdo_lines = []
+            reader = p.stdout
+            while not reader.at_eof():
+                line = decode(await reader.readline())
+                stdo_lines.append(line)
+                if self.options.verbose:
+                    print(line, end='')
+                yield line
+
+            nonlocal stdo
+            stdo = ''.join(stdo_lines)
+
         if self.test.protocol is TestProtocol.TAP:
-            parser = self.runobj.parse_tap
+            parse_task = self.runobj.parse_tap(lines())
         elif self.test.protocol is TestProtocol.RUST:
-            parser = self.runobj.parse_rust
-
-        if stdout is not None:
+            parse_task = self.runobj.parse_rust(lines())
+        elif stdout is not None:
             stdo_task = p.stdout.read(-1)
         if stderr is not None and stderr != asyncio.subprocess.STDOUT:
             stde_task = p.stderr.read(-1)
@@ -1139,15 +1158,8 @@ class SingleTestRunner:
         if additional_error is not None:
             stde += '\n' + additional_error
 
-        # Print lines along the way if requested
-        def lines() -> T.Iterator[str]:
-            for line in io.StringIO(stdo):
-                if self.options.verbose:
-                    print(line, end='')
-                yield line
-
-        if parser is not None:
-            res, error = parser(lines())
+        if parse_task is not None:
+            res, error = await parse_task
             if error:
                 stde += '\n' + error
             result = result or res
