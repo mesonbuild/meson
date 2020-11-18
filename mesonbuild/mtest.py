@@ -206,6 +206,8 @@ class TestResult(enum.Enum):
         return decorator(result_str).get_text(colorize)
 
 
+TYPE_TAPResult = T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout']
+
 class TAPParser:
     Plan = namedtuple('Plan', ['count', 'late', 'skipped', 'explanation'])
     Bailout = namedtuple('Bailout', ['message'])
@@ -224,6 +226,16 @@ class TAPParser:
     _RE_VERSION = re.compile(r'TAP version ([0-9]+)')
     _RE_YAML_START = re.compile(r'(\s+)---.*')
     _RE_YAML_END = re.compile(r'\s+\.\.\.\s*')
+
+    found_late_test = False
+    bailed_out = False
+    plan: T.Optional[Plan] = None
+    lineno = 0
+    num_tests = 0
+    yaml_lineno: T.Optional[int] = None
+    yaml_indent = ''
+    state = _MAIN
+    version = 12
 
     def __init__(self, io: T.Iterator[str]):
         self.io = io
@@ -246,64 +258,57 @@ class TAPParser:
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
-    def parse(self) -> T.Generator[T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout'], None, None]:
-        found_late_test = False
-        bailed_out = False
-        plan = None
-        lineno = 0
-        num_tests = 0
-        yaml_lineno = None
-        yaml_indent = ''
-        state = self._MAIN
-        version = 12
-        while True:
-            lineno += 1
-            try:
-                line = next(self.io).rstrip()
-            except StopIteration:
-                break
+    def parse(self) -> T.Iterator[TYPE_TAPResult]:
+        for line in self.io:
+            yield from self.parse_line(line)
+        yield from self.parse_line(None)
+
+    def parse_line(self, line: T.Optional[str]) -> T.Iterator[TYPE_TAPResult]:
+        if line is not None:
+            self.lineno += 1
+            line = line.rstrip()
 
             # YAML blocks are only accepted after a test
-            if state == self._AFTER_TEST:
-                if version >= 13:
+            if self.state == self._AFTER_TEST:
+                if self.version >= 13:
                     m = self._RE_YAML_START.match(line)
                     if m:
-                        state = self._YAML
-                        yaml_lineno = lineno
-                        yaml_indent = m.group(1)
-                        continue
-                state = self._MAIN
+                        self.state = self._YAML
+                        self.yaml_lineno = self.lineno
+                        self.yaml_indent = m.group(1)
+                        return
+                self.state = self._MAIN
 
-            elif state == self._YAML:
+            elif self.state == self._YAML:
                 if self._RE_YAML_END.match(line):
-                    state = self._MAIN
-                    continue
-                if line.startswith(yaml_indent):
-                    continue
-                yield self.Error('YAML block not terminated (started on line {})'.format(yaml_lineno))
-                state = self._MAIN
+                    self.state = self._MAIN
+                    return
+                if line.startswith(self.yaml_indent):
+                    return
+                yield self.Error('YAML block not terminated (started on line {})'.format(self.yaml_lineno))
+                self.state = self._MAIN
 
-            assert state == self._MAIN
+            assert self.state == self._MAIN
             if line.startswith('#'):
-                continue
+                return
 
             m = self._RE_TEST.match(line)
             if m:
-                if plan and plan.late and not found_late_test:
+                if self.plan and self.plan.late and not self.found_late_test:
                     yield self.Error('unexpected test after late plan')
-                    found_late_test = True
-                num_tests += 1
-                num = num_tests if m.group(2) is None else int(m.group(2))
-                if num != num_tests:
+                    self.found_late_test = True
+                self.num_tests += 1
+                num = self.num_tests if m.group(2) is None else int(m.group(2))
+                if num != self.num_tests:
                     yield self.Error('out of order test numbers')
                 yield from self.parse_test(m.group(1) == 'ok', num,
                                            m.group(3), m.group(4), m.group(5))
-                state = self._AFTER_TEST
-                continue
+                self.state = self._AFTER_TEST
+                return
 
             m = self._RE_PLAN.match(line)
             if m:
-                if plan:
+                if self.plan:
                     yield self.Error('more than one plan found')
                 else:
                     count = int(m.group(1))
@@ -315,44 +320,44 @@ class TAPParser:
                             skipped = True
                         else:
                             yield self.Error('invalid directive for plan')
-                    plan = self.Plan(count=count, late=(num_tests > 0),
-                                     skipped=skipped, explanation=m.group(3))
-                    yield plan
-                continue
+                    self.plan = self.Plan(count=count, late=(self.num_tests > 0),
+                                          skipped=skipped, explanation=m.group(3))
+                    yield self.plan
+                return
 
             m = self._RE_BAILOUT.match(line)
             if m:
                 yield self.Bailout(m.group(1))
-                bailed_out = True
-                continue
+                self.bailed_out = True
+                return
 
             m = self._RE_VERSION.match(line)
             if m:
                 # The TAP version is only accepted as the first line
-                if lineno != 1:
+                if self.lineno != 1:
                     yield self.Error('version number must be on the first line')
-                    continue
-                version = int(m.group(1))
-                if version < 13:
+                    return
+                self.version = int(m.group(1))
+                if self.version < 13:
                     yield self.Error('version number should be at least 13')
                 else:
-                    yield self.Version(version=version)
-                continue
+                    yield self.Version(version=self.version)
+                return
 
             if not line:
-                continue
+                return
 
-            yield self.Error('unexpected input at line {}'.format((lineno,)))
+            yield self.Error('unexpected input at line {}'.format((self.lineno,)))
+        else:
+            # end of file
+            if self.state == self._YAML:
+                yield self.Error('YAML block not terminated (started on line {})'.format(self.yaml_lineno))
 
-        if state == self._YAML:
-            yield self.Error('YAML block not terminated (started on line {})'.format(yaml_lineno))
-
-        if not bailed_out and plan and num_tests != plan.count:
-            if num_tests < plan.count:
-                yield self.Error('Too few tests run (expected {}, got {})'.format(plan.count, num_tests))
-            else:
-                yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
-
+            if not self.bailed_out and self.plan and self.num_tests != self.plan.count:
+                if self.num_tests < self.plan.count:
+                    yield self.Error('Too few tests run (expected {}, got {})'.format(self.plan.count, self.num_tests))
+                else:
+                    yield self.Error('Too many tests run (expected {}, got {})'.format(self.plan.count, self.num_tests))
 
 class TestLogger:
     def flush(self) -> None:
