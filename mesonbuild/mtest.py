@@ -918,20 +918,15 @@ class TestHarness:
             dur=result.duration)
         if result.res is TestResult.FAIL:
             result_str += ' ' + returncode_to_status(result.returncode)
+        if result.res in bad_statuses:
+            self.collected_failures.append(result_str)
         if not self.options.quiet or result.res not in ok_statuses:
-            if result.res not in ok_statuses:
-                self.collected_failures.append(result_str)
-                if mlog.colorize_console():
-                    if result.res in bad_statuses:
-                        self.collected_failures.append(result_str)
-                        decorator = mlog.red
-                    elif result.res is TestResult.SKIP:
-                        decorator = mlog.yellow
-                    else:
-                        sys.exit('Unreachable code was ... well ... reached.')
-                    print(decorator(result_str).get_text(True))
-            else:
-                print(result_str)
+            decorator = mlog.plain
+            if result.res in bad_statuses:
+                decorator = mlog.red
+            elif result.res is TestResult.SKIP:
+                decorator = mlog.yellow
+            print(decorator(result_str).get_text(mlog.colorize_console()))
         result_str += "\n\n" + result.get_log()
         if result.res in bad_statuses:
             if self.options.print_errorlogs:
