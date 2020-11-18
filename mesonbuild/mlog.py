@@ -130,6 +130,9 @@ class AnsiDecorator:
             text = '"{}"'.format(text)
         return text
 
+    def __str__(self) -> str:
+        return self.get_text(colorize_console())
+
 def bold(text: str, quoted: bool = False) -> AnsiDecorator:
     return AnsiDecorator(text, "\033[1m", quoted=quoted)
 
