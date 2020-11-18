@@ -35,14 +35,14 @@ It offers several useful functions that are enumerated below.
 _Since: 0.50.0_
 
 ``` meson
-cuda.nvcc_arch_flags(nvcc_or_version, ...,
+cuda.nvcc_arch_flags(cuda_version_string, ...,
                      detected: string_or_array)
 ```
 
 Returns a list of `-gencode` flags that should be passed to `cuda_args:` in
 order to compile a "fat binary" for the architectures/compute capabilities
 enumerated in the positional argument(s). The flags shall be acceptable to
-the NVCC compiler object `nvcc_or_version`, or its version string.
+an NVCC with CUDA Toolkit version string `cuda_version_string`.
 
 A set of architectures and/or compute capabilities may be specified by:
 
@@ -71,14 +71,6 @@ mixed with architecture names or compute capabilities. Their interpretation is:
 | `'Common'`        | Relatively common CCs supported by given NVCC compiler. Generally excludes Tegra and Tesla devices. |
 | `'Auto'`          | The CCs provided by the `detected:` keyword, filtered for support by given NVCC compiler. |
 
-As a special case, when `nvcc_arch_flags()` is invoked with
-
-- an NVCC `compiler` object `nvcc`,
-- `'Auto'` mode and
-- no `detected:` keyword,
-
-Meson uses `nvcc`'s architecture auto-detection results.
-
 The supported architecture names and their corresponding compute capabilities
 are:
 
@@ -95,6 +87,7 @@ are:
 | `'Volta'`         | 7.0                |
 | `'Xavier'`        | 7.2                |
 | `'Turing'`        | 7.5                |
+| `'Ampere'`        | 8.0, 8.6           |
 
 
 Examples:
@@ -152,7 +145,7 @@ function `CUDA_SELECT_NVCC_ARCH_FLAGS(out_variable, [list of CUDA compute archit
 _Since: 0.50.0_
 
 ``` meson
-cuda.nvcc_arch_readable(nvcc_or_version, ...,
+cuda.nvcc_arch_readable(cuda_version_string, ...,
                         detected: string_or_array)
 ```
 
@@ -162,7 +155,7 @@ architectures that will be compiled for. The output of this function is solely
 intended for informative message printing.
 
     archs    = '3.0 3.5 5.0+PTX'
-    readable = cuda.nvcc_arch_readable(nvcc, archs)
+    readable = cuda.nvcc_arch_readable('10.0', archs)
     message('Building for architectures ' + ' '.join(readable))
 
 This will print
@@ -178,11 +171,11 @@ _Note:_ This function is intended to closely replicate CMake's FindCUDA module f
 _Since: 0.50.0_
 
 ``` meson
-cuda.min_driver_version(nvcc_or_version)
+cuda.min_driver_version(cuda_version_string)
 ```
 
 Returns the minimum NVIDIA proprietary driver version required, on the host
-system, by kernels compiled with the given NVCC compiler or its version string.
+system, by kernels compiled with a CUDA Toolkit with the given version string.
 
 The output of this function is generally intended for informative message
 printing, but could be used for assertions or to conditionally enable
