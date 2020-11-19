@@ -166,6 +166,8 @@ class TestException(MesonException):
 @enum.unique
 class TestResult(enum.Enum):
 
+    PENDING = 'PENDING'
+    RUNNING = 'RUNNING'
     OK = 'OK'
     TIMEOUT = 'TIMEOUT'
     INTERRUPT = 'INTERRUPT'
@@ -450,40 +452,50 @@ class JunitBuilder:
 
 class TestRun:
 
-    @classmethod
-    def make_gtest(cls, test: TestSerialisation, test_env: T.Dict[str, str],
-                   returncode: int, starttime: float, duration: float,
-                   stdo: T.Optional[str], stde: T.Optional[str],
-                   cmd: T.Optional[T.List[str]]) -> 'TestRun':
-        filename = '{}.xml'.format(test.name)
-        if test.workdir:
-            filename = os.path.join(test.workdir, filename)
+    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str]):
+        self.res = TestResult.PENDING
+        self.test = test
+        self.results = list()  # type: T.List[TestResult]
+        self.returncode = 0
+        self.starttime = None  # type: T.Optional[float]
+        self.duration = None   # type: T.Optional[float]
+        self.stdo = None       # type: T.Optional[str]
+        self.stde = None       # type: T.Optional[str]
+        self.cmd = None        # type: T.Optional[T.List[str]]
+        self.env = dict()      # type: T.Dict[str, str]
+        self.should_fail = test.should_fail
+        self.project = test.project_name
+        self.junit = None      # type: T.Optional[et.ElementTree]
+
+    def start(self) -> None:
+        self.res = TestResult.RUNNING
+        self.starttime = time.time()
+
+    def complete_gtest(self, returncode: int,
+                       stdo: T.Optional[str], stde: T.Optional[str],
+                       cmd: T.List[str]) -> None:
+        filename = '{}.xml'.format(self.test.name)
+        if self.test.workdir:
+            filename = os.path.join(self.test.workdir, filename)
         tree = et.parse(filename)
 
-        return cls.make_exitcode(
-            test, test_env, returncode, starttime, duration, stdo, stde, cmd,
-            junit=tree)
+        self.complete_exitcode(returncode, stdo, stde, cmd, junit=tree)
 
-    @classmethod
-    def make_exitcode(cls, test: TestSerialisation, test_env: T.Dict[str, str],
-                      returncode: int, starttime: float, duration: float,
-                      stdo: T.Optional[str], stde: T.Optional[str],
-                      cmd: T.Optional[T.List[str]], **kwargs: T.Any) -> 'TestRun':
+    def complete_exitcode(self, returncode: int,
+                          stdo: T.Optional[str], stde: T.Optional[str],
+                          cmd: T.List[str],
+                          **kwargs: T.Any) -> None:
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
             res = TestResult.ERROR
-        elif test.should_fail:
+        elif self.should_fail:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        return cls(test, test_env, res, [], returncode, starttime, duration, stdo, stde, cmd, **kwargs)
+        self.complete(res, [], returncode, stdo, stde, cmd, **kwargs)
 
-    @classmethod
-    def make_tap(cls, test: TestSerialisation, test_env: T.Dict[str, str],
-                 returncode: int, starttime: float, duration: float,
-                 stdo: str, stde: str,
-                 cmd: T.Optional[T.List[str]]) -> 'TestRun':
+    def complete_tap(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
         res = None    # type: T.Optional[TestResult]
         results = []  # type: T.List[TestResult]
         failed = False
@@ -510,30 +522,25 @@ class TestRun:
             if all(t is TestResult.SKIP for t in results):
                 # This includes the case where num_tests is zero
                 res = TestResult.SKIP
-            elif test.should_fail:
+            elif self.should_fail:
                 res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
             else:
                 res = TestResult.FAIL if failed else TestResult.OK
 
-        return cls(test, test_env, res, results, returncode, starttime, duration, stdo, stde, cmd)
+        self.complete(res, results, returncode, stdo, stde, cmd)
 
-    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 res: TestResult, results: T.List[TestResult], returncode:
-                 int, starttime: float, duration: float,
+    def complete(self, res: TestResult, results: T.List[TestResult],
+                 returncode: int,
                  stdo: T.Optional[str], stde: T.Optional[str],
-                 cmd: T.Optional[T.List[str]], *, junit: T.Optional[et.ElementTree] = None):
+                 cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
         assert isinstance(res, TestResult)
         self.res = res
-        self.results = results  # May be an empty list
+        self.results = results
         self.returncode = returncode
-        self.starttime = starttime
-        self.duration = duration
+        self.duration = time.time() - self.starttime
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
-        self.env = test_env
-        self.should_fail = test.should_fail
-        self.project = test.project_name
         self.junit = junit
 
     def get_log(self) -> str:
@@ -645,6 +652,7 @@ class SingleTestRunner:
         self.test_env = test_env
         self.env = env
         self.options = options
+        self.runobj = TestRun(test, test_env)
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
@@ -668,14 +676,16 @@ class SingleTestRunner:
 
     async def run(self) -> TestRun:
         cmd = self._get_cmd()
+        self.runobj.start()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            return TestRun(self.test, self.test_env, TestResult.SKIP, [], GNU_SKIP_RETURNCODE, time.time(), 0.0, skip_stdout, None, None)
+            self.runobj.complete(TestResult.SKIP, [], GNU_SKIP_RETURNCODE, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
                 self.test.timeout = None
-            return await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
+            await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
+        return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *, timeout: T.Optional[int],
                               stdout: T.IO, stderr: T.IO,
@@ -762,9 +772,7 @@ class SingleTestRunner:
 
         return p.returncode or 0, result, additional_error
 
-    async def _run_cmd(self, cmd: T.List[str]) -> TestRun:
-        starttime = time.time()
-
+    async def _run_cmd(self, cmd: T.List[str]) -> None:
         if self.test.extra_paths:
             self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
             winecmd = []
@@ -813,8 +821,6 @@ class SingleTestRunner:
                                                                           stderr=stderr,
                                                                           env=self.env,
                                                                           cwd=self.test.workdir)
-        endtime = time.time()
-        duration = endtime - starttime
         if additional_error is None:
             if stdout is None:
                 stdo = ''
@@ -830,17 +836,16 @@ class SingleTestRunner:
             stdo = ""
             stde = additional_error
         if result:
-            return TestRun(self.test, self.test_env, result, [], returncode, starttime, duration, stdo, stde, cmd)
+            self.runobj.complete(result, [], returncode, stdo, stde, cmd)
         else:
             if self.test.protocol is TestProtocol.EXITCODE:
-                return TestRun.make_exitcode(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
+                self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
             elif self.test.protocol is TestProtocol.GTEST:
-                return TestRun.make_gtest(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
+                self.runobj.complete_gtest(returncode, stdo, stde, cmd)
             else:
                 if self.options.verbose:
                     print(stdo, end='')
-                return TestRun.make_tap(self.test, self.test_env, returncode, starttime, duration, stdo, stde, cmd)
-
+                self.runobj.complete_tap(returncode, stdo, stde, cmd)
 
 class TestHarness:
     def __init__(self, options: argparse.Namespace):
