@@ -354,7 +354,21 @@ class TAPParser:
                 yield self.Error('Too many tests run (expected {}, got {})'.format(plan.count, num_tests))
 
 
-class JunitBuilder:
+class TestLogger:
+    def start(self, harness: 'TestHarness') -> None:
+        pass
+
+    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        pass
+
+    async def finish(self, harness: 'TestHarness') -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
+class JunitBuilder(TestLogger):
 
     """Builder for Junit test results.
 
@@ -377,7 +391,7 @@ class JunitBuilder:
             'testsuites', tests='0', errors='0', failures='0')
         self.suites = {}  # type: T.Dict[str, et.Element]
 
-    def log(self, test: 'TestRun') -> None:
+    def log(self, harness: 'TestHarness', test: 'TestRun') -> None:
         """Log a single test case."""
         if test.junit is not None:
             for suite in test.junit.findall('.//testsuite'):
@@ -461,7 +475,7 @@ class JunitBuilder:
                 err = et.SubElement(testcase, 'system-err')
                 err.text = test.stde.rstrip()
 
-    def write(self) -> None:
+    async def finish(self, harness: 'TestHarness') -> None:
         """Calculate total test counts and write out the xml result."""
         for suite in self.suites.values():
             self.root.append(suite)
@@ -911,7 +925,7 @@ class TestHarness:
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
         self.jsonlogfile = None   # type: T.Optional[T.TextIO]
-        self.junit = None         # type: T.Optional[JunitBuilder]
+        self.loggers = []         # type: T.List[TestLogger]
 
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
@@ -935,6 +949,8 @@ class TestHarness:
             if lfile:
                 lfile.close()
                 setattr(self, f, None)
+        for l in self.loggers:
+            l.close()
 
     def merge_suite_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
         if ':' in options.setup:
@@ -1014,8 +1030,8 @@ class TestHarness:
             self.logfile.write("\n\n" + result.get_log() + "\n")
         if self.jsonlogfile:
             write_json_log(self.jsonlogfile, result)
-        if self.junit:
-            self.junit.log(result)
+        for l in self.loggers:
+            l.log(self, result)
 
     def print_summary(self) -> None:
         # Prepend a list of failures
@@ -1041,9 +1057,6 @@ class TestHarness:
         print(msg)
         if self.logfile:
             self.logfile.write(msg)
-
-        if self.junit:
-            self.junit.write()
 
     def print_collected_logs(self) -> None:
         if self.collected_failures:
@@ -1185,7 +1198,7 @@ class TestHarness:
         if namebase:
             logfile_base += '-' + namebase.replace(' ', '_')
 
-        self.junit = JunitBuilder(logfile_base + '.junit.xml')
+        self.loggers.append(JunitBuilder(logfile_base + '.junit.xml'))
 
         self.logfilename = logfile_base + '.txt'
         self.jsonlogfilename = logfile_base + '.json'
@@ -1285,6 +1298,9 @@ class TestHarness:
                 mlog.warning('CTRL-C detected, exiting')
                 interrupted = True
 
+        for l in self.loggers:
+            l.start(self)
+
         if sys.platform != 'win32':
             asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
             asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
@@ -1316,6 +1332,8 @@ class TestHarness:
             if sys.platform != 'win32':
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGINT)
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGTERM)
+            for l in self.loggers:
+                await l.finish(self)
             os.chdir(startdir)
 
 def list_tests(th: TestHarness) -> bool:
