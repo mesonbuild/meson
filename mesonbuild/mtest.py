@@ -368,6 +368,31 @@ class TestLogger:
         pass
 
 
+class TestFileLogger(TestLogger):
+    def __init__(self, filename: str, errors: str = 'replace') -> None:
+        self.file = open(filename, 'w', encoding='utf8', errors=errors)
+
+    def close(self) -> None:
+        if self.file:
+            self.file.close()
+            self.file = None
+
+
+class JsonLogfileBuilder(TestFileLogger):
+    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        jresult = {'name': result.name,
+                   'stdout': result.stdo,
+                   'result': result.res.value,
+                   'starttime': result.starttime,
+                   'duration': result.duration,
+                   'returncode': result.returncode,
+                   'env': result.env,
+                   'command': result.cmd}  # type: T.Dict[str, T.Any]
+        if result.stde:
+            jresult['stderr'] = result.stde
+        self.file.write(json.dumps(jresult) + '\n')
+
+
 class JunitBuilder(TestLogger):
 
     """Builder for Junit test results.
@@ -634,19 +659,6 @@ def decode(stream: T.Union[None, bytes]) -> str:
         return stream.decode('utf-8')
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
-
-def write_json_log(jsonlogfile: T.TextIO, result: TestRun) -> None:
-    jresult = {'name': result.name,
-               'stdout': result.stdo,
-               'result': result.res.value,
-               'starttime': result.starttime,
-               'duration': result.duration,
-               'returncode': result.returncode,
-               'env': result.env,
-               'command': result.cmd}  # type: T.Dict[str, T.Any]
-    if result.stde:
-        jresult['stderr'] = result.stde
-    jsonlogfile.write(json.dumps(jresult) + '\n')
 
 def run_with_mono(fname: str) -> bool:
     return fname.endswith('.exe') and not (is_windows() or is_cygwin())
@@ -924,7 +936,6 @@ class TestHarness:
         self.is_run = False
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
-        self.jsonlogfile = None   # type: T.Optional[T.TextIO]
         self.loggers = []         # type: T.List[TestLogger]
 
         if self.options.benchmark:
@@ -944,7 +955,7 @@ class TestHarness:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
-        for f in ['logfile', 'jsonlogfile']:
+        for f in ['logfile']:
             lfile = getattr(self, f)
             if lfile:
                 lfile.close()
@@ -1028,8 +1039,6 @@ class TestHarness:
         if self.logfile:
             self.logfile.write(self.format(result, False))
             self.logfile.write("\n\n" + result.get_log() + "\n")
-        if self.jsonlogfile:
-            write_json_log(self.jsonlogfile, result)
         for l in self.loggers:
             l.log(self, result)
 
@@ -1199,11 +1208,9 @@ class TestHarness:
             logfile_base += '-' + namebase.replace(' ', '_')
 
         self.loggers.append(JunitBuilder(logfile_base + '.junit.xml'))
+        self.loggers.append(JsonLogfileBuilder(logfile_base + '.json'))
 
         self.logfilename = logfile_base + '.txt'
-        self.jsonlogfilename = logfile_base + '.json'
-
-        self.jsonlogfile = open(self.jsonlogfilename, 'w', encoding='utf-8', errors='replace')
         self.logfile = open(self.logfilename, 'w', encoding='utf-8', errors='surrogateescape')
 
         self.logfile.write('Log of Meson test suite run on {}\n\n'.format(datetime.datetime.now().isoformat()))
