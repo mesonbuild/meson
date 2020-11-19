@@ -353,12 +353,12 @@ class JunitBuilder:
             'testsuites', tests='0', errors='0', failures='0')
         self.suites = {}  # type: T.Dict[str, et.Element]
 
-    def log(self, name: str, test: 'TestRun') -> None:
+    def log(self, test: 'TestRun') -> None:
         """Log a single test case."""
         if test.junit is not None:
             for suite in test.junit.findall('.//testsuite'):
                 # Assume that we don't need to merge anything here...
-                suite.attrib['name'] = '{}.{}.{}'.format(test.project, name, suite.attrib['name'])
+                suite.attrib['name'] = '{}.{}.{}'.format(test.project, test.name, suite.attrib['name'])
 
                 # GTest can inject invalid attributes
                 for case in suite.findall('.//testcase[@result]'):
@@ -372,7 +372,7 @@ class JunitBuilder:
         # We want to record this so that each result is recorded
         # separately
         if test.results:
-            suitename = '{}.{}'.format(test.project, name)
+            suitename = '{}.{}'.format(test.project, test.name)
             assert suitename not in self.suites, 'duplicate suite'
 
             suite = self.suites[suitename] = et.Element(
@@ -420,7 +420,7 @@ class JunitBuilder:
                 suite = self.suites[test.project]
                 suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
 
-            testcase = et.SubElement(suite, 'testcase', name=name, classname=name)
+            testcase = et.SubElement(suite, 'testcase', name=test.name, classname=test.name)
             if test.res is TestResult.SKIP:
                 et.SubElement(testcase, 'skipped')
                 suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
@@ -451,10 +451,14 @@ class JunitBuilder:
 
 
 class TestRun:
+    TEST_NUM = 0
 
-    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str]):
+    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
+                 name: str):
         self.res = TestResult.PENDING
         self.test = test
+        self._num = None       # type: T.Optional[int]
+        self.name = name
         self.results = list()  # type: T.List[TestResult]
         self.returncode = 0
         self.starttime = None  # type: T.Optional[float]
@@ -529,6 +533,13 @@ class TestRun:
 
         self.complete(res, results, returncode, stdo, stde, cmd)
 
+    @property
+    def num(self) -> int:
+        if self._num is None:
+            TestRun.TEST_NUM += 1
+            self._num = TestRun.TEST_NUM
+        return self._num
+
     def complete(self, res: TestResult, results: T.List[TestResult],
                  returncode: int,
                  stdo: T.Optional[str], stde: T.Optional[str],
@@ -574,8 +585,8 @@ def decode(stream: T.Union[None, bytes]) -> str:
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
 
-def write_json_log(jsonlogfile: T.TextIO, test_name: str, result: TestRun) -> None:
-    jresult = {'name': test_name,
+def write_json_log(jsonlogfile: T.TextIO, result: TestRun) -> None:
+    jresult = {'name': result.name,
                'stdout': result.stdo,
                'result': result.res.value,
                'starttime': result.starttime,
@@ -647,12 +658,13 @@ async def complete_all(futures: T.Iterable[asyncio.Future]) -> None:
 class SingleTestRunner:
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 env: T.Dict[str, str], options: argparse.Namespace):
+                 env: T.Dict[str, str], name: str,
+                 options: argparse.Namespace):
         self.test = test
         self.test_env = test_env
         self.env = env
         self.options = options
-        self.runobj = TestRun(test, test_env)
+        self.runobj = TestRun(test, test_env, name)
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
@@ -915,7 +927,7 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
+    def get_test_runner(self, test: TestSerialisation, name: str) -> SingleTestRunner:
         options = deepcopy(self.options)
         if not options.setup:
             options.setup = self.build_data.test_setup_default_name
@@ -928,7 +940,7 @@ class TestHarness:
         if (test.is_cross_built and test.needs_exe_wrapper and
                 test.exe_runner and test.exe_runner.found()):
             env['MESON_EXE_WRAPPER'] = join_args(test.exe_runner.get_command())
-        return SingleTestRunner(test, test_env, env, options)
+        return SingleTestRunner(test, test_env, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
         if result.res is TestResult.TIMEOUT:
@@ -947,17 +959,16 @@ class TestHarness:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def print_stats(self, test_count: int, name_max_len: int,
-                    tests: T.List[TestSerialisation],
-                    name: str, result: TestRun, i: int) -> None:
+                    result: TestRun) -> None:
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
         bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR)
         result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
             numlen=len(str(test_count)),
-            num=i,
+            num=result.num,
             testcount=test_count,
             name_max_len=name_max_len,
-            name=name,
+            name=result.name,
             reslen=TestResult.maxlen(),
             res=result.res.value,
             dur=result.duration)
@@ -979,9 +990,9 @@ class TestHarness:
         if self.logfile:
             self.logfile.write(result_str)
         if self.jsonlogfile:
-            write_json_log(self.jsonlogfile, name, result)
+            write_json_log(self.jsonlogfile, result)
         if self.junit:
-            self.junit.log(name, result)
+            self.junit.log(result)
 
     def print_summary(self) -> None:
         # Prepend a list of failures
@@ -1201,14 +1212,13 @@ class TestHarness:
         self.build_data = build.load(os.getcwd())
         interrupted = False
 
-        async def run_test(test: SingleTestRunner,
-                           name: str, index: int) -> None:
+        async def run_test(test: SingleTestRunner) -> None:
             async with semaphore:
                 if interrupted or (self.options.repeat > 1 and self.fail_count):
                     return
                 res = await test.run()
                 self.process_test_result(res)
-                self.print_stats(test_count, name_max_len, tests, name, res, index)
+                self.print_stats(test_count, name_max_len, res)
 
         def test_done(f: asyncio.Future) -> None:
             if not f.cancelled():
@@ -1253,13 +1263,13 @@ class TestHarness:
             asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
             for _ in range(self.options.repeat):
-                for i, test in enumerate(tests, 1):
+                for test in tests:
                     visible_name = self.get_pretty_suite(test)
-                    single_test = self.get_test_runner(test)
+                    single_test = self.get_test_runner(test, visible_name)
 
                     if not test.is_parallel or single_test.options.gdb:
                         await complete_all(futures)
-                    future = asyncio.ensure_future(run_test(single_test, visible_name, i))
+                    future = asyncio.ensure_future(run_test(single_test))
                     futures.append(future)
                     running_tests[future] = visible_name
                     future.add_done_callback(test_done)
