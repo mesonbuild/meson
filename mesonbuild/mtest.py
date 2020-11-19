@@ -130,6 +130,13 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         '"subprojname:" to run all tests defined by "subprojname".')
 
 
+def print_safe(s: str) -> None:
+    try:
+        print(s)
+    except UnicodeEncodeError:
+        s = s.encode('ascii', errors='backslashreplace').decode('ascii')
+        print(s)
+
 def returncode_to_status(retcode: int) -> str:
     # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the related
     # functions here because the status returned by subprocess is munged. It
@@ -591,8 +598,20 @@ class TestRun:
             res += self.stde
         if res[-1:] != '\n':
             res += '\n'
-        res += '-------\n\n'
+        res += '-------\n'
         return res
+
+    def get_log_short(self) -> str:
+        log = self.get_log()
+        lines = log.splitlines()
+        if len(lines) < 103:
+            return log
+        else:
+            log = '\n'.join(lines[:2])
+            log += '\n--- Listing only the last 100 lines from a long log. ---\n'
+            log += lines[2] + '\n'
+            log += '\n'.join(lines[-100:])
+            return log
 
 def decode(stream: T.Union[None, bytes]) -> str:
     if stream is None:
@@ -879,7 +898,6 @@ class SingleTestRunner:
 class TestHarness:
     def __init__(self, options: argparse.Namespace):
         self.options = options
-        self.collected_logs = []  # type: T.List[str]
         self.collected_failures = []  # type: T.List[TestRun]
         self.fail_count = 0
         self.expectedfail_count = 0
@@ -994,13 +1012,9 @@ class TestHarness:
             self.collected_failures.append(result)
         if not self.options.quiet or not result.res.is_ok():
             print(self.format(result, mlog.colorize_console()))
-        result_str = self.format(result, False)
-        result_str += "\n\n" + result.get_log()
-        if result.res.is_bad():
-            if self.options.print_errorlogs:
-                self.collected_logs.append(result_str)
         if self.logfile:
-            self.logfile.write(result_str)
+            self.logfile.write(self.format(result, False))
+            self.logfile.write("\n\n" + result.get_log() + "\n")
         if self.jsonlogfile:
             write_json_log(self.jsonlogfile, result)
         if self.junit:
@@ -1035,23 +1049,16 @@ class TestHarness:
             self.junit.write()
 
     def print_collected_logs(self) -> None:
-        if self.collected_logs:
-            if len(self.collected_logs) > 10:
-                print('\nThe output from 10 first failed tests:\n')
+        if self.collected_failures:
+            if len(self.collected_failures) > 10:
+                print('\n\nThe output from 10 first failed tests:\n')
             else:
-                print('\nThe output from the failed tests:\n')
-            for log in self.collected_logs[:10]:
-                lines = log.splitlines()
-                if len(lines) > 104:
-                    print('\n'.join(lines[0:4]))
-                    print('--- Listing only the last 100 lines from a long log. ---')
-                    lines = lines[-100:]
-                for line in lines:
-                    try:
-                        print(line)
-                    except UnicodeEncodeError:
-                        line = line.encode('ascii', errors='backslashreplace').decode('ascii')
-                        print(line)
+                print('\n\nThe output from the failed tests:\n')
+            for i, result in enumerate(self.collected_failures, 1):
+                print(self.format(result, mlog.colorize_console()))
+                print_safe(result.get_log_short())
+                if i == 10:
+                    break
 
     def total_failure_count(self) -> int:
         return self.fail_count + self.unexpectedpass_count + self.timeout_count
@@ -1299,7 +1306,8 @@ class TestHarness:
                     break
 
             await complete_all(futures)
-            self.print_collected_logs()
+            if self.options.print_errorlogs:
+                self.print_collected_logs()
             self.print_summary()
 
             if self.logfilename:
