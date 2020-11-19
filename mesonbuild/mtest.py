@@ -379,6 +379,31 @@ class TestFileLogger(TestLogger):
             self.file = None
 
 
+class ConsoleLogger(TestLogger):
+    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        if not harness.options.quiet or not result.res.is_ok():
+            print(harness.format(result, mlog.colorize_console()))
+
+    async def finish(self, harness: 'TestHarness') -> None:
+        if harness.collected_failures:
+            if harness.options.print_errorlogs:
+                if len(harness.collected_failures) > 10:
+                    print('\n\nThe output from 10 first failed tests:\n')
+                else:
+                    print('\n\nThe output from the failed tests:\n')
+                for i, result in enumerate(harness.collected_failures, 1):
+                    print(harness.format(result, mlog.colorize_console()))
+                    print_safe(result.get_log_short())
+                    if i == 10:
+                        break
+
+            print("\nSummary of Failures:\n")
+            for i, result in enumerate(harness.collected_failures, 1):
+                print(harness.format(result, mlog.colorize_console()))
+
+        print(harness.summary())
+
+
 class TextLogfileBuilder(TestFileLogger):
     def start(self, harness: 'TestHarness') -> None:
         self.file.write('Log of Meson test suite run on {}\n\n'.format(datetime.datetime.now().isoformat()))
@@ -956,6 +981,7 @@ class TestHarness:
         self.name_max_len = 0
         self.is_run = False
         self.loggers = []         # type: T.List[TestLogger]
+        self.loggers.append(ConsoleLogger())
 
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
@@ -1048,8 +1074,6 @@ class TestHarness:
     def print_stats(self, result: TestRun) -> None:
         if result.res.is_bad():
             self.collected_failures.append(result)
-        if not self.options.quiet or not result.res.is_ok():
-            print(self.format(result, mlog.colorize_console()))
         for l in self.loggers:
             l.log(self, result)
 
@@ -1064,27 +1088,6 @@ class TestHarness:
             Timeout:            {:<4}
             ''').format(self.success_count, self.expectedfail_count, self.fail_count,
                         self.unexpectedpass_count, self.skip_count, self.timeout_count)
-
-    def print_summary(self) -> None:
-        # Prepend a list of failures
-        if self.collected_failures:
-            print("\nSummary of Failures:\n")
-            for i, result in enumerate(self.collected_failures, 1):
-                print(self.format(result, mlog.colorize_console()))
-
-        print(self.summary())
-
-    def print_collected_logs(self) -> None:
-        if self.collected_failures:
-            if len(self.collected_failures) > 10:
-                print('\n\nThe output from 10 first failed tests:\n')
-            else:
-                print('\n\nThe output from the failed tests:\n')
-            for i, result in enumerate(self.collected_failures, 1):
-                print(self.format(result, mlog.colorize_console()))
-                print_safe(result.get_log_short())
-                if i == 10:
-                    break
 
     def total_failure_count(self) -> int:
         return self.fail_count + self.unexpectedpass_count + self.timeout_count
@@ -1330,9 +1333,6 @@ class TestHarness:
                     break
 
             await complete_all(futures)
-            if self.options.print_errorlogs:
-                self.print_collected_logs()
-            self.print_summary()
         finally:
             if sys.platform != 'win32':
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGINT)
