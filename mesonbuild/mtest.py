@@ -44,7 +44,7 @@ from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .dependencies import ExternalProgram
-from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
+from .mesonlib import MesonException, OrderedSet, get_wine_shortpath, split_args, join_args
 from .mintro import get_infodir, load_info_file
 from .backend.backends import TestProtocol, TestSerialisation
 
@@ -358,6 +358,9 @@ class TestLogger:
     def start(self, harness: 'TestHarness') -> None:
         pass
 
+    def start_test(self, test: 'TestRun') -> None:
+        pass
+
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         pass
 
@@ -380,11 +383,112 @@ class TestFileLogger(TestLogger):
 
 
 class ConsoleLogger(TestLogger):
+    SPINNER = "\U0001f311\U0001f312\U0001f313\U0001f314" + \
+              "\U0001f315\U0001f316\U0001f317\U0001f318"
+
+    def __init__(self) -> None:
+        self.update = asyncio.Event()
+        self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
+        self.progress_test = None          # type: T.Optional['TestRun']
+        self.progress_task = None          # type: T.Optional[asyncio.Future]
+        self.stop = False
+        self.update = asyncio.Event()
+        self.should_erase_line = ''
+        self.test_count = 0
+        self.started_tests = 0
+        self.spinner_index = 0
+
+    def clear_progress(self) -> None:
+        if self.should_erase_line:
+            print(self.should_erase_line, end='')
+            self.should_erase_line = ''
+
+    def print_progress(self, line: str) -> None:
+        print(self.should_erase_line, line, sep='', end='\r')
+        self.should_erase_line = '\x1b[K'
+
+    def request_update(self) -> None:
+        self.update.set()
+
+    def emit_progress(self) -> None:
+        if self.progress_test is None:
+            self.clear_progress()
+            return
+
+        if len(self.running_tests) == 1:
+            count = '{}/{}'.format(self.started_tests, self.test_count)
+        else:
+            count = '{}-{}/{}'.format(self.started_tests - len(self.running_tests) + 1,
+                                      self.started_tests, self.test_count)
+
+        line = '[{}] {} {}'.format(count, self.SPINNER[self.spinner_index], self.progress_test.name)
+        self.spinner_index = (self.spinner_index + 1) % len(self.SPINNER)
+        self.print_progress(line)
+
+    @staticmethod
+    def is_tty() -> bool:
+        try:
+            _, _ = os.get_terminal_size(1)
+            return True
+        except OSError:
+            return False
+
+    def start(self, harness: 'TestHarness') -> None:
+        async def report_progress() -> None:
+            loop = asyncio.get_event_loop()
+            next_update = 0.0
+            self.request_update()
+            while not self.stop:
+                await self.update.wait()
+                self.update.clear()
+
+                # We may get here simply because the progress line has been
+                # overwritten, so do not always switch.  Only do so every
+                # second, or if the printed test has finished
+                if loop.time() >= next_update:
+                    self.progress_test = None
+                    next_update = loop.time() + 1
+                    loop.call_at(next_update, self.request_update)
+
+                if (self.progress_test and
+                        self.progress_test.res is not TestResult.RUNNING):
+                    self.progress_test = None
+
+                if not self.progress_test:
+                    if not self.running_tests:
+                        continue
+                    # Pick a test in round robin order
+                    self.progress_test = self.running_tests.pop(last=False)
+                    self.running_tests.add(self.progress_test)
+
+                self.emit_progress()
+            self.clear_progress()
+
+        self.test_count = harness.test_count
+        # In verbose mode, the progress report gets in the way of the tests'
+        # stdout and stderr.
+        if self.is_tty() and not harness.options.verbose:
+            self.progress_task = asyncio.ensure_future(report_progress())
+
+    def start_test(self, test: 'TestRun') -> None:
+        self.started_tests += 1
+        self.running_tests.add(test)
+        self.running_tests.move_to_end(test, last=False)
+        self.request_update()
+
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        self.running_tests.remove(result)
         if not harness.options.quiet or not result.res.is_ok():
+            self.clear_progress()
             print(harness.format(result, mlog.colorize_console()))
+        self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
+        self.stop = True
+        self.request_update()
+        if self.progress_task:
+            await self.progress_task
+
         if harness.collected_failures:
             if harness.options.print_errorlogs:
                 if len(harness.collected_failures) > 10:
@@ -1266,6 +1370,8 @@ class TestHarness:
             async with semaphore:
                 if interrupted or (self.options.repeat > 1 and self.fail_count):
                     return
+                for l in self.loggers:
+                    l.start_test(test.runobj)
                 res = await test.run()
                 self.process_test_result(res)
 
