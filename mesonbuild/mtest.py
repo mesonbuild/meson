@@ -370,12 +370,33 @@ class TestLogger:
 
 class TestFileLogger(TestLogger):
     def __init__(self, filename: str, errors: str = 'replace') -> None:
+        self.filename = filename
         self.file = open(filename, 'w', encoding='utf8', errors=errors)
 
     def close(self) -> None:
         if self.file:
             self.file.close()
             self.file = None
+
+
+class TextLogfileBuilder(TestFileLogger):
+    def start(self, harness: 'TestHarness') -> None:
+        self.file.write('Log of Meson test suite run on {}\n\n'.format(datetime.datetime.now().isoformat()))
+        inherit_env = env_tuple_to_str(os.environ.items())
+        self.file.write('Inherited environment: {}\n\n'.format(inherit_env))
+
+    def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        self.file.write(harness.format(result, False))
+        self.file.write("\n\n" + result.get_log() + "\n")
+
+    async def finish(self, harness: 'TestHarness') -> None:
+        if harness.collected_failures:
+            self.file.write("\nSummary of Failures:\n\n")
+            for i, result in enumerate(harness.collected_failures, 1):
+                self.file.write(harness.format(result, False) + '\n')
+        self.file.write(harness.summary())
+
+        print('Full log written to {}'.format(self.filename))
 
 
 class JsonLogfileBuilder(TestFileLogger):
@@ -934,8 +955,6 @@ class TestHarness:
         self.test_count = 0
         self.name_max_len = 0
         self.is_run = False
-        self.logfilename = None   # type: T.Optional[str]
-        self.logfile = None       # type: T.Optional[T.TextIO]
         self.loggers = []         # type: T.List[TestLogger]
 
         if self.options.benchmark:
@@ -955,11 +974,6 @@ class TestHarness:
         self.close_logfiles()
 
     def close_logfiles(self) -> None:
-        for f in ['logfile']:
-            lfile = getattr(self, f)
-            if lfile:
-                lfile.close()
-                setattr(self, f, None)
         for l in self.loggers:
             l.close()
 
@@ -1036,24 +1050,11 @@ class TestHarness:
             self.collected_failures.append(result)
         if not self.options.quiet or not result.res.is_ok():
             print(self.format(result, mlog.colorize_console()))
-        if self.logfile:
-            self.logfile.write(self.format(result, False))
-            self.logfile.write("\n\n" + result.get_log() + "\n")
         for l in self.loggers:
             l.log(self, result)
 
-    def print_summary(self) -> None:
-        # Prepend a list of failures
-        if self.collected_failures:
-            print("\nSummary of Failures:\n")
-            if self.logfile:
-                self.logfile.write("\nSummary of Failures:\n\n")
-            for i, result in enumerate(self.collected_failures, 1):
-                print(self.format(result, mlog.colorize_console()))
-                if self.logfile:
-                    self.logfile.write(self.format(result, False) + '\n')
-
-        msg = textwrap.dedent('''
+    def summary(self) -> str:
+        return textwrap.dedent('''
 
             Ok:                 {:<4}
             Expected Fail:      {:<4}
@@ -1063,9 +1064,15 @@ class TestHarness:
             Timeout:            {:<4}
             ''').format(self.success_count, self.expectedfail_count, self.fail_count,
                         self.unexpectedpass_count, self.skip_count, self.timeout_count)
-        print(msg)
-        if self.logfile:
-            self.logfile.write(msg)
+
+    def print_summary(self) -> None:
+        # Prepend a list of failures
+        if self.collected_failures:
+            print("\nSummary of Failures:\n")
+            for i, result in enumerate(self.collected_failures, 1):
+                print(self.format(result, mlog.colorize_console()))
+
+        print(self.summary())
 
     def print_collected_logs(self) -> None:
         if self.collected_failures:
@@ -1209,13 +1216,7 @@ class TestHarness:
 
         self.loggers.append(JunitBuilder(logfile_base + '.junit.xml'))
         self.loggers.append(JsonLogfileBuilder(logfile_base + '.json'))
-
-        self.logfilename = logfile_base + '.txt'
-        self.logfile = open(self.logfilename, 'w', encoding='utf-8', errors='surrogateescape')
-
-        self.logfile.write('Log of Meson test suite run on {}\n\n'.format(datetime.datetime.now().isoformat()))
-        inherit_env = env_tuple_to_str(os.environ.items())
-        self.logfile.write('Inherited environment: {}\n\n'.format(inherit_env))
+        self.loggers.append(TextLogfileBuilder(logfile_base + '.txt', errors='surrogateescape'))
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
@@ -1332,9 +1333,6 @@ class TestHarness:
             if self.options.print_errorlogs:
                 self.print_collected_logs()
             self.print_summary()
-
-            if self.logfilename:
-                print('Full log written to {}'.format(self.logfilename))
         finally:
             if sys.platform != 'win32':
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGINT)
