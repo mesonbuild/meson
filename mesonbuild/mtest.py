@@ -188,6 +188,16 @@ class TestResult(enum.Enum):
         return self in {TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR}
 
+    def get_text(self, colorize: bool) -> str:
+        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
+        if self.is_bad():
+            decorator = mlog.red
+        elif self in (TestResult.SKIP, TestResult.EXPECTEDFAIL):
+            decorator = mlog.yellow
+        else:
+            decorator = mlog.green
+        return decorator(result_str).get_text(colorize)
+
 
 class TAPParser:
     Plan = namedtuple('Plan', ['count', 'late', 'skipped', 'explanation'])
@@ -967,23 +977,17 @@ class TestHarness:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
     def format(self, result: TestRun, colorize: bool) -> str:
-        result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
+        result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res} {dur:.2f}s'.format(
             numlen=len(str(self.test_count)),
             num=result.num,
             testcount=self.test_count,
             name_max_len=self.name_max_len,
             name=result.name,
-            reslen=TestResult.maxlen(),
-            res=result.res.value,
+            res=result.res.get_text(colorize),
             dur=result.duration)
         if result.res is TestResult.FAIL:
             result_str += ' ' + returncode_to_status(result.returncode)
-        decorator = mlog.plain
-        if result.res.is_bad():
-            decorator = mlog.red
-        elif result.res is TestResult.SKIP:
-            decorator = mlog.yellow
-        return decorator(result_str).get_text(colorize)
+        return result_str
 
     def print_stats(self, result: TestRun) -> None:
         if result.res.is_bad():
@@ -1009,7 +1013,7 @@ class TestHarness:
             if self.logfile:
                 self.logfile.write("\nSummary of Failures:\n\n")
             for i, result in enumerate(self.collected_failures, 1):
-                print(self.format(result, False))
+                print(self.format(result, mlog.colorize_console()))
                 if self.logfile:
                     self.logfile.write(self.format(result, False) + '\n')
 
