@@ -125,15 +125,6 @@ def is_ci():
         return True
     return False
 
-def is_pull():
-    # Travis
-    if os.environ.get('TRAVIS_PULL_REQUEST', 'false') != 'false':
-        return True
-    # Azure
-    if 'SYSTEM_PULLREQUEST_ISFORK' in os.environ:
-        return True
-    return False
-
 def _git_init(project_dir):
     subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
     subprocess.check_call(['git', 'config',
@@ -1449,43 +1440,6 @@ class DataTests(unittest.TestCase):
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
-
-    @unittest.skipIf(is_pull(), 'Skipping because this is a pull request')
-    def test_json_grammar_syntax_highlighting(self):
-        '''
-        Ensure that syntax highlighting JSON grammar written by TingPing was
-        updated for new functions in the global namespace in build files.
-        https://github.com/TingPing/language-meson/
-        '''
-        env = get_fake_env()
-        interp = Interpreter(FakeBuild(env), mock=True)
-        url = 'https://raw.githubusercontent.com/TingPing/language-meson/master/grammars/meson.json'
-        try:
-            # Use a timeout to avoid blocking forever in case the network is
-            # slow or unavailable in a weird way
-            r = urllib.request.urlopen(url, timeout=URLOPEN_TIMEOUT)
-        except urllib.error.URLError as e:
-            # Skip test when network is not available, such as during packaging
-            # by a distro or Flatpak
-            if not isinstance(e, urllib.error.HTTPError):
-                raise unittest.SkipTest('Network unavailable')
-            # Don't fail the test if github is down, but do fail if 4xx
-            if e.code >= 500:
-                raise unittest.SkipTest('Server error ' + str(e.code))
-            raise e
-        # On Python 3.5, we must decode bytes to string. Newer versions don't require that.
-        grammar = json.loads(r.read().decode('utf-8', 'surrogatepass'))
-        for each in grammar['patterns']:
-            if 'name' in each and each['name'] == 'support.function.builtin.meson':
-                # The string is of the form: (?x)\\b(func1|func2|...\n)\\b\\s*(?=\\() and
-                # we convert that to [func1, func2, ...] without using regex to parse regex
-                funcs = set(each['match'].split('\\b(')[1].split('\n')[0].split('|'))
-            if 'name' in each and each['name'] == 'support.variable.meson':
-                # \\b(builtin1|builtin2...)\\b
-                builtin = set(each['match'].split('\\b(')[1].split(')\\b')[0].split('|'))
-        self.assertEqual(builtin, set(interp.builtin.keys()))
-        self.assertEqual(funcs, set(interp.funcs.keys()))
-
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
         Ensure that the all functions defined in the Interpreter are also defined
