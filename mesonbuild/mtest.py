@@ -480,7 +480,7 @@ class ConsoleLogger(TestLogger):
         self.running_tests.remove(result)
         if not harness.options.quiet or not result.res.is_ok():
             self.clear_progress()
-            print(harness.format(result, mlog.colorize_console()))
+            print(harness.format(result, mlog.colorize_console()), flush=True)
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
