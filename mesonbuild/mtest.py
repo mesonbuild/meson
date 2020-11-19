@@ -870,13 +870,15 @@ class TestHarness:
         self.success_count = 0
         self.skip_count = 0
         self.timeout_count = 0
+        self.test_count = 0
+        self.name_max_len = 0
         self.is_run = False
-        self.tests = None
         self.results = []         # type: T.List[TestRun]
         self.logfilename = None   # type: T.Optional[str]
         self.logfile = None       # type: T.Optional[T.TextIO]
         self.jsonlogfile = None   # type: T.Optional[T.TextIO]
         self.junit = None         # type: T.Optional[JunitBuilder]
+
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
         else:
@@ -958,16 +960,15 @@ class TestHarness:
         else:
             sys.exit('Unknown test result encountered: {}'.format(result.res))
 
-    def print_stats(self, test_count: int, name_max_len: int,
-                    result: TestRun) -> None:
+    def print_stats(self, result: TestRun) -> None:
         ok_statuses = (TestResult.OK, TestResult.EXPECTEDFAIL)
         bad_statuses = (TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR)
         result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res:{reslen}} {dur:.2f}s'.format(
-            numlen=len(str(test_count)),
+            numlen=len(str(self.test_count)),
             num=result.num,
-            testcount=test_count,
-            name_max_len=name_max_len,
+            testcount=self.test_count,
+            name_max_len=self.name_max_len,
             name=result.name,
             reslen=TestResult.maxlen(),
             res=result.res.value,
@@ -1051,6 +1052,8 @@ class TestHarness:
             # wrapper script.
             sys.exit(125)
 
+        self.test_count = len(tests)
+        self.name_max_len = max([len(self.get_pretty_suite(test)) for test in tests])
         self.run_tests(tests)
         return self.total_failure_count()
 
@@ -1203,8 +1206,6 @@ class TestHarness:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
         running_tests = dict() # type: T.Dict[asyncio.Future, str]
-        test_count = len(tests)
-        name_max_len = max([len(self.get_pretty_suite(test)) for test in tests])
         self.open_log_files()
         startdir = os.getcwd()
         if self.options.wd:
@@ -1218,7 +1219,7 @@ class TestHarness:
                     return
                 res = await test.run()
                 self.process_test_result(res)
-                self.print_stats(test_count, name_max_len, res)
+                self.print_stats(res)
 
         def test_done(f: asyncio.Future) -> None:
             if not f.cancelled():
