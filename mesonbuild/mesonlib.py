@@ -22,6 +22,7 @@ import collections
 from enum import IntEnum
 from functools import lru_cache, wraps
 from itertools import tee, filterfalse
+from tempfile import TemporaryDirectory
 import typing as T
 import uuid
 import textwrap
@@ -1450,6 +1451,25 @@ def windows_proof_rm(fpath: str) -> None:
         except OSError:
             time.sleep(d)
     os.unlink(fpath)
+
+
+class TemporaryDirectoryWinProof(TemporaryDirectory):
+    """
+    Like TemporaryDirectory, but cleans things up using
+    windows_proof_rmtree()
+    """
+
+    def __exit__(self, exc: T.Any, value: T.Any, tb: T.Any) -> None:
+        try:
+            super().__exit__(exc, value, tb)
+        except OSError:
+            windows_proof_rmtree(self.name)
+
+    def cleanup(self) -> None:
+        try:
+            super().cleanup()
+        except OSError:
+            windows_proof_rmtree(self.name)
 
 
 def detect_subprojects(spdir_name: str, current_dir: str = '',
