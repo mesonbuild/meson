@@ -110,7 +110,7 @@ def string_array_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredat
         for i in choices:
             if not isinstance(i, str):
                 raise OptionException('Array choice elements must be strings.')
-            value = kwargs.get('value', choices)
+        value = kwargs.get('value', choices)
     else:
         choices = None
         value = kwargs.get('value', [])
