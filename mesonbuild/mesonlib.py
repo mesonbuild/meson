@@ -70,9 +70,13 @@ meson_command = None
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
-    file = None    # type: T.Optional[str]
-    lineno = None  # type: T.Optional[int]
-    colno = None   # type: T.Optional[int]
+    def __init__(self, *args: object, file: T.Optional[str] = None,
+                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+        super().__init__(*args)
+        self.file = file
+        self.lineno = lineno
+        self.colno = colno
+
 
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
