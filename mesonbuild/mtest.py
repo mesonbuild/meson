@@ -923,9 +923,6 @@ class TestHarness:
                 ss.add(s)
         self.suites = list(ss)
 
-    def __del__(self) -> None:
-        self.close_logfiles()
-
     def __enter__(self) -> 'TestHarness':
         return self
 
@@ -1173,7 +1170,7 @@ class TestHarness:
 
         return tests
 
-    def open_log_files(self) -> None:
+    def open_logfiles(self) -> None:
         if not self.options.logbase or self.options.verbose:
             return
 
@@ -1224,15 +1221,18 @@ class TestHarness:
             return test.name
 
     def run_tests(self, tests: T.List[TestSerialisation]) -> None:
-        # Replace with asyncio.run once we can require Python 3.7
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(self._run_tests(tests))
+        try:
+            self.open_logfiles()
+            # Replace with asyncio.run once we can require Python 3.7
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self._run_tests(tests))
+        finally:
+            self.close_logfiles()
 
     async def _run_tests(self, tests: T.List[TestSerialisation]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
         running_tests = dict() # type: T.Dict[asyncio.Future, str]
-        self.open_log_files()
         startdir = os.getcwd()
         if self.options.wd:
             os.chdir(self.options.wd)
