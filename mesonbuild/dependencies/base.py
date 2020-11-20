@@ -27,7 +27,7 @@ import textwrap
 import platform
 import typing as T
 from enum import Enum
-from .._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 
 from .. import mlog
 from .. import mesonlib

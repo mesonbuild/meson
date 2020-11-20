@@ -17,7 +17,7 @@
 from concurrent.futures import ProcessPoolExecutor, CancelledError
 from enum import Enum
 from io import StringIO
-from mesonbuild._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 import argparse
 import functools
 import itertools

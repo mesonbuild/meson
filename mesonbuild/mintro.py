@@ -28,7 +28,7 @@ from . import mlog
 from .backend import backends
 from .mparser import BaseNode, FunctionNode, ArrayNode, ArgumentNode, StringNode
 from .interpreter import Interpreter
-from ._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 import typing as T
 import os
 import argparse

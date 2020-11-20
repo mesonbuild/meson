@@ -1,6 +1,6 @@
 import os, subprocess
 import argparse
-from ._pathlib import Path
+from pathlib import Path
 
 from . import mlog
 from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException, windows_proof_rmtree

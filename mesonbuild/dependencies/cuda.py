@@ -16,7 +16,7 @@ import glob
 import re
 import os
 import typing as T
-from .._pathlib import Path
+from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib

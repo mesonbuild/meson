@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .._pathlib import Path
+from pathlib import Path
 from ..envconfig import CMakeSkipCompilerTest
 from ..mesonlib import MachineChoice
 from .common import language_map

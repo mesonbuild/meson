@@ -40,7 +40,7 @@ from unittest import mock
 from configparser import ConfigParser
 from contextlib import contextmanager
 from glob import glob
-from mesonbuild._pathlib import (PurePath, Path)
+from pathlib import (PurePath, Path)
 from distutils.dir_util import copy_tree
 import typing as T
 
