@@ -218,16 +218,6 @@ class OptionInterpreter:
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
 
-        if 'yield' in kwargs:
-            FeatureNew.single_use('option yield', '0.45.0', self.subproject)
-
-        if 'type' not in kwargs:
-            raise OptionException('Option call missing mandatory "type" keyword argument')
-        opt_type = kwargs.pop('type')
-        if not isinstance(opt_type, str):
-            raise OptionException('option() type must be a string')
-        if opt_type not in option_types:
-            raise OptionException('Unknown type %s.' % opt_type)
         if len(posargs) != 1:
             raise OptionException('Option() must have one (and only one) positional argument')
         opt_name = posargs[0]
@@ -239,9 +229,22 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
+
+        if 'yield' in kwargs:
+            FeatureNew.single_use('option yield', '0.45.0', self.subproject)
+
+        if 'type' not in kwargs:
+            raise OptionException('Option call missing mandatory "type" keyword argument')
+        opt_type = kwargs.pop('type')
+        if not isinstance(opt_type, str):
+            raise OptionException('option() type must be a string')
+        if opt_type not in option_types:
+            raise OptionException('Unknown type %s.' % opt_type)
+
         description = kwargs.pop('description', '')
         if not isinstance(description, str):
             raise OptionException('Option descriptions must be strings.')
+
         opt = option_types[opt_type](opt_name, description, kwargs)
         if opt.description == '':
             opt.description = opt_name
