@@ -224,21 +224,6 @@ class TestDef:
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
 
-class AutoDeletedDir:
-    def __init__(self, d):
-        self.dir = d
-
-    def __enter__(self):
-        os.makedirs(self.dir, exist_ok=True)
-        return self.dir
-
-    def __exit__(self, _type, value, traceback):
-        # We don't use tempfile.TemporaryDirectory, but wrap the
-        # deletion in the AutoDeletedDir class because
-        # it fails on Windows due antivirus programs
-        # holding files open.
-        mesonlib.windows_proof_rmtree(self.dir)
-
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
 under_ci = 'CI' in os.environ
@@ -519,7 +504,8 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
 def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
     if test.skip:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(test, use_tmp)) as build_dir:
+    build_dir = create_deterministic_builddir(test, use_tmp)
+    try:
         with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
             try:
                 return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
@@ -527,6 +513,8 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
                 return r
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
+    finally:
+        mesonlib.windows_proof_rmtree(build_dir)
 
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
