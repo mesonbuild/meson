@@ -1050,7 +1050,7 @@ class TestHarness:
                     try:
                         print(line)
                     except UnicodeEncodeError:
-                        line = line.encode('ascii', errors='replace').decode()
+                        line = line.encode('ascii', errors='backslashreplace').decode('ascii')
                         print(line)
 
     def total_failure_count(self) -> int:
