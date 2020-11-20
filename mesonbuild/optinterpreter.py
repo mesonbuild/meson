@@ -62,19 +62,19 @@ def permitted_kwargs(permitted: T.Set[str]) -> T.Callable[..., T.Any]:
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 @permitted_kwargs({'value', 'yield'})
-def StringParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserStringOption:
+def string_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserStringOption:
     return coredata.UserStringOption(description,
                                      kwargs.get('value', ''),
                                      kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def BooleanParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserBooleanOption:
+def boolean_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserBooleanOption:
     return coredata.UserBooleanOption(description,
                                       kwargs.get('value', True),
                                       kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield', 'choices'})
-def ComboParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
+def combo_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
     choices = kwargs['choices']
@@ -90,7 +90,7 @@ def ComboParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserCo
 
 
 @permitted_kwargs({'value', 'min', 'max', 'yield'})
-def IntegerParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
+def integer_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
     if 'value' not in kwargs:
         raise OptionException('Integer option must contain value argument.')
     inttuple = (kwargs.get('min', None), kwargs.get('max', None), kwargs['value'])
@@ -122,17 +122,17 @@ def string_array_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredat
                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def FeatureParser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserFeatureOption:
+def feature_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserFeatureOption:
     return coredata.UserFeatureOption(description,
                                       kwargs.get('value', 'auto'),
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
-option_types = {'string': StringParser,
-                'boolean': BooleanParser,
-                'combo': ComboParser,
-                'integer': IntegerParser,
+option_types = {'string': string_parser,
+                'boolean': boolean_parser,
+                'combo': combo_parser,
+                'integer': integer_parser,
                 'array': string_array_parser,
-                'feature': FeatureParser,
+                'feature': feature_parser,
                 } # type: T.Dict[str, T.Callable[[str, str, T.Dict[str, T.Any]], coredata.UserOption]]
 
 class OptionInterpreter:
