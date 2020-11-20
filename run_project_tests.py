@@ -42,7 +42,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.build import ConfigurationData
-from mesonbuild.mesonlib import MachineChoice, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
 from mesonbuild.coredata import backendlist, version as meson_version
 
 from run_tests import get_fake_options, run_configure, get_meson_script
@@ -520,7 +520,7 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
     if test.skip:
         return None
     with AutoDeletedDir(create_deterministic_builddir(test, use_tmp)) as build_dir:
-        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=None if use_tmp else os.getcwd())) as install_dir:
+        with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
             try:
                 return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             except TestResult as r:
@@ -790,7 +790,7 @@ def have_d_compiler():
     return False
 
 def have_objc_compiler(use_tmp: bool) -> bool:
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
@@ -806,7 +806,7 @@ def have_objc_compiler(use_tmp: bool) -> bool:
     return True
 
 def have_objcpp_compiler(use_tmp: bool) -> bool:
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
@@ -1190,7 +1190,7 @@ def check_meson_commands_work(options):
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
         gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
         pc, o, e = Popen_safe(gen_cmd)
@@ -1220,7 +1220,7 @@ def check_meson_commands_work(options):
 def detect_system_compiler(options):
     global host_c_compiler, compiler_id_map
 
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
         fake_opts = get_fake_options('/')
         if options.cross_file:
             fake_opts.cross_file = [options.cross_file]
