@@ -1074,6 +1074,8 @@ int dummy;
         self.rules = []
         self.ruledict = {}
 
+        self.add_rule_comment(NinjaComment('Rules for module scanning.'))
+        self.generate_scanner_rules()
         self.add_rule_comment(NinjaComment('Rules for compiling.'))
         self.generate_compile_rules()
         self.add_rule_comment(NinjaComment('Rules for linking.'))
@@ -1107,6 +1109,8 @@ int dummy;
         self.build_elements.append(comment)
 
     def add_rule(self, rule):
+        if rule.name in self.ruledict:
+            raise MesonException('Tried to add rule {} twice.'.format(rule.name))
         self.rules.append(rule)
         self.ruledict[rule.name] = rule
 
@@ -1956,6 +1960,26 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             depfile = '$DEPFILE'
         self.add_rule(NinjaRule(rule, command, [], description, deps=deps,
                                 depfile=depfile))
+
+
+    def generate_scanner_rules(self):
+        scanner_languages = {'cpp'} # Fixme, add Fortran.
+        for for_machine in MachineChoice:
+            clist = self.environment.coredata.compilers[for_machine]
+            for langname, compiler in clist.items():
+                if langname not in scanner_languages:
+                    continue
+                rulename = '{}scan'.format(langname)
+                if rulename in self.ruledict:
+                    # Scanning command is the same for native and cross compilation.
+                    continue
+                command = cmd = self.environment.get_build_command() + \
+                    ['--internal', 'scan']
+                args = ['$picklefile', '$out', '$in']
+                description = 'Module scanner for {}.'.format(langname)
+                rule = NinjaRule(rulename, command, args, description)
+                self.add_rule(rule)
+
 
     def generate_compile_rules(self):
         for for_machine in MachineChoice:
