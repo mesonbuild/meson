@@ -26,6 +26,8 @@ The dependency method is the recommend as a way to handle dependenceis. If your 
 have the necessary `[provide]` entries, everything will work automatically both when
 compiling your own and when using system dependencies.
 
+You should only need `subprojects` when you need to extract non dependencies/programs.
+
 ## Naming options
 
 There are two ways of naming project options. As an example for
