@@ -134,6 +134,11 @@ Please report this error with a test case to the Meson bug tracker.'''.format(te
         raise MesonException(errmsg)
     return quote_re.sub(r'$\g<0>', text)
 
+class TargetDependencyScannerInfo:
+    def __init__(self, private_dir, source2object):
+        self.private_dir = private_dir
+        self.source2object = source2object
+
 @unique
 class Quoting(Enum):
     both = 0
@@ -683,6 +688,10 @@ int dummy;
         return False
 
     def generate_target(self, target):
+        try:
+            os.makedirs(self.get_target_private_dir_abs(target))
+        except FileExistsError:
+            pass
         if isinstance(target, build.CustomTarget):
             self.generate_custom_target(target)
         if isinstance(target, build.RunTarget):
@@ -843,7 +852,7 @@ int dummy;
                     o, s = self.generate_single_compile(target, src, False, [], header_deps)
                     obj_list.append(o)
                     compiled_sources.append(s)
-                    source2object[src] = o
+                    source2object[s] = o
 
         obj_list += self.flatten_object_list(target)
         if is_unity:
@@ -851,7 +860,7 @@ int dummy;
                 o, s = self.generate_single_compile(target, src, True, unity_deps + header_deps)
                 obj_list.append(o)
                 compiled_sources.append(s)
-                source2object[src] = o
+                source2object[s] = o
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
         if isinstance(target, build.StaticLibrary) and target.prelink:
             final_obj_list = self.generate_prelink(target, obj_list)
@@ -866,10 +875,15 @@ int dummy;
         if 'cpp' not in target.compilers:
             return
         depscan_file = self.get_dep_scan_file_for(target)
-        pickle_file = os.path.join(self.get_target_private_dir(target), target.name + '.dat').replace('\\', '/')
+        pickle_base = target.name + '.dat'
+        pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
+        pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
         rule_name = 'cppscan'
         elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, compiled_sources)
         elem.add_item('picklefile', pickle_file)
+        scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
+        with open(pickle_abs, 'wb') as p:
+            pickle.dump(scaninfo, p)
         self.add_build(elem)
 
     def process_target_dependencies(self, target):
@@ -1998,7 +2012,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                     # Scanning command is the same for native and cross compilation.
                     continue
                 command = cmd = self.environment.get_build_command() + \
-                    ['--internal', 'scan']
+                    ['--internal', 'depscan']
                 args = ['$picklefile', '$out', '$in']
                 description = 'Module scanner for {}.'.format(langname)
                 rule = NinjaRule(rulename, command, args, description)
@@ -2490,7 +2504,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
         self.add_dependency_scanner_entries_to_element(target, compiler, element)
         self.add_build(element)
-        return (rel_obj, rel_src)
+        assert(isinstance(rel_obj, str))
+        assert(isinstance(rel_src, str))
+        return (rel_obj, rel_src.replace('\\', '/'))
 
     def add_dependency_scanner_entries_to_element(self, target, compiler, element):
         if compiler.get_language() != 'cpp':
