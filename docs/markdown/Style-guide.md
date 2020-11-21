@@ -22,8 +22,8 @@ Let say you would like to refer to your executable so something like `my_exe`.
 
 ## Dependency usage
 
-The dependency method is the recommend as a way to do things. If your wrap files
-have the necessary [provide] entries, everything will work automatically both when
+The dependency method is the recommend as a way to handle dependenceis. If your wrap files
+have the necessary `[provide]` entries, everything will work automatically both when
 compiling your own and when using system dependencies.
 
 ## Naming options
