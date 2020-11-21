@@ -68,6 +68,7 @@ lang_suffixes = {
     'cs': ('cs',),
     'swift': ('swift',),
     'java': ('java',),
+    'zig': ('zig',),
 }  # type: T.Dict[str, T.Tuple[str, ...]]
 all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)  # type: T.Tuple[str, ...]
@@ -77,7 +78,7 @@ c_suffixes = lang_suffixes['c'] + ('h',)  # type: T.Tuple[str, ...]
 clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)  # type: T.Tuple[str, ...]
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
-clink_langs = ('d', 'cuda') + clib_langs  # type: T.Tuple[str, ...]
+clink_langs = ('d', 'cuda',) + clib_langs  # type: T.Tuple[str, ...]
 clink_suffixes = tuple()  # type: T.Tuple[str, ...]
 for _l in clink_langs + ('vala',):
     clink_suffixes += lang_suffixes[_l]
