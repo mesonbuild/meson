@@ -20,7 +20,11 @@ from . import compilers
 from . import coredata
 from . import mesonlib
 from . import mparser
+from . import mlog
 from .interpreterbase import FeatureNew
+
+if T.TYPE_CHECKING:
+    from .interpreterbase import TV_func
 
 forbidden_option_names = set(coredata.BUILTIN_OPTIONS.keys())
 forbidden_prefixes = [lang + '_' for lang in compilers.all_languages] + ['b_', 'backend_']
@@ -34,7 +38,6 @@ def is_invalid_name(name: str, *, log: bool = True) -> bool:
         return True
     if pref in reserved_prefixes:
         if log:
-            from . import mlog
             mlog.deprecation('Option uses prefix "%s", which is reserved for Meson. This will become an error in the future.' % pref)
     return False
 
@@ -42,36 +45,36 @@ class OptionException(mesonlib.MesonException):
     pass
 
 
-def permitted_kwargs(permitted):
+def permitted_kwargs(permitted: T.Set[str]) -> T.Callable[..., T.Any]:
     """Function that validates kwargs for options."""
-    def _wraps(func):
+    def _wraps(func: 'TV_func') -> 'TV_func':
         @functools.wraps(func)
-        def _inner(name, description, kwargs):
+        def _inner(name: str, description: str, kwargs: T.Dict[str, T.Any]) -> T.Any:
             bad = [a for a in kwargs.keys() if a not in permitted]
             if bad:
                 raise OptionException('Invalid kwargs for option "{}": "{}"'.format(
                     name, ' '.join(bad)))
             return func(description, kwargs)
-        return _inner
+        return T.cast('TV_func', _inner)
     return _wraps
 
 
 optname_regex = re.compile('[^a-zA-Z0-9_-]')
 
 @permitted_kwargs({'value', 'yield'})
-def StringParser(description, kwargs):
+def string_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserStringOption:
     return coredata.UserStringOption(description,
                                      kwargs.get('value', ''),
                                      kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def BooleanParser(description, kwargs):
+def boolean_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserBooleanOption:
     return coredata.UserBooleanOption(description,
                                       kwargs.get('value', True),
                                       kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield', 'choices'})
-def ComboParser(description, kwargs):
+def combo_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserComboOption:
     if 'choices' not in kwargs:
         raise OptionException('Combo option missing "choices" keyword.')
     choices = kwargs['choices']
@@ -87,7 +90,7 @@ def ComboParser(description, kwargs):
 
 
 @permitted_kwargs({'value', 'min', 'max', 'yield'})
-def IntegerParser(description, kwargs):
+def integer_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserIntegerOption:
     if 'value' not in kwargs:
         raise OptionException('Integer option must contain value argument.')
     inttuple = (kwargs.get('min', None), kwargs.get('max', None), kwargs['value'])
@@ -99,7 +102,7 @@ def IntegerParser(description, kwargs):
 # reading options in project(). See func_project() in interpreter.py
 #@FeatureNew('array type option()', '0.44.0')
 @permitted_kwargs({'value', 'yield', 'choices'})
-def string_array_parser(description, kwargs):
+def string_array_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserArrayOption:
     if 'choices' in kwargs:
         choices = kwargs['choices']
         if not isinstance(choices, list):
@@ -107,7 +110,7 @@ def string_array_parser(description, kwargs):
         for i in choices:
             if not isinstance(i, str):
                 raise OptionException('Array choice elements must be strings.')
-            value = kwargs.get('value', choices)
+        value = kwargs.get('value', choices)
     else:
         choices = None
         value = kwargs.get('value', [])
@@ -119,22 +122,22 @@ def string_array_parser(description, kwargs):
                                     yielding=kwargs.get('yield', coredata.default_yielding))
 
 @permitted_kwargs({'value', 'yield'})
-def FeatureParser(description, kwargs):
+def feature_parser(description: str, kwargs: T.Dict[str, T.Any]) -> coredata.UserFeatureOption:
     return coredata.UserFeatureOption(description,
                                       kwargs.get('value', 'auto'),
                                       yielding=kwargs.get('yield', coredata.default_yielding))
 
-option_types = {'string': StringParser,
-                'boolean': BooleanParser,
-                'combo': ComboParser,
-                'integer': IntegerParser,
+option_types = {'string': string_parser,
+                'boolean': boolean_parser,
+                'combo': combo_parser,
+                'integer': integer_parser,
                 'array': string_array_parser,
-                'feature': FeatureParser,
-                } # type: T.Dict[str, T.Callable[[str, T.Dict], coredata.UserOption]]
+                'feature': feature_parser,
+                } # type: T.Dict[str, T.Callable[[str, str, T.Dict[str, T.Any]], coredata.UserOption]]
 
 class OptionInterpreter:
     def __init__(self, subproject: str) -> None:
-        self.options = {}
+        self.options: T.Dict[str, coredata.UserOption] = {}
         self.subproject = subproject
 
     def process(self, option_file: str) -> None:
@@ -152,20 +155,25 @@ class OptionInterpreter:
         for cur in ast.lines:
             try:
                 self.evaluate_statement(cur)
-            except Exception as e:
+            except mesonlib.MesonException as e:
                 e.lineno = cur.lineno
                 e.colno = cur.colno
                 e.file = option_file
                 raise e
+            except Exception as e:
+                raise mesonlib.MesonException(
+                    str(e), lineno=cur.lineno, colno=cur.colno, file=option_file)
 
-    def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> T.Union[str, int, bool]:
+    def reduce_single(self, arg: T.Union[str, mparser.BaseNode]) -> T.Union[str, int, bool, T.Sequence[T.Union[str, int, bool]]]:
         if isinstance(arg, str):
             return arg
         elif isinstance(arg, (mparser.StringNode, mparser.BooleanNode,
                               mparser.NumberNode)):
             return arg.value
         elif isinstance(arg, mparser.ArrayNode):
-            return [self.reduce_single(curarg) for curarg in arg.args.arguments]
+            lr = [self.reduce_single(curarg) for curarg in arg.args.arguments]
+            # mypy really struggles with recursive flattening, help it out
+            return T.cast(T.Sequence[T.Union[str, int, bool]], lr)
         elif isinstance(arg, mparser.UMinusNode):
             res = self.reduce_single(arg.value)
             if not isinstance(res, (int, float)):
@@ -188,8 +196,9 @@ class OptionInterpreter:
         else:
             raise OptionException('Arguments may only be string, int, bool, or array of those.')
 
-    def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple[T.List[T.Union[str, int, bool]], T.Dict[str, T.Union[str, int, bool]]]:
-        assert(isinstance(args, mparser.ArgumentNode))
+    def reduce_arguments(self, args: mparser.ArgumentNode) -> T.Tuple[
+            T.List[T.Union[str, int, bool, T.Sequence[T.Union[str, int, bool]]]],
+            T.Dict[str, T.Union[str, int, bool, T.Sequence[T.Union[str, int, bool]]]]]:
         if args.incorrect_order():
             raise OptionException('All keyword arguments must be after positional arguments.')
         reduced_pos = [self.reduce_single(arg) for arg in args.arguments]
@@ -209,14 +218,6 @@ class OptionInterpreter:
             raise OptionException('Only calls to option() are allowed in option files.')
         (posargs, kwargs) = self.reduce_arguments(node.args)
 
-        if 'yield' in kwargs:
-            FeatureNew.single_use('option yield', '0.45.0', self.subproject)
-
-        if 'type' not in kwargs:
-            raise OptionException('Option call missing mandatory "type" keyword argument')
-        opt_type = kwargs.pop('type')
-        if opt_type not in option_types:
-            raise OptionException('Unknown type %s.' % opt_type)
         if len(posargs) != 1:
             raise OptionException('Option() must have one (and only one) positional argument')
         opt_name = posargs[0]
@@ -228,7 +229,23 @@ class OptionInterpreter:
             raise OptionException('Option name %s is reserved.' % opt_name)
         if self.subproject != '':
             opt_name = self.subproject + ':' + opt_name
-        opt = option_types[opt_type](opt_name, kwargs.pop('description', ''), kwargs)
+
+        if 'yield' in kwargs:
+            FeatureNew.single_use('option yield', '0.45.0', self.subproject)
+
+        if 'type' not in kwargs:
+            raise OptionException('Option call missing mandatory "type" keyword argument')
+        opt_type = kwargs.pop('type')
+        if not isinstance(opt_type, str):
+            raise OptionException('option() type must be a string')
+        if opt_type not in option_types:
+            raise OptionException('Unknown type %s.' % opt_type)
+
+        description = kwargs.pop('description', '')
+        if not isinstance(description, str):
+            raise OptionException('Option descriptions must be strings.')
+
+        opt = option_types[opt_type](opt_name, description, kwargs)
         if opt.description == '':
             opt.description = opt_name
         self.options[opt_name] = opt

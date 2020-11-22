@@ -32,6 +32,7 @@ modules = [
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
     'mesonbuild/mtest.py',
+    'mesonbuild/optinterpreter.py',
 
     'run_mypy.py',
     'tools'
