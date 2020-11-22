@@ -14,7 +14,7 @@
 
 # This file contains the detection logic for miscellaneous external dependencies.
 
-from .._pathlib import Path
+from pathlib import Path
 import functools
 import re
 import sysconfig

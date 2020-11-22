@@ -16,7 +16,7 @@
 
 import typing as T
 import os
-from ..._pathlib import Path
+from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
 

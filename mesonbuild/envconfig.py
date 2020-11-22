@@ -19,7 +19,7 @@ from enum import Enum
 from . import mesonlib
 from .mesonlib import EnvironmentException, MachineChoice, PerMachine, split_args
 from . import mlog
-from ._pathlib import Path
+from pathlib import Path
 
 _T = T.TypeVar('_T')
 

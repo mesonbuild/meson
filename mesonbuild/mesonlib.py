@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """A library of random helper functionality."""
-from ._pathlib import Path
+from pathlib import Path
 import sys
 import stat
 import time
@@ -1211,7 +1211,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
     # up the console and ANSI colors will stop working on Windows.
     if 'stdin' not in kwargs:
         kwargs['stdin'] = subprocess.DEVNULL
-    if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
+    if not sys.stdout.encoding or encoding.upper() != 'UTF-8':
         p, o, e = Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
     else:
         p = subprocess.Popen(args, universal_newlines=True, close_fds=False,

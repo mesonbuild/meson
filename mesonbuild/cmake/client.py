@@ -19,7 +19,7 @@ from .common import CMakeException, CMakeConfiguration, CMakeBuildFile
 from .. import mlog
 from contextlib import contextmanager
 from subprocess import Popen, PIPE, TimeoutExpired
-from .._pathlib import Path
+from pathlib import Path
 import typing as T
 import json
 

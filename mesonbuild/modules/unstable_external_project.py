@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, subprocess, shlex
-from .._pathlib import Path
+from pathlib import Path
 import typing as T
 
 from . import ExtensionModule, ModuleReturnValue

@@ -16,7 +16,7 @@ from . import mlog, mparser
 import pickle, os, uuid
 import sys
 from itertools import chain
-from ._pathlib import PurePath
+from pathlib import PurePath
 from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,

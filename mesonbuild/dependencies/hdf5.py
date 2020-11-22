@@ -19,7 +19,7 @@ import os
 import re
 import shutil
 import subprocess
-from .._pathlib import Path
+from pathlib import Path
 
 from ..mesonlib import OrderedSet, join_args
 from .base import (

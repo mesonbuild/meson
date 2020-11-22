@@ -19,7 +19,7 @@ import time
 import platform
 import typing as T
 from contextlib import contextmanager
-from ._pathlib import Path
+from pathlib import Path
 
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,

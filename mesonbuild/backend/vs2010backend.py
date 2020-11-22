@@ -19,7 +19,7 @@ import xml.dom.minidom
 import xml.etree.ElementTree as ET
 import uuid
 import typing as T
-from .._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 
 from . import backends
 from .. import build

@@ -14,7 +14,7 @@
 
 """Code that creates simple startup projects."""
 
-from ._pathlib import Path
+from pathlib import Path
 from enum import Enum
 import subprocess
 import shutil

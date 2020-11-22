@@ -36,7 +36,7 @@ from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
 from .backend.backends import TestProtocol, Backend
 
-from ._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 import os
 import shutil
 import uuid
