@@ -5,12 +5,12 @@ on:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
-      - ".github/workflows/msys.yml"
+      - ".github/workflows/msys2.yml"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
-      - ".github/workflows/msys.yml"
+      - ".github/workflows/msys2.yml"
 
 jobs:
   test:
