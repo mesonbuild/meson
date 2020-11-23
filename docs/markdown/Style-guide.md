@@ -26,7 +26,7 @@ The `dependency` function is the recommended way to handle dependencies. If your
 have the necessary `[provide]` entries, everything will work automatically both when
 compiling your own and when using system dependencies.
 
-You should only need `subprojects` when you need to extract non dependencies/programs.
+You should only need `subproject` when you need to extract non dependencies/programs.
 
 ## Naming options
 
