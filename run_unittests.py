@@ -92,7 +92,7 @@ def chdir(path: str):
         os.chdir(curdir)
 
 
-def get_dynamic_section_entry(fname, entry):
+def get_dynamic_section_entry(fname: str, entry: str) -> T.Optional[str]:
     if is_cygwin() or is_osx():
         raise unittest.SkipTest('Test only applicable to ELF platforms')
 
@@ -106,14 +106,21 @@ def get_dynamic_section_entry(fname, entry):
     for line in raw_out.split('\n'):
         m = pattern.search(line)
         if m is not None:
-            return m.group(1)
+            return str(m.group(1))
     return None # The file did not contain the specified entry.
 
-def get_soname(fname):
+def get_soname(fname: str) -> T.Optional[str]:
     return get_dynamic_section_entry(fname, 'soname')
 
-def get_rpath(fname):
-    return get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+def get_rpath(fname: str) -> T.Optional[str]:
+    raw = get_dynamic_section_entry(fname, r'(?:rpath|runpath)')
+    # Get both '' and None here
+    if not raw:
+        return None
+    # nix/nixos adds a bunch of stuff to the rpath out of necessity that we
+    # don't check for, so clear those
+    final = ':'.join([e for e in raw.split(':') if not e.startswith('/nix')])
+    return final
 
 def is_tarball():
     if not os.path.isdir('docs'):
@@ -126,7 +133,15 @@ def is_ci():
     return False
 
 def _git_init(project_dir):
-    subprocess.check_call(['git', 'init'], cwd=project_dir, stdout=subprocess.DEVNULL)
+    # If a user has git configuration init.defaultBranch set we want to override that
+    with tempfile.TemporaryDirectory() as d:
+        out = git(['--version'], str(d))[1]
+    if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+        extra_cmd = ['--initial-branch', 'master']
+    else:
+        extra_cmd = []
+
+    subprocess.check_call(['git', 'init'] + extra_cmd, cwd=project_dir, stdout=subprocess.DEVNULL)
     subprocess.check_call(['git', 'config',
                            'user.name', 'Author Person'], cwd=project_dir)
     subprocess.check_call(['git', 'config',
@@ -3452,53 +3467,15 @@ class AllPlatformTests(BasePlatformTests):
         ninja = detect_ninja()
         if ninja is None:
             raise unittest.SkipTest('This test currently requires ninja. Fix this once "meson build" works.')
+
         langs = ['c']
         env = get_fake_env()
-        try:
-            env.detect_cpp_compiler(MachineChoice.HOST)
-            langs.append('cpp')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_cs_compiler(MachineChoice.HOST)
-            langs.append('cs')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_d_compiler(MachineChoice.HOST)
-            langs.append('d')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_java_compiler(MachineChoice.HOST)
-            langs.append('java')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_cuda_compiler(MachineChoice.HOST)
-            langs.append('cuda')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_fortran_compiler(MachineChoice.HOST)
-            langs.append('fortran')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_objc_compiler(MachineChoice.HOST)
-            langs.append('objc')
-        except EnvironmentException:
-            pass
-        try:
-            env.detect_objcpp_compiler(MachineChoice.HOST)
-            langs.append('objcpp')
-        except EnvironmentException:
-            pass
-        # FIXME: omitting rust as Windows AppVeyor CI finds Rust but doesn't link correctly
-        if not is_windows():
+        for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
             try:
-                env.detect_rust_compiler(MachineChoice.HOST)
-                langs.append('rust')
+                comp = getattr(env, f'detect_{l}_compiler')(MachineChoice.HOST)
+                with tempfile.TemporaryDirectory() as d:
+                    comp.sanity_check(d, env)
+                langs.append(l)
             except EnvironmentException:
                 pass
 
@@ -3513,12 +3490,12 @@ class AllPlatformTests(BasePlatformTests):
                     self._run(ninja,
                               workdir=os.path.join(tmpdir, 'builddir'))
             # test directory with existing code file
-            if lang in ('c', 'cpp', 'd'):
+            if lang in {'c', 'cpp', 'd'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'foo.' + lang), 'w') as f:
                         f.write('int main(void) {}')
                     self._run(self.meson_command + ['init', '-b'], workdir=tmpdir)
-            elif lang in ('java'):
+            elif lang in {'java'}:
                 with tempfile.TemporaryDirectory() as tmpdir:
                     with open(os.path.join(tmpdir, 'Foo.' + lang), 'w') as f:
                         f.write('public class Foo { public static void main() {} }')
@@ -6786,13 +6763,16 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '11 cross prog')
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         print(os.path.join(testdir, 'some_cross_tool.py'))
-        crossfile.write(textwrap.dedent('''\
+
+        tool_path = os.path.join(testdir, 'some_cross_tool.py')
+
+        crossfile.write(textwrap.dedent(f'''\
             [binaries]
-            c = '/usr/bin/{1}'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
-            sometool.py = ['{0}']
-            someothertool.py = '{0}'
+            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            ar = '{shutil.which('ar')}'
+            strip = '{shutil.which('strip')}'
+            sometool.py = ['{tool_path}']
+            someothertool.py = '{tool_path}'
 
             [properties]
 
@@ -6801,8 +6781,7 @@ class LinuxlikeTests(BasePlatformTests):
             cpu_family = 'arm'
             cpu = 'armv7' # Not sure if correct.
             endian = 'little'
-            ''').format(os.path.join(testdir, 'some_cross_tool.py'),
-                        'gcc' if is_sunos() else 'cc'))
+            '''))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
         self.init(testdir)
@@ -8521,29 +8500,23 @@ class CrossFileTests(BasePlatformTests):
                               exe_wrapper: T.Optional[T.List[str]] = None) -> str:
         if is_windows():
             raise unittest.SkipTest('Cannot run this test on non-mingw/non-cygwin windows')
-        if is_sunos():
-            cc = 'gcc'
-        else:
-            cc = 'cc'
 
-        return textwrap.dedent("""\
+        return textwrap.dedent(f"""\
             [binaries]
-            c = '/usr/bin/{}'
-            ar = '/usr/bin/ar'
-            strip = '/usr/bin/ar'
-            {}
+            c = '{shutil.which('gcc' if is_sunos() else 'cc')}'
+            ar = '{shutil.which('ar')}'
+            strip = '{shutil.which('strip')}'
+            exe_wrapper = {str(exe_wrapper) if exe_wrapper is not None else '[]'}
 
             [properties]
-            needs_exe_wrapper = {}
+            needs_exe_wrapper = {needs_exe_wrapper}
 
             [host_machine]
             system = 'linux'
             cpu_family = 'x86'
             cpu = 'i686'
             endian = 'little'
-            """.format(cc,
-                       'exe_wrapper = {}'.format(str(exe_wrapper)) if exe_wrapper is not None else '',
-                       needs_exe_wrapper))
+            """)
 
     def _stub_exe_wrapper(self) -> str:
         return textwrap.dedent('''\
@@ -9112,8 +9085,16 @@ class SubprojectsCommandTests(BasePlatformTests):
         return self._git_remote(['rev-parse', ref], name)
 
     def _git_create_repo(self, path):
+        # If a user has git configuration init.defaultBranch set we want to override that
+        with tempfile.TemporaryDirectory() as d:
+            out = git(['--version'], str(d))[1]
+        if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+            extra_cmd = ['--initial-branch', 'master']
+        else:
+            extra_cmd = []
+
         self._create_project(path)
-        self._git(['init'], path)
+        self._git(['init'] + extra_cmd, path)
         self._git_config(path)
         self._git(['add', '.'], path)
         self._git(['commit', '-m', 'Initial commit'], path)
