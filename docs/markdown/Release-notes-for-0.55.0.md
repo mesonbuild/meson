@@ -238,7 +238,7 @@ force fallback for specific subprojects.
 Example:
 
 ```
-meson build --force-fallback-for=foo,bar
+meson builddir/ --force-fallback-for=foo,bar
 ```
 
 ## Implicit dependency fallback

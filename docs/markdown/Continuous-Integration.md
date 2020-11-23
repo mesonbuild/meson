@@ -221,10 +221,10 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
-    - run: meson setup build
+    - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C build -v
+    - run: meson test -C builddir/ -v
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
@@ -240,10 +240,10 @@ jobs:
         python-version: '3.x'
     - run: brew install gcc
     - run: pip install meson ninja
-    - run: meson setup build
+    - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C build -v
+    - run: meson test -C builddir/ -v
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
@@ -258,10 +258,10 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install meson ninja
-    - run: meson setup build
+    - run: meson setup builddir/
       env:
         CC: gcc
-    - run: meson test -C build -v
+    - run: meson test -C builddir/ -v
     - uses: actions/upload-artifact@v1
       if: failure()
       with:
