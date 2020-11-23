@@ -1209,6 +1209,22 @@ class InternalTests(unittest.TestCase):
             actual = f.getvalue().strip()
             self.assertEqual(actual.count('bar'), 1, actual)
 
+    def test_msys2_path(self):
+        if not mesonbuild.mesonlib.is_msys() and not mesonbuild.mesonlib.is_mingw():
+            raise unittest.SkipTest('This is only for msys/mingw')
+        conveter = mesonbuild.dependencies.base.Msys2PathConverter()
+        self.assertEqual(conveter.win2posix('C:/'), '/c/')
+        usr_path = PurePath(conveter.cygpath.command[0]).parent.parent
+        self.assertEqual(PurePath(conveter.posix2win('/usr')), usr_path)
+        self.assertEqual(PurePath(conveter.posix2win('/mingw64/include/ncursesw')),
+            usr_path.parent.joinpath('mingw64', 'include', 'ncursesw'))
+
+    def test_convert_path_posix_to_native(self):
+        if mesonbuild.mesonlib.is_windows():
+            self.assertEqual(PurePath(mesonbuild.dependencies.base.convert_path_posix_to_native('/c/good')), PurePath('c:/good'))
+        else:
+            self.assertEqual(PurePath(mesonbuild.dependencies.base.convert_path_posix_to_native('/c/good')), PurePath('/c/good'))
+
     def test_sort_libpaths(self):
         sort_libpaths = mesonbuild.dependencies.base.sort_libpaths
         self.assertEqual(sort_libpaths(
@@ -3185,11 +3201,11 @@ class AllPlatformTests(BasePlatformTests):
         foo_dep = PkgConfigDependency('libfoo', env, kwargs)
         # Ensure link_args are properly quoted
         libdir = PurePath(prefix) / PurePath(libdir)
-        link_args = ['-L' + libdir.as_posix(), '-lfoo']
+        link_args = ['-L' + foo_dep.convert_path_posix_to_native(libdir.as_posix()), '-lfoo']
         self.assertEqual(foo_dep.get_link_args(), link_args)
         # Ensure include args are properly quoted
         incdir = PurePath(prefix) / PurePath('include')
-        cargs = ['-I' + incdir.as_posix(), '-DLIBFOO']
+        cargs = ['-I' + foo_dep.convert_path_posix_to_native(incdir.as_posix()), '-DLIBFOO']
         # pkg-config and pkgconf does not respect the same order
         self.assertEqual(sorted(foo_dep.get_compile_args()), sorted(cargs))
 

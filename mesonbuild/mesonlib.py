@@ -504,6 +504,34 @@ def is_windows() -> bool:
     return platname == 'windows'
 
 
+def _detect_msystem() -> str:
+    if 'MSYSTEM_PREFIX' in os.environ:
+        return 'msys'
+    if is_windows():
+        if 'MINGW_PREFIX' in os.environ:
+            return os.environ['MINGW_PREFIX'][1:]
+    return None
+
+
+msystem = _detect_msystem()
+
+
+def is_msys() -> bool:
+    return msystem == 'msys'
+
+
+def is_mingw32() -> bool:
+    return msystem == 'mingw32'
+
+
+def is_mingw64() -> bool:
+    return msystem == 'mingw64'
+
+
+def is_mingw() -> bool:
+    return is_mingw32() or is_mingw64()
+
+
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
 
