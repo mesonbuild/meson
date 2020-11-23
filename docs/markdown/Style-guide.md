@@ -20,6 +20,14 @@ in Meson build scripts as identifiers for variable.
 
 Let say you would like to refer to your executable so something like `my_exe`.
 
+## Dependency usage
+
+The `dependency` function is the recommended way to handle dependencies. If your wrap files
+have the necessary `[provide]` entries, everything will work automatically both when
+compiling your own and when using system dependencies.
+
+You should only need `subproject` when you need to extract non dependencies/programs.
+
 ## Naming options
 
 There are two ways of naming project options. As an example for
