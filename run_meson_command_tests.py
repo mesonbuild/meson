@@ -193,9 +193,10 @@ class CommandTests(unittest.TestCase):
     def test_meson_zipapp(self):
         if is_windows():
             raise unittest.SkipTest('NOT IMPLEMENTED')
-        source = Path(__file__).resolve().parent.as_posix()
+        source = Path(__file__).resolve().parent
         target = self.tmpdir / 'meson.pyz'
-        zipapp.create_archive(source=source, target=target, interpreter=python_command[0], main=None)
+        script = source / 'packaging' / 'create_zipapp.py'
+        self._run([script.as_posix(), source, '--outfile', target, '--interpreter', python_command[0]])
         self._run([target.as_posix(), '--help'])
 
 
