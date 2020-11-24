@@ -17,7 +17,7 @@ import json
 import shutil
 import typing as T
 
-from .._pathlib import Path
+from pathlib import Path
 from .. import mesonlib
 from ..mesonlib import MachineChoice, MesonException
 from . import ExtensionModule

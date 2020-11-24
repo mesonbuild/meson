@@ -15,7 +15,7 @@
 # limitations under the License.
 
 import sys
-from mesonbuild._pathlib import Path
+from pathlib import Path
 
 # If we're run uninstalled, add the script directory to sys.path to ensure that
 # we always import the correct mesonbuild modules even if PYTHONPATH is mangled

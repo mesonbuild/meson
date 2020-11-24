@@ -145,13 +145,13 @@ foo = 'other val'
 ```
 
 ```console
-meson build --native-file my.ini
+meson builddir/ --native-file my.ini
 ```
 
 Will result in the option foo having the value `other val`,
 
 ```console
-meson build --native-file my.ini -Dfoo='different val'
+meson builddir/ --native-file my.ini -Dfoo='different val'
 ```
 
 Will result in the option foo having the value `different val`,

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os, types
-from .._pathlib import PurePath
+from pathlib import PurePath
 
 from .. import build
 from .. import dependencies

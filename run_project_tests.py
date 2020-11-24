@@ -17,7 +17,7 @@
 from concurrent.futures import ProcessPoolExecutor, CancelledError
 from enum import Enum
 from io import StringIO
-from mesonbuild._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 import argparse
 import functools
 import itertools
@@ -42,7 +42,7 @@ from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.build import ConfigurationData
-from mesonbuild.mesonlib import MachineChoice, Popen_safe
+from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
 from mesonbuild.coredata import backendlist, version as meson_version
 
 from run_tests import get_fake_options, run_configure, get_meson_script
@@ -223,21 +223,6 @@ class TestDef:
             o_id = int(other.path.name.split(' ')[0])
             return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
         return NotImplemented
-
-class AutoDeletedDir:
-    def __init__(self, d):
-        self.dir = d
-
-    def __enter__(self):
-        os.makedirs(self.dir, exist_ok=True)
-        return self.dir
-
-    def __exit__(self, _type, value, traceback):
-        # We don't use tempfile.TemporaryDirectory, but wrap the
-        # deletion in the AutoDeletedDir class because
-        # it fails on Windows due antivirus programs
-        # holding files open.
-        mesonlib.windows_proof_rmtree(self.dir)
 
 failing_logs = []
 print_debug = 'MESON_PRINT_TEST_OUTPUT' in os.environ
@@ -519,14 +504,17 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
 def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
     if test.skip:
         return None
-    with AutoDeletedDir(create_deterministic_builddir(test, use_tmp)) as build_dir:
-        with AutoDeletedDir(tempfile.mkdtemp(prefix='i ', dir=None if use_tmp else os.getcwd())) as install_dir:
+    build_dir = create_deterministic_builddir(test, use_tmp)
+    try:
+        with TemporaryDirectoryWinProof(prefix='i ', dir=None if use_tmp else os.getcwd()) as install_dir:
             try:
                 return _run_test(test, build_dir, install_dir, extra_args, compiler, backend, flags, commands, should_fail)
             except TestResult as r:
                 return r
             finally:
                 mlog.shutdown() # Close the log file because otherwise Windows wets itself.
+    finally:
+        mesonlib.windows_proof_rmtree(build_dir)
 
 def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
@@ -790,7 +778,7 @@ def have_d_compiler():
     return False
 
 def have_objc_compiler(use_tmp: bool) -> bool:
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
@@ -806,7 +794,7 @@ def have_objc_compiler(use_tmp: bool) -> bool:
     return True
 
 def have_objcpp_compiler(use_tmp: bool) -> bool:
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if use_tmp else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
             objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
@@ -1191,7 +1179,7 @@ def check_meson_commands_work(options):
     global backend, compile_commands, test_commands, install_commands
     testdir = PurePath('test cases', 'common', '1 trivial').as_posix()
     meson_commands = mesonlib.python_command + [get_meson_script()]
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
         print('Checking that configuring works...')
         gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
         pc, o, e = Popen_safe(gen_cmd)
@@ -1221,7 +1209,7 @@ def check_meson_commands_work(options):
 def detect_system_compiler(options):
     global host_c_compiler, compiler_id_map
 
-    with AutoDeletedDir(tempfile.mkdtemp(prefix='b ', dir=None if options.use_tmpdir else '.')) as build_dir:
+    with TemporaryDirectoryWinProof(prefix='b ', dir=None if options.use_tmpdir else '.') as build_dir:
         fake_opts = get_fake_options('/')
         if options.cross_file:
             fake_opts.cross_file = [options.cross_file]

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """A library of random helper functionality."""
-from ._pathlib import Path
+from pathlib import Path
 import sys
 import stat
 import time
@@ -22,6 +22,7 @@ import collections
 from enum import IntEnum
 from functools import lru_cache, wraps
 from itertools import tee, filterfalse
+from tempfile import TemporaryDirectory
 import typing as T
 import uuid
 import textwrap
@@ -70,9 +71,13 @@ meson_command = None
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
 
-    file = None    # type: T.Optional[str]
-    lineno = None  # type: T.Optional[int]
-    colno = None   # type: T.Optional[int]
+    def __init__(self, *args: object, file: T.Optional[str] = None,
+                 lineno: T.Optional[int] = None, colno: T.Optional[int] = None):
+        super().__init__(*args)
+        self.file = file
+        self.lineno = lineno
+        self.colno = colno
+
 
 class EnvironmentException(MesonException):
     '''Exceptions thrown while processing and creating the build environment'''
@@ -1211,7 +1216,7 @@ def Popen_safe(args: T.List[str], write: T.Optional[str] = None,
     # up the console and ANSI colors will stop working on Windows.
     if 'stdin' not in kwargs:
         kwargs['stdin'] = subprocess.DEVNULL
-    if sys.version_info < (3, 6) or not sys.stdout.encoding or encoding.upper() != 'UTF-8':
+    if not sys.stdout.encoding or encoding.upper() != 'UTF-8':
         p, o, e = Popen_safe_legacy(args, write=write, stdout=stdout, stderr=stderr, **kwargs)
     else:
         p = subprocess.Popen(args, universal_newlines=True, close_fds=False,
@@ -1446,6 +1451,25 @@ def windows_proof_rm(fpath: str) -> None:
         except OSError:
             time.sleep(d)
     os.unlink(fpath)
+
+
+class TemporaryDirectoryWinProof(TemporaryDirectory):
+    """
+    Like TemporaryDirectory, but cleans things up using
+    windows_proof_rmtree()
+    """
+
+    def __exit__(self, exc: T.Any, value: T.Any, tb: T.Any) -> None:
+        try:
+            super().__exit__(exc, value, tb)
+        except OSError:
+            windows_proof_rmtree(self.name)
+
+    def cleanup(self) -> None:
+        try:
+            super().cleanup()
+        except OSError:
+            windows_proof_rmtree(self.name)
 
 
 def detect_subprojects(spdir_name: str, current_dir: str = '',

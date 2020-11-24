@@ -27,13 +27,13 @@ import textwrap
 import platform
 import typing as T
 from enum import Enum
-from .._pathlib import Path, PurePath
+from pathlib import Path, PurePath
 
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
 from ..envconfig import get_env_var
-from ..environment import BinaryTable, Environment, MachineInfo
+from ..environment import Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
@@ -84,7 +84,7 @@ def find_external_program(env: Environment, for_machine: MachineChoice, name: st
     potential_path = env.lookup_binary_entry(for_machine, name)
     if potential_path is not None:
         mlog.debug('{} binary for {} specified from cross file, native file, '
-                    'or env var as {}'.format(display_name, for_machine, potential_path))
+                   'or env var as {}'.format(display_name, for_machine, potential_path))
         yield ExternalProgram.from_entry(name, potential_path)
         # We never fallback if the user-specified option is no good, so
         # stop returning options.
@@ -131,6 +131,9 @@ class Dependency:
     def __repr__(self):
         s = '<{0} {1}: {2}>'
         return s.format(self.__class__.__name__, self.name, self.is_found)
+
+    def is_built(self) -> bool:
+        return False
 
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
@@ -260,6 +263,11 @@ class InternalDependency(Dependency):
             else:
                 setattr(result, k, copy.deepcopy(v, memo))
         return result
+
+    def is_built(self) -> bool:
+        if self.sources or self.libraries or self.whole_libraries:
+            return True
+        return any(d.is_built() for d in self.ext_deps)
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException('Method "get_pkgconfig_variable()" is '
@@ -664,7 +672,6 @@ class PkgConfigDependency(ExternalDependency):
             new_pkg_config_libdir = ':'.join([p for p in pkg_config_libdir_prop])
             env['PKG_CONFIG_LIBDIR'] = new_pkg_config_libdir
             mlog.debug('PKG_CONFIG_LIBDIR: ' + new_pkg_config_libdir)
-
 
     def _call_pkgbin(self, args, env=None):
         # Always copy the environment since we're going to modify it

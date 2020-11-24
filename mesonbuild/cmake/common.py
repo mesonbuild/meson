@@ -17,7 +17,7 @@
 
 from ..mesonlib import MesonException
 from .. import mlog
-from .._pathlib import Path
+from pathlib import Path
 import typing as T
 
 language_map = {

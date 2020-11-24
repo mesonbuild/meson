@@ -25,7 +25,7 @@ import argparse
 from io import StringIO
 from enum import Enum
 from glob import glob
-from mesonbuild._pathlib import Path
+from pathlib import Path
 from unittest import mock
 from mesonbuild import compilers
 from mesonbuild import dependencies

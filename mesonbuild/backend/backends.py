@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
-from .._pathlib import Path
+from pathlib import Path
 import enum
 import json
 import os

@@ -15,7 +15,6 @@ modules = [
     'mesonbuild/wrap',
 
     # specific files
-    'mesonbuild/_pathlib.py',
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/dependencies/boost.py',
@@ -33,6 +32,7 @@ modules = [
     'mesonbuild/mparser.py',
     'mesonbuild/msetup.py',
     'mesonbuild/mtest.py',
+    'mesonbuild/optinterpreter.py',
 
     'run_mypy.py',
     'tools'

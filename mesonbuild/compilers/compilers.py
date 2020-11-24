@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import abc
-import contextlib, os.path, re, tempfile
+import contextlib, os.path, re
 import enum
 import itertools
 import typing as T
@@ -25,7 +25,7 @@ from .. import mesonlib
 from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args, LibType
+    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof
 )
 from ..envconfig import (
     get_env_var
@@ -736,57 +736,52 @@ class Compiler(metaclass=abc.ABCMeta):
         # TODO: there isn't really any reason for this to be a contextmanager
         if extra_args is None:
             extra_args = []
-        try:
-            with tempfile.TemporaryDirectory(dir=temp_dir) as tmpdirname:
-                no_ccache = False
-                if isinstance(code, str):
-                    srcname = os.path.join(tmpdirname,
-                                           'testfile.' + self.default_suffix)
-                    with open(srcname, 'w') as ofile:
-                        ofile.write(code)
-                    # ccache would result in a cache miss
-                    no_ccache = True
-                    contents = code
-                elif isinstance(code, mesonlib.File):
-                    srcname = code.fname
-                    with open(code.fname, 'r') as f:
-                        contents = f.read()
 
-                # Construct the compiler command-line
-                commands = self.compiler_args()
-                commands.append(srcname)
-                # Preprocess mode outputs to stdout, so no output args
-                if mode != 'preprocess':
-                    output = self._get_compile_output(tmpdirname, mode)
-                    commands += self.get_output_args(output)
-                commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
-                # extra_args must be last because it could contain '/link' to
-                # pass args to VisualStudio's linker. In that case everything
-                # in the command line after '/link' is given to the linker.
-                commands += extra_args
-                # Generate full command-line with the exelist
-                command_list = self.get_exelist() + commands.to_native()
-                mlog.debug('Running compile:')
-                mlog.debug('Working directory: ', tmpdirname)
-                mlog.debug('Command line: ', ' '.join(command_list), '\n')
-                mlog.debug('Code:\n', contents)
-                os_env = os.environ.copy()
-                os_env['LC_ALL'] = 'C'
-                if no_ccache:
-                    os_env['CCACHE_DISABLE'] = '1'
-                p, stdo, stde = Popen_safe(command_list, cwd=tmpdirname, env=os_env)
-                mlog.debug('Compiler stdout:\n', stdo)
-                mlog.debug('Compiler stderr:\n', stde)
+        with TemporaryDirectoryWinProof(dir=temp_dir) as tmpdirname:
+            no_ccache = False
+            if isinstance(code, str):
+                srcname = os.path.join(tmpdirname,
+                                    'testfile.' + self.default_suffix)
+                with open(srcname, 'w') as ofile:
+                    ofile.write(code)
+                # ccache would result in a cache miss
+                no_ccache = True
+                contents = code
+            elif isinstance(code, mesonlib.File):
+                srcname = code.fname
+                with open(code.fname, 'r') as f:
+                    contents = f.read()
 
-                result = CompileResult(stdo, stde, list(commands), p.returncode, p.pid, input_name=srcname)
-                if want_output:
-                    result.output_name = output
-                yield result
-        except OSError:
-            # On Windows antivirus programs and the like hold on to files so
-            # they can't be deleted. There's not much to do in this case. Also,
-            # catch OSError because the directory is then no longer empty.
-            return
+            # Construct the compiler command-line
+            commands = self.compiler_args()
+            commands.append(srcname)
+            # Preprocess mode outputs to stdout, so no output args
+            if mode != 'preprocess':
+                output = self._get_compile_output(tmpdirname, mode)
+                commands += self.get_output_args(output)
+            commands.extend(self.get_compiler_args_for_mode(CompileCheckMode(mode)))
+            # extra_args must be last because it could contain '/link' to
+            # pass args to VisualStudio's linker. In that case everything
+            # in the command line after '/link' is given to the linker.
+            commands += extra_args
+            # Generate full command-line with the exelist
+            command_list = self.get_exelist() + commands.to_native()
+            mlog.debug('Running compile:')
+            mlog.debug('Working directory: ', tmpdirname)
+            mlog.debug('Command line: ', ' '.join(command_list), '\n')
+            mlog.debug('Code:\n', contents)
+            os_env = os.environ.copy()
+            os_env['LC_ALL'] = 'C'
+            if no_ccache:
+                os_env['CCACHE_DISABLE'] = '1'
+            p, stdo, stde = Popen_safe(command_list, cwd=tmpdirname, env=os_env)
+            mlog.debug('Compiler stdout:\n', stdo)
+            mlog.debug('Compiler stderr:\n', stde)
+
+            result = CompileResult(stdo, stde, list(commands), p.returncode, p.pid, input_name=srcname)
+            if want_output:
+                result.output_name = output
+            yield result
 
     @contextlib.contextmanager
     def cached_compile(self, code: str, cdata: coredata.CoreData, *,
