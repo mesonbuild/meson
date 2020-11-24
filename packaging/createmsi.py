@@ -337,7 +337,7 @@ class PackageGenerator:
         subprocess.check_call([os.path.join(wixdir, 'light'),
                                '-ext', 'WixUIExtension',
                                '-cultures:en-us',
-                               '-dWixUILicenseRtf=msi\\License.rtf',
+                               '-dWixUILicenseRtf=packaging\\License.rtf',
                                '-out', self.final_output,
                                self.main_o])
 
