@@ -34,6 +34,7 @@ import sys
 import textwrap
 import time
 import typing as T
+import unicodedata
 import xml.etree.ElementTree as et
 
 from . import build
@@ -60,6 +61,14 @@ def is_windows() -> bool:
 
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
+
+UNIWIDTH_MAPPING = {'F': 2, 'H': 1, 'W': 2, 'Na': 1, 'N': 1, 'A': 1}
+def uniwidth(s: str) -> int:
+    result = 0
+    for c in s:
+        w = unicodedata.east_asian_width(c)
+        result += UNIWIDTH_MAPPING[w]
+    return result
 
 def determine_worker_count() -> int:
     varname = 'MESON_TESTTHREADS'
@@ -1272,12 +1281,13 @@ class TestHarness:
             l.log(self, result)
 
     def format(self, result: TestRun, colorize: bool) -> str:
-        result_str = '{num:{numlen}}/{testcount} {name:{name_max_len}} {res} {dur:.2f}s'.format(
+        extra_name_width = self.name_max_len + 1 - uniwidth(result.name)
+        result_str = '{num:{numlen}}/{testcount} {name}{extra_name_padding}{res} {dur:.2f}s'.format(
             numlen=len(str(self.test_count)),
             num=result.num,
             testcount=self.test_count,
-            name_max_len=self.name_max_len,
             name=result.name,
+            extra_name_padding=' ' * max(1, extra_name_width),
             res=result.res.get_text(colorize),
             dur=result.duration)
         if result.res is TestResult.FAIL:
@@ -1315,7 +1325,7 @@ class TestHarness:
             sys.exit(125)
 
         self.test_count = len(tests)
-        self.name_max_len = max([len(self.get_pretty_suite(test)) for test in tests])
+        self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
         self.run_tests(tests)
         return self.total_failure_count()
 
