@@ -709,11 +709,12 @@ class TestRun:
     TEST_NUM = 0
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 name: str):
+                 name: str, timeout: T.Optional[int]):
         self.res = TestResult.PENDING
         self.test = test
         self._num = None       # type: T.Optional[int]
         self.name = name
+        self.timeout = timeout
         self.results = list()  # type: T.List[TAPParser.Test]
         self.returncode = 0
         self.starttime = None  # type: T.Optional[float]
@@ -1016,7 +1017,15 @@ class SingleTestRunner:
         self.test_env = test_env
         self.env = env
         self.options = options
-        self.runobj = TestRun(test, test_env, name)
+
+        if self.options.gdb or self.test.timeout is None:
+            timeout = None
+        elif self.options.timeout_multiplier is not None:
+            timeout = self.test.timeout * self.options.timeout_multiplier
+        else:
+            timeout = self.test.timeout
+
+        self.runobj = TestRun(test, test_env, name, timeout)
 
     def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
@@ -1046,8 +1055,6 @@ class SingleTestRunner:
             self.runobj.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
-            if self.options.gdb:
-                self.test.timeout = None
             await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
         return self.runobj
 
@@ -1121,13 +1128,6 @@ class SingleTestRunner:
                 gtestname = os.path.join(self.test.workdir, self.test.name)
             extra_cmd.append('--gtest_output=xml:{}.xml'.format(gtestname))
 
-        if self.test.timeout is None:
-            timeout = None
-        elif self.options.timeout_multiplier is not None:
-            timeout = self.test.timeout * self.options.timeout_multiplier
-        else:
-            timeout = self.test.timeout
-
         p = await self._run_subprocess(cmd + extra_cmd,
                                        stdout=stdout,
                                        stderr=stderr,
@@ -1161,9 +1161,9 @@ class SingleTestRunner:
         if stderr is not None and stderr != asyncio.subprocess.STDOUT:
             stde_task = p.stderr.read(-1)
 
-        returncode, result, additional_error = await p.wait(timeout)
+        returncode, result, additional_error = await p.wait(self.runobj.timeout)
         if result is TestResult.TIMEOUT and self.options.verbose:
-            print('{} time out (After {} seconds)'.format(self.test.name, timeout))
+            print('{} time out (After {} seconds)'.format(self.test.name, self.runobj.timeout))
 
         if stdo_task is not None:
             stdo = decode(await stdo_task)
