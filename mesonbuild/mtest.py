@@ -355,6 +355,9 @@ class TAPParser:
 
 
 class TestLogger:
+    def flush(self) -> None:
+        pass
+
     def start(self, harness: 'TestHarness') -> None:
         pass
 
@@ -398,7 +401,7 @@ class ConsoleLogger(TestLogger):
         self.started_tests = 0
         self.spinner_index = 0
 
-    def clear_progress(self) -> None:
+    def flush(self) -> None:
         if self.should_erase_line:
             print(self.should_erase_line, end='')
             self.should_erase_line = ''
@@ -412,7 +415,7 @@ class ConsoleLogger(TestLogger):
 
     def emit_progress(self) -> None:
         if self.progress_test is None:
-            self.clear_progress()
+            self.flush()
             return
 
         if len(self.running_tests) == 1:
@@ -462,7 +465,7 @@ class ConsoleLogger(TestLogger):
                     self.running_tests.add(self.progress_test)
 
                 self.emit_progress()
-            self.clear_progress()
+            self.flush()
 
         self.test_count = harness.test_count
         # In verbose mode, the progress report gets in the way of the tests'
@@ -479,7 +482,7 @@ class ConsoleLogger(TestLogger):
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
         if not harness.options.quiet or not result.res.is_ok():
-            self.clear_progress()
+            self.flush()
             print(harness.format(result, mlog.colorize_console()), flush=True)
         self.request_update()
 
@@ -1305,6 +1308,10 @@ class TestHarness:
 
         return tests
 
+    def flush_logfiles(self) -> None:
+        for l in self.loggers:
+            l.flush()
+
     def open_logfiles(self) -> None:
         if not self.options.logbase or self.options.verbose:
             return
@@ -1388,6 +1395,7 @@ class TestHarness:
             future = futures.popleft()
             futures.append(future)
             if warn:
+                self.flush_logfiles()
                 mlog.warning('CTRL-C detected, interrupting {}'.format(running_tests[future]))
             del running_tests[future]
             future.cancel()
@@ -1397,6 +1405,7 @@ class TestHarness:
             if interrupted:
                 return
             interrupted = True
+            self.flush_logfiles()
             mlog.warning('Received SIGTERM, exiting')
             while running_tests:
                 cancel_one_test(False)
@@ -1410,6 +1419,7 @@ class TestHarness:
             if running_tests:
                 cancel_one_test(True)
             else:
+                self.flush_logfiles()
                 mlog.warning('CTRL-C detected, exiting')
                 interrupted = True
 
