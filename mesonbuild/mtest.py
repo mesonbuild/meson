@@ -227,6 +227,9 @@ class TAPParser:
         result: TestResult
         explanation: T.Optional[str]
 
+        def __str__(self) -> str:
+            return '{} {}'.format(self.number, self.name).strip()
+
     class Error(T.NamedTuple):
         message: str
 
@@ -615,33 +618,33 @@ class JunitBuilder(TestLogger):
                 'testsuite',
                 name=suitename,
                 tests=str(len(test.results)),
-                errors=str(sum(1 for r in test.results.values() if r in
+                errors=str(sum(1 for r in test.results if r.result in
                                {TestResult.INTERRUPT, TestResult.ERROR})),
-                failures=str(sum(1 for r in test.results.values() if r in
+                failures=str(sum(1 for r in test.results if r.result in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
-                skipped=str(sum(1 for r in test.results.values() if r is TestResult.SKIP)),
+                skipped=str(sum(1 for r in test.results if r.result is TestResult.SKIP)),
                 time=str(test.duration),
             )
 
-            for i, result in enumerate(test.results):
-                # Set the name to the number of the test in a TAP test, as we cannot
-                # access the name yet.
-                testcase = et.SubElement(suite, 'testcase', name=str(i))
-                if result is TestResult.SKIP:
+            for subtest in test.results:
+                testcase = et.SubElement(suite, 'testcase', name=str(subtest))
+                if subtest.result is TestResult.SKIP:
                     et.SubElement(testcase, 'skipped')
-                elif result is TestResult.ERROR:
+                elif subtest.result is TestResult.ERROR:
                     et.SubElement(testcase, 'error')
-                elif result is TestResult.FAIL:
+                elif subtest.result is TestResult.FAIL:
                     et.SubElement(testcase, 'failure')
-                elif result is TestResult.UNEXPECTEDPASS:
+                elif subtest.result is TestResult.UNEXPECTEDPASS:
                     fail = et.SubElement(testcase, 'failure')
                     fail.text = 'Test unexpected passed.'
-                elif result is TestResult.INTERRUPT:
-                    fail = et.SubElement(testcase, 'failure')
+                elif subtest.result is TestResult.INTERRUPT:
+                    fail = et.SubElement(testcase, 'error')
                     fail.text = 'Test was interrupted by user.'
-                elif result is TestResult.TIMEOUT:
-                    fail = et.SubElement(testcase, 'failure')
+                elif subtest.result is TestResult.TIMEOUT:
+                    fail = et.SubElement(testcase, 'error')
                     fail.text = 'Test did not finish before configured timeout.'
+                if subtest.explanation:
+                    et.SubElement(testcase, 'system-out').text = subtest.explanation
             if test.stdo:
                 out = et.SubElement(suite, 'system-out')
                 out.text = test.stdo.rstrip()
@@ -688,26 +691,36 @@ class JunitBuilder(TestLogger):
             tree.write(f, encoding='utf-8', xml_declaration=True)
 
 
-def parse_rust_test(stdout: str) -> T.Dict[str, TestResult]:
+def parse_rust_test(stdout: str) -> T.Tuple[T.List[TAPParser.Test], TestResult]:
     """Parse the output of rust tests."""
-    res = {}  # type; T.Dict[str, TestResult]
+    results = []          # type: T.List[TAPParser.Test]
 
-    def parse_res(res: str) -> TestResult:
-        if res == 'ok':
-            return TestResult.OK
-        elif res == 'ignored':
-            return TestResult.SKIP
-        elif res == 'FAILED':
-            return TestResult.FAIL
-        raise MesonException('Unsupported output from rust test: {}'.format(res))
+    def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
+        if result == 'ok':
+            return TAPParser.Test(n, name, TestResult.OK, None)
+        elif result == 'ignored':
+            return TAPParser.Test(n, name, TestResult.SKIP, None)
+        elif result == 'FAILED':
+            return TAPParser.Test(n, name, TestResult.FAIL, None)
+        return TAPParser.Test(n, name, TestResult.ERROR,
+                              'Unsupported output from rust test: {}'.format(result))
 
+    n = 1
     for line in stdout.splitlines():
         if line.startswith('test ') and not line.startswith('test result'):
             _, name, _, result = line.split(' ')
             name = name.replace('::', '.')
-            res[name] = parse_res(result)
+            results.append(parse_res(n, name, result))
+            n += 1
 
-    return res
+    if all(t.result is TestResult.SKIP for t in results):
+        # This includes the case where results is empty
+        return results, TestResult.SKIP
+    elif any(t.result is TestResult.ERROR for t in results):
+        return results, TestResult.ERROR
+    elif any(t.result is TestResult.FAIL for t in results):
+        return results, TestResult.FAIL
+    return results, TestResult.OK
 
 
 class TestRun:
@@ -719,7 +732,7 @@ class TestRun:
         self.test = test
         self._num = None       # type: T.Optional[int]
         self.name = name
-        self.results: T.Dict[str, TestResult] = {}
+        self.results = list()  # type: T.List[TAPParser.Test]
         self.returncode = 0
         self.starttime = None  # type: T.Optional[float]
         self.duration = None   # type: T.Optional[float]
@@ -763,20 +776,18 @@ class TestRun:
         res = None    # type: T.Optional[TestResult]
         error = ''
 
-        for n, i in enumerate(TAPParser().parse(lines)):
+        for i in TAPParser().parse(lines):
             if isinstance(i, TAPParser.Bailout):
-                self.results[str(n)] = i.result
                 res = TestResult.ERROR
             elif isinstance(i, TAPParser.Test):
-                self.results[str(n)] = i.result
-                if i.result not in {TestResult.OK, TestResult.EXPECTEDFAIL, TestResult.SKIP}:
+                self.results.append(i)
+                if i.result.is_bad():
                     res = TestResult.FAIL
             elif isinstance(i, TAPParser.Error):
-                self.results[str(n)] = TestResult.ERROR
-                error += '\nTAP parsing error: ' + i.message
+                error = '\nTAP parsing error: ' + i.message
                 res = TestResult.ERROR
 
-        if all(t is TestResult.SKIP for t in self.results):
+        if all(t.result is TestResult.SKIP for t in self.results):
             # This includes the case where self.results is empty
             res = TestResult.SKIP
         return res or TestResult.OK, error
@@ -792,17 +803,12 @@ class TestRun:
         self.complete(res, returncode, stdo, stde, cmd)
 
     def complete_rust(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
-        self.results = parse_rust_test(stdo)
+        self.results, result = parse_rust_test(stdo)
 
-        failed = TestResult.FAIL in self.results.values()
-        # Now determine the overall result of the test based on the outcome of the subcases
-        if all(t is TestResult.SKIP for t in self.results.values()):
-            # This includes the case where num_tests is zero
-            res = TestResult.SKIP
-        elif self.should_fail:
-            res = TestResult.EXPECTEDFAIL if failed else TestResult.UNEXPECTEDPASS
+        if self.should_fail:
+            res = TestResult.EXPECTEDFAIL if result is TestResult.FAIL else TestResult.UNEXPECTEDPASS
         else:
-            res = TestResult.FAIL if failed else TestResult.OK
+            res = result
 
         self.complete(res, returncode, stdo, stde, cmd)
 
