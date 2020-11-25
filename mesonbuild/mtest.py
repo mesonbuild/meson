@@ -431,6 +431,7 @@ class ConsoleLogger(TestLogger):
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
         self.progress_test = None          # type: T.Optional['TestRun']
         self.progress_task = None          # type: T.Optional[asyncio.Future]
+        self.max_left_width = 0            # type: int
         self.stop = False
         self.update = asyncio.Event()
         self.should_erase_line = ''
@@ -450,7 +451,7 @@ class ConsoleLogger(TestLogger):
     def request_update(self) -> None:
         self.update.set()
 
-    def emit_progress(self) -> None:
+    def emit_progress(self, harness: 'TestHarness') -> None:
         if self.progress_test is None:
             self.flush()
             return
@@ -461,8 +462,17 @@ class ConsoleLogger(TestLogger):
             count = '{}-{}/{}'.format(self.started_tests - len(self.running_tests) + 1,
                                       self.started_tests, self.test_count)
 
-        line = '[{}] {} {}'.format(count, self.SPINNER[self.spinner_index], self.progress_test.name)
+        left = '[{}] {} '.format(count, self.SPINNER[self.spinner_index])
         self.spinner_index = (self.spinner_index + 1) % len(self.SPINNER)
+
+        right = '{spaces} {dur:{durlen}}/{timeout:{durlen}}s'.format(
+            spaces=' ' * TestResult.maxlen(),
+            dur=int(time.time() - self.progress_test.starttime),
+            durlen=harness.duration_max_len,
+            timeout=int(self.progress_test.timeout))
+        line = harness.format(self.progress_test, colorize=True,
+                              max_left_width=self.max_left_width,
+                              left=left, right=right)
         self.print_progress(line)
 
     @staticmethod
@@ -501,13 +511,16 @@ class ConsoleLogger(TestLogger):
                     self.progress_test = self.running_tests.pop(last=False)
                     self.running_tests.add(self.progress_test)
 
-                self.emit_progress()
+                self.emit_progress(harness)
             self.flush()
 
         self.test_count = harness.test_count
+
         # In verbose mode, the progress report gets in the way of the tests'
         # stdout and stderr.
         if self.is_tty() and not harness.options.verbose:
+            # Account for "[aa-bb/cc] OO " in the progress report
+            self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
 
     def start_test(self, test: 'TestRun') -> None:
@@ -524,7 +537,8 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            print(harness.format(result, mlog.colorize_console()), flush=True)
+            print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
+                  flush=True)
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
