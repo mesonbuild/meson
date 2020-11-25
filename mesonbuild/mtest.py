@@ -518,6 +518,10 @@ class ConsoleLogger(TestLogger):
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
+        if result.res is TestResult.TIMEOUT and harness.options.verbose:
+            self.flush()
+            print('{} time out (After {} seconds)'.format(result.name, result.timeout))
+
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
             print(harness.format(result, mlog.colorize_console()), flush=True)
