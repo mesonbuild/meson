@@ -470,6 +470,9 @@ class ConsoleLogger(TestLogger):
             dur=int(time.time() - self.progress_test.starttime),
             durlen=harness.duration_max_len,
             timeout=int(self.progress_test.timeout))
+        detail = self.progress_test.detail
+        if detail:
+            right += '   ' + detail
         line = harness.format(self.progress_test, colorize=True,
                               max_left_width=self.max_left_width,
                               left=left, right=right)
@@ -836,8 +839,18 @@ class TestRun:
 
     @property
     def detail(self) -> str:
-        if self.res is TestResult.FAIL:
+        if self.res is TestResult.PENDING:
+            return ''
+        if self.returncode:
             return returncode_to_status(self.returncode)
+        if self.results:
+            # running or succeeded
+            passed = sum((x.result.is_ok() for x in self.results))
+            ran = sum((x.result is not TestResult.SKIP for x in self.results))
+            if passed == ran:
+                return '{} subtests passed'.format(passed)
+            else:
+                return '{}/{} subtests passed'.format(passed, ran)
         return ''
 
     def complete(self, returncode: int, res: TestResult,
@@ -1338,7 +1351,7 @@ class TestHarness:
                 durlen=self.duration_max_len + 3)
             detail = result.detail
             if detail:
-                right += ' (' + detail + ')'
+                right += '   ' + detail
         return left + middle + right
 
     def summary(self) -> str:
