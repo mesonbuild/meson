@@ -157,10 +157,10 @@ def returncode_to_status(retcode: int) -> str:
             signame = signal.Signals(signum).name
         except ValueError:
             signame = 'SIGinvalid'
-        return '(killed by signal {} {})'.format(signum, signame)
+        return 'killed by signal {} {}'.format(signum, signame)
 
     if retcode <= 128:
-        return '(exit status {})'.format(retcode)
+        return 'exit status {}'.format(retcode)
 
     signum = retcode - 128
     try:
@@ -815,6 +815,12 @@ class TestRun:
             self._num = TestRun.TEST_NUM
         return self._num
 
+    @property
+    def detail(self) -> str:
+        if self.res is TestResult.FAIL:
+            return returncode_to_status(self.returncode)
+        return ''
+
     def complete(self, returncode: int, res: TestResult,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
@@ -1280,19 +1286,32 @@ class TestHarness:
         for l in self.loggers:
             l.log(self, result)
 
-    def format(self, result: TestRun, colorize: bool) -> str:
-        extra_name_width = self.name_max_len + 1 - uniwidth(result.name)
-        result_str = '{num:{numlen}}/{testcount} {name}{extra_name_padding}{res} {dur:.2f}s'.format(
-            numlen=len(str(self.test_count)),
-            num=result.num,
-            testcount=self.test_count,
-            name=result.name,
-            extra_name_padding=' ' * max(1, extra_name_width),
-            res=result.res.get_text(colorize),
-            dur=result.duration)
-        if result.res is TestResult.FAIL:
-            result_str += ' ' + returncode_to_status(result.returncode)
-        return result_str
+    def format(self, result: TestRun, colorize: bool,
+               max_left_width: int = 0,
+               left: T.Optional[str] = None,
+               right: T.Optional[str] = None) -> str:
+        numlen = len(str(self.test_count))
+
+        if left is None:
+            left = '{num:{numlen}}/{testcount} '.format(
+                numlen=numlen,
+                num=result.num,
+                testcount=self.test_count)
+
+        # A non-default max_left_width lets the logger print more stuff before the
+        # name, while ensuring that the rightmost columns remain aligned.
+        max_left_width = max(max_left_width, 2 * numlen + 2)
+        extra_name_width = max_left_width + self.name_max_len + 1 - uniwidth(result.name) - uniwidth(left)
+        middle = result.name + (' ' * max(1, extra_name_width))
+
+        if right is None:
+            right = '{res} {dur:.2f}s'.format(
+                res=result.res.get_text(colorize),
+                dur=result.duration)
+            detail = result.detail
+            if detail:
+                right += ' (' + detail + ')'
+        return left + middle + right
 
     def summary(self) -> str:
         return textwrap.dedent('''
