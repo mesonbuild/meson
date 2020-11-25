@@ -6,50 +6,18 @@ import argparse
 from pathlib import Path
 import typing as T
 
-modules = [
-    # fully typed submodules
-    'mesonbuild/ast',
-    'mesonbuild/cmake',
-    'mesonbuild/compilers',
-    'mesonbuild/scripts',
-    'mesonbuild/wrap',
-
-    # specific files
-    'mesonbuild/arglist.py',
-    # 'mesonbuild/coredata.py',
-    'mesonbuild/dependencies/boost.py',
-    'mesonbuild/dependencies/hdf5.py',
-    'mesonbuild/dependencies/mpi.py',
-    'mesonbuild/envconfig.py',
-    'mesonbuild/interpreterbase.py',
-    'mesonbuild/linkers.py',
-    'mesonbuild/mcompile.py',
-    'mesonbuild/mesonlib.py',
-    'mesonbuild/minit.py',
-    'mesonbuild/mintro.py',
-    'mesonbuild/mlog.py',
-    'mesonbuild/modules/fs.py',
-    'mesonbuild/mparser.py',
-    'mesonbuild/msetup.py',
-    'mesonbuild/mtest.py',
-    'mesonbuild/optinterpreter.py',
-
-    'run_mypy.py',
-    'tools'
-]
 
 def check_mypy() -> None:
     try:
         import mypy
     except ImportError:
-        print('Failed import mypy')
-        sys.exit(1)
+        raise SystemExit('Failed import mypy')
 
 def main() -> int:
     check_mypy()
 
     root = Path(__file__).absolute().parent
-    args = []  # type: T.List[str]
+    args: T.List[str] = []
 
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('-p', '--pretty', action='store_true', help='pretty print mypy errors')
@@ -64,10 +32,10 @@ def main() -> int:
 
     print('Running mypy (this can take some time) ...')
     p = subprocess.run(
-        [sys.executable, '-m', 'mypy'] + args + modules,
+        [sys.executable, '-m', 'mypy'] + args,
         cwd=root,
     )
     return p.returncode
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())
