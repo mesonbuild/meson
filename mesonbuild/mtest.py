@@ -32,7 +32,6 @@ import re
 import signal
 import subprocess
 import sys
-import tempfile
 import textwrap
 import time
 import typing as T
@@ -929,6 +928,14 @@ class TestSubprocess:
         self._process = p
         self.postwait_fn = postwait_fn   # type: T.Callable[[], None]
 
+    @property
+    def stdout(self) -> T.Optional[asyncio.StreamReader]:
+        return self._process.stdout
+
+    @property
+    def stderr(self) -> T.Optional[asyncio.StreamReader]:
+        return self._process.stderr
+
     async def _kill(self) -> T.Optional[str]:
         # Python does not provide multiplatform support for
         # killing a process and all its children so we need
@@ -1033,7 +1040,7 @@ class SingleTestRunner:
         return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *,
-                              stdout: T.IO, stderr: T.IO,
+                              stdout: int, stderr: int,
                               env: T.Dict[str, str], cwd: T.Optional[str]) -> TestSubprocess:
         # Let gdb handle ^C instead of us
         if self.options.gdb:
@@ -1088,11 +1095,12 @@ class SingleTestRunner:
 
         stdout = None
         stderr = None
-        if not self.options.verbose:
-            stdout = tempfile.TemporaryFile("wb+")
-            stderr = tempfile.TemporaryFile("wb+") if self.options.split else stdout
-        if self.test.protocol is TestProtocol.TAP and stderr is stdout:
-            stdout = tempfile.TemporaryFile("wb+")
+        if self.test.protocol is TestProtocol.TAP:
+            stdout = asyncio.subprocess.PIPE
+            stderr = None if self.options.verbose else asyncio.subprocess.PIPE
+        elif not self.options.verbose:
+            stdout = asyncio.subprocess.PIPE
+            stderr = asyncio.subprocess.PIPE if self.options.split else asyncio.subprocess.STDOUT
 
         extra_cmd = []  # type: T.List[str]
         if self.test.protocol is TestProtocol.GTEST:
@@ -1114,24 +1122,24 @@ class SingleTestRunner:
                                        env=self.env,
                                        cwd=self.test.workdir)
 
+        stdo = stde = ''
+        stdo_task = stde_task = None
+        if stdout is not None:
+            stdo_task = p.stdout.read(-1)
+        if stderr is not None and stderr != asyncio.subprocess.STDOUT:
+            stde_task = p.stderr.read(-1)
+
         returncode, result, additional_error = await p.wait(timeout)
         if result is TestResult.TIMEOUT and self.options.verbose:
             print('{} time out (After {} seconds)'.format(self.test.name, timeout))
 
-        if additional_error is None:
-            if stdout is None:
-                stdo = ''
-            else:
-                stdout.seek(0)
-                stdo = decode(stdout.read())
-            if stderr is None or stderr is stdout:
-                stde = ''
-            else:
-                stderr.seek(0)
-                stde = decode(stderr.read())
-        else:
-            stdo = ""
-            stde = additional_error
+        if stdo_task is not None:
+            stdo = decode(await stdo_task)
+        if stde_task is not None:
+            stde = decode(await stde_task)
+
+        if additional_error is not None:
+            stde += '\n' + additional_error
 
         # Print lines along the way if requested
         def lines() -> T.Iterator[str]:
