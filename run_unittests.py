@@ -6733,6 +6733,28 @@ class LinuxlikeTests(BasePlatformTests):
         install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
         self.assertEqual(install_rpath, 'baz')
 
+    @skipIfNoPkgconfig
+    def test_build_rpath_pkgconfig(self):
+        '''
+        Test that current build artefacts (libs) are found first on the rpath,
+        manually specified rpath comes second and additional rpath elements (from
+        pkg-config files) come last
+        '''
+        if is_cygwin():
+            raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
+        testdir = os.path.join(self.unit_test_dir, '89 pkgconfig build rpath order')
+        self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
+        self.build()
+        build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
+        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar:/foo/dummy')
+        build_rpath = get_rpath(os.path.join(self.builddir, 'progcxx'))
+        self.assertEqual(build_rpath, '$ORIGIN/sub:/foo/bar:/foo/dummy')
+        self.install()
+        install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/prog'))
+        self.assertEqual(install_rpath, '/baz:/foo/dummy')
+        install_rpath = get_rpath(os.path.join(self.installdir, 'usr/bin/progcxx'))
+        self.assertEqual(install_rpath, 'baz:/foo/dummy')
+
     def test_global_rpath(self):
         if is_cygwin():
             raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
