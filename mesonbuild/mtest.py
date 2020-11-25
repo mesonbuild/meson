@@ -15,7 +15,7 @@
 # A tool to run tests in many different ways.
 
 from pathlib import Path
-from collections import deque, namedtuple
+from collections import deque
 from copy import deepcopy
 import argparse
 import asyncio
@@ -209,11 +209,26 @@ class TestResult(enum.Enum):
 TYPE_TAPResult = T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout']
 
 class TAPParser:
-    Plan = namedtuple('Plan', ['count', 'late', 'skipped', 'explanation'])
-    Bailout = namedtuple('Bailout', ['message'])
-    Test = namedtuple('Test', ['number', 'name', 'result', 'explanation'])
-    Error = namedtuple('Error', ['message'])
-    Version = namedtuple('Version', ['version'])
+    class Plan(T.NamedTuple):
+        num_tests: int
+        late: bool
+        skipped: bool
+        explanation: T.Optional[str]
+
+    class Bailout(T.NamedTuple):
+        message: str
+
+    class Test(T.NamedTuple):
+        number: int
+        name: str
+        result: TestResult
+        explanation: T.Optional[str]
+
+    class Error(T.NamedTuple):
+        message: str
+
+    class Version(T.NamedTuple):
+        version: int
 
     _MAIN = 1
     _AFTER_TEST = 2
@@ -308,16 +323,16 @@ class TAPParser:
                 if self.plan:
                     yield self.Error('more than one plan found')
                 else:
-                    count = int(m.group(1))
-                    skipped = (count == 0)
+                    num_tests = int(m.group(1))
+                    skipped = (num_tests == 0)
                     if m.group(2):
                         if m.group(2).upper().startswith('SKIP'):
-                            if count > 0:
+                            if num_tests > 0:
                                 yield self.Error('invalid SKIP directive for plan')
                             skipped = True
                         else:
                             yield self.Error('invalid directive for plan')
-                    self.plan = self.Plan(count=count, late=(self.num_tests > 0),
+                    self.plan = self.Plan(num_tests=num_tests, late=(self.num_tests > 0),
                                           skipped=skipped, explanation=m.group(3))
                     yield self.plan
                 return
@@ -350,11 +365,11 @@ class TAPParser:
             if self.state == self._YAML:
                 yield self.Error('YAML block not terminated (started on line {})'.format(self.yaml_lineno))
 
-            if not self.bailed_out and self.plan and self.num_tests != self.plan.count:
-                if self.num_tests < self.plan.count:
-                    yield self.Error('Too few tests run (expected {}, got {})'.format(self.plan.count, self.num_tests))
+            if not self.bailed_out and self.plan and self.num_tests != self.plan.num_tests:
+                if self.num_tests < self.plan.num_tests:
+                    yield self.Error('Too few tests run (expected {}, got {})'.format(self.plan.num_tests, self.num_tests))
                 else:
-                    yield self.Error('Too many tests run (expected {}, got {})'.format(self.plan.count, self.num_tests))
+                    yield self.Error('Too many tests run (expected {}, got {})'.format(self.plan.num_tests, self.num_tests))
 
 class TestLogger:
     def flush(self) -> None:
