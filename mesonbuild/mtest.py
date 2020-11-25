@@ -620,12 +620,13 @@ class JunitBuilder(TestLogger):
                 failures=str(sum(1 for r in test.results.values() if r in
                                  {TestResult.FAIL, TestResult.UNEXPECTEDPASS, TestResult.TIMEOUT})),
                 skipped=str(sum(1 for r in test.results.values() if r is TestResult.SKIP)),
+                time=str(test.duration),
             )
 
-            for i, result in test.results.items():
-                # Both name and classname are required. Set them both to the
-                # number of the test in a TAP test, as TAP doesn't give names.
-                testcase = et.SubElement(suite, 'testcase', name=i, classname=i)
+            for i, result in enumerate(test.results):
+                # Set the name to the number of the test in a TAP test, as we cannot
+                # access the name yet.
+                testcase = et.SubElement(suite, 'testcase', name=str(i))
                 if result is TestResult.SKIP:
                     et.SubElement(testcase, 'skipped')
                 elif result is TestResult.ERROR:
@@ -651,12 +652,13 @@ class JunitBuilder(TestLogger):
             if test.project not in self.suites:
                 suite = self.suites[test.project] = et.Element(
                     'testsuite', name=test.project, tests='1', errors='0',
-                    failures='0', skipped='0')
+                    failures='0', skipped='0', time=str(test.duration))
             else:
                 suite = self.suites[test.project]
                 suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
 
-            testcase = et.SubElement(suite, 'testcase', name=test.name, classname=test.name)
+            testcase = et.SubElement(suite, 'testcase', name=test.name,
+                                     time=str(test.duration))
             if test.res is TestResult.SKIP:
                 et.SubElement(testcase, 'skipped')
                 suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
