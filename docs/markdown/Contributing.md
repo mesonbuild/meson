@@ -362,8 +362,6 @@ Meson uses several continuous integration testing systems that have slightly
 different interfaces for indicating a commit should be skipped.
 
 Continuous integration systems currently used:
-- [Travis-CI](https://docs.travis-ci.com/user/customizing-the-build#skipping-a-build)
-  allows `[skip ci]` anywhere in the commit messages.
 - [Azure Pipelines](https://docs.microsoft.com/en-us/azure/devops/pipelines/scripts/git-commands?view=vsts&tabs=yaml#how-do-i-avoid-triggering-a-ci-build-when-the-script-pushes)
   allows `***NO_CI***` in the commit message.
 - [Sider](https://sider.review)
