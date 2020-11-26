@@ -5,13 +5,6 @@ the CI setup used for testing Meson itself. The Meson
 project uses multiple CI platforms for covering a wide
 range of target systems.
 
-## Travis CI
-
-The travis configuration file is the `.travis.yml` in the
-the project root. This platform tests cross compilation and
-unity builds on a [linux docker image](#docker-images) and
-on OSX.
-
 ## GitHub actions
 
 The configuration files for GitHub actions are located in
