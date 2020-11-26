@@ -241,6 +241,70 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
         return []
 
 
+class PosixCCompiler(CCompiler):
+
+    optimization_args = {
+        '0': [],
+        'g': ['-g'],
+    }  # type: T.Dict[str, T.List[str]]
+
+
+    LINKER_PREFIX = '-Wl,'
+    id = 'cc'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
+                 info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross, info, exe_wrapper, linker=linker, full_version=full_version)
+        default_warn_args = ['-Wall']
+
+        self.warn_args = {'0': [],
+                          '1': default_warn_args,
+                          '2': default_warn_args + ['-Wextra'],
+                          '3': default_warn_args + ['-Wextra', '-Wpedantic']}
+
+    def get_options(self) -> 'OptionDictType':
+        opts = super().get_options()
+        c_stds = ['c89', 'c99', 'gnu99', 'c11']
+        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + c_stds
+        return opts
+
+    def get_pic_args(self) -> T.List[str]:
+        if self.info.is_windows() or self.info.is_cygwin() or self.info.is_darwin():
+            return [] # On Window and OS X, pic is always on.
+        return ['-fPIC']
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return []
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return ["-g"] if is_debug else []
+
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+        return parameter_list
+
+    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+        args = []
+        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+        if self.info.is_windows() or self.info.is_cygwin():
+            # without a typeddict mypy can't figure this out
+            libs = options['winlibs'].value.copy()
+            assert isinstance(libs, list)
+            for l in libs:
+                assert isinstance(l, str)
+            return libs
+        return []
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        return self.optimization_args.get(optimization_level, [])
+
 class GnuCCompiler(GnuCompiler, CCompiler):
 
     _C18_VERSION = '>=8.0.0'

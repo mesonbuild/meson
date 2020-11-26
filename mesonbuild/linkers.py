@@ -705,6 +705,12 @@ class GnuLikeDynamicLinkerMixin:
         return self._apply_prefix(args)
 
 
+class GenericPosixDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+    id = 'ldposix'
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
 class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
 
     """Apple's ld implementation."""

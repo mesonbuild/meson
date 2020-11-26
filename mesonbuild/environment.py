@@ -55,6 +55,7 @@ from .linkers import (
     ClangClDynamicLinker,
     DynamicLinker,
     GnuBFDDynamicLinker,
+    GenericPosixDynamicLinker,
     GnuGoldDynamicLinker,
     LLVMDynamicLinker,
     QualcommLLVMDynamicLinker,
@@ -94,6 +95,7 @@ from .compilers import (
     GnuCPPCompiler,
     GnuFortranCompiler,
     GnuObjCCompiler,
+    PosixCCompiler,
     GnuObjCPPCompiler,
     ElbrusCCompiler,
     ElbrusCPPCompiler,
@@ -1488,6 +1490,13 @@ class Environment:
                     ccache + compiler, version, for_machine, is_cross, info,
                     exe_wrap, full_version=full_version, linker=linker)
 
+            if compiler_name.endswith("cc") :
+                self.coredata.add_lang_args(lang, PosixCCompiler, for_machine, self)
+                version = search_version(out)
+                linker = GenericPosixDynamicLinker(compiler, for_machine, PosixCCompiler.LINKER_PREFIX, [])
+                return PosixCCompiler(compiler, version, for_machine, is_cross,
+                    info, exe_wrap, full_version=full_version,
+                    linker=linker)
 
         self._handle_exceptions(popen_exceptions, compilers)
 
