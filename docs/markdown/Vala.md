@@ -258,6 +258,12 @@ Passing arguments to [Vala's preprocessor](https://wiki.gnome.org/Projects/Vala/
 add_project_arguments('-D', 'USE_FUSE', language: 'vala')
 ```
 
+If you need to pass an argument to the C pre-processor then specify the language as c. For example to set FUSE_USE_VERSION to 26 use:
+
+```meson
+add_project_arguments('-DFUSE_USE_VERSION=26', language: 'c')
+```
+
 ## Building libraries
 
 
