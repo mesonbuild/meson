@@ -1,7 +1,7 @@
 project('llvm-ir', 'c', 'cpp')
 
 cpu = host_machine.cpu_family()
-supported_cpus = ['arm', 'aarch64', 'x86', 'x86_64']
+supported_cpus = ['arm', 'x86', 'x86_64']
 
 foreach lang : ['c', 'cpp']
   cc = meson.get_compiler(lang)
