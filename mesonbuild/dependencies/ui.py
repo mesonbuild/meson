@@ -23,7 +23,7 @@ from collections import OrderedDict
 from .. import mlog
 from .. import mesonlib
 from ..mesonlib import (
-    MesonException, Popen_safe, extract_as_list, version_compare_many
+    MesonException, OptionKey, Popen_safe, extract_as_list, version_compare_many
 )
 from ..environment import detect_cpu_family
 
@@ -380,12 +380,10 @@ class QtBaseDependency(ExternalDependency):
         self.bindir = self.get_qmake_host_bins(qvars)
         self.is_found = True
 
-        # Use the buildtype by default, but look at the b_vscrt option if the
-        # compiler supports it.
-        is_debug = self.env.coredata.get_option(mesonlib.OptionKey('buildtype')) == 'debug'
-        if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
-            if self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
-                is_debug = True
+        if OptionKey('b_vscrt') in self.env.coredata.options:
+            is_debug = self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}
+        else:
+            is_debug = self.env.coredata.get_option(OptionKey('debug'))
         modules_lib_suffix = self._get_modules_lib_suffix(is_debug)
 
         for module in mods:

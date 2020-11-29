@@ -1506,9 +1506,7 @@ class CMakeDependency(ExternalDependency):
                     cfg = cfgs[0]
 
                 if OptionKey('b_vscrt') in self.env.coredata.options:
-                    is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
-                    if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
-                        is_debug = True
+                    is_debug = self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}
                 else:
                     is_debug = self.env.coredata.get_option(OptionKey('debug'))
                 if is_debug:
