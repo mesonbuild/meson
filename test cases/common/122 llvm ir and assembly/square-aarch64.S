@@ -15,6 +15,15 @@ SYMBOL_NAME(square_unsigned) ENDP
 
 #else
 
-#error gas syntax assembly for this test needs to be written
+.text
+.globl SYMBOL_NAME(square_unsigned)
+# ifdef __linux__
+.type square_unsigned, %function
+#endif
+
+SYMBOL_NAME(square_unsigned):
+    mul x1, x0, x0
+    mov x0, x1
+    ret
 
 #endif
