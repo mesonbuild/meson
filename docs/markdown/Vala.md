@@ -252,7 +252,13 @@ keyword added to include the project VAPI directory. This is not added
 automatically by `add_project_arguments()`.
 
 ### Working with the Vala Preprocessor
-Passing arguments to [Vala's preprocessor](https://wiki.gnome.org/Projects/Vala/Manual/Preprocessor) requires specifying the language as `c`.  For example, the following statement sets the preprocessor symbol `FUSE_USE_VERSION` to the value `26`:
+Passing arguments to [Vala's preprocessor](https://wiki.gnome.org/Projects/Vala/Manual/Preprocessor) requires specifying the language as `vala`.  For example, the following statement sets the preprocessor symbol `USE_FUSE`:
+
+```meson
+add_project_arguments('-D', 'USE_FUSE', language: 'vala')
+```
+
+If you need to pass an argument to the C pre-processor then specify the language as c. For example to set FUSE_USE_VERSION to 26 use:
 
 ```meson
 add_project_arguments('-DFUSE_USE_VERSION=26', language: 'c')
