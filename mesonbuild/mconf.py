@@ -35,6 +35,12 @@ def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because
     else:
         return str(val)
 
+def insert_build_prefix(k: str) -> str:
+    idx = k.find(':')
+    if idx < 0:
+        return 'build.' + k
+    return k[:idx + 1] + 'build.' + k[idx + 1:]
+
 
 class ConfException(mesonlib.MesonException):
     pass
@@ -203,7 +209,7 @@ class Conf:
                 self.coredata.compiler_options.host.items())))
         build_compiler_options = self.split_options_per_subproject(
             dict(self.coredata.flatten_lang_iterator(
-                (self.coredata.insert_build_prefix(k), o)
+                (insert_build_prefix(k), o)
                 for k, o in self.coredata.compiler_options.build.items())))
         project_options = self.split_options_per_subproject(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
@@ -212,7 +218,7 @@ class Conf:
         self.print_options('Core options', core_options[''])
         self.print_options('', self.coredata.builtins_per_machine.host)
         if show_build_options:
-            self.print_options('', {self.coredata.insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
+            self.print_options('', {insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
         self.print_options('Backend options', self.coredata.backend_options)
         self.print_options('Base options', self.coredata.base_options)
         self.print_options('Compiler options', host_compiler_options.get('', {}))

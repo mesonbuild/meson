@@ -828,13 +828,6 @@ class CoreData:
                 yield (k0 + k1, v1)
 
     @classmethod
-    def insert_build_prefix(cls, k):
-        idx = k.find(':')
-        if idx < 0:
-            return 'build.' + k
-        return k[:idx + 1] + 'build.' + k[idx + 1:]
-
-    @classmethod
     def is_per_machine_option(cls, optname: OptionKey) -> bool:
         if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
             return True
