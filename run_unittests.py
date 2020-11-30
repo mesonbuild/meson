@@ -3684,7 +3684,7 @@ class AllPlatformTests(BasePlatformTests):
 
         # Verify default values when passing no args that affect the
         # configuration, and as a bonus, test that --profile-self works.
-        self.init(testdir, extra_args=['--profile-self'])
+        self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'static')
         self.assertEqual(obj.builtins['warning_level'].value, '1')
@@ -3694,7 +3694,7 @@ class AllPlatformTests(BasePlatformTests):
 
         # warning_level is special, it's --warnlevel instead of --warning-level
         # for historical reasons
-        self.init(testdir, extra_args=['--warnlevel=2'])
+        self.init(testdir, extra_args=['--warnlevel=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['warning_level'].value, '2')
         self.setconf('--warnlevel=3')
@@ -3703,7 +3703,7 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
-        self.init(testdir, extra_args=['-Dwarning_level=2'])
+        self.init(testdir, extra_args=['-Dwarning_level=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['warning_level'].value, '2')
         self.setconf('-Dwarning_level=3')
@@ -3730,7 +3730,7 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
 
         # --default-library should override default value from project()
-        self.init(testdir, extra_args=['--default-library=both'])
+        self.init(testdir, extra_args=['--default-library=both', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'both')
         self.setconf('--default-library=shared')
@@ -3773,13 +3773,13 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
 
         # Test we can set subproject option
-        self.init(testdir, extra_args=['-Dsubp:subp_opt=foo'])
+        self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.user_options['subp:subp_opt'].value, 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
-        self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"'])
+        self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
@@ -3788,7 +3788,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(obj.compiler_options.host['c']['args'].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
-        self.init(testdir, extra_args=['-Dset_percent_opt=myoption%'])
+        self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.user_options['set_percent_opt'].value, 'myoption%')
         self.wipe()
@@ -3798,7 +3798,8 @@ class AllPlatformTests(BasePlatformTests):
             self.init(testdir, extra_args=['--bindir=foo', '--bindir=bar',
                                            '-Dbuildtype=plain', '-Dbuildtype=release',
                                            '-Db_sanitize=address', '-Db_sanitize=thread',
-                                           '-Dc_args=-Dfoo', '-Dc_args=-Dbar'])
+                                           '-Dc_args=-Dfoo', '-Dc_args=-Dbar',
+                                           '-Db_lundef=false', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
             self.assertEqual(obj.builtins['bindir'].value, 'bar')
             self.assertEqual(obj.builtins['buildtype'].value, 'release')
