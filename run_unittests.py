@@ -8455,9 +8455,13 @@ class NativeFileTests(BasePlatformTests):
         testcase = os.path.join(self.common_test_dir, '224 persubproject options')
         config = self.helper_create_native_file({'sub2:built-in options': {'default_library': 'shared'}})
 
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        with self.assertRaises((RuntimeError, subprocess.CalledProcessError)) as cm:
             self.init(testcase, extra_args=['--native-file', config])
-            self.assertIn(cm.exception.stdout, 'Parent should override default_library')
+            if isinstance(cm, RuntimeError):
+                check = str(cm.exception)
+            else:
+                check = cm.exception.stdout
+            self.assertIn(check, 'Parent should override default_library')
 
     def test_builtin_options_subprojects_dont_inherits_parent_override(self):
         # If the buildfile says subproject(... default_library: shared), ensure that's overwritten
