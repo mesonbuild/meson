@@ -3632,10 +3632,10 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_conflicting_d_dash_option(self):
         testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
-        with self.assertRaises(subprocess.CalledProcessError) as e:
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as e:
             self.init(testdir, extra_args=['-Dbindir=foo', '--bindir=bar'])
             # Just to ensure that we caught the correct error
-            self.assertIn('passed as both', e.stderr)
+            self.assertIn('as both', e.stderr)
 
     def _test_same_option_twice(self, arg, args):
         testdir = os.path.join(self.unit_test_dir, '37 mixed command line args')
@@ -3712,15 +3712,21 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
             self.init(testdir, extra_args=['--warnlevel=1', '-Dwarning_level=3'])
-        self.assertNotEqual(0, cm.exception.returncode)
-        self.assertIn('as both', cm.exception.output)
+            if isinstance(cm.exception, subprocess.CalledProcessError):
+                self.assertNotEqual(0, cm.exception.returncode)
+                self.assertIn('as both', cm.exception.output)
+            else:
+                self.assertIn('as both', str(cm.exception))
         self.init(testdir)
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
             self.setconf(['--warnlevel=1', '-Dwarning_level=3'])
-        self.assertNotEqual(0, cm.exception.returncode)
-        self.assertIn('as both', cm.exception.output)
+            if isinstance(cm.exception, subprocess.CalledProcessError):
+                self.assertNotEqual(0, cm.exception.returncode)
+                self.assertIn('as both', cm.exception.output)
+            else:
+                self.assertIn('as both', str(cm.exception))
         self.wipe()
 
         # --default-library should override default value from project()
@@ -3743,15 +3749,22 @@ class AllPlatformTests(BasePlatformTests):
         self.wipe()
 
         # Should fail on malformed option
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        msg = "Option 'foo' must have a value separated by equals sign."
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
             self.init(testdir, extra_args=['-Dfoo'])
-        self.assertNotEqual(0, cm.exception.returncode)
-        self.assertIn('Option \'foo\' must have a value separated by equals sign.', cm.exception.output)
+            if isinstance(cm.exception, subprocess.CalledProcessError):
+                self.assertNotEqual(0, cm.exception.returncode)
+                self.assertIn(msg, cm.exception.output)
+            else:
+                self.assertIn(msg, str(cm.exception))
         self.init(testdir)
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        with self.assertRaises((subprocess.CalledProcessError, RuntimeError)) as cm:
             self.setconf('-Dfoo')
-        self.assertNotEqual(0, cm.exception.returncode)
-        self.assertIn('Option \'foo\' must have a value separated by equals sign.', cm.exception.output)
+            if isinstance(cm.exception, subprocess.CalledProcessError):
+                self.assertNotEqual(0, cm.exception.returncode)
+                self.assertIn(msg, cm.exception.output)
+            else:
+                self.assertIn(msg, str(cm.exception))
         self.wipe()
 
         # It is not an error to set wrong option for unknown subprojects or
