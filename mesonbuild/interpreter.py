@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pdb
 from . import mparser
 from . import environment
 from . import coredata
@@ -2905,7 +2906,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return self.disabled_subproject(subp_name, disabled_feature=feature)
 
         default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        default_options = coredata.create_options_dict(default_options)
+        default_options = coredata.create_options_dict(default_options, subp_name)
 
         if subp_name == '':
             raise InterpreterException('Subproject name must not be empty.')
@@ -3140,7 +3141,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend)
 
-        options = {k: v for k, v in self.environment.raw_options.items() if k.startswith('backend_')}
+        options = {k: v for k, v in self.environment.options.items() if k.name.startswith('backend_')}
         self.coredata.set_options(options)
 
     @stringArgs
@@ -3172,7 +3173,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # default_options in a project will trigger a reconfigure but won't
         # have any effect.
         self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
-        self.project_default_options = coredata.create_options_dict(self.project_default_options)
+        self.project_default_options = coredata.create_options_dict(self.project_default_options, self.subproject)
         if self.environment.first_invocation:
             default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)

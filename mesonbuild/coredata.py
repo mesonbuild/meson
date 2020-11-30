@@ -551,7 +551,7 @@ class CoreData:
         self.target_guids = {}
         self.version = version
         self.builtins = {} # type: OptionDictType
-        self.builtins_per_machine = PerMachine({}, {})
+        self.builtins_per_machine: PerMachine['OptionDictType'] = PerMachine({}, {})
         self.backend_options = {} # type: OptionDictType
         self.user_options = {} # type: OptionDictType
         self.compiler_options = PerMachine(
@@ -835,14 +835,10 @@ class CoreData:
         return k[:idx + 1] + 'build.' + k[idx + 1:]
 
     @classmethod
-    def is_per_machine_option(cls, optname):
-        if optname in BUILTIN_OPTIONS_PER_MACHINE:
+    def is_per_machine_option(cls, optname: OptionKey) -> bool:
+        if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
             return True
-        from .compilers import compilers
-        for lang_prefix in [lang + '_' for lang in compilers.all_languages]:
-            if optname.startswith(lang_prefix):
-                return True
-        return False
+        return optname.lang is not None
 
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield self.backend_options
@@ -899,16 +895,6 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def strip_build_option_names(self, options):
-        res = OrderedDict()
-        for k, v in options.items():
-            if k.startswith('build.'):
-                k = k.split('.', 1)[1]
-                res.setdefault(k, v)
-            else:
-                res[k] = v
-        return res
-
     def copy_build_options_from_regular_ones(self):
         assert(not self.is_cross_build())
         for k, o in self.builtins_per_machine.host.items():
@@ -919,25 +905,26 @@ class CoreData:
                 if k in build_opts:
                     build_opts[k].set_value(o.value)
 
-    def set_options(self, options: T.Dict[str, T.Any], subproject: str = '', warn_unknown: bool = True) -> None:
+    def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', warn_unknown: bool = True) -> None:
         if not self.is_cross_build():
-            options = self.strip_build_option_names(options)
+            options = {k: v for k, v in options.items() if k.machine is not MachineChoice.BUILD}
         # Set prefix first because it's needed to sanitize other options
-        if 'prefix' in options:
-            prefix = self.sanitize_prefix(options['prefix'])
+        pfk = OptionKey('prefix')
+        if pfk in options:
+            prefix = self.sanitize_prefix(options[pfk])
             self.builtins['prefix'].set_value(prefix)
             for key in builtin_dir_noprefix_options:
                 if key not in options:
                     self.builtins[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
-        unknown_options = []
+        unknown_options: T.List[OptionKey] = []
         for k, v in options.items():
-            if k == 'prefix':
+            if k == pfk:
                 continue
-            if self._try_set_builtin_option(k, v):
+            if self._try_set_builtin_option(str(k), v):
                 continue
             for opts in self._get_all_nonbuiltin_options():
-                tgt = opts.get(k)
+                tgt = opts.get(str(k))
                 if tgt is None:
                     continue
                 tgt.set_value(v)
@@ -945,59 +932,50 @@ class CoreData:
             else:
                 unknown_options.append(k)
         if unknown_options and warn_unknown:
-            unknown_options = ', '.join(sorted(unknown_options))
+            unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
-            mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options))
+            mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options_str))
             mlog.log('The value of new options can be set with:')
             mlog.log(mlog.bold('meson setup <builddir> --reconfigure -Dnew_option=new_value ...'))
         if not self.is_cross_build():
             self.copy_build_options_from_regular_ones()
 
-    def set_default_options(self, default_options: 'T.OrderedDict[str, str]', subproject: str, env: 'Environment') -> None:
-        # Preserve order: if env.raw_options has 'buildtype' it must come after
+    def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
+        # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
-        raw_options = OrderedDict()
-        for k, v in default_options.items():
-            if subproject:
-                k = subproject + ':' + k
-            raw_options[k] = v
-        raw_options.update(env.raw_options)
-        env.raw_options = raw_options
+        if not subproject:
+            options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+            for k, v in default_options.items():
+                options[k] = v
+            options.update(env.options)
+            env.options = options
 
-        # Create a subset of raw_options, keeping only project and builtin
+        # Create a subset of options, keeping only project and builtin
         # options for this subproject.
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
-        options = OrderedDict()
+        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
 
         from . import optinterpreter
-        for k, v in env.raw_options.items():
-            raw_optname = k
-            if subproject:
-                # Subproject: skip options for other subprojects
-                if not k.startswith(subproject + ':'):
-                    continue
-                raw_optname = k.split(':')[1]
-            elif ':' in k:
-                # Main prject: skip options for subprojects
+        for k, v in chain(default_options.items(), env.options.items()):
+            # Subproject: skip options for other subprojects
+            if k.subproject and k.subproject != subproject:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if (k not in self.builtins and
-                k not in self.get_prefixed_options_per_machine(self.builtins_per_machine) and
-                optinterpreter.is_invalid_name(raw_optname, log=False)):
+            if (k.name not in self.builtins and k.name not in self.builtins_per_machine[k.machine] and
+                    optinterpreter.is_invalid_name(str(k), log=False)):
                 continue
             options[k] = v
 
         self.set_options(options, subproject=subproject)
 
-    def add_compiler_options(self, options, lang, for_machine, env):
-        # prefixed compiler options affect just this machine
-        opt_prefix = for_machine.get_prefix()
+    def add_compiler_options(self, options: 'OptionDictType', lang: str, for_machine: MachineChoice,
+                             env: 'Environment') -> None:
         for k, o in options.items():
-            optname = opt_prefix + lang + '_' + k
-            value = env.raw_options.get(optname)
+            key = OptionKey(k, lang=lang, machine=for_machine)
+            value = env.options.get(key)
             if value is not None:
                 o.set_value(value)
             self.compiler_options[for_machine][lang].setdefault(k, o)
@@ -1006,8 +984,7 @@ class CoreData:
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
-        options = compilers.get_global_options(lang, comp, for_machine,
-                                               env.is_cross_build())
+        options = compilers.get_global_options(lang, comp, for_machine, env.is_cross_build())
         self.add_compiler_options(options, lang, for_machine, env)
 
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
@@ -1021,8 +998,9 @@ class CoreData:
             if optname in self.base_options:
                 continue
             oobj = compilers.base_options[optname]
-            if optname in env.raw_options:
-                oobj.set_value(env.raw_options[optname])
+            key = OptionKey(optname, machine=comp.for_machine)
+            if key in env.options:
+                oobj.set_value(env.options[key])
                 enabled_opts.append(optname)
             self.base_options[optname] = oobj
         self.emit_base_options_warnings(enabled_opts)
@@ -1118,7 +1096,7 @@ def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
 
     # Do a copy because config is not really a dict. options.cmd_line_options
     # overrides values from the file.
-    d = dict(config['options'])
+    d = {OptionKey.from_string(k): v for k, v in config['options'].items()}
     d.update(options.cmd_line_options)
     options.cmd_line_options = d
 
@@ -1130,9 +1108,6 @@ def read_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
         # literal_eval to get it into the list of strings.
         options.native_file = ast.literal_eval(properties.get('native_file', '[]'))
 
-def cmd_line_options_to_string(options: argparse.Namespace) -> T.Dict[str, str]:
-    return {k: str(v) for k, v in options.cmd_line_options.items()}
-
 def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
@@ -1143,7 +1118,7 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
     if options.native_file:
         properties['native_file'] = [os.path.abspath(f) for f in options.native_file]
 
-    config['options'] = cmd_line_options_to_string(options)
+    config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
     with open(filename, 'w') as f:
         config.write(f)
@@ -1152,14 +1127,14 @@ def update_cmd_line_file(build_dir: str, options: argparse.Namespace):
     filename = get_cmd_line_file(build_dir)
     config = CmdLineFileParser()
     config.read(filename)
-    config['options'].update(cmd_line_options_to_string(options))
+    config['options'].update({str(k): str(v) for k, v in options.cmd_line_options.items()})
     with open(filename, 'w') as f:
         config.write(f)
 
 def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:
     copy = argparse.Namespace(**vars(options))
     read_cmd_line_file(build_dir, copy)
-    cmdline = ['-D{}={}'.format(k, v) for k, v in copy.cmd_line_options.items()]
+    cmdline = ['-D{}={}'.format(str(k), v) for k, v in copy.cmd_line_options.items()]
     if options.cross_file:
         cmdline += ['--cross-file {}'.format(f) for f in options.cross_file]
     if options.native_file:
@@ -1214,14 +1189,17 @@ def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
-def create_options_dict(options: T.List[str]) -> T.Dict[str, str]:
-    result = OrderedDict()
+def create_options_dict(options: T.List[str], subproject: str = '') -> T.Dict[OptionKey, str]:
+    result: T.OrderedDict[OptionKey, str] = OrderedDict()
     for o in options:
         try:
             (key, value) = o.split('=', 1)
         except ValueError:
             raise MesonException('Option {!r} must have a value separated by equals sign.'.format(o))
-        result[key] = value
+        k = OptionKey.from_string(key)
+        if subproject:
+            k = k.evolve(subproject=subproject)
+        result[k] = value
     return result
 
 def parse_cmd_line_options(args: argparse.Namespace) -> None:
@@ -1235,11 +1213,12 @@ def parse_cmd_line_options(args: argparse.Namespace) -> None:
     ):
         value = getattr(args, name, None)
         if value is not None:
-            if name in args.cmd_line_options:
+            key = OptionKey.from_string(name)
+            if key in args.cmd_line_options:
                 cmdline_name = BuiltinOption.argparse_name_to_arg(name)
                 raise MesonException(
                     'Got argument {0} as both -D{0} and {1}. Pick one.'.format(name, cmdline_name))
-            args.cmd_line_options[name] = value
+            args.cmd_line_options[key] = value
             delattr(args, name)
 
 
