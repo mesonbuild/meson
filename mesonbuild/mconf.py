@@ -251,7 +251,7 @@ def run(options):
             return 0
 
         save = False
-        if len(options.cmd_line_options) > 0:
+        if options.cmd_line_options:
             c.set_options(options.cmd_line_options)
             coredata.update_cmd_line_file(builddir, options)
             save = True

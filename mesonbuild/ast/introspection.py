@@ -65,7 +65,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.coredata = self.environment.get_coredata()
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
-        self.default_options = {'backend': self.backend}
+        self.default_options = {cdata.OptionKey('backend'): self.backend}
         self.project_data = {}    # type: T.Dict[str, T.Any]
         self.targets = []         # type: T.List[T.Dict[str, T.Any]]
         self.dependencies = []    # type: T.List[T.Dict[str, T.Any]]
@@ -107,7 +107,7 @@ class IntrospectionInterpreter(AstInterpreter):
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
-        self.project_default_options = cdata.create_options_dict(_project_default_options)
+        self.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
         self.default_options.update(self.project_default_options)
         self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
@@ -125,7 +125,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         self.do_subproject(i)
 
         self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.raw_options.items() if k.startswith('backend_')}
+        options = {k: v for k, v in self.environment.options.items() if k.name.startswith('backend_')}
 
         self.coredata.set_options(options)
         self._add_languages(proj_langs, MachineChoice.HOST)
