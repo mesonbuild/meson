@@ -182,7 +182,7 @@ class Conf:
         self._add_line(section + ':', '', '', '')
         self.print_margin = 2
 
-    def print_options(self, title, options):
+    def print_options(self, title: str, options: 'coredata.OptionDictType') -> None:
         if not options:
             return
         if title:
@@ -232,7 +232,7 @@ class Conf:
         self.print_options('', self.coredata.builtins_per_machine.host)
         if show_build_options:
             self.print_options('', {insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
-        self.print_options('Backend options', self.coredata.backend_options)
+        self.print_options('Backend options', {str(k): v for k, v in self.coredata.backend_options.items()})
         self.print_options('Base options', self.coredata.base_options)
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:

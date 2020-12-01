@@ -47,6 +47,7 @@ from ..mesonlib import get_compiler_for_source, has_path_sep
 from .backends import CleanTrees
 from ..build import InvalidArguments
 from ..interpreter import Interpreter
+from ..coredata import OptionKey
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -514,7 +515,7 @@ int dummy;
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+            num_pools = self.environment.coredata.backend_options[OptionKey('backend_max_links')].value
             if num_pools > 0:
                 outfile.write('''pool link_pool
   depth = {}
@@ -1846,7 +1847,7 @@ int dummy;
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
     def generate_static_link_rules(self):
-        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+        num_pools = self.environment.coredata.backend_options[OptionKey('backend_max_links')].value
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -1879,7 +1880,7 @@ int dummy;
                                     extra=pool))
 
     def generate_dynamic_link_rules(self):
-        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+        num_pools = self.environment.coredata.backend_options[OptionKey('backend_max_links')].value
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
