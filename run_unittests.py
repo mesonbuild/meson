@@ -3681,6 +3681,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_command_line(self):
         testdir = os.path.join(self.unit_test_dir, '34 command line')
+        K = mesonbuild.coredata.OptionKey
 
         # Verify default values when passing no args that affect the
         # configuration, and as a bonus, test that --profile-self works.
@@ -3688,8 +3689,8 @@ class AllPlatformTests(BasePlatformTests):
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.builtins['default_library'].value, 'static')
         self.assertEqual(obj.builtins['warning_level'].value, '1')
-        self.assertEqual(obj.user_options['set_sub_opt'].value, True)
-        self.assertEqual(obj.user_options['subp:subp_opt'].value, 'default3')
+        self.assertEqual(obj.user_options[K('set_sub_opt')].value, True)
+        self.assertEqual(obj.user_options[K('subp_opt', 'subp')].value, 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
@@ -3775,7 +3776,7 @@ class AllPlatformTests(BasePlatformTests):
         # Test we can set subproject option
         self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.user_options['subp:subp_opt'].value, 'foo')
+        self.assertEqual(obj.user_options[K('subp_opt', 'subp')].value, 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
@@ -3790,7 +3791,7 @@ class AllPlatformTests(BasePlatformTests):
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.user_options['set_percent_opt'].value, 'myoption%')
+        self.assertEqual(obj.user_options[K('set_percent_opt')].value, 'myoption%')
         self.wipe()
 
         # Setting a 2nd time the same option should override the first value

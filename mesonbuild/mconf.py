@@ -19,6 +19,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     import argparse
+    from .coredata import OptionKey, UserOption
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)
@@ -107,7 +108,7 @@ class Conf:
             else:
                 print('{0:{width[0]}} {1:{width[1]}} {3}'.format(*line, width=col_widths))
 
-    def split_options_per_subproject(self, options):
+    def split_options_per_subproject(self, options: T.Dict[str, 'UserOption']) -> T.Dict[str, T.Dict[str, 'UserOption']]:
         result = {}
         for k, o in options.items():
             subproject = ''
@@ -117,6 +118,18 @@ class Conf:
                     self.yielding_options.add(k)
                 self.all_subprojects.add(subproject)
             result.setdefault(subproject, {})[k] = o
+        return result
+
+    def split_options_per_subproject2(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, T.Dict[str, 'UserOption']]:
+        result = {}
+        for k, o in options.items():
+            subproject = k.subproject
+            if k.subproject:
+                k = k.as_root()
+                if o.yielding and k in options:
+                    self.yielding_options.add(k)
+                self.all_subprojects.add(subproject)
+            result.setdefault(subproject, {})[str(k)] = o
         return result
 
     def _add_line(self, name, value, choices, descr):
@@ -211,7 +224,7 @@ class Conf:
             dict(self.coredata.flatten_lang_iterator(
                 (insert_build_prefix(k), o)
                 for k, o in self.coredata.compiler_options.build.items())))
-        project_options = self.split_options_per_subproject(self.coredata.user_options)
+        project_options = self.split_options_per_subproject2(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')

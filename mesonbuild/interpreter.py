@@ -3050,7 +3050,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log()
         return result
 
-    def get_option_internal(self, optname):
+    def get_option_internal(self, optname: str):
         raw_optname = optname
         if self.is_subproject():
             optname = self.subproject + ':' + optname
@@ -3069,9 +3069,10 @@ external dependencies (including libraries) must go to "dependencies".''')
                 return v
 
         try:
-            opt = self.coredata.user_options[optname]
-            if opt.yielding and ':' in optname and raw_optname in self.coredata.user_options:
-                popt = self.coredata.user_options[raw_optname]
+            key = coredata.OptionKey.from_string(optname)
+            opt = self.coredata.user_options[key]
+            if opt.yielding and key.subproject and key.as_root() in self.coredata.user_options:
+                popt = self.coredata.user_options[key.as_root()]
                 if type(opt) is type(popt):
                     opt = popt
                 else:
