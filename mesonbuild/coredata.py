@@ -553,7 +553,7 @@ class CoreData:
         self.version = version
         self.builtins = {} # type: OptionDictType
         self.builtins_per_machine: PerMachine['OptionDictType'] = PerMachine({}, {})
-        self.backend_options = {} # type: OptionDictType
+        self.backend_options: 'KeyedOptionDictType' = {}
         self.user_options: 'KeyedOptionDictType' = {}
         self.compiler_options = PerMachine(
             defaultdict(dict),
@@ -712,16 +712,14 @@ class CoreData:
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
-            self.backend_options['backend_max_links'] = \
-                UserIntegerOption(
-                    'Maximum number of linker processes to run or 0 for no '
-                    'limit',
-                    (0, None, 0))
+            self.backend_options[OptionKey('backend_max_links')] = UserIntegerOption(
+                'Maximum number of linker processes to run or 0 for no '
+                'limit',
+                (0, None, 0))
         elif backend_name.startswith('vs'):
-            self.backend_options['backend_startup_project'] = \
-                UserStringOption(
-                    'Default project to execute in Visual Studio',
-                    '')
+            self.backend_options[OptionKey('backend_startup_project')] = UserStringOption(
+                'Default project to execute in Visual Studio',
+                '')
 
     def get_builtin_option(self, optname: str, subproject: str = '') -> T.Union[str, int, bool]:
         raw_optname = optname
@@ -835,7 +833,7 @@ class CoreData:
         return optname.lang is not None
 
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield self.backend_options
+        yield {str(k): v for k, v in self.backend_options.items()}
         yield {str(k): v for k, v in self.user_options.items()}
         yield dict(self.flatten_lang_iterator(self.get_prefixed_options_per_machine(self.compiler_options)))
         yield self.base_options

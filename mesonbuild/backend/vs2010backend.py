@@ -31,6 +31,7 @@ from ..mesonlib import (
     MesonException, File, python_command, replace_if_different
 )
 from ..environment import Environment, build_filename
+from ..coredata import OptionKey
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
     vs_version = os.getenv('VisualStudioVersion', None)
@@ -403,7 +404,7 @@ class Vs2010Backend(backends.Backend):
         replace_if_different(sln_filename, sln_filename_tmp)
 
     def generate_projects(self):
-        startup_project = self.environment.coredata.backend_options['backend_startup_project'].value
+        startup_project = self.environment.coredata.backend_options[OptionKey('backend_startup_project')].value
         projlist = []
         startup_idx = 0
         for (i, (name, target)) in enumerate(self.build.targets.items()):
