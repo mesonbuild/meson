@@ -89,7 +89,7 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', '_type']
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type']
 
     name: str
     subproject: str

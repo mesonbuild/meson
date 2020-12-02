@@ -125,7 +125,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         self.do_subproject(i)
 
         self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.options.items() if k.name.startswith('backend_')}
+        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
         self._add_languages(proj_langs, MachineChoice.HOST)
