@@ -206,7 +206,7 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
             ),
             'rtti': coredata.UserBooleanOption('Enable RTTI', True),
         })
-        opts['std'].choices = [  # type: ignore
+        opts['std'].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
             'c++2a', 'c++20', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
             'gnu++2a', 'gnu++20',
@@ -296,7 +296,7 @@ class ArmclangCPPCompiler(ArmclangCompiler, CPPCompiler):
                 'default',
             ),
         })
-        opts['std'].choices = [  # type: ignore
+        opts['std'].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'gnu++98',
             'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
         ]
@@ -345,7 +345,7 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
                 False,
             )
         })
-        opts['std'].choices = [  # type: ignore
+        opts['std'].choices = [
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
             'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
             'gnu++1z', 'gnu++2a', 'gnu++20',
@@ -449,7 +449,7 @@ class ElbrusCPPCompiler(GnuCPPCompiler, ElbrusCompiler):
                 False,
             ),
         })
-        opts['std'].choices = cpp_stds  # type: ignore
+        opts['std'].choices = cpp_stds
         return opts
 
     # Elbrus C++ compiler does not have lchmod, but there is only linker warning, not compiler error.
@@ -520,7 +520,7 @@ class IntelCPPCompiler(IntelGnuLikeCompiler, CPPCompiler):
             'rtti': coredata.UserBooleanOption('Enable RTTI', True),
             'debugstl': coredata.UserBooleanOption('STL debug mode', False),
         })
-        opts['std'].choices = ['none'] + c_stds + g_stds  # type: ignore
+        opts['std'].choices = ['none'] + c_stds + g_stds
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -577,7 +577,7 @@ class VisualStudioLikeCPPCompilerMixin(CompilerMixinBase):
                 msvc_winlibs,
             ),
         })
-        opts['std'].choices = cpp_stds  # type: ignore
+        opts['std'].choices = cpp_stds
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -721,7 +721,7 @@ class ArmCPPCompiler(ArmCompiler, CPPCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CPPCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c++03', 'c++11']  # type: ignore
+        opts['std'].choices = ['none', 'c++03', 'c++11']
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -779,7 +779,7 @@ class C2000CPPCompiler(C2000Compiler, CPPCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = CPPCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c++03']  # type: ignore
+        opts['std'].choices = ['none', 'c++03']
         return opts
 
     def get_always_args(self) -> T.List[str]:

@@ -186,7 +186,7 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
             fortran_stds += ['f2008']
         if version_compare(self.version, '>=8.0.0'):
             fortran_stds += ['f2018']
-        opts['std'].choices = ['none'] + fortran_stds  # type: ignore
+        opts['std'].choices = ['none'] + fortran_stds
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -315,7 +315,7 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
-        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
+        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
@@ -365,7 +365,7 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
 
     def get_options(self) -> 'OptionDictType':
         opts = FortranCompiler.get_options(self)
-        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
+        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
     def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:

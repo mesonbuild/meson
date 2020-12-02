@@ -1738,8 +1738,9 @@ def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
 
 
 class OptionProxy(T.Generic[_T]):
-    def __init__(self, value: _T):
+    def __init__(self, value: _T, choices: T.Optional[T.List[str]] = None):
         self.value = value
+        self.choices = choices
 
 
 class OptionOverrideProxy(collections.abc.MutableMapping):
@@ -1761,7 +1762,7 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
         if key in self.options:
             opt = self.options[key]
             if key in self.overrides:
-                return OptionProxy(opt.validate_value(self.overrides[key]))
+                return OptionProxy(opt.validate_value(self.overrides[key]), getattr(opt, 'choices', None))
             return opt
         raise KeyError('Option not found', key)
 
