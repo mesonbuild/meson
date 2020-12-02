@@ -3142,7 +3142,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if self.environment.first_invocation:
             self.coredata.init_backend_options(backend)
 
-        options = {k: v for k, v in self.environment.options.items() if k.name.startswith('backend_')}
+        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
     @stringArgs
