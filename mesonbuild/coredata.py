@@ -1,4 +1,4 @@
-# Copyrigh 2012-2020 The Meson development team
+# Copyright 2012-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,40 +49,35 @@ default_yielding = False
 _T = T.TypeVar('_T')
 
 
-class ArgumentGroup(enum.Enum):
+class OptionType(enum.Enum):
 
     """Enum used to specify what kind of argument a thing is."""
 
     BUILTIN = 0
     BASE = 1
     COMPILER = 2
-    USER = 3
+    PROJECT = 3
     BACKEND = 4
 
 
-def classify_argument(key: 'OptionKey') -> ArgumentGroup:
+def classify_argument(key: 'OptionKey') -> OptionType:
     """Classify arguments into groups so we know which dict to assign them to."""
 
-    from .compilers import all_languages, base_options
+    from .compilers import base_options
     all_builtins = set(BUILTIN_OPTIONS) | set(BUILTIN_OPTIONS_PER_MACHINE) | set(builtin_dir_noprefix_options)
-    lang_prefixes = tuple('{}_'.format(l) for l in all_languages)
 
     if key.name in base_options:
         assert key.machine is MachineChoice.HOST
-        return ArgumentGroup.BASE
-    elif key.name.startswith(lang_prefixes):
-        return ArgumentGroup.COMPILER
+        return OptionType.BASE
+    elif key.lang is not None:
+        return OptionType.COMPILER
     elif key.name in all_builtins:
-        # if for_machine is MachineChoice.BUILD:
-        #     if option in BUILTIN_OPTIONS_PER_MACHINE:
-        #         return ArgumentGroup.BUILTIN
-        #     raise MesonException('Argument {} is not allowed per-machine'.format(option))
-        return ArgumentGroup.BUILTIN
+        return OptionType.BUILTIN
     elif key.name.startswith('backend_'):
-        return ArgumentGroup.BACKEND
+        return OptionType.BACKEND
     else:
         assert key.machine is MachineChoice.HOST
-        return ArgumentGroup.USER
+        return OptionType.PROJECT
 
 
 class OptionKey:
@@ -94,21 +89,30 @@ class OptionKey:
     internally easier to reason about and produce.
     """
 
-    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash']
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', '_type']
 
     name: str
     subproject: str
     machine: MachineChoice
     lang: T.Optional[str]
+    _hash: int
+    type: OptionType
 
     def __init__(self, name: str, subproject: str = '',
                  machine: MachineChoice = MachineChoice.HOST,
-                 lang: T.Optional[str] = None):
+                 lang: T.Optional[str] = None, _type: T.Optional[OptionType] = None):
+        # the _type option to the constructor is kinda private. We want to be
+        # able tos ave the state and avoid the lookup function when
+        # pickling/unpickling, but we need to be able to calculate it when
+        # constructing a new OptionKey
         object.__setattr__(self, 'name', name)
         object.__setattr__(self, 'subproject', subproject)
         object.__setattr__(self, 'machine', machine)
         object.__setattr__(self, 'lang', lang)
         object.__setattr__(self, '_hash', hash((name, subproject, machine, lang)))
+        if _type is None:
+            _type = classify_argument(self)
+        object.__setattr__(self, 'type', _type)
 
     def __setattr__(self, key: str, value: T.Any) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
@@ -119,6 +123,7 @@ class OptionKey:
             'subproject': self.subproject,
             'machine': self.machine,
             'lang': self.lang,
+            '_type': self.type,
         }
 
     def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
@@ -215,6 +220,26 @@ class OptionKey:
     def as_host(self) -> 'OptionKey':
         """Convenience method for key.evolve(machine=MachinceChoice.HOST)."""
         return self.evolve(machine=MachineChoice.HOST)
+
+    def is_backend(self) -> bool:
+        """Convenience method to check if this is a backend option."""
+        return self.type is OptionType.BACKEND
+
+    def is_builtin(self) -> bool:
+        """Convenience method to check if this is a builtin option."""
+        return self.type is OptionType.BUILTIN
+
+    def is_compiler(self) -> bool:
+        """Convenience method to check if this is a builtin option."""
+        return self.type is OptionType.COMPILER
+
+    def is_project(self) -> bool:
+        """Convenience method to check if this is a project option."""
+        return self.type is OptionType.PROJECT
+
+    def is_base(self) -> bool:
+        """Convenience method to check if this is a base option."""
+        return self.type is OptionType.BASE
 
 
 class MesonVersionMismatchException(MesonException):
