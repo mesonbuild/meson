@@ -19,7 +19,7 @@ import typing as T
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import MesonException, MachineChoice, version_compare
+from ..mesonlib import MesonException, MachineChoice, version_compare, OptionKey
 
 from ..linkers import LinkerEnvVarsMixin
 from .compilers import (
@@ -40,8 +40,6 @@ from .mixins.clang import ClangCompiler
 from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 from .mixins.emscripten import EmscriptenMixin
-
-from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType

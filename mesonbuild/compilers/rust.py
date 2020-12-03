@@ -17,8 +17,10 @@ import textwrap
 import typing as T
 
 from .. import coredata
-from ..coredata import OptionKey
-from ..mesonlib import EnvironmentException, MachineChoice, MesonException, Popen_safe
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, MesonException, Popen_safe,
+    OptionKey,
+)
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:

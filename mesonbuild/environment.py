@@ -23,7 +23,7 @@ from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLin
 from . import mesonlib
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, Popen_safe,
-    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg
+    PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey
 )
 from . import mlog
 
@@ -605,7 +605,7 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[coredata.OptionKey, str] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, str] = collections.OrderedDict()
 
         ## Read in native file(s) to override build machine configuration
 
@@ -655,9 +655,9 @@ class Environment:
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
-        bt = coredata.OptionKey('buildtype')
-        db = coredata.OptionKey('debug')
-        op = coredata.OptionKey('optimization')
+        bt = OptionKey('buildtype')
+        db = OptionKey('debug')
+        op = OptionKey('optimization')
         if bt in self.options and (db in self.options or op in self.options):
             mlog.warning('Recommend using either -Dbuildtype or -Doptimization + -Ddebug. '
                          'Using both is redundant since they override each other. '
@@ -723,7 +723,7 @@ class Environment:
         if paths:
             mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
             for k, v in paths.items():
-                self.options[coredata.OptionKey.from_string(k).evolve(machine=machine)] = v
+                self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
         deprecated_properties = set()
         for lang in compilers.all_languages:
             deprecated_properties.add(lang + '_args')
@@ -731,7 +731,7 @@ class Environment:
         for k, v in properties.properties.copy().items():
             if k in deprecated_properties:
                 mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
-                self.options[coredata.OptionKey.from_string(k).evolve(machine=machine)] = v
+                self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
                 del properties.properties[k]
         for section, values in config.items():
             if ':' in section:
@@ -740,12 +740,12 @@ class Environment:
                 subproject = ''
             if section == 'built-in options':
                 for k, v in values.items():
-                    key = coredata.OptionKey.from_string(k).evolve(subproject=subproject, machine=machine)
+                    key = OptionKey.from_string(k).evolve(subproject=subproject, machine=machine)
                     self.options[key] = v
             elif section == 'project options':
                 for k, v in values.items():
                     # Project options are always for the machine machine
-                    key = coredata.OptionKey.from_string(k).evolve(subproject=subproject)
+                    key = OptionKey.from_string(k).evolve(subproject=subproject)
                     self.options[key] = v
 
     def set_default_options_from_env(self) -> None:
@@ -763,7 +763,7 @@ class Environment:
                     # FIXME: We should remember if we took the value from env to warn
                     # if it changes on future invocations.
                     if self.first_invocation:
-                        key = coredata.OptionKey(keyname, machine=for_machine)
+                        key = OptionKey(keyname, machine=for_machine)
                         self.options.setdefault(key, p_list)
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
@@ -938,7 +938,7 @@ class Environment:
         elif isinstance(comp_class.LINKER_PREFIX, list):
             check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
 
-        check_args += self.coredata.compiler_options[coredata.OptionKey('args', lang=comp_class.language, machine=for_machine)].value
+        check_args += self.coredata.compiler_options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         override = []  # type: T.List[str]
         value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
@@ -1004,7 +1004,7 @@ class Environment:
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
         extra_args = extra_args or []
-        extra_args += self.coredata.compiler_options[coredata.OptionKey('args', lang=comp_class.language, machine=for_machine)].value
+        extra_args += self.coredata.compiler_options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
             check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args

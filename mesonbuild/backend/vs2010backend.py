@@ -28,10 +28,9 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    MesonException, File, python_command, replace_if_different
+    MesonException, File, python_command, replace_if_different, OptionKey,
 )
 from ..environment import Environment, build_filename
-from ..coredata import OptionKey
 
 def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
     vs_version = os.getenv('VisualStudioVersion', None)

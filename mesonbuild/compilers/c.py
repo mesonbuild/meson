@@ -16,7 +16,7 @@ import os.path
 import typing as T
 
 from .. import coredata
-from ..mesonlib import MachineChoice, MesonException, mlog, version_compare
+from ..mesonlib import MachineChoice, MesonException, mlog, version_compare, OptionKey
 from ..linkers import LinkerEnvVarsMixin
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
@@ -37,7 +37,6 @@ from .compilers import (
     msvc_winlibs,
     Compiler,
 )
-from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType

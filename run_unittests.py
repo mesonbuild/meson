@@ -59,12 +59,11 @@ from mesonbuild.mesonlib import (
     quote_arg, relpath, is_linux, git, GIT
 )
 from mesonbuild.environment import detect_ninja
-from mesonbuild.mesonlib import MesonException, EnvironmentException
+from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
 from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
-from mesonbuild.coredata import OptionKey
 
 from mesonbuild.mtest import TAPParser, TestResult
 

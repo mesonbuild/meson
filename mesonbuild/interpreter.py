@@ -3067,7 +3067,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             if v is not None:
                 return v
 
-        key = coredata.OptionKey.from_string(optname)
+        key = mesonlib.OptionKey.from_string(optname)
         for opts in [self.coredata.compiler_options]:
             v = opts.get(key)
             if v is None or v.yielding:

@@ -43,11 +43,10 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unholder,
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
 from ..build import InvalidArguments
 from ..interpreter import Interpreter
-from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
