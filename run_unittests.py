@@ -30,8 +30,6 @@ import functools
 import io
 import operator
 import threading
-import urllib.error
-import urllib.request
 import zipfile
 import hashlib
 from itertools import chain
@@ -66,6 +64,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
+from mesonbuild.coredata import OptionKey
 
 from mesonbuild.mtest import TAPParser, TestResult
 
@@ -874,7 +873,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = env.detect_c_compiler(MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.compiler_options.host['c']['link_args'] = FakeCompilerOptions()
+            env.coredata.compiler_options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -1336,10 +1335,10 @@ class DataTests(unittest.TestCase):
         cc = env.detect_c_compiler(MachineChoice.HOST)
         cpp = env.detect_cpp_compiler(MachineChoice.HOST)
         for comp in (cc, cpp):
-            for opt in comp.get_options().keys():
-                self.assertIn(opt, md)
+            for opt in comp.get_options():
+                self.assertIn(str(opt), md)
             for opt in comp.base_options:
-                self.assertIn(opt, md)
+                self.assertIn(str(opt), md)
         self.assertNotIn('b_unknown', md)
 
     @staticmethod
@@ -3681,7 +3680,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_command_line(self):
         testdir = os.path.join(self.unit_test_dir, '34 command line')
-        K = mesonbuild.coredata.OptionKey
+        K = OptionKey
 
         # Verify default values when passing no args that affect the
         # configuration, and as a bonus, test that --profile-self works.
@@ -3782,11 +3781,11 @@ class AllPlatformTests(BasePlatformTests):
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options.host['c']['args'].value, ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
@@ -3805,7 +3804,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.builtins['bindir'].value, 'bar')
             self.assertEqual(obj.builtins['buildtype'].value, 'release')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'thread')
-            self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dbar'])
+            self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
@@ -3814,7 +3813,7 @@ class AllPlatformTests(BasePlatformTests):
             self.assertEqual(obj.builtins['bindir'].value, 'foo')
             self.assertEqual(obj.builtins['buildtype'].value, 'plain')
             self.assertEqual(obj.base_options['b_sanitize'].value, 'address')
-            self.assertEqual(obj.compiler_options.host['c']['args'].value, ['-Dfoo'])
+            self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -6300,7 +6299,7 @@ class LinuxlikeTests(BasePlatformTests):
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
-    def _test_stds_impl(self, testdir, compiler: 'Compiler', p: str) -> None:
+    def _test_stds_impl(self, testdir: str, compiler: 'Compiler') -> None:
         has_cpp17 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=5.0.0', '>=9.1') or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=5.0.0'))
@@ -6316,8 +6315,8 @@ class LinuxlikeTests(BasePlatformTests):
         # Check that all the listed -std=xxx options for this compiler work just fine when used
         # https://en.wikipedia.org/wiki/Xcode#Latest_versions
         # https://www.gnu.org/software/gcc/projects/cxx-status.html
-        for v in compiler.get_options()['std'].choices:
-            lang_std = p + '_std'
+        key = OptionKey('std', lang=compiler.language)
+        for v in compiler.get_options()[key].choices:
             # we do it like this to handle gnu++17,c++17 and gnu17,c17 cleanly
             # thus, C++ first
             if '++17' in v and not has_cpp17:
@@ -6331,8 +6330,7 @@ class LinuxlikeTests(BasePlatformTests):
                 continue
             elif '18' in v and not has_c18:
                 continue
-            std_opt = '{}={}'.format(lang_std, v)
-            self.init(testdir, extra_args=['-D' + std_opt])
+            self.init(testdir, extra_args=[f'-D{key!s}={v}'])
             cmd = self.get_compdb()[0]['command']
             # c++03 and gnu++03 are not understood by ICC, don't try to look for them
             skiplist = frozenset([
@@ -6344,15 +6342,15 @@ class LinuxlikeTests(BasePlatformTests):
             try:
                 self.build()
             except Exception:
-                print('{} was {!r}'.format(lang_std, v))
+                print(f'{key!s} was {v!r}')
                 raise
             self.wipe()
         # Check that an invalid std option in CFLAGS/CPPFLAGS fails
         # Needed because by default ICC ignores invalid options
         cmd_std = '-std=FAIL'
-        if p == 'c':
+        if compiler.language == 'c':
             env_flag_name = 'CFLAGS'
-        elif p == 'cpp':
+        elif compiler.language == 'cpp':
             env_flag_name = 'CXXFLAGS'
         else:
             raise NotImplementedError('Language {} not defined.'.format(p))
@@ -6373,7 +6371,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(MachineChoice.HOST)
-        self._test_stds_impl(testdir, cc, 'c')
+        self._test_stds_impl(testdir, cc)
 
     def test_compiler_cpp_stds(self):
         '''
@@ -6383,7 +6381,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '2 cpp')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cpp = env.detect_cpp_compiler(MachineChoice.HOST)
-        self._test_stds_impl(testdir, cpp, 'cpp')
+        self._test_stds_impl(testdir, cpp)
 
     def test_unity_subproj(self):
         testdir = os.path.join(self.common_test_dir, '43 subproject')
@@ -6905,7 +6903,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertTrue(os.path.exists(os.path.join(pkg_dir, 'librelativepath.pc')))
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        env.coredata.set_options({mesonbuild.coredata.OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
         kwargs = {'required': True, 'silent': True}
         relative_path_dep = PkgConfigDependency('librelativepath', env, kwargs)
         self.assertTrue(relative_path_dep.found())
@@ -9318,7 +9316,7 @@ class SubprojectsCommandTests(BasePlatformTests):
         out = self._subprojects_cmd(['foreach', '--types', 'git'] + dummy_cmd)
         self.assertEqual(ran_in(out), ['subprojects/sub_git'])
 
-def _clang_at_least(compiler, minver: str, apple_minver: T.Optional[str]) -> bool:
+def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
     """
     check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
 

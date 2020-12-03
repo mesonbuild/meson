@@ -36,8 +36,10 @@ from .compilers import (
 )
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
+from .coredata import OptionKey
 
 if T.TYPE_CHECKING:
+    from .coredata import KeyedOptionDictType, OptionDictType
     from .interpreter import Test
     from .mesonlib import FileMode, FileOrString
 
@@ -415,8 +417,8 @@ a hard error in the future.'''.format(name))
         self.for_machine = for_machine
         self.install = False
         self.build_always_stale = False
-        self.option_overrides_base = {}
-        self.option_overrides_compiler = defaultdict(dict)
+        self.option_overrides_base: 'OptionDictType' = {}
+        self.option_overrides_compiler: 'KeyedOptionDictType' = {}
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
@@ -511,9 +513,9 @@ a hard error in the future.'''.format(name))
 
         for k, v in option_overrides.items():
             if '_' in k:
-                lang, k2 = k.split('_', 1)
-                if lang in all_languages:
-                    self.option_overrides_compiler[lang][k2] = v
+                key = OptionKey.from_string(k)
+                if key.lang:
+                    self.option_overrides_compiler[key.evolve(machine=self.for_machine)] = v
                     continue
             self.option_overrides_base[k] = v
 

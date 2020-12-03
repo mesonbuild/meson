@@ -629,7 +629,9 @@ class Environment:
                 machines.target = MachineInfo.from_literal(config['target_machine'])
             # Keep only per machine options from the native file. The cross
             # file takes precedence over all other options.
-            self.keep_per_machine_options()
+            for key, value in list(self.options.items()):
+                if self.coredata.is_per_machine_option(key):
+                    self.options[key.as_build()] = value
             self.load_machine_file_options(config, properties.host, MachineChoice.HOST)
         else:
             # IF we aren't cross compiling, but we hav ea native file, the
@@ -736,15 +738,15 @@ class Environment:
                 subproject, section = section.split(':')
             else:
                 subproject = ''
-            if section in ['project options', 'built-in options']:
+            if section == 'built-in options':
                 for k, v in values.items():
                     key = coredata.OptionKey.from_string(k).evolve(subproject=subproject, machine=machine)
                     self.options[key] = v
-
-    def keep_per_machine_options(self) -> None:
-        for key, value in self.options.items():
-            if self.coredata.is_per_machine_option(key):
-                self.options[key.as_build()] = value
+            elif section == 'project options':
+                for k, v in values.items():
+                    # Project options are always for the machine machine
+                    key = coredata.OptionKey.from_string(k).evolve(subproject=subproject)
+                    self.options[key] = v
 
     def set_default_options_from_env(self) -> None:
         for for_machine in MachineChoice:
@@ -936,7 +938,7 @@ class Environment:
         elif isinstance(comp_class.LINKER_PREFIX, list):
             check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
 
-        check_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
+        check_args += self.coredata.compiler_options[coredata.OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         override = []  # type: T.List[str]
         value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
@@ -1002,7 +1004,7 @@ class Environment:
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
         extra_args = extra_args or []
-        extra_args += self.coredata.compiler_options[for_machine][comp_class.language]['args'].value
+        extra_args += self.coredata.compiler_options[coredata.OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
             check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args

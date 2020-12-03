@@ -37,9 +37,10 @@ from .compilers import (
     msvc_winlibs,
     Compiler,
 )
+from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
-    from ..coredata import OptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..dependencies import Dependency, ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -95,10 +96,10 @@ class CCompiler(CLikeCompiler, Compiler):
         return self.compiles(t.format(**fargs), env, extra_args=extra_args,
                              dependencies=dependencies)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         opts.update({
-            'std': coredata.UserComboOption(
+            OptionKey('std', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
                 'C langauge standard to use',
                 ['none'],
                 'none',
@@ -119,7 +120,7 @@ class _ClangCStds(CompilerMixinBase):
     _C18_VERSION = '>=8.0.0'
     _C2X_VERSION = '>=9.0.0'
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
@@ -134,7 +135,7 @@ class _ClangCStds(CompilerMixinBase):
         if version_compare(self.version, self._C2X_VERSION):
             c_stds += ['c2x']
             g_stds += ['gnu2x']
-        opts['std'].choices = ['none'] + c_stds + g_stds
+        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + c_stds + g_stds
         return opts
 
 
@@ -153,28 +154,28 @@ class ClangCCompiler(_ClangCStds, ClangCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
-                'winlibs': coredata.UserArrayOption(
+                OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
                 ),
             })
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typedict mypy can't understand this.
-            libs = options['winlibs'].value.copy()
+            libs = options[OptionKey('winlibs', machine=self.for_machine, lang=self.language)].value.copy()
             assert isinstance(libs, list)
             for l in libs:
                 assert isinstance(l, str)
@@ -223,19 +224,20 @@ class ArmclangCCompiler(ArmclangCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c90', 'c99', 'c11', 'gnu90', 'gnu99', 'gnu11']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c90', 'c99', 'c11', 'gnu90', 'gnu99', 'gnu11']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
 
@@ -257,7 +259,7 @@ class GnuCCompiler(GnuCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
         c_stds = ['c89', 'c99', 'c11']
         g_stds = ['gnu89', 'gnu99', 'gnu11']
@@ -267,27 +269,28 @@ class GnuCCompiler(GnuCompiler, CCompiler):
         if version_compare(self.version, self._C2X_VERSION):
             c_stds += ['c2x']
             g_stds += ['gnu2x']
-        opts['std'].choices = ['none'] + c_stds + g_stds
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none'] + c_stds + g_stds
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
-                'winlibs': coredata.UserArrayOption(
+                key.evolve('winlibs'): coredata.UserArrayOption(
                     'Standard Win libraries to link against',
                     gnu_winlibs,
                 ),
             })
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             # without a typeddict mypy can't figure this out
-            libs = options['winlibs'].value.copy()
+            libs: T.List[str] = options[OptionKey('winlibs', lang=self.language, machine=self.for_machine)].value.copy()
             assert isinstance(libs, list)
             for l in libs:
                 assert isinstance(l, str)
@@ -331,9 +334,9 @@ class ElbrusCCompiler(GnuCCompiler, ElbrusCompiler):
         ElbrusCompiler.__init__(self)
 
     # It does support some various ISO standards and c/gnu 90, 9x, 1x in addition to those which GNU CC supports.
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = [
+        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = [
             'none', 'c89', 'c90', 'c9x', 'c99', 'c1x', 'c11',
             'gnu89', 'gnu90', 'gnu9x', 'gnu99', 'gnu1x', 'gnu11',
             'iso9899:2011', 'iso9899:1990', 'iso9899:199409', 'iso9899:1999',
@@ -368,18 +371,18 @@ class IntelCCompiler(IntelGnuLikeCompiler, CCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
         c_stds = ['c89', 'c99']
         g_stds = ['gnu89', 'gnu99']
         if version_compare(self.version, '>=16.0.0'):
             c_stds += ['c11']
-        opts['std'].choices = ['none'] + c_stds + g_stds
+        opts[OptionKey('std', machine=self.for_machine, lang=self.language)].choices = ['none'] + c_stds + g_stds
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -389,19 +392,20 @@ class VisualStudioLikeCCompilerMixin(CompilerMixinBase):
 
     """Shared methods that apply to MSVC-like C compilers."""
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         opts.update({
-            'winlibs': coredata.UserArrayOption(
+            OptionKey('winlibs', machine=self.for_machine, lang=self.language): coredata.UserArrayOption(
                 'Windows libs to link against.',
                 msvc_winlibs,
             ),
         })
         return opts
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         # need a TypeDict to make this work
-        libs = options['winlibs'].value.copy()
+        key = OptionKey('winlibs', machine=self.for_machine, lang=self.language)
+        libs = options[key].value.copy()
         assert isinstance(libs, list)
         for l in libs:
             assert isinstance(l, str)
@@ -423,7 +427,7 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
                            full_version=full_version)
         MSVCCompiler.__init__(self, target)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
         c_stds = ['c89', 'c99']
                   # Need to have these to be compatible with projects
@@ -436,12 +440,13 @@ class VisualStudioCCompiler(MSVCCompiler, VisualStudioLikeCCompilerMixin, CCompi
         if version_compare(self.version, self._C17_VERSION):
             c_stds += ['c17', 'c18']
             g_stds += ['gnu17', 'gnu18']
-        opts['std'].choices = ['none'] + c_stds + g_stds
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none'] + c_stds + g_stds
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        std = options[OptionKey('std', machine=self.for_machine, lang=self.language)]
         if std.value.startswith('gnu'):
             mlog.log_once(
                 'cl.exe does not actually support gnu standards, and meson '
@@ -466,8 +471,9 @@ class ClangClCCompiler(_ClangCStds, ClangClCompiler, VisualStudioLikeCCompilerMi
                            full_version=full_version)
         ClangClCompiler.__init__(self, target)
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
-        std = options['std'].value
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key].value
         if std != "none":
             return ['/clang:-std={}'.format(std)]
         return []
@@ -487,14 +493,16 @@ class IntelClCCompiler(IntelVisualStudioLikeCompiler, VisualStudioLikeCCompilerM
                            full_version=full_version)
         IntelVisualStudioLikeCompiler.__init__(self, target)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
-        opts['std'].choices = ['none', 'c89', 'c99', 'c11']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99', 'c11']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value == 'c89':
             mlog.log_once("ICL doesn't explicitly implement c89, setting the standard to 'none', which is close.")
         elif std.value != 'none':
@@ -513,14 +521,16 @@ class ArmCCompiler(ArmCompiler, CCompiler):
                            full_version=full_version)
         ArmCompiler.__init__(self)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c89', 'c99', 'c11']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99', 'c11']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('--' + std.value)
         return args
@@ -540,17 +550,19 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
     def get_always_args(self) -> T.List[str]:
         return ['-nologo']
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c89', 'c99']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99']
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value == 'c89':
             args.append('-lang=c')
         elif std.value == 'c99':
@@ -585,17 +597,19 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
                            info, exe_wrapper, linker=linker, full_version=full_version)
         Xc16Compiler.__init__(self)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c89', 'c99', 'gnu89', 'gnu99']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99', 'gnu89', 'gnu99']
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['c_std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('-ansi')
             args.append('-std=' + std.value)
@@ -628,12 +642,13 @@ class CompCertCCompiler(CompCertCompiler, CCompiler):
                            info, exe_wrapper, linker=linker, full_version=full_version)
         CompCertCompiler.__init__(self)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c89', 'c99']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
     def get_no_optimization_args(self) -> T.List[str]:
@@ -664,17 +679,19 @@ class C2000CCompiler(C2000Compiler, CCompiler):
     def get_always_args(self) -> T.List[str]:
         return []
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = CCompiler.get_options(self)
-        opts['std'].choices = ['none', 'c89', 'c99', 'c11']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c89', 'c99', 'c11']
         return opts
 
     def get_no_stdinc_args(self) -> T.List[str]:
         return []
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['c_std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('--' + std.value)
         return args

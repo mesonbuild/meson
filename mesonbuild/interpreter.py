@@ -52,6 +52,7 @@ import typing as T
 import importlib
 
 if T.TYPE_CHECKING:
+    from .compilers import Compiler
     from .envconfig import MachineInfo
     from .environment import Environment
     from .modules import ExtensionModule
@@ -1058,7 +1059,7 @@ find_library_permitted_kwargs = set([
 find_library_permitted_kwargs |= set(['header_' + k for k in header_permitted_kwargs])
 
 class CompilerHolder(InterpreterObject):
-    def __init__(self, compiler, env, subproject):
+    def __init__(self, compiler: 'Compiler', env: 'Environment', subproject: str):
         InterpreterObject.__init__(self)
         self.compiler = compiler
         self.environment = env
@@ -1143,7 +1144,7 @@ class CompilerHolder(InterpreterObject):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             for_machine = Interpreter.machine_from_native_kwarg(kwargs)
-            opts = self.environment.coredata.compiler_options[for_machine][self.compiler.language]
+            opts = self.environment.coredata.compiler_options
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
                 args += self.compiler.get_option_link_args(opts)
@@ -3059,8 +3060,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         for opts in [
                 self.coredata.base_options, compilers.base_options, self.coredata.builtins,
                 dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
-                dict(self.coredata.flatten_lang_iterator(
-                    self.coredata.get_prefixed_options_per_machine(self.coredata.compiler_options))),
         ]:
             v = opts.get(optname)
             if v is None or v.yielding:
@@ -3068,8 +3067,15 @@ external dependencies (including libraries) must go to "dependencies".''')
             if v is not None:
                 return v
 
+        key = coredata.OptionKey.from_string(optname)
+        for opts in [self.coredata.compiler_options]:
+            v = opts.get(key)
+            if v is None or v.yielding:
+                v = opts.get(key.as_root())
+            if v is not None:
+                return v
+
         try:
-            key = coredata.OptionKey.from_string(optname)
             opt = self.coredata.user_options[key]
             if opt.yielding and key.subproject and key.as_root() in self.coredata.user_options:
                 popt = self.coredata.user_options[key.as_root()]

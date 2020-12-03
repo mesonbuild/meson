@@ -92,7 +92,7 @@ class ValaCompiler(Compiler):
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'class MesonSanityCheck : Object { }'
-        extra_flags = []
+        extra_flags: T.List[str] = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
         if self.is_cross:
             extra_flags += self.get_compile_only_args()
@@ -116,7 +116,7 @@ class ValaCompiler(Compiler):
         # no extra dirs are specified.
         if not extra_dirs:
             code = 'class MesonFindLibrary : Object { }'
-            args = []
+            args: T.List[str] = []
             args += env.coredata.get_external_args(self.for_machine, self.language)
             vapi_args = ['--pkg', libname]
             args += vapi_args

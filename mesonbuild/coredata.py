@@ -67,16 +67,17 @@ def classify_argument(key: 'OptionKey') -> OptionType:
     all_builtins = set(BUILTIN_OPTIONS) | set(BUILTIN_OPTIONS_PER_MACHINE) | set(builtin_dir_noprefix_options)
 
     if key.name in base_options:
-        assert key.machine is MachineChoice.HOST
+        assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.BASE
     elif key.lang is not None:
         return OptionType.COMPILER
     elif key.name in all_builtins:
         return OptionType.BUILTIN
     elif key.name.startswith('backend_'):
+        assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.BACKEND
     else:
-        assert key.machine is MachineChoice.HOST
+        assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.PROJECT
 
 
@@ -168,23 +169,24 @@ class OptionKey:
         This takes strings like `mysubproject:build.myoption` and Creates an
         OptionKey out of them.
         """
-        from .compilers import all_languages
-        if any(raw.startswith(f'{l}_') for l in all_languages):
-            lang, raw2 = raw.split('_', 1)
-        else:
-            lang, raw2 = None, raw
 
         try:
-            subproject, raw3 = raw2.split(':')
+            subproject, raw2 = raw.split(':')
         except ValueError:
-            subproject, raw3 = '', raw2
+            subproject, raw2 = '', raw
 
-        if raw3.startswith('build.'):
-            opt = raw3.lstrip('build.')
+        if raw2.startswith('build.'):
+            raw3 = raw2.lstrip('build.')
             for_machine = MachineChoice.BUILD
         else:
-            opt = raw3
+            raw3 = raw2
             for_machine = MachineChoice.HOST
+
+        from .compilers import all_languages
+        if any(raw3.startswith(f'{l}_') for l in all_languages):
+            lang, opt = raw3.split('_', 1)
+        else:
+            lang, opt = None, raw3
         assert ':' not in opt
         assert 'build.' not in opt
 
@@ -580,10 +582,7 @@ class CoreData:
         self.builtins_per_machine: PerMachine['OptionDictType'] = PerMachine({}, {})
         self.backend_options: 'KeyedOptionDictType' = {}
         self.user_options: 'KeyedOptionDictType' = {}
-        self.compiler_options = PerMachine(
-            defaultdict(dict),
-            defaultdict(dict),
-        ) # type: PerMachine[T.defaultdict[str, OptionDictType]]
+        self.compiler_options: 'KeyedOptionDictType' = {}
         self.base_options = {} # type: OptionDictType
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
@@ -860,7 +859,7 @@ class CoreData:
     def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield {str(k): v for k, v in self.backend_options.items()}
         yield {str(k): v for k, v in self.user_options.items()}
-        yield dict(self.flatten_lang_iterator(self.get_prefixed_options_per_machine(self.compiler_options)))
+        yield {str(k): v for k, v in self.compiler_options.items()}
         yield self.base_options
 
     def _get_all_builtin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
@@ -882,11 +881,11 @@ class CoreData:
                         .with_traceback(sys.exc_info()[2])
         raise MesonException('Tried to validate unknown option %s.' % option_name)
 
-    def get_external_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang]['args'].value
+    def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
+        return self.compiler_options[OptionKey('args', machine=for_machine, lang=lang)].value
 
-    def get_external_link_args(self, for_machine: MachineChoice, lang):
-        return self.compiler_options[for_machine][lang]['link_args'].value
+    def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
+        return self.compiler_options[OptionKey('link_args', machine=for_machine, lang=lang)].value
 
     def merge_user_options(self, options: T.Dict[str, UserOption[T.Any]]) -> None:
         for name, value in options.items():
@@ -914,14 +913,17 @@ class CoreData:
         return len(self.cross_files) > 0
 
     def copy_build_options_from_regular_ones(self):
-        assert(not self.is_cross_build())
+        assert not self.is_cross_build()
         for k, o in self.builtins_per_machine.host.items():
             self.builtins_per_machine.build[k].set_value(o.value)
-        for lang, host_opts in self.compiler_options.host.items():
-            build_opts = self.compiler_options.build[lang]
-            for k, o in host_opts.items():
-                if k in build_opts:
-                    build_opts[k].set_value(o.value)
+        for bk, bv in self.compiler_options.items():
+            if bk.machine is MachineChoice.BUILD:
+                hk = bk.as_host()
+                try:
+                    hv = self.compiler_options[hk]
+                    bv.set_value(hv.value)
+                except KeyError:
+                    continue
 
     def set_options(self, options: T.Dict[OptionKey, T.Any], subproject: str = '', warn_unknown: bool = True) -> None:
         if not self.is_cross_build():
@@ -989,14 +991,13 @@ class CoreData:
 
         self.set_options(options, subproject=subproject)
 
-    def add_compiler_options(self, options: 'OptionDictType', lang: str, for_machine: MachineChoice,
+    def add_compiler_options(self, options: 'KeyedOptionDictType', lang: str, for_machine: MachineChoice,
                              env: 'Environment') -> None:
         for k, o in options.items():
-            key = OptionKey(k, lang=lang, machine=for_machine)
-            value = env.options.get(key)
+            value = env.options.get(k)
             if value is not None:
                 o.set_value(value)
-            self.compiler_options[for_machine][lang].setdefault(k, o)
+            self.compiler_options.setdefault(k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:

@@ -36,6 +36,8 @@ from ..mesonlib import (
 )
 
 if T.TYPE_CHECKING:
+    from ..arglist import CompilerArgs
+    from ..compilers import Compiler
     from ..interpreter import Interpreter, Test
 
 
@@ -214,13 +216,10 @@ class Backend:
                                    self.environment.coredata.builtins,
                                    self.environment.coredata.base_options)
 
-    def get_compiler_options_for_target(self, target):
-        comp_reg = self.environment.coredata.compiler_options[target.for_machine]
+    def get_compiler_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
+        comp_reg = self.environment.coredata.compiler_options
         comp_override = target.option_overrides_compiler
-        return {
-            lang: OptionOverrideProxy(comp_override[lang], comp_reg[lang])
-            for lang in set(comp_reg.keys()) | set(comp_override.keys())
-        }
+        return OptionOverrideProxy(comp_override, comp_reg)
 
     def get_option_for_target(self, option_name, target):
         if option_name in target.option_overrides_base:
@@ -672,13 +671,13 @@ class Backend:
 
         return extra_args
 
-    def generate_basic_compiler_args(self, target, compiler, no_warn_args=False):
+    def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler', no_warn_args: bool = False) -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
         commands = compiler.compiler_args()
 
-        copt_proxy = self.get_compiler_options_for_target(target)[compiler.language]
+        copt_proxy = self.get_compiler_options_for_target(target)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
