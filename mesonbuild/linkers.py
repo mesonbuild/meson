@@ -21,7 +21,7 @@ from .arglist import CompilerArgs
 from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
-    from .coredata import OptionDictType
+    from .coredata import KeyedOptionDictType
     from .envconfig import MachineChoice
     from .environment import Environment
 
@@ -40,7 +40,7 @@ class StaticLinker:
         """
         return mesonlib.is_windows()
 
-    def get_base_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_base_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         """Like compilers.get_base_link_args, but for the static linker."""
         return []
 
@@ -70,7 +70,7 @@ class StaticLinker:
     def openmp_flags(self) -> T.List[str]:
         return []
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
     @classmethod
@@ -378,7 +378,7 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
 
     # XXX: is use_ldflags a compiler or a linker attribute?
 
-    def get_option_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
     def has_multi_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
@@ -401,7 +401,7 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
     def get_std_shared_lib_args(self) -> T.List[str]:
         return []
 
-    def get_std_shared_module_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.get_std_shared_lib_args()
 
     def get_pie_args(self) -> T.List[str]:
@@ -693,7 +693,7 @@ class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_allow_undefined_args(self) -> T.List[str]:
         return self._apply_prefix('-undefined,dynamic_lookup')
 
-    def get_std_shared_module_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_std_shared_module_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return ['-bundle'] + self._apply_prefix('-undefined,dynamic_lookup')
 
     def get_pie_args(self) -> T.List[str]:

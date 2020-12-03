@@ -17,6 +17,8 @@ from . import coredata, environment, mesonlib, build, mintro, mlog
 from .ast import AstIDGenerator
 import typing as T
 
+from .mesonlib import MachineChoice
+
 if T.TYPE_CHECKING:
     import argparse
     from .coredata import OptionKey, UserOption
@@ -217,13 +219,8 @@ class Conf:
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
 
         core_options = self.split_options_per_subproject(core_options)
-        host_compiler_options = self.split_options_per_subproject(
-            dict(self.coredata.flatten_lang_iterator(
-                self.coredata.compiler_options.host.items())))
-        build_compiler_options = self.split_options_per_subproject(
-            dict(self.coredata.flatten_lang_iterator(
-                (insert_build_prefix(k), o)
-                for k, o in self.coredata.compiler_options.build.items())))
+        host_compiler_options = self.split_options_per_subproject2({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.HOST})
+        build_compiler_options = self.split_options_per_subproject2({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.BUILD})
         project_options = self.split_options_per_subproject2(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 

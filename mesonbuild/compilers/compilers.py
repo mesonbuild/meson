@@ -32,10 +32,11 @@ from ..envconfig import (
 )
 
 from ..arglist import CompilerArgs
+from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import OptionDictType
+    from ..coredata import OptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
@@ -596,13 +597,13 @@ class Compiler(metaclass=abc.ABCMeta):
                                      is_cross: bool) -> T.List[str]:
         return self.linker.get_args_from_envvars(for_machine, is_cross)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.linker.get_option_args(options)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
@@ -826,7 +827,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return self.linker.get_std_shared_lib_args()
 
-    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_std_shared_module_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.linker.get_std_shared_module_args(options)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1243,14 +1244,16 @@ def get_args_from_envvars(lang: str,
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       is_cross: bool) -> 'OptionDictType':
+                       is_cross: bool) -> 'KeyedOptionDictType':
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
+    argkey = OptionKey('args', lang=lang, machine=for_machine)
+    largkey = argkey.evolve('link_args')
     opts = {
-        'args': coredata.UserArrayOption(
+        argkey: coredata.UserArrayOption(
             description + ' compiler',
             [], split_args=True, user_input=True, allow_dups=True),
-        'link_args': coredata.UserArrayOption(
+        largkey: coredata.UserArrayOption(
             description + ' linker',
             [], split_args=True, user_input=True, allow_dups=True),
     }  # type: OptionDictType
@@ -1262,10 +1265,7 @@ def get_global_options(lang: str,
         is_cross,
         comp.INVOKES_LINKER)
 
-    for k, o in opts.items():
-        if k == 'args':
-            o.set_value(compile_args)
-        elif k == 'link_args':
-            o.set_value(link_args)
+    opts[argkey].set_value(compile_args)
+    opts[largkey].set_value(link_args)
 
     return opts

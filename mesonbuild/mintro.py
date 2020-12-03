@@ -33,6 +33,8 @@ import typing as T
 import os
 import argparse
 
+from .mesonlib import MachineChoice
+
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
 
@@ -260,13 +262,12 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
     add_keys({str(k): v for k, v in coredata.backend_options.items()}, 'backend')
     add_keys(coredata.base_options, 'base')
     add_keys(
-        dict(coredata.flatten_lang_iterator(coredata.compiler_options.host.items())),
+        {str(k): v for k, v in coredata.compiler_options.items() if k.machine is MachineChoice.HOST},
         'compiler',
         machine='host',
     )
-    tmp_dict = dict(coredata.flatten_lang_iterator(coredata.compiler_options.build.items()))  # type: T.Dict[str, cdata.UserOption]
     add_keys(
-        {'build.' + k: o for k, o in tmp_dict.items()},
+        {str(k): v for k, v in coredata.compiler_options.items() if k.machine is MachineChoice.BUILD},
         'compiler',
         machine='build',
     )

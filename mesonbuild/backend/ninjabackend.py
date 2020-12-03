@@ -49,6 +49,9 @@ from ..build import InvalidArguments
 from ..interpreter import Interpreter
 from ..coredata import OptionKey
 
+if T.TYPE_CHECKING:
+    from ..linkers import StaticLinker
+
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
 FORTRAN_SUBMOD_PAT = r"^\s*\bsubmodule\b\s*\((\w+:?\w+)\)\s*(\w+)"
@@ -891,7 +894,7 @@ int dummy;
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        if self.environment.coredata.compiler_options[target.for_machine]['cpp']['std'] != 'c++latest':
+        if self.environment.coredata.compiler_options[OptionKey('std', machine=target.for_machine, lang='cpp')] != 'latest':
             return False
         if not mesonlib.current_vs_supports_modules():
             return False
@@ -1614,7 +1617,7 @@ int dummy;
             for a in rustc.linker.get_always_args():
                 args += ['-C', 'link-arg={}'.format(a)]
 
-        opt_proxy = self.get_compiler_options_for_target(target)[rustc.language]
+        opt_proxy = self.get_compiler_options_for_target(target)
 
         args += ['--crate-name', target.name]
         args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
@@ -2832,7 +2835,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
         return [prelink_name]
 
-    def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
+    def generate_link(self, target: build.BuildTarget, outname, obj_list, linker: T.Union['Compiler', 'StaticLinker'], extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
         implicit_outs = []
@@ -2929,14 +2932,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        if hasattr(linker, 'get_language'):
+        if isinstance(linker, Compiler):
             # The static linker doesn't know what language it is building, so we
             # don't know what option. Fortunately, it doesn't care to see the
             # language-specific options either.
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(self.environment.coredata.compiler_options[target.for_machine][linker.get_language()])
+            commands += linker.get_option_link_args(self.environment.coredata.compiler_options)
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))

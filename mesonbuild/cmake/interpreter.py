@@ -31,6 +31,7 @@ from pathlib import Path
 import typing as T
 import re
 from os import environ
+from ..coredata import OptionKey
 
 from ..mparser import (
     Token,
@@ -598,10 +599,10 @@ class ConverterTarget:
 
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
-        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
-        if not lang_opts or 'std' not in lang_opts:
+        try:
+            res = self.env.coredata.compiler_options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices  # type: ignore
+        except KeyError:
             return []
-        res = lang_opts['std'].choices
 
         # TODO: Get rid of this once we have propper typing for options
         assert isinstance(res, list)
