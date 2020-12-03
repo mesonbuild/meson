@@ -34,7 +34,8 @@ from mesonbuild import mesonmain
 from mesonbuild import mtest
 from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
-from mesonbuild.coredata import backendlist, version as meson_version, OptionKey
+from mesonbuild.coredata import backendlist, version as meson_version
+from mesonbuild.mesonlib import OptionKey
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None

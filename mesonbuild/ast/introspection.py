@@ -19,7 +19,7 @@ from .interpreter import AstInterpreter
 from .visitor import AstVisitor
 from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, OptionKey
 from ..interpreterbase import InvalidArguments, TYPE_nvar
 from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -65,7 +65,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.coredata = self.environment.get_coredata()
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
-        self.default_options = {cdata.OptionKey('backend'): self.backend}
+        self.default_options = {OptionKey('backend'): self.backend}
         self.project_data = {}    # type: T.Dict[str, T.Any]
         self.targets = []         # type: T.List[T.Dict[str, T.Any]]
         self.dependencies = []    # type: T.List[T.Dict[str, T.Any]]

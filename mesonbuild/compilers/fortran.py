@@ -17,7 +17,6 @@ import typing as T
 import subprocess, os
 
 from .. import coredata
-from ..coredata import OptionKey
 from .compilers import (
     clike_debug_args,
     Compiler,
@@ -32,7 +31,8 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 
 from mesonbuild.mesonlib import (
-    version_compare, EnvironmentException, MesonException, MachineChoice, LibType
+    version_compare, EnvironmentException, MesonException, MachineChoice,
+    LibType, OptionKey,
 )
 
 if T.TYPE_CHECKING:

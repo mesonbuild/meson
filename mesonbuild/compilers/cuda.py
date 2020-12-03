@@ -17,9 +17,11 @@ import os.path
 import typing as T
 
 from .. import coredata
-from ..coredata import OptionKey
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy, is_windows, LibType
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy,
+    is_windows, LibType, OptionKey,
+)
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args)
 

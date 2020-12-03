@@ -28,7 +28,8 @@ from . import mlog
 from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
-    get_filenames_templates_dict, substitute_values, has_path_sep, unholder
+    get_filenames_templates_dict, substitute_values, has_path_sep, unholder,
+    OptionKey,
 )
 from .compilers import (
     Compiler, all_languages, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -36,7 +37,6 @@ from .compilers import (
 )
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
-from .coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from .coredata import KeyedOptionDictType, OptionDictType

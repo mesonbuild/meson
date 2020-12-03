@@ -21,7 +21,8 @@ from .mesonlib import MachineChoice
 
 if T.TYPE_CHECKING:
     import argparse
-    from .coredata import OptionKey, UserOption
+    from .coredata import UserOption
+    from .mesonlib import OptionKey
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)

@@ -22,7 +22,7 @@ from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible
+from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
@@ -31,7 +31,6 @@ from pathlib import Path
 import typing as T
 import re
 from os import environ
-from ..coredata import OptionKey
 
 from ..mparser import (
     Token,

@@ -25,14 +25,13 @@ from .. import mesonlib
 from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof
+    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
 from ..envconfig import (
     get_env_var
 )
 
 from ..arglist import CompilerArgs
-from ..coredata import OptionKey
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
