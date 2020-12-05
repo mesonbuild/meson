@@ -79,8 +79,9 @@ class IntelGnuLikeCompiler(GnuLikeCompiler):
         # It does have IPO, which serves much the same purpose as LOT, but
         # there is an unfortunate rule for using IPO (you can't control the
         # name of the output file) which break assumptions meson makes
-        self.base_options = ['b_pch', 'b_lundef', 'b_asneeded', 'b_pgo',
-                             'b_coverage', 'b_ndebug', 'b_staticpic', 'b_pie']
+        self.base_options = {mesonlib.OptionKey(o) for o in [
+            'b_pch', 'b_lundef', 'b_asneeded', 'b_pgo', 'b_coverage',
+            'b_ndebug', 'b_staticpic', 'b_pie']}
         self.id = 'intel'
         self.lang_header = 'none'
 

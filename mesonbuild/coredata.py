@@ -21,7 +21,7 @@ from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     default_libdir, default_libexecdir, default_prefix, split_args,
-    OptionKey,
+    OptionKey, OptionType,
 )
 from .wrap import WrapMode
 import ast
@@ -301,16 +301,17 @@ class DependencyCache:
     successfully lookup by providing a simple get/put interface.
     """
 
-    def __init__(self, builtins_per_machine: PerMachine[T.Dict[str, UserOption[T.Any]]], for_machine: MachineChoice):
+    def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
         self.__cache = OrderedDict()  # type: T.MutableMapping[CacheKeyType, DependencySubCache]
-        self.__builtins_per_machine = builtins_per_machine
-        self.__for_machine = for_machine
+        self.__builtins = builtins
+        self.__pkg_conf_key = OptionKey('pkg_config_path', machine=for_machine)
+        self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
 
     def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[T.Any, ...]:
         if type_ is DependencyCacheType.PKG_CONFIG:
-            return tuple(self.__builtins_per_machine[self.__for_machine]['pkg_config_path'].value)
+            return tuple(self.__builtins[self.__pkg_conf_key].value)
         elif type_ is DependencyCacheType.CMAKE:
-            return tuple(self.__builtins_per_machine[self.__for_machine]['cmake_prefix_path'].value)
+            return tuple(self.__builtins[self.__cmake_key].value)
         assert type_ is DependencyCacheType.OTHER, 'Someone forgot to update subkey calculations for a new type'
         return tuple()
 
@@ -384,17 +385,16 @@ class CoreData:
         self.meson_command = meson_command
         self.target_guids = {}
         self.version = version
-        self.builtins = {} # type: OptionDictType
-        self.builtins_per_machine: PerMachine['OptionDictType'] = PerMachine({}, {})
+        self.builtins: 'KeyedOptionDictType' = {}
         self.backend_options: 'KeyedOptionDictType' = {}
         self.user_options: 'KeyedOptionDictType' = {}
         self.compiler_options: 'KeyedOptionDictType' = {}
-        self.base_options = {} # type: OptionDictType
+        self.base_options: 'KeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
-        build_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
-        host_cache = DependencyCache(self.builtins_per_machine, MachineChoice.BUILD)
+        build_cache = DependencyCache(self.builtins, MachineChoice.BUILD)
+        host_cache = DependencyCache(self.builtins, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
@@ -466,7 +466,7 @@ class CoreData:
         # getting the "system default" is always wrong on multiarch
         # platforms as it gets a value like lib/x86_64-linux-gnu.
         if self.cross_files:
-            BUILTIN_OPTIONS['libdir'].default = 'lib'
+            BUILTIN_OPTIONS[OptionKey('libdir')].default = 'lib'
 
     def sanitize_prefix(self, prefix):
         prefix = os.path.expanduser(prefix)
@@ -486,7 +486,7 @@ class CoreData:
                 prefix = prefix[:-1]
         return prefix
 
-    def sanitize_dir_option_value(self, prefix: str, option: str, value: T.Any) -> T.Any:
+    def sanitize_dir_option_value(self, prefix: str, option: OptionKey, value: T.Any) -> T.Any:
         '''
         If the option is an installation directory option and the value is an
         absolute path, check that it resides within prefix and return the value
@@ -501,13 +501,13 @@ class CoreData:
             value = PurePath(value)
         except TypeError:
             return value
-        if option.endswith('dir') and value.is_absolute() and \
-           option not in builtin_dir_noprefix_options:
+        if option.name.endswith('dir') and value.is_absolute() and \
+           option not in BULITIN_DIR_NOPREFIX_OPTIONS:
             # Value must be a subdir of the prefix
             # commonpath will always return a path in the native format, so we
             # must use pathlib.PurePath to do the same conversion before
             # comparing.
-            msg = ('The value of the {!r} option is \'{!s}\' which must be a '
+            msg = ('The value of the \'{!s}\' option is \'{!s}\' which must be a '
                    'subdir of the prefix {!r}.\nNote that if you pass a '
                    'relative path, it is assumed to be a subdir of prefix.')
             # os.path.commonpath doesn't understand case-insensitive filesystems,
@@ -520,25 +520,25 @@ class CoreData:
                 raise MesonException(msg.format(option, value, prefix))
         return value.as_posix()
 
-    def init_builtins(self, subproject: str):
+    def init_builtins(self, subproject: str) -> None:
         # Create builtin options with default values
         for key, opt in BUILTIN_OPTIONS.items():
-            self.add_builtin_option(self.builtins, key, opt, subproject)
+            self.add_builtin_option(self.builtins, key.evolve(subproject=subproject), opt)
         for for_machine in iter(MachineChoice):
             for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
-                self.add_builtin_option(self.builtins_per_machine[for_machine], key, opt, subproject)
+                self.add_builtin_option(self.builtins, key.evolve(subproject=subproject, machine=for_machine), opt)
 
-    def add_builtin_option(self, opts_map, key, opt, subproject):
-        if subproject:
+    @staticmethod
+    def add_builtin_option(opts_map: 'KeyedOptionDictType', key: OptionKey,
+                           opt: 'BuiltinOption') -> None:
+        if key.subproject:
             if opt.yielding:
                 # This option is global and not per-subproject
                 return
-            optname = subproject + ':' + key
-            value = opts_map[key].value
+            value = opts_map[key.as_root()].value
         else:
-            optname = key
             value = None
-        opts_map[optname] = opt.init_option(key, value, default_prefix())
+        opts_map[key] = opt.init_option(key, value, default_prefix())
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
@@ -552,45 +552,43 @@ class CoreData:
                 '')
 
     def get_builtin_option(self, optname: str, subproject: str = '') -> T.Union[str, int, bool]:
-        raw_optname = optname
-        if subproject:
-            optname = subproject + ':' + optname
+        key = OptionKey.from_string(optname).evolve(subproject=subproject)
         for opts in self._get_all_builtin_options():
-            v = opts.get(optname)
+            v = opts.get(str(key))
             if v is None or v.yielding:
-                v = opts.get(raw_optname)
+                v = opts.get(str(key.as_root()))
             if v is None:
                 continue
-            if raw_optname == 'wrap_mode':
+            if key.name == 'wrap_mode':
                 return WrapMode.from_string(v.value)
             return v.value
-        raise RuntimeError('Tried to get unknown builtin option %s.' % raw_optname)
+        raise RuntimeError(f'Tried to get unknown builtin option {key.name}.')
 
-    def _try_set_builtin_option(self, optname, value):
+    def _try_set_builtin_option(self, key: OptionKey, value) -> bool:
         for opts in self._get_all_builtin_options():
-            opt = opts.get(optname)
+            opt = opts.get(str(key))
             if opt is None:
                 continue
-            if optname == 'prefix':
+            if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.builtins['prefix'].value
-                value = self.sanitize_dir_option_value(prefix, optname, value)
+                prefix = self.builtins[OptionKey('prefix')].value
+                value = self.sanitize_dir_option_value(prefix, key, value)
             break
         else:
             return False
         opt.set_value(value)
         # Make sure that buildtype matches other settings.
-        if optname == 'buildtype':
+        if key.name == 'buildtype':
             self.set_others_from_buildtype(value)
         else:
             self.set_buildtype_from_others()
         return True
 
-    def set_builtin_option(self, optname, value):
+    def set_builtin_option(self, optname: OptionKey, value) -> None:
         res = self._try_set_builtin_option(optname, value)
         if not res:
-            raise RuntimeError('Tried to set unknown builtin option %s.' % optname)
+            raise RuntimeError(f'Tried to set unknown builtin option {str(optname)}')
 
     def set_others_from_buildtype(self, value):
         if value == 'plain':
@@ -611,12 +609,12 @@ class CoreData:
         else:
             assert(value == 'custom')
             return
-        self.builtins['optimization'].set_value(opt)
-        self.builtins['debug'].set_value(debug)
+        self.builtins[OptionKey('optimization')].set_value(opt)
+        self.builtins[OptionKey('debug')].set_value(debug)
 
     def set_buildtype_from_others(self):
-        opt = self.builtins['optimization'].value
-        debug = self.builtins['debug'].value
+        opt = self.builtins[OptionKey('optimization')].value
+        debug = self.builtins[OptionKey('debug')].value
         if opt == '0' and not debug:
             mode = 'plain'
         elif opt == '0' and debug:
@@ -629,7 +627,7 @@ class CoreData:
             mode = 'minsize'
         else:
             mode = 'custom'
-        self.builtins['buildtype'].set_value(mode)
+        self.builtins[OptionKey('buildtype')].set_value(mode)
 
     @classmethod
     def get_prefixed_options_per_machine(
@@ -666,19 +664,18 @@ class CoreData:
         yield {str(k): v for k, v in self.backend_options.items()}
         yield {str(k): v for k, v in self.user_options.items()}
         yield {str(k): v for k, v in self.compiler_options.items()}
-        yield self.base_options
+        yield {str(k): v for k, v in self.base_options.items()}
 
     def _get_all_builtin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield dict(self.get_prefixed_options_per_machine(self.builtins_per_machine))
-        yield self.builtins
+        yield {str(k): v for k, v in self.builtins.items()}
 
     def get_all_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
         yield from self._get_all_nonbuiltin_options()
         yield from self._get_all_builtin_options()
 
-    def validate_option_value(self, option_name, override_value):
+    def validate_option_value(self, option_name: OptionKey, override_value):
         for opts in self.get_all_options():
-            opt = opts.get(option_name)
+            opt = opts.get(str(option_name))
             if opt is not None:
                 try:
                     return opt.validate_value(override_value)
@@ -718,10 +715,11 @@ class CoreData:
             return False
         return len(self.cross_files) > 0
 
-    def copy_build_options_from_regular_ones(self):
+    def copy_build_options_from_regular_ones(self) -> None:
         assert not self.is_cross_build()
-        for k, o in self.builtins_per_machine.host.items():
-            self.builtins_per_machine.build[k].set_value(o.value)
+        for k in BUILTIN_OPTIONS_PER_MACHINE:
+            o = self.builtins[k]
+            self.builtins[k.as_build()].set_value(o.value)
         for bk, bv in self.compiler_options.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
@@ -738,8 +736,8 @@ class CoreData:
         pfk = OptionKey('prefix')
         if pfk in options:
             prefix = self.sanitize_prefix(options[pfk])
-            self.builtins['prefix'].set_value(prefix)
-            for key in builtin_dir_noprefix_options:
+            self.builtins[OptionKey('prefix')].set_value(prefix)
+            for key in BULITIN_DIR_NOPREFIX_OPTIONS:
                 if key not in options:
                     self.builtins[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
@@ -747,7 +745,7 @@ class CoreData:
         for k, v in options.items():
             if k == pfk:
                 continue
-            if self._try_set_builtin_option(str(k), v):
+            if self._try_set_builtin_option(k, v):
                 continue
             for opts in self._get_all_nonbuiltin_options():
                 tgt = opts.get(str(k))
@@ -783,15 +781,13 @@ class CoreData:
         # to know which backend we'll use).
         options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
 
-        from . import optinterpreter
         for k, v in chain(default_options.items(), env.options.items()):
             # Subproject: skip options for other subprojects
             if k.subproject and k.subproject != subproject:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
-            if (k.name not in self.builtins and k.name not in self.builtins_per_machine[k.machine] and
-                    optinterpreter.is_invalid_name(str(k), log=False)):
+            if k.type in {OptionType.COMPILER, OptionType.BACKEND, OptionType.BASE}:
                 continue
             options[k] = v
 
@@ -818,20 +814,19 @@ class CoreData:
         self.compilers[comp.for_machine][lang] = comp
         self.add_compiler_options(comp.get_options(), lang, comp.for_machine, env)
 
-        enabled_opts = []
-        for optname in comp.base_options:
-            if optname in self.base_options:
+        enabled_opts: T.List[OptionKey] = []
+        for key in comp.base_options:
+            if key in self.base_options:
                 continue
-            oobj = compilers.base_options[optname]
-            key = OptionKey(optname, machine=comp.for_machine)
+            oobj = compilers.base_options[key]
             if key in env.options:
                 oobj.set_value(env.options[key])
-                enabled_opts.append(optname)
-            self.base_options[optname] = oobj
+                enabled_opts.append(key)
+            self.base_options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
-    def emit_base_options_warnings(self, enabled_opts: list):
-        if 'b_bitcode' in enabled_opts:
+    def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:
+        if OptionKey('b_bitcode') in enabled_opts:
             mlog.warning('Base option \'b_bitcode\' is enabled, which is incompatible with many linker options. Incompatible options such as \'b_asneeded\' have been disabled.', fatal=False)
             mlog.warning('Please see https://mesonbuild.com/Builtin-options.html#Notes_about_Apple_Bitcode_support for more details.', fatal=False)
 
@@ -1007,10 +1002,10 @@ def save(obj: CoreData, build_dir: str) -> str:
 
 def register_builtin_arguments(parser: argparse.ArgumentParser) -> None:
     for n, b in BUILTIN_OPTIONS.items():
-        b.add_to_argparse(n, parser, '', '')
+        b.add_to_argparse(str(n), parser, '')
     for n, b in BUILTIN_OPTIONS_PER_MACHINE.items():
-        b.add_to_argparse(n, parser, '', ' (just for host machine)')
-        b.add_to_argparse(n, parser, 'build.', ' (just for build machine)')
+        b.add_to_argparse(str(n), parser, ' (just for host machine)')
+        b.add_to_argparse(str(n.as_build()), parser, ' (just for build machine)')
     parser.add_argument('-D', action='append', dest='projectoptions', default=[], metavar="option",
                         help='Set the value of an option, can be used several times to set multiple options.')
 
@@ -1031,14 +1026,14 @@ def parse_cmd_line_options(args: argparse.Namespace) -> None:
     args.cmd_line_options = create_options_dict(args.projectoptions)
 
     # Merge builtin options set with --option into the dict.
-    for name in chain(
+    for key in chain(
             BUILTIN_OPTIONS.keys(),
-            ('build.' + k for k in BUILTIN_OPTIONS_PER_MACHINE.keys()),
+            (k.as_build() for k in BUILTIN_OPTIONS_PER_MACHINE.keys()),
             BUILTIN_OPTIONS_PER_MACHINE.keys(),
     ):
+        name = str(key)
         value = getattr(args, name, None)
         if value is not None:
-            key = OptionKey.from_string(name)
             if key in args.cmd_line_options:
                 cmdline_name = BuiltinOption.argparse_name_to_arg(name)
                 raise MesonException(
@@ -1064,7 +1059,7 @@ class BuiltinOption(T.Generic[_T, _U]):
         self.choices = choices
         self.yielding = yielding
 
-    def init_option(self, name: str, value: T.Optional[T.Any], prefix: str) -> _U:
+    def init_option(self, name: 'OptionKey', value: T.Optional[T.Any], prefix: str) -> _U:
         """Create an instance of opt_type and return it."""
         if value is None:
             value = self.prefixed_default(name, prefix)
@@ -1095,16 +1090,16 @@ class BuiltinOption(T.Generic[_T, _U]):
         else:
             return '--' + name.replace('_', '-')
 
-    def prefixed_default(self, name: str, prefix: str = '') -> T.Any:
+    def prefixed_default(self, name: 'OptionKey', prefix: str = '') -> T.Any:
         if self.opt_type in [UserComboOption, UserIntegerOption]:
             return self.default
         try:
-            return builtin_dir_noprefix_options[name][prefix]
+            return BULITIN_DIR_NOPREFIX_OPTIONS[name][prefix]
         except KeyError:
             pass
         return self.default
 
-    def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, prefix: str, help_suffix: str) -> None:
+    def add_to_argparse(self, name: str, parser: argparse.ArgumentParser, help_suffix: str) -> None:
         kwargs = OrderedDict()
 
         c = self._argparse_choices()
@@ -1117,64 +1112,65 @@ class BuiltinOption(T.Generic[_T, _U]):
         if c and not b:
             kwargs['choices'] = c
         kwargs['default'] = argparse.SUPPRESS
-        kwargs['dest'] = prefix + name
+        kwargs['dest'] = name
 
-        cmdline_name = self.argparse_name_to_arg(prefix + name)
+        cmdline_name = self.argparse_name_to_arg(name)
         parser.add_argument(cmdline_name, help=h + help_suffix, **kwargs)
 
 
 # Update `docs/markdown/Builtin-options.md` after changing the options below
-BUILTIN_DIR_OPTIONS = OrderedDict([
-    ('prefix',          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
-    ('bindir',          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
-    ('datadir',         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
-    ('includedir',      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
-    ('infodir',         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
-    ('libdir',          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
-    ('libexecdir',      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
-    ('localedir',       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
-    ('localstatedir',   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
-    ('mandir',          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
-    ('sbindir',         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
-    ('sharedstatedir',  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
-    ('sysconfdir',      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
-])  # type: OptionDictType
+# Also update mesonlib._BUILTIN_NAMES. See the comment there for why this is required.
+BUILTIN_DIR_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
+    (OptionKey('prefix'),          BuiltinOption(UserStringOption, 'Installation prefix', default_prefix())),
+    (OptionKey('bindir'),          BuiltinOption(UserStringOption, 'Executable directory', 'bin')),
+    (OptionKey('datadir'),         BuiltinOption(UserStringOption, 'Data file directory', 'share')),
+    (OptionKey('includedir'),      BuiltinOption(UserStringOption, 'Header file directory', 'include')),
+    (OptionKey('infodir'),         BuiltinOption(UserStringOption, 'Info page directory', 'share/info')),
+    (OptionKey('libdir'),          BuiltinOption(UserStringOption, 'Library directory', default_libdir())),
+    (OptionKey('libexecdir'),      BuiltinOption(UserStringOption, 'Library executable directory', default_libexecdir())),
+    (OptionKey('localedir'),       BuiltinOption(UserStringOption, 'Locale data directory', 'share/locale')),
+    (OptionKey('localstatedir'),   BuiltinOption(UserStringOption, 'Localstate data directory', 'var')),
+    (OptionKey('mandir'),          BuiltinOption(UserStringOption, 'Manual page directory', 'share/man')),
+    (OptionKey('sbindir'),         BuiltinOption(UserStringOption, 'System executable directory', 'sbin')),
+    (OptionKey('sharedstatedir'),  BuiltinOption(UserStringOption, 'Architecture-independent data directory', 'com')),
+    (OptionKey('sysconfdir'),      BuiltinOption(UserStringOption, 'Sysconf data directory', 'etc')),
+])
 
-BUILTIN_CORE_OPTIONS = OrderedDict([
-    ('auto_features',   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
-    ('backend',         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
-    ('buildtype',       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
-                                      choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
-    ('debug',           BuiltinOption(UserBooleanOption, 'Debug', True)),
-    ('default_library', BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
-                                      yielding=False)),
-    ('errorlogs',       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
-    ('install_umask',   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
-    ('layout',          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
-    ('optimization',    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
-    ('stdsplit',        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
-    ('strip',           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
-    ('unity',           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
-    ('unity_size',      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
-    ('warning_level',   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], yielding=False)),
-    ('werror',          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
-    ('wrap_mode',       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
-    ('force_fallback_for', BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
-])  # type: OptionDictType
+BUILTIN_CORE_OPTIONS: 'KeyedOptionDictType' = OrderedDict([
+    (OptionKey('auto_features'),   BuiltinOption(UserFeatureOption, "Override value of all 'auto' features", 'auto')),
+    (OptionKey('backend'),         BuiltinOption(UserComboOption, 'Backend to use', 'ninja', choices=backendlist)),
+    (OptionKey('buildtype'),       BuiltinOption(UserComboOption, 'Build type to use', 'debug',
+                                                 choices=['plain', 'debug', 'debugoptimized', 'release', 'minsize', 'custom'])),
+    (OptionKey('debug'),           BuiltinOption(UserBooleanOption, 'Debug', True)),
+    (OptionKey('default_library'), BuiltinOption(UserComboOption, 'Default library type', 'shared', choices=['shared', 'static', 'both'],
+                                                 yielding=False)),
+    (OptionKey('errorlogs'),       BuiltinOption(UserBooleanOption, "Whether to print the logs from failing tests", True)),
+    (OptionKey('install_umask'),   BuiltinOption(UserUmaskOption, 'Default umask to apply on permissions of installed files', '022')),
+    (OptionKey('layout'),          BuiltinOption(UserComboOption, 'Build directory layout', 'mirror', choices=['mirror', 'flat'])),
+    (OptionKey('optimization'),    BuiltinOption(UserComboOption, 'Optimization level', '0', choices=['0', 'g', '1', '2', '3', 's'])),
+    (OptionKey('stdsplit'),        BuiltinOption(UserBooleanOption, 'Split stdout and stderr in test logs', True)),
+    (OptionKey('strip'),           BuiltinOption(UserBooleanOption, 'Strip targets on install', False)),
+    (OptionKey('unity'),           BuiltinOption(UserComboOption, 'Unity build', 'off', choices=['on', 'off', 'subprojects'])),
+    (OptionKey('unity_size'),      BuiltinOption(UserIntegerOption, 'Unity block size', (2, None, 4))),
+    (OptionKey('warning_level'),   BuiltinOption(UserComboOption, 'Compiler warning level to use', '1', choices=['0', '1', '2', '3'], yielding=False)),
+    (OptionKey('werror'),          BuiltinOption(UserBooleanOption, 'Treat warnings as errors', False, yielding=False)),
+    (OptionKey('wrap_mode'),       BuiltinOption(UserComboOption, 'Wrap mode', 'default', choices=['default', 'nofallback', 'nodownload', 'forcefallback'])),
+    (OptionKey('force_fallback_for'), BuiltinOption(UserArrayOption, 'Force fallback for those subprojects', [])),
+])
 
 BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OPTIONS.items()))
 
-BUILTIN_OPTIONS_PER_MACHINE = OrderedDict([
-    ('pkg_config_path', BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
-    ('cmake_prefix_path', BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
+BUILTIN_OPTIONS_PER_MACHINE: 'KeyedOptionDictType' = OrderedDict([
+    (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
+    (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
 
 # Special prefix-dependent defaults for installation directories that reside in
 # a path outside of the prefix in FHS and common usage.
-builtin_dir_noprefix_options = {
-    'sysconfdir':     {'/usr': '/etc'},
-    'localstatedir':  {'/usr': '/var',     '/usr/local': '/var/local'},
-    'sharedstatedir': {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
+BULITIN_DIR_NOPREFIX_OPTIONS: T.Dict[OptionKey, T.Dict[str, str]] = {
+    OptionKey('sysconfdir'):     {'/usr': '/etc'},
+    OptionKey('localstatedir'):  {'/usr': '/var',     '/usr/local': '/var/local'},
+    OptionKey('sharedstatedir'): {'/usr': '/var/lib', '/usr/local': '/var/local/lib'},
 }
 
 FORBIDDEN_TARGET_NAMES = {'clean': None,

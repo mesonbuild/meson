@@ -20,6 +20,7 @@ import typing as T
 
 from ... import mesonlib
 from ...linkers import AppleDynamicLinker
+from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
@@ -48,11 +49,11 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'clang'
         self.defines = defines or {}
-        self.base_options.append('b_colorout')
+        self.base_options.add(OptionKey('b_colorout'))
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
-            self.base_options.append('b_bitcode')
+            self.base_options.add(OptionKey('b_bitcode'))
         # All Clang backends can also do LLVM IR
         self.can_compile_suffixes.add('ll')
 
@@ -108,7 +109,7 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
-    
+
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC

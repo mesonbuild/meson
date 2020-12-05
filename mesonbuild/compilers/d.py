@@ -18,7 +18,7 @@ import subprocess
 import typing as T
 
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare,
+    EnvironmentException, MachineChoice, version_compare, OptionKey,
 )
 
 from ..arglist import CompilerArgs
@@ -653,8 +653,10 @@ class GnuDCompiler(GnuCompiler, DCompiler):
                           '1': default_warn_args,
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
-        self.base_options = ['b_colorout', 'b_sanitize', 'b_staticpic',
-                             'b_vscrt', 'b_coverage', 'b_pgo', 'b_ndebug']
+        self.base_options = {
+            OptionKey(o) for o in [
+             'b_colorout', 'b_sanitize', 'b_staticpic', 'b_vscrt',
+             'b_coverage', 'b_pgo', 'b_ndebug']}
 
         self._has_color_support = version_compare(self.version, '>=4.9')
         # dependencies were implemented before, but broken - support was fixed in GCC 7.1+
@@ -724,7 +726,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
         self.id = 'llvm'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
+        self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype == 'always':
@@ -782,7 +784,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
                            full_version=full_version, is_cross=is_cross)
         DmdLikeCompilerMixin.__init__(self, version)
         self.id = 'dmd'
-        self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
+        self.base_options = {OptionKey(o) for o in ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']}
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if colortype == 'always':

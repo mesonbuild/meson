@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pdb
 from . import mparser
 from . import environment
 from . import coredata
@@ -22,7 +21,7 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, Popen_safe, listify, extract_as_list, has_path_sep, unholder
+from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -83,7 +82,7 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, option)
         if option.is_auto():
-            self.held_object = env.coredata.builtins['auto_features']
+            self.held_object = env.coredata.builtins[OptionKey('auto_features')]
         self.name = name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
@@ -3010,7 +3009,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
         with mlog.nested():
             new_build = self.build.copy()
-            prefix = self.coredata.builtins['prefix'].value
+            prefix = self.coredata.builtins[OptionKey('prefix')].value
 
             from .modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options', CMakeSubprojectOptions())
@@ -3052,23 +3051,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         return result
 
     def get_option_internal(self, optname: str):
-        raw_optname = optname
-        if self.is_subproject():
-            optname = self.subproject + ':' + optname
+        # TODO: this optname may be a compiler option
+        key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
-
-        for opts in [
-                self.coredata.base_options, compilers.base_options, self.coredata.builtins,
-                dict(self.coredata.get_prefixed_options_per_machine(self.coredata.builtins_per_machine)),
-        ]:
-            v = opts.get(optname)
-            if v is None or v.yielding:
-                v = opts.get(raw_optname)
-            if v is not None:
-                return v
-
-        key = mesonlib.OptionKey.from_string(optname)
-        for opts in [self.coredata.compiler_options]:
+        for opts in [self.coredata.builtins, self.coredata.base_options, compilers.base_options, self.coredata.compiler_options]:
             v = opts.get(key)
             if v is None or v.yielding:
                 v = opts.get(key.as_root())
@@ -3090,7 +3076,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                     mlog.warning('Option {0!r} of type {1!r} in subproject {2!r} cannot yield '
                                  'to parent option of type {3!r}, ignoring parent value. '
                                  'Use -D{2}:{0}=value to set the value for this option manually'
-                                 '.'.format(raw_optname, opt_type, self.subproject, popt_type),
+                                 '.'.format(optname, opt_type, self.subproject, popt_type),
                                  location=self.current_node)
             return opt
         except KeyError:
@@ -4786,15 +4772,15 @@ different subdirectory.
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if 'b_lundef' not in self.coredata.base_options:
+        if OptionKey('b_lundef') not in self.coredata.base_options:
             return
-        if 'b_sanitize' not in self.coredata.base_options:
+        if OptionKey('b_sanitize') not in self.coredata.base_options:
             return
-        if (self.coredata.base_options['b_lundef'].value and
-                self.coredata.base_options['b_sanitize'].value != 'none'):
+        if (self.coredata.base_options[OptionKey('b_lundef')].value and
+                self.coredata.base_options[OptionKey('b_sanitize')].value != 'none'):
             mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
-Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_sanitize'].value),
+Try setting b_lundef to false instead.'''.format(self.coredata.base_options[OptionKey('b_sanitize')].value),
                          location=self.current_node)
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dir):
@@ -4889,10 +4875,11 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options['b_s
 
         # Check if user forces non-PIC static library.
         pic = True
+        key = OptionKey('b_staticpic')
         if 'pic' in kwargs:
             pic = kwargs['pic']
-        elif 'b_staticpic' in self.environment.coredata.base_options:
-            pic = self.environment.coredata.base_options['b_staticpic'].value
+        elif key in self.environment.coredata.base_options:
+            pic = self.environment.coredata.base_options[key].value
 
         if pic:
             # Exclude sources from args and kwargs to avoid building them twice

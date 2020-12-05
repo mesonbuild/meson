@@ -404,7 +404,7 @@ class EnvironmentVariables:
         return env
 
 class Target:
-    def __init__(self, name, subdir, subproject, build_by_default, for_machine: MachineChoice):
+    def __init__(self, name, subdir, subproject, build_by_default: bool, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "{}" has a path separator in its name.
@@ -417,7 +417,7 @@ a hard error in the future.'''.format(name))
         self.for_machine = for_machine
         self.install = False
         self.build_always_stale = False
-        self.option_overrides_base: 'OptionDictType' = {}
+        self.option_overrides_base: T.Dict[OptionKey, str] = {}
         self.option_overrides_compiler: 'KeyedOptionDictType' = {}
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
@@ -499,7 +499,7 @@ a hard error in the future.'''.format(name))
         return self.construct_id_from_path(
             self.subdir, self.name, self.type_suffix())
 
-    def process_kwargs_base(self, kwargs):
+    def process_kwargs_base(self, kwargs: T.Dict[str, T.Any]) -> None:
         if 'build_by_default' in kwargs:
             self.build_by_default = kwargs['build_by_default']
             if not isinstance(self.build_by_default, bool):
@@ -512,23 +512,22 @@ a hard error in the future.'''.format(name))
         option_overrides = self.parse_overrides(kwargs)
 
         for k, v in option_overrides.items():
-            if '_' in k:
-                key = OptionKey.from_string(k)
-                if key.lang:
-                    self.option_overrides_compiler[key.evolve(machine=self.for_machine)] = v
-                    continue
+            if k.lang:
+                self.option_overrides_compiler[k.evolve(machine=self.for_machine)] = v
+                continue
             self.option_overrides_base[k] = v
 
-    def parse_overrides(self, kwargs) -> dict:
-        result = {}
+    @staticmethod
+    def parse_overrides(kwargs: T.Dict[str, T.Any]) -> T.Dict[OptionKey, str]:
+        result: T.Dict[OptionKey, str] = {}
         overrides = stringlistify(kwargs.get('override_options', []))
         for o in overrides:
             if '=' not in o:
                 raise InvalidArguments('Overrides must be of form "key=value"')
             k, v = o.split('=', 1)
-            k = k.strip()
+            key = OptionKey.from_string(k.strip())
             v = v.strip()
-            result[k] = v
+            result[key] = v
         return result
 
     def is_linkable_target(self) -> bool:
@@ -1066,17 +1065,18 @@ This will become a hard error in a future Meson release.''')
             raise InvalidArguments('Invalid value for win_subsystem: {}.'.format(value))
         return value
 
-    def _extract_pic_pie(self, kwargs, arg, environment, option):
+    def _extract_pic_pie(self, kwargs, arg: str, environment, option: str):
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
             mlog.warning("Use the '{}' kwarg instead of passing '{}' manually to {!r}".format(arg, '-f' + arg, self.name))
             return True
 
+        k = OptionKey(option)
         if arg in kwargs:
             val = kwargs[arg]
-        elif option in environment.coredata.base_options:
-            val = environment.coredata.base_options[option].value
+        elif k in environment.coredata.base_options:
+            val = environment.coredata.base_options[k].value
         else:
             val = False
 
@@ -1597,8 +1597,9 @@ class Executable(BuildTarget):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], objects, environment: environment.Environment, kwargs):
         self.typename = 'executable'
-        if 'pie' not in kwargs and 'b_pie' in environment.coredata.base_options:
-            kwargs['pie'] = environment.coredata.base_options['b_pie'].value
+        key = OptionKey('b_pie')
+        if 'pie' not in kwargs and key in environment.coredata.base_options:
+            kwargs['pie'] = environment.coredata.base_options[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'

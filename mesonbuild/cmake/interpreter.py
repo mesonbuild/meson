@@ -578,7 +578,7 @@ class ConverterTarget:
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
         try:
-            res = self.env.coredata.compiler_options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices  # type: ignore
+            res = self.env.coredata.compiler_options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
         except KeyError:
             return []
 

@@ -37,7 +37,7 @@ from ..environment import Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
 from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
-from ..mesonlib import Version, LibType
+from ..mesonlib import Version, LibType, OptionKey
 from ..mesondata import mesondata
 
 if T.TYPE_CHECKING:
@@ -656,8 +656,9 @@ class PkgConfigDependency(ExternalDependency):
         return rc, out, err
 
     @staticmethod
-    def setup_env(env, environment, for_machine, extra_path=None):
-        extra_paths = environment.coredata.builtins_per_machine[for_machine]['pkg_config_path'].value
+    def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
+                  extra_path: T.Optional[str] = None) -> None:
+        extra_paths: T.List[str] = environment.coredata.builtins[OptionKey('pkg_config_path', machine=for_machine)].value
         if extra_path:
             extra_paths.append(extra_path)
         sysroot = environment.properties[for_machine].get_sys_root()
@@ -1484,9 +1485,9 @@ class CMakeDependency(ExternalDependency):
                     cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                if 'b_vscrt' in self.env.coredata.base_options:
+                if OptionKey('b_vscrt') in self.env.coredata.base_options:
                     is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
-                    if self.env.coredata.base_options['b_vscrt'].value in ('mdd', 'mtd'):
+                    if self.env.coredata.base_options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
                         is_debug = True
                 else:
                     is_debug = self.env.coredata.get_builtin_option('debug')

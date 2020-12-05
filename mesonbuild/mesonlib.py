@@ -32,7 +32,7 @@ from mesonbuild import mlog
 
 if T.TYPE_CHECKING:
     from .build import ConfigurationData
-    from .coredata import OptionDictType, UserOption
+    from .coredata import KeyedOptionDictType, UserOption
     from .compilers.compilers import CompilerType
     from .interpreterbase import ObjectHolder
 
@@ -1743,6 +1743,10 @@ class OptionProxy(T.Generic[_T]):
         self.value = value
         self.choices = choices
 
+    def set_value(self, v: _T) -> None:
+        # XXX: should this be an error
+        self.value = v
+
 
 class OptionOverrideProxy(collections.abc.MutableMapping):
 
@@ -1753,13 +1757,13 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
 
-    def __init__(self, overrides: T.Dict[str, T.Any], *options: 'OptionDictType'):
+    def __init__(self, overrides: T.Dict['OptionKey', T.Any], *options: 'KeyedOptionDictType'):
         self.overrides = overrides.copy()
-        self.options = {}  # type: T.Dict[str, UserOption]
+        self.options: T.Dict['OptionKey', UserOption] = {}
         for o in options:
             self.options.update(o)
 
-    def __getitem__(self, key: str) -> T.Union['UserOption', OptionProxy]:
+    def __getitem__(self, key: 'OptionKey') -> T.Union['UserOption', OptionProxy]:
         if key in self.options:
             opt = self.options[key]
             if key in self.overrides:
@@ -1767,13 +1771,13 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
             return opt
         raise KeyError('Option not found', key)
 
-    def __setitem__(self, key: str, value: T.Union['UserOption', OptionProxy]) -> None:
+    def __setitem__(self, key: 'OptionKey', value: T.Union['UserOption', OptionProxy]) -> None:
         self.overrides[key] = value.value
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: 'OptionKey') -> None:
         del self.overrides[key]
 
-    def __iter__(self) -> T.Iterator[str]:
+    def __iter__(self) -> T.Iterator['OptionKey']:
         return iter(self.options)
 
     def __len__(self) -> int:
@@ -1793,20 +1797,54 @@ class OptionType(enum.Enum):
     PROJECT = 3
     BACKEND = 4
 
+# This is copied from coredata. There is no way to share this, because this
+# is used in the OptionKey constructor, and the coredata lists are
+# OptionKeys...
+_BUILTIN_NAMES = {
+    'prefix',
+    'bindir',
+    'datadir',
+    'includedir',
+    'infodir',
+    'libdir',
+    'libexecdir',
+    'localedir',
+    'localstatedir',
+    'mandir',
+    'sbindir',
+    'sharedstatedir',
+    'sysconfdir',
+    'auto_features',
+    'backend',
+    'buildtype',
+    'debug',
+    'default_library',
+    'errorlogs',
+    'install_umask',
+    'layout',
+    'optimization',
+    'stdsplit',
+    'strip',
+    'unity',
+    'unity_size',
+    'warning_level',
+    'werror',
+    'wrap_mode',
+    'force_fallback_for',
+    'pkg_config_path',
+    'cmake_prefix_path',
+}
+
 
 def _classify_argument(key: 'OptionKey') -> OptionType:
     """Classify arguments into groups so we know which dict to assign them to."""
 
-    from .compilers import base_options
-    from .coredata import BUILTIN_OPTIONS, BUILTIN_OPTIONS_PER_MACHINE, builtin_dir_noprefix_options
-    all_builtins = set(BUILTIN_OPTIONS) | set(BUILTIN_OPTIONS_PER_MACHINE) | set(builtin_dir_noprefix_options)
-
-    if key.name in base_options:
+    if key.name.startswith('b_'):
         assert key.machine is MachineChoice.HOST, str(key)
         return OptionType.BASE
     elif key.lang is not None:
         return OptionType.COMPILER
-    elif key.name in all_builtins:
+    elif key.name in _BUILTIN_NAMES:
         return OptionType.BUILTIN
     elif key.name.startswith('backend_'):
         assert key.machine is MachineChoice.HOST, str(key)
@@ -1868,9 +1906,10 @@ class OptionKey:
         This is very clever. __init__ is not a constructor, it's an
         initializer, therefore it's safe to call more than once. We create a
         state in the custom __getstate__ method, which is valid to pass
-        unsplatted to the initializer.
+        splatted to the initializer.
         """
-        self.__init__(**state)
+        # Mypy doesn't like this, because it's so clever.
+        self.__init__(**state)  # type: ignore
 
     def __hash__(self) -> int:
         return self._hash
@@ -1882,6 +1921,15 @@ class OptionKey:
                 self.subproject == other.subproject and
                 self.machine is other.machine and
                 self.lang == other.lang)
+        return NotImplemented
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return (
+                self.name < other.name and
+                self.subproject < other.subproject and
+                self.machine < other.machine and
+                self.lang < other.lang)
         return NotImplemented
 
     def __str__(self) -> str:

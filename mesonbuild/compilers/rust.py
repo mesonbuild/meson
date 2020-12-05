@@ -55,9 +55,9 @@ class RustCompiler(Compiler):
                          linker=linker)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
-        self.base_options.append('b_colorout')
+        self.base_options.add(OptionKey('b_colorout'))
         if 'link' in self.linker.id:
-            self.base_options.append('b_vscrt')
+            self.base_options.add(OptionKey('b_vscrt'))
 
     def needs_static_linker(self) -> bool:
         return False

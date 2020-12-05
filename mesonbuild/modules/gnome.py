@@ -19,6 +19,7 @@ import os
 import copy
 import subprocess
 import functools
+import typing as T
 
 from .. import build
 from .. import mlog
@@ -34,6 +35,9 @@ from ..mesonlib import (
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+
+if T.TYPE_CHECKING:
+    from ..compilers import Compiler
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -574,8 +578,8 @@ class GnomeModule(ExtensionModule):
 
         return ret
 
-    def _get_girtargets_langs_compilers(self, girtargets):
-        ret = []
+    def _get_girtargets_langs_compilers(self, girtargets: T.List[GirTarget]) -> T.List[T.Tuple[str, 'Compiler']]:
+        ret: T.List[T.Tuple[str, 'Compiler']] = []
         for girtarget in girtargets:
             for lang, compiler in girtarget.compilers.items():
                 # XXX: Can you use g-i with any other language?
@@ -598,7 +602,7 @@ class GnomeModule(ExtensionModule):
             ret += girtarget.get_include_dirs()
         return ret
 
-    def _get_langs_compilers_flags(self, state, langs_compilers):
+    def _get_langs_compilers_flags(self, state, langs_compilers: T.List[T.Tuple[str, 'Compiler']]):
         cflags = []
         internal_ldflags = []
         external_ldflags = []
@@ -608,8 +612,8 @@ class GnomeModule(ExtensionModule):
                 cflags += state.global_args[lang]
             if state.project_args.get(lang):
                 cflags += state.project_args[lang]
-            if 'b_sanitize' in compiler.base_options:
-                sanitize = state.environment.coredata.base_options['b_sanitize'].value
+            if mesonlib.OptionKey('b_sanitize') in compiler.base_options:
+                sanitize = state.environment.coredata.base_options[mesonlib.OptionKey('b_sanitize')].value
                 cflags += compiler.sanitizer_compile_args(sanitize)
                 sanitize = sanitize.split(',')
                 # These must be first in ldflags
