@@ -21,6 +21,7 @@ project files and don't need this info."""
 
 import collections
 import json
+from mesonbuild.compilers import d
 from . import build, coredata as cdata
 from . import mesonlib
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
@@ -212,21 +213,30 @@ def list_buildoptions_from_source(intr: IntrospectionInterpreter) -> T.List[T.Di
 
 def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[str]] = None) -> T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]:
     optlist = []  # type: T.List[T.Dict[str, T.Union[str, bool, int, T.List[str]]]]
+    subprojects = subprojects or []
 
     dir_option_names = set(cdata.BUILTIN_DIR_OPTIONS)
     test_option_names = {OptionKey('errorlogs'),
                          OptionKey('stdsplit')}
-    core_option_names = {k for k in coredata.builtins if k not in dir_option_names | test_option_names}
 
-    dir_options = {str(k): o for k, o in coredata.builtins.items() if k in dir_option_names}
-    test_options = {str(k): o for k, o in coredata.builtins.items() if k in test_option_names}
-    core_options = {str(k): o for k, o in coredata.builtins.items() if k in core_option_names}
-    for s in subprojects or []:
-        core_options.update({str(k.evolve(subproject=s)): v for k, v in coredata.builtins.items() if not v.yielding})
+    dir_options: 'cdata.KeyedOptionDictType' = {}
+    test_options: 'cdata.KeyedOptionDictType' = {}
+    core_options: 'cdata.KeyedOptionDictType' = {}
+    for k, v in coredata.options.items():
+        if k in dir_option_names:
+            dir_options[k] = v
+        elif k in test_option_names:
+            test_options[k] = v
+        elif k.is_builtin():
+            core_options[k] = v
+            if not v.yielding:
+                for s in subprojects:
+                    core_options[k.evolve(subproject=s)] = v
 
-    def add_keys(options: 'cdata.OptionDictType', section: str, machine: str = 'any') -> None:
+    def add_keys(options: 'cdata.KeyedOptionDictType', section: str) -> None:
         for key, opt in sorted(options.items()):
-            optdict = {'name': key, 'value': opt.value, 'section': section, 'machine': machine}
+            optdict = {'name': str(key), 'value': opt.value, 'section': section,
+                       'machine': key.machine.get_lower_case_name() if coredata.is_per_machine_option(key) else 'any'}
             if isinstance(opt, cdata.UserStringOption):
                 typestr = 'string'
             elif isinstance(opt, cdata.UserBooleanOption):
@@ -245,20 +255,14 @@ def list_buildoptions(coredata: cdata.CoreData, subprojects: T.Optional[T.List[s
             optlist.append(optdict)
 
     add_keys(core_options, 'core')
-    add_keys({str(k): v for k, v in coredata.backend_options.items()}, 'backend')
-    add_keys({str(k): v for k, v in coredata.base_options.items()}, 'base')
+    add_keys({k: v for k, v in coredata.options.items() if k.is_backend()}, 'backend')
+    add_keys({k: v for k, v in coredata.options.items() if k.is_base()}, 'base')
     add_keys(
-        {str(k): v for k, v in coredata.compiler_options.items() if k.machine is MachineChoice.HOST},
+        {k: v for k, v in sorted(coredata.options.items(), key=lambda i: i[0].machine) if k.is_compiler()},
         'compiler',
-        machine='host',
-    )
-    add_keys(
-        {str(k): v for k, v in coredata.compiler_options.items() if k.machine is MachineChoice.BUILD},
-        'compiler',
-        machine='build',
     )
     add_keys(dir_options, 'directory')
-    add_keys({str(k): v for k, v in coredata.user_options.items()}, 'user')
+    add_keys({k: v for k, v in coredata.options.items() if k.is_project()}, 'user')
     add_keys(test_options, 'test')
     return optlist
 

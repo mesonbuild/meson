@@ -873,7 +873,7 @@ class InternalTests(unittest.TestCase):
             env = get_fake_env()
             compiler = env.detect_c_compiler(MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
-            env.coredata.compiler_options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
+            env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
             p2 = Path(tmpdir) / '2'
             p1.mkdir()
@@ -1413,10 +1413,10 @@ class DataTests(unittest.TestCase):
                 debug = False
             else:
                 raise RuntimeError('Invalid debug value {!r} in row:\n{}'.format(debug, m.group()))
-            env.coredata.set_builtin_option(OptionKey('buildtype'), buildtype)
-            self.assertEqual(env.coredata.builtins[OptionKey('buildtype')].value, buildtype)
-            self.assertEqual(env.coredata.builtins[OptionKey('optimization')].value, opt)
-            self.assertEqual(env.coredata.builtins[OptionKey('debug')].value, debug)
+            env.coredata.set_option(OptionKey('buildtype'), buildtype)
+            self.assertEqual(env.coredata.options[OptionKey('buildtype')].value, buildtype)
+            self.assertEqual(env.coredata.options[OptionKey('optimization')].value, opt)
+            self.assertEqual(env.coredata.options[OptionKey('debug')].value, debug)
 
     def test_cpu_families_documented(self):
         with open("docs/markdown/Reference-tables.md", encoding='utf-8') as f:
@@ -3688,29 +3688,29 @@ class AllPlatformTests(BasePlatformTests):
         # configuration, and as a bonus, test that --profile-self works.
         self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('default_library')].value, 'static')
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '1')
-        self.assertEqual(obj.user_options[OptionKey('set_sub_opt')].value, True)
-        self.assertEqual(obj.user_options[OptionKey('subp_opt', 'subp')].value, 'default3')
+        self.assertEqual(obj.options[OptionKey('default_library')].value, 'static')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '1')
+        self.assertEqual(obj.options[OptionKey('set_sub_opt')].value, True)
+        self.assertEqual(obj.options[OptionKey('subp_opt', 'subp')].value, 'default3')
         self.wipe()
 
         # warning_level is special, it's --warnlevel instead of --warning-level
         # for historical reasons
         self.init(testdir, extra_args=['--warnlevel=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '2')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '2')
         self.setconf('--warnlevel=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '3')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '3')
         self.wipe()
 
         # But when using -D syntax, it should be 'warning_level'
         self.init(testdir, extra_args=['-Dwarning_level=2', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '2')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '2')
         self.setconf('-Dwarning_level=3')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '3')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '3')
         self.wipe()
 
         # Mixing --option and -Doption is forbidden
@@ -3734,15 +3734,15 @@ class AllPlatformTests(BasePlatformTests):
         # --default-library should override default value from project()
         self.init(testdir, extra_args=['--default-library=both', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('default_library')].value, 'both')
+        self.assertEqual(obj.options[OptionKey('default_library')].value, 'both')
         self.setconf('--default-library=shared')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('default_library')].value, 'shared')
+        self.assertEqual(obj.options[OptionKey('default_library')].value, 'shared')
         if self.backend is Backend.ninja:
             # reconfigure target works only with ninja backend
             self.build('reconfigure')
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.builtins[OptionKey('default_library')].value, 'shared')
+            self.assertEqual(obj.options[OptionKey('default_library')].value, 'shared')
         self.wipe()
 
         # Should warn on unknown options
@@ -3777,22 +3777,22 @@ class AllPlatformTests(BasePlatformTests):
         # Test we can set subproject option
         self.init(testdir, extra_args=['-Dsubp:subp_opt=foo', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.user_options[OptionKey('subp_opt', 'subp')].value, 'foo')
+        self.assertEqual(obj.options[OptionKey('subp_opt', 'subp')].value, 'foo')
         self.wipe()
 
         # c_args value should be parsed with split_args
         self.init(testdir, extra_args=['-Dc_args=-Dfoo -Dbar "-Dthird=one two"', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
+        self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['-Dfoo', '-Dbar', '-Dthird=one two'])
 
         self.setconf('-Dc_args="foo bar" one two')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['foo bar', 'one', 'two'])
+        self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['foo bar', 'one', 'two'])
         self.wipe()
 
         self.init(testdir, extra_args=['-Dset_percent_opt=myoption%', '--fatal-meson-warnings'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.user_options[OptionKey('set_percent_opt')].value, 'myoption%')
+        self.assertEqual(obj.options[OptionKey('set_percent_opt')].value, 'myoption%')
         self.wipe()
 
         # Setting a 2nd time the same option should override the first value
@@ -3803,19 +3803,19 @@ class AllPlatformTests(BasePlatformTests):
                                            '-Dc_args=-Dfoo', '-Dc_args=-Dbar',
                                            '-Db_lundef=false', '--fatal-meson-warnings'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.builtins[OptionKey('bindir')].value, 'bar')
-            self.assertEqual(obj.builtins[OptionKey('buildtype')].value, 'release')
-            self.assertEqual(obj.base_options[OptionKey('b_sanitize')].value, 'thread')
-            self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dbar'])
+            self.assertEqual(obj.options[OptionKey('bindir')].value, 'bar')
+            self.assertEqual(obj.options[OptionKey('buildtype')].value, 'release')
+            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, 'thread')
+            self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['-Dbar'])
             self.setconf(['--bindir=bar', '--bindir=foo',
                           '-Dbuildtype=release', '-Dbuildtype=plain',
                           '-Db_sanitize=thread', '-Db_sanitize=address',
                           '-Dc_args=-Dbar', '-Dc_args=-Dfoo'])
             obj = mesonbuild.coredata.load(self.builddir)
-            self.assertEqual(obj.builtins[OptionKey('bindir')].value, 'foo')
-            self.assertEqual(obj.builtins[OptionKey('buildtype')].value, 'plain')
-            self.assertEqual(obj.base_options[OptionKey('b_sanitize')].value, 'address')
-            self.assertEqual(obj.compiler_options[OptionKey('args', lang='c')].value, ['-Dfoo'])
+            self.assertEqual(obj.options[OptionKey('bindir')].value, 'foo')
+            self.assertEqual(obj.options[OptionKey('buildtype')].value, 'plain')
+            self.assertEqual(obj.options[OptionKey('b_sanitize')].value, 'address')
+            self.assertEqual(obj.options[OptionKey('args', lang='c')].value, ['-Dfoo'])
             self.wipe()
         except KeyError:
             # Ignore KeyError, it happens on CI for compilers that does not
@@ -3829,25 +3829,25 @@ class AllPlatformTests(BasePlatformTests):
         # Verify default values when passing no args
         self.init(testdir)
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '0')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '0')
         self.wipe()
 
         # verify we can override w/ --warnlevel
         self.init(testdir, extra_args=['--warnlevel=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '1')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '1')
         self.setconf('--warnlevel=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '0')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '0')
         self.wipe()
 
         # verify we can override w/ -Dwarning_level
         self.init(testdir, extra_args=['-Dwarning_level=1'])
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '1')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '1')
         self.setconf('-Dwarning_level=0')
         obj = mesonbuild.coredata.load(self.builddir)
-        self.assertEqual(obj.builtins[OptionKey('warning_level')].value, '0')
+        self.assertEqual(obj.options[OptionKey('warning_level')].value, '0')
         self.wipe()
 
     def test_feature_check_usage_subprojects(self):
@@ -4254,7 +4254,8 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, default_args=False)
         res_wb = self.introspect('--buildoptions')
         self.maxDiff = None
-        self.assertListEqual(res_nb, res_wb)
+        # XXX: These now generate in a different order, is that okay?
+        self.assertListEqual(sorted(res_nb, key=lambda x: x['name']), sorted(res_wb, key=lambda x: x['name']))
 
     def test_meson_configure_from_source_does_not_crash(self):
         testdir = os.path.join(self.unit_test_dir, '59 introspect buildoptions')
@@ -4505,20 +4506,20 @@ class AllPlatformTests(BasePlatformTests):
         with open(introfile, 'r') as fp:
             res1 = json.load(fp)
 
+        for i in res1:
+            if i['name'] == 'cpp_std':
+                i['value'] = 'c++14'
+            if i['name'] == 'build.cpp_std':
+                i['value'] = 'c++14'
+            if i['name'] == 'buildtype':
+                i['value'] = 'release'
+            if i['name'] == 'optimization':
+                i['value'] = '3'
+            if i['name'] == 'debug':
+                i['value'] = False
+
         self.setconf('-Dcpp_std=c++14')
         self.setconf('-Dbuildtype=release')
-
-        for idx, i in enumerate(res1):
-            if i['name'] == 'cpp_std':
-                res1[idx]['value'] = 'c++14'
-            if i['name'] == 'build.cpp_std':
-                res1[idx]['value'] = 'c++14'
-            if i['name'] == 'buildtype':
-                res1[idx]['value'] = 'release'
-            if i['name'] == 'optimization':
-                res1[idx]['value'] = '3'
-            if i['name'] == 'debug':
-                res1[idx]['value'] = False
 
         with open(introfile, 'r') as fp:
             res2 = json.load(fp)

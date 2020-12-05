@@ -385,16 +385,12 @@ class CoreData:
         self.meson_command = meson_command
         self.target_guids = {}
         self.version = version
-        self.builtins: 'KeyedOptionDictType' = {}
-        self.backend_options: 'KeyedOptionDictType' = {}
-        self.user_options: 'KeyedOptionDictType' = {}
-        self.compiler_options: 'KeyedOptionDictType' = {}
-        self.base_options: 'KeyedOptionDictType' = {}
+        self.options: 'KeyedOptionDictType' = {}
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
-        build_cache = DependencyCache(self.builtins, MachineChoice.BUILD)
-        host_cache = DependencyCache(self.builtins, MachineChoice.BUILD)
+        build_cache = DependencyCache(self.options, MachineChoice.BUILD)
+        host_cache = DependencyCache(self.options, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
@@ -523,10 +519,10 @@ class CoreData:
     def init_builtins(self, subproject: str) -> None:
         # Create builtin options with default values
         for key, opt in BUILTIN_OPTIONS.items():
-            self.add_builtin_option(self.builtins, key.evolve(subproject=subproject), opt)
+            self.add_builtin_option(self.options, key.evolve(subproject=subproject), opt)
         for for_machine in iter(MachineChoice):
             for key, opt in BUILTIN_OPTIONS_PER_MACHINE.items():
-                self.add_builtin_option(self.builtins, key.evolve(subproject=subproject, machine=for_machine), opt)
+                self.add_builtin_option(self.options, key.evolve(subproject=subproject, machine=for_machine), opt)
 
     @staticmethod
     def add_builtin_option(opts_map: 'KeyedOptionDictType', key: OptionKey,
@@ -542,55 +538,54 @@ class CoreData:
 
     def init_backend_options(self, backend_name: str) -> None:
         if backend_name == 'ninja':
-            self.backend_options[OptionKey('backend_max_links')] = UserIntegerOption(
+            self.options[OptionKey('backend_max_links')] = UserIntegerOption(
                 'Maximum number of linker processes to run or 0 for no '
                 'limit',
                 (0, None, 0))
         elif backend_name.startswith('vs'):
-            self.backend_options[OptionKey('backend_startup_project')] = UserStringOption(
+            self.options[OptionKey('backend_startup_project')] = UserStringOption(
                 'Default project to execute in Visual Studio',
                 '')
 
-    def get_builtin_option(self, optname: str, subproject: str = '') -> T.Union[str, int, bool]:
-        key = OptionKey.from_string(optname).evolve(subproject=subproject)
-        for opts in self._get_all_builtin_options():
-            v = opts.get(str(key))
-            if v is None or v.yielding:
-                v = opts.get(str(key.as_root()))
-            if v is None:
-                continue
+    def get_option(self, key: OptionKey) -> T.Union[str, int, bool, WrapMode]:
+        try:
+            v = self.options[key].value
             if key.name == 'wrap_mode':
-                return WrapMode.from_string(v.value)
-            return v.value
-        raise RuntimeError(f'Tried to get unknown builtin option {key.name}.')
+                return WrapMode[v]
+            return v
+        except KeyError:
+            pass
 
-    def _try_set_builtin_option(self, key: OptionKey, value) -> bool:
-        for opts in self._get_all_builtin_options():
-            opt = opts.get(str(key))
-            if opt is None:
-                continue
+        try:
+            v = self.options[key.as_root()]
+            if v.yielding:
+                if key.name == 'wrap_mode':
+                    return WrapMode[v.value]
+                return v.value
+        except KeyError:
+            pass
+
+        raise MesonException(f'Tried to get unknown builtin option {str(key)}')
+
+    def set_option(self, key: OptionKey, value) -> None:
+        if key.is_builtin():
             if key.name == 'prefix':
                 value = self.sanitize_prefix(value)
             else:
-                prefix = self.builtins[OptionKey('prefix')].value
+                prefix = self.options[OptionKey('prefix')].value
                 value = self.sanitize_dir_option_value(prefix, key, value)
-            break
-        else:
-            return False
-        opt.set_value(value)
-        # Make sure that buildtype matches other settings.
+
+        try:
+            self.options[key].set_value(value)
+        except KeyError:
+            raise MesonException(f'Tried to set unknown builtin option {str(key)}')
+
         if key.name == 'buildtype':
-            self.set_others_from_buildtype(value)
-        else:
-            self.set_buildtype_from_others()
-        return True
+            self._set_others_from_buildtype(value)
+        elif key.name in {'debug', 'optimization'}:
+            self._set_buildtype_from_others()
 
-    def set_builtin_option(self, optname: OptionKey, value) -> None:
-        res = self._try_set_builtin_option(optname, value)
-        if not res:
-            raise RuntimeError(f'Tried to set unknown builtin option {str(optname)}')
-
-    def set_others_from_buildtype(self, value):
+    def _set_others_from_buildtype(self, value: str) -> None:
         if value == 'plain':
             opt = '0'
             debug = False
@@ -609,12 +604,12 @@ class CoreData:
         else:
             assert(value == 'custom')
             return
-        self.builtins[OptionKey('optimization')].set_value(opt)
-        self.builtins[OptionKey('debug')].set_value(debug)
+        self.options[OptionKey('optimization')].set_value(opt)
+        self.options[OptionKey('debug')].set_value(debug)
 
-    def set_buildtype_from_others(self):
-        opt = self.builtins[OptionKey('optimization')].value
-        debug = self.builtins[OptionKey('debug')].value
+    def _set_buildtype_from_others(self) -> None:
+        opt = self.options[OptionKey('optimization')].value
+        debug = self.options[OptionKey('debug')].value
         if opt == '0' and not debug:
             mode = 'plain'
         elif opt == '0' and debug:
@@ -627,84 +622,47 @@ class CoreData:
             mode = 'minsize'
         else:
             mode = 'custom'
-        self.builtins[OptionKey('buildtype')].set_value(mode)
-
-    @classmethod
-    def get_prefixed_options_per_machine(
-        cls,
-        options_per_machine # : PerMachine[T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        return cls._flatten_pair_iterator(
-            (for_machine.get_prefix(), options_per_machine[for_machine])
-            for for_machine in iter(MachineChoice)
-        )
-
-    @classmethod
-    def flatten_lang_iterator(
-        cls,
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        return cls._flatten_pair_iterator((lang + '_', opts) for lang, opts in outer)
+        self.options[OptionKey('buildtype')].set_value(mode)
 
     @staticmethod
-    def _flatten_pair_iterator(
-        outer # : T.Iterable[T.Tuple[str, T.Dict[str, _V]]]
-    ) -> T.Iterable[T.Tuple[str, _V]]:
-        for k0, v0 in outer:
-            for k1, v1 in v0.items():
-                yield (k0 + k1, v1)
-
-    @classmethod
-    def is_per_machine_option(cls, optname: OptionKey) -> bool:
+    def is_per_machine_option(optname: OptionKey) -> bool:
         if optname.name in BUILTIN_OPTIONS_PER_MACHINE:
             return True
         return optname.lang is not None
 
-    def _get_all_nonbuiltin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield {str(k): v for k, v in self.backend_options.items()}
-        yield {str(k): v for k, v in self.user_options.items()}
-        yield {str(k): v for k, v in self.compiler_options.items()}
-        yield {str(k): v for k, v in self.base_options.items()}
-
-    def _get_all_builtin_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield {str(k): v for k, v in self.builtins.items()}
-
-    def get_all_options(self) -> T.Iterable[T.Dict[str, UserOption]]:
-        yield from self._get_all_nonbuiltin_options()
-        yield from self._get_all_builtin_options()
-
     def validate_option_value(self, option_name: OptionKey, override_value):
-        for opts in self.get_all_options():
-            opt = opts.get(str(option_name))
-            if opt is not None:
-                try:
-                    return opt.validate_value(override_value)
-                except MesonException as e:
-                    raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
-                        .with_traceback(sys.exc_info()[2])
-        raise MesonException('Tried to validate unknown option %s.' % option_name)
+        try:
+            opt = self.options[option_name]
+        except KeyError:
+            raise MesonException(f'Tried to validate unknown option {str(option_name)}')
+        try:
+            return opt.validate_value(override_value)
+        except MesonException as e:
+            raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
+                .with_traceback(sys.exc_info()[2])
 
     def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
-        return self.compiler_options[OptionKey('args', machine=for_machine, lang=lang)].value
+        return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
 
     def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
-        return self.compiler_options[OptionKey('link_args', machine=for_machine, lang=lang)].value
+        return self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value
 
-    def merge_user_options(self, options: T.Dict[str, UserOption[T.Any]]) -> None:
-        for name, value in options.items():
-            key = OptionKey.from_string(name)
-            if key not in self.user_options:
-                self.user_options[key] = value
+    def update_project_options(self, options: 'KeyedOptionDictType') -> None:
+        for key, value in options.items():
+            if not key.is_project():
+                continue
+            if key not in self.options:
+                self.options[key] = value
                 continue
 
-            oldval = self.user_options[key]
+            oldval = self.options[key]
             if type(oldval) != type(value):
-                self.user_options[key] = value
+                self.options[key] = value
             elif oldval.choices != value.choices:
                 # If the choices have changed, use the new value, but attempt
                 # to keep the old options. If they are not valid keep the new
                 # defaults but warn.
-                self.user_options[key] = value
+                self.options[key] = value
                 try:
                     value.set_value(oldval.value)
                 except MesonException as e:
@@ -718,13 +676,13 @@ class CoreData:
     def copy_build_options_from_regular_ones(self) -> None:
         assert not self.is_cross_build()
         for k in BUILTIN_OPTIONS_PER_MACHINE:
-            o = self.builtins[k]
-            self.builtins[k.as_build()].set_value(o.value)
-        for bk, bv in self.compiler_options.items():
+            o = self.options[k]
+            self.options[k.as_build()].set_value(o.value)
+        for bk, bv in self.options.items():
             if bk.machine is MachineChoice.BUILD:
                 hk = bk.as_host()
                 try:
-                    hv = self.compiler_options[hk]
+                    hv = self.options[hk]
                     bv.set_value(hv.value)
                 except KeyError:
                     continue
@@ -736,25 +694,19 @@ class CoreData:
         pfk = OptionKey('prefix')
         if pfk in options:
             prefix = self.sanitize_prefix(options[pfk])
-            self.builtins[OptionKey('prefix')].set_value(prefix)
+            self.options[OptionKey('prefix')].set_value(prefix)
             for key in BULITIN_DIR_NOPREFIX_OPTIONS:
                 if key not in options:
-                    self.builtins[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
+                    self.options[key].set_value(BUILTIN_OPTIONS[key].prefixed_default(key, prefix))
 
         unknown_options: T.List[OptionKey] = []
         for k, v in options.items():
             if k == pfk:
                 continue
-            if self._try_set_builtin_option(k, v):
-                continue
-            for opts in self._get_all_nonbuiltin_options():
-                tgt = opts.get(str(k))
-                if tgt is None:
-                    continue
-                tgt.set_value(v)
-                break
-            else:
+            elif k not in self.options:
                 unknown_options.append(k)
+            else:
+                self.set_option(k, v)
         if unknown_options and warn_unknown:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
             sub = 'In subproject {}: '.format(subproject) if subproject else ''
@@ -767,10 +719,9 @@ class CoreData:
     def set_default_options(self, default_options: T.MutableMapping[OptionKey, str], subproject: str, env: 'Environment') -> None:
         # Preserve order: if env.options has 'buildtype' it must come after
         # 'optimization' if it is in default_options.
+        options: T.MutableMapping[OptionKey, T.Any]
         if not subproject:
-            options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
-            for k, v in default_options.items():
-                options[k] = v
+            options = OrderedDict(default_options)
             options.update(env.options)
             env.options = options
 
@@ -779,11 +730,14 @@ class CoreData:
         # Language and backend specific options will be set later when adding
         # languages and setting the backend (builtin options must be set first
         # to know which backend we'll use).
-        options: T.MutableMapping[OptionKey, T.Any] = OrderedDict()
+        options = OrderedDict()
 
         for k, v in chain(default_options.items(), env.options.items()):
-            # Subproject: skip options for other subprojects
+            # If this is a subproject, don't use other subproject options
             if k.subproject and k.subproject != subproject:
+                continue
+            # If the option is a builtin and is yielding then it's not allowed per subproject.
+            if subproject and k.is_builtin() and self.options[k.as_root()].yielding:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
@@ -799,7 +753,7 @@ class CoreData:
             value = env.options.get(k)
             if value is not None:
                 o.set_value(value)
-            self.compiler_options.setdefault(k, o)
+            self.options.setdefault(k, o)
 
     def add_lang_args(self, lang: str, comp: T.Type['Compiler'],
                       for_machine: MachineChoice, env: 'Environment') -> None:
@@ -816,13 +770,13 @@ class CoreData:
 
         enabled_opts: T.List[OptionKey] = []
         for key in comp.base_options:
-            if key in self.base_options:
+            if key in self.options:
                 continue
             oobj = compilers.base_options[key]
             if key in env.options:
                 oobj.set_value(env.options[key])
                 enabled_opts.append(key)
-            self.base_options[key] = oobj
+            self.options[key] = oobj
         self.emit_base_options_warnings(enabled_opts)
 
     def emit_base_options_warnings(self, enabled_opts: T.List[OptionKey]) -> None:

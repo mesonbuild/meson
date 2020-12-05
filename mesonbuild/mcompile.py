@@ -47,7 +47,7 @@ def get_backend_from_coredata(builddir: Path) -> str:
     """
     Gets `backend` option value from coredata
     """
-    backend = coredata.load(str(builddir)).get_builtin_option('backend')
+    backend = coredata.load(str(builddir)).get_option(mesonlib.OptionKey('backend'))
     assert isinstance(backend, str)
     return backend
 

@@ -288,7 +288,7 @@ class PythonInstallation(ExternalProgramHolder):
         ExternalProgramHolder.__init__(self, python, interpreter.subproject)
         self.interpreter = interpreter
         self.subproject = self.interpreter.subproject
-        prefix = self.interpreter.environment.coredata.get_builtin_option('prefix')
+        prefix = self.interpreter.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         self.variables = info['variables']
         self.paths = info['paths']
         install_paths = info['install_paths']

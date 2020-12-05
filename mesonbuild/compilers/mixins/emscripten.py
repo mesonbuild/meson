@@ -51,7 +51,7 @@ class EmscriptenMixin(Compiler):
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         args = ['-s', 'USE_PTHREADS=1']
-        count: int = env.coredata.compiler_options[OptionKey('thread_count', lang=self.language, machine=self.for_machine)].value
+        count: int = env.coredata.options[OptionKey('thread_count', lang=self.language, machine=self.for_machine)].value
         if count:
             args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
         return args

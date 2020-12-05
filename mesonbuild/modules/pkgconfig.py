@@ -331,10 +331,10 @@ class PkgConfigModule(ExtensionModule):
             srcdir = PurePath(state.environment.get_source_dir())
         else:
             outdir = state.environment.scratch_dir
-            prefix = PurePath(coredata.get_builtin_option('prefix'))
+            prefix = PurePath(coredata.get_option(mesonlib.OptionKey('prefix')))
         # These always return paths relative to prefix
-        libdir = PurePath(coredata.get_builtin_option('libdir'))
-        incdir = PurePath(coredata.get_builtin_option('includedir'))
+        libdir = PurePath(coredata.get_option(mesonlib.OptionKey('libdir')))
+        incdir = PurePath(coredata.get_option(mesonlib.OptionKey('includedir')))
         fname = os.path.join(outdir, pcfile)
         with open(fname, 'w', encoding='utf-8') as ofile:
             if not dataonly:
@@ -531,9 +531,9 @@ class PkgConfigModule(ExtensionModule):
         pkgroot = kwargs.get('install_dir', default_install_dir)
         if pkgroot is None:
             if mesonlib.is_freebsd():
-                pkgroot = os.path.join(state.environment.coredata.get_builtin_option('prefix'), 'libdata', 'pkgconfig')
+                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('prefix')), 'libdata', 'pkgconfig')
             else:
-                pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'pkgconfig')
+                pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'pkgconfig')
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,

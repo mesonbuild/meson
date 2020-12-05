@@ -31,7 +31,7 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import languages_using_ldflags
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
+    File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder, OptionKey
 )
 
@@ -213,11 +213,11 @@ class Backend:
 
     def get_base_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
         return OptionOverrideProxy(target.option_overrides_base,
-                                   self.environment.coredata.builtins,
-                                   {k: v for k, v in self.environment.coredata.base_options.items()})
+                                   {k: v for k, v in self.environment.coredata.options.items()
+                                    if k.type in {OptionType.BASE, OptionType.BUILTIN}})
 
     def get_compiler_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
-        comp_reg = self.environment.coredata.compiler_options
+        comp_reg = {k: v for k, v in self.environment.coredata.options.items() if k.is_compiler()}
         comp_override = target.option_overrides_compiler
         return OptionOverrideProxy(comp_override, comp_reg)
 
@@ -225,7 +225,7 @@ class Backend:
         if option_name in target.option_overrides_base:
             override = target.option_overrides_base[option_name]
             return self.environment.coredata.validate_option_value(option_name, override)
-        return self.environment.coredata.get_builtin_option(str(option_name), target.subproject)
+        return self.environment.coredata.get_option(option_name.evolve(subproject=target.subproject))
 
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
@@ -250,7 +250,7 @@ class Backend:
 
     @lru_cache(maxsize=None)
     def get_target_dir(self, target):
-        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
+        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
@@ -541,7 +541,7 @@ class Backend:
         return paths
 
     def determine_rpath_dirs(self, target):
-        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
+        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             result = target.get_link_dep_subdirs()
         else:
             result = OrderedSet()
@@ -1183,7 +1183,7 @@ class Backend:
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
                         strip_bin,
-                        self.environment.coredata.get_builtin_option('install_umask'),
+                        self.environment.coredata.get_option(OptionKey('install_umask')),
                         self.environment.get_build_command() + ['introspect'],
                         self.environment.coredata.version)
         self.generate_depmf_install(d)

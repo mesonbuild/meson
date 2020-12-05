@@ -17,6 +17,7 @@ import pickle, subprocess
 import typing as T
 from ..coredata import CoreData
 from ..backend.vs2010backend import RegenInfo
+from ..mesonlib import OptionKey
 
 # This could also be used for XCode.
 
@@ -52,7 +53,7 @@ def run(args: T.List[str]) -> int:
     with open(coredata_file, 'rb') as f:
         coredata = pickle.load(f)
         assert isinstance(coredata, CoreData)
-    backend = coredata.get_builtin_option('backend')
+    backend = coredata.get_option(OptionKey('backend'))
     assert isinstance(backend, str)
     regen_timestamp = os.stat(dumpfile).st_mtime
     if need_regen(regeninfo, regen_timestamp):

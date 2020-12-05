@@ -192,26 +192,32 @@ class Conf:
 
         dir_option_names = set(coredata.BUILTIN_DIR_OPTIONS)
         test_option_names = {OptionKey('errorlogs'),
-                             OptionKey('stdsplit')}
-        core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names | test_option_names]
+                            OptionKey('stdsplit')}
 
-        dir_options = {k: o for k, o in self.coredata.builtins.items() if k in dir_option_names}
-        test_options = {k: o for k, o in self.coredata.builtins.items() if k in test_option_names}
-        core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
+        dir_options: 'coredata.KeyedOptionDictType' = {}
+        test_options: 'coredata.KeyedOptionDictType' = {}
+        core_options: 'coredata.KeyedOptionDictType' = {}
+        for k, v in self.coredata.options.items():
+            if k in dir_option_names:
+                dir_options[k] = v
+            elif k in test_option_names:
+                test_options[k] = v
+            elif k.is_builtin():
+                core_options[k] = v
 
-        host_core_options = self.split_options_per_subproject({k: v for k, v in self.coredata.builtins.items() if k.machine is MachineChoice.HOST})
-        build_core_options = self.split_options_per_subproject({k: v for k, v in self.coredata.builtins.items() if k.machine is MachineChoice.BUILD})
-        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.HOST})
-        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.BUILD})
-        project_options = self.split_options_per_subproject(self.coredata.user_options)
+        host_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.HOST})
+        build_core_options = self.split_options_per_subproject({k: v for k, v in core_options.items() if k.machine is MachineChoice.BUILD})
+        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.options.items() if k.is_compiler() and k.machine is MachineChoice.HOST})
+        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.options.items() if k.is_compiler() and k.machine is MachineChoice.BUILD})
+        project_options = self.split_options_per_subproject({k: v for k, v in self.coredata.options.items() if k.is_project()})
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')
         self.print_options('Core options', host_core_options[''])
         if show_build_options:
             self.print_options('', build_core_options[''])
-        self.print_options('Backend options', {str(k): v for k, v in self.coredata.backend_options.items()})
-        self.print_options('Base options', {str(k): v for k, v in self.coredata.base_options.items()})
+        self.print_options('Backend options', {str(k): v for k, v in self.coredata.options.items()})
+        self.print_options('Base options', {str(k): v for k, v in self.coredata.options.items()})
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))

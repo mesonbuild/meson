@@ -404,7 +404,7 @@ class EnvironmentVariables:
         return env
 
 class Target:
-    def __init__(self, name, subdir, subproject, build_by_default: bool, for_machine: MachineChoice):
+    def __init__(self, name: str, subdir: str, subproject: str, build_by_default: bool, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
             mlog.warning('''Target "{}" has a path separator in its name.
@@ -418,7 +418,7 @@ a hard error in the future.'''.format(name))
         self.install = False
         self.build_always_stale = False
         self.option_overrides_base: T.Dict[OptionKey, str] = {}
-        self.option_overrides_compiler: 'KeyedOptionDictType' = {}
+        self.option_overrides_compiler: T.Dict[OptionKey, str] = {}
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
             raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
@@ -545,7 +545,7 @@ class BuildTarget(Target):
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
                  sources: T.List[File], objects, environment: environment.Environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
-        unity_opt = environment.coredata.get_builtin_option('unity')
+        unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
         self.sources = []
@@ -1075,8 +1075,8 @@ This will become a hard error in a future Meson release.''')
         k = OptionKey(option)
         if arg in kwargs:
             val = kwargs[arg]
-        elif k in environment.coredata.base_options:
-            val = environment.coredata.base_options[k].value
+        elif k in environment.coredata.options:
+            val = environment.coredata.options[k].value
         else:
             val = False
 
@@ -1598,8 +1598,8 @@ class Executable(BuildTarget):
                  sources: T.List[File], objects, environment: environment.Environment, kwargs):
         self.typename = 'executable'
         key = OptionKey('b_pie')
-        if 'pie' not in kwargs and key in environment.coredata.base_options:
-            kwargs['pie'] = environment.coredata.base_options[key].value
+        if 'pie' not in kwargs and key in environment.coredata.options:
+            kwargs['pie'] = environment.coredata.options[key].value
         super().__init__(name, subdir, subproject, for_machine, sources, objects, environment, kwargs)
         # Unless overridden, executables have no suffix or prefix. Except on
         # Windows and with C#/Mono executables where the suffix is 'exe'

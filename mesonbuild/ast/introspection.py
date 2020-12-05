@@ -103,7 +103,7 @@ class IntrospectionInterpreter(AstInterpreter):
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
-            self.coredata.merge_user_options(oi.options)
+            self.coredata.update_project_options(oi.options)
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
@@ -269,7 +269,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
-        default_library = self.coredata.get_builtin_option('default_library')
+        default_library = self.coredata.get_option(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
         elif default_library == 'static':

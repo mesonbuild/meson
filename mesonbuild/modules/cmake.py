@@ -269,7 +269,7 @@ class CmakeModule(ExtensionModule):
 
         pkgroot = kwargs.get('install_dir', None)
         if pkgroot is None:
-            pkgroot = os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name)
+            pkgroot = os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name)
         if not isinstance(pkgroot, str):
             raise mesonlib.MesonException('Install_dir must be a string.')
 
@@ -342,7 +342,7 @@ class CmakeModule(ExtensionModule):
         (ofile_path, ofile_fname) = os.path.split(os.path.join(state.subdir, '{}Config.cmake'.format(name)))
         ofile_abs = os.path.join(state.environment.build_dir, ofile_path, ofile_fname)
 
-        install_dir = kwargs.get('install_dir', os.path.join(state.environment.coredata.get_builtin_option('libdir'), 'cmake', name))
+        install_dir = kwargs.get('install_dir', os.path.join(state.environment.coredata.get_option(mesonlib.OptionKey('libdir')), 'cmake', name))
         if not isinstance(install_dir, str):
             raise mesonlib.MesonException('"install_dir" must be a string.')
 
@@ -352,7 +352,7 @@ class CmakeModule(ExtensionModule):
         if not isinstance(conf, ConfigurationDataHolder):
             raise mesonlib.MesonException('Argument "configuration" is not of type configuration_data')
 
-        prefix = state.environment.coredata.get_builtin_option('prefix')
+        prefix = state.environment.coredata.get_option(mesonlib.OptionKey('prefix'))
         abs_install_dir = install_dir
         if not os.path.isabs(abs_install_dir):
             abs_install_dir = os.path.join(prefix, install_dir)

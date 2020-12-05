@@ -62,7 +62,7 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-        self.prefix_paths = self.environment.coredata.builtins[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
+        self.prefix_paths = self.environment.coredata.options[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
         env_pref_path_raw = get_env_var(
             self.for_machine,
             self.environment.is_cross_build(),
