@@ -61,7 +61,7 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def get_target_dir(self, target):
-        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_builtin_option('buildtype'))
+        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_option(mesonlib.OptionKey('buildtype')))
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 

@@ -658,7 +658,7 @@ class PkgConfigDependency(ExternalDependency):
     @staticmethod
     def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
                   extra_path: T.Optional[str] = None) -> None:
-        extra_paths: T.List[str] = environment.coredata.builtins[OptionKey('pkg_config_path', machine=for_machine)].value
+        extra_paths: T.List[str] = environment.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value
         if extra_path:
             extra_paths.append(extra_path)
         sysroot = environment.properties[for_machine].get_sys_root()
@@ -1485,12 +1485,12 @@ class CMakeDependency(ExternalDependency):
                     cfgs = [x for x in tgt.properties['IMPORTED_CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                if OptionKey('b_vscrt') in self.env.coredata.base_options:
-                    is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
-                    if self.env.coredata.base_options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
+                if OptionKey('b_vscrt') in self.env.coredata.options:
+                    is_debug = self.env.coredata.get_option(OptionKey('buildtype')) == 'debug'
+                    if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
                         is_debug = True
                 else:
-                    is_debug = self.env.coredata.get_builtin_option('debug')
+                    is_debug = self.env.coredata.get_option(OptionKey('debug'))
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'

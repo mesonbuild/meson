@@ -640,6 +640,7 @@ class Environment:
             # interfaces which talk about native and cross.
             self.options = {k.as_host(): v for k, v in self.options.items()}
 
+
         ## "freeze" now initialized configuration, and "save" to the class.
 
         self.machines = machines.default_missing()
@@ -938,7 +939,7 @@ class Environment:
         elif isinstance(comp_class.LINKER_PREFIX, list):
             check_args = comp_class.LINKER_PREFIX + ['/logo'] + comp_class.LINKER_PREFIX + ['--version']
 
-        check_args += self.coredata.compiler_options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
+        check_args += self.coredata.options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         override = []  # type: T.List[str]
         value = self.lookup_binary_entry(for_machine, comp_class.language + '_ld')
@@ -1004,7 +1005,7 @@ class Environment:
         """
         self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
         extra_args = extra_args or []
-        extra_args += self.coredata.compiler_options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
+        extra_args += self.coredata.options[OptionKey('args', lang=comp_class.language, machine=for_machine)].value
 
         if isinstance(comp_class.LINKER_PREFIX, str):
             check_args = [comp_class.LINKER_PREFIX + '--version'] + extra_args
@@ -2009,25 +2010,25 @@ class Environment:
         return self.get_libdir()
 
     def get_prefix(self) -> str:
-        return self.coredata.get_builtin_option('prefix')
+        return self.coredata.get_option(OptionKey('prefix'))
 
     def get_libdir(self) -> str:
-        return self.coredata.get_builtin_option('libdir')
+        return self.coredata.get_option(OptionKey('libdir'))
 
     def get_libexecdir(self) -> str:
-        return self.coredata.get_builtin_option('libexecdir')
+        return self.coredata.get_option(OptionKey('libexecdir'))
 
     def get_bindir(self) -> str:
-        return self.coredata.get_builtin_option('bindir')
+        return self.coredata.get_option(OptionKey('bindir'))
 
     def get_includedir(self) -> str:
-        return self.coredata.get_builtin_option('includedir')
+        return self.coredata.get_option(OptionKey('includedir'))
 
     def get_mandir(self) -> str:
-        return self.coredata.get_builtin_option('mandir')
+        return self.coredata.get_option(OptionKey('mandir'))
 
     def get_datadir(self) -> str:
-        return self.coredata.get_builtin_option('datadir')
+        return self.coredata.get_option(OptionKey('datadir'))
 
     def get_compiler_system_dirs(self, for_machine: MachineChoice):
         for comp in self.coredata.compilers[for_machine].values():

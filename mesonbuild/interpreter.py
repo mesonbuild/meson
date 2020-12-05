@@ -78,11 +78,11 @@ class OverrideProgram(dependencies.ExternalProgram):
 
 
 class FeatureOptionHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, env, name, option):
+    def __init__(self, env: 'Environment', name, option):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, option)
         if option.is_auto():
-            self.held_object = env.coredata.builtins[OptionKey('auto_features')]
+            self.held_object = env.coredata.options[OptionKey('auto_features')]
         self.name = name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
@@ -1143,7 +1143,7 @@ class CompilerHolder(InterpreterObject):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             for_machine = Interpreter.machine_from_native_kwarg(kwargs)
-            opts = self.environment.coredata.compiler_options
+            opts = self.environment.coredata.options
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
                 args += self.compiler.get_option_link_args(opts)
@@ -2151,7 +2151,7 @@ class MesonMain(InterpreterObject):
     @noPosargs
     @permittedKwargs({})
     def is_unity_method(self, args, kwargs):
-        optval = self.interpreter.environment.coredata.get_builtin_option('unity')
+        optval = self.interpreter.environment.coredata.get_option(OptionKey('unity'))
         if optval == 'on' or (optval == 'subprojects' and self.interpreter.is_subproject()):
             return True
         return False
@@ -2474,12 +2474,11 @@ class Interpreter(InterpreterBase):
     def get_non_matching_default_options(self) -> T.Iterator[T.Tuple[str, str, coredata.UserOption]]:
         env = self.environment
         for def_opt_name, def_opt_value in self.project_default_options.items():
-            for opts in env.coredata.get_all_options():
-                cur_opt_value = opts.get(def_opt_name)
-                if cur_opt_value is not None:
-                    def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
-                    if def_opt_value != cur_opt_value.value:
-                        yield (def_opt_name, def_opt_value, cur_opt_value)
+            cur_opt_value = self.coredata.options.get(def_opt_name)
+            if cur_opt_value is not None:
+                def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
+                if def_opt_value != cur_opt_value.value:
+                    yield (str(def_opt_name), def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
@@ -3009,7 +3008,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def _do_subproject_cmake(self, subp_name, subdir, subdir_abs, default_options, kwargs):
         with mlog.nested():
             new_build = self.build.copy()
-            prefix = self.coredata.builtins[OptionKey('prefix')].value
+            prefix = self.coredata.options[OptionKey('prefix')].value
 
             from .modules.cmake import CMakeSubprojectOptions
             options = kwargs.get('options', CMakeSubprojectOptions())
@@ -3051,20 +3050,20 @@ external dependencies (including libraries) must go to "dependencies".''')
         return result
 
     def get_option_internal(self, optname: str):
-        # TODO: this optname may be a compiler option
         key = OptionKey.from_string(optname).evolve(subproject=self.subproject)
 
-        for opts in [self.coredata.builtins, self.coredata.base_options, compilers.base_options, self.coredata.compiler_options]:
-            v = opts.get(key)
-            if v is None or v.yielding:
-                v = opts.get(key.as_root())
-            if v is not None:
-                return v
+        if not key.is_project():
+            for opts in [self.coredata.options, compilers.base_options]:
+                v = opts.get(key)
+                if v is None or v.yielding:
+                    v = opts.get(key.as_root())
+                if v is not None:
+                    return v
 
         try:
-            opt = self.coredata.user_options[key]
-            if opt.yielding and key.subproject and key.as_root() in self.coredata.user_options:
-                popt = self.coredata.user_options[key.as_root()]
+            opt = self.coredata.options[key]
+            if opt.yielding and key.subproject and key.as_root() in self.coredata.options:
+                popt = self.coredata.options[key.as_root()]
                 if type(opt) is type(popt):
                     opt = popt
                 else:
@@ -3118,7 +3117,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # The backend is already set when parsing subprojects
         if self.backend is not None:
             return
-        backend = self.coredata.get_builtin_option('backend')
+        backend = self.coredata.get_option(OptionKey('backend'))
         from .backend import backends
         self.backend = backends.get_backend_from_name(backend, self.build, self)
 
@@ -3127,7 +3126,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if backend != self.backend.name:
             if self.backend.name.startswith('vs'):
                 mlog.log('Auto detected Visual Studio backend:', mlog.bold(self.backend.name))
-            self.coredata.set_builtin_option('backend', self.backend.name)
+            self.coredata.set_option(OptionKey('backend'), self.backend.name)
 
         # Only init backend options on first invocation otherwise it would
         # override values previously set from command line.
@@ -3158,7 +3157,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
-            self.coredata.merge_user_options(oi.options)
+            self.coredata.update_project_options(oi.options)
             self.add_build_def_file(self.option_file)
 
         # Do not set default_options on reconfigure otherwise it would override
@@ -3208,7 +3207,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build.subproject_dir = self.subproject_dir
 
         # Load wrap files from this (sub)project.
-        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
         if not self.is_subproject() or wrap_mode != WrapMode.nopromote:
             subdir = os.path.join(self.subdir, spdirname)
             r = wrap.Resolver(self.environment.get_source_dir(), subdir, wrap_mode)
@@ -3520,7 +3519,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             return progobj
 
         fallback = None
-        wrap_mode = self.coredata.get_builtin_option('wrap_mode')
+        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
         if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
             fallback = self.environment.wrap_resolver.find_program_provider(args)
         if fallback and wrap_mode == WrapMode.forcefallback:
@@ -3824,8 +3823,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             if self.get_subproject(subp_name):
                 return self.get_subproject_dep(name, display_name, subp_name, varname, kwargs)
 
-            wrap_mode = self.coredata.get_builtin_option('wrap_mode')
-            force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+            wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+            force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
             force_fallback = (force_fallback or
                               wrap_mode == WrapMode.forcefallback or
                               name in force_fallback_for or
@@ -3871,11 +3870,11 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         # Explicitly listed fallback preferences for specific subprojects
         # take precedence over wrap-mode
-        force_fallback_for = self.coredata.get_builtin_option('force_fallback_for')
+        force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
         if name in force_fallback_for or subp_name in force_fallback_for:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback was forced for that specific subproject')
-        elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.nofallback:
+        elif self.coredata.get_option(OptionKey('wrap_mode')) == WrapMode.nofallback:
             mlog.log('Not looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback '
                      'dependencies is disabled.')
@@ -3883,7 +3882,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 m = 'Dependency {!r} not found and fallback is disabled'
                 raise DependencyException(m.format(display_name))
             return self.notfound_dependency()
-        elif self.coredata.get_builtin_option('wrap_mode') == WrapMode.forcefallback:
+        elif self.coredata.get_option(OptionKey('wrap_mode')) == WrapMode.forcefallback:
             mlog.log('Looking for a fallback subproject for the dependency',
                      mlog.bold(display_name), 'because:\nUse of fallback dependencies is forced.')
         else:
@@ -4772,15 +4771,15 @@ different subdirectory.
                 break
 
     def check_clang_asan_lundef(self) -> None:
-        if OptionKey('b_lundef') not in self.coredata.base_options:
+        if OptionKey('b_lundef') not in self.coredata.options:
             return
-        if OptionKey('b_sanitize') not in self.coredata.base_options:
+        if OptionKey('b_sanitize') not in self.coredata.options:
             return
-        if (self.coredata.base_options[OptionKey('b_lundef')].value and
-                self.coredata.base_options[OptionKey('b_sanitize')].value != 'none'):
+        if (self.coredata.options[OptionKey('b_lundef')].value and
+                self.coredata.options[OptionKey('b_sanitize')].value != 'none'):
             mlog.warning('''Trying to use {} sanitizer on Clang with b_lundef.
 This will probably not work.
-Try setting b_lundef to false instead.'''.format(self.coredata.base_options[OptionKey('b_sanitize')].value),
+Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey('b_sanitize')].value),
                          location=self.current_node)
 
     def evaluate_subproject_info(self, path_from_source_root, subproject_dir):
@@ -4878,8 +4877,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options[Opti
         key = OptionKey('b_staticpic')
         if 'pic' in kwargs:
             pic = kwargs['pic']
-        elif key in self.environment.coredata.base_options:
-            pic = self.environment.coredata.base_options[key].value
+        elif key in self.environment.coredata.options:
+            pic = self.environment.coredata.options[key].value
 
         if pic:
             # Exclude sources from args and kwargs to avoid building them twice
@@ -4896,7 +4895,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.base_options[Opti
         return BothLibrariesHolder(shared_holder, static_holder, self)
 
     def build_library(self, node, args, kwargs):
-        default_library = self.coredata.get_builtin_option('default_library', self.subproject)
+        default_library = self.coredata.get_option(OptionKey('default_library', subproject=self.subproject))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibraryHolder)
         elif default_library == 'static':

@@ -362,7 +362,7 @@ class ConverterTarget:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                is_debug = self.env.coredata.get_builtin_option('debug');
+                is_debug = self.env.coredata.get_option(OptionKey('debug'));
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
@@ -578,7 +578,7 @@ class ConverterTarget:
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
         try:
-            res = self.env.coredata.compiler_options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
+            res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
         except KeyError:
             return []
 
