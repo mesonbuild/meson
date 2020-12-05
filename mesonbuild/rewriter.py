@@ -464,11 +464,9 @@ class Rewriter:
 
         cdata = self.interpreter.coredata
         options = {
-            **cdata.builtins,
-            **cdata.builtins_per_machine.host,
-            **{'build.' + k: o for k, o in cdata.builtins_per_machine.build.items()},
+            **{str(k): v for k, v in cdata.builtins.items()},
             **{str(k): v for k, v in cdata.backend_options.items()},
-            **cdata.base_options,
+            **{str(k): v for k, v in cdata.base_options.items()},
             **{str(k): v for k, v in cdata.compiler_options.items()},
             **{str(k): v for k, v in cdata.user_options.items()},
         }

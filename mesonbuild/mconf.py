@@ -17,19 +17,17 @@ from . import coredata, environment, mesonlib, build, mintro, mlog
 from .ast import AstIDGenerator
 import typing as T
 
-from .mesonlib import MachineChoice
+from .mesonlib import MachineChoice, OptionKey
 
 if T.TYPE_CHECKING:
     import argparse
     from .coredata import UserOption
-    from .mesonlib import OptionKey
 
 def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     coredata.register_builtin_arguments(parser)
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
-
 
 def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
@@ -38,12 +36,6 @@ def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because
         return [make_lower_case(i) for i in val]
     else:
         return str(val)
-
-def insert_build_prefix(k: str) -> str:
-    idx = k.find(':')
-    if idx < 0:
-        return 'build.' + k
-    return k[:idx + 1] + 'build.' + k[idx + 1:]
 
 
 class ConfException(mesonlib.MesonException):
@@ -62,8 +54,8 @@ class Conf:
         self.choices_col = []
         self.descr_col = []
         self.has_choices = False
-        self.all_subprojects = set()
-        self.yielding_options = set()
+        self.all_subprojects: T.Set[str] = set()
+        self.yielding_options: T.Set[OptionKey] = set()
 
         if os.path.isdir(os.path.join(self.build_dir, 'meson-private')):
             self.build = build.load(self.build_dir)
@@ -111,20 +103,8 @@ class Conf:
             else:
                 print('{0:{width[0]}} {1:{width[1]}} {3}'.format(*line, width=col_widths))
 
-    def split_options_per_subproject(self, options: T.Dict[str, 'UserOption']) -> T.Dict[str, T.Dict[str, 'UserOption']]:
-        result = {}
-        for k, o in options.items():
-            subproject = ''
-            if ':' in k:
-                subproject, optname = k.split(':')
-                if o.yielding and optname in options:
-                    self.yielding_options.add(k)
-                self.all_subprojects.add(subproject)
-            result.setdefault(subproject, {})[k] = o
-        return result
-
-    def split_options_per_subproject2(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, T.Dict[str, 'UserOption']]:
-        result = {}
+    def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, T.Dict[str, 'UserOption']]:
+        result: T.Dict[str, T.Dict[str, 'UserOption']] = {}
         for k, o in options.items():
             subproject = k.subproject
             if k.subproject:
@@ -135,8 +115,8 @@ class Conf:
             result.setdefault(subproject, {})[str(k)] = o
         return result
 
-    def _add_line(self, name, value, choices, descr):
-        self.name_col.append(' ' * self.print_margin + name)
+    def _add_line(self, name: OptionKey, value, choices, descr) -> None:
+        self.name_col.append(' ' * self.print_margin + str(name))
         self.value_col.append(value)
         self.choices_col.append(choices)
         self.descr_col.append(descr)
@@ -185,7 +165,7 @@ class Conf:
         self._add_line(section + ':', '', '', '')
         self.print_margin = 2
 
-    def print_options(self, title: str, options: 'coredata.OptionDictType') -> None:
+    def print_options(self, title: str, options: 'coredata.KeyedOptionDictType') -> None:
         if not options:
             return
         if title:
@@ -210,28 +190,28 @@ class Conf:
         if not self.default_values_only:
             print('  Build dir ', self.build_dir)
 
-        dir_option_names = list(coredata.BUILTIN_DIR_OPTIONS)
-        test_option_names = ['errorlogs',
-                             'stdsplit']
-        core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names + test_option_names]
+        dir_option_names = set(coredata.BUILTIN_DIR_OPTIONS)
+        test_option_names = {OptionKey('errorlogs'),
+                             OptionKey('stdsplit')}
+        core_option_names = [k for k in self.coredata.builtins if k not in dir_option_names | test_option_names]
 
         dir_options = {k: o for k, o in self.coredata.builtins.items() if k in dir_option_names}
         test_options = {k: o for k, o in self.coredata.builtins.items() if k in test_option_names}
         core_options = {k: o for k, o in self.coredata.builtins.items() if k in core_option_names}
 
-        core_options = self.split_options_per_subproject(core_options)
-        host_compiler_options = self.split_options_per_subproject2({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.HOST})
-        build_compiler_options = self.split_options_per_subproject2({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.BUILD})
-        project_options = self.split_options_per_subproject2(self.coredata.user_options)
+        host_core_options = self.split_options_per_subproject({k: v for k, v in self.coredata.builtins.items() if k.machine is MachineChoice.HOST})
+        build_core_options = self.split_options_per_subproject({k: v for k, v in self.coredata.builtins.items() if k.machine is MachineChoice.BUILD})
+        host_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.HOST})
+        build_compiler_options = self.split_options_per_subproject({k: v for k, v in self.coredata.compiler_options.items() if k.machine is MachineChoice.BUILD})
+        project_options = self.split_options_per_subproject(self.coredata.user_options)
         show_build_options = self.default_values_only or self.build.environment.is_cross_build()
 
         self.add_section('Main project options')
-        self.print_options('Core options', core_options[''])
-        self.print_options('', self.coredata.builtins_per_machine.host)
+        self.print_options('Core options', host_core_options[''])
         if show_build_options:
-            self.print_options('', {insert_build_prefix(k): o for k, o in self.coredata.builtins_per_machine.build.items()})
+            self.print_options('', build_core_options[''])
         self.print_options('Backend options', {str(k): v for k, v in self.coredata.backend_options.items()})
-        self.print_options('Base options', self.coredata.base_options)
+        self.print_options('Base options', {str(k): v for k, v in self.coredata.base_options.items()})
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))

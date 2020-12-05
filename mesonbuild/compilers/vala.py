@@ -16,7 +16,7 @@ import os.path
 import typing as T
 
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, version_compare
+from ..mesonlib import EnvironmentException, MachineChoice, version_compare, OptionKey
 
 from .compilers import Compiler, LibType
 
@@ -33,7 +33,7 @@ class ValaCompiler(Compiler):
         super().__init__(exelist, version, for_machine, info, is_cross=is_cross)
         self.version = version
         self.id = 'valac'
-        self.base_options = ['b_colorout']
+        self.base_options = {OptionKey('b_colorout')}
 
     def needs_static_linker(self) -> bool:
         return False # Because compiles into C.

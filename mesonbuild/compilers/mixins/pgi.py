@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 
 from ..compilers import clike_debug_args, clike_optimization_args
+from ...mesonlib import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -43,7 +44,7 @@ pgi_buildtype_args = {
 class PGICompiler(Compiler):
 
     def __init__(self) -> None:
-        self.base_options = ['b_pch']
+        self.base_options = {OptionKey('b_pch')}
         self.id = 'pgi'
 
         default_warn_args = ['-Minform=inform']

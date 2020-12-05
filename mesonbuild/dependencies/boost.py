@@ -616,8 +616,8 @@ class BoostDependency(ExternalDependency):
         # MSVC is very picky with the library tags
         vscrt = ''
         try:
-            crt_val = self.env.coredata.base_options['b_vscrt'].value
-            buildtype = self.env.coredata.builtins['buildtype'].value
+            crt_val = self.env.coredata.base_options[mesonlib.OptionKey('b_vscrt')].value
+            buildtype = self.env.coredata.builtins[mesonlib.OptionKey('buildtype')].value
             vscrt = self.clib_compiler.get_crt_compile_args(crt_val, buildtype)[0]
         except (KeyError, IndexError, AttributeError):
             pass

@@ -785,7 +785,7 @@ class Vs2010Backend(backends.Backend):
         build_args += compiler.get_optimization_args(self.optimization)
         build_args += compiler.get_debug_args(self.debug)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
-        vscrt_type = self.environment.coredata.base_options['b_vscrt']
+        vscrt_type = self.environment.coredata.base_options[OptionKey('b_vscrt')]
         project_name = target.name
         target_name = target.name
         root = ET.Element('Project', {'DefaultTargets': "Build",
@@ -1048,9 +1048,9 @@ class Vs2010Backend(backends.Backend):
         ET.SubElement(clconf, 'PreprocessorDefinitions').text = ';'.join(target_defines)
         ET.SubElement(clconf, 'FunctionLevelLinking').text = 'true'
         # Warning level
-        warning_level = self.get_option_for_target('warning_level', target)
+        warning_level = self.get_option_for_target(OptionKey('warning_level'), target)
         ET.SubElement(clconf, 'WarningLevel').text = 'Level' + str(1 + int(warning_level))
-        if self.get_option_for_target('werror', target):
+        if self.get_option_for_target(OptionKey('werror'), target):
             ET.SubElement(clconf, 'TreatWarningAsError').text = 'true'
         # Optimization flags
         o_flags = split_o_flags_args(build_args)
@@ -1075,7 +1075,7 @@ class Vs2010Backend(backends.Backend):
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         pch_sources = {}
-        if self.environment.coredata.base_options.get('b_pch', False):
+        if self.environment.coredata.base_options.get(OptionKey('b_pch')):
             for lang in ['c', 'cpp']:
                 pch = target.get_pch(lang)
                 if not pch:
