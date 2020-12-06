@@ -86,7 +86,8 @@ def do_install(src_sub: str, bld_sub: str, dest: str, pkgname: str, langs: T.Lis
         os.makedirs(os.path.dirname(outfile), exist_ok=True)
         shutil.copy2(srcfile, tempfile)
         os.replace(tempfile, outfile)
-        print('Installing %s to %s' % (srcfile, outfile))
+        if not os.getenv('MESON_INSTALL_QUIET', False):
+            print('Installing %s to %s' % (srcfile, outfile))
     return 0
 
 def run(args: T.List[str]) -> int:
