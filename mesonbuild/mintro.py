@@ -170,8 +170,8 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
 
     return tlist
 
-def list_targets(builddata: build.Build, installdata: backends.InstallData, backend: backends.Backend) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
-    tlist = []  # type: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]
+def list_targets(builddata: build.Build, installdata: backends.InstallData, backend: backends.Backend) -> T.List[T.Any]:
+    tlist = []  # type: T.List[T.Any]
     build_dir = builddata.environment.get_build_dir()
     src_dir = builddata.environment.get_source_dir()
 
@@ -200,8 +200,8 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
 
         if installdata and target.should_install():
             t['installed'] = True
-            t['install_filename'] = [install_lookuptable.get(x, [None]) for x in target.get_outputs()]
-            t['install_filename'] = [x for sublist in t['install_filename'] for x in sublist]  # flatten the list
+            ifn = [install_lookuptable.get(x, [None]) for x in target.get_outputs()]
+            t['install_filename'] = [x for sublist in ifn for x in sublist]  # flatten the list
         else:
             t['installed'] = False
         tlist.append(t)
