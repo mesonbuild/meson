@@ -940,7 +940,7 @@ class Environment:
                 return LLVMDynamicLinker(
                     compiler, for_machine, comp_class.LINKER_PREFIX,
                     override, version=search_version(o))
-            else:
+            elif not invoked_directly:
                 return ClangClDynamicLinker(
                     for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
                     version=search_version(o), direct=False, machine=None)
@@ -1240,7 +1240,7 @@ class Environment:
                     # style ld, but for clang on "real" windows we'll use
                     # either link.exe or lld-link.exe
                     try:
-                        linker = self._guess_win_linker(compiler, cls, for_machine)
+                        linker = self._guess_win_linker(compiler, cls, for_machine, invoked_directly=False)
                     except MesonException:
                         pass
                 if linker is None:
