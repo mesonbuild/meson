@@ -17,7 +17,7 @@ import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     default_libdir, default_libexecdir, default_prefix, split_args,

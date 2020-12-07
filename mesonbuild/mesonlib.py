@@ -20,8 +20,7 @@ import stat
 import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from enum import IntEnum
-from functools import lru_cache, wraps
+from functools import lru_cache, wraps, total_ordering
 from itertools import tee, filterfalse
 from tempfile import TemporaryDirectory
 import typing as T
@@ -348,7 +347,7 @@ def classify_unity_sources(compilers: T.Iterable['CompilerType'], sources: T.Ite
     return compsrclist
 
 
-class MachineChoice(IntEnum):
+class MachineChoice(enum.IntEnum):
 
     """Enum class representing one of the two abstract machine names used in
     most places: the build, and host, machines.
@@ -1617,7 +1616,7 @@ def relative_to_if_possible(path: Path, root: Path, resolve: bool = False) -> Pa
     except ValueError:
         return path
 
-class LibType(IntEnum):
+class LibType(enum.IntEnum):
 
     """Enumeration for library types."""
 
@@ -1854,6 +1853,7 @@ def _classify_argument(key: 'OptionKey') -> OptionType:
         return OptionType.PROJECT
 
 
+@total_ordering
 class OptionKey:
 
     """Represents an option key in the various option dictionaries.

@@ -34,7 +34,7 @@ import typing as T
 import os
 import argparse
 
-from .mesonlib import MachineChoice, OptionKey
+from .mesonlib import OptionKey
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
