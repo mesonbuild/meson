@@ -50,7 +50,8 @@ keyword arguments.
   reference other pkgconfig variables,
   e.g. `datadir=${prefix}/share`. The names `prefix`, `libdir` and
   `includedir` are reserved and may not be used. *Since 0.56.0* it can also be a
-  dictionary.
+  dictionary but ordering of Meson dictionaries are not guaranteed, which could
+  cause issues when some variables reference other variables.
 - `version` a string describing the version of this library, used to set the
   `Version:` field. (*since 0.46.0*) Defaults to the project version if unspecified.
 - `d_module_versions` a list of module version flags used when compiling
