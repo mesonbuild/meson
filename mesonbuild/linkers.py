@@ -1164,6 +1164,14 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
         super().__init__(exelist or ['lld-link.exe'], for_machine,
                          prefix, always_args, machine=machine, version=version, direct=direct)
 
+    def get_output_args(self, outputname: str) -> T.List[str]:
+        # If we're being driven indirectly by clang just skip /MACHINE
+        # as clang's target triple will handle the machine selection
+        if self.machine is None:
+            return self._apply_prefix([f"/OUT:{outputname}"])
+        else:
+            return super().get_output_args(outputname)
+
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 

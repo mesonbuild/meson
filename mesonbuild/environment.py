@@ -940,6 +940,10 @@ class Environment:
                 return LLVMDynamicLinker(
                     compiler, for_machine, comp_class.LINKER_PREFIX,
                     override, version=search_version(o))
+            else:
+                return ClangClDynamicLinker(
+                    for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
+                    version=search_version(o), direct=False, machine=None)
 
         if value is not None and invoked_directly:
             compiler = value
