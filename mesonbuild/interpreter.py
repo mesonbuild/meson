@@ -2708,7 +2708,7 @@ class Interpreter(InterpreterBase):
             varlist = mesonlib.stringlistify(variables)
             if list_new:
                 FeatureNew.single_use('variables as list of strings', '0.56.0', self.subproject)
-            variables = {}
+            variables = collections.OrderedDict()
             for v in varlist:
                 try:
                     (key, value) = v.split('=', 1)
