@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 from functools import lru_cache
 import copy
 import hashlib
@@ -32,7 +32,7 @@ from .mesonlib import (
     OptionKey,
 )
 from .compilers import (
-    Compiler, all_languages, is_object, clink_langs, sort_clink, lang_suffixes,
+    Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
     is_known_suffix
 )
 from .linkers import StaticLinker

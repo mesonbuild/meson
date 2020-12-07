@@ -1142,7 +1142,6 @@ class CompilerHolder(InterpreterObject):
                                     i.held_object.get_curdir(), idir)
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
-            for_machine = Interpreter.machine_from_native_kwarg(kwargs)
             opts = self.environment.coredata.options
             args += self.compiler.get_option_compile_args(opts)
             if mode == 'link':
