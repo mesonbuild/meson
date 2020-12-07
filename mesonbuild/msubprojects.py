@@ -85,7 +85,7 @@ def git_reset(repo_dir, revision):
     return True
 
 def git_checkout(repo_dir, revision, create=False):
-    cmd = ['checkout', revision, '--']
+    cmd = ['checkout', '--ignore-other-worktrees', revision, '--']
     if create:
         cmd.insert('-b', 1)
     try:
