@@ -6478,6 +6478,26 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertRegex('\n'.join(mesonlog),
                          r'Run-time dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
 
+    def test_qt6dependency_qmake_detection(self):
+        '''
+        Test that qt6 detection with qmake works. This can't be an ordinary
+        test case because it involves setting the environment.
+        '''
+        # Verify that qmake is for Qt5
+        if not shutil.which('qmake-qt6'):
+            if not shutil.which('qmake'):
+                raise unittest.SkipTest('QMake not found')
+            output = subprocess.getoutput('qmake --version')
+            if 'Qt version 6' not in output:
+                raise unittest.SkipTest('Qmake found, but it is not for Qt 6.')
+        # Disable pkg-config codepath and force searching with qmake/qmake-qt6
+        testdir = os.path.join(self.framework_test_dir, '4 qt')
+        self.init(testdir, extra_args=['-Dmethod=qmake'])
+        # Confirm that the dependency was found with qmake
+        mesonlog = self.get_meson_log()
+        self.assertRegex('\n'.join(mesonlog),
+                         r'Run-time dependency qt6 \(modules: Core\) found: YES .* \((qmake|qmake-qt6)\)\n')
+
     def glob_sofiles_without_privdir(self, g):
         files = glob(g)
         return [f for f in files if not f.endswith('.p')]

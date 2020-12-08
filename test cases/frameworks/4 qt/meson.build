@@ -3,10 +3,13 @@ project('qt4 and 5 build test', 'cpp',
   default_options : ['cpp_std=c++11'])
 
 qt5_modules = ['Widgets']
-foreach qt : ['qt4', 'qt5']
+qt6_modules = ['Widgets']
+foreach qt : ['qt4', 'qt5', 'qt6']
   qt_modules = ['Core', 'Gui']
   if qt == 'qt5'
     qt_modules += qt5_modules
+  elif qt == 'qt6'
+    qt_modules += qt6_modules
   endif
 
   # Test that invalid modules are indeed not found

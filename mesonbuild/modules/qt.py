@@ -17,7 +17,7 @@ import shutil
 from .. import mlog
 from .. import build
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram
+from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, Qt6Dependency, NonExistingExternalProgram
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -25,7 +25,8 @@ from ..interpreter import extract_required_kwarg
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
-    5: Qt5Dependency
+    5: Qt5Dependency,
+    6: Qt6Dependency,
 }
 
 

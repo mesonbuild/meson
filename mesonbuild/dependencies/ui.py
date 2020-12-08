@@ -544,6 +544,17 @@ class Qt5Dependency(QtBaseDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
+class Qt6Dependency(QtBaseDependency):
+    def __init__(self, env, kwargs):
+        QtBaseDependency.__init__(self, 'qt6', env, kwargs)
+
+    def get_pkgconfig_host_bins(self, core):
+        return core.get_pkgconfig_variable('host_bins', {})
+
+    def get_private_includes(self, mod_inc_dir, module):
+        return _qt_get_private_includes(mod_inc_dir, module, self.version)
+
+
 class SDL2DependencyConfigTool(ConfigToolDependency):
 
     tools = ['sdl2-config']
