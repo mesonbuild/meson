@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import os, platform, re, sys, shutil, subprocess
 import tempfile
 import shlex
@@ -605,7 +606,7 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, str] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
 
         ## Read in native file(s) to override build machine configuration
 
@@ -750,36 +751,58 @@ class Environment:
                     self.options[key] = v
 
     def set_default_options_from_env(self) -> None:
-        for for_machine in MachineChoice:
-            for evar, keyname in [('PKG_CONFIG_PATH', 'pkg_config_path'),
-                                  ('CMAKE_PREFIX_PATH', 'cmake_prefix_path')]:
-                p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
-                if p_env_pair is not None:
-                    _, p_env = p_env_pair
+        opts: T.List[T.Tuple[str, str]] = (
+            [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
+            [
+                ('PKG_CONFIG_PATH', 'pkg_config_path'),
+                ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
+                ('LDFLAGS', 'ldflags'),
+                ('CPPFLAGS', 'cppflags'),
+            ]
+        )
 
-                    # these may contain duplicates, which must be removed, else
-                    # a duplicates-in-array-option warning arises.
-                    if keyname == 'cmake_prefix_path':
-                        if self.machines[for_machine].is_windows():
-                            # Cannot split on ':' on Windows because its in the drive letter
-                            _p_env = p_env.split(os.pathsep)
-                        else:
-                            # https://github.com/mesonbuild/meson/issues/7294
-                            _p_env = re.split(r':|;', p_env)
-                        p_list = list(mesonlib.OrderedSet(_p_env))
-                    elif keyname == 'pkg_config_path':
-                        p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+        for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
+            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
+            if p_env_pair is not None:
+                _, p_env = p_env_pair
+
+                # these may contain duplicates, which must be removed, else
+                # a duplicates-in-array-option warning arises.
+                if keyname == 'cmake_prefix_path':
+                    if self.machines[for_machine].is_windows():
+                        # Cannot split on ':' on Windows because its in the drive letter
+                        _p_env = p_env.split(os.pathsep)
                     else:
-                        raise RuntimeError('Should be unreachable')
-                    p_list = [e for e in p_list if e]  # filter out any empty eelemnts
+                        # https://github.com/mesonbuild/meson/issues/7294
+                        _p_env = re.split(r':|;', p_env)
+                    p_list = list(mesonlib.OrderedSet(_p_env))
+                elif keyname == 'pkg_config_path':
+                    p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+                else:
+                    p_list = split_args(p_env)
+                p_list = [e for e in p_list if e]  # filter out any empty eelemnts
 
-                    # Take env vars only on first invocation, if the env changes when
-                    # reconfiguring it gets ignored.
-                    # FIXME: We should remember if we took the value from env to warn
-                    # if it changes on future invocations.
-                    if self.first_invocation:
-                        key = OptionKey(keyname, machine=for_machine)
-                        self.options.setdefault(key, p_list)
+                # Take env vars only on first invocation, if the env changes when
+                # reconfiguring it gets ignored.
+                # FIXME: We should remember if we took the value from env to warn
+                # if it changes on future invocations.
+                if self.first_invocation:
+                    if keyname == 'ldflags':
+                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
+                        for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
+                            key = key.evolve(lang=lang)
+                            v = mesonlib.listify(self.options.get(key, []))
+                            self.options.setdefault(key, v + p_list)
+                    elif keyname == 'cppflags':
+                        key = OptionKey('args', machine=for_machine, lang='c')
+                        for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
+                            key = key.evolve(lang=lang)
+                            v = mesonlib.listify(self.options.get(key, []))
+                            self.options.setdefault(key, v + p_list)
+                    else:
+                        key = OptionKey.from_string(keyname).evolve(machine=for_machine)
+                        v = mesonlib.listify(self.options.get(key, []))
+                        self.options.setdefault(key, v + p_list)
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
