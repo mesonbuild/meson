@@ -36,7 +36,7 @@ documentation = hotdoc.generate_doc(meson.project_name(),
     default_license: 'CC-BY-SAv4.0',
     html_extra_theme: join_paths(cur_bdir, 'theme', 'extra'),
     git_upload_repository: 'git@github.com:jpakkane/jpakkane.github.io.git',
-    edit_on_github_repository: 'https://github.com/mesonbuild/meson/',
+    edit_on_github_repository: 'https://github.com/mesonbuild/meson',
     syntax_highlighting_activate: true,
 )
 
