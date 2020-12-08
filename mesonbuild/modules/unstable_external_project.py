@@ -23,7 +23,7 @@ from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
 from ..interpreterbase import stringArgs, permittedKwargs
 from ..interpreter import Interpreter, DependencyHolder, InstallDir
-from ..compilers.compilers import cflags_mapping, cexe_mapping
+from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
 from ..mesonlib import OptionKey
@@ -110,11 +110,11 @@ class ExternalProject(InterpreterObject):
         link_args = []
         self.run_env = os.environ.copy()
         for lang, compiler in self.env.coredata.compilers[MachineChoice.HOST].items():
-            if any(lang not in i for i in (cexe_mapping, cflags_mapping)):
+            if any(lang not in i for i in (CEXE_MAPPING, CFLAGS_MAPPING)):
                 continue
             cargs = self.env.coredata.get_external_args(MachineChoice.HOST, lang)
-            self.run_env[cexe_mapping[lang]] = self._quote_and_join(compiler.get_exelist())
-            self.run_env[cflags_mapping[lang]] = self._quote_and_join(cargs)
+            self.run_env[CEXE_MAPPING[lang]] = self._quote_and_join(compiler.get_exelist())
+            self.run_env[CFLAGS_MAPPING[lang]] = self._quote_and_join(cargs)
             if not link_exelist:
                 link_exelist = compiler.get_linker_exelist()
                 link_args = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
