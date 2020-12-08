@@ -759,7 +759,7 @@ class CoreData:
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
-        options = compilers.get_global_options(lang, comp, for_machine, env.is_cross_build())
+        options = compilers.get_global_options(lang, comp, for_machine, env)
         self.add_compiler_options(options, lang, for_machine, env)
 
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
