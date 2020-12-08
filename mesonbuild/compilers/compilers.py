@@ -91,18 +91,22 @@ languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'cuda': 'CUFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS',
-                  'rust': 'RUSTFLAGS'}  # type: T.Dict[str, str]
+CFLAGS_MAPPING: T.Mapping[str, str] = {
+    'c': 'CFLAGS',
+    'cpp': 'CXXFLAGS',
+    'cuda': 'CUFLAGS',
+    'objc': 'OBJCFLAGS',
+    'objcpp': 'OBJCXXFLAGS',
+    'fortran': 'FFLAGS',
+    'd': 'DFLAGS',
+    'vala': 'VALAFLAGS',
+    'rust': 'RUSTFLAGS',
+}
 
-cexe_mapping = {'c': 'CC',
-                'cpp': 'CXX'}
+CEXE_MAPPING: T.Mapping = {
+    'c': 'CC',
+   'cpp': 'CXX',
+}
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
@@ -1207,13 +1211,13 @@ def get_args_from_envvars(lang: str,
     Returns a tuple of (compile_flags, link_flags) for the specified language
     from the inherited environment
     """
-    if lang not in cflags_mapping:
+    if lang not in CFLAGS_MAPPING:
         return [], []
 
     compile_flags = []  # type: T.List[str]
     link_flags = []     # type: T.List[str]
 
-    env_compile_flags = get_env_var(for_machine, is_cross, cflags_mapping[lang])
+    env_compile_flags = get_env_var(for_machine, is_cross, CFLAGS_MAPPING[lang])
     if env_compile_flags is not None:
         compile_flags += split_args(env_compile_flags)
 
