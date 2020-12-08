@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -579,7 +579,7 @@ class Environment:
         # Stores machine infos, the only *three* machine one because we have a
         # target machine info on for the user (Meson never cares about the
         # target machine.)
-        machines = PerThreeMachineDefaultable()  # type: PerMachineDefaultable[MachineInfo]
+        machines: PerThreeMachineDefaultable[MachineInfo] = PerThreeMachineDefaultable()
 
         # Similar to coredata.compilers, but lower level in that there is no
         # meta data, only names/paths.
@@ -751,14 +751,28 @@ class Environment:
 
     def set_default_options_from_env(self) -> None:
         for for_machine in MachineChoice:
-            for evar, keyname in [('PKG_CONFIG_PATH', 'pkg_config_path')]:
+            for evar, keyname in [('PKG_CONFIG_PATH', 'pkg_config_path'),
+                                  ('CMAKE_PREFIX_PATH', 'cmake_prefix_path')]:
                 p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
                 if p_env_pair is not None:
                     _, p_env = p_env_pair
 
-                    # PKG_CONFIG_PATH may contain duplicates, which must be
-                    # removed, else a duplicates-in-array-option warning arises.
-                    p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+                    # these may contain duplicates, which must be removed, else
+                    # a duplicates-in-array-option warning arises.
+                    if keyname == 'cmake_prefix_path':
+                        if self.machines[for_machine].is_windows():
+                            # Cannot split on ':' on Windows because its in the drive letter
+                            _p_env = p_env.split(os.pathsep)
+                        else:
+                            # https://github.com/mesonbuild/meson/issues/7294
+                            _p_env = re.split(r':|;', p_env)
+                        p_list = list(mesonlib.OrderedSet(_p_env))
+                    elif keyname == 'pkg_config_path':
+                        p_list = list(mesonlib.OrderedSet(p_env.split(':')))
+                    else:
+                        raise RuntimeError('Should be unreachable')
+                    p_list = [e for e in p_list if e]  # filter out any empty eelemnts
+
                     # Take env vars only on first invocation, if the env changes when
                     # reconfiguring it gets ignored.
                     # FIXME: We should remember if we took the value from env to warn
