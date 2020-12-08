@@ -85,9 +85,9 @@ clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
 
 # Languages that should use LDFLAGS arguments when linking.
-languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
+LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
 # Languages that should use CPPFLAGS arguments when linking.
-languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
+LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
@@ -1222,7 +1222,7 @@ def get_args_from_envvars(lang: str,
         compile_flags += split_args(env_compile_flags)
 
     # Link flags (same for all languages)
-    if lang in languages_using_ldflags:
+    if lang in LANGUAGES_USING_LDFLAGS:
         link_flags += LinkerEnvVarsMixin.get_args_from_envvars(for_machine, is_cross)
     if use_linker_args:
         # When the compiler is used as a wrapper around the linker (such as
@@ -1232,7 +1232,7 @@ def get_args_from_envvars(lang: str,
         link_flags = compile_flags + link_flags
 
     # Pre-processor flags for certain languages
-    if lang in languages_using_cppflags:
+    if lang in LANGUAGES_USING_CPPFLAGS:
         env_preproc_flags = get_env_var(for_machine, is_cross, 'CPPFLAGS')
         if env_preproc_flags is not None:
             compile_flags += split_args(env_preproc_flags)

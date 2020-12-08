@@ -29,7 +29,7 @@ from .. import build
 from .. import dependencies
 from .. import mesonlib
 from .. import mlog
-from ..compilers import languages_using_ldflags
+from ..compilers import LANGUAGES_USING_LDFLAGS
 from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, unholder, OptionKey
@@ -480,7 +480,7 @@ class Backend:
     def get_external_rpath_dirs(self, target):
         dirs = set()
         args = []
-        for lang in languages_using_ldflags:
+        for lang in LANGUAGES_USING_LDFLAGS:
             try:
                 args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
             except Exception:
