@@ -150,7 +150,9 @@ class CPPCompiler(CLikeCompiler, Compiler):
             'c++14': 'c++1y',
             'gnu++14': 'gnu++1y',
             'c++17': 'c++1z',
-            'gnu++17': 'gnu++1z'
+            'gnu++17': 'gnu++1z',
+            'c++20': 'c++2a',
+            'gnu++20': 'gnu++2a',
         }
 
         # Currently, remapping is only supported for Clang, Elbrus and GCC
@@ -206,7 +208,8 @@ class ClangCPPCompiler(ClangCompiler, CPPCompiler):
         })
         opts['std'].choices = [  # type: ignore
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z', 'gnu++2a',
+            'c++2a', 'c++20', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
+            'gnu++2a', 'gnu++20',
         ]
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
@@ -344,8 +347,8 @@ class GnuCPPCompiler(GnuCompiler, CPPCompiler):
         })
         opts['std'].choices = [  # type: ignore
             'none', 'c++98', 'c++03', 'c++11', 'c++14', 'c++17', 'c++1z',
-            'c++2a', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17', 'gnu++1z',
-            'gnu++2a',
+            'c++2a', 'c++20', 'gnu++03', 'gnu++11', 'gnu++14', 'gnu++17',
+            'gnu++1z', 'gnu++2a', 'gnu++20',
         ]
         if self.info.is_windows() or self.info.is_cygwin():
             opts.update({
