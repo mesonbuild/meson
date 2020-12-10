@@ -282,7 +282,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_lto_compile_args(self, *, threads: int = 0) -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         # This provides a base for many compilers, GCC and Clang override this
         # for their specific arguments
         return ['-flto']
@@ -387,7 +387,7 @@ class GnuCompiler(GnuLikeCompiler):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         return ['-r', '-o', prelink_name] + obj_list
 
-    def get_lto_compile_args(self, *, threads: int = 0) -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         if threads == 0:
             if mesonlib.version_compare(self.version, '>= 10.0'):
                 return ['-flto=auto']

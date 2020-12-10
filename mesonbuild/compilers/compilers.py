@@ -270,6 +270,9 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
     OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None,0)),
+    OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
+                                                      ['default', 'thin'],
+                                                      'default'),
     OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
                                                       ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
                                                       'none'),
@@ -320,7 +323,8 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
     try:
         if options[OptionKey('b_lto')].value:
             args.extend(compiler.get_lto_compile_args(
-                threads=get_option_value(options, OptionKey('b_lto_threads'), 0)))
+                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
+                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
     except KeyError:
         pass
     try:
@@ -942,7 +946,7 @@ class Compiler(metaclass=abc.ABCMeta):
             ret.append(arg)
         return ret
 
-    def get_lto_compile_args(self, *, threads: int = 0) -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []
 
     def get_lto_link_args(self) -> T.List[str]:

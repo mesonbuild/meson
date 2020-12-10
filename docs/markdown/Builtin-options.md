@@ -128,6 +128,7 @@ available on all platforms or with all compilers:
 | b_lundef      | true           | true, false                                                      | Don't allow undefined symbols when linking                                    |
 | b_lto         | false          | true, false                                                      | Use link time optimization                                                    |
 | b_lto_threads | 0              | Any integer*                                                     | Use multiple threads for lto. *(Added in 0.57.0)*                             |
+| b_lto_mode    | default        | default, thin                                                    | Select between lto modes, thin and default. *(Added in 0.57.0)*               |
 | b_ndebug      | false          | true, false, if-release                                          | Disable asserts                                                               |
 | b_pch         | true           | true, false                                                      | Use precompiled headers                                                       |
 | b_pgo         | off            | off, generate, use                                               | Use profile guided optimization                                               |
@@ -140,6 +141,8 @@ The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
 
 * < 0 means disable, == 0 means automatic selection, > 0 sets a specific number to use
+
+LLVM supports `thin` lto, for more discussion see [LLVM's documentation](https://clang.llvm.org/docs/ThinLTO.html)
 
 <a name="b_vscrt-from_buildtype"></a>
 The default value of `b_vscrt` is `from_buildtype`. The following table is
