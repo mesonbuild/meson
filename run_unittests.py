@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.compilers.objc import AppleClangObjCCompiler
 import time
 import stat
 import subprocess
@@ -78,6 +77,9 @@ from run_tests import (
     get_builddir_target_args, get_fake_env, get_fake_options, get_meson_script,
     run_configure_inprocess, run_mtest_inprocess
 )
+
+if T.TYPE_CHECKING:
+    from mesonbuild.compilers import Compiler
 
 
 URLOPEN_TIMEOUT = 5
@@ -6273,13 +6275,16 @@ class LinuxlikeTests(BasePlatformTests):
             Oargs = [arg for arg in cmd if arg.startswith('-O')]
             self.assertEqual(Oargs, [Oflag, '-O0'])
 
-    def _test_stds_impl(self, testdir, compiler, p: str):
+    def _test_stds_impl(self, testdir, compiler: 'Compiler', p: str) -> None:
         has_cpp17 = (compiler.get_id() not in {'clang', 'gcc'} or
                      compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=5.0.0', '>=9.1') or
                      compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=5.0.0'))
         has_cpp2a_c17 = (compiler.get_id() not in {'clang', 'gcc'} or
                          compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=6.0.0', '>=10.0') or
                          compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
+        has_cpp20 = (compiler.get_id() not in {'clang', 'gcc'} or
+                     compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=10.0.0', None) or
+                     compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=10.0.0'))
         has_c18 = (compiler.get_id() not in {'clang', 'gcc'} or
                    compiler.get_id() == 'clang' and _clang_at_least(compiler, '>=8.0.0', '>=11.0') or
                    compiler.get_id() == 'gcc' and version_compare(compiler.version, '>=8.0.0'))
@@ -6293,6 +6298,8 @@ class LinuxlikeTests(BasePlatformTests):
             if '++17' in v and not has_cpp17:
                 continue
             elif '++2a' in v and not has_cpp2a_c17:  # https://en.cppreference.com/w/cpp/compiler_support
+                continue
+            elif '++20' in v and not has_cpp20:
                 continue
             # now C
             elif '17' in v and not has_cpp2a_c17:
@@ -9269,7 +9276,7 @@ class SubprojectsCommandTests(BasePlatformTests):
         out = self._subprojects_cmd(['foreach', '--types', 'git'] + dummy_cmd)
         self.assertEqual(ran_in(out), ['subprojects/sub_git'])
 
-def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
+def _clang_at_least(compiler, minver: str, apple_minver: T.Optional[str]) -> bool:
     """
     check that Clang compiler is at least a specified version, whether AppleClang or regular Clang
 
@@ -9289,6 +9296,8 @@ def _clang_at_least(compiler, minver: str, apple_minver: str) -> bool:
     """
     if isinstance(compiler, (mesonbuild.compilers.AppleClangCCompiler,
                              mesonbuild.compilers.AppleClangCPPCompiler)):
+        if apple_minver is None:
+            return False
         return version_compare(compiler.version, apple_minver)
     return version_compare(compiler.version, minver)
 
