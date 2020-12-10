@@ -6,11 +6,13 @@ on:
       - "mesonbuild/**"
       - "test cases/**"
       - ".github/workflows/macos.yml"
+      - "run_unittests.py"
   pull_request:
     paths:
       - "mesonbuild/**"
       - "test cases/**"
       - ".github/workflows/macos.yml"
+      - "run_unittests.py"
 
 jobs:
   unittests-appleclang:
