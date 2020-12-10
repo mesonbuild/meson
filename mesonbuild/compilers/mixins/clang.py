@@ -49,7 +49,8 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'clang'
         self.defines = defines or {}
-        self.base_options.add(OptionKey('b_colorout'))
+        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
+
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
@@ -135,3 +136,10 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_lto_compile_args(self, *, threads: int = 0) -> T.List[str]:
+        args = super().get_lto_compile_args(threads=threads)
+        # In clang -flto=0 means auto
+        if threads >= 0:
+            args.append(f'-flto-jobs={threads}')
+        return args

@@ -2843,6 +2843,27 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    @skip_if_not_base_option('b_lto_threads')
+    def test_lto_threads(self):
+        testdir = os.path.join(self.common_test_dir, '6 linkshared')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() == 'clang' and is_windows():
+            raise unittest.SkipTest('LTO not (yet) supported by windows clang')
+
+        self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'])
+        self.build()
+        self.run_tests()
+
+        expected = set(cc.get_lto_compile_args(threads=8))
+        targets = self.introspect('--targets')
+        # This assumes all of the targets support lto
+        for t in targets:
+            for s in t['target_sources']:
+                for e in expected:
+                    self.assertIn(e, s['parameters'])
+
     def test_dist_git(self):
         if not shutil.which('git'):
             raise unittest.SkipTest('Git not found')
