@@ -12,19 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, subprocess
+import subprocess
 import typing as T
 from enum import Enum
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, MachineChoice, PerMachine, split_args
+from .mesonlib import EnvironmentException
 from . import mlog
 from pathlib import Path
-
-_T = T.TypeVar('_T')
-
-if T.TYPE_CHECKING:
-    from .environment import Environment
 
 
 # These classes contains all the data pulled from configuration files (native
@@ -135,33 +130,6 @@ class CMakeSkipCompilerTest(Enum):
     ALWAYS = 'always'
     NEVER = 'never'
     DEP_ONLY = 'dep_only'
-
-
-def get_env_var_pair(for_machine: MachineChoice,
-                     is_cross: bool,
-                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
-    """
-    Returns the exact env var and the value.
-    """
-    candidates = PerMachine(
-        # The prefixed build version takes priority, but if we are native
-        # compiling we fall back on the unprefixed host version. This
-        # allows native builds to never need to worry about the 'BUILD_*'
-        # ones.
-        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
-        # Always just the unprefixed host verions
-        [var_name]
-    )[for_machine]
-    for var in candidates:
-        value = os.environ.get(var)
-        if value is not None:
-            break
-    else:
-        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
-        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
-        return None
-    mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
-    return var, value
 
 class Properties:
     def __init__(
