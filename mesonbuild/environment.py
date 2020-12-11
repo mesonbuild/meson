@@ -23,15 +23,13 @@ from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, CompCertLinker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, Popen_safe,
+    MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey
 )
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, ENV_VAR_PROG_MAP, MachineInfo,
-    Properties, known_cpu_families, get_env_var_pair,
-    CMakeVariables,
+    BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
 )
 from . import compilers
 from .compilers import (
@@ -142,6 +140,34 @@ CompilersDict = T.Dict[str, Compiler]
 
 if T.TYPE_CHECKING:
     import argparse
+
+
+def get_env_var_pair(for_machine: MachineChoice,
+                     is_cross: bool,
+                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
+    """
+    Returns the exact env var and the value.
+    """
+    candidates = PerMachine(
+        # The prefixed build version takes priority, but if we are native
+        # compiling we fall back on the unprefixed host version. This
+        # allows native builds to never need to worry about the 'BUILD_*'
+        # ones.
+        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
+        # Always just the unprefixed host verions
+        [var_name]
+    )[for_machine]
+    for var in candidates:
+        value = os.environ.get(var)
+        if value is not None:
+            break
+    else:
+        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
+        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
+        return None
+    mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
+    return var, value
+
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
