@@ -1169,8 +1169,8 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
         # as clang's target triple will handle the machine selection
         if self.machine is None:
             return self._apply_prefix([f"/OUT:{outputname}"])
-        else:
-            return super().get_output_args(outputname)
+
+        return super().get_output_args(outputname)
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
