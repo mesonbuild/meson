@@ -112,8 +112,8 @@ class ClangCompiler(GnuLikeCompiler):
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
         if self.info.is_windows() and not self.info.is_cygwin() and isinstance(self.linker, ClangClDynamicLinker):
             return [f'-Wl,/subsystem:{value}']
-        else:
-            return super().get_win_subsystem_args(value)
+        
+        return super().get_win_subsystem_args(value)
 
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
