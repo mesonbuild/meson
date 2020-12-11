@@ -22,8 +22,8 @@ from .envconfig import get_env_var
 
 if T.TYPE_CHECKING:
     from .coredata import KeyedOptionDictType
-    from .envconfig import MachineChoice
     from .environment import Environment
+    from .mesonlib import MachineChoice
 
 
 class StaticLinker:
