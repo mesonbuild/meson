@@ -689,7 +689,8 @@ int dummy;
 
     def generate_target(self, target):
         try:
-            os.makedirs(self.get_target_private_dir_abs(target))
+            if isinstance(target, build.BuildTarget):
+                os.makedirs(self.get_target_private_dir_abs(target))
         except FileExistsError:
             pass
         if isinstance(target, build.CustomTarget):
@@ -871,20 +872,47 @@ int dummy;
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
-    def generate_dependency_scan_target(self, target, compiled_sources, source2object):
+    def should_scan_target(self, target):
         if 'cpp' not in target.compilers:
+            return False
+        # Currently only the preview version of Visual Studio is supported.
+        cpp = target.compilers['cpp']
+        if cpp.get_id() != 'msvc':
+            return False
+        if not mesonlib.current_vs_supports_modules():
+            return False
+        if mesonlib.version_compare(cpp.version, '<19.28.28617'):
+            return False
+        if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
+            return False
+        return True
+
+    def generate_dependency_scan_target(self, target, compiled_sources, source2object):
+        if not self.should_scan_target(target):
             return
         depscan_file = self.get_dep_scan_file_for(target)
         pickle_base = target.name + '.dat'
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
         rule_name = 'cppscan'
-        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, compiled_sources)
+        scan_sources = self.select_sources_to_scan(compiled_sources)
+        elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, scan_sources)
         elem.add_item('picklefile', pickle_file)
         scaninfo = TargetDependencyScannerInfo(self.get_target_private_dir(target), source2object)
         with open(pickle_abs, 'wb') as p:
             pickle.dump(scaninfo, p)
         self.add_build(elem)
+
+    def select_sources_to_scan(self, compiled_sources):
+        # in practice pick up C++ and Fortran files. If some other language
+        # requires scanning (possibly Java to deal with inner class files)
+        # then add them here.
+        selected_sources = []
+        for source in compiled_sources:
+            ext = os.path.splitext(source)[1][1:]
+            if ext in compilers.lang_suffixes['cpp']:
+                selected_sources.append(source)
+        return selected_sources
 
     def process_target_dependencies(self, target):
         for t in target.get_dependencies():
@@ -2011,7 +2039,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 if rulename in self.ruledict:
                     # Scanning command is the same for native and cross compilation.
                     continue
-                command = cmd = self.environment.get_build_command() + \
+                command = self.environment.get_build_command() + \
                     ['--internal', 'depscan']
                 args = ['$picklefile', '$out', '$in']
                 description = 'Module scanner for {}.'.format(langname)
@@ -2509,7 +2537,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src.replace('\\', '/'))
 
     def add_dependency_scanner_entries_to_element(self, target, compiler, element):
-        if compiler.get_language() != 'cpp':
+        if not self.should_scan_target(target):
             return
         dep_scan_file = self.get_dep_scan_file_for(target)
         element.add_item('dyndep', dep_scan_file)

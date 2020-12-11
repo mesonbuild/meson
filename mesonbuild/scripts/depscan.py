@@ -17,6 +17,8 @@ import pickle
 import re
 import typing as T
 
+from ..backend.ninjabackend import TargetDependencyScannerInfo
+
 import_re = re.compile('\w*import ([a-zA-Z0-9]+);')
 export_re = re.compile('\w*export module ([a-zA-Z0-9]+);')
 
