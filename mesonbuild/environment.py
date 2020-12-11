@@ -640,7 +640,7 @@ class Environment:
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
-            self.load_machine_file_options(config, properties.build, MachineChoice.BUILD)
+            self._load_machine_file_options(config, properties.build, MachineChoice.BUILD)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -658,7 +658,7 @@ class Environment:
             for key, value in list(self.options.items()):
                 if self.coredata.is_per_machine_option(key):
                     self.options[key.as_build()] = value
-            self.load_machine_file_options(config, properties.host, MachineChoice.HOST)
+            self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
         else:
             # IF we aren't cross compiling, but we hav ea native file, the
             # native file is for the host. This is due to an mismatch between
@@ -678,7 +678,7 @@ class Environment:
         self.options.update(options.cmd_line_options)
 
         # Take default value from env if not set in cross/native files or command line.
-        self.set_default_options_from_env()
+        self._set_default_options_from_env()
         self._set_default_binaries_from_env()
         self._set_default_properties_from_env()
 
@@ -746,7 +746,7 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver = None
 
-    def load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
+    def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
         paths = config.get('paths')
         if paths:
@@ -777,7 +777,7 @@ class Environment:
                     key = OptionKey.from_string(k).evolve(subproject=subproject)
                     self.options[key] = v
 
-    def set_default_options_from_env(self) -> None:
+    def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
             [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
             [
