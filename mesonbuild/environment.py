@@ -656,6 +656,7 @@ class Environment:
         # Take default value from env if not set in cross/native files or command line.
         self.set_default_options_from_env()
         self._set_default_binaries_from_env()
+        self._set_default_properties_from_env()
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
@@ -820,6 +821,26 @@ class Environment:
             if p_env_pair is not None:
                 _, p_env = p_env_pair
                 self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
+
+    def _set_default_properties_from_env(self) -> None:
+        """Properties which can alkso be set from the environment."""
+        # name, evar, split
+        opts: T.List[T.Tuple[str, T.List[str], bool]] = [
+            ('boost_includedir', ['BOOST_INCLUDEDIR'], False),
+            ('boost_librarydir', ['BOOST_LIBRARYDIR'], False),
+            ('boost_root', ['BOOST_ROOT', 'BOOSTROOT'], True),
+        ]
+
+        for (name, evars, split), for_machine in itertools.product(opts, MachineChoice):
+            for evar in evars:
+                p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
+                if p_env_pair is not None:
+                    _, p_env = p_env_pair
+                    if split:
+                        self.properties[for_machine].properties.setdefault(name, p_env.split(os.pathsep))
+                    else:
+                        self.properties[for_machine].properties.setdefault(name, p_env)
+                    break
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets

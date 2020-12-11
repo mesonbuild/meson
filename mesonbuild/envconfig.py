@@ -163,14 +163,6 @@ def get_env_var_pair(for_machine: MachineChoice,
     mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
     return var, value
 
-def get_env_var(for_machine: MachineChoice,
-                is_cross: bool,
-                var_name: str) -> T.Optional[str]:
-    ret = get_env_var_pair(for_machine, is_cross, var_name)
-    if ret is None:
-        return None
-    return ret[1]
-
 class Properties:
     def __init__(
             self,
