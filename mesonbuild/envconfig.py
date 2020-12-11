@@ -85,6 +85,49 @@ CPU_FAMILES_64_BIT = [
     'x86_64',
 ]
 
+# Map from language identifiers to environment variables.
+ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
+    # Compilers
+    'c': 'CC',
+    'cpp': 'CXX',
+    'cs': 'CSC',
+    'd': 'DC',
+    'fortran': 'FC',
+    'objc': 'OBJC',
+    'objcpp': 'OBJCXX',
+    'rust': 'RUSTC',
+    'vala': 'VALAC',
+
+    # Linkers
+    'c_ld': 'CC_LD',
+    'cpp_ld': 'CXX_LD',
+    'd_ld': 'DC_LD',
+    'fortran_ld': 'FC_LD',
+    'objc_ld': 'OBJC_LD',
+    'objcpp_ld': 'OBJCXX_LD',
+    'rust_ld': 'RUSTC_LD',
+
+    # Binutils
+    'strip': 'STRIP',
+    'ar': 'AR',
+    'windres': 'WINDRES',
+
+    # Other tools
+    'cmake': 'CMAKE',
+    'qmake': 'QMAKE',
+    'pkgconfig': 'PKG_CONFIG',
+    'make': 'MAKE',
+}
+
+# Deprecated environment variables mapped from the new variable to the old one
+# Deprecated in 0.54.0
+DEPRECATED_ENV_PROG_MAP: T.Mapping[str, str] = {
+    'DC_LD': 'D_LD',
+    'FC_LD': 'F_LD',
+    'RUSTC_LD': 'RUST_LD',
+    'OBJCXX_LD': 'OBJCPP_LD',
+}
+
 class CMakeSkipCompilerTest(Enum):
     ALWAYS = 'always'
     NEVER = 'never'
@@ -363,49 +406,6 @@ class BinaryTable:
                     'Invalid type {!r} for binary {!r} in cross file'
                     ''.format(command, name))
 
-    # Map from language identifiers to environment variables.
-    evarMap = {
-        # Compilers
-        'c': 'CC',
-        'cpp': 'CXX',
-        'cs': 'CSC',
-        'd': 'DC',
-        'fortran': 'FC',
-        'objc': 'OBJC',
-        'objcpp': 'OBJCXX',
-        'rust': 'RUSTC',
-        'vala': 'VALAC',
-
-        # Linkers
-        'c_ld': 'CC_LD',
-        'cpp_ld': 'CXX_LD',
-        'd_ld': 'DC_LD',
-        'fortran_ld': 'FC_LD',
-        'objc_ld': 'OBJC_LD',
-        'objcpp_ld': 'OBJCXX_LD',
-        'rust_ld': 'RUSTC_LD',
-
-        # Binutils
-        'strip': 'STRIP',
-        'ar': 'AR',
-        'windres': 'WINDRES',
-
-        # Other tools
-        'cmake': 'CMAKE',
-        'qmake': 'QMAKE',
-        'pkgconfig': 'PKG_CONFIG',
-        'make': 'MAKE',
-    }  # type: T.Dict[str, str]
-
-    # Deprecated environment variables mapped from the new variable to the old one
-    # Deprecated in 0.54.0
-    DEPRECATION_MAP = {
-        'DC_LD': 'D_LD',
-        'FC_LD': 'F_LD',
-        'RUSTC_LD': 'RUST_LD',
-        'OBJCXX_LD': 'OBJCPP_LD',
-    }  # type: T.Dict[str, str]
-
     @staticmethod
     def detect_ccache() -> T.List[str]:
         try:
@@ -442,11 +442,11 @@ class BinaryTable:
             if raw_command is not None:
                 command = mesonlib.stringlistify(raw_command)
                 break # found
-            evar = self.evarMap.get(name)
+            evar = ENV_VAR_PROG_MAP.get(name)
             if evar is not None:
                 raw_command = get_env_var(for_machine, is_cross, evar)
                 if raw_command is None:
-                    deprecated = self.DEPRECATION_MAP.get(evar)
+                    deprecated = DEPRECATED_ENV_PROG_MAP.get(evar)
                     if deprecated is not None:
                         raw_command = get_env_var(for_machine, is_cross, deprecated)
                         if raw_command is not None:

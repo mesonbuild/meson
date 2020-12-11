@@ -5689,12 +5689,12 @@ class WindowsTests(BasePlatformTests):
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
             raise unittest.SkipTest('Could not find {}.'.format(name))
-        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
-        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+        if envvars[0] in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
             envvars.append(
-                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[envvars[0]])
 
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
@@ -7293,7 +7293,7 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+        envvars = [mesonbuild.envconfig.BinaryTable.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
         if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
