@@ -2637,17 +2637,16 @@ class AllPlatformTests(BasePlatformTests):
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
             wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
-            wrappercc_s = ''
-            for w in wrappercc:
-                wrappercc_s += quote_arg(w) + ' '
-            os.environ[evar] = wrappercc_s
-            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            os.environ[evar] = ' '.join(quote_arg(w) for w in wrappercc)
+
             # Check static linker too
             wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
-            wrapperlinker_s = ''
-            for w in wrapperlinker:
-                wrapperlinker_s += quote_arg(w) + ' '
-            os.environ['AR'] = wrapperlinker_s
+            os.environ['AR'] = ' '.join(quote_arg(w) for w in wrapperlinker)
+
+            # Need a new env to re-run environment loading
+            env = get_fake_env(testdir, self.builddir, self.prefix)
+
+            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
             wlinker = env.detect_static_linker(wcc)
             # Pop it so we don't use it for the next detection
             evalue = os.environ.pop('AR')
@@ -5692,9 +5691,9 @@ class WindowsTests(BasePlatformTests):
         envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
-        if envvars[0] in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
+        if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
             envvars.append(
-                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[envvars[0]])
+                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
@@ -7293,12 +7292,12 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvars = [mesonbuild.envconfig.BinaryTable.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
-        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+        if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
             envvars.append(
-                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
@@ -8274,7 +8273,7 @@ class NativeFileTests(BasePlatformTests):
             return 'gfortran', 'gcc'
         self.helper_for_compiler('fortran', cb)
 
-    def _single_implementation_compiler(self, lang, binary, version_str, version):
+    def _single_implementation_compiler(self, lang: str, binary: str, version_str: str, version: str) -> None:
         """Helper for languages with a single (supported) implementation.
 
         Builds a wrapper around the compiler to override the version.
@@ -8283,7 +8282,7 @@ class NativeFileTests(BasePlatformTests):
         env = get_fake_env()
         getter = getattr(env, 'detect_{}_compiler'.format(lang))
         getter = functools.partial(getter, MachineChoice.HOST)
-        env.binaries.host.binaries[lang] = wrapper
+        env.binaries.host.binaries[lang] = [wrapper]
         compiler = getter()
         self.assertEqual(compiler.version, version)
 
@@ -8310,7 +8309,7 @@ class NativeFileTests(BasePlatformTests):
             'swiftc', version='Swift 1.2345', outfile='stderr',
             extra_args={'Xlinker': 'macosx_version. PROJECT:ld - 1.2.3'})
         env = get_fake_env()
-        env.binaries.host.binaries['swift'] = wrapper
+        env.binaries.host.binaries['swift'] = [wrapper]
         compiler = env.detect_swift_compiler(MachineChoice.HOST)
         self.assertEqual(compiler.version, '1.2345')
 

@@ -29,7 +29,7 @@ from .mesonlib import (
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, MachineInfo,
+    BinaryTable, ENV_VAR_PROG_MAP, MachineInfo,
     Properties, known_cpu_families, get_env_var_pair,
     CMakeVariables,
 )
@@ -129,6 +129,7 @@ from .compilers import (
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
 )
+from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     from configparser import ConfigParser
@@ -654,6 +655,7 @@ class Environment:
 
         # Take default value from env if not set in cross/native files or command line.
         self.set_default_options_from_env()
+        self._set_default_binaries_from_env()
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
@@ -804,6 +806,21 @@ class Environment:
                         v = mesonlib.listify(self.options.get(key, []))
                         self.options.setdefault(key, v + p_list)
 
+    def _set_default_binaries_from_env(self) -> None:
+        """Set default binaries from the environment.
+
+        For example, pkg-config can be set via PKG_CONFIG, or in the machine
+        file. We want to set the default to the env variable.
+        """
+        opts = itertools.chain(envconfig.DEPRECATED_ENV_PROG_MAP.items(),
+                               envconfig.ENV_VAR_PROG_MAP.items())
+
+        for (name, evar), for_machine in itertools.product(opts, MachineChoice):
+            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
+            if p_env_pair is not None:
+                _, p_env = p_env_pair
+                self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
+
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
         # re-initialized with project options by the interpreter during
@@ -853,11 +870,8 @@ class Environment:
     def is_library(self, fname):
         return is_library(fname)
 
-    def lookup_binary_entry(self, for_machine: MachineChoice, name: str):
-        return self.binaries[for_machine].lookup_entry(
-            for_machine,
-            self.is_cross_build(),
-            name)
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.List[str]:
+        return self.binaries[for_machine].lookup_entry(name)
 
     @staticmethod
     def get_gnu_compiler_defines(compiler):

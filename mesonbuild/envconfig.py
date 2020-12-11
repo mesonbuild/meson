@@ -23,6 +23,9 @@ from pathlib import Path
 
 _T = T.TypeVar('_T')
 
+if T.TYPE_CHECKING:
+    from .environment import Environment
+
 
 # These classes contains all the data pulled from configuration files (native
 # and cross file currently), and also assists with the reading environment
@@ -122,10 +125,10 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
 # Deprecated environment variables mapped from the new variable to the old one
 # Deprecated in 0.54.0
 DEPRECATED_ENV_PROG_MAP: T.Mapping[str, str] = {
-    'DC_LD': 'D_LD',
-    'FC_LD': 'F_LD',
-    'RUSTC_LD': 'RUST_LD',
-    'OBJCXX_LD': 'OBJCPP_LD',
+    'd_ld': 'D_LD',
+    'fortran_ld': 'F_LD',
+    'rust_ld': 'RUST_LD',
+    'objcpp_ld': 'OBJCPP_LD',
 }
 
 class CMakeSkipCompilerTest(Enum):
@@ -394,17 +397,18 @@ class MachineInfo:
         return self.is_windows() or self.is_cygwin()
 
 class BinaryTable:
+
     def __init__(
             self,
             binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
     ):
-        self.binaries = binaries or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
-        for name, command in self.binaries.items():
-            if not isinstance(command, (list, str)):
-                # TODO generalize message
-                raise mesonlib.MesonException(
-                    'Invalid type {!r} for binary {!r} in cross file'
-                    ''.format(command, name))
+        self.binaries: T.Dict[str, T.List[str]] = {}
+        if binaries:
+            for name, command in binaries.items():
+                if not isinstance(command, (list, str)):
+                    raise mesonlib.MesonException(
+                        f'Invalid type {command!r} for entry {name!r} in cross file')
+                self.binaries[name] = mesonlib.listify(command)
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
@@ -426,42 +430,17 @@ class BinaryTable:
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 
-    def lookup_entry(self,
-                     for_machine: MachineChoice,
-                     is_cross: bool,
-                     name: str) -> T.Optional[T.List[str]]:
+    def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
         """Lookup binary in cross/native file and fallback to environment.
 
         Returns command with args as list if found, Returns `None` if nothing is
         found.
         """
-        # Try explicit map, don't fall back on env var
-        # Try explict map, then env vars
-        for _ in [()]: # a trick to get `break`
-            raw_command = self.binaries.get(name)
-            if raw_command is not None:
-                command = mesonlib.stringlistify(raw_command)
-                break # found
-            evar = ENV_VAR_PROG_MAP.get(name)
-            if evar is not None:
-                raw_command = get_env_var(for_machine, is_cross, evar)
-                if raw_command is None:
-                    deprecated = DEPRECATED_ENV_PROG_MAP.get(evar)
-                    if deprecated is not None:
-                        raw_command = get_env_var(for_machine, is_cross, deprecated)
-                        if raw_command is not None:
-                            mlog.deprecation(
-                                'The', deprecated, 'environment variable is deprecated in favor of',
-                                evar, once=True)
-                if raw_command is not None:
-                    command = split_args(raw_command)
-                    break # found
-            command = None
-
-
-        # Do not return empty or blank string entries
-        if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):
-            command = None
+        command = self.binaries.get(name)
+        if not command:
+            return None
+        elif not command[0].strip():
+            return None
         return command
 
 class CMakeVariables:
