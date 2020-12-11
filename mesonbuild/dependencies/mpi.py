@@ -106,7 +106,7 @@ class _MPIConfigToolDependency(ConfigToolDependency):
         Drop -O2 and everything that is not needed.
         """
         result = []
-        multi_args = ('-I', )
+        multi_args: T.Tuple[str, ...] = ('-I', )
         if self.language == 'fortran':
             fc = self.env.coredata.compilers[self.for_machine]['fortran']
             multi_args += fc.get_module_incdir_args()
