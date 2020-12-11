@@ -142,9 +142,7 @@ if T.TYPE_CHECKING:
     import argparse
 
 
-def get_env_var_pair(for_machine: MachineChoice,
-                     is_cross: bool,
-                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
+def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
     """
     Returns the exact env var and the value.
     """
@@ -166,7 +164,7 @@ def get_env_var_pair(for_machine: MachineChoice,
         mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
         return None
     mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
-    return var, value
+    return value
 
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
@@ -791,10 +789,8 @@ class Environment:
         )
 
         for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
-            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
-            if p_env_pair is not None:
-                _, p_env = p_env_pair
-
+            p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+            if p_env is not None:
                 # these may contain duplicates, which must be removed, else
                 # a duplicates-in-array-option warning arises.
                 if keyname == 'cmake_prefix_path':
@@ -843,9 +839,8 @@ class Environment:
                                envconfig.ENV_VAR_PROG_MAP.items())
 
         for (name, evar), for_machine in itertools.product(opts, MachineChoice):
-            p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
-            if p_env_pair is not None:
-                _, p_env = p_env_pair
+            p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+            if p_env is not None:
                 self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
 
     def _set_default_properties_from_env(self) -> None:
@@ -859,9 +854,8 @@ class Environment:
 
         for (name, evars, split), for_machine in itertools.product(opts, MachineChoice):
             for evar in evars:
-                p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
-                if p_env_pair is not None:
-                    _, p_env = p_env_pair
+                p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+                if p_env is not None:
                     if split:
                         self.properties[for_machine].properties.setdefault(name, p_env.split(os.pathsep))
                     else:
