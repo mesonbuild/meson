@@ -20,11 +20,13 @@ from pathlib import Path
 
 from .. import mlog
 from .. import mesonlib
-from ..envconfig import get_env_var
 from ..environment import Environment
 
 from .base import DependencyException, ExternalDependency, PkgConfigDependency
 from .misc import threads_factory
+
+if T.TYPE_CHECKING:
+    from ..environment import Properties
 
 # On windows 3 directory layouts are supported:
 # * The default layout (versioned) installed:
@@ -372,16 +374,9 @@ class BoostDependency(ExternalDependency):
 
         # First, look for paths specified in a machine file
         props = self.env.properties[self.for_machine]
-        boost_property_env = [props.get('boost_includedir'), props.get('boost_librarydir'), props.get('boost_root')]
-        if any(boost_property_env):
+        if any(x in self.env.properties[self.for_machine] for x in
+               ['boost_includedir', 'boost_librarydir', 'boost_root']):
             self.detect_boost_machine_file(props)
-            return
-
-        # Next, look for paths in the environment
-        boost_manual_env_list = ['BOOST_INCLUDEDIR', 'BOOST_LIBRARYDIR', 'BOOST_ROOT', 'BOOSTROOT']
-        boost_manual_env = [get_env_var(self.for_machine, self.env.is_cross_build, x) for x in boost_manual_env_list]
-        if any(boost_manual_env):
-            self.detect_boost_env()
             return
 
         # Finally, look for paths from .pc files and from searching the filesystem
@@ -405,13 +400,20 @@ class BoostDependency(ExternalDependency):
                 self.boost_root = j
                 break
 
-    def detect_boost_machine_file(self, props: T.Dict[str, str]) -> None:
+    def detect_boost_machine_file(self, props: 'Properties') -> None:
+        """Detect boost with values in the machine file or environment.
+
+        The machine file values are defaulted to the environment values.
+        """
+        # XXX: if we had a TypedDict we woudn't need this
         incdir = props.get('boost_includedir')
+        assert incdir is None or isinstance(incdir, str)
         libdir = props.get('boost_librarydir')
+        assert libdir is None or isinstance(libdir, str)
 
         if incdir and libdir:
-            inc_dir = Path(props['boost_includedir'])
-            lib_dir = Path(props['boost_librarydir'])
+            inc_dir = Path(incdir)
+            lib_dir = Path(libdir)
 
             if not inc_dir.is_absolute() or not lib_dir.is_absolute():
                 raise DependencyException('Paths given for boost_includedir and boost_librarydir in machine file must be absolute')
@@ -433,43 +435,6 @@ class BoostDependency(ExternalDependency):
         paths = [Path(x) for x in raw_paths]
         if paths and any([not x.is_absolute() for x in paths]):
             raise DependencyException('boost_root path given in machine file must be absolute')
-
-        self.check_and_set_roots(paths)
-
-    def detect_boost_env(self) -> None:
-        boost_includedir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_INCLUDEDIR')
-        boost_librarydir = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_LIBRARYDIR')
-
-        boost_manual_env = [boost_includedir, boost_librarydir]
-        if all(boost_manual_env):
-            inc_dir = Path(boost_includedir)
-            lib_dir = Path(boost_librarydir)
-
-            if not inc_dir.is_absolute() or not lib_dir.is_absolute():
-                raise DependencyException('Paths given in BOOST_INCLUDEDIR and BOOST_LIBRARYDIR must be absolute')
-
-            mlog.debug('Trying to find boost with:')
-            mlog.debug('  - BOOST_INCLUDEDIR = {}'.format(inc_dir))
-            mlog.debug('  - BOOST_LIBRARYDIR = {}'.format(lib_dir))
-
-            return self.detect_split_root(inc_dir, lib_dir)
-
-        elif any(boost_manual_env):
-            raise DependencyException('Both BOOST_INCLUDEDIR *and* BOOST_LIBRARYDIR have to be set (one is not enough). Ignoring.')
-
-        boost_root = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOST_ROOT')
-        boostroot = get_env_var(self.for_machine, self.env.is_cross_build, 'BOOSTROOT')
-
-        # It shouldn't be possible to get here without something in BOOST_ROOT or BOOSTROOT
-        assert(boost_root or boostroot)
-
-        for path, name in [(boost_root, 'BOOST_ROOT'), (boostroot, 'BOOSTROOT')]:
-            if path:
-                raw_paths = path.split(os.pathsep)
-                paths = [Path(x) for x in raw_paths]
-                if paths and any([not x.is_absolute() for x in paths]):
-                    raise DependencyException('Paths in {} must be absolute'.format(name))
-                break
 
         self.check_and_set_roots(paths)
 

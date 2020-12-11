@@ -5376,7 +5376,7 @@ class FailureTests(BasePlatformTests):
     def test_boost_BOOST_ROOT_dependency(self):
         # Test BOOST_ROOT; can be run even if Boost is found or not
         self.assertMesonRaises("dependency('boost')",
-                               "(BOOST_ROOT.*absolute|{})".format(self.dnf),
+                               "(boost_root.*absolute|{})".format(self.dnf),
                                override_envvars = {'BOOST_ROOT': 'relative/path'})
 
     def test_dependency_invalid_method(self):
