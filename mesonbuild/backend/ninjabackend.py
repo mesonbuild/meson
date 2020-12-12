@@ -135,7 +135,7 @@ Please report this error with a test case to the Meson bug tracker.'''.format(te
     return quote_re.sub(r'$\g<0>', text)
 
 class TargetDependencyScannerInfo:
-    def __init__(self, private_dir, source2object):
+    def __init__(self, private_dir: str, source2object: T.Dict[str, str]):
         self.private_dir = private_dir
         self.source2object = source2object
 

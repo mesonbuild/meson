@@ -23,17 +23,17 @@ import_re = re.compile('\w*import ([a-zA-Z0-9]+);')
 export_re = re.compile('\w*export module ([a-zA-Z0-9]+);')
 
 class DependencyScanner:
-    def __init__(self, pickle_file, outfile, sources):
+    def __init__(self, pickle_file: str, outfile: str, sources: T.List[str]):
         with open(pickle_file, 'rb') as pf:
-            self.target_data = pickle.load(pf)
+            self.target_data = pickle.load(pf) # type: TargetDependencyScannerInfo
         self.outfile = outfile
         self.sources = sources
-        self.provided_by = {}
-        self.exports = {}
-        self.needs = {}
-        self.sources_with_exports = []
+        self.provided_by = {} # type: T.Dict[str, str]
+        self.exports = {} # type: T.Dict[str, str]
+        self.needs = {} # type: T.Dict[str, T.List[str]]
+        self.sources_with_exports = [] # type: T.List[str]
     
-    def scan_file(self, fname):
+    def scan_file(self, fname: str) -> None:
         for line in pathlib.Path(fname).read_text().split('\n'):
             import_match = import_re.match(line)
             export_match = export_re.match(line)
@@ -51,13 +51,15 @@ class DependencyScanner:
                 self.provided_by[exported_module] = fname
                 self.exports[fname] = exported_module
 
-    def objname_for(self, src):
-        return self.target_data.source2object[src]
+    def objname_for(self, src: str) -> str:
+        objname = self.target_data.source2object[src]
+        assert(isinstance(objname, str))
+        return objname
 
-    def ifcname_for(self, src):
+    def ifcname_for(self, src: str) -> str:
         return '{}.ifc'.format(self.exports[src])
 
-    def scan(self):
+    def scan(self) -> int:
         for s in self.sources:
             self.scan_file(s)
         with open(self.outfile, 'w') as ofile:
