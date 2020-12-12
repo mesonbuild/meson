@@ -424,20 +424,21 @@ class ConfigToolDependency(ExternalDependency):
         Because some tools are stupid and don't return 0
     """
 
-    tools = None
-    tool_name = None
-    version_arg = '--version'
+    tools: T.Optional[T.List[str]] = None
+    tool_name: T.Optional[str] = None
+    version_arg: str = '--version'
     __strip_version = re.compile(r'^[0-9][0-9.]+')
+    _variable_template = '--{}'
 
-    def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: Environment, kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         super().__init__('config-tool', environment, kwargs, language=language)
         self.name = name
         # You may want to overwrite the class version in some cases
-        self.tools = listify(kwargs.get('tools', self.tools))
+        self.tools: T.List[str] = listify(kwargs.get('tools', self.tools))
         if not self.tool_name:
             self.tool_name = self.tools[0]
         if 'version_arg' in kwargs:
-            self.version_arg = kwargs['version_arg']
+            self.version_arg: str = kwargs['version_arg']
 
         req_version = kwargs.get('version', None)
         tool, version = self.find_config(req_version, kwargs.get('returncode_value', 0))
@@ -448,7 +449,7 @@ class ConfigToolDependency(ExternalDependency):
             return
         self.version = version
 
-    def _sanitize_version(self, version):
+    def _sanitize_version(self, version: str) -> str:
         """Remove any non-numeric, non-point version suffixes."""
         m = self.__strip_version.match(version)
         if m:
@@ -458,13 +459,13 @@ class ConfigToolDependency(ExternalDependency):
         return version
 
     def find_config(self, versions: T.Optional[T.List[str]] = None, returncode: int = 0) \
-            -> T.Tuple[T.Optional[str], T.Optional[str]]:
+            -> T.Tuple[T.Optional[T.List[str]], T.Optional[str]]:
         """Helper method that searches for config tool binaries in PATH and
         returns the one that best matches the given version requirements.
         """
         if not isinstance(versions, list) and versions is not None:
             versions = listify(versions)
-        best_match = (None, None)  # type: T.Tuple[T.Optional[str], T.Optional[str]]
+        best_match: T.Tuple[T.Optional[T.List[str]], T.Optional[str]] = (None, None)
         for potential_bin in find_external_program(
                 self.env, self.for_machine, self.tool_name,
                 self.tool_name, self.tools, allow_default_for_cross=False):
@@ -499,10 +500,10 @@ class ConfigToolDependency(ExternalDependency):
 
         return best_match
 
-    def report_config(self, version, req_version):
+    def report_config(self, version: str, req_version: str) -> bool:
         """Helper method to print messages about the tool."""
 
-        found_msg = [mlog.bold(self.tool_name), 'found:']
+        found_msg: T.List[T.Union[str, mlog.AnsiDecorator]] = [mlog.bold(self.tool_name), 'found:']
 
         if self.config is None:
             found_msg.append(mlog.red('NO'))
@@ -528,11 +529,11 @@ class ConfigToolDependency(ExternalDependency):
         return split_args(out)
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
-    def get_configtool_variable(self, variable_name):
-        p, out, _ = Popen_safe(self.config + ['--{}'.format(variable_name)])
+    def get_configtool_variable(self, variable_name: str) -> str:
+        p, out, _ = Popen_safe(self.config + [self._variable_template.format(variable_name)])
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
