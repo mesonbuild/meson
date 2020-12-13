@@ -7515,7 +7515,6 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
         '''
         testdir = os.path.join(self.unit_test_dir, '88 run native test')
         stamp_file = os.path.join(self.builddir, 'native_test_has_run.stamp')
-        self.meson_cross_file = os.path.join(testdir, 'cross.txt')
         self.init(testdir)
         self.build()
         self.assertPathDoesNotExist(stamp_file)
