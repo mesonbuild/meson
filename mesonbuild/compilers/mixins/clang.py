@@ -19,7 +19,7 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers import AppleDynamicLinker
+from ...linkers import AppleDynamicLinker, ClangClDynamicLinker
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
@@ -108,6 +108,12 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
+    
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        if self.info.is_windows() and not self.info.is_cygwin() and isinstance(self.linker, ClangClDynamicLinker):
+            return [f'-Wl,/subsystem:{value}']
+        
+        return super().get_win_subsystem_args(value)
 
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
