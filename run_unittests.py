@@ -7507,6 +7507,19 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
             '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
             '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
         ])
+    
+    def test_run_native_test(self):
+        '''
+        https://github.com/mesonbuild/meson/issues/7997
+        check run native test in crossbuild without exe wrapper
+        '''
+        testdir = os.path.join(self.unit_test_dir, '88 run native test')
+        stamp_file = os.path.join(self.builddir, 'native_test_has_run.stamp')
+        self.init(testdir)
+        self.build()
+        self.assertPathDoesNotExist(stamp_file)
+        self.run_tests()
+        self.assertPathExists(stamp_file)
 
 
 def should_run_cross_mingw_tests():
