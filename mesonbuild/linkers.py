@@ -477,6 +477,10 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         # Only used by the Apple linker
         return []
 
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
+        # Only used by VisualStudioLikeLinkers
+        return []
+
     def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         # Only used if supported by the dynamic linker and
         # only when targeting Windows
@@ -1149,6 +1153,12 @@ class VisualStudioLikeLinkerMixin:
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
+
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
+        if value:
+            return self.get_win_subsystem_args("windows")
+
+        return self.get_win_subsystem_args("console")
 
     def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
