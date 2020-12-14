@@ -117,7 +117,7 @@ raw_names = {'DEPFILE_UNQUOTED', 'DESC', 'pool', 'description', 'targetdep', 'dy
 NINJA_QUOTE_BUILD_PAT = re.compile(r"[$ :\n]")
 NINJA_QUOTE_VAR_PAT = re.compile(r"[$ \n]")
 
-def ninja_quote(text, is_build_line=False):
+def ninja_quote(text: str, is_build_line=False) -> str:
     if is_build_line:
         quote_re = NINJA_QUOTE_BUILD_PAT
     else:
@@ -872,7 +872,11 @@ int dummy;
         self.generate_shlib_aliases(target, self.get_target_dir(target))
         self.add_build(elem)
 
-    def should_scan_target(self, target):
+    def should_use_dyndeps_for_target(self, target: 'build.BuildTarget') -> bool:
+        if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
+            return False
+        if 'fortran' in target.compilers:
+            return True
         if 'cpp' not in target.compilers:
             return False
         # Currently only the preview version of Visual Studio is supported.
@@ -883,18 +887,16 @@ int dummy;
             return False
         if mesonlib.version_compare(cpp.version, '<19.28.28617'):
             return False
-        if mesonlib.version_compare(self.ninja_version, '<1.10.0'):
-            return False
         return True
 
     def generate_dependency_scan_target(self, target, compiled_sources, source2object):
-        if not self.should_scan_target(target):
+        if not self.should_use_dyndeps_for_target(target):
             return
         depscan_file = self.get_dep_scan_file_for(target)
         pickle_base = target.name + '.dat'
         pickle_file = os.path.join(self.get_target_private_dir(target), pickle_base).replace('\\', '/')
         pickle_abs = os.path.join(self.get_target_private_dir_abs(target), pickle_base).replace('\\', '/')
-        rule_name = 'cppscan'
+        rule_name = 'depscan'
         scan_sources = self.select_sources_to_scan(compiled_sources)
         elem = NinjaBuildElement(self.all_outputs, depscan_file, rule_name, scan_sources)
         elem.add_item('picklefile', pickle_file)
@@ -907,10 +909,11 @@ int dummy;
         # in practice pick up C++ and Fortran files. If some other language
         # requires scanning (possibly Java to deal with inner class files)
         # then add them here.
+        all_suffixes = set(compilers.lang_suffixes['cpp']) | set(compilers.lang_suffixes['fortran'])
         selected_sources = []
         for source in compiled_sources:
             ext = os.path.splitext(source)[1][1:]
-            if ext in compilers.lang_suffixes['cpp']:
+            if ext in all_suffixes:
                 selected_sources.append(source)
         return selected_sources
 
@@ -1945,7 +1948,15 @@ int dummy;
         description = 'Compiling Swift source $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
-    def generate_fortran_dep_hack(self, crstr):
+    def use_dyndeps_for_fortran(self) -> bool:
+        '''Use the new Ninja feature for scanning dependencies during build,
+        rather than up front. Remove this and all old scanning code once Ninja
+        minimum version is bumped to 1.10.'''
+        return mesonlib.version_compare(self.ninja_version, '>=1.10.0')
+
+    def generate_fortran_dep_hack(self, crstr: str) -> None:
+        if self.use_dyndeps_for_fortran():
+            return
         rule = 'FORTRAN_DEP_HACK{}'.format(crstr)
         if mesonlib.is_windows():
             cmd = ['cmd', '/C']
@@ -2029,22 +2040,16 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
 
     def generate_scanner_rules(self):
-        scanner_languages = {'cpp'} # Fixme, add Fortran.
-        for for_machine in MachineChoice:
-            clist = self.environment.coredata.compilers[for_machine]
-            for langname, compiler in clist.items():
-                if langname not in scanner_languages:
-                    continue
-                rulename = '{}scan'.format(langname)
-                if rulename in self.ruledict:
-                    # Scanning command is the same for native and cross compilation.
-                    continue
-                command = self.environment.get_build_command() + \
-                    ['--internal', 'depscan']
-                args = ['$picklefile', '$out', '$in']
-                description = 'Module scanner for {}.'.format(langname)
-                rule = NinjaRule(rulename, command, args, description)
-                self.add_rule(rule)
+        rulename = 'depscan'
+        if rulename in self.ruledict:
+            # Scanning command is the same for native and cross compilation.
+            return
+        command = self.environment.get_build_command() + \
+            ['--internal', 'depscan']
+        args = ['$picklefile', '$out', '$in']
+        description = 'Module scanner.'
+        rule = NinjaRule(rulename, command, args, description)
+        self.add_rule(rule)
 
 
     def generate_compile_rules(self):
@@ -2146,6 +2151,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         """
         Find all module and submodule made available in a Fortran code file.
         """
+        if self.use_dyndeps_for_fortran():
+            return
         compiler = None
         # TODO other compilers
         for lang, c in self.environment.coredata.compilers.host.items():
@@ -2198,6 +2205,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         """
         Find all module and submodule needed by a Fortran target
         """
+        if self.use_dyndeps_for_fortran():
+            return []
 
         dirname = Path(self.get_target_private_dir(target))
         tdeps = self.fortran_deps[target.get_basename()]
@@ -2502,16 +2511,20 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if not is_generated:
                 abs_src = Path(build_dir) / rel_src
                 extra_deps += self.get_fortran_deps(compiler, abs_src, target)
-            # Dependency hack. Remove once multiple outputs in Ninja is fixed:
-            # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
-            for modname, srcfile in self.fortran_deps[target.get_basename()].items():
-                modfile = os.path.join(self.get_target_private_dir(target),
-                                       compiler.module_name_to_filename(modname))
+            if not self.use_dyndeps_for_fortran():
+                # Dependency hack. Remove once multiple outputs in Ninja is fixed:
+                # https://groups.google.com/forum/#!topic/ninja-build/j-2RfBIOd_8
+                for modname, srcfile in self.fortran_deps[target.get_basename()].items():
+                    modfile = os.path.join(self.get_target_private_dir(target),
+                                           compiler.module_name_to_filename(modname))
 
-                if srcfile == src:
-                    crstr = self.get_rule_suffix(target.for_machine)
-                    depelem = NinjaBuildElement(self.all_outputs, modfile, 'FORTRAN_DEP_HACK' + crstr, rel_obj)
-                    self.add_build(depelem)
+                    if srcfile == src:
+                        crstr = self.get_rule_suffix(target.for_machine)
+                        depelem = NinjaBuildElement(self.all_outputs,
+                                                    modfile,
+                                                     'FORTRAN_DEP_HACK' + crstr,
+                                                      rel_obj)
+                        self.add_build(depelem)
             commands += compiler.get_module_outdir_args(self.get_target_private_dir(target))
 
         element = NinjaBuildElement(self.all_outputs, rel_obj, compiler_name, rel_src)
@@ -2537,7 +2550,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return (rel_obj, rel_src.replace('\\', '/'))
 
     def add_dependency_scanner_entries_to_element(self, target, compiler, element):
-        if not self.should_scan_target(target):
+        if not self.should_use_dyndeps_for_target(target):
             return
         dep_scan_file = self.get_dep_scan_file_for(target)
         element.add_item('dyndep', dep_scan_file)
