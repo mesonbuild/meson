@@ -1150,7 +1150,7 @@ class VisualStudioLikeLinkerMixin:
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+    def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
