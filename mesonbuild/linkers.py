@@ -477,7 +477,7 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         # Only used by the Apple linker
         return []
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+    def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         # Only used if supported by the dynamic linker and
         # only when targeting Windows
         return []
@@ -748,7 +748,7 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
 
     """Representation of GNU ld.bfd and ld.gold."""
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+    def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         m = env.machines[self.for_machine]
         args = []
 
@@ -802,7 +802,7 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
             return self._apply_prefix('--allow-shlib-undefined')
         return []
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+    def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         m = env.machines[self.for_machine]
         if not m.is_windows() or m.is_cygwin():
             return []
