@@ -6,6 +6,7 @@ strip = '/usr/bin/x86_64-w64-mingw32-strip'
 pkgconfig = '/usr/bin/x86_64-w64-mingw32-pkg-config'
 windres = '/usr/bin/x86_64-w64-mingw32-windres'
 exe_wrapper = 'wine64'
+cmake = '/usr/bin/cmake'
 
 [properties]
 # Directory that contains 'bin', 'lib', etc
