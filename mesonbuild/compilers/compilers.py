@@ -871,7 +871,8 @@ class Compiler(metaclass=abc.ABCMeta):
         return []
 
     def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return []
+        # Only used on Windows
+        return self.linker.get_gui_app_args(value)
 
     def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         # By default the dynamic linker is going to return an empty
