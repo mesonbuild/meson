@@ -214,7 +214,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     def get_profile_use_args(self) -> T.List[str]:
         return ['-fprofile-use', '-fprofile-correction']
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
+    def get_gui_app_args(self, env: 'Environment', value: bool) -> T.List[str]:
         if self.info.is_windows() or self.info.is_cygwin():
             return ['-mwindows' if value else '-mconsole']
         return []
