@@ -1146,12 +1146,6 @@ class VisualStudioLikeLinkerMixin:
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
 
-    def get_gui_app_args(self, value: bool) -> T.List[str]:
-        return self.get_win_subsystem_args("windows" if value else "console")
-
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
-        return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
-
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
                         is_shared_module: bool) -> T.List[str]:
@@ -1179,6 +1173,12 @@ class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
     def get_always_args(self) -> T.List[str]:
         return self._apply_prefix(['/nologo', '/release']) + super().get_always_args()
 
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
+        return self.get_win_subsystem_args("windows" if value else "console")
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
+
 
 class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
 
@@ -1201,6 +1201,12 @@ class ClangClDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
             return self._apply_prefix([f"/OUT:{outputname}"])
 
         return super().get_output_args(outputname)
+
+    def get_gui_app_args(self, value: bool) -> T.List[str]:
+        return self.get_win_subsystem_args("windows" if value else "console")
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
 
 class XilinkDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):
