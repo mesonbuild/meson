@@ -19,7 +19,7 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers import AppleDynamicLinker, ClangClDynamicLinker
+from ...linkers import AppleDynamicLinker
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
 
