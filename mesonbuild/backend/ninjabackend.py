@@ -2705,7 +2705,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if target.gui_app is not None:
                 commands += linker.get_gui_app_args(target.gui_app)
             else:
-                commands += linker.get_win_subsystem_args(target.win_subsystem)
+                commands += linker.get_win_subsystem_args(self.environment, target.win_subsystem)
         return commands
 
     def get_link_whole_args(self, linker, target):

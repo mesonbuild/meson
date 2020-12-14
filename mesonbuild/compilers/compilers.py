@@ -873,11 +873,11 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_gui_app_args(self, value: bool) -> T.List[str]:
         return []
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+    def get_win_subsystem_args(self, env: 'Environment', value: str) -> T.List[str]:
         # By default the dynamic linker is going to return an empty
         # array in case it either doesn't support Windows subsystems
         # or does not target Windows
-        return self.linker.get_win_subsystem_args(value)
+        return self.linker.get_win_subsystem_args(env, value)
 
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(
