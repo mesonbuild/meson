@@ -874,11 +874,10 @@ class Compiler(metaclass=abc.ABCMeta):
         return []
 
     def get_win_subsystem_args(self, value: str) -> T.List[str]:
-        # This returns an empty array rather than throws to simplify the code.
-        # Otherwise we would have to check whenever calling this function whether
-        # the target is for Windows. There are also many cases where this is
-        # a meaningless choice, such as with Jave or C#.
-        return []
+        # By default the dynamic linker is going to return an empty
+        # array in case it either doesn't support Windows subsystems
+        # or does not target Windows
+        return self.linker.get_win_subsystem_args(value)
 
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(

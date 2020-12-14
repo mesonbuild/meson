@@ -219,20 +219,6 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             return ['-mwindows' if value else '-mconsole']
         return []
 
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
-        args = []
-        if self.info.is_windows() or self.info.is_cygwin():
-            if 'windows' in value:
-                args = ['-Wl,--subsystem,windows']
-            elif 'console' in value:
-                args = ['-Wl,--subsystem,console']
-            else:
-                raise mesonlib.MesonException('Only "windows" and "console" are supported for win_subsystem with MinGW, not "{}".'.format(value))
-        if ',' in value:
-            args[-1] = args[-1] + ':' + value.split(',')[1]
-        return args
-
-
     def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
         for idx, i in enumerate(parameter_list):
             if i[:2] == '-I' or i[:2] == '-L':

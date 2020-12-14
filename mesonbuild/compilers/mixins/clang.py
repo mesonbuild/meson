@@ -109,12 +109,6 @@ class ClangCompiler(GnuLikeCompiler):
             # Shouldn't work, but it'll be checked explicitly in the OpenMP dependency.
             return []
     
-    def get_win_subsystem_args(self, value: str) -> T.List[str]:
-        if self.info.is_windows() and not self.info.is_cygwin() and isinstance(self.linker, ClangClDynamicLinker):
-            return [f'-Wl,/subsystem:{value}']
-        
-        return super().get_win_subsystem_args(value)
-
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
         # Clang additionally can use a linker specified as a path, which GCC

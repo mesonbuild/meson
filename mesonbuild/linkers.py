@@ -477,6 +477,11 @@ class DynamicLinker(LinkerEnvVarsMixin, metaclass=abc.ABCMeta):
         # Only used by the Apple linker
         return []
 
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        # Only used if supported by the dynamic linker and
+        # only when targeting Windows
+        return []
+
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException('This linker does not support bitcode bundles')
 
@@ -743,6 +748,22 @@ class GnuDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dynam
 
     """Representation of GNU ld.bfd and ld.gold."""
 
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        m = env.machines[self.for_machine]
+        args = []
+
+        if m.is_windows() or m.is_cygwin():
+            if 'windows' in value:
+                args = ['--subsystem,windows']
+            elif 'console' in value:
+                args = ['--subsystem,console']
+            else:
+                raise mesonlib.MesonException(f'Only "windows" and "console" are supported for win_subsystem with MinGW, not "{value}".')
+        if ',' in value:
+            args[-1] = args[-1] + ':' + value.split(',')[1]
+
+        return self._apply_prefix(args)
+
     def get_accepts_rsp(self) -> bool:
         return True
 
@@ -780,6 +801,13 @@ class LLVMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, Dyna
         if self.has_allow_shlib_undefined:
             return self._apply_prefix('--allow-shlib-undefined')
         return []
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        m = env.machines[self.for_machine]
+        if not m.is_windows() or m.is_cygwin():
+            return []
+
+        return self._apply_prefix([f'-subsystem:{value}'])
 
 
 class WASMDynamicLinker(GnuLikeDynamicLinkerMixin, PosixDynamicLinkerMixin, DynamicLinker):
@@ -1121,6 +1149,9 @@ class VisualStudioLikeLinkerMixin:
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
+
+    def get_win_subsystem_args(self, value: str) -> T.List[str]:
+        return self._apply_prefix([f'/SUBSYSTEM:{value.upper()}'])
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
