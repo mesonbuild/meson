@@ -1087,10 +1087,11 @@ class CMakeDependency(ExternalDependency):
         # AttributeError exceptions in derived classes
         self.traceparser = None  # type: CMakeTraceParser
 
-        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, MachineChoice.BUILD, silent=self.silent)
+        # TODO further evaluate always using MachineChoice.BUILD
+        self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
         if not self.cmakebin.found():
             self.cmakebin = None
-            msg = 'No CMake binary for machine {} not found. Giving up.'.format(MachineChoice.BUILD)
+            msg = 'No CMake binary for machine {} not found. Giving up.'.format(self.for_machine)
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)

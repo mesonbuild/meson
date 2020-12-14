@@ -850,6 +850,7 @@ class CMakeInterpreter:
 
     def configure(self, extra_cmake_options: T.List[str]) -> CMakeExecutor:
         # Find CMake
+        # TODO: Using MachineChoice.BUILD should always be correct here, but also evaluate the use of self.for_machine
         cmake_exe = CMakeExecutor(self.env, '>=3.7', MachineChoice.BUILD)
         if not cmake_exe.found():
             raise CMakeException('Unable to find CMake')
