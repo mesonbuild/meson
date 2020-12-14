@@ -55,7 +55,7 @@ lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')  # type: T.Tuple[str,
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx'),
     'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
