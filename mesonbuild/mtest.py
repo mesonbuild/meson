@@ -45,6 +45,7 @@ from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .dependencies import ExternalProgram
 from .mesonlib import MesonException, get_wine_shortpath, split_args, join_args
+from .mintro import get_infodir, load_info_file
 from .backend.backends import TestProtocol, TestSerialisation
 
 # GNU autotools interprets a return code of 77 from tests it executes to
@@ -1019,13 +1020,21 @@ class TestHarness:
     def total_failure_count(self) -> int:
         return self.fail_count + self.unexpectedpass_count + self.timeout_count
 
-    def doit(self) -> int:
+    def doit(self, options: argparse.Namespace) -> int:
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
         if not tests:
             return 0
+        if not options.no_rebuild and not rebuild_deps(options.wd, tests):
+            # We return 125 here in case the build failed.
+            # The reason is that exit code 125 tells `git bisect run` that the current
+            # commit should be skipped.  Thus users can directly use `meson test` to
+            # bisect without needing to handle the does-not-build case separately in a
+            # wrapper script.
+            sys.exit(125)
+
         self.run_tests(tests)
         return self.total_failure_count()
 
@@ -1272,7 +1281,7 @@ def list_tests(th: TestHarness) -> bool:
         print(th.get_pretty_suite(t))
     return not tests
 
-def rebuild_all(wd: str) -> bool:
+def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild tests before running them.')
         return True
@@ -1282,7 +1291,21 @@ def rebuild_all(wd: str) -> bool:
         print("Can't find ninja, can't rebuild test.")
         return False
 
-    ret = subprocess.run(ninja + ['-C', wd]).returncode
+    depends = set()            # type: T.Set[str]
+    targets = set()            # type: T.Set[str]
+    intro_targets = dict()     # type: T.Dict[str, T.List[str]]
+    for target in load_info_file(get_infodir(wd), kind='targets'):
+        intro_targets[target['id']] = [
+                os.path.relpath(f, wd)
+                for f in target['filename']]
+    for t in tests:
+        for d in t.depends:
+            if d in depends:
+                continue
+            depends.update(d)
+            targets.update(intro_targets[d])
+
+    ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:
         print('Could not rebuild {}'.format(wd))
         return False
@@ -1318,18 +1341,11 @@ def run(options: argparse.Namespace) -> int:
             print('Could not find requested program: {!r}'.format(check_bin))
             return 1
 
-    if not options.list and not options.no_rebuild:
-        if not rebuild_all(options.wd):
-            # We return 125 here in case the build failed.
-            # The reason is that exit code 125 tells `git bisect run` that the current commit should be skipped.
-            # Thus users can directly use `meson test` to bisect without needing to handle the does-not-build case separately in a wrapper script.
-            return 125
-
     with TestHarness(options) as th:
         try:
             if options.list:
                 return list_tests(th)
-            return th.doit()
+            return th.doit(options)
         except TestException as e:
             print('Meson test encountered an error:\n')
             if os.environ.get('MESON_FORCE_BACKTRACE'):

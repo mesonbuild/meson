@@ -385,12 +385,25 @@ def print_results(options: argparse.Namespace, results: T.Sequence[T.Tuple[str, 
         print(json.dumps(out, indent=indent))
     return 0
 
+def get_infodir(builddir: T.Optional[str] = None) -> str:
+    infodir = 'meson-info'
+    if builddir is not None:
+        infodir = os.path.join(builddir, infodir)
+    return infodir
+
+def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
+    return os.path.join(infodir,
+                        'meson-info.json' if not kind else 'intro-{}.json'.format(kind))
+
+def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
+    with open(get_info_file(infodir, kind), 'r') as fp:
+        return json.load(fp)
+
 def run(options: argparse.Namespace) -> int:
     datadir = 'meson-private'
-    infodir = 'meson-info'
+    infodir = get_infodir(options.builddir)
     if options.builddir is not None:
         datadir = os.path.join(options.builddir, datadir)
-        infodir = os.path.join(options.builddir, infodir)
     indent = 4 if options.indent else None
     results = []  # type: T.List[T.Tuple[str, T.Union[dict, T.List[T.Any]]]]
     sourcedir = '.' if options.builddir == 'meson.build' else options.builddir[:-11]
@@ -411,17 +424,18 @@ def run(options: argparse.Namespace) -> int:
             results += [(key, val.no_bd(intr))]
         return print_results(options, results, indent)
 
-    infofile = get_meson_info_file(infodir)
-    if not os.path.isdir(datadir) or not os.path.isdir(infodir) or not os.path.isfile(infofile):
-        print('Current directory is not a meson build directory.\n'
-              'Please specify a valid build dir or change the working directory to it.\n'
-              'It is also possible that the build directory was generated with an old\n'
-              'meson version. Please regenerate it in this case.')
-        return 1
-
-    with open(infofile, 'r') as fp:
-        raw = json.load(fp)
+    try:
+        raw = load_info_file(infodir)
         intro_vers = raw.get('introspection', {}).get('version', {}).get('full', '0.0.0')
+    except FileNotFoundError:
+        if not os.path.isdir(datadir) or not os.path.isdir(infodir):
+            print('Current directory is not a meson build directory.\n'
+                  'Please specify a valid build dir or change the working directory to it.')
+        else:
+            print('Introspection file {} does not exist.\n'
+                  'It is also possible that the build directory was generated with an old\n'
+                  'meson version. Please regenerate it in this case.'.format(get_info_file(infodir)))
+        return 1
 
     vers_to_check = get_meson_introspection_required_version()
     for i in vers_to_check:
@@ -437,12 +451,11 @@ def run(options: argparse.Namespace) -> int:
             continue
         if not options.all and not getattr(options, i, False):
             continue
-        curr = os.path.join(infodir, 'intro-{}.json'.format(i))
-        if not os.path.isfile(curr):
-            print('Introspection file {} does not exist.'.format(curr))
+        try:
+            results += [(i, load_info_file(infodir, i))]
+        except FileNotFoundError:
+            print('Introspection file {} does not exist.'.format(get_info_file(infodir, i)))
             return 1
-        with open(curr, 'r') as fp:
-            results += [(i, json.load(fp))]
 
     return print_results(options, results, indent)
 
