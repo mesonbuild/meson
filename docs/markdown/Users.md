@@ -85,7 +85,7 @@ topic](https://github.com/topics/meson).
  - [Libosmscout](https://github.com/Framstag/libosmscout), a C++ library for offline map rendering, routing and location
 lookup based on OpenStreetMap data
  - [libratbag](https://github.com/libratbag/libratbag), provides a DBus daemon to configure input devices, mainly gaming mice.
- - [libspng](https://gitlab.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
+ - [libspng](https://github.com/randy408/libspng), a C library for reading and writing Portable Network Graphics (PNG)
 format files
  - [libui](https://github.com/andlabs/libui), a simple and portable (but not inflexible) GUI library in C that uses the native GUI technologies of each platform it supports
  - [Libva](https://github.com/intel/libva), an implementation for the VA (VIdeo Acceleration) API
