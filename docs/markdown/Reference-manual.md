@@ -1280,7 +1280,7 @@ them for the default behaviour for each platform.
 
 This function prints its argument to stdout.
 
-*(since 0.54.0)* Can take more more than one argument that will be separated by
+*(since 0.54.0)* Can take more than one argument that will be separated by
 space.
 
 ### warning()
@@ -1293,7 +1293,7 @@ space.
 
 This function prints its argument to stdout prefixed with WARNING:.
 
-*(since 0.54.0)* Can take more more than one argument that will be separated by
+*(since 0.54.0)* Can take more than one argument that will be separated by
 space.
 
 ### summary()
