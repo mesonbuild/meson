@@ -1,0 +1,8 @@
+{
+  "installed": [
+    {"type": "file", "file": "usr/lib/pkgconfig/libPCTest42.pc"}
+  ],
+  "tools": {
+    "cmake": ">=3.11"
+  }
+}
