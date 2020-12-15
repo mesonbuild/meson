@@ -30,7 +30,7 @@ from functools import lru_cache
 from pathlib import Path
 import typing as T
 import re
-from os import environ
+from os import environ, pathsep
 
 from ..mparser import (
     Token,
@@ -456,9 +456,12 @@ class ConverterTarget:
             x = x.resolve()
             assert x.is_absolute()
             if not x.exists() and not any([x.name.endswith(y) for y in obj_suffixes]) and not is_generated:
-                if path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True):
+                if path_is_in_root(x, Path(self.env.get_build_dir() / subdir), resolve=True):
                     x.mkdir(parents=True, exist_ok=True)
                     return x.relative_to(Path(self.env.get_build_dir()) / subdir)
+                elif path_is_in_root(x, Path(self.env.get_build_dir() / subdir.parent), resolve=True):
+                    x.mkdir(parents=True, exist_ok=True)
+                    return Path('..') / x.relative_to(Path(self.env.get_build_dir()) / subdir.parent)
                 else:
                     mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'does not exist.')
                     mlog.warning(' --> Ignoring. This can lead to build errors.')
@@ -473,10 +476,16 @@ class ConverterTarget:
                     )
                 ):
                 mlog.warning('CMake: path', mlog.bold(x.as_posix()), 'is inside the root project but', mlog.bold('not'), 'inside the subproject.')
-                mlog.warning(' --> Ignoring. This can lead to build errors.')
-                return None
-            if path_is_in_root(x, Path(self.env.get_build_dir())) and is_header:
+                if is_header:
+                    mlog.warning(' --> Using anyway, since this is an include directory')
+                    return mesonlib.relative_to(x, root_src_dir)
+                else:
+                    mlog.warning(' --> Ignoring. This can lead to build errors.')
+                    return None
+            if path_is_in_root(x, Path(self.env.get_build_dir()) / subdir) and is_header:
                 return x.relative_to(Path(self.env.get_build_dir()) / subdir)
+            if path_is_in_root(x, Path(self.env.get_build_dir()) / subdir.parent) and is_header:
+                return Path('..') / x.relative_to(Path(self.env.get_build_dir()) / subdir.parent)
             if path_is_in_root(x, root_src_dir):
                 return x.relative_to(root_src_dir)
             return x
@@ -925,6 +934,10 @@ class CMakeInterpreter:
             self.build_dir.mkdir(parents=True, exist_ok=True)
             os_env = environ.copy()
             os_env['LC_ALL'] = 'C'
+            if 'PKG_CONFIG_PATH' in os_env:
+                os_env['PKG_CONFIG_PATH'] = self.env.get_uninstalled_dir() + pathsep + os_env['PKG_CONFIG_PATH']
+            else:
+                os_env['PKG_CONFIG_PATH'] = self.env.get_uninstalled_dir()
             final_args = cmake_args + trace_args + cmcmp_args + toolchain.get_cmake_args() + [self.src_dir.as_posix()]
 
             cmake_exe.set_exec_mode(print_cmout=True, always_capture_stderr=self.trace.requires_stderr())

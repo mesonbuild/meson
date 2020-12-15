@@ -128,7 +128,7 @@ class ExternalProject(InterpreterObject):
         self.run_env = self.user_env.get_env(self.run_env)
 
         PkgConfigDependency.setup_env(self.run_env, self.env, MachineChoice.HOST,
-                                      Path(self.env.get_build_dir(), 'meson-uninstalled').as_posix())
+                                      Path(self.env.get_uninstalled_dir()).as_posix())
 
         self.build_dir.mkdir(parents=True, exist_ok=True)
         self._run('configure', configure_cmd)

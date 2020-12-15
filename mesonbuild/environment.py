@@ -562,6 +562,7 @@ class Environment:
     private_dir = 'meson-private'
     log_dir = 'meson-logs'
     info_dir = 'meson-info'
+    uninstalled_dir = 'meson-uninstalled'
 
     def __init__(self, source_dir: T.Optional[str], build_dir: T.Optional[str], options: 'argparse.Namespace') -> None:
         self.source_dir = source_dir
@@ -572,9 +573,11 @@ class Environment:
             self.scratch_dir = os.path.join(build_dir, Environment.private_dir)
             self.log_dir = os.path.join(build_dir, Environment.log_dir)
             self.info_dir = os.path.join(build_dir, Environment.info_dir)
+            self.uninstalled_dir = os.path.join(build_dir, Environment.uninstalled_dir)
             os.makedirs(self.scratch_dir, exist_ok=True)
             os.makedirs(self.log_dir, exist_ok=True)
             os.makedirs(self.info_dir, exist_ok=True)
+            os.makedirs(self.uninstalled_dir, exist_ok=True)
             try:
                 self.coredata = coredata.load(self.get_build_dir())  # type: coredata.CoreData
                 self.first_invocation = False
@@ -882,6 +885,9 @@ class Environment:
 
     def get_log_dir(self) -> str:
         return self.log_dir
+
+    def get_uninstalled_dir(self) -> str:
+        return self.uninstalled_dir
 
     def get_coredata(self) -> coredata.CoreData:
         return self.coredata

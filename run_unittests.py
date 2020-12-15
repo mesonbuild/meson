@@ -730,6 +730,15 @@ class InternalTests(unittest.TestCase):
         self.assertEqual([holder1, 2], listify([holder1, 2]))
         self.assertEqual([holder1, 2, 3], listify([holder1, 2, [3]]))
 
+    def test_relative_to(self):
+        r2 = mesonbuild.mesonlib.relative_to
+        self.assertEqual(PurePath('usr/lib'),   r2(PurePath('/usr/lib'), PurePath('/')))
+        self.assertEqual(PurePath('lib'),       r2(PurePath('/usr/lib'), PurePath('/usr')))
+        self.assertEqual(PurePath('../lib'),    r2(PurePath('/usr/lib'), PurePath('/usr/share')))
+        self.assertEqual(PurePath('../../lib'), r2(PurePath('/usr/lib'), PurePath('/usr/share/meson')))
+
+        self.assertEqual(PurePath('../usr/lib'), r2(PurePath('/usr/lib'), PurePath('/var')))
+
     def test_unholder(self):
         unholder = mesonbuild.mesonlib.unholder
 
@@ -9682,7 +9691,7 @@ def main():
         # time spawning a lot of processes to distribute tests to in that case.
         if not running_single_tests(sys.argv, cases):
             pytest_args += ['-n', 'auto']
-        pytest_args += ['./run_unittests.py']
+        pytest_args += [__file__]
         pytest_args += convert_args(sys.argv[1:])
         return subprocess.run(python_command + ['-m', 'pytest'] + pytest_args).returncode
     except ImportError:

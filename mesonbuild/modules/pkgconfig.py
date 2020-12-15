@@ -324,7 +324,7 @@ class PkgConfigModule(ExtensionModule):
                                 uninstalled=False, dataonly=False):
         coredata = state.environment.get_coredata()
         if uninstalled:
-            outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
+            outdir = state.environment.get_uninstalled_dir()
             if not os.path.exists(outdir):
                 os.mkdir(outdir)
             prefix = PurePath(state.environment.get_build_dir())

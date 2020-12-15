@@ -1687,6 +1687,18 @@ def relative_to_if_possible(path: Path, root: Path, resolve: bool = False) -> Pa
     except ValueError:
         return path
 
+def relative_to(path: Path, root: Path, resolve: bool = False) -> Path:
+    if resolve:
+        path = path.resolve()
+        root = root.resolve()
+    prefix = Path()
+    for i in [root, *root.parents]:
+        try:
+            return prefix / path.relative_to(i)
+        except ValueError:
+            prefix /= '..'
+    return path
+
 class LibType(enum.IntEnum):
 
     """Enumeration for library types."""
