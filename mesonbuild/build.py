@@ -189,7 +189,7 @@ class Build:
         self.benchmarks = []                          # type: T.List['Test']
         self.headers: T.List[Headers] = []
         self.man: T.List[Man] = []
-        self.data = []
+        self.data: T.List[Data] = []
         self.static_linker = PerMachine(None, None)   # type: PerMachine[StaticLinker]
         self.subprojects = {}
         self.subproject_dir = ''
