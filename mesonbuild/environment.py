@@ -378,7 +378,7 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
     elif trial in {'sun4u', 'sun4v'}:
         trial = 'sparc64'
     elif trial.startswith('mips'):
-        if not '64' in trial:
+        if '64' not in trial:
             trial = 'mips'
         else:
             trial = 'mips64'
@@ -436,7 +436,7 @@ def detect_cpu(compilers: CompilersDict):
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
     elif trial.startswith('mips'):
-        if not '64' in trial:
+        if '64' not in trial:
             trial = 'mips'
         else:
             trial = 'mips64'
