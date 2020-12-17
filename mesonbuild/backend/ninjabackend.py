@@ -37,6 +37,7 @@ from ..compilers import (
     FortranCompiler, PGICCompiler,
     VisualStudioCsCompiler,
     VisualStudioLikeCompiler,
+    VisualStudioCPPCompiler,
 )
 from ..linkers import ArLinker, VisualStudioLinker
 from ..mesonlib import (
@@ -870,6 +871,12 @@ int dummy;
         elem = self.generate_link(target, outname, final_obj_list, linker, pch_objects, stdlib_args=stdlib_args)
         self.generate_dependency_scan_target(target, compiled_sources, source2object)
         self.generate_shlib_aliases(target, self.get_target_dir(target))
+
+        # Copy runtime dependency dlls next to executable
+        if 'cpp' in target.compilers:
+            if isinstance(target, build.Executable) and isinstance(target.compilers['cpp'], VisualStudioCPPCompiler):
+                self.copy_external_dep_dlls(target)
+        
         self.add_build(elem)
 
     def should_scan_target(self, target):

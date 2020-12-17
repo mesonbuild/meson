@@ -1141,6 +1141,11 @@ class Vs2010Backend(backends.Backend):
                             ET.SubElement(clconf, 'OpenMPSuppport').text = 'true'
                         else:
                             extra_link_args.extend_direct(dep.get_link_args())
+
+        # Copy runtime dependency dlls next to executable
+        if isinstance(target, build.Executable):
+            self.copy_external_dep_dlls(target)
+
         # Add link args for c_* or cpp_* build options. Currently this only
         # adds c_winlibs and cpp_winlibs when building for Windows. This needs
         # to be after all internal and external libraries so that unresolved

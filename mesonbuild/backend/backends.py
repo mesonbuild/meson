@@ -22,6 +22,7 @@ import pickle
 import re
 import shlex
 import subprocess
+import shutil
 import textwrap
 import typing as T
 
@@ -1263,6 +1264,17 @@ class Backend:
                                                   {}, False, {}, set(), '',
                                                   install_mode, optional=True)
                             d.targets.append(i)
+
+                        # Copy run-time dependencies of the target
+                        if 'b_copy_deps' in self.environment.coredata.base_options:
+                            if self.environment.coredata.base_options['b_copy_deps'].value != 'no':
+                                runtime_deps = t.get_external_runtime_deps()
+                                for dep in t.get_dependencies():
+                                    if isinstance(dep, build.BuildTarget):
+                                        runtime_deps += dep.get_external_runtime_deps()
+                                for rt_dep in runtime_deps:
+                                    i = TargetInstallData(rt_dep, outdirs[0], {}, False, {}, set(), None, install_mode)
+                                    d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
                     for output, outdir in zip(t.get_outputs()[1:], outdirs[1:]):
@@ -1423,3 +1435,31 @@ class Backend:
             }]
 
         return []
+
+    def copy_external_dep_dlls(self, target : build.BuildTarget) -> None:
+        ''' Copy found dlls that target depends on next to it. '''
+        if 'b_copy_deps' not in self.environment.coredata.base_options:
+            return
+        copy_deps = self.environment.coredata.base_options['b_copy_deps']
+        if copy_deps.value == 'no':
+            return
+        elif copy_deps.value == 'symlink_or_copy':
+            copy_method = os.symlink
+        else:
+            copy_method = shutil.copy
+
+        # Collect all runtime deps
+        runtime_deps = target.get_external_runtime_deps()
+        for d in target.get_dependencies():
+            if isinstance(d, build.BuildTarget):
+                runtime_deps += d.get_external_runtime_deps()
+
+        for dll in runtime_deps:
+            dst = f'{self.build_dir}/{target.get_subdir()}/{os.path.basename(dll)}'
+            try:
+                copy_method(dll, dst)
+            except FileExistsError:
+                pass # symlink already exists, do nothing
+            except OSError:
+                # Privileges missing for symlink, fallback to copy
+                shutil.copy(dll, dst)

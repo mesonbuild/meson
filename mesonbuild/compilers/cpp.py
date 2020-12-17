@@ -644,7 +644,7 @@ class VisualStudioCPPCompiler(CPP11AsCPP14Mixin, VisualStudioLikeCPPCompilerMixi
         CPPCompiler.__init__(self, exelist, version, for_machine, is_cross,
                              info, exe_wrapper, linker=linker, full_version=full_version)
         MSVCCompiler.__init__(self, target)
-        self.base_options = ['b_pch', 'b_vscrt', 'b_ndebug'] # FIXME add lto, pgo and the like
+        self.base_options = ['b_pch', 'b_vscrt', 'b_ndebug', 'b_copy_deps'] # FIXME add lto, pgo and the like
         self.id = 'msvc'
 
     def get_options(self) -> 'OptionDictType':

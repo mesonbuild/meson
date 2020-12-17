@@ -21,6 +21,7 @@ import os
 import pickle
 import re
 import typing as T
+import subprocess
 
 from . import environment
 from . import dependencies
@@ -113,6 +114,58 @@ def get_target_macos_dylib_install_name(ld) -> str:
         name.append('.' + ld.soversion)
     name.append('.dylib')
     return ''.join(name)
+
+@lru_cache(maxsize=None)
+def get_dependent_dlls(lib: str) -> T.List[str]:
+    ''' Get dependent dlls of an import library '''
+
+    def get_recursive_deps(dll_full_path: str) -> T.List[str]:
+        ''' Get recursively all dependents of a dll from same directory as the original dll. '''
+        dumpbin_output = subprocess.check_output(['dumpbin', '/dependents', dll_full_path]).decode('utf-8').split('\n')
+        dependents = []
+        for line in dumpbin_output:
+            line = line.strip()
+            dependent = f'{os.path.dirname(dll_full_path)}/{line.strip()}'
+            # Add all found dlls to dependents. Silently fail for not found dlls because the
+            # dependents always contains a list of windows dlls that should be found from PATH.
+            if os.path.isfile(dependent) and (dependent not in dependents):
+                dependents.append(dependent)
+
+        # dlls can depend on other dlls so recursively find all dependent dlls
+        for dep in dependents:
+            recursive_deps = get_recursive_deps(dep)
+            for rdep in recursive_deps:
+                if rdep not in dependents:
+                    dependents.append(rdep)
+
+        if dependents != []:
+            mlog.debug(f'Additional found dependencies for {dll_full_path}')
+            for dll in dependents:
+                mlog.debug(f'\t{dll}')
+
+        return dependents
+
+    # Check last line of the "lib /LIST filename.lib" whether the lib is static or dynamic.
+    # The output contains list of .obj files if it is static or the dll name multiple times otherwise.
+    found_dlls = []
+    last_line = subprocess.check_output(['lib', '/LIST', lib]).decode('utf-8').strip().split()[-1]
+    if last_line.endswith(".dll"):
+        # Check if needed dlls are in bin folder next to lib or within same folder
+        bin_dir_dll = f'{pathlib.Path(lib).parents[1]}/bin/{last_line}'
+        same_dir_dll = f'{os.path.dirname(lib)}/{last_line}'
+        if os.path.exists(same_dir_dll):
+            found_dlls += [same_dir_dll]
+            found_dlls += get_recursive_deps(same_dir_dll)
+            found = mlog.green('YES')
+        elif os.path.exists(bin_dir_dll):
+            found_dlls += [bin_dir_dll]
+            found_dlls += get_recursive_deps(bin_dir_dll)
+            found = mlog.green('YES')
+        else:
+            found = mlog.red('NO')
+        mlog.log(f'Found library {os.path.basename(bin_dir_dll)} for {os.path.basename(lib)}:', found)
+    
+    return found_dlls
 
 class InvalidArguments(MesonException):
     pass
@@ -551,6 +604,7 @@ class BuildTarget(Target):
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects = []
         self.external_deps = []
+        self.external_runtime_deps = []
         self.include_dirs = []
         self.link_language = kwargs.get('link_language')
         self.link_targets = []
@@ -646,6 +700,12 @@ class BuildTarget(Target):
             else:
                 msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
                 raise InvalidArguments(msg)
+
+    def process_runtime_deps(self, dep : dependencies.Dependency) -> None:
+        for lib in dep.get_link_args():
+            for dll in get_dependent_dlls(lib):
+                if dll not in self.external_runtime_deps:
+                    self.external_runtime_deps.append(dll)
 
     @staticmethod
     def can_compile_remove_sources(compiler, sources):
@@ -1135,6 +1195,9 @@ This will become a hard error in a future Meson release.''')
         for dep in unholder(deps):
             if dep in self.added_deps:
                 continue
+            if 'b_copy_deps' in self.environment.coredata.base_options:
+                if self.environment.coredata.base_options['b_copy_deps'].value != 'no':
+                    self.process_runtime_deps(dep)
             if isinstance(dep, dependencies.InternalDependency):
                 # Those parts that are internal.
                 self.process_sourcelist(dep.sources)
@@ -1177,6 +1240,9 @@ You probably should put it in link_with instead.''')
 
     def get_external_deps(self):
         return self.external_deps
+    
+    def get_external_runtime_deps(self) -> T.List[str]:
+        return self.external_runtime_deps
 
     def is_internal(self):
         return isinstance(self, StaticLibrary) and not self.need_install

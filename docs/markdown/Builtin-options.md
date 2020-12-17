@@ -126,7 +126,8 @@ platforms or with all compilers:
 | b_sanitize  | none          | see below               | Code sanitizer to use |
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
 | b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
-| b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
+| b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.
+| b_copy_deps | copy          | no, copy, symlink_or_copy | Copy VS run-time dependency dlls next to executable targets (since 0.57.0) |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.

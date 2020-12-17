@@ -291,6 +291,9 @@ base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', T
                 'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
                                                     ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
                                                     'from_buildtype'),
+                'b_copy_deps': coredata.UserComboOption('Copy VS run-time dependency dlls next to executable targets.',
+                                                    ['no', 'symlink_or_copy', 'copy'],
+                                                    'copy'),
                 }  # type: OptionDictType
 
 def option_enabled(boptions: T.List[str], options: 'OptionDictType',
