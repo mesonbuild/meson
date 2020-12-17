@@ -377,8 +377,8 @@ def detect_cpu_family(compilers: CompilersDict) -> str:
         trial = 'x86_64'
     elif trial in {'sun4u', 'sun4v'}:
         trial = 'sparc64'
-    elif trial in {'mipsel', 'mips64el'}:
-        trial = trial.rstrip('el')
+    elif trial.startswith('mips'):
+        trial = 'mips'
     elif trial in {'ip30', 'ip35'}:
         trial = 'mips64'
 
@@ -433,7 +433,7 @@ def detect_cpu(compilers: CompilersDict):
         # Make more precise CPU detection for Elbrus platform.
         trial = platform.processor().lower()
     elif trial.startswith('mips'):
-        trial = trial.rstrip('el')
+        trial = 'mips'
 
     # Add more quirks here as bugs are reported. Keep in sync with
     # detect_cpu_family() above.
