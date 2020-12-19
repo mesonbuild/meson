@@ -31,4 +31,4 @@ jobs:
       with:
         python-version: '3.x'
     - run: python -m pip install mypy
-    - run: python run_mypy.py
+    - run: python -m mypy
