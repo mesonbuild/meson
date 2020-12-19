@@ -48,7 +48,9 @@ def create_hash(fname):
     m = hashlib.sha256()
     m.update(open(fname, 'rb').read())
     with open(hashname, 'w') as f:
-        f.write('{} {}\n'.format(m.hexdigest(), os.path.basename(fname)))
+        # A space and an asterisk because that is the format defined by GNU coreutils
+        # and accepted by busybox and the Perl shasum tool.
+        f.write('{} *{}\n'.format(m.hexdigest(), os.path.basename(fname)))
     print(os.path.relpath(fname), m.hexdigest())
 
 
