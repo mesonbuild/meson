@@ -1260,8 +1260,13 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
             return ([], set())
         processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
         all_paths = mesonlib.OrderedSet([os.path.join('$ORIGIN', p) for p in processed_rpaths])
+        rpath_dirs_to_remove = set()
+        for p in all_paths:
+            rpath_dirs_to_remove.add(p.encode('utf8'))
         if build_rpath != '':
             all_paths.add(build_rpath)
+            for p in build_rpath.split(':'):
+                rpath_dirs_to_remove.add(p.encode('utf8'))
 
         # In order to avoid relinking for RPATH removal, the binary needs to contain just
         # enough space in the ELF header to hold the final installation RPATH.
@@ -1272,7 +1277,7 @@ class SolarisDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
                 paths = padding
             else:
                 paths = paths + ':' + padding
-        return (self._apply_prefix('-rpath,{}'.format(paths)), set())
+        return (self._apply_prefix('-rpath,{}'.format(paths)), rpath_dirs_to_remove)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str],
