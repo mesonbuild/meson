@@ -313,7 +313,7 @@ class Elf(DataSizes):
         # Only add each one once.
         new_rpaths = OrderedSet()  # type: OrderedSet[bytes]
         if new_rpath:
-            new_rpaths.add(new_rpath)
+            new_rpaths.update(new_rpath.split(b':'))
         if old_rpath:
             # Filter out build-only rpath entries
             # added by get_link_dep_subdirs() or
