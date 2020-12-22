@@ -1788,7 +1788,7 @@ class Environment:
 
                 return compilers.LLVMDCompiler(
                     exelist, version, for_machine, info, arch,
-                    full_version=full_version, linker=linker)
+                    full_version=full_version, linker=linker, version_output=out)
             elif 'gdc' in out:
                 linker = self._guess_nix_linker(exelist, compilers.GnuDCompiler, for_machine)
                 return compilers.GnuDCompiler(
