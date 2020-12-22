@@ -24,6 +24,11 @@ code.
 *   built-in multiplatform dependency provider that works together with distro packages
 *   fun!
 
+## Quickstart for beginners
+
+Are you an absolute beginner when it comes to programming? No worries,
+read [this beginner guide](SimpleStart.md) to get started.
+
 ## A full manual
 
 The documentation on this site is freely available for all. However

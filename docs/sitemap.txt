@@ -1,4 +1,5 @@
 index.md
+	SimpleStart.md
 	Getting-meson.md
 	Quick-guide.md
 	Tutorial.md
