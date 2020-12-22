@@ -51,7 +51,6 @@ def create_hash(fname):
         # A space and an asterisk because that is the format defined by GNU coreutils
         # and accepted by busybox and the Perl shasum tool.
         f.write('{} *{}\n'.format(m.hexdigest(), os.path.basename(fname)))
-    print(os.path.relpath(fname), m.hexdigest())
 
 
 def del_gitfiles(dirname):
@@ -284,4 +283,5 @@ def run(options):
     if rc == 0:
         for name in names:
             create_hash(name)
+            print('Created', os.path.relpath(name))
     return rc
