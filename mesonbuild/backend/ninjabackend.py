@@ -368,12 +368,6 @@ class NinjaBuildElement:
         if len(self.orderdeps) > 0:
             line += ' || ' + ' '.join([ninja_quote(x, True) for x in sorted(self.orderdeps)])
         line += '\n'
-        # This is the only way I could find to make this work on all
-        # platforms including Windows command shell. Slash is a dir separator
-        # on Windows, too, so all characters are unambiguous and, more importantly,
-        # do not require quoting, unless explicitly specified, which is necessary for
-        # the csc compiler.
-        line = line.replace('\\', '/')
         outfile.write(line)
 
         if use_rspfile:
@@ -2076,7 +2070,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         args = [x.replace("@CURRENT_SOURCE_DIR@", source_target_dir) for x in args]
         args = [x.replace("@SOURCE_ROOT@", self.build_to_src).replace("@BUILD_ROOT@", '.')
                 for x in args]
-        args = [x.replace('\\', '/') for x in args]
         return args
 
     def generate_genlist_for_target(self, genlist, target):
