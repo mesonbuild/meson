@@ -990,7 +990,7 @@ int dummy;
         for i in target.args:
             if isinstance(i, str):
                 arg_strings.append(i)
-            elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
+            elif isinstance(i, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 relfname = self.get_target_filename(i)
                 arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
                 deps.append(relfname)
@@ -1022,7 +1022,7 @@ int dummy;
             cmd.append(abs_exe)
         elif isinstance(texe, dependencies.ExternalProgram):
             cmd += texe.get_command()
-        elif isinstance(texe, build.CustomTarget):
+        elif isinstance(texe, (build.CustomTarget, build.CustomTargetIndex)):
             deps.append(self.get_target_filename(texe))
             cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
         elif isinstance(texe, mesonlib.File):

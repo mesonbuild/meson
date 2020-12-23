@@ -27,18 +27,24 @@ case $i in
 esac
 done
 
+BINDIR=$PREFIX/bin
 DEP_ARGS=$(pkg-config --cflags --libs somelib)
 
 cat > Makefile << EOL
-all: libfoo.$LIBEXT
+all: libfoo.$LIBEXT app
 
 libfoo.$LIBEXT:
 	$CC "$srcdir/libfoo.c" -shared -fPIC $DEP_ARGS -o \$@
 
-install: libfoo.$LIBEXT
+app:
+	$CC "$srcdir/app.c" -o \$@
+
+install: libfoo.$LIBEXT app
 	mkdir -p "\$(DESTDIR)$LIBDIR";
 	mkdir -p "\$(DESTDIR)$LIBDIR/pkgconfig";
 	mkdir -p "\$(DESTDIR)$INCDIR";
+	mkdir -p "\$(DESTDIR)$BINDIR";
 	cp \$< "\$(DESTDIR)$LIBDIR";
+	cp app "\$(DESTDIR)$BINDIR";
 	cp "$srcdir/libfoo.h" "\$(DESTDIR)$INCDIR";
 EOL

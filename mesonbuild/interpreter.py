@@ -536,6 +536,8 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
+    buildtargets = (build.Executable, build.CustomTarget, build.CustomTargetIndex)
+
     def __init__(self, ep, subproject, backend=None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
@@ -566,24 +568,24 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     def _full_path(self):
         exe = self.held_object
-        if isinstance(exe, build.Executable):
+        if isinstance(exe, self.buildtargets):
             return self.backend.get_target_filename_abs(exe)
         return exe.get_path()
 
     def found(self):
-        return isinstance(self.held_object, build.Executable) or self.held_object.found()
+        return isinstance(self.held_object, self.buildtargets) or self.held_object.found()
 
     def get_command(self):
         return self.held_object.get_command()
 
     def get_name(self):
         exe = self.held_object
-        if isinstance(exe, build.Executable):
+        if isinstance(exe, self.buildtargets):
             return exe.name
         return exe.get_name()
 
     def get_version(self, interpreter):
-        if isinstance(self.held_object, build.Executable):
+        if isinstance(self.held_object, self.buildtargets):
             return self.held_object.project_version
         if not self.cached_version:
             raw_cmd = self.get_command() + ['--version']
@@ -2184,7 +2186,7 @@ class MesonMain(InterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = OverrideProgram(name, abspath)
-        if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
+        if not isinstance(exe, (dependencies.ExternalProgram, build.Executable, build.CustomTarget, build.CustomTargetIndex)):
             raise InterpreterException('Second argument must be an external program or executable.')
         self.interpreter.add_find_program_override(name, exe)
 
@@ -4052,7 +4054,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         cleaned_args = []
         for i in unholder(listify(all_args)):
-            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
+            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, build.CustomTargetIndex, dependencies.ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
             if isinstance(i, dependencies.ExternalProgram) and not i.found():
