@@ -23,9 +23,11 @@ from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
 from ..interpreterbase import stringArgs, permittedKwargs
 from ..interpreter import Interpreter, DependencyHolder, InstallDir
+from ..interpreter import ExternalProgramHolder
 from ..compilers.compilers import cflags_mapping, cexe_mapping
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
+from ..build import Executable
 
 class ExternalProject(InterpreterObject):
     def __init__(self,
@@ -43,6 +45,7 @@ class ExternalProject(InterpreterObject):
                  verbose: bool):
         InterpreterObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,
+                             'executable': self.executable_method,
                              })
 
         self.interpreter = interpreter
@@ -183,7 +186,7 @@ class ExternalProject(InterpreterObject):
 
         target_kwargs = {'output': '{}.stamp'.format(self.name),
                          'depfile': '{}.d'.format(self.name),
-                         'command': cmd + ['@OUTPUT@', '@DEPFILE@'],
+                         'command': cmd + ['@OUTPUT0@', '@DEPFILE@'],
                          'console': True,
                          }
         self.target = build.CustomTarget(self.name,
@@ -231,6 +234,27 @@ class ExternalProject(InterpreterObject):
         dep = InternalDependency(version, incdir, compile_args, link_args, libs,
                                  libs_whole, sources, final_deps, variables)
         return DependencyHolder(dep, self.subproject)
+
+    @stringArgs
+    @permittedKwargs({'subdir'})
+    def executable_method(self, args, kwargs):
+        if len(args) != 1:
+            m = 'ExternalProject.executable takes exactly 1 positional arguments'
+            raise InterpreterException(m)
+        name = args[0]
+
+        subdir = kwargs.get('subdir', Path(self.prefix, 'bin').as_posix())
+        if not isinstance(subdir, str):
+            m = 'ExternalProject.executable subdir keyword argument must be string.'
+            raise InterpreterException(m)
+
+        self.target.outputs.append(Path(self.install_dir, subdir, name).as_posix())
+
+        exe = Executable(name, subdir, self.subproject, for_machine=MachineChoice.HOST,
+                         sources=[], objects=[], environment=self.env, kwargs={})
+        exe.project_version = self.project_version['version']
+
+        return ExternalProgramHolder(exe, self.subproject)
 
 
 class ExternalProjectModule(ExtensionModule):
