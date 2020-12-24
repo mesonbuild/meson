@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, re, subprocess
+import os.path
+import re
+import subprocess
 import typing as T
 
 from ..mesonlib import (
@@ -80,8 +82,12 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     sharing between them as makes sense.
     """
 
-    def __init__(self, dmd_frontend_version: str):
-        self._frontend_version = dmd_frontend_version
+    def __init__(self, dmd_frontend_version: T.Optional[str]):
+        if dmd_frontend_version is None:
+            self._dmd_has_depfile = False
+        else:
+            # -makedeps switch introduced in 2.095 frontend
+            self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
 
     if T.TYPE_CHECKING:
         mscrt_args = {}  # type: T.Dict[str, T.List[str]]
@@ -135,8 +141,7 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
         return 'deps'
 
     def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
-        # -makedeps switch introduced in 2.096 frontend
-        if version_compare(self._frontend_version, ">=2.096"):
+        if self._dmd_has_depfile:
             return [f'-makedeps={outfile}']
         return []
 
@@ -698,11 +703,13 @@ class GnuDCompiler(GnuCompiler, DCompiler):
 # the common features between LDC and DMD.
 # We need the complete version text because the match is not on first line
 # of version_output
-def find_ldc_dmd_frontend_version(version_output: str):
+def find_ldc_dmd_frontend_version(version_output: T.Optional[str]) -> T.Optional[str]:
+    if version_output is None:
+        return None
     version_regex = re.search(r'DMD v(\d+\.\d+\.\d+)', version_output)
-    if version_regex is not None and len(version_regex.groups()):
-        return version_regex.groups()[0]
-    return ''
+    if version_regex:
+        return version_regex.group(1)
+    return None
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -711,7 +718,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
-                 is_cross: bool = False, version_output: str):
+                 is_cross: bool = False, version_output: T.Optional[str] = None):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
