@@ -131,8 +131,11 @@ class MesonApp:
             raise MesonException('{} is not a directory'.format(dir1))
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
             raise MesonException('{} is not a directory'.format(dir2))
-        if os.path.samefile(dir1, dir2):
-            raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
+        if os.path.samefile(ndir1, ndir2):
+            # Fallback to textual compare if undefined entries found
+            has_undefined = any((s.st_ino == 0 and s.st_dev == 0) for s in (os.stat(ndir1), os.stat(ndir2)))
+            if not has_undefined or ndir1 == ndir2:
+                raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
                 raise MesonException('Both directories contain a build file {}.'.format(environment.build_filename))
