@@ -374,6 +374,13 @@ class NinjaBuildElement:
         # do not require quoting, unless explicitly specified, which is necessary for
         # the csc compiler.
         line = line.replace('\\', '/')
+        if mesonlib.is_windows():
+            # Support network paths as backslash, otherwise they are interpreted as
+            # arguments for compile/link commands when using MSVC
+            line = ' '.join(
+                (l.replace('//', '\\\\', 1) if l.startswith('//') else l)
+                for l in line.split(' ')
+            )
         outfile.write(line)
 
         if use_rspfile:
