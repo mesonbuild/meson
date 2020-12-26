@@ -502,6 +502,20 @@ class ConverterTarget:
         self.link_libraries = [x for x in self.link_libraries if x.lower() not in blacklist_link_libs]
         self.link_flags = [x for x in self.link_flags if check_flag(x)]
 
+        # Handle OSX frameworks
+        def handle_frameworks(flags: T.List[str]) -> T.List[str]:
+            res: T.List[str] = []
+            for i in flags:
+                p = Path(i)
+                if not p.exists() or not p.name.endswith('.framework'):
+                    res += [i]
+                    continue
+                res += ['-framework', p.stem]
+            return res
+
+        self.link_libraries = handle_frameworks(self.link_libraries)
+        self.link_flags     = handle_frameworks(self.link_flags)
+
         # Handle explicit CMake add_dependency() calls
         for i in self.depends_raw:
             dep_tgt = output_target_map.target(i)
