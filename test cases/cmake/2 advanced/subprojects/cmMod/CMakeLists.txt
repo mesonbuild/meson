@@ -23,6 +23,16 @@ target_link_libraries(cmModLib       ZLIB::ZLIB)
 target_link_libraries(cmModLibStatic ;ZLIB::ZLIB;)
 target_link_libraries(testEXE cmModLib)
 
+if(APPLE)
+  find_library(COREFOUNDATION_FRAMEWORK "CoreFoundation")
+  if(NOT COREFOUNDATION_FRAMEWORK)
+    message(FATAL_ERROR "CoreFoundation framework not found")
+  endif()
+
+  target_link_libraries(cmModLibStatic "${COREFOUNDATION_FRAMEWORK}")
+  target_compile_definitions(cmModLibStatic PUBLIC USE_FRAMEWORK)
+endif()
+
 target_compile_definitions(cmModLibStatic PUBLIC CMMODLIB_STATIC_DEFINE)
 
 install(TARGETS testEXE LIBRARY DESTINATION lib RUNTIME DESTINATION bin)
