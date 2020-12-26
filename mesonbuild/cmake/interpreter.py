@@ -231,7 +231,7 @@ class ConverterTarget:
         if target.install_paths:
             self.install_dir = target.install_paths[0]
 
-        self.languages           = []  # type: T.List[str]
+        self.languages           = set() # type: T.Set[str]
         self.sources             = []  # type: T.List[Path]
         self.generated           = []  # type: T.List[Path]
         self.generated_ctgt      = []  # type: T.List[CustomTargetReference]
@@ -250,19 +250,40 @@ class ConverterTarget:
         self.name = _sanitize_cmake_name(self.name)
 
         self.generated_raw = []  # type: T.List[Path]
+
         for i in target.files:
-            # Determine the meson language
+            languages    = set()  #  type: T.Set[str]
+            src_suffixes = set()  #  type: T.Set[str]
+
+            # Insert suffixes
+            for j in i.sources:
+                if not j.suffix:
+                    continue
+                src_suffixes.add(j.suffix[1:])
+
+            # Determine the meson language(s)
+            # Extract the default language from the explicit CMake field
             lang_cmake_to_meson = {val.lower(): key for key, val in language_map.items()}
-            lang = lang_cmake_to_meson.get(i.language.lower(), 'c')
-            if lang not in self.languages:
-                self.languages += [lang]
-            if lang not in self.compile_opts:
-                self.compile_opts[lang] = []
+            languages.add(lang_cmake_to_meson.get(i.language.lower(), 'c'))
+
+            # Determine missing languages from the source suffixes
+            for sfx in src_suffixes:
+                for key, val in lang_suffixes.items():
+                    if sfx in val:
+                        languages.add(key)
+                        break
+
+            # Register the new languages and initialize the compile opts array
+            for lang in languages:
+                self.languages.add(lang)
+                if lang not in self.compile_opts:
+                    self.compile_opts[lang] = []
 
             # Add arguments, but avoid duplicates
             args = i.flags
             args += ['-D{}'.format(x) for x in i.defines]
-            self.compile_opts[lang] += [x for x in args if x not in self.compile_opts[lang]]
+            for lang in languages:
+                self.compile_opts[lang] += [x for x in args if x not in self.compile_opts[lang]]
 
             # Handle include directories
             self.includes += [x.path for x in i.includes if x.path not in self.includes and not x.isSystem]
