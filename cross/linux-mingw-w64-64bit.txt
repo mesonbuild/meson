@@ -1,6 +1,7 @@
 [binaries]
 c = '/usr/bin/x86_64-w64-mingw32-gcc'
 cpp = '/usr/bin/x86_64-w64-mingw32-g++'
+objc = '/usr/bin/x86_64-w64-mingw32-gcc'
 ar = '/usr/bin/x86_64-w64-mingw32-ar'
 strip = '/usr/bin/x86_64-w64-mingw32-strip'
 pkgconfig = '/usr/bin/x86_64-w64-mingw32-pkg-config'
