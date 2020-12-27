@@ -20,3 +20,5 @@ p = mod.add_project('configure',
 
 libfoo_dep = declare_dependency(link_with : somelib,
   dependencies : p.dependency('foo'))
+
+meson.override_find_program('fooapp', p.program('app'))

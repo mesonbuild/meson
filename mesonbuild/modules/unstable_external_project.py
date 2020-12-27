@@ -21,8 +21,8 @@ from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
-from ..interpreterbase import stringArgs, permittedKwargs
-from ..interpreter import Interpreter, DependencyHolder, InstallDir
+from ..interpreterbase import stringArgs, permittedKwargs, noKwargs
+from ..interpreter import Interpreter, DependencyHolder, InstallDir, ExternalProgramHolder
 from ..compilers.compilers import cflags_mapping, cexe_mapping
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
@@ -43,6 +43,7 @@ class ExternalProject(InterpreterObject):
                  verbose: bool):
         InterpreterObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,
+                             'program': self.program_method,
                              })
 
         self.interpreter = interpreter
@@ -183,7 +184,7 @@ class ExternalProject(InterpreterObject):
 
         target_kwargs = {'output': '{}.stamp'.format(self.name),
                          'depfile': '{}.d'.format(self.name),
-                         'command': cmd + ['@OUTPUT@', '@DEPFILE@'],
+                         'command': cmd + ['@OUTPUT0@', '@DEPFILE@'],
                          'console': True,
                          }
         self.target = build.CustomTarget(self.name,
@@ -232,6 +233,21 @@ class ExternalProject(InterpreterObject):
                                  libs_whole, sources, final_deps, variables)
         return DependencyHolder(dep, self.subproject)
 
+    @stringArgs
+    @noKwargs
+    def program_method(self, args, kwargs):
+        if len(args) != 1:
+            m = 'ExternalProject.program takes exactly 1 positional arguments'
+            raise InterpreterException(m)
+        prog_name = args[0]
+
+        abs_bindir = Path(self.install_dir, self.rel_prefix, 'bin')
+        prog_path = abs_bindir / prog_name
+
+        self.target.outputs.append(prog_path.as_posix())
+        t = self.target[-1]
+        t.name = prog_name
+        return ExternalProgramHolder(t, self.subproject)
 
 class ExternalProjectModule(ExtensionModule):
     @FeatureNew('External build system Module', '0.56.0')

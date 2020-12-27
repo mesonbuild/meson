@@ -25,3 +25,6 @@ pkg.generate(somelib)
 subdir('libfoo')
 
 executable('test-find-library', 'app.c', dependencies : libfoo_dep)
+
+prog = find_program('fooapp')
+run_target('test_fooapp', command: prog)
