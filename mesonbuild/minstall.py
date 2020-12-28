@@ -16,6 +16,9 @@ import sys, pickle, os, shutil, subprocess, errno
 import argparse
 import shlex
 from glob import glob
+from pathlib import Path
+
+from . import environment
 from .scripts import depfixer
 from .scripts import destdir_join
 from .mesonlib import is_windows, Popen_safe
