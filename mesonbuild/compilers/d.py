@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os.path, subprocess
+import os.path
+import re
+import subprocess
 import typing as T
 
 from ..mesonlib import (
@@ -80,6 +82,13 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     sharing between them as makes sense.
     """
 
+    def __init__(self, dmd_frontend_version: T.Optional[str]):
+        if dmd_frontend_version is None:
+            self._dmd_has_depfile = False
+        else:
+            # -makedeps switch introduced in 2.095 frontend
+            self._dmd_has_depfile = version_compare(dmd_frontend_version, ">=2.095.0")
+
     if T.TYPE_CHECKING:
         mscrt_args = {}  # type: T.Dict[str, T.List[str]]
 
@@ -130,6 +139,11 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
     def get_depfile_suffix(self) -> str:
         return 'deps'
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        if self._dmd_has_depfile:
+            return [f'-makedeps={outfile}']
+        return []
 
     def get_pic_args(self) -> T.List[str]:
         if self.info.is_windows():
@@ -683,6 +697,19 @@ class GnuDCompiler(GnuCompiler, DCompiler):
     def get_disable_assert_args(self) -> T.List[str]:
         return ['-frelease']
 
+# LDC uses the DMD frontend code to parse and analyse the code.
+# It then uses LLVM for the binary code generation and optimizations.
+# This function retrieves the dmd frontend version, which determines
+# the common features between LDC and DMD.
+# We need the complete version text because the match is not on first line
+# of version_output
+def find_ldc_dmd_frontend_version(version_output: T.Optional[str]) -> T.Optional[str]:
+    if version_output is None:
+        return None
+    version_regex = re.search(r'DMD v(\d+\.\d+\.\d+)', version_output)
+    if version_regex:
+        return version_regex.group(1)
+    return None
 
 class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -691,10 +718,11 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,
                  full_version: T.Optional[str] = None,
-                 is_cross: bool = False):
+                 is_cross: bool = False, version_output: T.Optional[str] = None):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
+        DmdLikeCompilerMixin.__init__(self, dmd_frontend_version=find_ldc_dmd_frontend_version(version_output))
         self.id = 'llvm'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
@@ -752,6 +780,7 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
         DCompiler.__init__(self, exelist, version, for_machine, info, arch,
                            exe_wrapper=exe_wrapper, linker=linker,
                            full_version=full_version, is_cross=is_cross)
+        DmdLikeCompilerMixin.__init__(self, version)
         self.id = 'dmd'
         self.base_options = ['b_coverage', 'b_colorout', 'b_vscrt', 'b_ndebug']
 
