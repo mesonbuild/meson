@@ -1548,6 +1548,15 @@ class OrderedSet(T.MutableSet[_T]):
         if value in self.__container:
             del self.__container[value]
 
+    def move_to_end(self, value: _T, last: bool = True) -> None:
+        # Mypy does not know about move_to_end, because it is not part of MutableMapping
+        self.__container.move_to_end(value, last) # type: ignore
+
+    def pop(self, last: bool = True) -> _T:
+        # Mypy does not know about the last argument, because it is not part of MutableMapping
+        item, _ = self.__container.popitem(last)  # type: ignore
+        return item
+
     def update(self, iterable: T.Iterable[_T]) -> None:
         for item in iterable:
             self.__container[item] = None
