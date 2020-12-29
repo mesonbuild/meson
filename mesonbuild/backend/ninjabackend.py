@@ -890,6 +890,8 @@ int dummy;
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
+        if self.environment.coredata.compiler_options[target.for_machine]['cpp']['std'] != 'c++latest':
+            return False
         if not mesonlib.current_vs_supports_modules():
             return False
         if mesonlib.version_compare(cpp.version, '<19.28.28617'):
