@@ -116,8 +116,8 @@ class PackageDefinition:
         try:
             self.config = configparser.ConfigParser(interpolation=None)
             self.config.read(self.filename)
-        except configparser.Error:
-            raise WrapException('Failed to parse {}'.format(self.basename))
+        except configparser.Error as e:
+            raise WrapException('Failed to parse {}: {}'.format(self.basename, str(e)))
         self.parse_wrap_section()
         if self.type == 'redirect':
             # [wrap-redirect] have a `filename` value pointing to the real wrap
@@ -251,6 +251,9 @@ class Resolver:
             self.provided_programs.setdefault(k, v)
 
     def find_dep_provider(self, packagename: str) -> T.Optional[T.Union[str, T.List[str]]]:
+        # Python's ini parser converts all key values to lowercase.
+        # Thus the query name must also be in lower case.
+        packagename = packagename.lower()
         # Return value is in the same format as fallback kwarg:
         # ['subproject_name', 'variable_name'], or 'subproject_name'.
         wrap = self.provided_deps.get(packagename)
