@@ -1185,7 +1185,12 @@ class CMakeDependency(ExternalDependency):
             return None
 
         def process_paths(l: T.List[str]) -> T.Set[str]:
-            l = [x.split(':') for x in l]
+            if mesonlib.is_windows():
+                # Cannot split on ':' on Windows because its in the drive letter
+                l = [x.split(os.pathsep) for x in l]
+            else:
+                # https://github.com/mesonbuild/meson/issues/7294
+                l = [re.split(r':|;', x) for x in l]
             l = [x for sublist in l for x in sublist]
             return set(l)
 
@@ -1289,8 +1294,17 @@ class CMakeDependency(ExternalDependency):
             if search_lib_dirs(i):
                 return True
 
+        # Check PATH
+        system_env = []  # type: T.List[str]
+        for i in os.environ.get('PATH', '').split(os.pathsep):
+            if i.endswith('/bin') or i.endswith('\\bin'):
+                i = i[:-4]
+            if i.endswith('/sbin') or i.endswith('\\sbin'):
+                i = i[:-5]
+            system_env += [i]
+
         # Check the system paths
-        for i in self.cmakeinfo['module_paths']:
+        for i in self.cmakeinfo['module_paths'] + system_env:
             if find_module(i):
                 return True
 
