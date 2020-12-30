@@ -219,8 +219,12 @@ Exanple `test.json`:
 #### env
 
 The `env` key contains a dictionary which specifies additional
-environment variables to be set during the configure step of the test. `@ROOT@`
-is replaced with the absolute path of the source directory.
+environment variables to be set during the configure step of the test.
+
+There is some basic support for configuring the string with the `@<VAR>@` syntax:
+
+- `@ROOT@`: absolute path of the source directory
+- `@PATH@`: current value of the `PATH` env variable
 
 #### installed
 

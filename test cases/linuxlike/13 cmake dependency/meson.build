@@ -46,6 +46,7 @@ assert(depf2.found() == false, 'Invalid CMake targets should fail')
 depPrefEnv = dependency('cmMesonTestDep', required : true, method : 'cmake')
 depPrefEnv1 = dependency('cmMesonTestF1', required : true, method : 'cmake')
 depPrefEnv2 = dependency('cmMesonTestF2', required : true, method : 'cmake')
+depPrefEnv3 = dependency('cmMesonTestF3', required : true, method : 'cmake')
 
 # Try to find a dependency with a custom CMake module
 

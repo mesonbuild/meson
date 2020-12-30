@@ -653,6 +653,7 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
             env = test_def['env']
             for key, val in env.items():
                 val = val.replace('@ROOT@', t.path.resolve().as_posix())
+                val = val.replace('@PATH@', t.env.get('PATH', ''))
                 env[key] = val
 
         # Handle installed files
