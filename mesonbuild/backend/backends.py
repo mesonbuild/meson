@@ -677,11 +677,12 @@ class Backend:
 
         return extra_args
 
-    def get_target_external_deps(self, target):
+    def get_target_external_deps(self, target, static_only):
         deps = target.get_external_deps()
         transitive_deps = OrderedSet()
         for d in target.get_dependencies():
-            if isinstance(d, build.StaticLibrary):
+            if isinstance(d, build.StaticLibrary) or \
+               (not static_only and isinstance(d, build.SharedLibrary)):
                 transitive_deps.update(d.get_external_deps())
         if transitive_deps:
             deps += list(transitive_deps)
@@ -744,7 +745,7 @@ class Backend:
         # added while generating the link command.
         # NOTE: We must preserve the order in which external deps are
         # specified, so we reverse the list before iterating over it.
-        for dep in reversed(target.get_external_deps()):
+        for dep in reversed(self.get_target_external_deps(target, static_only=False)):
             if not dep.found():
                 continue
 

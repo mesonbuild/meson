@@ -2915,7 +2915,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
             commands += linker.get_target_link_args(target)
             # External deps must be last because target link libraries may depend on them.
-            for dep in self.get_target_external_deps(target):
+            for dep in self.get_target_external_deps(target, static_only=True):
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 commands.extend_preserving_lflags(linker.get_dependency_link_args(dep))

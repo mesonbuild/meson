@@ -1015,7 +1015,7 @@ class Vs2010Backend(backends.Backend):
 
         # Split compile args needed to find external dependencies
         # Link args are added while generating the link command
-        for d in reversed(target.get_external_deps()):
+        for d in reversed(self.get_target_external_deps(target, static_only=False)):
             # Cflags required by external deps might have UNIX-specific flags,
             # so filter them out if needed
             if isinstance(d, dependencies.OpenMPDependency):
@@ -1125,7 +1125,7 @@ class Vs2010Backend(backends.Backend):
             # Only non-static built targets need link args and link dependencies
             extra_link_args += target.link_args
             # External deps must be last because target link libraries may depend on them.
-            for dep in self.get_target_external_deps(target):
+            for dep in self.get_target_external_deps(target, static_only=True):
                 # Extend without reordering or de-dup to preserve `-L -l` sets
                 # https://github.com/mesonbuild/meson/issues/1718
                 if isinstance(dep, dependencies.OpenMPDependency):
