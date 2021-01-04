@@ -28,7 +28,7 @@ class Vs2019Backend(Vs2010Backend):
         if self.environment is not None:
             comps = self.environment.coredata.compilers.host
             if comps and all(c.id == 'clang-cl' for c in comps.values()):
-                self.platform_toolset = 'llvm'
+                self.platform_toolset = 'ClangCL'
             elif comps and all(c.id == 'intel-cl' for c in comps.values()):
                 c = list(comps.values())[0]
                 if c.version.startswith('19'):
