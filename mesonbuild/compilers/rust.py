@@ -17,11 +17,14 @@ import textwrap
 import typing as T
 
 from .. import coredata
-from ..mesonlib import EnvironmentException, MachineChoice, MesonException, Popen_safe
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, MesonException, Popen_safe,
+    OptionKey,
+)
 from .compilers import Compiler, rust_buildtype_args, clike_debug_args
 
 if T.TYPE_CHECKING:
-    from ..coredata import OptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..dependencies import ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment  # noqa: F401
@@ -52,9 +55,9 @@ class RustCompiler(Compiler):
                          linker=linker)
         self.exe_wrapper = exe_wrapper
         self.id = 'rustc'
-        self.base_options.append('b_colorout')
+        self.base_options.add(OptionKey('b_colorout'))
         if 'link' in self.linker.id:
-            self.base_options.append('b_vscrt')
+            self.base_options.add(OptionKey('b_vscrt'))
 
     def needs_static_linker(self) -> bool:
         return False
@@ -133,18 +136,20 @@ class RustCompiler(Compiler):
     # C compiler for dynamic linking, as such we invoke the C compiler's
     # use_linker_args method instead.
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
         return {
-            'std': coredata.UserComboOption(
+            key: coredata.UserComboOption(
                 'Rust Eddition to use',
                 ['none', '2015', '2018'],
                 'none',
             ),
         }
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('--edition=' + std.value)
         return args

@@ -22,7 +22,7 @@ from .executor import CMakeExecutor
 from .toolchain import CMakeToolchain, CMakeExecScope
 from .traceparser import CMakeTraceParser, CMakeGeneratorTarget
 from .. import mlog, mesonlib
-from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible
+from ..mesonlib import MachineChoice, OrderedSet, version_compare, path_is_in_root, relative_to_if_possible, OptionKey
 from ..mesondata import mesondata
 from ..compilers.compilers import lang_suffixes, header_suffixes, obj_suffixes, lib_suffixes, is_header
 from enum import Enum
@@ -383,7 +383,7 @@ class ConverterTarget:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                is_debug = self.env.coredata.get_builtin_option('debug');
+                is_debug = self.env.coredata.get_option(OptionKey('debug'));
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
@@ -598,10 +598,10 @@ class ConverterTarget:
 
     @lru_cache(maxsize=None)
     def _all_lang_stds(self, lang: str) -> T.List[str]:
-        lang_opts = self.env.coredata.compiler_options.build.get(lang, None)
-        if not lang_opts or 'std' not in lang_opts:
+        try:
+            res = self.env.coredata.options[OptionKey('std', machine=MachineChoice.BUILD, lang=lang)].choices
+        except KeyError:
             return []
-        res = lang_opts['std'].choices
 
         # TODO: Get rid of this once we have propper typing for options
         assert isinstance(res, list)

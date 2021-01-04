@@ -31,11 +31,12 @@ from .mixins.elbrus import ElbrusCompiler
 from .mixins.pgi import PGICompiler
 
 from mesonbuild.mesonlib import (
-    version_compare, EnvironmentException, MesonException, MachineChoice, LibType
+    version_compare, EnvironmentException, MesonException, MachineChoice,
+    LibType, OptionKey,
 )
 
 if T.TYPE_CHECKING:
-    from ..coredata import OptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..dependencies import Dependency, ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
@@ -71,7 +72,7 @@ class FortranCompiler(CLikeCompiler, Compiler):
 
         source_name.write_text('print *, "Fortran compilation is working."; end')
 
-        extra_flags = []
+        extra_flags: T.List[str] = []
         extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
         extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         extra_flags += self.get_always_args()
@@ -150,10 +151,11 @@ class FortranCompiler(CLikeCompiler, Compiler):
     def has_multi_link_arguments(self, args: T.List[str], env: 'Environment') -> T.Tuple[bool, bool]:
         return self._has_multi_link_arguments(args, env, 'stop; end program')
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
         opts.update({
-            'std': coredata.UserComboOption(
+            key: coredata.UserComboOption(
                 'Fortran language standard to use',
                 ['none'],
                 'none',
@@ -179,19 +181,21 @@ class GnuFortranCompiler(GnuCompiler, FortranCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic', '-fimplicit-none']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
         fortran_stds = ['legacy', 'f95', 'f2003']
         if version_compare(self.version, '>=4.4.0'):
             fortran_stds += ['f2008']
         if version_compare(self.version, '>=8.0.0'):
             fortran_stds += ['f2018']
-        opts['std'].choices = ['none'] + fortran_stds  # type: ignore
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none'] + fortran_stds
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         if std.value != 'none':
             args.append('-std=' + std.value)
         return args
@@ -313,14 +317,16 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['-warn', 'unused'],
                           '3': ['-warn', 'all']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
-        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
             args.append('-stand=' + stds[std.value])
@@ -363,14 +369,16 @@ class IntelClFortranCompiler(IntelVisualStudioLikeCompiler, FortranCompiler):
                           '2': default_warn_args + ['/warn:unused'],
                           '3': ['/warn:all']}
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = FortranCompiler.get_options(self)
-        opts['std'].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']  # type: ignore
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'legacy', 'f95', 'f2003', 'f2008', 'f2018']
         return opts
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
-        std = options['std']
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        std = options[key]
         stds = {'legacy': 'none', 'f95': 'f95', 'f2003': 'f03', 'f2008': 'f08', 'f2018': 'f18'}
         if std.value != 'none':
             args.append('/stand:' + stds[std.value])

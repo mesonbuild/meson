@@ -19,7 +19,7 @@ from .interpreter import AstInterpreter
 from .visitor import AstVisitor
 from .. import compilers, environment, mesonlib, optinterpreter
 from .. import coredata as cdata
-from ..mesonlib import MachineChoice
+from ..mesonlib import MachineChoice, OptionKey
 from ..interpreterbase import InvalidArguments, TYPE_nvar
 from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
@@ -65,7 +65,7 @@ class IntrospectionInterpreter(AstInterpreter):
         self.coredata = self.environment.get_coredata()
         self.option_file = os.path.join(self.source_root, self.subdir, 'meson_options.txt')
         self.backend = backend
-        self.default_options = {'backend': self.backend}
+        self.default_options = {OptionKey('backend'): self.backend}
         self.project_data = {}    # type: T.Dict[str, T.Any]
         self.targets = []         # type: T.List[T.Dict[str, T.Any]]
         self.dependencies = []    # type: T.List[T.Dict[str, T.Any]]
@@ -103,11 +103,11 @@ class IntrospectionInterpreter(AstInterpreter):
         if os.path.exists(self.option_file):
             oi = optinterpreter.OptionInterpreter(self.subproject)
             oi.process(self.option_file)
-            self.coredata.merge_user_options(oi.options)
+            self.coredata.update_project_options(oi.options)
 
         def_opts = self.flatten_args(kwargs.get('default_options', []))
         _project_default_options = mesonlib.stringlistify(def_opts)
-        self.project_default_options = cdata.create_options_dict(_project_default_options)
+        self.project_default_options = cdata.create_options_dict(_project_default_options, self.subproject)
         self.default_options.update(self.project_default_options)
         self.coredata.set_default_options(self.default_options, self.subproject, self.environment)
 
@@ -125,7 +125,7 @@ class IntrospectionInterpreter(AstInterpreter):
                         self.do_subproject(i)
 
         self.coredata.init_backend_options(self.backend)
-        options = {k: v for k, v in self.environment.raw_options.items() if k.startswith('backend_')}
+        options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
 
         self.coredata.set_options(options)
         self._add_languages(proj_langs, MachineChoice.HOST)
@@ -269,7 +269,7 @@ class IntrospectionInterpreter(AstInterpreter):
         return new_target
 
     def build_library(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> T.Optional[T.Dict[str, T.Any]]:
-        default_library = self.coredata.get_builtin_option('default_library')
+        default_library = self.coredata.get_option(OptionKey('default_library'))
         if default_library == 'shared':
             return self.build_target(node, args, kwargs, SharedLibrary)
         elif default_library == 'static':

@@ -31,11 +31,13 @@ from .. import mesonlib
 from .. import mlog
 from ..compilers import languages_using_ldflags
 from ..mesonlib import (
-    File, MachineChoice, MesonException, OrderedSet, OptionOverrideProxy,
-    classify_unity_sources, unholder
+    File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
+    classify_unity_sources, unholder, OptionKey
 )
 
 if T.TYPE_CHECKING:
+    from ..arglist import CompilerArgs
+    from ..compilers import Compiler
     from ..interpreter import Interpreter, Test
 
 
@@ -209,24 +211,21 @@ class Backend:
     def get_target_filename_abs(self, target):
         return os.path.join(self.environment.get_build_dir(), self.get_target_filename(target))
 
-    def get_base_options_for_target(self, target):
+    def get_base_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
         return OptionOverrideProxy(target.option_overrides_base,
-                                   self.environment.coredata.builtins,
-                                   self.environment.coredata.base_options)
+                                   {k: v for k, v in self.environment.coredata.options.items()
+                                    if k.type in {OptionType.BASE, OptionType.BUILTIN}})
 
-    def get_compiler_options_for_target(self, target):
-        comp_reg = self.environment.coredata.compiler_options[target.for_machine]
+    def get_compiler_options_for_target(self, target: build.BuildTarget) -> OptionOverrideProxy:
+        comp_reg = {k: v for k, v in self.environment.coredata.options.items() if k.is_compiler()}
         comp_override = target.option_overrides_compiler
-        return {
-            lang: OptionOverrideProxy(comp_override[lang], comp_reg[lang])
-            for lang in set(comp_reg.keys()) | set(comp_override.keys())
-        }
+        return OptionOverrideProxy(comp_override, comp_reg)
 
-    def get_option_for_target(self, option_name, target):
+    def get_option_for_target(self, option_name: 'OptionKey', target: build.BuildTarget):
         if option_name in target.option_overrides_base:
             override = target.option_overrides_base[option_name]
             return self.environment.coredata.validate_option_value(option_name, override)
-        return self.environment.coredata.get_builtin_option(option_name, target.subproject)
+        return self.environment.coredata.get_option(option_name.evolve(subproject=target.subproject))
 
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
@@ -251,7 +250,7 @@ class Backend:
 
     @lru_cache(maxsize=None)
     def get_target_dir(self, target):
-        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
+        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             dirname = target.get_subdir()
         else:
             dirname = 'meson-out'
@@ -300,7 +299,7 @@ class Backend:
         abs_files = []
         result = []
         compsrcs = classify_unity_sources(target.compilers.values(), unity_src)
-        unity_size = self.get_option_for_target('unity_size', target)
+        unity_size = self.get_option_for_target(OptionKey('unity_size'), target)
 
         def init_language_file(suffix, unity_file_number):
             unity_src = self.get_unity_source_file(target, suffix, unity_file_number)
@@ -542,7 +541,7 @@ class Backend:
         return paths
 
     def determine_rpath_dirs(self, target):
-        if self.environment.coredata.get_builtin_option('layout') == 'mirror':
+        if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
             result = target.get_link_dep_subdirs()
         else:
             result = OrderedSet()
@@ -621,7 +620,8 @@ class Backend:
         if self.is_unity(extobj.target):
             compsrcs = classify_unity_sources(extobj.target.compilers.values(), sources)
             sources = []
-            unity_size = self.get_option_for_target('unity_size', extobj.target)
+            unity_size = self.get_option_for_target(OptionKey('unity_size'), extobj.target)
+
             for comp, srcs in compsrcs.items():
                 for i in range(len(srcs) // unity_size + 1):
                     osrc = self.get_unity_source_file(extobj.target,
@@ -672,13 +672,13 @@ class Backend:
 
         return extra_args
 
-    def generate_basic_compiler_args(self, target, compiler, no_warn_args=False):
+    def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler', no_warn_args: bool = False) -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
         # starting from hard-coded defaults followed by build options and so on.
         commands = compiler.compiler_args()
 
-        copt_proxy = self.get_compiler_options_for_target(target)[compiler.language]
+        copt_proxy = self.get_compiler_options_for_target(target)
         # First, the trivial ones that are impossible to override.
         #
         # Add -nostdinc/-nostdinc++ if needed; can't be overridden
@@ -690,20 +690,20 @@ class Backend:
         if no_warn_args:
             commands += compiler.get_no_warn_args()
         else:
-            commands += compiler.get_warn_args(self.get_option_for_target('warning_level', target))
+            commands += compiler.get_warn_args(self.get_option_for_target(OptionKey('warning_level'), target))
         # Add -Werror if werror=true is set in the build options set on the
         # command-line or default_options inside project(). This only sets the
         # action to be done for warnings if/when they are emitted, so it's ok
         # to set it after get_no_warn_args() or get_warn_args().
-        if self.get_option_for_target('werror', target):
+        if self.get_option_for_target(OptionKey('werror'), target):
             commands += compiler.get_werror_args()
         # Add compile args for c_* or cpp_* build options set on the
         # command-line or default_options inside project().
         commands += compiler.get_option_compile_args(copt_proxy)
         # Add buildtype args: optimization level, debugging, etc.
-        commands += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
-        commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
-        commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
+        commands += compiler.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
+        commands += compiler.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
+        commands += compiler.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
         # MSVC debug builds have /ZI argument by default and /Zi is added with debug flag
         # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
         if ('/ZI' in commands) and ('/Zi' in commands):
@@ -1022,7 +1022,7 @@ class Backend:
         return libs
 
     def is_unity(self, target):
-        optval = self.get_option_for_target('unity', target)
+        optval = self.get_option_for_target(OptionKey('unity'), target)
         if optval == 'on' or (optval == 'subprojects' and target.subproject != ''):
             return True
         return False
@@ -1183,7 +1183,7 @@ class Backend:
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),
                         strip_bin,
-                        self.environment.coredata.get_builtin_option('install_umask'),
+                        self.environment.coredata.get_option(OptionKey('install_umask')),
                         self.environment.get_build_command() + ['introspect'],
                         self.environment.coredata.version)
         self.generate_depmf_install(d)
@@ -1228,7 +1228,7 @@ class Backend:
                 #
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
-                should_strip = not isinstance(t, build.StaticLibrary) and self.get_option_for_target('strip', t)
+                should_strip = not isinstance(t, build.StaticLibrary) and self.get_option_for_target(OptionKey('strip'), t)
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:

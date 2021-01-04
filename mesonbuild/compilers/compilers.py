@@ -25,7 +25,7 @@ from .. import mesonlib
 from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof
+    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
 from ..envconfig import (
     get_env_var
@@ -35,7 +35,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import OptionDictType
+    from ..coredata import OptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker  # noqa: F401
@@ -265,36 +265,32 @@ cuda_debug_args = {False: [],
 clike_debug_args = {False: [],
                     True: ['-g']}  # type: T.Dict[bool, T.List[str]]
 
-base_options = {'b_pch': coredata.UserBooleanOption('Use precompiled headers', True),
-                'b_lto': coredata.UserBooleanOption('Use link time optimization', False),
-                'b_sanitize': coredata.UserComboOption('Code sanitizer to use',
-                                                       ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
-                                                       'none'),
-                'b_lundef': coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
-                'b_asneeded': coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
-                'b_pgo': coredata.UserComboOption('Use profile guided optimization',
-                                                  ['off', 'generate', 'use'],
-                                                  'off'),
-                'b_coverage': coredata.UserBooleanOption('Enable coverage tracking.',
-                                                         False),
-                'b_colorout': coredata.UserComboOption('Use colored output',
-                                                       ['auto', 'always', 'never'],
-                                                       'always'),
-                'b_ndebug': coredata.UserComboOption('Disable asserts',
-                                                     ['true', 'false', 'if-release'], 'false'),
-                'b_staticpic': coredata.UserBooleanOption('Build static libraries as position independent',
-                                                          True),
-                'b_pie': coredata.UserBooleanOption('Build executables as position independent',
-                                                    False),
-                'b_bitcode': coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)',
-                                                        False),
-                'b_vscrt': coredata.UserComboOption('VS run-time library type to use.',
-                                                    ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
-                                                    'from_buildtype'),
-                }  # type: OptionDictType
+base_options: 'KeyedOptionDictType' = {
+    OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
+    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
+    OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
+                                                      ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
+                                                      'none'),
+    OptionKey('b_lundef'): coredata.UserBooleanOption('Use -Wl,--no-undefined when linking', True),
+    OptionKey('b_asneeded'): coredata.UserBooleanOption('Use -Wl,--as-needed when linking', True),
+    OptionKey('b_pgo'): coredata.UserComboOption('Use profile guided optimization',
+                                                 ['off', 'generate', 'use'],
+                                                 'off'),
+    OptionKey('b_coverage'): coredata.UserBooleanOption('Enable coverage tracking.', False),
+    OptionKey('b_colorout'): coredata.UserComboOption('Use colored output',
+                                                      ['auto', 'always', 'never'],
+                                                      'always'),
+    OptionKey('b_ndebug'): coredata.UserComboOption('Disable asserts', ['true', 'false', 'if-release'], 'false'),
+    OptionKey('b_staticpic'): coredata.UserBooleanOption('Build static libraries as position independent', True),
+    OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
+    OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
+    OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
+                                                   ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
+                                                   'from_buildtype'),
+}
 
-def option_enabled(boptions: T.List[str], options: 'OptionDictType',
-                   option: str) -> bool:
+def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
+                   option: OptionKey) -> bool:
     try:
         if option not in boptions:
             return False
@@ -304,23 +300,23 @@ def option_enabled(boptions: T.List[str], options: 'OptionDictType',
     except KeyError:
         return False
 
-def get_base_compile_args(options: 'OptionDictType', compiler: 'Compiler') -> T.List[str]:
+def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
     args = []  # type T.List[str]
     try:
-        if options['b_lto'].value:
+        if options[OptionKey('b_lto')].value:
             args.extend(compiler.get_lto_compile_args())
     except KeyError:
         pass
     try:
-        args += compiler.get_colorout_args(options['b_colorout'].value)
+        args += compiler.get_colorout_args(options[OptionKey('b_colorout')].value)
     except KeyError:
         pass
     try:
-        args += compiler.sanitizer_compile_args(options['b_sanitize'].value)
+        args += compiler.sanitizer_compile_args(options[OptionKey('b_sanitize')].value)
     except KeyError:
         pass
     try:
-        pgo_val = options['b_pgo'].value
+        pgo_val = options[OptionKey('b_pgo')].value
         if pgo_val == 'generate':
             args.extend(compiler.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -328,23 +324,23 @@ def get_base_compile_args(options: 'OptionDictType', compiler: 'Compiler') -> T.
     except KeyError:
         pass
     try:
-        if options['b_coverage'].value:
+        if options[OptionKey('b_coverage')].value:
             args += compiler.get_coverage_args()
     except KeyError:
         pass
     try:
-        if (options['b_ndebug'].value == 'true' or
-                (options['b_ndebug'].value == 'if-release' and
-                 options['buildtype'].value in {'release', 'plain'})):
+        if (options[OptionKey('b_ndebug')].value == 'true' or
+                (options[OptionKey('b_ndebug')].value == 'if-release' and
+                 options[OptionKey('buildtype')].value in {'release', 'plain'})):
             args += compiler.get_disable_assert_args()
     except KeyError:
         pass
     # This does not need a try...except
-    if option_enabled(compiler.base_options, options, 'b_bitcode'):
+    if option_enabled(compiler.base_options, options, OptionKey('b_bitcode')):
         args.append('-fembed-bitcode')
     try:
-        crt_val = options['b_vscrt'].value
-        buildtype = options['buildtype'].value
+        crt_val = options[OptionKey('b_vscrt')].value
+        buildtype = options[OptionKey('buildtype')].value
         try:
             args += compiler.get_crt_compile_args(crt_val, buildtype)
         except AttributeError:
@@ -353,20 +349,20 @@ def get_base_compile_args(options: 'OptionDictType', compiler: 'Compiler') -> T.
         pass
     return args
 
-def get_base_link_args(options: 'OptionDictType', linker: 'Compiler',
+def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
                        is_shared_module: bool) -> T.List[str]:
     args = []  # type: T.List[str]
     try:
-        if options['b_lto'].value:
+        if options[OptionKey('b_lto')].value:
             args.extend(linker.get_lto_link_args())
     except KeyError:
         pass
     try:
-        args += linker.sanitizer_link_args(options['b_sanitize'].value)
+        args += linker.sanitizer_link_args(options[OptionKey('b_sanitize')].value)
     except KeyError:
         pass
     try:
-        pgo_val = options['b_pgo'].value
+        pgo_val = options[OptionKey('b_pgo')].value
         if pgo_val == 'generate':
             args.extend(linker.get_profile_generate_args())
         elif pgo_val == 'use':
@@ -374,13 +370,13 @@ def get_base_link_args(options: 'OptionDictType', linker: 'Compiler',
     except KeyError:
         pass
     try:
-        if options['b_coverage'].value:
+        if options[OptionKey('b_coverage')].value:
             args += linker.get_coverage_link_args()
     except KeyError:
         pass
 
-    as_needed = option_enabled(linker.base_options, options, 'b_asneeded')
-    bitcode = option_enabled(linker.base_options, options, 'b_bitcode')
+    as_needed = option_enabled(linker.base_options, options, OptionKey('b_asneeded'))
+    bitcode = option_enabled(linker.base_options, options, OptionKey('b_bitcode'))
     # Shared modules cannot be built with bitcode_bundle because
     # -bitcode_bundle is incompatible with -undefined and -bundle
     if bitcode and not is_shared_module:
@@ -394,14 +390,14 @@ def get_base_link_args(options: 'OptionDictType', linker: 'Compiler',
     if not bitcode:
         args.extend(linker.headerpad_args())
         if (not is_shared_module and
-                option_enabled(linker.base_options, options, 'b_lundef')):
+                option_enabled(linker.base_options, options, OptionKey('b_lundef'))):
             args.extend(linker.no_undefined_link_args())
         else:
             args.extend(linker.get_allow_undefined_link_args())
 
     try:
-        crt_val = options['b_vscrt'].value
-        buildtype = options['buildtype'].value
+        crt_val = options[OptionKey('b_vscrt')].value
+        buildtype = options[OptionKey('buildtype')].value
         try:
             args += linker.get_crt_link_args(crt_val, buildtype)
         except AttributeError:
@@ -477,7 +473,7 @@ class Compiler(metaclass=abc.ABCMeta):
         self.version = version
         self.full_version = full_version
         self.for_machine = for_machine
-        self.base_options = []  # type: T.List[str]
+        self.base_options: T.Set[OptionKey] = set()
         self.linker = linker
         self.info = info
         self.is_cross = is_cross
@@ -596,13 +592,13 @@ class Compiler(metaclass=abc.ABCMeta):
                                      is_cross: bool) -> T.List[str]:
         return self.linker.get_args_from_envvars(for_machine, is_cross)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         return {}
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return []
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.linker.get_option_args(options)
 
     def check_header(self, hname: str, prefix: str, env: 'Environment', *,
@@ -826,7 +822,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_std_shared_lib_link_args(self) -> T.List[str]:
         return self.linker.get_std_shared_lib_args()
 
-    def get_std_shared_module_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_std_shared_module_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self.linker.get_std_shared_module_args(options)
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
@@ -1243,17 +1239,19 @@ def get_args_from_envvars(lang: str,
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       is_cross: bool) -> 'OptionDictType':
+                       is_cross: bool) -> 'KeyedOptionDictType':
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
-    opts = {
-        'args': coredata.UserArrayOption(
+    argkey = OptionKey('args', lang=lang, machine=for_machine)
+    largkey = argkey.evolve('link_args')
+    opts: 'KeyedOptionDictType' = {
+        argkey: coredata.UserArrayOption(
             description + ' compiler',
             [], split_args=True, user_input=True, allow_dups=True),
-        'link_args': coredata.UserArrayOption(
+        largkey: coredata.UserArrayOption(
             description + ' linker',
             [], split_args=True, user_input=True, allow_dups=True),
-    }  # type: OptionDictType
+    }
 
     # Get from env vars.
     compile_args, link_args = get_args_from_envvars(
@@ -1262,10 +1260,7 @@ def get_global_options(lang: str,
         is_cross,
         comp.INVOKES_LINKER)
 
-    for k, o in opts.items():
-        if k == 'args':
-            o.set_value(compile_args)
-        elif k == 'link_args':
-            o.set_value(link_args)
+    opts[argkey].set_value(compile_args)
+    opts[largkey].set_value(link_args)
 
     return opts

@@ -43,10 +43,13 @@ from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unholder,
 )
-from ..mesonlib import get_compiler_for_source, has_path_sep
+from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
 from ..build import InvalidArguments
 from ..interpreter import Interpreter
+
+if T.TYPE_CHECKING:
+    from ..linkers import StaticLinker
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -514,7 +517,7 @@ int dummy;
             outfile.write('# Do not edit by hand.\n\n')
             outfile.write('ninja_required_version = 1.8.2\n\n')
 
-            num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+            num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
             if num_pools > 0:
                 outfile.write('''pool link_pool
   depth = {}
@@ -534,8 +537,9 @@ int dummy;
             self.add_build_comment(NinjaComment('Install rules'))
             self.generate_install()
             self.generate_dist()
-            if 'b_coverage' in self.environment.coredata.base_options and \
-                    self.environment.coredata.base_options['b_coverage'].value:
+            key = OptionKey('b_coverage')
+            if (key in self.environment.coredata.options and
+                    self.environment.coredata.options[key].value):
                 self.add_build_comment(NinjaComment('Coverage rules'))
                 self.generate_coverage_rules()
             self.add_build_comment(NinjaComment('Suffix'))
@@ -811,7 +815,7 @@ int dummy;
             source2object[s] = o
             obj_list.append(o)
 
-        use_pch = self.environment.coredata.base_options.get('b_pch', False)
+        use_pch = self.environment.coredata.options.get(OptionKey('b_pch'))
         if use_pch and target.has_pch():
             pch_objects = self.generate_pch(target, header_deps=header_deps)
         else:
@@ -890,7 +894,7 @@ int dummy;
         cpp = target.compilers['cpp']
         if cpp.get_id() != 'msvc':
             return False
-        if self.environment.coredata.compiler_options[target.for_machine]['cpp']['std'] != 'c++latest':
+        if self.environment.coredata.options[OptionKey('std', machine=target.for_machine, lang='cpp')] != 'latest':
             return False
         if not mesonlib.current_vs_supports_modules():
             return False
@@ -1124,9 +1128,9 @@ int dummy;
     def generate_tests(self):
         self.serialize_tests()
         cmd = self.environment.get_build_command(True) + ['test', '--no-rebuild']
-        if not self.environment.coredata.get_builtin_option('stdsplit'):
+        if not self.environment.coredata.get_option(OptionKey('stdsplit')):
             cmd += ['--no-stdsplit']
-        if self.environment.coredata.get_builtin_option('errorlogs'):
+        if self.environment.coredata.get_option(OptionKey('errorlogs')):
             cmd += ['--print-errorlogs']
         elem = NinjaBuildElement(self.all_outputs, 'meson-test', 'CUSTOM_COMMAND', ['all', 'PHONY'])
         elem.add_item('COMMAND', cmd)
@@ -1294,8 +1298,8 @@ int dummy;
             args.append(a)
         return args, deps
 
-    def generate_cs_target(self, target):
-        buildtype = self.get_option_for_target('buildtype', target)
+    def generate_cs_target(self, target: build.BuildTarget):
+        buildtype = self.get_option_for_target(OptionKey('buildtype'), target)
         fname = target.get_filename()
         outname_rel = os.path.join(self.get_target_dir(target), fname)
         src_list = target.get_sources()
@@ -1304,8 +1308,8 @@ int dummy;
         deps = []
         commands = compiler.compiler_args(target.extra_args.get('cs', []))
         commands += compiler.get_buildtype_args(buildtype)
-        commands += compiler.get_optimization_args(self.get_option_for_target('optimization', target))
-        commands += compiler.get_debug_args(self.get_option_for_target('debug', target))
+        commands += compiler.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
+        commands += compiler.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
         if isinstance(target, build.Executable):
             commands.append('-target:exe')
         elif isinstance(target, build.SharedLibrary):
@@ -1346,7 +1350,7 @@ int dummy;
 
     def determine_single_java_compile_args(self, target, compiler):
         args = []
-        args += compiler.get_buildtype_args(self.get_option_for_target('buildtype', target))
+        args += compiler.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
         args += self.build.get_global_args(compiler, target.for_machine)
         args += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         args += target.get_java_args()
@@ -1509,7 +1513,7 @@ int dummy;
             valac_outputs.append(vala_c_file)
 
         args = self.generate_basic_compiler_args(target, valac)
-        args += valac.get_colorout_args(self.environment.coredata.base_options.get('b_colorout').value)
+        args += valac.get_colorout_args(self.environment.coredata.options.get(OptionKey('b_colorout')).value)
         # Tell Valac to output everything in our private directory. Sadly this
         # means it will also preserve the directory components of Vala sources
         # found inside the build tree (generated sources).
@@ -1613,12 +1617,12 @@ int dummy;
             for a in rustc.linker.get_always_args():
                 args += ['-C', 'link-arg={}'.format(a)]
 
-        opt_proxy = self.get_compiler_options_for_target(target)[rustc.language]
+        opt_proxy = self.get_compiler_options_for_target(target)
 
         args += ['--crate-name', target.name]
-        args += rustc.get_buildtype_args(self.get_option_for_target('buildtype', target))
-        args += rustc.get_debug_args(self.get_option_for_target('debug', target))
-        args += rustc.get_optimization_args(self.get_option_for_target('optimization', target))
+        args += rustc.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
+        args += rustc.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
+        args += rustc.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
         args += rustc.get_option_compile_args(opt_proxy)
         args += self.build.get_global_args(rustc, target.for_machine)
         args += self.build.get_project_args(rustc, target.subproject, target.for_machine)
@@ -1769,8 +1773,8 @@ int dummy;
                 raise InvalidArguments('Swift target {} contains a non-swift source file.'.format(target.get_basename()))
         os.makedirs(self.get_target_private_dir_abs(target), exist_ok=True)
         compile_args = swiftc.get_compile_only_args()
-        compile_args += swiftc.get_optimization_args(self.get_option_for_target('optimization', target))
-        compile_args += swiftc.get_debug_args(self.get_option_for_target('debug', target))
+        compile_args += swiftc.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
+        compile_args += swiftc.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
         compile_args += swiftc.get_module_args(module_name)
         compile_args += self.build.get_project_args(swiftc, target.subproject, target.for_machine)
         compile_args += self.build.get_global_args(swiftc, target.for_machine)
@@ -1846,7 +1850,7 @@ int dummy;
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
     def generate_static_link_rules(self):
-        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+        num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
         if 'java' in self.environment.coredata.compilers.host:
             self.generate_java_link()
         for for_machine in MachineChoice:
@@ -1879,7 +1883,7 @@ int dummy;
                                     extra=pool))
 
     def generate_dynamic_link_rules(self):
-        num_pools = self.environment.coredata.backend_options['backend_max_links'].value
+        num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
@@ -2495,7 +2499,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += self.get_compile_debugfile_args(compiler, target, rel_obj)
 
         # PCH handling
-        if self.environment.coredata.base_options.get('b_pch', False):
+        if self.environment.coredata.options.get(OptionKey('b_pch')):
             commands += self.get_pch_include_args(compiler, target)
             pchlist = target.get_pch(compiler.language)
         else:
@@ -2695,7 +2699,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 commands += linker.get_pie_link_args()
         elif isinstance(target, build.SharedLibrary):
             if isinstance(target, build.SharedModule):
-                options = self.environment.coredata.base_options
+                options = self.environment.coredata.options
                 commands += linker.get_std_shared_module_link_args(options)
             else:
                 commands += linker.get_std_shared_lib_link_args()
@@ -2831,7 +2835,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(elem)
         return [prelink_name]
 
-    def generate_link(self, target, outname, obj_list, linker, extra_args=None, stdlib_args=None):
+    def generate_link(self, target: build.BuildTarget, outname, obj_list, linker: T.Union['Compiler', 'StaticLinker'], extra_args=None, stdlib_args=None):
         extra_args = extra_args if extra_args is not None else []
         stdlib_args = stdlib_args if stdlib_args is not None else []
         implicit_outs = []
@@ -2866,9 +2870,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Add things like /NOLOGO; usually can't be overridden
         commands += linker.get_linker_always_args()
         # Add buildtype linker args: optimization level, etc.
-        commands += linker.get_buildtype_linker_args(self.get_option_for_target('buildtype', target))
+        commands += linker.get_buildtype_linker_args(self.get_option_for_target(OptionKey('buildtype'), target))
         # Add /DEBUG and the pdb filename when using MSVC
-        if self.get_option_for_target('debug', target):
+        if self.get_option_for_target(OptionKey('debug'), target):
             commands += self.get_link_debugfile_args(linker, target, outname)
             debugfile = self.get_link_debugfile_name(linker, target, outname)
             if debugfile is not None:
@@ -2928,14 +2932,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # to be after all internal and external libraries so that unresolved
         # symbols from those can be found here. This is needed when the
         # *_winlibs that we want to link to are static mingw64 libraries.
-        if hasattr(linker, 'get_language'):
+        if isinstance(linker, Compiler):
             # The static linker doesn't know what language it is building, so we
             # don't know what option. Fortunately, it doesn't care to see the
             # language-specific options either.
             #
             # We shouldn't check whether we are making a static library, because
             # in the LTO case we do use a real compiler here.
-            commands += linker.get_option_link_args(self.environment.coredata.compiler_options[target.for_machine][linker.get_language()])
+            commands += linker.get_option_link_args(self.environment.coredata.options)
 
         dep_targets = []
         dep_targets.extend(self.guess_external_link_dependencies(linker, target, commands, internal))
@@ -3029,8 +3033,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def get_user_option_args(self):
         cmds = []
-        for (k, v) in self.environment.coredata.user_options.items():
-            cmds.append('-D' + k + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
+        for (k, v) in self.environment.coredata.options.items():
+            cmds.append('-D' + str(k) + '=' + (v.value if isinstance(v.value, str) else str(v.value).lower()))
         # The order of these arguments must be the same between runs of Meson
         # to ensure reproducible output. The order we pass them shouldn't
         # affect behavior in any other way.
@@ -3152,8 +3156,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ctlist:
             elem.add_dep(self.generate_custom_target_clean(ctlist))
 
-        if 'b_coverage' in self.environment.coredata.base_options and \
-           self.environment.coredata.base_options['b_coverage'].value:
+        if OptionKey('b_coverage') in self.environment.coredata.options and \
+           self.environment.coredata.options[OptionKey('b_coverage')].value:
             self.generate_gcov_clean()
             elem.add_dep('clean-gcda')
             elem.add_dep('clean-gcno')

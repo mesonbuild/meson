@@ -137,7 +137,7 @@ option_types = {'string': string_parser,
 
 class OptionInterpreter:
     def __init__(self, subproject: str) -> None:
-        self.options: T.Dict[str, coredata.UserOption] = {}
+        self.options: 'coredata.KeyedOptionDictType' = {}
         self.subproject = subproject
 
     def process(self, option_file: str) -> None:
@@ -227,8 +227,7 @@ class OptionInterpreter:
             raise OptionException('Option names can only contain letters, numbers or dashes.')
         if is_invalid_name(opt_name):
             raise OptionException('Option name %s is reserved.' % opt_name)
-        if self.subproject != '':
-            opt_name = self.subproject + ':' + opt_name
+        key = mesonlib.OptionKey(opt_name, self.subproject)
 
         if 'yield' in kwargs:
             FeatureNew.single_use('option yield', '0.45.0', self.subproject)
@@ -248,4 +247,4 @@ class OptionInterpreter:
         opt = option_types[opt_type](opt_name, description, kwargs)
         if opt.description == '':
             opt.description = opt_name
-        self.options[opt_name] = opt
+        self.options[key] = opt

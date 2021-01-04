@@ -18,13 +18,16 @@ import typing as T
 
 from .. import coredata
 from .. import mlog
-from ..mesonlib import EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy, is_windows, LibType
+from ..mesonlib import (
+    EnvironmentException, MachineChoice, Popen_safe, OptionOverrideProxy,
+    is_windows, LibType, OptionKey,
+)
 from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
                         cuda_debug_args)
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import OptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..dependencies import Dependency, ExternalProgram
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
@@ -195,24 +198,26 @@ class CudaCompiler(Compiler):
         }}'''
         return self.compiles(t.format_map(fargs), env, extra_args=extra_args, dependencies=dependencies)
 
-    def get_options(self) -> 'OptionDictType':
+    def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
-        opts.update({'std': coredata.UserComboOption('C++ language standard to use with cuda',
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts.update({key: coredata.UserComboOption('C++ language standard to use with cuda',
                                                      ['none', 'c++03', 'c++11', 'c++14'],
                                                      'none')})
         return opts
 
-    def _to_host_compiler_options(self, options: 'OptionDictType') -> 'OptionDictType':
+    def _to_host_compiler_options(self, options: 'KeyedOptionDictType') -> 'KeyedOptionDictType':
         overrides = {name: opt.value for name, opt in options.items()}
         return OptionOverrideProxy(overrides, self.host_compiler.get_options())
 
-    def get_option_compile_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         args = []
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
         if not is_windows():
-            std = options['std']
+            key = OptionKey('std', machine=self.for_machine, lang=self.language)
+            std = options[key]
             if std.value != 'none':
                 args.append('--std=' + std.value)
 
@@ -229,7 +234,7 @@ class CudaCompiler(Compiler):
             cooked.append(arg)
         return cls._to_host_flags(cooked, _Phase.LINKER)
 
-    def get_option_link_args(self, options: 'OptionDictType') -> T.List[str]:
+    def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
         return self._cook_link_args(self.host_compiler.get_option_link_args(self._to_host_compiler_options(options)))
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,

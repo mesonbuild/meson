@@ -35,6 +35,7 @@ from mesonbuild import mtest
 from mesonbuild import mlog
 from mesonbuild.environment import Environment, detect_ninja
 from mesonbuild.coredata import backendlist, version as meson_version
+from mesonbuild.mesonlib import OptionKey
 
 NINJA_1_9_OR_NEWER = False
 NINJA_CMD = None
@@ -127,7 +128,7 @@ def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
-    env.coredata.compiler_options.host['c']['args'] = FakeCompilerOptions()
+    env.coredata.options[OptionKey('args', lang='c')] = FakeCompilerOptions()
     env.machines.host.cpu_family = 'x86_64' # Used on macOS inside find_library
     return env
 

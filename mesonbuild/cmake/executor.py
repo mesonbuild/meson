@@ -23,7 +23,7 @@ import re
 import os
 
 from .. import mlog
-from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, is_windows
+from ..mesonlib import PerMachine, Popen_safe, version_compare, MachineChoice, is_windows, OptionKey
 from ..envconfig import get_env_var
 
 if T.TYPE_CHECKING:
@@ -62,7 +62,7 @@ class CMakeExecutor:
             self.cmakebin = None
             return
 
-        self.prefix_paths = self.environment.coredata.builtins_per_machine[self.for_machine]['cmake_prefix_path'].value
+        self.prefix_paths = self.environment.coredata.options[OptionKey('cmake_prefix_path', machine=self.for_machine)].value
         env_pref_path_raw = get_env_var(
             self.for_machine,
             self.environment.is_cross_build(),

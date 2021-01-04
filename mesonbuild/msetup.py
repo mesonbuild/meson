@@ -177,7 +177,7 @@ class MesonApp:
         mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
-        if env.coredata.builtins['backend'].value == 'xcode':
+        if env.coredata.options[mesonlib.OptionKey('backend')].value == 'xcode':
             mlog.warning('xcode backend is currently unmaintained, patches welcome')
         with mesonlib.BuildDirLock(self.build_dir):
             self._generate(env)

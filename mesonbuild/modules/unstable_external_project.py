@@ -26,6 +26,7 @@ from ..interpreter import Interpreter, DependencyHolder, InstallDir
 from ..compilers.compilers import cflags_mapping, cexe_mapping
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
+from ..mesonlib import OptionKey
 
 class ExternalProject(InterpreterObject):
     def __init__(self,
@@ -62,9 +63,9 @@ class ExternalProject(InterpreterObject):
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
-        self.prefix = Path(self.env.coredata.get_builtin_option('prefix'))
-        self.libdir = Path(self.env.coredata.get_builtin_option('libdir'))
-        self.includedir = Path(self.env.coredata.get_builtin_option('includedir'))
+        self.prefix = Path(self.env.coredata.get_option(OptionKey('prefix')))
+        self.libdir = Path(self.env.coredata.get_option(OptionKey('libdir')))
+        self.includedir = Path(self.env.coredata.get_option(OptionKey('includedir')))
 
         # On Windows if the prefix is "c:/foo" and DESTDIR is "c:/bar", `make`
         # will install files into "c:/bar/c:/foo" which is an invalid path.

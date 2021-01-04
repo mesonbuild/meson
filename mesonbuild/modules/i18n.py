@@ -172,7 +172,7 @@ class I18nModule(ExtensionModule):
 
         install = kwargs.get('install', True)
         if install:
-            install_dir = kwargs.get('install_dir', state.environment.coredata.get_builtin_option('localedir'))
+            install_dir = kwargs.get('install_dir', state.environment.coredata.get_option(mesonlib.OptionKey('localedir')))
             script = state.environment.get_build_command()
             args = ['--internal', 'gettext', 'install',
                     '--subdir=' + state.subdir,

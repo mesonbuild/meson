@@ -35,6 +35,7 @@ from ... import mesonlib
 from ... import mlog
 from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
 from ...mesonlib import LibType
+from ...coredata import OptionKey
 from .. import compilers
 from ..compilers import CompileCheckMode
 from .visualstudio import VisualStudioLikeCompiler
@@ -393,14 +394,16 @@ class CLikeCompiler(Compiler):
             # linking with static libraries since MSVC won't select a CRT for
             # us in that case and will error out asking us to pick one.
             try:
-                crt_val = env.coredata.base_options['b_vscrt'].value
-                buildtype = env.coredata.builtins['buildtype'].value
+                crt_val = env.coredata.options[OptionKey('b_vscrt')].value
+                buildtype = env.coredata.options[OptionKey('buildtype')].value
                 cargs += self.get_crt_compile_args(crt_val, buildtype)
             except (KeyError, AttributeError):
                 pass
 
         # Add CFLAGS/CXXFLAGS/OBJCFLAGS/OBJCXXFLAGS and CPPFLAGS from the env
         sys_args = env.coredata.get_external_args(self.for_machine, self.language)
+        if isinstance(sys_args, str):
+            sys_args = [sys_args]
         # Apparently it is a thing to inject linker flags both
         # via CFLAGS _and_ LDFLAGS, even though the former are
         # also used during linking. These flags can break

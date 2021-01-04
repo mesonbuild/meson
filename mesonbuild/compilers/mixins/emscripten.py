@@ -18,6 +18,7 @@ import os.path
 import typing as T
 
 from ... import coredata
+from ...mesonlib import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -50,15 +51,16 @@ class EmscriptenMixin(Compiler):
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         args = ['-s', 'USE_PTHREADS=1']
-        count = env.coredata.compiler_options[self.for_machine][self.language]['thread_count'].value  # type: int
+        count: int = env.coredata.options[OptionKey('thread_count', lang=self.language, machine=self.for_machine)].value
         if count:
             args.extend(['-s', 'PTHREAD_POOL_SIZE={}'.format(count)])
         return args
 
-    def get_options(self) -> 'coredata.OptionDictType':
+    def get_options(self) -> 'coredata.KeyedOptionDictType':
         opts = super().get_options()
+        key = OptionKey('thread_count', machine=self.for_machine, lang=self.language)
         opts.update({
-            'thread_count': coredata.UserIntegerOption(
+            key: coredata.UserIntegerOption(
                 'Number of threads to use in web assembly, set to 0 to disable',
                 (0, None, 4),  # Default was picked at random
             ),

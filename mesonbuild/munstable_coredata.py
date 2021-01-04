@@ -14,7 +14,7 @@
 
 
 from . import coredata as cdata
-from .mesonlib import MachineChoice
+from .mesonlib import MachineChoice, OptionKey
 
 import os.path
 import pprint
@@ -59,7 +59,7 @@ def run(options):
     print('')
 
     coredata = cdata.load(options.builddir)
-    backend = coredata.get_builtin_option('backend')
+    backend = coredata.get_option(OptionKey('backend'))
     for k, v in sorted(coredata.__dict__.items()):
         if k in ('backend_options', 'base_options', 'builtins', 'compiler_options', 'user_options'):
             # use `meson configure` to view these

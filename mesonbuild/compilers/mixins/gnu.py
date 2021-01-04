@@ -24,6 +24,7 @@ import typing as T
 
 from ... import mesonlib
 from ... import mlog
+from ...mesonlib import OptionKey
 
 if T.TYPE_CHECKING:
     from ...environment import Environment
@@ -146,14 +147,15 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
     LINKER_PREFIX = '-Wl,'
 
     def __init__(self) -> None:
-        self.base_options = ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
-                             'b_ndebug', 'b_staticpic', 'b_pie']
+        self.base_options = {
+            OptionKey(o) for o in ['b_pch', 'b_lto', 'b_pgo', 'b_coverage',
+                                   'b_ndebug', 'b_staticpic', 'b_pie']}
         if not (self.info.is_windows() or self.info.is_cygwin() or self.info.is_openbsd()):
-            self.base_options.append('b_lundef')
+            self.base_options.add(OptionKey('b_lundef'))
         if not self.info.is_windows() or self.info.is_cygwin():
-            self.base_options.append('b_asneeded')
+            self.base_options.add(OptionKey('b_asneeded'))
         if not self.info.is_hurd():
-            self.base_options.append('b_sanitize')
+            self.base_options.add(OptionKey('b_sanitize'))
         # All GCC-like backends can do assembly
         self.can_compile_suffixes.add('s')
 
@@ -328,7 +330,7 @@ class GnuCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'gcc'
         self.defines = defines or {}
-        self.base_options.append('b_colorout')
+        self.base_options.add(OptionKey('b_colorout'))
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=4.9.0'):

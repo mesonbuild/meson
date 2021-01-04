@@ -14,13 +14,13 @@
 
 """A library of random helper functionality."""
 from pathlib import Path
+import enum
 import sys
 import stat
 import time
 import platform, subprocess, operator, os, shlex, shutil, re
 import collections
-from enum import IntEnum
-from functools import lru_cache, wraps
+from functools import lru_cache, wraps, total_ordering
 from itertools import tee, filterfalse
 from tempfile import TemporaryDirectory
 import typing as T
@@ -31,7 +31,7 @@ from mesonbuild import mlog
 
 if T.TYPE_CHECKING:
     from .build import ConfigurationData
-    from .coredata import OptionDictType, UserOption
+    from .coredata import KeyedOptionDictType, UserOption
     from .compilers.compilers import CompilerType
     from .interpreterbase import ObjectHolder
 
@@ -347,7 +347,7 @@ def classify_unity_sources(compilers: T.Iterable['CompilerType'], sources: T.Ite
     return compsrclist
 
 
-class MachineChoice(IntEnum):
+class MachineChoice(enum.IntEnum):
 
     """Enum class representing one of the two abstract machine names used in
     most places: the build, and host, machines.
@@ -1616,7 +1616,7 @@ def relative_to_if_possible(path: Path, root: Path, resolve: bool = False) -> Pa
     except ValueError:
         return path
 
-class LibType(IntEnum):
+class LibType(enum.IntEnum):
 
     """Enumeration for library types."""
 
@@ -1738,8 +1738,13 @@ def run_once(func: T.Callable[..., _T]) -> T.Callable[..., _T]:
 
 
 class OptionProxy(T.Generic[_T]):
-    def __init__(self, value: _T):
+    def __init__(self, value: _T, choices: T.Optional[T.List[str]] = None):
         self.value = value
+        self.choices = choices
+
+    def set_value(self, v: _T) -> None:
+        # XXX: should this be an error
+        self.value = v
 
 
 class OptionOverrideProxy(collections.abc.MutableMapping):
@@ -1751,27 +1756,27 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
     # TODO: the typing here could be made more explicit using a TypeDict from
     # python 3.8 or typing_extensions
 
-    def __init__(self, overrides: T.Dict[str, T.Any], *options: 'OptionDictType'):
+    def __init__(self, overrides: T.Dict['OptionKey', T.Any], *options: 'KeyedOptionDictType'):
         self.overrides = overrides.copy()
-        self.options = {}  # type: T.Dict[str, UserOption]
+        self.options: T.Dict['OptionKey', UserOption] = {}
         for o in options:
             self.options.update(o)
 
-    def __getitem__(self, key: str) -> T.Union['UserOption', OptionProxy]:
+    def __getitem__(self, key: 'OptionKey') -> T.Union['UserOption', OptionProxy]:
         if key in self.options:
             opt = self.options[key]
             if key in self.overrides:
-                return OptionProxy(opt.validate_value(self.overrides[key]))
+                return OptionProxy(opt.validate_value(self.overrides[key]), getattr(opt, 'choices', None))
             return opt
         raise KeyError('Option not found', key)
 
-    def __setitem__(self, key: str, value: T.Union['UserOption', OptionProxy]) -> None:
+    def __setitem__(self, key: 'OptionKey', value: T.Union['UserOption', OptionProxy]) -> None:
         self.overrides[key] = value.value
 
-    def __delitem__(self, key: str) -> None:
+    def __delitem__(self, key: 'OptionKey') -> None:
         del self.overrides[key]
 
-    def __iter__(self) -> T.Iterator[str]:
+    def __iter__(self) -> T.Iterator['OptionKey']:
         return iter(self.options)
 
     def __len__(self) -> int:
@@ -1779,3 +1784,244 @@ class OptionOverrideProxy(collections.abc.MutableMapping):
 
     def copy(self) -> 'OptionOverrideProxy':
         return OptionOverrideProxy(self.overrides.copy(), self.options.copy())
+
+
+class OptionType(enum.Enum):
+
+    """Enum used to specify what kind of argument a thing is."""
+
+    BUILTIN = 0
+    BASE = 1
+    COMPILER = 2
+    PROJECT = 3
+    BACKEND = 4
+
+# This is copied from coredata. There is no way to share this, because this
+# is used in the OptionKey constructor, and the coredata lists are
+# OptionKeys...
+_BUILTIN_NAMES = {
+    'prefix',
+    'bindir',
+    'datadir',
+    'includedir',
+    'infodir',
+    'libdir',
+    'libexecdir',
+    'localedir',
+    'localstatedir',
+    'mandir',
+    'sbindir',
+    'sharedstatedir',
+    'sysconfdir',
+    'auto_features',
+    'backend',
+    'buildtype',
+    'debug',
+    'default_library',
+    'errorlogs',
+    'install_umask',
+    'layout',
+    'optimization',
+    'stdsplit',
+    'strip',
+    'unity',
+    'unity_size',
+    'warning_level',
+    'werror',
+    'wrap_mode',
+    'force_fallback_for',
+    'pkg_config_path',
+    'cmake_prefix_path',
+}
+
+
+def _classify_argument(key: 'OptionKey') -> OptionType:
+    """Classify arguments into groups so we know which dict to assign them to."""
+
+    if key.name.startswith('b_'):
+        assert key.machine is MachineChoice.HOST, str(key)
+        return OptionType.BASE
+    elif key.lang is not None:
+        return OptionType.COMPILER
+    elif key.name in _BUILTIN_NAMES:
+        return OptionType.BUILTIN
+    elif key.name.startswith('backend_'):
+        assert key.machine is MachineChoice.HOST, str(key)
+        return OptionType.BACKEND
+    else:
+        assert key.machine is MachineChoice.HOST, str(key)
+        return OptionType.PROJECT
+
+
+@total_ordering
+class OptionKey:
+
+    """Represents an option key in the various option dictionaries.
+
+    This provides a flexible, powerful way to map option names from their
+    external form (things like subproject:build.option) to something that
+    internally easier to reason about and produce.
+    """
+
+    __slots__ = ['name', 'subproject', 'machine', 'lang', '_hash', 'type']
+
+    name: str
+    subproject: str
+    machine: MachineChoice
+    lang: T.Optional[str]
+    _hash: int
+    type: OptionType
+
+    def __init__(self, name: str, subproject: str = '',
+                 machine: MachineChoice = MachineChoice.HOST,
+                 lang: T.Optional[str] = None, _type: T.Optional[OptionType] = None):
+        # the _type option to the constructor is kinda private. We want to be
+        # able tos ave the state and avoid the lookup function when
+        # pickling/unpickling, but we need to be able to calculate it when
+        # constructing a new OptionKey
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'subproject', subproject)
+        object.__setattr__(self, 'machine', machine)
+        object.__setattr__(self, 'lang', lang)
+        object.__setattr__(self, '_hash', hash((name, subproject, machine, lang)))
+        if _type is None:
+            _type = _classify_argument(self)
+        object.__setattr__(self, 'type', _type)
+
+    def __setattr__(self, key: str, value: T.Any) -> None:
+        raise AttributeError('OptionKey instances do not support mutation.')
+
+    def __getstate__(self) -> T.Dict[str, T.Any]:
+        return {
+            'name': self.name,
+            'subproject': self.subproject,
+            'machine': self.machine,
+            'lang': self.lang,
+            '_type': self.type,
+        }
+
+    def __setstate__(self, state: T.Dict[str, T.Any]) -> None:
+        """De-serialize the state of a pickle.
+
+        This is very clever. __init__ is not a constructor, it's an
+        initializer, therefore it's safe to call more than once. We create a
+        state in the custom __getstate__ method, which is valid to pass
+        splatted to the initializer.
+        """
+        # Mypy doesn't like this, because it's so clever.
+        self.__init__(**state)  # type: ignore
+
+    def __hash__(self) -> int:
+        return self._hash
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return (
+                self.name == other.name and
+                self.subproject == other.subproject and
+                self.machine is other.machine and
+                self.lang == other.lang)
+        return NotImplemented
+
+    def __lt__(self, other: object) -> bool:
+        if isinstance(other, OptionKey):
+            return (
+                self.name < other.name and
+                self.subproject < other.subproject and
+                self.machine < other.machine and
+                self.lang < other.lang)
+        return NotImplemented
+
+    def __str__(self) -> str:
+        out = self.name
+        if self.lang:
+            out = f'{self.lang}_{out}'
+        if self.machine is MachineChoice.BUILD:
+            out = f'build.{out}'
+        if self.subproject:
+            out = f'{self.subproject}:{out}'
+        return out
+
+    def __repr__(self) -> str:
+        return f'OptionKey({repr(self.name)}, {repr(self.subproject)}, {repr(self.machine)}, {repr(self.lang)})'
+
+    @classmethod
+    def from_string(cls, raw: str) -> 'OptionKey':
+        """Parse the raw command line format into a three part tuple.
+
+        This takes strings like `mysubproject:build.myoption` and Creates an
+        OptionKey out of them.
+        """
+
+        try:
+            subproject, raw2 = raw.split(':')
+        except ValueError:
+            subproject, raw2 = '', raw
+
+        if raw2.startswith('build.'):
+            raw3 = raw2.lstrip('build.')
+            for_machine = MachineChoice.BUILD
+        else:
+            raw3 = raw2
+            for_machine = MachineChoice.HOST
+
+        from .compilers import all_languages
+        if any(raw3.startswith(f'{l}_') for l in all_languages):
+            lang, opt = raw3.split('_', 1)
+        else:
+            lang, opt = None, raw3
+        assert ':' not in opt
+        assert 'build.' not in opt
+
+        return cls(opt, subproject, for_machine, lang)
+
+    def evolve(self, name: T.Optional[str] = None, subproject: T.Optional[str] = None,
+               machine: T.Optional[MachineChoice] = None, lang: T.Optional[str] = '') -> 'OptionKey':
+        """Create a new copy of this key, but with alterted members.
+
+        For example:
+        >>> a = OptionKey('foo', '', MachineChoice.Host)
+        >>> b = OptionKey('foo', 'bar', MachineChoice.Host)
+        >>> b == a.evolve(subproject='bar')
+        True
+        """
+        # We have to be a little clever with lang here, because lang is valid
+        # as None, for non-compiler options
+        return OptionKey(
+            name if name is not None else self.name,
+            subproject if subproject is not None else self.subproject,
+            machine if machine is not None else self.machine,
+            lang if lang != '' else self.lang,
+        )
+
+    def as_root(self) -> 'OptionKey':
+        """Convenience method for key.evolve(subproject='')."""
+        return self.evolve(subproject='')
+
+    def as_build(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachinceChoice.BUILD)."""
+        return self.evolve(machine=MachineChoice.BUILD)
+
+    def as_host(self) -> 'OptionKey':
+        """Convenience method for key.evolve(machine=MachinceChoice.HOST)."""
+        return self.evolve(machine=MachineChoice.HOST)
+
+    def is_backend(self) -> bool:
+        """Convenience method to check if this is a backend option."""
+        return self.type is OptionType.BACKEND
+
+    def is_builtin(self) -> bool:
+        """Convenience method to check if this is a builtin option."""
+        return self.type is OptionType.BUILTIN
+
+    def is_compiler(self) -> bool:
+        """Convenience method to check if this is a builtin option."""
+        return self.type is OptionType.COMPILER
+
+    def is_project(self) -> bool:
+        """Convenience method to check if this is a project option."""
+        return self.type is OptionType.PROJECT
+
+    def is_base(self) -> bool:
+        """Convenience method to check if this is a base option."""
+        return self.type is OptionType.BASE

@@ -382,9 +382,9 @@ class QtBaseDependency(ExternalDependency):
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
-        is_debug = self.env.coredata.get_builtin_option('buildtype') == 'debug'
-        if 'b_vscrt' in self.env.coredata.base_options:
-            if self.env.coredata.base_options['b_vscrt'].value in ('mdd', 'mtd'):
+        is_debug = self.env.coredata.get_option(mesonlib.OptionKey('buildtype')) == 'debug'
+        if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
+            if self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
                 is_debug = True
         modules_lib_suffix = self._get_modules_lib_suffix(is_debug)
 
