@@ -6,7 +6,7 @@ cur_bdir = meson.current_build_dir()
 docs_gen = custom_target(
     'gen_docs',
     input: files('markdown/index.md'),
-    output: 'gen_docs.dummy',
+    output: 'gen_docs.stamp',
     command: [
         files('../tools/regenerate_docs.py'),
         '--output-dir', cur_bdir,
