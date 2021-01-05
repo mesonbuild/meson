@@ -569,7 +569,7 @@ class BuildTarget(Target):
         unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
-        self.sources = []
+        self.sources: T.List[File] = []
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects = []
         self.external_deps = []
@@ -588,7 +588,7 @@ class BuildTarget(Target):
         self.need_install = False
         self.pch = {}
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
-        self.generated = []
+        self.generated: T.Sequence[T.Union[GeneratedList, CustomTarget, CustomTargetIndex]] = []
         self.d_features = {}
         self.pic = False
         self.pie = False
@@ -1414,7 +1414,14 @@ You probably should put it in link_with instead.''')
 
     def uses_rust(self) -> bool:
         """Is this target a rust target."""
-        return self.sources and self.sources[0].fname.endswith('.rs')
+        if self.sources:
+            first_file = self.sources[0]
+            if first_file.fname.endswith('.rs'):
+                return True
+        elif self.generated:
+            if self.generated[0].get_outputs()[0].endswith('.rs'):
+                return True
+        return False
 
     def get_using_msvc(self):
         '''
@@ -1434,11 +1441,13 @@ You probably should put it in link_with instead.''')
         2. If the target contains only objects, process_compilers guesses and
            picks the first compiler that smells right.
         '''
-        compiler, _ = self.get_clink_dynamic_linker_and_stdlibs()
+        # Rustc can use msvc style linkers
+        if self.uses_rust():
+            compiler = self.environment.coredata.compilers[self.for_machine]['rust']
+        else:
+            compiler, _ = self.get_clink_dynamic_linker_and_stdlibs()
         # Mixing many languages with MSVC is not supported yet so ignore stdlibs.
-        if compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}:
-            return True
-        return False
+        return compiler and compiler.get_linker_id() in {'link', 'lld-link', 'xilink', 'optlink'}
 
     def check_module_linking(self):
         '''

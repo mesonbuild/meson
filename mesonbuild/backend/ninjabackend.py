@@ -45,7 +45,7 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
-from ..build import InvalidArguments
+from ..build import GeneratedList, InvalidArguments
 from ..interpreter import Interpreter
 
 if T.TYPE_CHECKING:
@@ -1581,12 +1581,23 @@ int dummy;
         args = rustc.compiler_args()
         # Compiler args for compiling this target
         args += compilers.get_base_compile_args(base_proxy, rustc)
+        self.generate_generator_list_rules(target)
         main_rust_file = None
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments('Rust target {} contains a non-rust source file.'.format(target.get_basename()))
             if main_rust_file is None:
                 main_rust_file = i.rel_to_builddir(self.build_to_src)
+        for g in target.get_generated_sources():
+            for i in g.get_outputs():
+                if not rustc.can_compile(i):
+                    raise InvalidArguments('Rust target {} contains a non-rust source file.'.format(target.get_basename()))
+                if isinstance(g, GeneratedList):
+                    fname = os.path.join(self.get_target_private_dir(target), i)
+                else:
+                    fname = i
+                if main_rust_file is None:
+                    main_rust_file = fname
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
