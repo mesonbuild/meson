@@ -690,38 +690,6 @@ class JunitBuilder(TestLogger):
             tree.write(f, encoding='utf-8', xml_declaration=True)
 
 
-def parse_rust_test(stdout: str) -> T.Tuple[T.List[TAPParser.Test], TestResult]:
-    """Parse the output of rust tests."""
-    results = []          # type: T.List[TAPParser.Test]
-
-    def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
-        if result == 'ok':
-            return TAPParser.Test(n, name, TestResult.OK, None)
-        elif result == 'ignored':
-            return TAPParser.Test(n, name, TestResult.SKIP, None)
-        elif result == 'FAILED':
-            return TAPParser.Test(n, name, TestResult.FAIL, None)
-        return TAPParser.Test(n, name, TestResult.ERROR,
-                              'Unsupported output from rust test: {}'.format(result))
-
-    n = 1
-    for line in stdout.splitlines():
-        if line.startswith('test ') and not line.startswith('test result'):
-            _, name, _, result = line.split(' ')
-            name = name.replace('::', '.')
-            results.append(parse_res(n, name, result))
-            n += 1
-
-    if all(t.result is TestResult.SKIP for t in results):
-        # This includes the case where results is empty
-        return results, TestResult.SKIP
-    elif any(t.result is TestResult.ERROR for t in results):
-        return results, TestResult.ERROR
-    elif any(t.result is TestResult.FAIL for t in results):
-        return results, TestResult.FAIL
-    return results, TestResult.OK
-
-
 class TestRun:
     TEST_NUM = 0
 
@@ -797,10 +765,33 @@ class TestRun:
 
         self.complete(returncode, res, stdo, stde, cmd)
 
-    def complete_rust(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
-        self.results, res = parse_rust_test(stdo)
+    def parse_rust(self, lines: T.Iterator[str]) -> T.Tuple[TestResult, str]:
+        def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
+            if result == 'ok':
+                return TAPParser.Test(n, name, TestResult.OK, None)
+            elif result == 'ignored':
+                return TAPParser.Test(n, name, TestResult.SKIP, None)
+            elif result == 'FAILED':
+                return TAPParser.Test(n, name, TestResult.FAIL, None)
+            return TAPParser.Test(n, name, TestResult.ERROR,
+                                  'Unsupported output from rust test: {}'.format(result))
 
-        self.complete(returncode, res, stdo, stde, cmd)
+        n = 1
+        for line in lines:
+            if line.startswith('test ') and not line.startswith('test result'):
+                _, name, _, result = line.rstrip().split(' ')
+                name = name.replace('::', '.')
+                self.results.append(parse_res(n, name, result))
+                n += 1
+
+        if all(t.result is TestResult.SKIP for t in self.results):
+            # This includes the case where self.results is empty
+            return TestResult.SKIP, ''
+        elif any(t.result is TestResult.ERROR for t in self.results):
+            return TestResult.ERROR, ''
+        elif any(t.result is TestResult.FAIL for t in self.results):
+            return TestResult.FAIL, ''
+        return TestResult.OK, ''
 
     @property
     def num(self) -> int:
@@ -1124,6 +1115,13 @@ class SingleTestRunner:
 
         stdo = stde = ''
         stdo_task = stde_task = None
+
+        parser = None
+        if self.test.protocol is TestProtocol.TAP:
+            parser = self.runobj.parse_tap
+        elif self.test.protocol is TestProtocol.RUST:
+            parser = self.runobj.parse_rust
+
         if stdout is not None:
             stdo_task = p.stdout.read(-1)
         if stderr is not None and stderr != asyncio.subprocess.STDOUT:
@@ -1148,18 +1146,19 @@ class SingleTestRunner:
                     print(line, end='')
                 yield line
 
-        if self.test.protocol is TestProtocol.TAP:
-            res, error = self.runobj.parse_tap(lines())
+        if parser is not None:
+            res, error = parser(lines())
             if error:
                 stde += '\n' + error
-            self.runobj.complete_tap(returncode, result or res, stdo, stde, cmd)
+            result = result or res
+            if self.test.protocol is TestProtocol.TAP:
+                self.runobj.complete_tap(returncode, result, stdo, stde, cmd)
+                return
 
-        elif result:
+        if result:
             self.runobj.complete(returncode, result, stdo, stde, cmd)
         elif self.test.protocol is TestProtocol.EXITCODE:
             self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
-        elif self.test.protocol is TestProtocol.RUST:
-            return self.runobj.complete_rust(returncode, stdo, stde, cmd)
         elif self.test.protocol is TestProtocol.GTEST:
             self.runobj.complete_gtest(returncode, stdo, stde, cmd)
 
