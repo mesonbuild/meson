@@ -864,6 +864,10 @@ def skippable(suite, test):
     if test.endswith('4 qt') and mesonlib.is_osx():
         return False
 
+    # Bindgen isn't available in all distros
+    if test.endswith('12 bindgen'):
+        return False
+
     # Other framework tests are allowed to be skipped on other platforms
     return True
 
