@@ -323,6 +323,13 @@ class IncludeDirs:
     def get_extra_build_dirs(self):
         return self.extra_build_dirs
 
+    def to_string_list(self, sourcedir: str) -> T.List[str]:
+        """Convert IncludeDirs object to a list of strings."""
+        strlist: T.List[str] = []
+        for idir in self.incdirs:
+            strlist.append(os.path.join(sourcedir, self.curdir, idir))
+        return strlist
+
 class ExtractedObjects:
     '''
     Holds a list of sources for which the objects must be extracted
