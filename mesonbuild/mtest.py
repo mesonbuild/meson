@@ -1055,6 +1055,10 @@ class SingleTestRunner:
     def visible_name(self) -> str:
         return self.runobj.name
 
+    @property
+    def timeout(self) -> T.Optional[int]:
+        return self.runobj.timeout
+
     async def run(self) -> TestRun:
         cmd = self._get_cmd()
         self.runobj.start()
@@ -1314,9 +1318,10 @@ class TestHarness:
         middle = result.name + (' ' * max(1, extra_name_width))
 
         if right is None:
-            right = '{res} {dur:.2f}s'.format(
+            right = '{res} {dur:{durlen}.2f}s'.format(
                 res=result.res.get_text(colorize),
-                dur=result.duration)
+                dur=result.duration,
+                durlen=self.duration_max_len + 3)
             detail = result.detail
             if detail:
                 right += ' (' + detail + ')'
@@ -1360,6 +1365,8 @@ class TestHarness:
                 os.chdir(self.options.wd)
             self.build_data = build.load(os.getcwd())
             runners = [self.get_test_runner(test) for test in tests]
+            self.duration_max_len = max([len(str(int(runner.timeout or 99)))
+                                         for runner in runners])
             self.run_tests(runners)
         finally:
             os.chdir(startdir)
