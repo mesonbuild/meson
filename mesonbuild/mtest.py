@@ -766,8 +766,6 @@ class TestRun:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
             res = TestResult.ERROR
-        elif self.should_fail:
-            res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
         self.complete(returncode, res, stdo, stde, cmd, **kwargs)
@@ -794,8 +792,6 @@ class TestRun:
 
     def complete_tap(self, returncode: int, res: TestResult,
                      stdo: str, stde: str, cmd: T.List[str]) -> None:
-        if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
-            res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
         if returncode != 0 and not res.was_killed():
             res = TestResult.ERROR
             stde += '\n(test program exited with status code {})'.format(returncode,)
@@ -803,12 +799,7 @@ class TestRun:
         self.complete(returncode, res, stdo, stde, cmd)
 
     def complete_rust(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
-        self.results, result = parse_rust_test(stdo)
-
-        if self.should_fail:
-            res = TestResult.EXPECTEDFAIL if result is TestResult.FAIL else TestResult.UNEXPECTEDPASS
-        else:
-            res = result
+        self.results, res = parse_rust_test(stdo)
 
         self.complete(returncode, res, stdo, stde, cmd)
 
@@ -823,6 +814,9 @@ class TestRun:
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
         assert isinstance(res, TestResult)
+        if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
+            res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
+
         self.res = res
         self.returncode = returncode
         self.duration = time.time() - self.starttime
