@@ -1636,14 +1636,19 @@ int dummy;
         args += target.get_extra_args('rust')
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
-        linkdirs = OrderedDict()
+        linkdirs = mesonlib.OrderedSet()
         for d in target.link_targets:
-            linkdirs[d.subdir] = True
-            # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
-            # dependency, so that collisions with libraries in rustc's
-            # sysroot don't cause ambiguity
-            args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
-        for d in linkdirs.keys():
+            linkdirs.add(d.subdir)
+            if d.uses_rust():
+                # specify `extern CRATE_NAME=OUTPUT_FILE` for each Rust
+                # dependency, so that collisions with libraries in rustc's
+                # sysroot don't cause ambiguity
+                args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
+            else:
+                # Rust uses -l for non rust dependencies, but we still need to add (shared|static)=foo
+                _type = 'static' if d.typename == 'static library' else 'shared'
+                args += ['-l', f'{_type}={d.name}']
+        for d in linkdirs:
             if d == '':
                 d = '.'
             args += ['-L', d]
