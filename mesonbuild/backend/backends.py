@@ -677,6 +677,16 @@ class Backend:
 
         return extra_args
 
+    def get_target_external_deps(self, target):
+        deps = target.get_external_deps()
+        transitive_deps = OrderedSet()
+        for d in target.get_dependencies():
+            if isinstance(d, build.StaticLibrary):
+                transitive_deps.update(d.get_external_deps())
+        if transitive_deps:
+            deps += list(transitive_deps)
+        return deps
+
     def generate_basic_compiler_args(self, target: build.BuildTarget, compiler: 'Compiler', no_warn_args: bool = False) -> 'CompilerArgs':
         # Create an empty commands list, and start adding arguments from
         # various sources in the order in which they must override each other
