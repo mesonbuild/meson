@@ -1051,6 +1051,10 @@ class SingleTestRunner:
                 return self.test.exe_runner.get_command() + self.test.fname
         return self.test.fname
 
+    @property
+    def visible_name(self) -> str:
+        return self.runobj.name
+
     async def run(self) -> TestRun:
         cmd = self._get_cmd()
         self.runobj.start()
@@ -1254,7 +1258,8 @@ class TestHarness:
             options.wrapper = current.exe_wrapper
         return current.env.get_env(os.environ.copy())
 
-    def get_test_runner(self, test: TestSerialisation, name: str) -> SingleTestRunner:
+    def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
+        name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
         if not options.setup:
             options.setup = self.build_data.test_setup_default_name
@@ -1349,7 +1354,15 @@ class TestHarness:
 
         self.test_count = len(tests)
         self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
-        self.run_tests(tests)
+        startdir = os.getcwd()
+        try:
+            if self.options.wd:
+                os.chdir(self.options.wd)
+            self.build_data = build.load(os.getcwd())
+            runners = [self.get_test_runner(test) for test in tests]
+            self.run_tests(runners)
+        finally:
+            os.chdir(startdir)
         return self.total_failure_count()
 
     @staticmethod
@@ -1488,23 +1501,19 @@ class TestHarness:
         else:
             return test.name
 
-    def run_tests(self, tests: T.List[TestSerialisation]) -> None:
+    def run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         try:
             self.open_logfiles()
             # Replace with asyncio.run once we can require Python 3.7
             loop = asyncio.get_event_loop()
-            loop.run_until_complete(self._run_tests(tests))
+            loop.run_until_complete(self._run_tests(runners))
         finally:
             self.close_logfiles()
 
-    async def _run_tests(self, tests: T.List[TestSerialisation]) -> None:
+    async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
         running_tests = dict() # type: T.Dict[asyncio.Future, str]
-        startdir = os.getcwd()
-        if self.options.wd:
-            os.chdir(self.options.wd)
-        self.build_data = build.load(os.getcwd())
         interrupted = False
 
         async def run_test(test: SingleTestRunner) -> None:
@@ -1565,17 +1574,16 @@ class TestHarness:
             asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
             for _ in range(self.options.repeat):
-                for test in tests:
-                    visible_name = self.get_pretty_suite(test)
-                    single_test = self.get_test_runner(test, visible_name)
+                for runner in runners:
+                    test = runner.test
 
-                    if not test.is_parallel or single_test.options.gdb:
+                    if not test.is_parallel or runner.options.gdb:
                         await complete_all(futures)
-                    future = asyncio.ensure_future(run_test(single_test))
+                    future = asyncio.ensure_future(run_test(runner))
                     futures.append(future)
-                    running_tests[future] = visible_name
+                    running_tests[future] = runner.visible_name
                     future.add_done_callback(test_done)
-                    if not test.is_parallel or single_test.options.gdb:
+                    if not test.is_parallel or runner.options.gdb:
                         await complete(future)
                 if self.options.repeat > 1 and self.fail_count:
                     break
@@ -1587,7 +1595,6 @@ class TestHarness:
                 asyncio.get_event_loop().remove_signal_handler(signal.SIGTERM)
             for l in self.loggers:
                 await l.finish(self)
-            os.chdir(startdir)
 
 def list_tests(th: TestHarness) -> bool:
     tests = th.get_tests()
