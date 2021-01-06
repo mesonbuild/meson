@@ -770,7 +770,7 @@ class TestRun:
             res = TestResult.EXPECTEDFAIL if bool(returncode) else TestResult.UNEXPECTEDPASS
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        self.complete(res, returncode, stdo, stde, cmd, **kwargs)
+        self.complete(returncode, res, stdo, stde, cmd, **kwargs)
 
     def parse_tap(self, lines: T.Iterator[str]) -> T.Tuple[TestResult, str]:
         res = None    # type: T.Optional[TestResult]
@@ -800,7 +800,7 @@ class TestRun:
             res = TestResult.ERROR
             stde += '\n(test program exited with status code {})'.format(returncode,)
 
-        self.complete(res, returncode, stdo, stde, cmd)
+        self.complete(returncode, res, stdo, stde, cmd)
 
     def complete_rust(self, returncode: int, stdo: str, stde: str, cmd: T.List[str]) -> None:
         self.results, result = parse_rust_test(stdo)
@@ -810,7 +810,7 @@ class TestRun:
         else:
             res = result
 
-        self.complete(res, returncode, stdo, stde, cmd)
+        self.complete(returncode, res, stdo, stde, cmd)
 
     @property
     def num(self) -> int:
@@ -819,7 +819,7 @@ class TestRun:
             self._num = TestRun.TEST_NUM
         return self._num
 
-    def complete(self, res: TestResult, returncode: int,
+    def complete(self, returncode: int, res: TestResult,
                  stdo: T.Optional[str], stde: T.Optional[str],
                  cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
         assert isinstance(res, TestResult)
@@ -967,7 +967,7 @@ class SingleTestRunner:
         self.runobj.start()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            self.runobj.complete(TestResult.SKIP, GNU_SKIP_RETURNCODE, skip_stdout, None, None)
+            self.runobj.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, skip_stdout, None, None)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             if self.options.gdb:
@@ -1138,7 +1138,7 @@ class SingleTestRunner:
             self.runobj.complete_tap(returncode, result or res, stdo, stde, cmd)
 
         elif result:
-            self.runobj.complete(result, returncode, stdo, stde, cmd)
+            self.runobj.complete(returncode, result, stdo, stde, cmd)
         elif self.test.protocol is TestProtocol.EXITCODE:
             self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
         elif self.test.protocol is TestProtocol.RUST:
