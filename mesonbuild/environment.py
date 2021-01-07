@@ -950,16 +950,19 @@ class Environment:
         if extra_args is not None:
             check_args.extend(extra_args)
 
-        p, o, _ = Popen_safe(compiler + check_args)
-        if o.startswith('LLD'):
-            if '(compatible with GNU linkers)' in o:
-                return LLVMDynamicLinker(
-                    compiler, for_machine, comp_class.LINKER_PREFIX,
-                    override, version=search_version(o))
-            elif not invoked_directly:
-                return ClangClDynamicLinker(
-                    for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
-                    version=search_version(o), direct=False, machine=None)
+        try:
+            p, o, _ = Popen_safe(compiler + check_args)
+            if o.startswith('LLD'):
+                if '(compatible with GNU linkers)' in o:
+                    return LLVMDynamicLinker(
+                        compiler, for_machine, comp_class.LINKER_PREFIX,
+                        override, version=search_version(o))
+                elif not invoked_directly:
+                    return ClangClDynamicLinker(
+                        for_machine, override, exelist=compiler, prefix=comp_class.LINKER_PREFIX,
+                        version=search_version(o), direct=False, machine=None)
+        except (FileNotFoundError, PermissionError):
+            pass
 
         if value is not None and invoked_directly:
             compiler = value
