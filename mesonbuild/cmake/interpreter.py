@@ -525,7 +525,7 @@ class ConverterTarget:
 
         # Handle OSX frameworks
         def handle_frameworks(flags: T.List[str]) -> T.List[str]:
-            res: T.List[str] = []
+            res = []  # type: T.List[str]
             for i in flags:
                 p = Path(i)
                 if not p.exists() or not p.name.endswith('.framework'):
