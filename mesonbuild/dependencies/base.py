@@ -573,7 +573,7 @@ class PkgConfigDependency(ExternalDependency):
     # We cache all pkg-config subprocess invocations to avoid redundant calls
     pkgbin_cache = {}
 
-    def __init__(self, name, environment, kwargs, language: T.Optional[str] = None):
+    def __init__(self, name, environment: 'Environment', kwargs, language: T.Optional[str] = None):
         super().__init__('pkgconfig', environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
@@ -697,7 +697,7 @@ class PkgConfigDependency(ExternalDependency):
         with / like /home/foo so leave them as-is so that the user gets an
         error/warning from the compiler/linker.
         '''
-        if not mesonlib.is_windows():
+        if not self.env.machines.build.is_windows():
             return args
         converted = []
         for arg in args:
@@ -948,7 +948,7 @@ class PkgConfigDependency(ExternalDependency):
             return None
         except PermissionError:
             msg = 'Found pkg-config {!r} but didn\'t have permissions to run it.'.format(' '.join(pkgbin.get_command()))
-            if not mesonlib.is_windows():
+            if not self.env.machines.build.is_windows():
                 msg += '\n\nOn Unix-like systems this is often caused by scripts that are not executable.'
             mlog.warning(msg)
             return None
@@ -979,7 +979,7 @@ class PkgConfigDependency(ExternalDependency):
 
         # Darwin uses absolute paths where possible; since the libtool files never
         # contain absolute paths, use the libdir field
-        if mesonlib.is_osx():
+        if self.env.machines[self.for_machine].is_darwin():
             dlbasename = os.path.basename(dlname)
             libdir = self.extract_libdir_field(la_file)
             if libdir is None:
@@ -1530,7 +1530,7 @@ class CMakeDependency(ExternalDependency):
                         libraries += [j]
                     elif os.path.isabs(j) and os.path.exists(j):
                         libraries += [j]
-                    elif mesonlib.is_windows() and reg_is_maybe_bare_lib.match(j):
+                    elif self.env.machines.build.is_windows() and reg_is_maybe_bare_lib.match(j):
                         # On Windows, CMake library dependencies can be passed as bare library names,
                         # e.g. 'version' should translate into 'version.lib'. CMake brute-forces a
                         # combination of prefix/suffix combinations to find the right library, however
@@ -2504,7 +2504,7 @@ def _build_external_dependency_list(name: str, env: Environment, for_machine: Ma
     # If it's explicitly requested, use the Extraframework detection method (only)
     if 'extraframework' == kwargs.get('method', ''):
         # On OSX, also try framework dependency detector
-        if mesonlib.is_osx():
+        if env.machines[for_machine].is_darwin():
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
         return candidates
 
@@ -2513,7 +2513,7 @@ def _build_external_dependency_list(name: str, env: Environment, for_machine: Ma
         candidates.append(functools.partial(PkgConfigDependency, name, env, kwargs))
 
         # On OSX, also try framework dependency detector
-        if mesonlib.is_osx():
+        if env.machines[for_machine].is_darwin():
             candidates.append(functools.partial(ExtraFrameworkDependency, name, env, kwargs))
 
         # Only use CMake as a last resort, since it might not work 100% (see #6113)
