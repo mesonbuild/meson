@@ -108,7 +108,7 @@ jobs:
         python3-devel,^
         python3-libxml2,^
         python3-libxslt,^
-        python36-pip,^
+        python38-pip,^
         vala,^
         wget,^
         cmake,^
