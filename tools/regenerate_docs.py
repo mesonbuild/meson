@@ -20,7 +20,6 @@ Regenerate markdown docs by using `meson.py` from the root dir
 '''
 
 import argparse
-import jinja2
 import os
 import re
 import subprocess
@@ -108,20 +107,13 @@ def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
 
     return cmd_data
 
-def regenerate_commands(root_dir: Path, output_dir: Path) -> None:
-    with open(root_dir/'docs'/'markdown_dynamic'/'Commands.md') as f:
-        template = f.read()
-
+def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
     cmd_data = get_commands_data(root_dir)
 
-    t = jinja2.Template(template, undefined=jinja2.StrictUndefined, keep_trailing_newline=True)
-    content = t.render(cmd_help=cmd_data)
-
-    output_file = output_dir/'Commands.md'
-    with open(output_file, 'w') as f:
-        f.write(content)
-
-    print(f'`{output_file}` was regenerated')
+    for cmd, parsed in cmd_data.items():
+        for typ in parsed.keys():
+            with open(output_dir / (cmd+'_'+typ+'.inc'), 'w') as f:
+                f.write(parsed[typ])
 
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
@@ -133,7 +125,7 @@ def regenerate_docs(output_dir: PathLike,
 
     root_dir = Path(__file__).resolve().parent.parent
 
-    regenerate_commands(root_dir, output_dir)
+    generate_hotdoc_includes(root_dir, output_dir)
 
     if dummy_output_file:
         with open(output_dir/dummy_output_file, 'w') as f:
