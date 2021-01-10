@@ -5,7 +5,7 @@
     "id": "/",
     "operation": "set",
     "kwargs": {
-      "license": ["GPL", "MIT", "BSD"]
+      "license": ["GPL", "MIT", "BSD", "Boost"]
     }
   },
   {
@@ -24,6 +24,15 @@
     "operation": "remove",
     "kwargs": {
       "license": "BSD"
+    }
+  },
+  {
+    "type": "kwargs",
+    "function": "project",
+    "id": "//",
+    "operation": "remove",
+    "kwargs": {
+      "license": "Boost"
     }
   }
 ]
