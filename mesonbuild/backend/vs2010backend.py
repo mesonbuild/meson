@@ -1159,7 +1159,8 @@ class Vs2010Backend(backends.Backend):
         # Size-preserving flags
         if '/Os' in o_flags:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Size'
-        else:
+        # Note: setting FavorSizeOrSpeed with clang-cl conflicts with /Od and can make debugging difficult, so don't.
+        elif '/Od' not in o_flags:
             ET.SubElement(clconf, 'FavorSizeOrSpeed').text = 'Speed'
         # Note: SuppressStartupBanner is /NOLOGO and is 'true' by default
         self.generate_lang_standard_info(file_args, clconf)
