@@ -709,15 +709,16 @@ class Backend:
         commands += compiler.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
         commands += compiler.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
         commands += compiler.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
-        # MSVC debug builds have /ZI argument by default and /Zi is added with debug flag
-        # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
-        if ('/ZI' in commands) and ('/Zi' in commands):
-            commands.remove('/Zi')
         # Add compile args added using add_project_arguments()
         commands += self.build.get_project_args(compiler, target.subproject, target.for_machine)
         # Add compile args added using add_global_arguments()
         # These override per-project arguments
         commands += self.build.get_global_args(compiler, target.for_machine)
+        # Using both /ZI and /Zi at the same times produces a compiler warning.
+        # We do not add /ZI by default. If it is being used it is because the user has explicitly enabled it.
+        # /ZI needs to be removed in that case to avoid cl's warning to that effect (D9025 : overriding '/ZI' with '/Zi')
+        if ('/ZI' in commands) and ('/Zi' in commands):
+            commands.remove('/Zi')
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.

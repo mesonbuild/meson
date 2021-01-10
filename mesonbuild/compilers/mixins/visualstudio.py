@@ -62,14 +62,14 @@ vs64_instruction_set_args = {
 
 msvc_buildtype_args = {
     'plain': [],
-    'debug': ["/ZI", "/RTC1"],
+    'debug': ["/RTC1"],
     'debugoptimized': [],
     'release': [],
     'minsize': [],
     'custom': [],
 }  # type: T.Dict[str, T.List[str]]
 
-# Clang-cl doesn't have /ZI, and /Zi and /Z7 do the same thing
+# Clang-cl /Zi and /Z7 do the same thing
 # quoting the docs (https://clang.llvm.org/docs/MSVCCompatibility.html):
 #
 # Clang emits relatively complete CodeView debug information if /Z7 or /Zi is
