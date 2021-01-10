@@ -8871,8 +8871,8 @@ class TAPParserTests(unittest.TestCase):
             next(events)
 
     def parse_tap(self, s):
-        parser = TAPParser(io.StringIO(s))
-        return iter(parser.parse())
+        parser = TAPParser()
+        return iter(parser.parse(io.StringIO(s)))
 
     def parse_tap_v13(self, s):
         events = self.parse_tap('TAP version 13\n' + s)
@@ -8885,25 +8885,25 @@ class TAPParserTests(unittest.TestCase):
 
     def test_empty_plan(self):
         events = self.parse_tap('1..0')
-        self.assert_plan(events, count=0, late=False, skipped=True)
+        self.assert_plan(events, num_tests=0, late=False, skipped=True)
         self.assert_last(events)
 
     def test_plan_directive(self):
         events = self.parse_tap('1..0 # skipped for some reason')
-        self.assert_plan(events, count=0, late=False, skipped=True,
+        self.assert_plan(events, num_tests=0, late=False, skipped=True,
                          explanation='for some reason')
         self.assert_last(events)
 
         events = self.parse_tap('1..1 # skipped for some reason\nok 1')
         self.assert_error(events)
-        self.assert_plan(events, count=1, late=False, skipped=True,
+        self.assert_plan(events, num_tests=1, late=False, skipped=True,
                          explanation='for some reason')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
         events = self.parse_tap('1..1 # todo not supported here\nok 1')
         self.assert_error(events)
-        self.assert_plan(events, count=1, late=False, skipped=False,
+        self.assert_plan(events, num_tests=1, late=False, skipped=False,
                          explanation='not supported here')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
@@ -8949,7 +8949,7 @@ class TAPParserTests(unittest.TestCase):
 
     def test_many_early_plan(self):
         events = self.parse_tap('1..4\nok 1\nnot ok 2\nok 3\nnot ok 4')
-        self.assert_plan(events, count=4, late=False)
+        self.assert_plan(events, num_tests=4, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_test(events, number=3, name='', result=TestResult.OK)
@@ -8962,7 +8962,7 @@ class TAPParserTests(unittest.TestCase):
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_test(events, number=3, name='', result=TestResult.OK)
         self.assert_test(events, number=4, name='', result=TestResult.FAIL)
-        self.assert_plan(events, count=4, late=True)
+        self.assert_plan(events, num_tests=4, late=True)
         self.assert_last(events)
 
     def test_directive_case(self):
@@ -8987,14 +8987,14 @@ class TAPParserTests(unittest.TestCase):
 
     def test_one_test_early_plan(self):
         events = self.parse_tap('1..1\nok')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
     def test_one_test_late_plan(self):
         events = self.parse_tap('ok\n1..1')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
-        self.assert_plan(events, count=1, late=True)
+        self.assert_plan(events, num_tests=1, late=True)
         self.assert_last(events)
 
     def test_out_of_order(self):
@@ -9006,14 +9006,14 @@ class TAPParserTests(unittest.TestCase):
     def test_middle_plan(self):
         events = self.parse_tap('ok 1\n1..2\nok 2')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
-        self.assert_plan(events, count=2, late=True)
+        self.assert_plan(events, num_tests=2, late=True)
         self.assert_error(events)
         self.assert_test(events, number=2, name='', result=TestResult.OK)
         self.assert_last(events)
 
     def test_too_many_plans(self):
         events = self.parse_tap('1..1\n1..2\nok 1')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_error(events)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
@@ -9022,12 +9022,12 @@ class TAPParserTests(unittest.TestCase):
         events = self.parse_tap('ok 1\nnot ok 2\n1..1')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
-        self.assert_plan(events, count=1, late=True)
+        self.assert_plan(events, num_tests=1, late=True)
         self.assert_error(events)
         self.assert_last(events)
 
         events = self.parse_tap('1..1\nok 1\nnot ok 2')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_error(events)
@@ -9037,12 +9037,12 @@ class TAPParserTests(unittest.TestCase):
         events = self.parse_tap('ok 1\nnot ok 2\n1..3')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
-        self.assert_plan(events, count=3, late=True)
+        self.assert_plan(events, num_tests=3, late=True)
         self.assert_error(events)
         self.assert_last(events)
 
         events = self.parse_tap('1..3\nok 1\nnot ok 2')
-        self.assert_plan(events, count=3, late=False)
+        self.assert_plan(events, num_tests=3, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_error(events)
@@ -9050,7 +9050,7 @@ class TAPParserTests(unittest.TestCase):
 
     def test_too_few_bailout(self):
         events = self.parse_tap('1..3\nok 1\nnot ok 2\nBail out! no third test')
-        self.assert_plan(events, count=3, late=False)
+        self.assert_plan(events, num_tests=3, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_test(events, number=2, name='', result=TestResult.FAIL)
         self.assert_bailout(events, message='no third test')
@@ -9058,29 +9058,29 @@ class TAPParserTests(unittest.TestCase):
 
     def test_diagnostics(self):
         events = self.parse_tap('1..1\n# ignored\nok 1')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
         events = self.parse_tap('# ignored\n1..1\nok 1\n# ignored too')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
         events = self.parse_tap('# ignored\nok 1\n1..1\n# ignored too')
         self.assert_test(events, number=1, name='', result=TestResult.OK)
-        self.assert_plan(events, count=1, late=True)
+        self.assert_plan(events, num_tests=1, late=True)
         self.assert_last(events)
 
     def test_empty_line(self):
         events = self.parse_tap('1..1\n\nok 1')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
 
     def test_unexpected(self):
         events = self.parse_tap('1..1\ninvalid\nok 1')
-        self.assert_plan(events, count=1, late=False)
+        self.assert_plan(events, num_tests=1, late=False)
         self.assert_error(events)
         self.assert_test(events, number=1, name='', result=TestResult.OK)
         self.assert_last(events)
@@ -9095,7 +9095,7 @@ class TAPParserTests(unittest.TestCase):
         self.assert_last(events)
 
         events = self.parse_tap('1..0\nTAP version 13\n')
-        self.assert_plan(events, count=0, late=False, skipped=True)
+        self.assert_plan(events, num_tests=0, late=False, skipped=True)
         self.assert_error(events)
         self.assert_last(events)
 
