@@ -97,6 +97,11 @@ Currently, only the following function types are supported:
 
 For more information see the help output of the rewrite kwargs command.
 
+Note msys bash may expand `/` to a path. Passing `//` will be converted to
+`/` by msys bash but in order to keep usage shell-agnostic, the rewrite command
+also allows `//` as the function ID such that it will work in both msys bash
+and other shells.
+
 ### Setting the project default options
 
 For setting and deleting default options, use the following command:
