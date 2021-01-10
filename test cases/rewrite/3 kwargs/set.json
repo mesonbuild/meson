@@ -2,7 +2,7 @@
   {
     "type": "kwargs",
     "function": "project",
-    "id": "/",
+    "id": "//",
     "operation": "set",
     "kwargs": {
       "version": "0.0.2",

@@ -25,5 +25,14 @@
     "kwargs": {
       "license": "BSD"
     }
+  },
+  {
+    "type": "kwargs",
+    "function": "project",
+    "id": "//",
+    "operation": "add",
+    "kwargs": {
+      "license": "Boost"
+    }
   }
 ]

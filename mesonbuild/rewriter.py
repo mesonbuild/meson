@@ -500,8 +500,12 @@ class Rewriter:
         node = None
         arg_node = None
         if cmd['function'] == 'project':
-            if cmd['id'] != '/':
-                mlog.error('The ID for the function type project must be "/"', *self.on_error())
+            # msys bash may expand '/' to a path. It will mangle '//' to '/'
+            # but in order to keep usage shell-agnostic, also allow `//` as
+            # the function ID such that it will work in both msys bash and
+            # other shells.
+            if {'/', '//'}.isdisjoint({cmd['id']}):
+                mlog.error('The ID for the function type project must be "/" or "//" not "' + cmd['id'] + '"', *self.on_error())
                 return self.handle_error()
             node = self.interpreter.project_node
             arg_node = node.args
