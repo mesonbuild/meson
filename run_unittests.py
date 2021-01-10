@@ -4915,7 +4915,7 @@ class AllPlatformTests(BasePlatformTests):
         # The docs directory is not in release tarballs.
         if not os.path.isdir('docs'):
             raise unittest.SkipTest('Doc directory does not exist.')
-        doc_path = 'docs/markdown_dynamic/Commands.md'
+        doc_path = 'docs/markdown/Commands.md'
 
         md = None
         with open(doc_path, encoding='utf-8') as f:
@@ -4944,13 +4944,9 @@ class AllPlatformTests(BasePlatformTests):
 
         def get_data_pattern(command):
             return re.compile(
-                r'^```[\r\n]'
-                r'{{ cmd_help\[\'' + command + r'\'\]\[\'usage\'\] }}[\r\n]'
-                r'^```[\r\n]'
+                r'{{ ' + command + r'_usage.inc }}[\r\n]'
                 r'.*?'
-                r'^```[\r\n]'
-                r'{{ cmd_help\[\'' + command + r'\'\]\[\'arguments\'\] }}[\r\n]'
-                r'^```',
+                r'{{ ' + command + r'_arguments.inc }}[\r\n]',
                 flags = re.MULTILINE|re.DOTALL)
 
         for command in md_commands:
@@ -7533,7 +7529,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
             '-Dbuild.pkg_config_path=' + os.path.join(testdir, 'build_extra_path'),
             '-Dpkg_config_path=' + os.path.join(testdir, 'host_extra_path'),
         ])
-    
+
     def test_run_native_test(self):
         '''
         https://github.com/mesonbuild/meson/issues/7997

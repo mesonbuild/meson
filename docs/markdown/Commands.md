@@ -16,15 +16,11 @@ For the full list of all available options for a specific command use the follow
 
 ### configure
 
-```
-{{ cmd_help['configure']['usage'] }}
-```
+{{ configure_usage.inc }}
 
 Changes options of a configured meson project.
 
-```
-{{ cmd_help['configure']['arguments'] }}
-```
+{{ configure_arguments.inc }}
 
 Most arguments are the same as in [`setup`](#setup).
 
@@ -46,15 +42,11 @@ meson configure builddir -Doption=new_value
 
 *(since 0.54.0)*
 
-```
-{{ cmd_help['compile']['usage'] }}
-```
+{{ compile_usage.inc }}
 
 Builds a default or a specified target of a configured meson project.
 
-```
-{{ cmd_help['compile']['arguments'] }}
-```
+{{ compile_arguments.inc }}
 
 `--verbose` argument is available since 0.55.0.
 
@@ -115,15 +107,11 @@ meson compile coverage-html
 
 *(since 0.52.0)*
 
-```
-{{ cmd_help['dist']['usage'] }}
-```
+{{ dist_usage.inc }}
 
 Generates a release archive from the current source tree.
 
-```
-{{ cmd_help['dist']['arguments'] }}
-```
+{{ dist_arguments.inc }}
 
 See [notes about creating releases](Creating-releases.md) for more info.
 
@@ -138,15 +126,11 @@ meson dist -C builddir
 
 *(since 0.45.0)*
 
-```
-{{ cmd_help['init']['usage'] }}
-```
+{{ init_usage.inc }}
 
 Creates a basic set of build files based on a template.
 
-```
-{{ cmd_help['init']['arguments'] }}
-```
+{{ init_arguments.inc }}
 
 #### Examples:
 
@@ -157,15 +141,11 @@ meson init -C sourcedir
 
 ### introspect
 
-```
-{{ cmd_help['introspect']['usage'] }}
-```
+{{ introspect_usage.inc }}
 
 Displays information about a configured meson project.
 
-```
-{{ cmd_help['introspect']['arguments'] }}
-```
+{{ introspect_arguments.inc }}
 
 #### Examples:
 
@@ -178,15 +158,11 @@ meson introspect builddir
 
 *(since 0.47.0)*
 
-```
-{{ cmd_help['install']['usage'] }}
-```
+{{ install_usage.inc }}
 
 Installs the project to the prefix specified in [`setup`](#setup).
 
-```
-{{ cmd_help['install']['arguments'] }}
-```
+{{ install_arguments.inc }}
 
 See [the installation documentation](Installing.md) for more info.
 
@@ -206,31 +182,23 @@ DESTDIR=/path/to/staging/area meson install -C builddir
 
 *(since 0.50.0)*
 
-```
-{{ cmd_help['rewrite']['usage'] }}
-```
+{{ rewrite_usage.inc }}
 
 Modifies the meson project.
 
-```
-{{ cmd_help['rewrite']['arguments'] }}
-```
+{{ rewrite_arguments.inc }}
 
 See [the meson file rewriter documentation](Rewriter.md) for more info.
 
 ### setup
 
-```
-{{ cmd_help['setup']['usage'] }}
-```
+{{ setup_usage.inc }}
 
 Configures a build directory for the meson project.
 
 This is the default meson command (invoked if there was no COMMAND supplied).
 
-```
-{{ cmd_help['setup']['arguments'] }}
-```
+{{ setup_arguments.inc }}
 
 See [meson introduction page](Running-Meson.md#configuring-the-build-directory) for more info.
 
@@ -245,27 +213,19 @@ meson setup builddir
 
 *(since 0.49.0)*
 
-```
-{{ cmd_help['subprojects']['usage'] }}
-```
+{{ subprojects_usage.inc }}
 
 Manages subprojects of the meson project.
 
-```
-{{ cmd_help['subprojects']['arguments'] }}
-```
+{{ subprojects_arguments.inc }}
 
 ### test
 
-```
-{{ cmd_help['test']['usage'] }}
-```
+{{ test_usage.inc }}
 
 Run tests for the configure meson project.
 
-```
-{{ cmd_help['test']['arguments'] }}
-```
+{{ test_arguments.inc }}
 
 See [the unit test documentation](Unit-tests.md) for more info.
 
@@ -283,14 +243,10 @@ meson test -C builddir specific_test_1 specific_test_2
 
 ### wrap
 
-```
-{{ cmd_help['wrap']['usage'] }}
-```
+{{ wrap_usage.inc }}
 
 An utility to manage WrapDB dependencies.
 
-```
-{{ cmd_help['wrap']['arguments'] }}
-```
+{{ wrap_arguments.inc }}
 
 See [the WrapDB tool documentation](Using-wraptool.md) for more info.
