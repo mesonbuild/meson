@@ -151,7 +151,7 @@ Displays information about a configured meson project.
 
 Display basic information about a configured project in `builddir`:
 ```
-meson introspect builddir
+meson introspect builddir --projectinfo
 ```
 
 ### install
