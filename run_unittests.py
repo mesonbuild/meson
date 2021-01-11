@@ -2606,8 +2606,10 @@ class AllPlatformTests(BasePlatformTests):
                 if is_osx():
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 elif is_windows():
-                    # This is clang, not clang-cl
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.MSVCDynamicLinker)
+                    # This is clang, not clang-cl. This can be either an
+                    # ld-like linker of link.exe-like linker (usually the
+                    # former for msys2, the latter otherwise)
+                    self.assertIsInstance(cc.linker, (mesonbuild.linkers.MSVCDynamicLinker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
