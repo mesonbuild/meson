@@ -22,10 +22,7 @@ topic](https://github.com/topics/meson).
  - [Bzip2](https://gitlab.com/federicomenaquintero/bzip2), the bzip2 compressor/decompressor
  - [Cage](https://github.com/Hjdskes/cage), a Wayland kiosk
  - [casync](https://github.com/systemd/casync), Content-Addressable Data Synchronization Tool
- - [Chicken Stack](https://github.com/chicken-libraries/chicken-stack), Chicken libraries classic Stack data structure
- - [Chicken Forward List](https://github.com/chicken-libraries/chicken-forward-list), Chicken libraries classic Forward List data structure
- - [Chicken Queue](https://github.com/chicken-libraries/chicken-queue), Chicken libraries classic Queue data structure
- - [Chicken DeQueue](https://github.com/chicken-libraries/chicken-double-queue), Chicken libraries double ended Queue data structure
+ - [Chicken Libraries](https://github.com/chicken-libraries), Collection of C libraries. Data structures, algorithms, and more.
  - [cinnamon-desktop](https://github.com/linuxmint/cinnamon-desktop), the cinnamon desktop library
  - [Cozy](https://github.com/geigi/cozy), a modern audio book player for Linux and macOS using GTK+ 3
  - [dav1d](https://code.videolan.org/videolan/dav1d), an AV1 decoder
