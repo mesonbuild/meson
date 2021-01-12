@@ -39,7 +39,10 @@ if T.TYPE_CHECKING:
     from ..arglist import CompilerArgs
     from ..compilers import Compiler
     from ..interpreter import Interpreter, Test
+    from ..mesonlib import FileMode
 
+    InstallType = T.List[T.Tuple[str, str, T.Optional['FileMode']]]
+    InstallSubdirsType = T.List[T.Tuple[str, str, T.Optional['FileMode'], T.Tuple[T.Set[str], T.Set[str]]]]
 
 class TestProtocol(enum.Enum):
 
@@ -80,26 +83,31 @@ class CleanTrees:
         self.trees = trees
 
 class InstallData:
-    def __init__(self, source_dir, build_dir, prefix, strip_bin,
-                 install_umask, mesonintrospect, version):
+    def __init__(self, source_dir: str, build_dir: str, prefix: str,
+                 strip_bin: T.List[str], install_umask: T.Union[str, int],
+                 mesonintrospect: T.List[str], version: str):
+        # TODO: in python 3.8 or with typing_Extensions install_umask could be:
+        # `T.Union[T.Literal['preserve'], int]`, which would be more accurate.
         self.source_dir = source_dir
         self.build_dir = build_dir
         self.prefix = prefix
         self.strip_bin = strip_bin
         self.install_umask = install_umask
-        self.targets = []
-        self.headers = []
-        self.man = []
-        self.data = []
-        self.po_package_name = ''
+        self.targets: T.List[TargetInstallData] = []
+        self.headers: 'InstallType' = []
+        self.man: 'InstallType' = []
+        self.data: 'InstallType' = []
+        self.po_package_name: str = ''
         self.po = []
-        self.install_scripts = []
-        self.install_subdirs = []
+        self.install_scripts: T.List[build.RunScript] = []
+        self.install_subdirs: 'InstallSubdirsType' = []
         self.mesonintrospect = mesonintrospect
         self.version = version
 
 class TargetInstallData:
-    def __init__(self, fname, outdir, aliases, strip, install_name_mappings, rpath_dirs_to_remove, install_rpath, install_mode, optional=False):
+    def __init__(self, fname: str, outdir: str, aliases: T.Dict[str, str], strip: bool,
+                 install_name_mappings: T.Dict, rpath_dirs_to_remove: T.Set[bytes],
+                 install_rpath: str, install_mode: 'FileMode', optional: bool = False):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
@@ -545,14 +553,14 @@ class Backend:
                 paths.append(libdir)
         return paths
 
-    def determine_rpath_dirs(self, target):
+    def determine_rpath_dirs(self, target: build.BuildTarget) -> T.Tuple[str, ...]:
         if self.environment.coredata.get_option(OptionKey('layout')) == 'mirror':
-            result = target.get_link_dep_subdirs()
+            result: OrderedSet[str] = target.get_link_dep_subdirs()
         else:
             result = OrderedSet()
             result.add('meson-out')
         result.update(self.rpaths_for_bundled_shared_libraries(target))
-        target.rpath_dirs_to_remove.update([d.encode('utf8') for d in result])
+        target.rpath_dirs_to_remove.update([d.encode('utf-8') for d in result])
         return tuple(result)
 
     @staticmethod
@@ -908,7 +916,7 @@ class Backend:
         abs_path = self.get_target_filename_abs(a)
         return os.path.relpath(abs_path, workdir)
 
-    def generate_depmf_install(self, d):
+    def generate_depmf_install(self, d: InstallData) -> None:
         if self.build.dep_manifest_name is None:
             return
         ifilename = os.path.join(self.environment.get_build_dir(), 'depmf.json')
@@ -917,7 +925,7 @@ class Backend:
         with open(ifilename, 'w') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
-        d.data.append([ifilename, ofilename, None])
+        d.data.append((ifilename, ofilename, None))
 
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
@@ -1205,7 +1213,7 @@ class Backend:
         with open(install_data_file, 'wb') as ofile:
             pickle.dump(self.create_install_data(), ofile)
 
-    def generate_target_install(self, d):
+    def generate_target_install(self, d: InstallData) -> None:
         for t in self.build.get_targets().values():
             if not t.should_install():
                 continue
@@ -1234,6 +1242,7 @@ class Backend:
                 # TODO: Create GNUStrip/AppleStrip/etc. hierarchy for more
                 #       fine-grained stripping of static archives.
                 should_strip = not isinstance(t, build.StaticLibrary) and self.get_option_for_target(OptionKey('strip'), t)
+                assert isinstance(should_strip, bool), 'for mypy'
                 # Install primary build output (library/executable/jar, etc)
                 # Done separately because of strip/aliases/rpath
                 if outdirs[0] is not False:
@@ -1301,8 +1310,8 @@ class Backend:
                                               optional=not t.build_by_default)
                         d.targets.append(i)
 
-    def generate_custom_install_script(self, d):
-        result = []
+    def generate_custom_install_script(self, d: InstallData) -> None:
+        result: T.List[build.RunScript] = []
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for i in self.build.install_scripts:
@@ -1316,7 +1325,7 @@ class Backend:
             result.append(build.RunScript(exe, fixed_args))
         d.install_scripts = result
 
-    def generate_header_install(self, d):
+    def generate_header_install(self, d: InstallData) -> None:
         incroot = self.environment.get_includedir()
         headers = self.build.get_headers()
 
@@ -1331,10 +1340,10 @@ class Backend:
                     msg = 'Invalid header type {!r} can\'t be installed'
                     raise MesonException(msg.format(f))
                 abspath = f.absolute_path(srcdir, builddir)
-                i = [abspath, outdir, h.get_custom_install_mode()]
+                i = (abspath, outdir, h.get_custom_install_mode())
                 d.headers.append(i)
 
-    def generate_man_install(self, d):
+    def generate_man_install(self, d: InstallData) -> None:
         manroot = self.environment.get_mandir()
         man = self.build.get_man()
         for m in man:
@@ -1345,10 +1354,10 @@ class Backend:
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                 dstabs = os.path.join(subdir, os.path.basename(f.fname))
-                i = [srcabs, dstabs, m.get_custom_install_mode()]
+                i = (srcabs, dstabs, m.get_custom_install_mode())
                 d.man.append(i)
 
-    def generate_data_install(self, d):
+    def generate_data_install(self, d: InstallData):
         data = self.build.get_data()
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -1360,10 +1369,10 @@ class Backend:
             for src_file, dst_name in zip(de.sources, de.rename):
                 assert(isinstance(src_file, mesonlib.File))
                 dst_abs = os.path.join(subdir, dst_name)
-                i = [src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode]
+                i = (src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode)
                 d.data.append(i)
 
-    def generate_subdir_install(self, d):
+    def generate_subdir_install(self, d: InstallData) -> None:
         for sd in self.build.get_install_subdirs():
             if sd.from_source_dir:
                 from_dir = self.environment.get_source_dir()
@@ -1376,8 +1385,8 @@ class Backend:
                                    sd.install_dir)
             if not sd.strip_directory:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
-            d.install_subdirs.append([src_dir, dst_dir, sd.install_mode,
-                                      sd.exclude])
+            d.install_subdirs.append(
+                (src_dir, dst_dir, sd.install_mode, sd.exclude))
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
         '''
