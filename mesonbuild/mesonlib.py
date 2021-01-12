@@ -1597,7 +1597,7 @@ def relpath(path: str, start: str) -> str:
         return path
 
 def path_is_in_root(path: Path, root: Path, resolve: bool = False) -> bool:
-    # Check wheter a path is within the root directory root
+    # Check whether a path is within the root directory root
     try:
         if resolve:
             path.resolve().relative_to(root.resolve())

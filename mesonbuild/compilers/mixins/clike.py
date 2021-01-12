@@ -236,7 +236,7 @@ class CLikeCompiler(Compiler):
                             retval.append(d)
                         # at this point, it's an ELF file which doesn't match the
                         # appropriate elf_class, so skip this one
-                    # stop scanning after the first sucessful read
+                    # stop scanning after the first successful read
                     break
                 except OSError:
                     # Skip the file if we can't read it
@@ -1271,7 +1271,7 @@ class CLikeCompiler(Compiler):
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
         # Most compilers (such as GCC and Clang) only warn about unknown or
-        # ignored attributes, so force an error. Overriden in GCC and Clang
+        # ignored attributes, so force an error. Overridden in GCC and Clang
         # mixins.
         return ['-Werror']
 

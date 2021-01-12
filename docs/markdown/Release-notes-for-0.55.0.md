@@ -23,7 +23,7 @@ Usage: `meson compile [TARGET [TARGET...]]`
 `PATH`: path to the target relative to the root `meson.build` file. Note: relative path for a target specified in the root `meson.build` is `./`.
 `TYPE`: type of the target (e.g. `shared_library`, `executable` and etc)
 
-`PATH` and/or `TYPE` can be ommited if the resulting `TARGET` can be used to uniquely identify the target in `meson.build`.
+`PATH` and/or `TYPE` can be omitted if the resulting `TARGET` can be used to uniquely identify the target in `meson.build`.
 
 For example targets from the following code:
 ```meson

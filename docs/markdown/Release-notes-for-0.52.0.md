@@ -86,7 +86,7 @@ Add `dependency('blocks')` to use the Clang blocks extension.
 
 ## Meson's builtin b_lundef is now supported on macOS
 
-This has always been possible, but there are some addtional restrictions on
+This has always been possible, but there are some additional restrictions on
 macOS (mainly do to Apple only features). With the linker internal
 re-architecture this has become possible
 
@@ -133,7 +133,7 @@ A new `version` keyword argument has been added to `find_program` to specify
 the required version. See [`dependency()`](#dependency) for argument format.
 The version of the program is determined by running `program_name --version`
 command. If stdout is empty it fallbacks to stderr. If the output contains more
-text than simply a version number, only the first occurence of numbers separated
+text than simply a version number, only the first occurrence of numbers separated
 by dots is kept. If the output is more complicated than that, the version
 checking will have to be done manually using [`run_command()`](#run_command).
 
@@ -163,7 +163,7 @@ lib2 = static_library(sources, link_with : lib1, install : true)
 ```
 - pkg-config generator do not include uninstalled static libraries. In the example
   below, the generated `.pc` file used to be unusable because it contained
-  `Libs.private: -llib1` and `lib1.a` is not installed. `lib1` is now ommitted
+  `Libs.private: -llib1` and `lib1.a` is not installed. `lib1` is now omitted
   from the `.pc` file because the `link_with:` has been promoted to
   `link_whole:` (see above) and thus lib1 is not needed to use lib2.
 ```meson

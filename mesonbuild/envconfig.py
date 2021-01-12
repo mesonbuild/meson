@@ -68,9 +68,9 @@ known_cpu_families = (
     'x86_64',
 )
 
-# It would feel more natural to call this "64_BIT_CPU_FAMILES", but
+# It would feel more natural to call this "64_BIT_CPU_FAMILIES", but
 # python identifiers cannot start with numbers
-CPU_FAMILES_64_BIT = [
+CPU_FAMILIES_64_BIT = [
     'aarch64',
     'alpha',
     'ia64',
@@ -231,7 +231,7 @@ class MachineInfo:
         self.cpu_family = cpu_family
         self.cpu = cpu
         self.endian = endian
-        self.is_64_bit = cpu_family in CPU_FAMILES_64_BIT  # type: bool
+        self.is_64_bit = cpu_family in CPU_FAMILIES_64_BIT  # type: bool
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, MachineInfo):

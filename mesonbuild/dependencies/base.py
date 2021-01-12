@@ -1244,7 +1244,7 @@ class CMakeDependency(ExternalDependency):
                 if not self._cached_isdir(i):
                     continue
 
-                # Check the directory case insensitve
+                # Check the directory case insensitive
                 content = self._cached_listdir(i)
                 candidates = ['Find{}.cmake', '{}Config.cmake', '{}-config.cmake']
                 candidates = [x.format(name).lower() for x in candidates]

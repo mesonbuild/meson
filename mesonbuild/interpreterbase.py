@@ -893,7 +893,7 @@ The result of this is undefined and will become a hard error in a future Meson r
                 # TODO maybe find a better solution
                 return iobject[index]  # type: ignore
             except IndexError:
-                # We are already checking for the existance of __getitem__, so this should be save
+                # We are already checking for the existence of __getitem__, so this should be save
                 raise InterpreterException('Index %d out of bounds of array of size %d.' % (index, len(iobject)))  # type: ignore
 
     def function_call(self, node: mparser.FunctionNode) -> T.Optional[TYPE_var]:

@@ -95,7 +95,7 @@ the usual way. A list of backends can be obtained with `meson setup --help`.
 
 Sometimes you want to add extra compiler flags, this can be done by passing
 them in environment variables when calling meson. See [the reference
-tables](Reference-tables.md#compiler-and-linker-flag-envrionment-variables) for
+tables](Reference-tables.md#compiler-and-linker-flag-environment-variables) for
 a list of all the environment variables. Be aware however these environment
 variables are only used for the native compiler and will not affect the
 compiler used for cross-compiling, where the flags specified in the cross file

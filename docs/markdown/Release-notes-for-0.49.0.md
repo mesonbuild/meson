@@ -105,7 +105,7 @@ This allows IDE integration to get information about the project before the user
 Before you could use `meson.py introspect --projectinfo build-directory`.
 Now you also can use `meson.py introspect --projectinfo project-dir/meson.build`.
 
-The output is similiar to the output with a build directory but additionally also includes information from `introspect --buildsystem-files`.
+The output is similar to the output with a build directory but additionally also includes information from `introspect --buildsystem-files`.
 
 For example `meson.py introspect --projectinfo test\ cases/common/47\ subproject\ options/meson.build`
 This outputs (pretty printed for readability):

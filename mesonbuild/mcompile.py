@@ -89,7 +89,7 @@ class ParsedTargetName:
 
     @staticmethod
     def _is_valid_type(type: str) -> bool:
-        # Ammend docs in Commands.md when editing this list
+        # Amend docs in Commands.md when editing this list
         allowed_types = {
             'executable',
             'static_library',

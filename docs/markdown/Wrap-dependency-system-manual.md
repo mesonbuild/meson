@@ -92,7 +92,7 @@ Since *0.55.0* those can be used in all wrap types, they were previously reserve
 Since *0.55.0* it is possible to use only the `source_filename` and
 `patch_filename` value in a .wrap file (without `source_url` and `patch_url`) to
 specify a local archive in the `subprojects/packagefiles` directory. The `*_hash`
-entries are optional when using this method. This method should be prefered over
+entries are optional when using this method. This method should be preferred over
 the old `packagecache` approach described below.
 
 Since *0.49.0* if `source_filename` or `patch_filename` is found in the
