@@ -32,7 +32,6 @@ from pathlib import Path, PurePath
 from .. import mlog
 from .. import mesonlib
 from ..compilers import clib_langs
-from ..envconfig import get_env_var
 from ..environment import Environment, MachineInfo
 from ..cmake import CMakeExecutor, CMakeTraceParser, CMakeException, CMakeToolchain, CMakeExecScope, check_cmake_args
 from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
@@ -317,7 +316,7 @@ class HasNativeKwarg:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name, environment, kwargs, language: T.Optional[str] = None):
+    def __init__(self, type_name, environment: Environment, kwargs, language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
@@ -784,14 +783,7 @@ class PkgConfigDependency(ExternalDependency):
         #
         # Only prefix_libpaths are reordered here because there should not be
         # too many system_libpaths to cause library version issues.
-        pkg_config_path = get_env_var(
-            self.for_machine,
-            self.env.is_cross_build(),
-            'PKG_CONFIG_PATH')
-        if pkg_config_path:
-            pkg_config_path = pkg_config_path.split(os.pathsep)
-        else:
-            pkg_config_path = []
+        pkg_config_path: T.List[str] = self.env.coredata.options[OptionKey('pkg_config_path', machine=self.for_machine)].value
         pkg_config_path = self._convert_mingw_paths(pkg_config_path)
         prefix_libpaths = sort_libpaths(prefix_libpaths, pkg_config_path)
         system_libpaths = OrderedSet()

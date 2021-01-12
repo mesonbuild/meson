@@ -1,4 +1,4 @@
-# Copyright 2012-2016 The Meson development team
+# Copyright 2012-2020 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import os, platform, re, sys, shutil, subprocess
 import tempfile
 import shlex
@@ -22,15 +23,13 @@ from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, CompCertLinker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
 from . import mesonlib
 from .mesonlib import (
-    MesonException, EnvironmentException, MachineChoice, Popen_safe,
+    MesonException, EnvironmentException, MachineChoice, Popen_safe, PerMachine,
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey
 )
 from . import mlog
 
 from .envconfig import (
-    BinaryTable, MachineInfo,
-    Properties, known_cpu_families, get_env_var_pair,
-    CMakeVariables,
+    BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
 )
 from . import compilers
 from .compilers import (
@@ -128,6 +127,7 @@ from .compilers import (
     VisualStudioCCompiler,
     VisualStudioCPPCompiler,
 )
+from mesonbuild import envconfig
 
 if T.TYPE_CHECKING:
     from configparser import ConfigParser
@@ -140,6 +140,32 @@ CompilersDict = T.Dict[str, Compiler]
 
 if T.TYPE_CHECKING:
     import argparse
+
+
+def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
+    """
+    Returns the exact env var and the value.
+    """
+    candidates = PerMachine(
+        # The prefixed build version takes priority, but if we are native
+        # compiling we fall back on the unprefixed host version. This
+        # allows native builds to never need to worry about the 'BUILD_*'
+        # ones.
+        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
+        # Always just the unprefixed host verions
+        [var_name]
+    )[for_machine]
+    for var in candidates:
+        value = os.environ.get(var)
+        if value is not None:
+            break
+    else:
+        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
+        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
+        return None
+    mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
+    return value
+
 
 def detect_gcovr(min_version='3.3', new_rootdir_version='4.2', log=False):
     gcovr_exe = 'gcovr'
@@ -579,7 +605,7 @@ class Environment:
         # Stores machine infos, the only *three* machine one because we have a
         # target machine info on for the user (Meson never cares about the
         # target machine.)
-        machines = PerThreeMachineDefaultable()  # type: PerMachineDefaultable[MachineInfo]
+        machines: PerThreeMachineDefaultable[MachineInfo] = PerThreeMachineDefaultable()
 
         # Similar to coredata.compilers, but lower level in that there is no
         # meta data, only names/paths.
@@ -605,7 +631,7 @@ class Environment:
         #
         # Note that order matters because of 'buildtype', if it is after
         # 'optimization' and 'debug' keys, it override them.
-        self.options: T.MutableMapping[OptionKey, str] = collections.OrderedDict()
+        self.options: T.MutableMapping[OptionKey, T.Union[str, T.List[str]]] = collections.OrderedDict()
 
         ## Read in native file(s) to override build machine configuration
 
@@ -614,7 +640,7 @@ class Environment:
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
-            self.load_machine_file_options(config, properties.build, MachineChoice.BUILD)
+            self._load_machine_file_options(config, properties.build, MachineChoice.BUILD)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -632,7 +658,7 @@ class Environment:
             for key, value in list(self.options.items()):
                 if self.coredata.is_per_machine_option(key):
                     self.options[key.as_build()] = value
-            self.load_machine_file_options(config, properties.host, MachineChoice.HOST)
+            self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
         else:
             # IF we aren't cross compiling, but we hav ea native file, the
             # native file is for the host. This is due to an mismatch between
@@ -652,7 +678,9 @@ class Environment:
         self.options.update(options.cmd_line_options)
 
         # Take default value from env if not set in cross/native files or command line.
-        self.set_default_options_from_env()
+        self._set_default_options_from_env()
+        self._set_default_binaries_from_env()
+        self._set_default_properties_from_env()
 
         # Warn if the user is using two different ways of setting build-type
         # options that override each other
@@ -718,7 +746,7 @@ class Environment:
         self.default_pkgconfig = ['pkg-config']
         self.wrap_resolver = None
 
-    def load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
+    def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
         paths = config.get('paths')
         if paths:
@@ -749,23 +777,90 @@ class Environment:
                     key = OptionKey.from_string(k).evolve(subproject=subproject)
                     self.options[key] = v
 
-    def set_default_options_from_env(self) -> None:
-        for for_machine in MachineChoice:
-            for evar, keyname in [('PKG_CONFIG_PATH', 'pkg_config_path')]:
-                p_env_pair = get_env_var_pair(for_machine, self.is_cross_build(), evar)
-                if p_env_pair is not None:
-                    _, p_env = p_env_pair
+    def _set_default_options_from_env(self) -> None:
+        opts: T.List[T.Tuple[str, str]] = (
+            [(v, f'{k}_args') for k, v in compilers.compilers.CFLAGS_MAPPING.items()] +
+            [
+                ('PKG_CONFIG_PATH', 'pkg_config_path'),
+                ('CMAKE_PREFIX_PATH', 'cmake_prefix_path'),
+                ('LDFLAGS', 'ldflags'),
+                ('CPPFLAGS', 'cppflags'),
+            ]
+        )
 
-                    # PKG_CONFIG_PATH may contain duplicates, which must be
-                    # removed, else a duplicates-in-array-option warning arises.
+        for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
+            p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+            if p_env is not None:
+                # these may contain duplicates, which must be removed, else
+                # a duplicates-in-array-option warning arises.
+                if keyname == 'cmake_prefix_path':
+                    if self.machines[for_machine].is_windows():
+                        # Cannot split on ':' on Windows because its in the drive letter
+                        _p_env = p_env.split(os.pathsep)
+                    else:
+                        # https://github.com/mesonbuild/meson/issues/7294
+                        _p_env = re.split(r':|;', p_env)
+                    p_list = list(mesonlib.OrderedSet(_p_env))
+                elif keyname == 'pkg_config_path':
                     p_list = list(mesonlib.OrderedSet(p_env.split(':')))
-                    # Take env vars only on first invocation, if the env changes when
-                    # reconfiguring it gets ignored.
-                    # FIXME: We should remember if we took the value from env to warn
-                    # if it changes on future invocations.
-                    if self.first_invocation:
-                        key = OptionKey(keyname, machine=for_machine)
-                        self.options.setdefault(key, p_list)
+                else:
+                    p_list = split_args(p_env)
+                p_list = [e for e in p_list if e]  # filter out any empty eelemnts
+
+                # Take env vars only on first invocation, if the env changes when
+                # reconfiguring it gets ignored.
+                # FIXME: We should remember if we took the value from env to warn
+                # if it changes on future invocations.
+                if self.first_invocation:
+                    if keyname == 'ldflags':
+                        key = OptionKey('link_args', machine=for_machine, lang='c')  # needs a language to initialize properly
+                        for lang in compilers.compilers.LANGUAGES_USING_LDFLAGS:
+                            key = key.evolve(lang=lang)
+                            v = mesonlib.listify(self.options.get(key, []))
+                            self.options.setdefault(key, v + p_list)
+                    elif keyname == 'cppflags':
+                        key = OptionKey('args', machine=for_machine, lang='c')
+                        for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
+                            key = key.evolve(lang=lang)
+                            v = mesonlib.listify(self.options.get(key, []))
+                            self.options.setdefault(key, v + p_list)
+                    else:
+                        key = OptionKey.from_string(keyname).evolve(machine=for_machine)
+                        v = mesonlib.listify(self.options.get(key, []))
+                        self.options.setdefault(key, v + p_list)
+
+    def _set_default_binaries_from_env(self) -> None:
+        """Set default binaries from the environment.
+
+        For example, pkg-config can be set via PKG_CONFIG, or in the machine
+        file. We want to set the default to the env variable.
+        """
+        opts = itertools.chain(envconfig.DEPRECATED_ENV_PROG_MAP.items(),
+                               envconfig.ENV_VAR_PROG_MAP.items())
+
+        for (name, evar), for_machine in itertools.product(opts, MachineChoice):
+            p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+            if p_env is not None:
+                self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
+
+    def _set_default_properties_from_env(self) -> None:
+        """Properties which can alkso be set from the environment."""
+        # name, evar, split
+        opts: T.List[T.Tuple[str, T.List[str], bool]] = [
+            ('boost_includedir', ['BOOST_INCLUDEDIR'], False),
+            ('boost_librarydir', ['BOOST_LIBRARYDIR'], False),
+            ('boost_root', ['BOOST_ROOT', 'BOOSTROOT'], True),
+        ]
+
+        for (name, evars, split), for_machine in itertools.product(opts, MachineChoice):
+            for evar in evars:
+                p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
+                if p_env is not None:
+                    if split:
+                        self.properties[for_machine].properties.setdefault(name, p_env.split(os.pathsep))
+                    else:
+                        self.properties[for_machine].properties.setdefault(name, p_env)
+                    break
 
     def create_new_coredata(self, options: 'argparse.Namespace') -> None:
         # WARNING: Don't use any values from coredata in __init__. It gets
@@ -816,11 +911,8 @@ class Environment:
     def is_library(self, fname):
         return is_library(fname)
 
-    def lookup_binary_entry(self, for_machine: MachineChoice, name: str):
-        return self.binaries[for_machine].lookup_entry(
-            for_machine,
-            self.is_cross_build(),
-            name)
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.List[str]:
+        return self.binaries[for_machine].lookup_entry(name)
 
     @staticmethod
     def get_gnu_compiler_defines(compiler):

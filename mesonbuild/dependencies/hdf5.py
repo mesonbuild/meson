@@ -30,8 +30,8 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .base import Dependency
-    from ..envconfig import MachineChoice
     from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 
 class HDF5PkgConfigDependency(PkgConfigDependency):

@@ -21,7 +21,6 @@ from .. import coredata
 from .. import mlog
 from ..mesonlib import MesonException, MachineChoice, version_compare, OptionKey
 
-from ..linkers import LinkerEnvVarsMixin
 from .compilers import (
     gnu_winlibs,
     msvc_winlibs,
@@ -256,7 +255,7 @@ class AppleClangCPPCompiler(ClangCPPCompiler):
         return ['-lc++']
 
 
-class EmscriptenCPPCompiler(EmscriptenMixin, LinkerEnvVarsMixin, ClangCPPCompiler):
+class EmscriptenCPPCompiler(EmscriptenMixin, ClangCPPCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice, is_cross: bool,
                  info: 'MachineInfo', exe_wrapper: T.Optional['ExternalProgram'] = None,
                  linker: T.Optional['DynamicLinker'] = None,

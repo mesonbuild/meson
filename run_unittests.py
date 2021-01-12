@@ -2606,8 +2606,10 @@ class AllPlatformTests(BasePlatformTests):
                 if is_osx():
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.AppleDynamicLinker)
                 elif is_windows():
-                    # This is clang, not clang-cl
-                    self.assertIsInstance(cc.linker, mesonbuild.linkers.MSVCDynamicLinker)
+                    # This is clang, not clang-cl. This can be either an
+                    # ld-like linker of link.exe-like linker (usually the
+                    # former for msys2, the latter otherwise)
+                    self.assertIsInstance(cc.linker, (mesonbuild.linkers.MSVCDynamicLinker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin))
                 else:
                     self.assertIsInstance(cc.linker, mesonbuild.linkers.GnuLikeDynamicLinkerMixin)
             if isinstance(cc, intel):
@@ -2635,17 +2637,16 @@ class AllPlatformTests(BasePlatformTests):
             # something like `ccache gcc -pipe` or `distcc ccache gcc` works.
             wrapper = os.path.join(testdir, 'compiler wrapper.py')
             wrappercc = python_command + [wrapper] + cc.get_exelist() + ['-DSOME_ARG']
-            wrappercc_s = ''
-            for w in wrappercc:
-                wrappercc_s += quote_arg(w) + ' '
-            os.environ[evar] = wrappercc_s
-            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            os.environ[evar] = ' '.join(quote_arg(w) for w in wrappercc)
+
             # Check static linker too
             wrapperlinker = python_command + [wrapper] + linker.get_exelist() + linker.get_always_args()
-            wrapperlinker_s = ''
-            for w in wrapperlinker:
-                wrapperlinker_s += quote_arg(w) + ' '
-            os.environ['AR'] = wrapperlinker_s
+            os.environ['AR'] = ' '.join(quote_arg(w) for w in wrapperlinker)
+
+            # Need a new env to re-run environment loading
+            env = get_fake_env(testdir, self.builddir, self.prefix)
+
+            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
             wlinker = env.detect_static_linker(wcc)
             # Pop it so we don't use it for the next detection
             evalue = os.environ.pop('AR')
@@ -5375,7 +5376,7 @@ class FailureTests(BasePlatformTests):
     def test_boost_BOOST_ROOT_dependency(self):
         # Test BOOST_ROOT; can be run even if Boost is found or not
         self.assertMesonRaises("dependency('boost')",
-                               "(BOOST_ROOT.*absolute|{})".format(self.dnf),
+                               "(boost_root.*absolute|{})".format(self.dnf),
                                override_envvars = {'BOOST_ROOT': 'relative/path'})
 
     def test_dependency_invalid_method(self):
@@ -5687,12 +5688,12 @@ class WindowsTests(BasePlatformTests):
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
             raise unittest.SkipTest('Could not find {}.'.format(name))
-        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
-        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+        if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
             envvars.append(
-                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
@@ -7291,12 +7292,12 @@ class LinuxlikeTests(BasePlatformTests):
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
             raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvars = [mesonbuild.envconfig.BinaryTable.evarMap['{}_ld'.format(lang)]]
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
 
         # Also test a deprecated variable if there is one.
-        if envvars[0] in mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP:
+        if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
             envvars.append(
-                mesonbuild.envconfig.BinaryTable.DEPRECATION_MAP[envvars[0]])
+                mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP[f'{lang}_ld'])
 
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
@@ -8272,7 +8273,7 @@ class NativeFileTests(BasePlatformTests):
             return 'gfortran', 'gcc'
         self.helper_for_compiler('fortran', cb)
 
-    def _single_implementation_compiler(self, lang, binary, version_str, version):
+    def _single_implementation_compiler(self, lang: str, binary: str, version_str: str, version: str) -> None:
         """Helper for languages with a single (supported) implementation.
 
         Builds a wrapper around the compiler to override the version.
@@ -8281,7 +8282,7 @@ class NativeFileTests(BasePlatformTests):
         env = get_fake_env()
         getter = getattr(env, 'detect_{}_compiler'.format(lang))
         getter = functools.partial(getter, MachineChoice.HOST)
-        env.binaries.host.binaries[lang] = wrapper
+        env.binaries.host.binaries[lang] = [wrapper]
         compiler = getter()
         self.assertEqual(compiler.version, version)
 
@@ -8308,7 +8309,7 @@ class NativeFileTests(BasePlatformTests):
             'swiftc', version='Swift 1.2345', outfile='stderr',
             extra_args={'Xlinker': 'macosx_version. PROJECT:ld - 1.2.3'})
         env = get_fake_env()
-        env.binaries.host.binaries['swift'] = wrapper
+        env.binaries.host.binaries['swift'] = [wrapper]
         compiler = env.detect_swift_compiler(MachineChoice.HOST)
         self.assertEqual(compiler.version, '1.2345')
 
@@ -9345,7 +9346,7 @@ def unset_envs():
     # For unit tests we must fully control all command lines
     # so that there are no unexpected changes coming from the
     # environment, for example when doing a package build.
-    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.compilers.compilers.cflags_mapping.values())
+    varnames = ['CPPFLAGS', 'LDFLAGS'] + list(mesonbuild.compilers.compilers.CFLAGS_MAPPING.values())
     for v in varnames:
         if v in os.environ:
             del os.environ[v]

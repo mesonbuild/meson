@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, subprocess
+import subprocess
 import typing as T
 from enum import Enum
 
 from . import mesonlib
-from .mesonlib import EnvironmentException, MachineChoice, PerMachine, split_args
+from .mesonlib import EnvironmentException
 from . import mlog
 from pathlib import Path
-
-_T = T.TypeVar('_T')
 
 
 # These classes contains all the data pulled from configuration files (native
@@ -85,45 +83,53 @@ CPU_FAMILES_64_BIT = [
     'x86_64',
 ]
 
+# Map from language identifiers to environment variables.
+ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
+    # Compilers
+    'c': 'CC',
+    'cpp': 'CXX',
+    'cs': 'CSC',
+    'd': 'DC',
+    'fortran': 'FC',
+    'objc': 'OBJC',
+    'objcpp': 'OBJCXX',
+    'rust': 'RUSTC',
+    'vala': 'VALAC',
+
+    # Linkers
+    'c_ld': 'CC_LD',
+    'cpp_ld': 'CXX_LD',
+    'd_ld': 'DC_LD',
+    'fortran_ld': 'FC_LD',
+    'objc_ld': 'OBJC_LD',
+    'objcpp_ld': 'OBJCXX_LD',
+    'rust_ld': 'RUSTC_LD',
+
+    # Binutils
+    'strip': 'STRIP',
+    'ar': 'AR',
+    'windres': 'WINDRES',
+
+    # Other tools
+    'cmake': 'CMAKE',
+    'qmake': 'QMAKE',
+    'pkgconfig': 'PKG_CONFIG',
+    'make': 'MAKE',
+}
+
+# Deprecated environment variables mapped from the new variable to the old one
+# Deprecated in 0.54.0
+DEPRECATED_ENV_PROG_MAP: T.Mapping[str, str] = {
+    'd_ld': 'D_LD',
+    'fortran_ld': 'F_LD',
+    'rust_ld': 'RUST_LD',
+    'objcpp_ld': 'OBJCPP_LD',
+}
+
 class CMakeSkipCompilerTest(Enum):
     ALWAYS = 'always'
     NEVER = 'never'
     DEP_ONLY = 'dep_only'
-
-
-def get_env_var_pair(for_machine: MachineChoice,
-                     is_cross: bool,
-                     var_name: str) -> T.Optional[T.Tuple[str, str]]:
-    """
-    Returns the exact env var and the value.
-    """
-    candidates = PerMachine(
-        # The prefixed build version takes priority, but if we are native
-        # compiling we fall back on the unprefixed host version. This
-        # allows native builds to never need to worry about the 'BUILD_*'
-        # ones.
-        ([var_name + '_FOR_BUILD'] if is_cross else [var_name]),
-        # Always just the unprefixed host verions
-        [var_name]
-    )[for_machine]
-    for var in candidates:
-        value = os.environ.get(var)
-        if value is not None:
-            break
-    else:
-        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
-        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
-        return None
-    mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
-    return var, value
-
-def get_env_var(for_machine: MachineChoice,
-                is_cross: bool,
-                var_name: str) -> T.Optional[str]:
-    ret = get_env_var_pair(for_machine, is_cross, var_name)
-    if ret is None:
-        return None
-    return ret[1]
 
 class Properties:
     def __init__(
@@ -351,60 +357,18 @@ class MachineInfo:
         return self.is_windows() or self.is_cygwin()
 
 class BinaryTable:
+
     def __init__(
             self,
             binaries: T.Optional[T.Dict[str, T.Union[str, T.List[str]]]] = None,
     ):
-        self.binaries = binaries or {}  # type: T.Dict[str, T.Union[str, T.List[str]]]
-        for name, command in self.binaries.items():
-            if not isinstance(command, (list, str)):
-                # TODO generalize message
-                raise mesonlib.MesonException(
-                    'Invalid type {!r} for binary {!r} in cross file'
-                    ''.format(command, name))
-
-    # Map from language identifiers to environment variables.
-    evarMap = {
-        # Compilers
-        'c': 'CC',
-        'cpp': 'CXX',
-        'cs': 'CSC',
-        'd': 'DC',
-        'fortran': 'FC',
-        'objc': 'OBJC',
-        'objcpp': 'OBJCXX',
-        'rust': 'RUSTC',
-        'vala': 'VALAC',
-
-        # Linkers
-        'c_ld': 'CC_LD',
-        'cpp_ld': 'CXX_LD',
-        'd_ld': 'DC_LD',
-        'fortran_ld': 'FC_LD',
-        'objc_ld': 'OBJC_LD',
-        'objcpp_ld': 'OBJCXX_LD',
-        'rust_ld': 'RUSTC_LD',
-
-        # Binutils
-        'strip': 'STRIP',
-        'ar': 'AR',
-        'windres': 'WINDRES',
-
-        # Other tools
-        'cmake': 'CMAKE',
-        'qmake': 'QMAKE',
-        'pkgconfig': 'PKG_CONFIG',
-        'make': 'MAKE',
-    }  # type: T.Dict[str, str]
-
-    # Deprecated environment variables mapped from the new variable to the old one
-    # Deprecated in 0.54.0
-    DEPRECATION_MAP = {
-        'DC_LD': 'D_LD',
-        'FC_LD': 'F_LD',
-        'RUSTC_LD': 'RUST_LD',
-        'OBJCXX_LD': 'OBJCPP_LD',
-    }  # type: T.Dict[str, str]
+        self.binaries: T.Dict[str, T.List[str]] = {}
+        if binaries:
+            for name, command in binaries.items():
+                if not isinstance(command, (list, str)):
+                    raise mesonlib.MesonException(
+                        f'Invalid type {command!r} for entry {name!r} in cross file')
+                self.binaries[name] = mesonlib.listify(command)
 
     @staticmethod
     def detect_ccache() -> T.List[str]:
@@ -426,42 +390,17 @@ class BinaryTable:
         # Return value has to be a list of compiler 'choices'
         return compiler, ccache
 
-    def lookup_entry(self,
-                     for_machine: MachineChoice,
-                     is_cross: bool,
-                     name: str) -> T.Optional[T.List[str]]:
+    def lookup_entry(self, name: str) -> T.Optional[T.List[str]]:
         """Lookup binary in cross/native file and fallback to environment.
 
         Returns command with args as list if found, Returns `None` if nothing is
         found.
         """
-        # Try explicit map, don't fall back on env var
-        # Try explict map, then env vars
-        for _ in [()]: # a trick to get `break`
-            raw_command = self.binaries.get(name)
-            if raw_command is not None:
-                command = mesonlib.stringlistify(raw_command)
-                break # found
-            evar = self.evarMap.get(name)
-            if evar is not None:
-                raw_command = get_env_var(for_machine, is_cross, evar)
-                if raw_command is None:
-                    deprecated = self.DEPRECATION_MAP.get(evar)
-                    if deprecated is not None:
-                        raw_command = get_env_var(for_machine, is_cross, deprecated)
-                        if raw_command is not None:
-                            mlog.deprecation(
-                                'The', deprecated, 'environment variable is deprecated in favor of',
-                                evar, once=True)
-                if raw_command is not None:
-                    command = split_args(raw_command)
-                    break # found
-            command = None
-
-
-        # Do not return empty or blank string entries
-        if command is not None and (len(command) == 0 or len(command[0].strip()) == 0):
-            command = None
+        command = self.binaries.get(name)
+        if not command:
+            return None
+        elif not command[0].strip():
+            return None
         return command
 
 class CMakeVariables:

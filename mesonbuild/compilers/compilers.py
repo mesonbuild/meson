@@ -22,13 +22,9 @@ from functools import lru_cache
 from .. import coredata
 from .. import mlog
 from .. import mesonlib
-from ..linkers import LinkerEnvVarsMixin
 from ..mesonlib import (
     EnvironmentException, MachineChoice, MesonException,
-    Popen_safe, split_args, LibType, TemporaryDirectoryWinProof, OptionKey,
-)
-from ..envconfig import (
-    get_env_var
+    Popen_safe, LibType, TemporaryDirectoryWinProof, OptionKey,
 )
 
 from ..arglist import CompilerArgs
@@ -85,24 +81,28 @@ clink_suffixes += ('h', 'll', 's')
 all_suffixes = set(itertools.chain(*lang_suffixes.values(), clink_suffixes))  # type: T.Set[str]
 
 # Languages that should use LDFLAGS arguments when linking.
-languages_using_ldflags = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
+LANGUAGES_USING_LDFLAGS = {'objcpp', 'cpp', 'objc', 'c', 'fortran', 'd', 'cuda'}  # type: T.Set[str]
 # Languages that should use CPPFLAGS arguments when linking.
-languages_using_cppflags = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
+LANGUAGES_USING_CPPFLAGS = {'c', 'cpp', 'objc', 'objcpp'}  # type: T.Set[str]
 soregex = re.compile(r'.*\.so(\.[0-9]+)?(\.[0-9]+)?(\.[0-9]+)?$')
 
 # Environment variables that each lang uses.
-cflags_mapping = {'c': 'CFLAGS',
-                  'cpp': 'CXXFLAGS',
-                  'cuda': 'CUFLAGS',
-                  'objc': 'OBJCFLAGS',
-                  'objcpp': 'OBJCXXFLAGS',
-                  'fortran': 'FFLAGS',
-                  'd': 'DFLAGS',
-                  'vala': 'VALAFLAGS',
-                  'rust': 'RUSTFLAGS'}  # type: T.Dict[str, str]
+CFLAGS_MAPPING: T.Mapping[str, str] = {
+    'c': 'CFLAGS',
+    'cpp': 'CXXFLAGS',
+    'cuda': 'CUFLAGS',
+    'objc': 'OBJCFLAGS',
+    'objcpp': 'OBJCXXFLAGS',
+    'fortran': 'FFLAGS',
+    'd': 'DFLAGS',
+    'vala': 'VALAFLAGS',
+    'rust': 'RUSTFLAGS',
+}
 
-cexe_mapping = {'c': 'CC',
-                'cpp': 'CXX'}
+CEXE_MAPPING: T.Mapping = {
+    'c': 'CC',
+    'cpp': 'CXX',
+}
 
 # All these are only for C-linkable languages; see `clink_langs` above.
 
@@ -586,11 +586,6 @@ class Compiler(metaclass=abc.ABCMeta):
         This currently means C, C++, Fortran.
         """
         return []
-
-    def get_linker_args_from_envvars(self,
-                                     for_machine: MachineChoice,
-                                     is_cross: bool) -> T.List[str]:
-        return self.linker.get_args_from_envvars(for_machine, is_cross)
 
     def get_options(self) -> 'KeyedOptionDictType':
         return {}
@@ -1199,68 +1194,32 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         raise EnvironmentException('{} does not know how to do prelinking.'.format(self.id))
 
-def get_args_from_envvars(lang: str,
-                          for_machine: MachineChoice,
-                          is_cross: bool,
-                          use_linker_args: bool) -> T.Tuple[T.List[str], T.List[str]]:
-    """
-    Returns a tuple of (compile_flags, link_flags) for the specified language
-    from the inherited environment
-    """
-    if lang not in cflags_mapping:
-        return [], []
-
-    compile_flags = []  # type: T.List[str]
-    link_flags = []     # type: T.List[str]
-
-    env_compile_flags = get_env_var(for_machine, is_cross, cflags_mapping[lang])
-    if env_compile_flags is not None:
-        compile_flags += split_args(env_compile_flags)
-
-    # Link flags (same for all languages)
-    if lang in languages_using_ldflags:
-        link_flags += LinkerEnvVarsMixin.get_args_from_envvars(for_machine, is_cross)
-    if use_linker_args:
-        # When the compiler is used as a wrapper around the linker (such as
-        # with GCC and Clang), the compile flags can be needed while linking
-        # too. This is also what Autotools does. However, we don't want to do
-        # this when the linker is stand-alone such as with MSVC C/C++, etc.
-        link_flags = compile_flags + link_flags
-
-    # Pre-processor flags for certain languages
-    if lang in languages_using_cppflags:
-        env_preproc_flags = get_env_var(for_machine, is_cross, 'CPPFLAGS')
-        if env_preproc_flags is not None:
-            compile_flags += split_args(env_preproc_flags)
-
-    return compile_flags, link_flags
-
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
-                       is_cross: bool) -> 'KeyedOptionDictType':
+                       env: 'Environment') -> 'KeyedOptionDictType':
     """Retreive options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     argkey = OptionKey('args', lang=lang, machine=for_machine)
     largkey = argkey.evolve('link_args')
+
+    # We shouldn't need listify here, but until we have a separate
+    # linker-driver representation and can have that do the combine we have to
+    # do it htis way.
+    compile_args = mesonlib.listify(env.options.get(argkey, []))
+    link_args = mesonlib.listify(env.options.get(largkey, []))
+
+    if comp.INVOKES_LINKER:
+        link_args = compile_args + link_args
+
     opts: 'KeyedOptionDictType' = {
         argkey: coredata.UserArrayOption(
             description + ' compiler',
-            [], split_args=True, user_input=True, allow_dups=True),
+            compile_args, split_args=True, user_input=True, allow_dups=True),
         largkey: coredata.UserArrayOption(
             description + ' linker',
-            [], split_args=True, user_input=True, allow_dups=True),
+            link_args, split_args=True, user_input=True, allow_dups=True),
     }
-
-    # Get from env vars.
-    compile_args, link_args = get_args_from_envvars(
-        lang,
-        for_machine,
-        is_cross,
-        comp.INVOKES_LINKER)
-
-    opts[argkey].set_value(compile_args)
-    opts[largkey].set_value(link_args)
 
     return opts
