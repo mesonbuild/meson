@@ -40,7 +40,7 @@ class RustModule(ExtensionModule):
 
         Rust puts it's unitests inside it's main source files, unlike most
         languages that put them in external files. This means that normally
-        you have to define two seperate targets with basically the same
+        you have to define two separate targets with basically the same
         arguments to get tests:
 
         ```meson

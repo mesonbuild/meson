@@ -112,7 +112,7 @@ project's test suite.
 
 ### Properties
 
-In addition to the properites allowed in [all machine
+In addition to the properties allowed in [all machine
 files](Machine-files.md#properties), the cross file may contain specific
 information about the cross compiler or the host machine. It looks like this:
 

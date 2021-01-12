@@ -36,7 +36,7 @@ class Dedup(enum.Enum):
 
     """What kind of deduplication can be done to compiler args.
 
-    OVERRIDEN - Whether an argument can be 'overridden' by a later argument.
+    OVERRIDDEN - Whether an argument can be 'overridden' by a later argument.
         For example, -DFOO defines FOO and -UFOO undefines FOO. In this case,
         we can safely remove the previous occurrence and add a new one. The
         same is true for include paths and library paths with -I and -L.
@@ -50,7 +50,7 @@ class Dedup(enum.Enum):
 
     NO_DEDUP = 0
     UNIQUE = 1
-    OVERRIDEN = 2
+    OVERRIDDEN = 2
 
 
 class CompilerArgs(collections.abc.MutableSequence):
@@ -129,13 +129,13 @@ class CompilerArgs(collections.abc.MutableSequence):
             dedup = self._can_dedup(a)
             if a not in pre_flush_set:
                 new.append(a)
-                if dedup is Dedup.OVERRIDEN:
+                if dedup is Dedup.OVERRIDDEN:
                     pre_flush_set.add(a)
         for a in reversed(self.post):
             dedup = self._can_dedup(a)
             if a not in post_flush_set:
                 post_flush.appendleft(a)
-                if dedup is Dedup.OVERRIDEN:
+                if dedup is Dedup.OVERRIDDEN:
                     post_flush_set.add(a)
 
         #pre and post will overwrite every element that is in the container
@@ -219,7 +219,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         if arg in cls.dedup2_args or \
            arg.startswith(cls.dedup2_prefixes) or \
            arg.endswith(cls.dedup2_suffixes):
-            return Dedup.OVERRIDEN
+            return Dedup.OVERRIDDEN
         if arg in cls.dedup1_args or \
            arg.startswith(cls.dedup1_prefixes) or \
            arg.endswith(cls.dedup1_suffixes) or \

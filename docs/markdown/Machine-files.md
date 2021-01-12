@@ -209,12 +209,12 @@ options section.
 This is a non exhaustive list of supported variables in the `[properties]`
 section.
 
-- `cmake_toolchain_file` specifies an absoulte path to an already existing
+- `cmake_toolchain_file` specifies an absolute path to an already existing
   CMake toolchain file that will be loaded with `include()` as the last
   instruction of the automatically generated CMake toolchain file from meson.
   (*new in 0.56.0*)
 - `cmake_defaults` is a boolean that specifies whether meson should automatically
-  generate default toolchain varaibles from other sections (`binaries`,
+  generate default toolchain variables from other sections (`binaries`,
   `host_machine`, etc.) in the machine file. Defaults are always overwritten
   by variables set in the `[cmake]` section. The default is `true`. (*new in 0.56.0*)
 - `cmake_skip_compiler_test` is an enum that specifies when meson should
@@ -222,7 +222,7 @@ section.
   sanity checks. This only has an effect if `cmake_defaults` is `true`.
   Supported values are `always`, `never`, `dep_only`. The default is `dep_only`.
   (*new in 0.56.0*)
-- `cmake_use_exe_wrapper` is a boolean that controlls whether to use the
+- `cmake_use_exe_wrapper` is a boolean that controls whether to use the
   `exe_wrapper` specified in `[binaries]` to run generated executables in CMake
   subprojects. This setting has no effect if the `exe_wrapper` was not specified.
   The default value is `true`. (*new in 0.56.0*)
@@ -235,7 +235,7 @@ All variables set in the `[cmake]` section will be added to the generate CMake
 toolchain file used for both CMake dependencies and CMake subprojects. The type
 of each entry must be either a string or a list of strings.
 
-**Note:** All occurances of `\` in the value of all keys will be replaced with
+**Note:** All occurrences of `\` in the value of all keys will be replaced with
           a `/` since CMake has a lot of issues with correctly escaping `\` when
           dealing with variables (even in cases where a path in `CMAKE_C_COMPILER`
           is correctly escaped, CMake will still trip up internaly for instance)

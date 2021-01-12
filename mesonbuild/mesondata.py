@@ -48,8 +48,8 @@ macro(meson_ps_reload_vars)
 endmacro()
 
 macro(meson_ps_disabled_function)
-  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
-                  "This should not be an issue but may lead to compilaton errors.")
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subprojects.\n"
+                  "This should not be an issue but may lead to compilation errors.")
 endmacro()
 
 # Helper macro to inspect the current CMake state
@@ -373,7 +373,7 @@ class DataFile:
 mesondata = {
     'cmake/data/preload.cmake': DataFile(
         Path('cmake/data/preload.cmake'),
-        '2b4e632aeb74acb2b441880cf85c0b6fcab03e75b182d3077715a97e739a7918',
+        'ce8f30159aab25b92c26c58a219a427d47838bfa0739475221d6c8993b4946e5',
         file_0_data_preload_cmake,
     ),
     'dependencies/data/CMakeLists.txt': DataFile(

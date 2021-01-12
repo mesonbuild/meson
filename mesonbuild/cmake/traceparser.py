@@ -323,7 +323,7 @@ class CMakeTraceParser:
 
     def _cmake_add_custom_command(self, tline: CMakeTraceLine, name: T.Optional[str] = None) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/add_custom_command.html
-        args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' seperated lists
+        args = self._flatten_args(list(tline.args))  # Commands can be passed as ';' separated lists
 
         if not args:
             return self._gen_exception('add_custom_command', 'requires at least 1 argument', tline)

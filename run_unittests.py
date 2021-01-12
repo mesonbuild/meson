@@ -8318,7 +8318,7 @@ class NativeFileTests(BasePlatformTests):
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile')])
 
-    def test_native_file_dirs_overriden(self):
+    def test_native_file_dirs_overridden(self):
         testcase = os.path.join(self.unit_test_dir, '60 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),
@@ -8724,7 +8724,7 @@ class CrossFileTests(BasePlatformTests):
                               '-Ddef_sharedstatedir=sharedstatebar',
                               '-Ddef_sysconfdir=sysconfbar'])
 
-    def test_cross_file_dirs_overriden(self):
+    def test_cross_file_dirs_overridden(self):
         testcase = os.path.join(self.unit_test_dir, '60 native file override')
         self.init(testcase, default_args=False,
                   extra_args=['--native-file', os.path.join(testcase, 'nativefile'),

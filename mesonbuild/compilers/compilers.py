@@ -69,7 +69,7 @@ all_languages = lang_suffixes.keys()
 cpp_suffixes = lang_suffixes['cpp'] + ('h',)  # type: T.Tuple[str, ...]
 c_suffixes = lang_suffixes['c'] + ('h',)  # type: T.Tuple[str, ...]
 # List of languages that by default consume and output libraries following the
-# C ABI; these can generally be used interchangebly
+# C ABI; these can generally be used interchangeably
 clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'fortran',)  # type: T.Tuple[str, ...]
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
@@ -1199,14 +1199,14 @@ def get_global_options(lang: str,
                        comp: T.Type[Compiler],
                        for_machine: MachineChoice,
                        env: 'Environment') -> 'KeyedOptionDictType':
-    """Retreive options that apply to all compilers for a given language."""
+    """Retrieve options that apply to all compilers for a given language."""
     description = 'Extra arguments passed to the {}'.format(lang)
     argkey = OptionKey('args', lang=lang, machine=for_machine)
     largkey = argkey.evolve('link_args')
 
     # We shouldn't need listify here, but until we have a separate
     # linker-driver representation and can have that do the combine we have to
-    # do it htis way.
+    # do it this way.
     compile_args = mesonlib.listify(env.options.get(argkey, []))
     link_args = mesonlib.listify(env.options.get(largkey, []))
 

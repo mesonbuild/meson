@@ -252,7 +252,7 @@ targets.
 For those trying to ensure native and cross builds to the same platform produced
 the same result, the old way was frustrating because very different invocations
 were needed to affect the same targets, if it was possible at all. Now, the same
-command line arguments affect the same targets everwhere --- Meson is closer to
+command line arguments affect the same targets everywhere --- Meson is closer to
 ignoring whether the "overall" build is native or cross, and just caring about
 whether individual targets are for the build or host machines.
 
@@ -323,7 +323,7 @@ It should be noted that not all projects are guaranteed to work. The
 safest approach would still be to create a `meson.build` for the
 subprojects in question.
 
-## Multipe cross files can be specified
+## Multiple cross files can be specified
 
 `--cross-file` can be passed multiple times, with the configuration files overlaying the same way as `--native-file`.
 

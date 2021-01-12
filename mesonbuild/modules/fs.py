@@ -45,7 +45,7 @@ class FSModule(ExtensionModule):
         """
         path = self._absolute_dir(state, arg)
         try:
-            # accomodate unresolvable paths e.g. symlink loops
+            # accommodate unresolvable paths e.g. symlink loops
             path = path.resolve()
         except Exception:
             # return the best we could do

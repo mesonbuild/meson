@@ -231,7 +231,7 @@ Most of the time this would be used either by the parent project by setting
 subproject's default_options (e.g. `subproject('foo', default_options: 'default_library=static')`),
 or by the user using the command line `-Dfoo:default_library=static`.
 
-The value is overriden in this order:
+The value is overridden in this order:
 - Value from parent project
 - Value from subproject's default_options if set
 - Value from subproject() default_options if set

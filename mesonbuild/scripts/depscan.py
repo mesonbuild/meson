@@ -164,7 +164,7 @@ class DependencyScanner:
                         if modname not in self.provided_by:
                             # Nothing provides this module, we assume that it
                             # comes from a dependency library somewhere and is
-                            # already built by the time this complation starts.
+                            # already built by the time this compilation starts.
                             pass
                         else:
                             mods_and_submods_needed.append(modname)

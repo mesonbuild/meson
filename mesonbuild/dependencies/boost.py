@@ -601,7 +601,7 @@ class BoostDependency(ExternalDependency):
         libs = [x for x in libs if x.nvsuffix != 'dll']  # Only link to import libraries
 
         # Only filter by debug when we are building in release mode. Debug
-        # libraries are automatically prefered through sorting otherwise.
+        # libraries are automatically preferred through sorting otherwise.
         if not self.debug:
             libs = [x for x in libs if not x.debug]
 

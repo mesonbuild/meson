@@ -273,7 +273,7 @@ The `shared_lib` and `pdb` types takes an optional additional parameter, `versio
 }
 ```
 
-This will be applied appropriatly per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
+This will be applied appropriately per platform. On windows this expects `lib.dll` and `lib-1.dll`. on MacOS it expects `liblib.dylib` and `liblib.1.dylib`. On other Unices it expects `liblib.so`, `liblib.so.1`, and `liblib.so.1.2.3`.
 
 If the `platform` key is present, the installed file entry is only considered if
 the platform matches. The following values for `platform` are currently supported:

@@ -15,8 +15,8 @@ macro(meson_ps_reload_vars)
 endmacro()
 
 macro(meson_ps_disabled_function)
-  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
-                  "This should not be an issue but may lead to compilaton errors.")
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subprojects.\n"
+                  "This should not be an issue but may lead to compilation errors.")
 endmacro()
 
 # Helper macro to inspect the current CMake state
