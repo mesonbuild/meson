@@ -281,7 +281,7 @@ class HotdocTargetBuilder:
 
         return os.path.relpath(_dir, os.path.join(self.builddir, self.subdir))
 
-    def check_forbiden_args(self):
+    def check_forbidden_args(self):
         for arg in ['conf_file']:
             if arg in self.kwargs:
                 raise InvalidArguments('Argument "%s" is forbidden.' % arg)
@@ -290,7 +290,7 @@ class HotdocTargetBuilder:
         self.include_paths[path] = path
 
     def make_targets(self):
-        self.check_forbiden_args()
+        self.check_forbidden_args()
         file_types = (str, mesonlib.File)
         self.process_known_arg("--index", file_types, mandatory=True, value_processor=self.ensure_file)
         self.process_known_arg("--project-version", str, mandatory=True)

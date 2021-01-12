@@ -3453,7 +3453,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 continue
             if name in self.build.find_overrides:
                 exe = self.build.find_overrides[name]
-                extra_info.append(mlog.blue('(overriden)'))
+                extra_info.append(mlog.blue('(overridden)'))
                 return ExternalProgramHolder(exe, self.subproject, self.backend)
         return None
 

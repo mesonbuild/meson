@@ -603,7 +603,7 @@ class ConverterTarget:
         except KeyError:
             return []
 
-        # TODO: Get rid of this once we have propper typing for options
+        # TODO: Get rid of this once we have proper typing for options
         assert isinstance(res, list)
         for i in res:
             assert isinstance(i, str)

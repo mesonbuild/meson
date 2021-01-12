@@ -199,7 +199,7 @@ skip_sanity_check = true
 ## Support for overiding the linker with ldc and gdc
 
 LDC (the llvm D compiler) and GDC (The Gnu D Compiler) now honor D_LD linker
-variable (or d_ld in the cross file) and is able to pick differnt linkers.
+variable (or d_ld in the cross file) and is able to pick different linkers.
 
 GDC supports all of the same values as GCC, LDC supports ld.bfd, ld.gold,
 ld.lld, ld64, link, and lld-link.
@@ -249,7 +249,7 @@ Most of the time this would be used either by the parent project by setting
 subproject's default_options (e.g. `subproject('foo', default_options: 'default_library=static')`),
 or by the user using the command line `-Dfoo:default_library=static`.
 
-The value is overriden in this order:
+The value is overridden in this order:
 - Value from parent project
 - Value from subproject's default_options if set
 - Value from subproject() default_options if set
@@ -276,7 +276,7 @@ and avoid a system directories use.
 
 Meson now ships with predefined project templates for `Java`,
 `Cuda`, `Objective-C++`, and `C#`, we provided with associated
-values for corresponding languages, avalable for both library,
+values for corresponding languages, available for both library,
 and executable.
 
 ## Ninja version requirement bumped to 1.7

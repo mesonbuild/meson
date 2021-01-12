@@ -212,7 +212,7 @@ the following command-line options:
     calls, and those are meant to be used for sources that cannot be
     provided by the system, such as copylibs.
 
-    This option may be overriden by `--force-fallback-for` for specific
+    This option may be overridden by `--force-fallback-for` for specific
     dependencies.
 
 * **--wrap-mode=forcefallback**
