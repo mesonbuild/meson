@@ -500,3 +500,36 @@ meson -Dcpp_eh=none -Dcpp_rtti=false <other options>
 ```
 
 The RTTI option is only available since Meson version 0.53.0.
+
+## Should I check for `buildtype` or individual options like `debug` in my build files?
+
+This depends highly on what you actually need to happen. The
+´buildtype` option is meant do describe the current build's
+_intent_. That is, what it will be used for. Individual options are
+for determining what the exact state is. This becomes clearer with a
+few examples.
+
+Suppose you have a source file that is known to miscompile when using
+`-O3` and requires a workaround. Then you'd write something like this:
+
+```meson
+if get_option('optimization') == '3'
+    add_project_arguments('-DOPTIMIZATION_WORKAROUND', ...)
+endif
+```
+
+On the other hand if your project has extra logging and sanity checks
+that you would like to be enabled during the day to day development
+work (which uses the `debug` buildtype), you'd do this instead:
+
+```meson
+if get_option('buildtype') == 'debug'
+    add_project_arguments('-DENABLE_EXTRA_CHECKS', ...)
+endif
+```
+
+In this way the extra options are automatically used during
+development but are not compiled in release builds. Note that (since
+Meson 0.57.0) you can set optimization to, say, 2 in your debug builds
+if you want to. If you tried to set this flag based on optimization
+level, it would fail in this case.
