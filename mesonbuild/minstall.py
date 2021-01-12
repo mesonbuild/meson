@@ -12,19 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys, pickle, os, shutil, subprocess, errno
-import argparse
-import shlex
 from glob import glob
 from pathlib import Path
+import argparse
+import errno
+import os
+import pickle
+import shlex
+import shutil
+import subprocess
+import sys
 
 from . import environment
-from .scripts import depfixer
-from .scripts import destdir_join
-from .mesonlib import is_windows, Popen_safe
 from .backend.backends import InstallData
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
+from .mesonlib import is_windows, Popen_safe
+from .scripts import depfixer, destdir_join
 try:
     from __main__ import __file__ as main_file
 except ImportError:
