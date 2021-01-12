@@ -4300,11 +4300,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_data'])
-    def func_install_data(self, node, args, kwargs):
+    def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
         raw_sources = args + kwsource
-        sources = []
-        source_strings = []
+        sources: T.List[mesonlib.File] = []
+        source_strings: T.List[str] = []
         for s in raw_sources:
             if isinstance(s, mesonlib.File):
                 sources.append(s)
@@ -4313,11 +4313,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             else:
                 raise InvalidArguments('Argument must be string or file.')
         sources += self.source_strings_to_files(source_strings)
-        install_dir = kwargs.get('install_dir', None)
-        if not isinstance(install_dir, (str, type(None))):
+        install_dir: T.Optional[str] = kwargs.get('install_dir', None)
+        if install_dir is not None and not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
         install_mode = self._get_kwarg_install_mode(kwargs)
-        rename = kwargs.get('rename', None)
+        rename: T.Optional[T.List[str]] = kwargs.get('rename', None)
+        if rename is not None:
+            rename = mesonlib.stringlistify(rename)
+            if len(rename) != len(sources):
+                raise InvalidArguments(
+                    '"rename" and "sources" argument lists must be the same length if "rename" is given. '
+                    f'Rename has {len(rename)} elements and sources has {len(sources)}.')
+
         data = DataHolder(build.Data(sources, install_dir, install_mode, rename))
         self.build.data.append(data.held_object)
         return data
