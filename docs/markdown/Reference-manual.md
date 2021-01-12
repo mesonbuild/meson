@@ -1344,16 +1344,16 @@ Output:
 My Project 1.0
 
   Directories
-             prefix: /opt/gnome
-             bindir: bin
-             libdir: lib/x86_64-linux-gnu
-            datadir: share
+    prefix         : /opt/gnome
+    bindir         : bin
+    libdir         : lib/x86_64-linux-gnu
+    datadir        : share
 
   Configuration
-       Some boolean: False
+    Some boolean   : False
     Another boolean: True
-        Some string: Hello World
-             A list: string
+    Some string    : Hello World
+    A list         : string
                      1
                      True
 ```

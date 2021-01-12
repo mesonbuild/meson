@@ -4720,32 +4720,32 @@ class AllPlatformTests(BasePlatformTests):
         expected = textwrap.dedent(r'''
             Some Subproject 2.0
 
-                 string: bar
+                string : bar
                 integer: 1
                 boolean: True
 
             My Project 1.0
 
               Configuration
-                   Some boolean: False
+                Some boolean   : False
                 Another boolean: True
-                    Some string: Hello World
-                         A list: string
+                Some string    : Hello World
+                A list         : string
                                  1
                                  True
-                     empty list:
-                       A number: 1
-                            yes: YES
-                             no: NO
-                      coma list: a, b, c
+                empty list     :
+                A number       : 1
+                yes            : YES
+                no             : NO
+                coma list      : a, b, c
 
               Plugins
-                 long coma list: alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
+                long coma list : alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
                                  autodetect, avi
 
               Subprojects
-                            sub: YES
-                           sub2: NO Problem encountered: This subproject failed
+                sub            : YES
+                sub2           : NO Problem encountered: This subproject failed
             ''')
         expected_lines = expected.split('\n')[1:]
         out_start = out.find(expected_lines[0])
