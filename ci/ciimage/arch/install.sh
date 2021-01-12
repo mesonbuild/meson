@@ -8,7 +8,7 @@ pkgs=(
   python python-setuptools python-wheel python-pip python-pytest-xdist python-gobject python-jsonschema
   ninja make git sudo fakeroot autoconf automake patch
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
-  mono boost qt5-base gtkmm3 gtest gmock protobuf wxgtk gobject-introspection
+  mono boost qt5-base gtkmm3 gtest gmock protobuf wxgtk2 gobject-introspection
   itstool gtk3 java-environment=8 gtk-doc llvm clang sdl2 graphviz
   doxygen vulkan-validation-layers openssh mercurial gtk-sharp-2 qt5-tools
   libwmf valgrind cmake netcdf-fortran openmpi nasm gnustep-base gettext
