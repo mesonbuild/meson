@@ -3923,51 +3923,13 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Ddebug=false')
         opts = self.get_opts_as_dict()
         self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['buildtype'], 'plain')
-        self.assertEqual(opts['optimization'], '0')
-
-        # Setting optimizations to 3 should cause buildtype
-        # to go to release mode.
-        self.setconf('-Doptimization=3')
-        opts = self.get_opts_as_dict()
-        self.assertEqual(opts['buildtype'], 'release')
-        self.assertEqual(opts['debug'], False)
-        self.assertEqual(opts['optimization'], '3')
-
-        # Going to debug build type should reset debugging
-        # and optimization
-        self.setconf('-Dbuildtype=debug')
-        opts = self.get_opts_as_dict()
         self.assertEqual(opts['buildtype'], 'debug')
-        self.assertEqual(opts['debug'], True)
         self.assertEqual(opts['optimization'], '0')
-
-        # Command-line parsing of buildtype settings should be the same as
-        # setting with `meson configure`.
-        #
-        # Setting buildtype should set optimization/debug
-        self.new_builddir()
-        self.init(testdir, extra_args=['-Dbuildtype=debugoptimized'])
+        self.setconf('-Doptimization=g')
         opts = self.get_opts_as_dict()
-        self.assertEqual(opts['debug'], True)
-        self.assertEqual(opts['optimization'], '2')
-        self.assertEqual(opts['buildtype'], 'debugoptimized')
-        # Setting optimization/debug should set buildtype
-        self.new_builddir()
-        self.init(testdir, extra_args=['-Doptimization=2', '-Ddebug=true'])
-        opts = self.get_opts_as_dict()
-        self.assertEqual(opts['debug'], True)
-        self.assertEqual(opts['optimization'], '2')
-        self.assertEqual(opts['buildtype'], 'debugoptimized')
-        # Setting both buildtype and debug on the command-line should work, and
-        # should warn not to do that. Also test that --debug is parsed as -Ddebug=true
-        self.new_builddir()
-        out = self.init(testdir, extra_args=['-Dbuildtype=debugoptimized', '--debug'])
-        self.assertRegex(out, 'Recommend using either.*buildtype.*debug.*redundant')
-        opts = self.get_opts_as_dict()
-        self.assertEqual(opts['debug'], True)
-        self.assertEqual(opts['optimization'], '2')
-        self.assertEqual(opts['buildtype'], 'debugoptimized')
+        self.assertEqual(opts['debug'], False)
+        self.assertEqual(opts['buildtype'], 'debug')
+        self.assertEqual(opts['optimization'], 'g')
 
     @skipIfNoPkgconfig
     @unittest.skipIf(is_windows(), 'Help needed with fixing this test on windows')

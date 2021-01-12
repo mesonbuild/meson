@@ -243,6 +243,17 @@ class Conf:
             print('')
             print_default_values_warning()
 
+        self.print_nondefault_buildtype_options()
+
+    def print_nondefault_buildtype_options(self):
+        mismatching = self.coredata.get_nondefault_buildtype_args()
+        if not mismatching:
+            return
+        print("\nThe following option(s) have a different value than the build type default\n")
+        print(f'               current   default')
+        for m in mismatching:
+            print(f'{m[0]:21}{m[1]:10}{m[2]:10}')
+
 def run(options):
     coredata.parse_cmd_line_options(options)
     builddir = os.path.abspath(os.path.realpath(options.builddir))
