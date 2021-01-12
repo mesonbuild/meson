@@ -171,6 +171,21 @@ class Man:
         return self.sources
 
 
+class InstallDir:
+
+    def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
+                 install_mode: T.Optional['FileMode'],
+                 exclude: T.Tuple[T.Set[str], T.Set[str]],
+                 strip_directory: bool, from_source_dir: bool = True):
+        self.source_subdir = src_subdir
+        self.installable_subdir = inst_subdir
+        self.install_dir = install_dir
+        self.install_mode = install_mode
+        self.exclude = exclude
+        self.strip_directory = strip_directory
+        self.from_source_dir = from_source_dir
+
+
 class Build:
     """A class that holds the status of one build including
     all dependencies and so on.
@@ -198,7 +213,7 @@ class Build:
         self.install_scripts = []
         self.postconf_scripts = []
         self.dist_scripts = []
-        self.install_dirs = []
+        self.install_dirs: T.List[InstallDir] = []
         self.dep_manifest_name = None
         self.dep_manifest = {}
         self.stdlibs = PerMachine({}, {})
