@@ -582,8 +582,35 @@ class CoreData:
 
         if key.name == 'buildtype':
             self._set_others_from_buildtype(value)
-        elif key.name in {'debug', 'optimization'}:
-            self._set_buildtype_from_others()
+
+    def get_nondefault_buildtype_args(self):
+        result= []
+        value = self.options[OptionKey('buildtype')].value
+        if value == 'plain':
+            opt = '0'
+            debug = False
+        elif value == 'debug':
+            opt = '0'
+            debug = True
+        elif value == 'debugoptimized':
+            opt = '2'
+            debug = True
+        elif value == 'release':
+            opt = '3'
+            debug = False
+        elif value == 'minsize':
+            opt = 's'
+            debug = True
+        else:
+            assert(value == 'custom')
+            return []
+        actual_opt = self.options[OptionKey('optimization')].value
+        actual_debug = self.options[OptionKey('debug')].value
+        if actual_opt != opt:
+            result.append(('optimization', actual_opt, opt))
+        if actual_debug != debug:
+            result.append(('debug', actual_debug, debug))
+        return result
 
     def _set_others_from_buildtype(self, value: str) -> None:
         if value == 'plain':
@@ -606,23 +633,6 @@ class CoreData:
             return
         self.options[OptionKey('optimization')].set_value(opt)
         self.options[OptionKey('debug')].set_value(debug)
-
-    def _set_buildtype_from_others(self) -> None:
-        opt = self.options[OptionKey('optimization')].value
-        debug = self.options[OptionKey('debug')].value
-        if opt == '0' and not debug:
-            mode = 'plain'
-        elif opt == '0' and debug:
-            mode = 'debug'
-        elif opt == '2' and debug:
-            mode = 'debugoptimized'
-        elif opt == '3' and not debug:
-            mode = 'release'
-        elif opt == 's' and debug:
-            mode = 'minsize'
-        else:
-            mode = 'custom'
-        self.options[OptionKey('buildtype')].set_value(mode)
 
     @staticmethod
     def is_per_machine_option(optname: OptionKey) -> bool:
