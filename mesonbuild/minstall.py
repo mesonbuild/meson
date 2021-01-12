@@ -221,11 +221,11 @@ def restore_selinux_contexts() -> None:
                   'Standard error:', err.decode(), sep='\n')
 
 
-def get_destdir_path(d: InstallData, path: str) -> str:
+def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
     if os.path.isabs(path):
-        output = destdir_join(d.destdir, path)
+        output = destdir_join(destdir, path)
     else:
-        output = os.path.join(d.fullprefix, path)
+        output = os.path.join(fullprefix, path)
     return output
 
 
@@ -396,30 +396,30 @@ class Installer:
         with open(datafilename, 'rb') as ifile:
             d = self.check_installdata(pickle.load(ifile))
 
-        d.destdir = os.environ.get('DESTDIR', '')
-        d.fullprefix = destdir_join(d.destdir, d.prefix)
+        destdir = os.environ.get('DESTDIR', '')
+        fullprefix = destdir_join(destdir, d.prefix)
 
         if d.install_umask != 'preserve':
-            assert isinstance(d.install_umask, int), 'for mypy'
+            assert isinstance(d.install_umask, int)
             os.umask(d.install_umask)
 
         self.did_install_something = False
         try:
             with DirMaker(self.lf) as dm:
-                self.install_subdirs(d, dm) # Must be first, because it needs to delete the old subtree.
-                self.install_targets(d, dm)
-                self.install_headers(d, dm)
-                self.install_man(d, dm)
-                self.install_data(d, dm)
+                self.install_subdirs(d, dm, destdir, fullprefix) # Must be first, because it needs to delete the old subtree.
+                self.install_targets(d, dm, destdir, fullprefix)
+                self.install_headers(d, dm, destdir, fullprefix)
+                self.install_man(d, dm, destdir, fullprefix)
+                self.install_data(d, dm, destdir, fullprefix)
                 restore_selinux_contexts()
-                self.run_install_script(d, dm)
+                self.run_install_script(d, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
                 if not self.options.quiet and self.preserved_file_count > 0:
                     self.log('Preserved {} unchanged files, see {} for the full list'
                              .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
-            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ and d.destdir is None:
+            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ and destdir is None:
                 print('Installation failed due to insufficient permissions.')
                 print('Attempting to use polkit to gain elevated privileges...')
                 os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
@@ -427,50 +427,50 @@ class Installer:
             else:
                 raise
 
-    def install_subdirs(self, d: InstallData, dm: DirMaker) -> None:
+    def install_subdirs(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
             self.did_install_something = True
-            full_dst_dir = get_destdir_path(d, dst_dir)
+            full_dst_dir = get_destdir_path(destdir, fullprefix, dst_dir)
             self.log('Installing subdir {} to {}'.format(src_dir, full_dst_dir))
             dm.makedirs(full_dst_dir, exist_ok=True)
             self.do_copydir(d, src_dir, full_dst_dir, exclude, mode, dm)
 
-    def install_data(self, d: InstallData, dm: DirMaker) -> None:
+    def install_data(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.data:
             fullfilename = i[0]
-            outfilename = get_destdir_path(d, i[1])
+            outfilename = get_destdir_path(destdir, fullprefix, i[1])
             mode = i[2]
             outdir = os.path.dirname(outfilename)
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, mode, d.install_umask)
 
-    def install_man(self, d: InstallData, dm: DirMaker) -> None:
+    def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for m in d.man:
             full_source_filename = m[0]
-            outfilename = get_destdir_path(d, m[1])
+            outfilename = get_destdir_path(destdir, fullprefix, m[1])
             outdir = os.path.dirname(outfilename)
             install_mode = m[2]
             if self.do_copyfile(full_source_filename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def install_headers(self, d: InstallData, dm: DirMaker) -> None:
+    def install_headers(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.headers:
             fullfilename = t[0]
             fname = os.path.basename(fullfilename)
-            outdir = get_destdir_path(d, t[1])
+            outdir = get_destdir_path(destdir, fullprefix, t[1])
             outfilename = os.path.join(outdir, fname)
             install_mode = t[2]
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def run_install_script(self, d: InstallData, dm: DirMaker) -> None:
+    def run_install_script(self, d: InstallData, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
                'MESON_INSTALL_PREFIX': d.prefix,
-               'MESON_INSTALL_DESTDIR_PREFIX': d.fullprefix,
+               'MESON_INSTALL_DESTDIR_PREFIX': fullprefix,
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in d.mesonintrospect]),
                }
         if self.options.quiet:
@@ -495,7 +495,7 @@ class Installer:
                 print('FAILED: install script \'{}\' exit code {}, stopped'.format(name, rc))
                 sys.exit(rc)
 
-    def install_targets(self, d: InstallData, dm: DirMaker) -> None:
+    def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
@@ -506,7 +506,7 @@ class Installer:
                     raise RuntimeError('File {!r} could not be found'.format(t.fname))
             file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
-            outdir = get_destdir_path(d, t.outdir)
+            outdir = get_destdir_path(destdir, fullprefix, t.outdir)
             outname = os.path.join(outdir, os.path.basename(fname))
             final_path = os.path.join(d.prefix, t.outdir, os.path.basename(fname))
             aliases = t.aliases
