@@ -1898,9 +1898,9 @@ class Summary:
                 mlog.log(' ', mlog.bold(section))
             for k, v in values.items():
                 v, list_sep = v
-                indent = self.max_key_len - len(k) + 3
+                padding = self.max_key_len - len(k)
                 end = ' ' if v else ''
-                mlog.log(' ' * indent, k + ':', end=end)
+                mlog.log(' ' * 3, k + ' ' * padding + ':', end=end)
                 indent = self.max_key_len + 6
                 self.dump_value(v, list_sep, indent)
         mlog.log('')  # newline
