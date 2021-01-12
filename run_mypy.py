@@ -26,6 +26,7 @@ modules = [
     'mesonbuild/mcompile.py',
     'mesonbuild/mesonlib.py',
     'mesonbuild/minit.py',
+    'mesonbuild/minstall.py',
     'mesonbuild/mintro.py',
     'mesonbuild/mlog.py',
     'mesonbuild/modules/fs.py',
