@@ -318,7 +318,7 @@ class Installer:
 
     def do_copydir(self, data: InstallData, src_dir: str, dst_dir: str,
                    exclude: T.Optional[T.Tuple[T.Set[str], T.Set[str]]],
-                   install_mode: 'FileMode') -> None:
+                   install_mode: 'FileMode', dm: DirMaker) -> None:
         '''
         Copies the contents of directory @src_dir into @dst_dir.
 
@@ -364,7 +364,7 @@ class Installer:
                 if os.path.exists(abs_dst):
                     print('Tried to copy directory {} but a file of that name already exists.'.format(abs_dst))
                     sys.exit(1)
-                data.dirmaker.makedirs(abs_dst)
+                dm.makedirs(abs_dst)
                 shutil.copystat(abs_src, abs_dst)
                 sanitize_permissions(abs_dst, data.install_umask)
             for f in files:
@@ -405,15 +405,14 @@ class Installer:
 
         self.did_install_something = False
         try:
-            d.dirmaker = DirMaker(self.lf)
-            with d.dirmaker:
-                self.install_subdirs(d) # Must be first, because it needs to delete the old subtree.
-                self.install_targets(d)
-                self.install_headers(d)
-                self.install_man(d)
-                self.install_data(d)
+            with DirMaker(self.lf) as dm:
+                self.install_subdirs(d, dm) # Must be first, because it needs to delete the old subtree.
+                self.install_targets(d, dm)
+                self.install_headers(d, dm)
+                self.install_man(d, dm)
+                self.install_data(d, dm)
                 restore_selinux_contexts()
-                self.run_install_script(d)
+                self.run_install_script(d, dm)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
                 if not self.options.quiet and self.preserved_file_count > 0:
@@ -428,46 +427,46 @@ class Installer:
             else:
                 raise
 
-    def install_subdirs(self, d: InstallData) -> None:
+    def install_subdirs(self, d: InstallData, dm: DirMaker) -> None:
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
             self.did_install_something = True
             full_dst_dir = get_destdir_path(d, dst_dir)
             self.log('Installing subdir {} to {}'.format(src_dir, full_dst_dir))
-            d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
-            self.do_copydir(d, src_dir, full_dst_dir, exclude, mode)
+            dm.makedirs(full_dst_dir, exist_ok=True)
+            self.do_copydir(d, src_dir, full_dst_dir, exclude, mode, dm)
 
-    def install_data(self, d: InstallData) -> None:
+    def install_data(self, d: InstallData, dm: DirMaker) -> None:
         for i in d.data:
             fullfilename = i[0]
             outfilename = get_destdir_path(d, i[1])
             mode = i[2]
             outdir = os.path.dirname(outfilename)
-            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir)):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, mode, d.install_umask)
 
-    def install_man(self, d: InstallData) -> None:
+    def install_man(self, d: InstallData, dm: DirMaker) -> None:
         for m in d.man:
             full_source_filename = m[0]
             outfilename = get_destdir_path(d, m[1])
             outdir = os.path.dirname(outfilename)
             install_mode = m[2]
-            if self.do_copyfile(full_source_filename, outfilename, makedirs=(d.dirmaker, outdir)):
+            if self.do_copyfile(full_source_filename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def install_headers(self, d: InstallData) -> None:
+    def install_headers(self, d: InstallData, dm: DirMaker) -> None:
         for t in d.headers:
             fullfilename = t[0]
             fname = os.path.basename(fullfilename)
             outdir = get_destdir_path(d, t[1])
             outfilename = os.path.join(outdir, fname)
             install_mode = t[2]
-            if self.do_copyfile(fullfilename, outfilename, makedirs=(d.dirmaker, outdir)):
+            if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def run_install_script(self, d: InstallData) -> None:
+    def run_install_script(self, d: InstallData, dm: DirMaker) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
                'MESON_INSTALL_PREFIX': d.prefix,
@@ -496,7 +495,7 @@ class Installer:
                 print('FAILED: install script \'{}\' exit code {}, stopped'.format(name, rc))
                 sys.exit(rc)
 
-    def install_targets(self, d: InstallData) -> None:
+    def install_targets(self, d: InstallData, dm: DirMaker) -> None:
         for t in d.targets:
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
@@ -518,7 +517,7 @@ class Installer:
             if not os.path.exists(fname):
                 raise RuntimeError('File {!r} could not be found'.format(fname))
             elif os.path.isfile(fname):
-                file_copied = self.do_copyfile(fname, outname, makedirs=(d.dirmaker, outdir))
+                file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
                 set_mode(outname, install_mode, d.install_umask)
                 if should_strip and d.strip_bin is not None:
                     if fname.endswith('.jar'):
@@ -541,8 +540,8 @@ class Installer:
             elif os.path.isdir(fname):
                 fname = os.path.join(d.build_dir, fname.rstrip('/'))
                 outname = os.path.join(outdir, os.path.basename(fname))
-                d.dirmaker.makedirs(outdir, exist_ok=True)
-                self.do_copydir(d, fname, outname, None, install_mode)
+                dm.makedirs(outdir, exist_ok=True)
+                self.do_copydir(d, fname, outname, None, install_mode, dm)
             else:
                 raise RuntimeError('Unknown file type for {!r}'.format(fname))
             printed_symlink_error = False
