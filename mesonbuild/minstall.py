@@ -538,6 +538,7 @@ class Installer:
                     else:
                         raise
 
+
 def rebuild_all(wd: str) -> bool:
     if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild the project before installation.')
@@ -554,6 +555,7 @@ def rebuild_all(wd: str) -> bool:
         return False
 
     return True
+
 
 def run(opts):
     datafilename = 'meson-private/install.dat'
