@@ -409,6 +409,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder):
         return self.held_object.values[name] # (val, desc)
 
     @FeatureNew('configuration_data.keys()', '0.57.0')
+    @noPosargs
     def keys_method(self, args, kwargs):
         return sorted(self.keys())
 
@@ -3365,8 +3366,8 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise InterpreterException('Problem encountered: ' + args[0])
 
     @noKwargs
+    @noPosargs
     def func_exception(self, node, args, kwargs):
-        self.validate_arguments(args, 0, [])
         raise Exception()
 
     def add_languages(self, args: T.Sequence[str], required: bool, for_machine: MachineChoice) -> bool:
@@ -3983,6 +3984,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @permittedKwargs(permitted_kwargs['vcs_tag'])
     @FeatureDeprecatedKwargs('custom_target', '0.47.0', ['build_always'],
                              'combine build_by_default and build_always_stale instead.')
+    @noPosargs
     def func_vcs_tag(self, node, args, kwargs):
         if 'input' not in kwargs or 'output' not in kwargs:
             raise InterpreterException('Keyword arguments input and output must exist')
@@ -4023,12 +4025,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         return self._func_custom_target_impl(node, [kwargs['output']], kwargs)
 
     @FeatureNew('subdir_done', '0.46.0')
-    @stringArgs
+    @noPosargs
+    @noKwargs
     def func_subdir_done(self, node, args, kwargs):
-        if len(kwargs) > 0:
-            raise InterpreterException('exit does not take named arguments')
-        if len(args) > 0:
-            raise InterpreterException('exit does not take any arguments')
         raise SubdirDoneRequest()
 
     @stringArgs
@@ -4411,9 +4410,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
     @FeatureNewKwargs('configure_file', '0.52.0', ['depfile'])
     @permittedKwargs(permitted_kwargs['configure_file'])
+    @noPosargs
     def func_configure_file(self, node, args, kwargs):
-        if len(args) > 0:
-            raise InterpreterException("configure_file takes only keyword arguments.")
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
         actions = set(['configuration', 'command', 'copy']).intersection(kwargs.keys())
