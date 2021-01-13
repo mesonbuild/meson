@@ -1,4 +1,4 @@
-# Copyright 2020 The Meson development team
+# Copyright 2021 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,139 +30,7 @@ if T.TYPE_CHECKING:
 # BEGIN Data section #
 ######################
 
-file_0_data_CMakeListsLLVM_txt = '''\
-cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
-
-set(PACKAGE_FOUND FALSE)
-
-while(TRUE)
-  find_package(LLVM REQUIRED CONFIG QUIET)
-
-  # ARCHS has to be set via the CMD interface
-  if(LLVM_FOUND OR "${ARCHS}" STREQUAL "")
-    break()
-  endif()
-
-  list(GET       ARCHS 0 CMAKE_LIBRARY_ARCHITECTURE)
-  list(REMOVE_AT ARCHS 0)
-endwhile()
-
-if(LLVM_FOUND)
-  set(PACKAGE_FOUND TRUE)
-
-  foreach(mod IN LISTS LLVM_MESON_MODULES)
-    # Reset variables
-    set(out_mods)
-    set(real_mods)
-
-    # Generate a lower and upper case version
-    string(TOLOWER "${mod}" mod_L)
-    string(TOUPPER "${mod}" mod_U)
-
-    # Get the mapped components
-    llvm_map_components_to_libnames(out_mods ${mod} ${mod_L} ${mod_U})
-    list(SORT              out_mods)
-    list(REMOVE_DUPLICATES out_mods)
-
-    # Make sure that the modules exist
-    foreach(i IN LISTS out_mods)
-      if(TARGET ${i})
-        list(APPEND real_mods ${i})
-      endif()
-    endforeach()
-
-    # Set the output variables
-    set(MESON_LLVM_TARGETS_${mod} ${real_mods})
-    foreach(i IN LISTS real_mods)
-      set(MESON_TARGET_TO_LLVM_${i} ${mod})
-    endforeach()
-  endforeach()
-
-  # Check the following variables:
-  # LLVM_PACKAGE_VERSION
-  # LLVM_VERSION
-  # LLVM_VERSION_STRING
-  if(NOT DEFINED PACKAGE_VERSION)
-    if(DEFINED LLVM_PACKAGE_VERSION)
-      set(PACKAGE_VERSION "${LLVM_PACKAGE_VERSION}")
-    elseif(DEFINED LLVM_VERSION)
-      set(PACKAGE_VERSION "${LLVM_VERSION}")
-    elseif(DEFINED LLVM_VERSION_STRING)
-      set(PACKAGE_VERSION "${LLVM_VERSION_STRING}")
-    endif()
-  endif()
-
-  # Check the following variables:
-  # LLVM_LIBRARIES
-  # LLVM_LIBS
-  set(libs)
-  if(DEFINED LLVM_LIBRARIES)
-    set(libs LLVM_LIBRARIES)
-  elseif(DEFINED LLVM_LIBS)
-    set(libs LLVM_LIBS)
-  endif()
-
-  # Check the following variables:
-  # LLVM_INCLUDE_DIRS
-  # LLVM_INCLUDES
-  # LLVM_INCLUDE_DIR
-  set(includes)
-  if(DEFINED LLVM_INCLUDE_DIRS)
-    set(includes LLVM_INCLUDE_DIRS)
-  elseif(DEFINED LLVM_INCLUDES)
-    set(includes LLVM_INCLUDES)
-  elseif(DEFINED LLVM_INCLUDE_DIR)
-    set(includes LLVM_INCLUDE_DIR)
-  endif()
-
-  # Check the following variables:
-  # LLVM_DEFINITIONS
-  set(definitions)
-  if(DEFINED LLVM_DEFINITIONS)
-    set(definitions LLVM_DEFINITIONS)
-  endif()
-
-  set(PACKAGE_INCLUDE_DIRS "${${includes}}")
-  set(PACKAGE_DEFINITIONS  "${${definitions}}")
-  set(PACKAGE_LIBRARIES    "${${libs}}")
-endif()
-'''
-
-file_1_data_CMakePathInfo_txt = '''\
-cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION})
-
-set(TMP_PATHS_LIST)
-list(APPEND TMP_PATHS_LIST ${CMAKE_PREFIX_PATH})
-list(APPEND TMP_PATHS_LIST ${CMAKE_FRAMEWORK_PATH})
-list(APPEND TMP_PATHS_LIST ${CMAKE_APPBUNDLE_PATH})
-list(APPEND TMP_PATHS_LIST $ENV{CMAKE_PREFIX_PATH})
-list(APPEND TMP_PATHS_LIST $ENV{CMAKE_FRAMEWORK_PATH})
-list(APPEND TMP_PATHS_LIST $ENV{CMAKE_APPBUNDLE_PATH})
-list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_PREFIX_PATH})
-list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_FRAMEWORK_PATH})
-list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_APPBUNDLE_PATH})
-
-set(LIB_ARCH_LIST)
-if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
-  file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
-  foreach(dir ${implicit_dirs})
-    if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
-      list(APPEND LIB_ARCH_LIST "${dir}")
-    endif()
-  endforeach()
-endif()
-
-# "Export" these variables:
-set(MESON_ARCH_LIST ${LIB_ARCH_LIST})
-set(MESON_PATHS_LIST ${TMP_PATHS_LIST})
-set(MESON_CMAKE_ROOT ${CMAKE_ROOT})
-set(MESON_CMAKE_SYSROOT ${CMAKE_SYSROOT})
-set(MESON_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH})
-
-message(STATUS ${TMP_PATHS_LIST})
-'''
-
-file_2_data_CMakeLists_txt = '''\
+file_0_data_CMakeLists_txt = '''\
 # fail noisily if attempt to use this file without setting:
 # cmake_minimum_required(VERSION ${CMAKE_VERSION})
 # project(... LANGUAGES ...)
@@ -261,6 +129,138 @@ if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
   set(PACKAGE_DEFINITIONS  "${${definitions}}")
   set(PACKAGE_LIBRARIES    "${${libs}}")
 endif()
+'''
+
+file_1_data_CMakeListsLLVM_txt = '''\
+cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
+
+set(PACKAGE_FOUND FALSE)
+
+while(TRUE)
+  find_package(LLVM REQUIRED CONFIG QUIET)
+
+  # ARCHS has to be set via the CMD interface
+  if(LLVM_FOUND OR "${ARCHS}" STREQUAL "")
+    break()
+  endif()
+
+  list(GET       ARCHS 0 CMAKE_LIBRARY_ARCHITECTURE)
+  list(REMOVE_AT ARCHS 0)
+endwhile()
+
+if(LLVM_FOUND)
+  set(PACKAGE_FOUND TRUE)
+
+  foreach(mod IN LISTS LLVM_MESON_MODULES)
+    # Reset variables
+    set(out_mods)
+    set(real_mods)
+
+    # Generate a lower and upper case version
+    string(TOLOWER "${mod}" mod_L)
+    string(TOUPPER "${mod}" mod_U)
+
+    # Get the mapped components
+    llvm_map_components_to_libnames(out_mods ${mod} ${mod_L} ${mod_U})
+    list(SORT              out_mods)
+    list(REMOVE_DUPLICATES out_mods)
+
+    # Make sure that the modules exist
+    foreach(i IN LISTS out_mods)
+      if(TARGET ${i})
+        list(APPEND real_mods ${i})
+      endif()
+    endforeach()
+
+    # Set the output variables
+    set(MESON_LLVM_TARGETS_${mod} ${real_mods})
+    foreach(i IN LISTS real_mods)
+      set(MESON_TARGET_TO_LLVM_${i} ${mod})
+    endforeach()
+  endforeach()
+
+  # Check the following variables:
+  # LLVM_PACKAGE_VERSION
+  # LLVM_VERSION
+  # LLVM_VERSION_STRING
+  if(NOT DEFINED PACKAGE_VERSION)
+    if(DEFINED LLVM_PACKAGE_VERSION)
+      set(PACKAGE_VERSION "${LLVM_PACKAGE_VERSION}")
+    elseif(DEFINED LLVM_VERSION)
+      set(PACKAGE_VERSION "${LLVM_VERSION}")
+    elseif(DEFINED LLVM_VERSION_STRING)
+      set(PACKAGE_VERSION "${LLVM_VERSION_STRING}")
+    endif()
+  endif()
+
+  # Check the following variables:
+  # LLVM_LIBRARIES
+  # LLVM_LIBS
+  set(libs)
+  if(DEFINED LLVM_LIBRARIES)
+    set(libs LLVM_LIBRARIES)
+  elseif(DEFINED LLVM_LIBS)
+    set(libs LLVM_LIBS)
+  endif()
+
+  # Check the following variables:
+  # LLVM_INCLUDE_DIRS
+  # LLVM_INCLUDES
+  # LLVM_INCLUDE_DIR
+  set(includes)
+  if(DEFINED LLVM_INCLUDE_DIRS)
+    set(includes LLVM_INCLUDE_DIRS)
+  elseif(DEFINED LLVM_INCLUDES)
+    set(includes LLVM_INCLUDES)
+  elseif(DEFINED LLVM_INCLUDE_DIR)
+    set(includes LLVM_INCLUDE_DIR)
+  endif()
+
+  # Check the following variables:
+  # LLVM_DEFINITIONS
+  set(definitions)
+  if(DEFINED LLVM_DEFINITIONS)
+    set(definitions LLVM_DEFINITIONS)
+  endif()
+
+  set(PACKAGE_INCLUDE_DIRS "${${includes}}")
+  set(PACKAGE_DEFINITIONS  "${${definitions}}")
+  set(PACKAGE_LIBRARIES    "${${libs}}")
+endif()
+'''
+
+file_2_data_CMakePathInfo_txt = '''\
+cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION})
+
+set(TMP_PATHS_LIST)
+list(APPEND TMP_PATHS_LIST ${CMAKE_PREFIX_PATH})
+list(APPEND TMP_PATHS_LIST ${CMAKE_FRAMEWORK_PATH})
+list(APPEND TMP_PATHS_LIST ${CMAKE_APPBUNDLE_PATH})
+list(APPEND TMP_PATHS_LIST $ENV{CMAKE_PREFIX_PATH})
+list(APPEND TMP_PATHS_LIST $ENV{CMAKE_FRAMEWORK_PATH})
+list(APPEND TMP_PATHS_LIST $ENV{CMAKE_APPBUNDLE_PATH})
+list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_PREFIX_PATH})
+list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_FRAMEWORK_PATH})
+list(APPEND TMP_PATHS_LIST ${CMAKE_SYSTEM_APPBUNDLE_PATH})
+
+set(LIB_ARCH_LIST)
+if(CMAKE_LIBRARY_ARCHITECTURE_REGEX)
+  file(GLOB implicit_dirs RELATIVE /lib /lib/*-linux-gnu* )
+  foreach(dir ${implicit_dirs})
+    if("${dir}" MATCHES "${CMAKE_LIBRARY_ARCHITECTURE_REGEX}")
+      list(APPEND LIB_ARCH_LIST "${dir}")
+    endif()
+  endforeach()
+endif()
+
+# "Export" these variables:
+set(MESON_ARCH_LIST ${LIB_ARCH_LIST})
+set(MESON_PATHS_LIST ${TMP_PATHS_LIST})
+set(MESON_CMAKE_ROOT ${CMAKE_ROOT})
+set(MESON_CMAKE_SYSROOT ${CMAKE_SYSROOT})
+set(MESON_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH})
+
+message(STATUS ${TMP_PATHS_LIST})
 '''
 
 file_3_data_preload_cmake = '''\
@@ -371,20 +371,20 @@ class DataFile:
 
 
 mesondata = {
+    'dependencies/data/CMakeLists.txt': DataFile(
+        Path('dependencies/data/CMakeLists.txt'),
+        '4dca24afa13e9311f0598a6ac29690490819bd7d82cfdaa0a2fe5eea3c0fa0d5',
+        file_0_data_CMakeLists_txt,
+    ),
     'dependencies/data/CMakeListsLLVM.txt': DataFile(
         Path('dependencies/data/CMakeListsLLVM.txt'),
         '412cec3315597041a978d018cdaca282dcd47693793540da88ae2f80d0cbd7cd',
-        file_0_data_CMakeListsLLVM_txt,
+        file_1_data_CMakeListsLLVM_txt,
     ),
     'dependencies/data/CMakePathInfo.txt': DataFile(
         Path('dependencies/data/CMakePathInfo.txt'),
         '90da8b443982d9c87139b7dc84228eb58cab4315764949637208f25e2bda7db2',
-        file_1_data_CMakePathInfo_txt,
-    ),
-    'dependencies/data/CMakeLists.txt': DataFile(
-        Path('dependencies/data/CMakeLists.txt'),
-        '4dca24afa13e9311f0598a6ac29690490819bd7d82cfdaa0a2fe5eea3c0fa0d5',
-        file_2_data_CMakeLists_txt,
+        file_2_data_CMakePathInfo_txt,
     ),
     'cmake/data/preload.cmake': DataFile(
         Path('cmake/data/preload.cmake'),
