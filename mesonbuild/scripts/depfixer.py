@@ -294,13 +294,13 @@ class Elf(DataSizes):
                 self.bf.seek(offset)
                 self.bf.write(newname)
 
-    def fix_rpath(self, rpath_dirs_to_remove: T.List[bytes], new_rpath: bytes) -> None:
+    def fix_rpath(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes) -> None:
         # The path to search for can be either rpath or runpath.
         # Fix both of them to be sure.
         self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RPATH)
         self.fix_rpathtype_entry(rpath_dirs_to_remove, new_rpath, DT_RUNPATH)
 
-    def fix_rpathtype_entry(self, rpath_dirs_to_remove: T.List[bytes], new_rpath: bytes, entrynum: int) -> None:
+    def fix_rpathtype_entry(self, rpath_dirs_to_remove: T.Set[bytes], new_rpath: bytes, entrynum: int) -> None:
         rp_off = self.get_entry_offset(entrynum)
         if rp_off is None:
             if self.verbose:
@@ -365,7 +365,7 @@ class Elf(DataSizes):
             entry.write(self.bf)
         return None
 
-def fix_elf(fname: str, rpath_dirs_to_remove: T.List[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
+def fix_elf(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Optional[bytes], verbose: bool = True) -> None:
     with Elf(fname, verbose) as e:
         if new_rpath is None:
             e.print_rpath()
@@ -452,7 +452,7 @@ def fix_jar(fname: str) -> None:
         f.truncate()
     subprocess.check_call(['jar', 'ufm', fname, 'META-INF/MANIFEST.MF'])
 
-def fix_rpath(fname: str, rpath_dirs_to_remove: T.List[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], verbose: bool = True) -> None:
+def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union[str, bytes], final_path: str, install_name_mappings: T.Dict[str, str], verbose: bool = True) -> None:
     global INSTALL_NAME_TOOL
     # Static libraries, import libraries, debug information, headers, etc
     # never have rpaths
