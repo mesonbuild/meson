@@ -51,6 +51,7 @@ import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter, ObjectHolder
+from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
@@ -1292,6 +1293,39 @@ class InternalTests(unittest.TestCase):
             print(str(e))
 
         self.assertFalse(errors)
+
+    def test_typed_pos_args_types(self) -> None:
+        @typed_pos_args('foo', str, int, bool)
+        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+            self.assertIsInstance(args, tuple)
+            self.assertIsInstance(args[0], str)
+            self.assertIsInstance(args[1], int)
+            self.assertIsInstance(args[2], bool)
+
+        _(None, mock.Mock(), ['string', 1, False], None)
+
+    def test_typed_pos_args_types_invalid(self) -> None:
+        @typed_pos_args('foo', str, int, bool)
+        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 1.0, False], None)
+        self.assertEqual(str(cm.exception), 'foo argument 2 was of type "float" but should have been "int"')
+
+    def test_typed_pos_args_types_wrong_number(self) -> None:
+        @typed_pos_args('foo', str, int, bool)
+        def _(obj, node, args: T.Tuple[str, int, bool], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 1], None)
+        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 2.')
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 1, True, True], None)
+        self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 4.')
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
