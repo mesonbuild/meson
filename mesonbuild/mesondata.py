@@ -30,7 +30,92 @@ if T.TYPE_CHECKING:
 # BEGIN Data section #
 ######################
 
-file_0_data_CMakeLists_txt = '''\
+file_0_data_preload_cmake = '''\
+if(MESON_PS_LOADED)
+  return()
+endif()
+
+set(MESON_PS_LOADED ON)
+
+cmake_policy(PUSH)
+cmake_policy(SET CMP0054 NEW) # https://cmake.org/cmake/help/latest/policy/CMP0054.html
+
+# Dummy macros that have a special meaning in the meson code
+macro(meson_ps_execute_delayed_calls)
+endmacro()
+
+macro(meson_ps_reload_vars)
+endmacro()
+
+macro(meson_ps_disabled_function)
+  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
+                  "This should not be an issue but may lead to compilaton errors.")
+endmacro()
+
+# Helper macro to inspect the current CMake state
+macro(meson_ps_inspect_vars)
+  set(MESON_PS_CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+  set(MESON_PS_CMAKE_CURRENT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  meson_ps_execute_delayed_calls()
+endmacro()
+
+
+# Override some system functions with custom code and forward the args
+# to the original function
+macro(add_custom_command)
+  meson_ps_inspect_vars()
+  _add_custom_command(${ARGV})
+endmacro()
+
+macro(add_custom_target)
+  meson_ps_inspect_vars()
+  _add_custom_target(${ARGV})
+endmacro()
+
+macro(set_property)
+  meson_ps_inspect_vars()
+  _set_property(${ARGV})
+endmacro()
+
+function(set_source_files_properties)
+  set(FILES)
+  set(I 0)
+  set(PROPERTIES OFF)
+
+  while(I LESS ARGC)
+    if(NOT PROPERTIES)
+      if("${ARGV${I}}" STREQUAL "PROPERTIES")
+        set(PROPERTIES ON)
+      else()
+        list(APPEND FILES "${ARGV${I}}")
+      endif()
+
+      math(EXPR I "${I} + 1")
+    else()
+      set(ID_IDX ${I})
+      math(EXPR PROP_IDX "${ID_IDX} + 1")
+
+      set(ID   "${ARGV${ID_IDX}}")
+      set(PROP "${ARGV${PROP_IDX}}")
+
+      set_property(SOURCE ${FILES} PROPERTY "${ID}" "${PROP}")
+      math(EXPR I "${I} + 2")
+    endif()
+  endwhile()
+endfunction()
+
+# Disable some functions that would mess up the CMake meson integration
+macro(target_precompile_headers)
+  meson_ps_disabled_function(target_precompile_headers)
+endmacro()
+
+set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
+meson_ps_reload_vars()
+
+cmake_policy(POP)
+'''
+
+file_1_data_CMakeLists_txt = '''\
 # fail noisily if attempt to use this file without setting:
 # cmake_minimum_required(VERSION ${CMAKE_VERSION})
 # project(... LANGUAGES ...)
@@ -131,7 +216,7 @@ if(${_packageName}_FOUND  OR  ${PACKAGE_NAME}_FOUND)
 endif()
 '''
 
-file_1_data_CMakeListsLLVM_txt = '''\
+file_2_data_CMakeListsLLVM_txt = '''\
 cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION} )
 
 set(PACKAGE_FOUND FALSE)
@@ -229,7 +314,7 @@ if(LLVM_FOUND)
 endif()
 '''
 
-file_2_data_CMakePathInfo_txt = '''\
+file_3_data_CMakePathInfo_txt = '''\
 cmake_minimum_required(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}.${CMAKE_PATCH_VERSION})
 
 set(TMP_PATHS_LIST)
@@ -263,91 +348,6 @@ set(MESON_FIND_ROOT_PATH ${CMAKE_FIND_ROOT_PATH})
 message(STATUS ${TMP_PATHS_LIST})
 '''
 
-file_3_data_preload_cmake = '''\
-if(MESON_PS_LOADED)
-  return()
-endif()
-
-set(MESON_PS_LOADED ON)
-
-cmake_policy(PUSH)
-cmake_policy(SET CMP0054 NEW) # https://cmake.org/cmake/help/latest/policy/CMP0054.html
-
-# Dummy macros that have a special meaning in the meson code
-macro(meson_ps_execute_delayed_calls)
-endmacro()
-
-macro(meson_ps_reload_vars)
-endmacro()
-
-macro(meson_ps_disabled_function)
-  message(WARNING "The function '${ARGV0}' is disabled in the context of CMake subporjects.\n"
-                  "This should not be an issue but may lead to compilaton errors.")
-endmacro()
-
-# Helper macro to inspect the current CMake state
-macro(meson_ps_inspect_vars)
-  set(MESON_PS_CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-  set(MESON_PS_CMAKE_CURRENT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  meson_ps_execute_delayed_calls()
-endmacro()
-
-
-# Override some system functions with custom code and forward the args
-# to the original function
-macro(add_custom_command)
-  meson_ps_inspect_vars()
-  _add_custom_command(${ARGV})
-endmacro()
-
-macro(add_custom_target)
-  meson_ps_inspect_vars()
-  _add_custom_target(${ARGV})
-endmacro()
-
-macro(set_property)
-  meson_ps_inspect_vars()
-  _set_property(${ARGV})
-endmacro()
-
-function(set_source_files_properties)
-  set(FILES)
-  set(I 0)
-  set(PROPERTIES OFF)
-
-  while(I LESS ARGC)
-    if(NOT PROPERTIES)
-      if("${ARGV${I}}" STREQUAL "PROPERTIES")
-        set(PROPERTIES ON)
-      else()
-        list(APPEND FILES "${ARGV${I}}")
-      endif()
-
-      math(EXPR I "${I} + 1")
-    else()
-      set(ID_IDX ${I})
-      math(EXPR PROP_IDX "${ID_IDX} + 1")
-
-      set(ID   "${ARGV${ID_IDX}}")
-      set(PROP "${ARGV${PROP_IDX}}")
-
-      set_property(SOURCE ${FILES} PROPERTY "${ID}" "${PROP}")
-      math(EXPR I "${I} + 2")
-    endif()
-  endwhile()
-endfunction()
-
-# Disable some functions that would mess up the CMake meson integration
-macro(target_precompile_headers)
-  meson_ps_disabled_function(target_precompile_headers)
-endmacro()
-
-set(MESON_PS_DELAYED_CALLS add_custom_command;add_custom_target;set_property)
-meson_ps_reload_vars()
-
-cmake_policy(POP)
-'''
-
 
 ####################
 # END Data section #
@@ -371,24 +371,24 @@ class DataFile:
 
 
 mesondata = {
+    'cmake/data/preload.cmake': DataFile(
+        Path('cmake/data/preload.cmake'),
+        '2b4e632aeb74acb2b441880cf85c0b6fcab03e75b182d3077715a97e739a7918',
+        file_0_data_preload_cmake,
+    ),
     'dependencies/data/CMakeLists.txt': DataFile(
         Path('dependencies/data/CMakeLists.txt'),
         '4dca24afa13e9311f0598a6ac29690490819bd7d82cfdaa0a2fe5eea3c0fa0d5',
-        file_0_data_CMakeLists_txt,
+        file_1_data_CMakeLists_txt,
     ),
     'dependencies/data/CMakeListsLLVM.txt': DataFile(
         Path('dependencies/data/CMakeListsLLVM.txt'),
         '412cec3315597041a978d018cdaca282dcd47693793540da88ae2f80d0cbd7cd',
-        file_1_data_CMakeListsLLVM_txt,
+        file_2_data_CMakeListsLLVM_txt,
     ),
     'dependencies/data/CMakePathInfo.txt': DataFile(
         Path('dependencies/data/CMakePathInfo.txt'),
         '90da8b443982d9c87139b7dc84228eb58cab4315764949637208f25e2bda7db2',
-        file_2_data_CMakePathInfo_txt,
-    ),
-    'cmake/data/preload.cmake': DataFile(
-        Path('cmake/data/preload.cmake'),
-        '2b4e632aeb74acb2b441880cf85c0b6fcab03e75b182d3077715a97e739a7918',
-        file_3_data_preload_cmake,
+        file_3_data_CMakePathInfo_txt,
     ),
 }
