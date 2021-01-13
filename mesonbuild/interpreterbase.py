@@ -228,6 +228,61 @@ class permittedKwargs:
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapped)
 
+
+def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[..., T.Any]:
+    """Decorator that types type checking of positional arguments.
+
+    allows replacing this:
+    ```python
+    def func(self, node, args, kwargs):
+        if len(args) != 2:
+            raise Exception('... takes exactly 2 arguments)
+        foo: str = args[0]
+        if not isinstance(foo, str):
+            raise ...
+        bar: int = args[1]
+        if not isinstance(bar, int):
+            raise ...
+
+        # actual useful stuff
+    ```
+    with:
+    ```python
+    @typed_pos_args('func_name', str, int)
+    def func(self, node, args: T.Tuple[str, int], kwargs):
+        foo, bar = args
+
+        # actual useful stuff
+    ```
+    """
+    def inner(f: TV_func) -> TV_func:
+
+        @wraps(f)
+        def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+            args = _get_callee_args(wrapped_args)[2]
+            assert isinstance(args, list), args
+            if len(args) != len(types):
+                raise InvalidArguments(f'{name} takes exactly {len(types)} arguments, but got {len(args)}.')
+            for i, (arg, type_) in enumerate(zip(args, types), start=1):
+                if not isinstance(arg, type_):
+                    if isinstance(type_, tuple):
+                        shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in type_))
+                    else:
+                        shouldbe = f'"{type_.__name__}"'
+                    raise InvalidArguments(f'{name} argument {i} was of type "{type(arg).__name__}" but should have been {shouldbe}')
+
+            # Ensure that we're actually passing a tuple.
+            # Depending on what kind of function we're calling the length of
+            # wrapped_args can vary.
+            nargs = list(wrapped_args)
+            i = nargs.index(args)
+            nargs[i] = tuple(args)
+            return f(*nargs, **wrapped_kwargs)
+
+        return T.cast(TV_func, wrapper)
+    return inner
+
+
 class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
