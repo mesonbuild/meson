@@ -22,6 +22,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import typing as T
 
 from . import environment
 from .backend.backends import InstallData
@@ -36,13 +37,30 @@ except ImportError:
     # This is only used for pkexec which is not, so this is fine.
     main_file = None
 
+if T.TYPE_CHECKING:
+    from .mesonlib import FileMode
+
+    try:
+        from typing import Protocol
+    except AttributeError:
+        from typing_extensions import Protocol  # type: ignore
+
+    class ArgumentType(Protocol):
+        """Typing information for the object returned by argparse."""
+        no_rebuild: bool
+        only_changed: bool
+        profile: bool
+        quiet: bool
+        wd: str
+
+
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
 but this will be changed in a future version of Meson to copy the symlink as is. Please update your
 build definitions so that it will not break when the change happens.'''
 
-selinux_updates = []
+selinux_updates: T.List[str] = []
 
-def add_arguments(parser):
+def add_arguments(parser: argparse.Namespace) -> None:
     parser.add_argument('-C', default='.', dest='wd',
                         help='directory to cd into before running')
     parser.add_argument('--profile-self', action='store_true', dest='profile',
@@ -55,11 +73,11 @@ def add_arguments(parser):
                         help='Do not print every file that was installed.')
 
 class DirMaker:
-    def __init__(self, lf):
+    def __init__(self, lf: T.TextIO):
         self.lf = lf
-        self.dirs = []
+        self.dirs: T.List[str] = []
 
-    def makedirs(self, path, exist_ok=False):
+    def makedirs(self, path: str, exist_ok: bool = False) -> None:
         dirname = os.path.normpath(path)
         dirs = []
         while dirname != os.path.dirname(dirname):
@@ -76,25 +94,29 @@ class DirMaker:
         dirs.reverse()
         self.dirs += dirs
 
-    def __enter__(self):
+    def __enter__(self) -> 'DirMaker':
         return self
 
-    def __exit__(self, exception_type, value, traceback):
+    def __exit__(self, exception_type: T.Type[Exception], value: T.Any, traceback: T.Any) -> None:
         self.dirs.reverse()
         for d in self.dirs:
             append_to_log(self.lf, d)
 
-def is_executable(path, follow_symlinks=False):
+
+def is_executable(path: str, follow_symlinks: bool = False) -> bool:
     '''Checks whether any of the "x" bits are set in the source file mode.'''
     return bool(os.stat(path, follow_symlinks=follow_symlinks).st_mode & 0o111)
 
-def append_to_log(lf, line):
+
+def append_to_log(lf: T.TextIO, line: str) -> None:
     lf.write(line)
     if not line.endswith('\n'):
         lf.write('\n')
     lf.flush()
 
-def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
+
+def set_chown(path: str, user: T.Optional[str] = None, group: T.Optional[str] = None,
+              dir_fd: T.Optional[int] = None, follow_symlinks: bool = True) -> None:
     # shutil.chown will call os.chown without passing all the parameters
     # and particularly follow_symlinks, thus we replace it temporary
     # with a lambda with all the parameters so that follow_symlinks will
@@ -107,21 +129,25 @@ def set_chown(path, user=None, group=None, dir_fd=None, follow_symlinks=True):
                                                  dir_fd=dir_fd,
                                                  follow_symlinks=follow_symlinks)
         shutil.chown(path, user, group)
-    except Exception:
-        raise
     finally:
         os.chown = real_os_chown
 
-def set_chmod(path, mode, dir_fd=None, follow_symlinks=True):
+
+def set_chmod(path: str, mode: int, dir_fd: T.Optional[int] = None,
+              follow_symlinks: bool = True) -> None:
     try:
         os.chmod(path, mode, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
     except (NotImplementedError, OSError, SystemError):
         if not os.path.islink(path):
             os.chmod(path, mode, dir_fd=dir_fd)
 
-def sanitize_permissions(path, umask):
+
+def sanitize_permissions(path: str, umask: T.Union[str, int]) -> None:
+    # TODO: with python 3.8 or typing_extensions we could replace this with
+    # `umask: T.Union[T.Literal['preserve'], int]`, which would be mroe correct
     if umask == 'preserve':
         return
+    assert isinstance(umask, int), 'umask should only be "preserver" or an integer'
     new_perms = 0o777 if is_executable(path, follow_symlinks=False) else 0o666
     new_perms &= ~umask
     try:
@@ -130,7 +156,8 @@ def sanitize_permissions(path, umask):
         msg = '{!r}: Unable to set permissions {!r}: {}, ignoring...'
         print(msg.format(path, new_perms, e.strerror))
 
-def set_mode(path, mode, default_umask):
+
+def set_mode(path: str, mode: T.Optional['FileMode'], default_umask: T.Union[str, int]) -> None:
     if mode is None or (mode.perms_s or mode.owner or mode.group) is None:
         # Just sanitize permissions with the default umask
         sanitize_permissions(path, default_umask)
@@ -163,7 +190,8 @@ def set_mode(path, mode, default_umask):
     else:
         sanitize_permissions(path, default_umask)
 
-def restore_selinux_contexts():
+
+def restore_selinux_contexts() -> None:
     '''
     Restores the SELinux context for files in @selinux_updates
 
@@ -193,7 +221,7 @@ def restore_selinux_contexts():
                   'Standard error:', err.decode(), sep='\n')
 
 
-def get_destdir_path(d, path):
+def get_destdir_path(d: InstallData, path: str) -> str:
     if os.path.isabs(path):
         output = destdir_join(d.destdir, path)
     else:
@@ -201,7 +229,7 @@ def get_destdir_path(d, path):
     return output
 
 
-def check_for_stampfile(fname):
+def check_for_stampfile(fname: str) -> str:
     '''Some languages e.g. Rust have output files
     whose names are not known at configure time.
     Check if this is the case and return the real
@@ -226,19 +254,20 @@ def check_for_stampfile(fname):
                 return files[0]
     return fname
 
+
 class Installer:
 
-    def __init__(self, options, lf):
+    def __init__(self, options: 'ArgumentType', lf: T.TextIO):
         self.did_install_something = False
         self.options = options
         self.lf = lf
         self.preserved_file_count = 0
 
-    def log(self, msg):
+    def log(self, msg: str) -> None:
         if not self.options.quiet:
             print(msg)
 
-    def should_preserve_existing_file(self, from_file, to_file):
+    def should_preserve_existing_file(self, from_file: str, to_file: str) -> bool:
         if not self.options.only_changed:
             return False
         # Always replace danging symlinks
@@ -248,7 +277,8 @@ class Installer:
         to_time = os.stat(to_file).st_mtime
         return from_time <= to_time
 
-    def do_copyfile(self, from_file, to_file, makedirs=None):
+    def do_copyfile(self, from_file: str, to_file: str,
+                    makedirs: T.Optional[T.Tuple[T.Any, str]] = None) -> bool:
         outdir = os.path.split(to_file)[0]
         if not os.path.isfile(from_file) and not os.path.islink(from_file):
             raise RuntimeError('Tried to install something that isn\'t a file:'
@@ -286,7 +316,9 @@ class Installer:
         append_to_log(self.lf, to_file)
         return True
 
-    def do_copydir(self, data, src_dir, dst_dir, exclude, install_mode):
+    def do_copydir(self, data: InstallData, src_dir: str, dst_dir: str,
+                   exclude: T.Optional[T.Tuple[T.Set[str], T.Set[str]]],
+                   install_mode: 'FileMode') -> None:
         '''
         Copies the contents of directory @src_dir into @dst_dir.
 
@@ -360,7 +392,7 @@ class Installer:
             raise MesonVersionMismatchException(obj.version, coredata_version)
         return obj
 
-    def do_install(self, datafilename):
+    def do_install(self, datafilename: str) -> None:
         with open(datafilename, 'rb') as ifile:
             d = self.check_installdata(pickle.load(ifile))
 
@@ -368,6 +400,7 @@ class Installer:
         d.fullprefix = destdir_join(d.destdir, d.prefix)
 
         if d.install_umask != 'preserve':
+            assert isinstance(d.install_umask, int), 'for mypy'
             os.umask(d.install_umask)
 
         self.did_install_something = False
@@ -395,7 +428,7 @@ class Installer:
             else:
                 raise
 
-    def install_subdirs(self, d):
+    def install_subdirs(self, d: InstallData) -> None:
         for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
             self.did_install_something = True
             full_dst_dir = get_destdir_path(d, dst_dir)
@@ -403,7 +436,7 @@ class Installer:
             d.dirmaker.makedirs(full_dst_dir, exist_ok=True)
             self.do_copydir(d, src_dir, full_dst_dir, exclude, mode)
 
-    def install_data(self, d):
+    def install_data(self, d: InstallData) -> None:
         for i in d.data:
             fullfilename = i[0]
             outfilename = get_destdir_path(d, i[1])
@@ -413,7 +446,7 @@ class Installer:
                 self.did_install_something = True
             set_mode(outfilename, mode, d.install_umask)
 
-    def install_man(self, d):
+    def install_man(self, d: InstallData) -> None:
         for m in d.man:
             full_source_filename = m[0]
             outfilename = get_destdir_path(d, m[1])
@@ -423,7 +456,7 @@ class Installer:
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def install_headers(self, d):
+    def install_headers(self, d: InstallData) -> None:
         for t in d.headers:
             fullfilename = t[0]
             fname = os.path.basename(fullfilename)
@@ -434,7 +467,7 @@ class Installer:
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def run_install_script(self, d):
+    def run_install_script(self, d: InstallData) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
                'MESON_INSTALL_PREFIX': d.prefix,
@@ -463,7 +496,7 @@ class Installer:
                 print('FAILED: install script \'{}\' exit code {}, stopped'.format(name, rc))
                 sys.exit(rc)
 
-    def install_targets(self, d):
+    def install_targets(self, d: InstallData) -> None:
         for t in d.targets:
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
@@ -557,7 +590,7 @@ def rebuild_all(wd: str) -> bool:
     return True
 
 
-def run(opts):
+def run(opts: 'ArgumentType') -> int:
     datafilename = 'meson-private/install.dat'
     private_dir = os.path.dirname(datafilename)
     log_dir = os.path.join(private_dir, '../meson-logs')
