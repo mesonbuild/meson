@@ -43,7 +43,7 @@ def main() -> int:
     mesonbuild_dir = root_dir / 'mesonbuild'
     out_file = mesonbuild_dir / 'mesondata.py'
 
-    data_dirs = mesonbuild_dir.glob('**/data')
+    data_dirs = sorted(mesonbuild_dir.glob('**/data'))
 
     data_files: T.List[DataFile] = []
 
