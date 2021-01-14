@@ -72,7 +72,7 @@ for details.
 | layout {mirror,flat}                 | mirror        | Build directory layout                                         | no             | no                |
 | optimization {0, g, 1, 2, 3, s}      | 0             | Optimization level                                             | no             | no                |
 | pkg_config_path {OS separated path}  | ''            | Additional paths for pkg-config to search before builtin paths | yes            | no                |
-| default_dependency_sources           | system        | Where to look for dependencies (system, installation prefix)   | yes            | no                |
+| default_dependency_sources {system, both} | system        | Where to look for dependencies (system, installation prefix)   | yes            | no                |
 | cmake_prefix_path                    | []            | Additional prefixes for cmake to search before builtin paths   | yes            | no                |
 | stdsplit                             | true          | Split stdout and stderr in test logs                           | no             | no                |
 | strip                                | false         | Strip targets on install                                       | no             | no                |
