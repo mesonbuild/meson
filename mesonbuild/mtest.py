@@ -761,21 +761,19 @@ class TestRun:
         filename = '{}.xml'.format(self.test.name)
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
-        tree = et.parse(filename)
-
-        self.complete_exitcode(returncode, stdo, stde, cmd, junit=tree)
+        self.junit = et.parse(filename)
+        self.complete_exitcode(returncode, stdo, stde, cmd)
 
     def complete_exitcode(self, returncode: int,
                           stdo: T.Optional[str], stde: T.Optional[str],
-                          cmd: T.List[str],
-                          **kwargs: T.Any) -> None:
+                          cmd: T.List[str]) -> None:
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
             res = TestResult.ERROR
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        self.complete(returncode, res, stdo, stde, cmd, **kwargs)
+        self.complete(returncode, res, stdo, stde, cmd)
 
     async def parse_tap(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         res = TestResult.OK
@@ -858,7 +856,7 @@ class TestRun:
 
     def complete(self, returncode: int, res: TestResult,
                  stdo: T.Optional[str], stde: T.Optional[str],
-                 cmd: T.List[str], *, junit: T.Optional[et.ElementTree] = None) -> None:
+                 cmd: T.List[str]) -> None:
         assert isinstance(res, TestResult)
         if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
             res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
@@ -869,7 +867,6 @@ class TestRun:
         self.stdo = stdo
         self.stde = stde
         self.cmd = cmd
-        self.junit = junit
 
     def get_log(self) -> str:
         res = '--- command ---\n'
