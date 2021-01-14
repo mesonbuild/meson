@@ -535,9 +535,7 @@ class ConsoleLogger(TestLogger):
 
         self.test_count = harness.test_count
 
-        # In verbose mode, the progress report gets in the way of the tests'
-        # stdout and stderr.
-        if self.is_tty() and not harness.options.verbose:
+        if self.is_tty() and not harness.need_console:
             # Account for "[aa-bb/cc] OO " in the progress report
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
@@ -1300,6 +1298,7 @@ class TestHarness:
         self.is_run = False
         self.loggers = []         # type: T.List[TestLogger]
         self.loggers.append(ConsoleLogger())
+        self.need_console = False
 
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
@@ -1450,6 +1449,9 @@ class TestHarness:
             runners = [self.get_test_runner(test) for test in tests]
             self.duration_max_len = max([len(str(int(runner.timeout or 99)))
                                          for runner in runners])
+            # Disable the progress report if it gets in the way
+            self.need_console = any((runner.console_mode is not ConsoleUser.LOGGER
+                                     for runner in runners))
             self.run_tests(runners)
         finally:
             os.chdir(startdir)
