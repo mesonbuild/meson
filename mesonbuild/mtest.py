@@ -746,7 +746,7 @@ class TestRun:
         self.stdo = None       # type: T.Optional[str]
         self.stde = None       # type: T.Optional[str]
         self.cmd = None        # type: T.Optional[T.List[str]]
-        self.env = dict()      # type: T.Dict[str, str]
+        self.env = test_env    # type: T.Dict[str, str]
         self.should_fail = test.should_fail
         self.project = test.project_name
         self.junit = None      # type: T.Optional[et.ElementTree]
