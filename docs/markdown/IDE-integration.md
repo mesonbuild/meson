@@ -346,3 +346,4 @@ removal of a key) are unlikely and will be announced in the release notes.
 - [Meson-UI](https://github.com/michaelbadcrumble/meson-ui) (Meson build GUI)
 - [Meson Syntax Highlighter](https://plugins.jetbrains.com/plugin/13269-meson-syntax-highlighter) plugin for JetBrains IDEs.
 - [asabil.meson](https://open-vsx.org/extension/asabil/meson) extension for VS Code/Codium
+- [Qt Creator](https://doc.qt.io/qtcreator/creator-project-meson.html)
