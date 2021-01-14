@@ -1571,17 +1571,31 @@ class Generator:
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
     def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
+        new = False
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
-        for f in files:
-            if isinstance(f, str):
-                f = File.from_source_file(state.environment.source_dir, state.subdir, f)
-            elif not isinstance(f, File):
-                raise InvalidArguments('{} arguments must be strings or files not {!r}.'.format(name, f))
-            if preserve_path_from:
-                abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
-                if not self.is_parent_path(preserve_path_from, abs_f):
-                    raise InvalidArguments('When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
-            output.add_file(f, state)
+        for e in unholder(files):
+            fs = [e]
+            if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
+                self.depends.append(e)
+                fs = []
+                for f in e.get_outputs():
+                    fs.append(File.from_built_file(state.subdir, f))
+                new = True
+            elif isinstance(e, str):
+                fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+            elif not isinstance(e, File):
+                raise InvalidArguments('{} arguments must be strings, files or CustomTargets, not {!r}.'.format(name, e))
+
+            for f in fs:
+                if preserve_path_from:
+                    abs_f = f.absolute_path(state.environment.source_dir, state.environment.build_dir)
+                    if not self.is_parent_path(preserve_path_from, abs_f):
+                        raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
+                output.add_file(f, state)
+        if new:
+            FeatureNew.single_use(
+                'Calling "{}" with CustomTaget or Index of CustomTarget.'.format(name),
+                '0.57.0', state.subproject)
         return output
 
 
