@@ -162,12 +162,17 @@ class ExternalProject(InterpreterObject):
 
     def _run(self, step: str, command: T.List[str]):
         mlog.log('External project {}:'.format(self.name), mlog.bold(step))
-        output = None if self.verbose else subprocess.DEVNULL
+        log_filename = Path(mlog.log_dir, '{}-{}.log'.format(self.name, step))
+        output = None
+        if not self.verbose:
+            output = open(log_filename, 'w')
         p, o, e = Popen_safe(command, cwd=str(self.build_dir), env=self.run_env,
                                       stderr=subprocess.STDOUT,
                                       stdout=output)
         if p.returncode != 0:
-            m = '{} step failed:\n{}'.format(step, e)
+            m = '{} step returned error code {}.'.format(step, p.returncode)
+            if not self.verbose:
+                m += '\nSee logs: ' + str(log_filename)
             raise MesonException(m)
 
     def _create_targets(self):
