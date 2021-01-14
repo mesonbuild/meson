@@ -263,6 +263,12 @@ class Elf(DataSizes):
         self.bf.seek(strtab.val + soname.val)
         return self.read_str().decode()
 
+    def has_soname(self) -> bool:
+        for i in self.dynamic:
+            if i.d_tag == DT_SONAME:
+                return True
+        return False
+
     def get_entry_offset(self, entrynum: int) -> T.Optional[int]:
         sec = self.find_section(b'.dynstr')
         for i in self.dynamic:
@@ -499,3 +505,13 @@ def fix_rpath(fname: str, rpath_dirs_to_remove: T.Set[bytes], new_rpath: T.Union
         if isinstance(new_rpath, bytes):
             new_rpath = new_rpath.decode('utf8')
         fix_darwin(fname, new_rpath, final_path, install_name_mappings)
+
+def is_elf_shared_library_without_soname(fname: str) -> bool:
+    # Not an shared library
+    if fname.endswith(('.a')):
+        return False
+    try:
+        with Elf(fname, verbose=False) as e:
+            return not e.has_soname()
+    except (Exception, SystemExit):
+        return False

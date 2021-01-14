@@ -327,7 +327,13 @@ class PkgConfigDependency(ExternalDependency):
                     # else, library is either to be ignored, or is provided by
                     # the compiler, can't be resolved, and should be used as-is
                     if args:
-                        if not args[0].startswith('-l'):
+                        if len(args) > 1:
+                            # We found the library, but it has no SONAME, so
+                            # find_library returned ['-Lpath', '-llib'].
+                            # We cannot use the full path, which would be
+                            # written into the output by the linker.
+                            libs_notfound.append(lib)
+                        elif not args[0].startswith('-l'):
                             lib = args[0]
                     else:
                         continue

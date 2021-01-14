@@ -34,8 +34,9 @@ from pathlib import Path
 from ... import arglist
 from ... import mesonlib
 from ... import mlog
-from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker
+from ...linkers import GnuLikeDynamicLinkerMixin, SolarisDynamicLinker, CompCertDynamicLinker, PosixDynamicLinkerMixin
 from ...mesonlib import LibType
+from ...scripts import depfixer
 from ...coredata import OptionKey
 from .. import compilers
 from ..compilers import CompileCheckMode
@@ -1156,6 +1157,10 @@ class CLikeCompiler(Compiler):
                     continue
                 if libname.startswith('lib') and trial.name.startswith(libname):
                     mlog.warning(f'find_library({libname!r}) starting in "lib" only works by accident and is not portable')
+                if isinstance(self.linker, PosixDynamicLinkerMixin):
+                    if not self.info.is_cygwin() and not self.info.is_windows() and not self.info.is_darwin():
+                        if depfixer.is_elf_shared_library_without_soname(trial.as_posix()):
+                            return ['-L' + trial.parent.as_posix(), '-l' + libname]
                 return [trial.as_posix()]
         return None
 
