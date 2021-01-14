@@ -113,7 +113,8 @@ ENV_VAR_PROG_MAP: T.Mapping[str, str] = {
     # Other tools
     'cmake': 'CMAKE',
     'qmake': 'QMAKE',
-    'pkgconfig': 'PKG_CONFIG',
+    'pkg-config': 'PKG_CONFIG',
+    'pkgconf': 'PKG_CONFIG',
     'make': 'MAKE',
 }
 
