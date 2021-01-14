@@ -751,29 +751,28 @@ class TestRun:
         self.project = test.project_name
         self.junit = None      # type: T.Optional[et.ElementTree]
 
-    def start(self) -> None:
+    def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
         self.starttime = time.time()
+        self.cmd = cmd
 
     def complete_gtest(self, returncode: int,
-                       stdo: T.Optional[str], stde: T.Optional[str],
-                       cmd: T.List[str]) -> None:
+                       stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         filename = '{}.xml'.format(self.test.name)
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
         self.junit = et.parse(filename)
-        self.complete_exitcode(returncode, stdo, stde, cmd)
+        self.complete_exitcode(returncode, stdo, stde)
 
     def complete_exitcode(self, returncode: int,
-                          stdo: T.Optional[str], stde: T.Optional[str],
-                          cmd: T.List[str]) -> None:
+                          stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         if returncode == GNU_SKIP_RETURNCODE:
             res = TestResult.SKIP
         elif returncode == GNU_ERROR_RETURNCODE:
             res = TestResult.ERROR
         else:
             res = TestResult.FAIL if bool(returncode) else TestResult.OK
-        self.complete(returncode, res, stdo, stde, cmd)
+        self.complete(returncode, res, stdo, stde)
 
     async def parse_tap(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         res = TestResult.OK
@@ -796,12 +795,12 @@ class TestRun:
         return res, error
 
     def complete_tap(self, returncode: int, res: TestResult,
-                     stdo: str, stde: str, cmd: T.List[str]) -> None:
+                     stdo: str, stde: str) -> None:
         if returncode != 0 and not res.was_killed():
             res = TestResult.ERROR
             stde += '\n(test program exited with status code {})'.format(returncode,)
 
-        self.complete(returncode, res, stdo, stde, cmd)
+        self.complete(returncode, res, stdo, stde)
 
     async def parse_rust(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
@@ -855,8 +854,7 @@ class TestRun:
         return ''
 
     def complete(self, returncode: int, res: TestResult,
-                 stdo: T.Optional[str], stde: T.Optional[str],
-                 cmd: T.List[str]) -> None:
+                 stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         assert isinstance(res, TestResult)
         if self.should_fail and res in (TestResult.OK, TestResult.FAIL):
             res = TestResult.UNEXPECTEDPASS if res.is_ok() else TestResult.EXPECTEDFAIL
@@ -866,10 +864,10 @@ class TestRun:
         self.duration = time.time() - self.starttime
         self.stdo = stdo
         self.stde = stde
-        self.cmd = cmd
 
     def complete_skip(self, message: str) -> None:
-        self.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None, None)
+        self.starttime = time.time()
+        self.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None)
 
     def get_log(self) -> str:
         res = '--- command ---\n'
@@ -1091,7 +1089,6 @@ class SingleTestRunner:
 
     async def run(self) -> TestRun:
         cmd = self._get_cmd()
-        self.runobj.start()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
             self.runobj.complete_skip(skip_stdout)
@@ -1154,6 +1151,7 @@ class SingleTestRunner:
         if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
             self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
+        self.runobj.start(cmd)
         stdout = None
         stderr = None
         if self.test.protocol is TestProtocol.TAP:
@@ -1219,15 +1217,15 @@ class SingleTestRunner:
                 stde += '\n' + error
             result = result or res
             if self.test.protocol is TestProtocol.TAP:
-                self.runobj.complete_tap(returncode, result, stdo, stde, cmd)
+                self.runobj.complete_tap(returncode, result, stdo, stde)
                 return
 
         if result:
-            self.runobj.complete(returncode, result, stdo, stde, cmd)
+            self.runobj.complete(returncode, result, stdo, stde)
         elif self.test.protocol is TestProtocol.EXITCODE:
-            self.runobj.complete_exitcode(returncode, stdo, stde, cmd)
+            self.runobj.complete_exitcode(returncode, stdo, stde)
         elif self.test.protocol is TestProtocol.GTEST:
-            self.runobj.complete_gtest(returncode, stdo, stde, cmd)
+            self.runobj.complete_gtest(returncode, stdo, stde)
 
 
 class TestHarness:
