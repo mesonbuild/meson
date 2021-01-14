@@ -1191,13 +1191,31 @@ class TestSubprocess:
 
 class SingleTestRunner:
 
-    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 env: T.Dict[str, str], name: str,
+    def __init__(self, test: TestSerialisation, env: T.Dict[str, str], name: str,
                  options: argparse.Namespace):
         self.test = test
-        self.test_env = test_env
-        self.env = env
         self.options = options
+        self.cmd = self._get_cmd()
+
+        if self.cmd and self.test.extra_paths:
+            env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + env['PATH']
+            winecmd = []
+            for c in self.cmd:
+                winecmd.append(c)
+                if os.path.basename(c).startswith('wine'):
+                    env['WINEPATH'] = get_wine_shortpath(
+                        winecmd,
+                        ['Z:' + p for p in self.test.extra_paths] + env.get('WINEPATH', '').split(';')
+                    )
+                    break
+
+        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+        # (i.e., the test or the environment don't explicitly set it), set
+        # it ourselves. We do this unconditionally for regular tests
+        # because it is extremely useful to have.
+        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+        if ('MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']) and not options.benchmark:
+            env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
         if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
@@ -1208,7 +1226,7 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
-        self.runobj = TestRun(test, test_env, name, timeout)
+        self.runobj = TestRun(test, env, name, timeout)
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
@@ -1217,7 +1235,7 @@ class SingleTestRunner:
         else:
             self.console_mode = ConsoleUser.LOGGER
 
-    def _get_cmd(self) -> T.Optional[T.List[str]]:
+    def _get_test_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
@@ -1237,6 +1255,12 @@ class SingleTestRunner:
                 return self.test.exe_runner.get_command() + self.test.fname
         return self.test.fname
 
+    def _get_cmd(self) -> T.Optional[T.List[str]]:
+        test_cmd = self._get_test_cmd()
+        if not test_cmd:
+            return None
+        return TestHarness.get_wrapper(self.options) + test_cmd
+
     @property
     def visible_name(self) -> str:
         return self.runobj.name
@@ -1246,13 +1270,11 @@ class SingleTestRunner:
         return self.runobj.timeout
 
     async def run(self) -> TestRun:
-        cmd = self._get_cmd()
-        if cmd is None:
+        if self.cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
             self.runobj.complete_skip(skip_stdout)
         else:
-            wrap = TestHarness.get_wrapper(self.options)
-            await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
+            await self._run_cmd(self.cmd + self.test.cmd_args + self.options.test_args)
         return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *,
@@ -1290,26 +1312,6 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, cmd: T.List[str]) -> None:
-        if self.test.extra_paths:
-            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
-            winecmd = []
-            for c in cmd:
-                winecmd.append(c)
-                if os.path.basename(c).startswith('wine'):
-                    self.env['WINEPATH'] = get_wine_shortpath(
-                        winecmd,
-                        ['Z:' + p for p in self.test.extra_paths] + self.env.get('WINEPATH', '').split(';')
-                    )
-                    break
-
-        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-        # (i.e., the test or the environment don't explicitly set it), set
-        # it ourselves. We do this unconditionally for regular tests
-        # because it is extremely useful to have.
-        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
-            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
-
         self.runobj.start(cmd)
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
@@ -1330,7 +1332,7 @@ class SingleTestRunner:
         p = await self._run_subprocess(cmd + extra_cmd,
                                        stdout=stdout,
                                        stderr=stderr,
-                                       env=self.env,
+                                       env=self.runobj.env,
                                        cwd=self.test.workdir)
 
         parse_task = None
@@ -1427,7 +1429,7 @@ class TestHarness:
         if (test.is_cross_built and test.needs_exe_wrapper and
                 test.exe_runner and test.exe_runner.found()):
             env['MESON_EXE_WRAPPER'] = join_args(test.exe_runner.get_command())
-        return SingleTestRunner(test, test_env, env, name, options)
+        return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
         if result.res is TestResult.TIMEOUT:
