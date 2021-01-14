@@ -1326,6 +1326,102 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), ['string', 1, True, True], None)
         self.assertEqual(str(cm.exception), 'foo takes exactly 3 arguments, but got 4.')
 
+    def test_typed_pos_args_varargs(self) -> None:
+        @typed_pos_args('foo', str, varargs=str)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertIsInstance(args, tuple)
+            self.assertIsInstance(args[0], str)
+            self.assertIsInstance(args[1], list)
+            self.assertIsInstance(args[1][0], str)
+            self.assertIsInstance(args[1][1], str)
+
+        _(None, mock.Mock(), ['string', 'var', 'args'], None)
+
+    def test_typed_pos_args_varargs_not_given(self) -> None:
+        @typed_pos_args('foo', str, varargs=str)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertIsInstance(args, tuple)
+            self.assertIsInstance(args[0], str)
+            self.assertIsInstance(args[1], list)
+            self.assertEqual(args[1], [])
+
+        _(None, mock.Mock(), ['string'], None)
+
+    def test_typed_pos_args_varargs_invalid(self) -> None:
+        @typed_pos_args('foo', str, varargs=str)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
+        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been "str"')
+
+    def test_typed_pos_args_varargs_invalid_mulitple_types(self) -> None:
+        @typed_pos_args('foo', str, varargs=(str, list))
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 'var', 'args', 0], None)
+        self.assertEqual(str(cm.exception), 'foo argument 4 was of type "int" but should have been one of: "str", "list"')
+
+    def test_typed_pos_args_max_varargs(self) -> None:
+        @typed_pos_args('foo', str, varargs=str, max_varargs=5)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertIsInstance(args, tuple)
+            self.assertIsInstance(args[0], str)
+            self.assertIsInstance(args[1], list)
+            self.assertIsInstance(args[1][0], str)
+            self.assertIsInstance(args[1][1], str)
+
+        _(None, mock.Mock(), ['string', 'var', 'args'], None)
+
+    def test_typed_pos_args_max_varargs_exceeded(self) -> None:
+        @typed_pos_args('foo', str, varargs=str, max_varargs=1)
+        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 'var', 'args'], None)
+        self.assertEqual(str(cm.exception), 'foo takes between 1 and 2 arguments, but got 3.')
+
+    def test_typed_pos_args_min_varargs(self) -> None:
+        @typed_pos_args('foo', varargs=str, max_varargs=2, min_varargs=1)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertIsInstance(args, tuple)
+            self.assertIsInstance(args[0], list)
+            self.assertIsInstance(args[0][0], str)
+            self.assertIsInstance(args[0][1], str)
+
+        _(None, mock.Mock(), ['string', 'var'], None)
+
+    def test_typed_pos_args_min_varargs_not_met(self) -> None:
+        @typed_pos_args('foo', str, varargs=str, min_varargs=1)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string'], None)
+        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+
+    def test_typed_pos_args_min_and_max_varargs_exceeded(self) -> None:
+        @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
+        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', 'var', 'args', 'bar'], None)
+        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 4.')
+
+    def test_typed_pos_args_min_and_max_varargs_not_met(self) -> None:
+        @typed_pos_args('foo', str, varargs=str, min_varargs=1, max_varargs=2)
+        def _(obj, node, args: T.Tuple[str, T.Tuple[str, ...]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string'], None)
+        self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 1.')
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
