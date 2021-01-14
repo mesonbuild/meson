@@ -154,6 +154,15 @@ def join_lines(a: str, b: str) -> str:
         return a
     return a + '\n' + b
 
+def dashes(s: str, dash: str, cols: int) -> str:
+    if not s:
+        return dash * cols
+    s = ' ' + s + ' '
+    width = uniwidth(s)
+    first = (cols - width) // 2
+    s = dash * first + s
+    return s + dash * (cols - first - width)
+
 def returncode_to_status(retcode: int) -> str:
     # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the related
     # functions here because the status returned by subprocess is munged. It
@@ -240,6 +249,9 @@ class TestResult(enum.Enum):
     def get_text(self, colorize: bool) -> str:
         result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
         return self.colorize(result_str).get_text(colorize)
+
+    def get_command_marker(self) -> str:
+        return str(self.colorize('>>> '))
 
 
 TYPE_TAPResult = T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout']
@@ -452,6 +464,9 @@ class ConsoleLogger(TestLogger):
     SPINNER = "\U0001f311\U0001f312\U0001f313\U0001f314" + \
               "\U0001f315\U0001f316\U0001f317\U0001f318"
 
+    SCISSORS = "\u2700 "
+    HLINE = "\u2015"
+
     def __init__(self) -> None:
         self.update = asyncio.Event()
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
@@ -464,6 +479,20 @@ class ConsoleLogger(TestLogger):
         self.test_count = 0
         self.started_tests = 0
         self.spinner_index = 0
+        try:
+            self.cols, _ = os.get_terminal_size(1)
+            self.is_tty = True
+        except OSError:
+            self.cols = 80
+            self.is_tty = False
+
+        self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
+        self.output_end = dashes('', self.HLINE, self.cols - 2)
+        try:
+            self.output_start.encode(sys.stdout.encoding or 'ascii')
+        except UnicodeEncodeError:
+            self.output_start = dashes('8<', '-', self.cols - 2)
+            self.output_end = dashes('', '-', self.cols - 2)
 
     def flush(self) -> None:
         if self.should_erase_line:
@@ -504,14 +533,6 @@ class ConsoleLogger(TestLogger):
                               left=left, right=right)
         self.print_progress(line)
 
-    @staticmethod
-    def is_tty() -> bool:
-        try:
-            _, _ = os.get_terminal_size(1)
-            return True
-        except OSError:
-            return False
-
     def start(self, harness: 'TestHarness') -> None:
         async def report_progress() -> None:
             loop = asyncio.get_event_loop()
@@ -544,8 +565,9 @@ class ConsoleLogger(TestLogger):
             self.flush()
 
         self.test_count = harness.test_count
+        self.cols = max(self.cols, harness.max_left_width + 30)
 
-        if self.is_tty() and not harness.need_console:
+        if self.is_tty and not harness.need_console:
             # Account for "[aa-bb/cc] OO " in the progress report
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
@@ -557,19 +579,23 @@ class ConsoleLogger(TestLogger):
         self.request_update()
 
     def shorten_log(self, result: 'TestRun') -> str:
-        log = result.get_log()
+        log = result.get_log(mlog.colorize_console())
         lines = log.splitlines()
-        if len(lines) < 103:
+        if len(lines) < 100:
             return log
         else:
-            log = '\n'.join(lines[:2])
-            log += '\n--- Listing only the last 100 lines from a long log. ---\n'
-            log += lines[2] + '\n'
-            log += '\n'.join(lines[-100:])
-            return log
+            return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
     def print_log(self, result: 'TestRun', log: str) -> None:
-        print_safe(log, end='')
+        cmdline = result.cmdline
+        if not cmdline:
+            print(result.res.get_command_marker() + result.stdo)
+            return
+        print(result.res.get_command_marker() + cmdline)
+        if log:
+            print(self.output_start)
+            print_safe(log, end='')
+            print(self.output_end)
         print(flush=True)
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
@@ -582,6 +608,8 @@ class ConsoleLogger(TestLogger):
             self.flush()
             print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                   flush=True)
+            if result.res.is_bad():
+                self.print_log(result, '')
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
@@ -616,8 +644,14 @@ class TextLogfileBuilder(TestFileLogger):
         self.file.write('Inherited environment: {}\n\n'.format(inherit_env))
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        self.file.write(harness.format(result, False))
-        self.file.write("\n\n" + result.get_log() + "\n")
+        self.file.write(harness.format(result, False) + '\n')
+        cmdline = result.cmdline
+        if cmdline:
+            starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
+            self.file.write(starttime_str + ' ' + cmdline + '\n')
+            self.file.write(dashes('output', '-', 78) + '\n')
+            self.file.write(result.get_log())
+            self.file.write(dashes('', '-', 78) + '\n\n')
 
     async def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures:
@@ -847,24 +881,20 @@ class TestRun:
                  stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         self._complete(returncode, res, stdo, stde)
 
-    def get_log(self) -> str:
-        res = '--- command ---\n'
-        if self.cmd is None:
-            res += 'NONE\n'
-        else:
-            starttime_str = time.strftime("%H:%M:%S", time.gmtime(self.starttime))
-            res += '{} {}\n'.format(starttime_str, self.cmdline)
-        if self.stdo:
-            res += '--- stdout ---\n'
-            res += self.stdo
+    def get_log(self, colorize: bool = False) -> str:
         if self.stde:
-            if res[-1:] != '\n':
-                res += '\n'
-            res += '--- stderr ---\n'
+            res = ''
+            if self.stdo:
+                res += mlog.cyan('stdout:').get_text(colorize) + '\n'
+                res += self.stdo
+                if res[-1:] != '\n':
+                    res += '\n'
+            res += mlog.cyan('stderr:').get_text(colorize) + '\n'
             res += self.stde
-        if res[-1:] != '\n':
+        else:
+            res = self.stdo
+        if res and res[-1:] != '\n':
             res += '\n'
-        res += '-------\n'
         return res
 
     @property
@@ -1418,21 +1448,28 @@ class TestHarness:
         for l in self.loggers:
             l.log(self, result)
 
+    @property
+    def numlen(self) -> int:
+        return len(str(self.test_count))
+
+    @property
+    def max_left_width(self) -> int:
+        return 2 * self.numlen + 2
+
     def format(self, result: TestRun, colorize: bool,
                max_left_width: int = 0,
                left: T.Optional[str] = None,
                right: T.Optional[str] = None) -> str:
-        numlen = len(str(self.test_count))
 
         if left is None:
             left = '{num:{numlen}}/{testcount} '.format(
-                numlen=numlen,
+                numlen=self.numlen,
                 num=result.num,
                 testcount=self.test_count)
 
         # A non-default max_left_width lets the logger print more stuff before the
         # name, while ensuring that the rightmost columns remain aligned.
-        max_left_width = max(max_left_width, 2 * numlen + 2)
+        max_left_width = max(max_left_width, self.max_left_width)
         extra_name_width = max_left_width + self.name_max_len + 1 - uniwidth(result.name) - uniwidth(left)
         middle = result.name + (' ' * max(1, extra_name_width))
 
