@@ -614,7 +614,9 @@ class ConsoleLogger(TestLogger):
             self.flush()
             print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                   flush=True)
-            if result.res.is_bad():
+            if harness.options.verbose and harness.options.num_processes > 1:
+                self.print_log(result, result.get_log(mlog.colorize_console()))
+            elif result.res.is_bad():
                 self.print_log(result, '')
         self.request_update()
 
@@ -1235,7 +1237,8 @@ class SingleTestRunner:
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.options.verbose and not self.runobj.needs_parsing:
+        elif self.options.verbose and self.options.num_processes == 1 and \
+                not self.runobj.needs_parsing:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER
