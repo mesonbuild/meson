@@ -55,6 +55,9 @@ GNU_SKIP_RETURNCODE = 77
 # mean that the test failed even before testing what it is supposed to test.
 GNU_ERROR_RETURNCODE = 99
 
+# Exit if 3 Ctrl-C's are received within one second
+MAX_CTRLC = 3
+
 def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows'
@@ -1549,6 +1552,7 @@ class TestHarness:
         futures = deque()  # type: T.Deque[asyncio.Future]
         running_tests = dict() # type: T.Dict[asyncio.Future, str]
         interrupted = False
+        ctrlc_times = deque(maxlen=MAX_CTRLC) # type: T.Deque[float]
 
         async def run_test(test: SingleTestRunner) -> None:
             async with semaphore:
@@ -1577,15 +1581,18 @@ class TestHarness:
             del running_tests[future]
             future.cancel()
 
-        def sigterm_handler() -> None:
+        def cancel_all_tests() -> None:
             nonlocal interrupted
-            if interrupted:
-                return
             interrupted = True
-            self.flush_logfiles()
-            mlog.warning('Received SIGTERM, exiting')
             while running_tests:
                 cancel_one_test(False)
+
+        def sigterm_handler() -> None:
+            if interrupted:
+                return
+            self.flush_logfiles()
+            mlog.warning('Received SIGTERM, exiting')
+            cancel_all_tests()
 
         def sigint_handler() -> None:
             # We always pick the longest-running future that has not been cancelled
@@ -1593,7 +1600,12 @@ class TestHarness:
             nonlocal interrupted
             if interrupted:
                 return
-            if running_tests:
+            ctrlc_times.append(asyncio.get_event_loop().time())
+            if len(ctrlc_times) == MAX_CTRLC and ctrlc_times[-1] - ctrlc_times[0] < 1:
+                self.flush_logfiles()
+                mlog.warning('CTRL-C detected, exiting')
+                cancel_all_tests()
+            elif running_tests:
                 cancel_one_test(True)
             else:
                 self.flush_logfiles()
