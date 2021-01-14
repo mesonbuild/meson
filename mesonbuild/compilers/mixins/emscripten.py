@@ -43,7 +43,7 @@ class EmscriptenMixin(Compiler):
         if mode == 'link':
             suffix = 'js'
         else:
-            suffix = 'wasm'
+            suffix = 'o'
         return os.path.join(dirname, 'output.' + suffix)
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
