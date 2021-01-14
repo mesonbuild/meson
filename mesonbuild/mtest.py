@@ -976,8 +976,16 @@ def decode(stream: T.Union[None, bytes]) -> str:
     except UnicodeDecodeError:
         return stream.decode('iso-8859-1', errors='ignore')
 
-async def read_decode(reader: asyncio.StreamReader) -> str:
-    return decode(await reader.read(-1))
+async def read_decode(reader: asyncio.StreamReader, console_mode: ConsoleUser) -> str:
+    if console_mode is not ConsoleUser.STDOUT:
+        return decode(await reader.read(-1))
+
+    stdo_lines = []
+    while not reader.at_eof():
+        line = decode(await reader.readline())
+        stdo_lines.append(line)
+        print(line, end='', flush=True)
+    return ''.join(stdo_lines)
 
 # Extract lines out of the StreamReader.  Print them
 # along the way if requested, and at the end collect
@@ -1068,12 +1076,17 @@ class TestSubprocess:
         self.stdo_task = asyncio.get_event_loop().create_future()
         return read_decode_lines(self._process.stdout, self.stdo_task, console_mode)
 
-    def communicate(self) -> T.Tuple[T.Optional[T.Awaitable[str]],
-                                     T.Optional[T.Awaitable[str]]]:
+    def communicate(self, console_mode: ConsoleUser) -> T.Tuple[T.Optional[T.Awaitable[str]],
+                                                                T.Optional[T.Awaitable[str]]]:
+        # asyncio.ensure_future ensures that printing can
+        # run in the background, even before it is awaited
         if self.stdo_task is None and self.stdout is not None:
-            self.stdo_task = read_decode(self._process.stdout)
+            decode_task = read_decode(self._process.stdout, console_mode)
+            self.stdo_task = asyncio.ensure_future(decode_task)
         if self.stderr is not None and self.stderr != asyncio.subprocess.STDOUT:
-            self.stde_task = read_decode(self._process.stderr)
+            decode_task = read_decode(self._process.stderr, console_mode)
+            self.stde_task = asyncio.ensure_future(decode_task)
+
         return self.stdo_task, self.stde_task
 
     async def _kill(self) -> T.Optional[str]:
@@ -1255,14 +1268,14 @@ class SingleTestRunner:
             self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
         self.runobj.start(cmd)
-        stdout = None
-        stderr = None
-        if self.runobj.needs_parsing:
+        if self.console_mode is ConsoleUser.GDB:
+            stdout = None
+            stderr = None
+        else:
             stdout = asyncio.subprocess.PIPE
-            stderr = None if self.options.verbose else asyncio.subprocess.PIPE
-        elif self.console_mode is ConsoleUser.LOGGER:
-            stdout = asyncio.subprocess.PIPE
-            stderr = asyncio.subprocess.PIPE if self.options.split else asyncio.subprocess.STDOUT
+            stderr = asyncio.subprocess.STDOUT \
+                if not self.options.split and not self.runobj.needs_parsing \
+                else asyncio.subprocess.PIPE
 
         extra_cmd = []  # type: T.List[str]
         if self.test.protocol is TestProtocol.GTEST:
@@ -1281,7 +1294,7 @@ class SingleTestRunner:
         if self.runobj.needs_parsing:
             parse_task = self.runobj.parse(p.stdout_lines(self.console_mode))
 
-        stdo_task, stde_task = p.communicate()
+        stdo_task, stde_task = p.communicate(self.console_mode)
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
 
         if parse_task is not None:
