@@ -868,6 +868,9 @@ class TestRun:
         self.stde = stde
         self.cmd = cmd
 
+    def complete_skip(self, message: str) -> None:
+        self.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None, None)
+
     def get_log(self) -> str:
         res = '--- command ---\n'
         if self.cmd is None:
@@ -1091,7 +1094,7 @@ class SingleTestRunner:
         self.runobj.start()
         if cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
-            self.runobj.complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, skip_stdout, None, None)
+            self.runobj.complete_skip(skip_stdout)
         else:
             wrap = TestHarness.get_wrapper(self.options)
             await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
