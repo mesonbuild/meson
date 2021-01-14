@@ -1651,8 +1651,8 @@ def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
     intro_targets = dict()     # type: T.Dict[str, T.List[str]]
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
-                os.path.relpath(f, wd)
-                for f in target['filename']]
+            os.path.relpath(f, wd)
+            for f in target['filename']]
     for t in tests:
         for d in t.depends:
             if d in depends:
