@@ -757,17 +757,11 @@ class DataHolder(InterpreterObject, ObjectHolder):
     def get_install_dir(self):
         return self.held_object.install_dir
 
-class InstallDir(InterpreterObject):
-    def __init__(self, src_subdir, inst_subdir, install_dir, install_mode,
-                 exclude, strip_directory, from_source_dir=True):
+class InstallDirHolder(InterpreterObject, ObjectHolder):
+
+    def __init__(self, obj: build.InstallDir):
         InterpreterObject.__init__(self)
-        self.source_subdir = src_subdir
-        self.installable_subdir = inst_subdir
-        self.install_dir = install_dir
-        self.install_mode = install_mode
-        self.exclude = exclude
-        self.strip_directory = strip_directory
-        self.from_source_dir = from_source_dir
+        ObjectHolder.__init__(self, obj)
 
 class ManHolder(InterpreterObject, ObjectHolder):
 
@@ -2591,8 +2585,8 @@ class Interpreter(InterpreterBase):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
-            elif isinstance(v, InstallDir):
-                self.build.install_dirs.append(v)
+            elif isinstance(v, InstallDirHolder):
+                self.build.install_dirs.append(v.held_object)
             elif isinstance(v, Test):
                 self.build.tests.append(v)
             elif hasattr(v, 'held_object'):
@@ -4300,11 +4294,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_data'])
-    def func_install_data(self, node, args, kwargs):
+    def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
         raw_sources = args + kwsource
-        sources = []
-        source_strings = []
+        sources: T.List[mesonlib.File] = []
+        source_strings: T.List[str] = []
         for s in raw_sources:
             if isinstance(s, mesonlib.File):
                 sources.append(s)
@@ -4313,11 +4307,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             else:
                 raise InvalidArguments('Argument must be string or file.')
         sources += self.source_strings_to_files(source_strings)
-        install_dir = kwargs.get('install_dir', None)
-        if not isinstance(install_dir, (str, type(None))):
+        install_dir: T.Optional[str] = kwargs.get('install_dir', None)
+        if install_dir is not None and not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
         install_mode = self._get_kwarg_install_mode(kwargs)
-        rename = kwargs.get('rename', None)
+        rename: T.Optional[T.List[str]] = kwargs.get('rename', None)
+        if rename is not None:
+            rename = mesonlib.stringlistify(rename)
+            if len(rename) != len(sources):
+                raise InvalidArguments(
+                    '"rename" and "sources" argument lists must be the same length if "rename" is given. '
+                    f'Rename has {len(rename)} elements and sources has {len(sources)}.')
+
         data = DataHolder(build.Data(sources, install_dir, install_mode, rename))
         self.build.data.append(data.held_object)
         return data
@@ -4329,43 +4330,45 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_install_subdir(self, node, args, kwargs):
         if len(args) != 1:
             raise InvalidArguments('Install_subdir requires exactly one argument.')
-        subdir = args[0]
+        subdir: str = args[0]
+        if not isinstance(subdir, str):
+            raise InvalidArguments('install_subdir positional argument 1 must be a string.')
         if 'install_dir' not in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
-        install_dir = kwargs['install_dir']
+        install_dir: str = kwargs['install_dir']
         if not isinstance(install_dir, str):
             raise InvalidArguments('Keyword argument install_dir not a string.')
         if 'strip_directory' in kwargs:
-            if not isinstance(kwargs['strip_directory'], bool):
+            strip_directory: bool = kwargs['strip_directory']
+            if not isinstance(strip_directory, bool):
                 raise InterpreterException('"strip_directory" keyword must be a boolean.')
-            strip_directory = kwargs['strip_directory']
         else:
             strip_directory = False
         if 'exclude_files' in kwargs:
-            exclude = extract_as_list(kwargs, 'exclude_files')
+            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_files')
             for f in exclude:
                 if not isinstance(f, str):
                     raise InvalidArguments('Exclude argument not a string.')
                 elif os.path.isabs(f):
                     raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_files = set(exclude)
+            exclude_files: T.Set[str] = set(exclude)
         else:
             exclude_files = set()
         if 'exclude_directories' in kwargs:
-            exclude = extract_as_list(kwargs, 'exclude_directories')
+            exclude: T.List[str] = extract_as_list(kwargs, 'exclude_directories')
             for d in exclude:
                 if not isinstance(d, str):
                     raise InvalidArguments('Exclude argument not a string.')
                 elif os.path.isabs(d):
                     raise InvalidArguments('Exclude argument cannot be absolute.')
-            exclude_directories = set(exclude)
+            exclude_directories: T.Set[str] = set(exclude)
         else:
             exclude_directories = set()
         exclude = (exclude_files, exclude_directories)
         install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory)
+        idir = build.InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory)
         self.build.install_dirs.append(idir)
-        return idir
+        return InstallDirHolder(idir)
 
     @FeatureNewKwargs('configure_file', '0.47.0', ['copy', 'output_format', 'install_mode', 'encoding'])
     @FeatureNewKwargs('configure_file', '0.46.0', ['format'])
