@@ -1204,8 +1204,6 @@ class SingleTestRunner:
             stde_task = p.stderr.read(-1)
 
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
-        if result is TestResult.TIMEOUT and self.options.verbose:
-            print('{} time out (After {} seconds)'.format(self.test.name, self.runobj.timeout))
 
         if stdo_task is not None:
             stdo = decode(await stdo_task)
