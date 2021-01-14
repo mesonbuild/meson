@@ -147,6 +147,13 @@ def print_safe(s: str) -> None:
         s = s.encode('ascii', errors='backslashreplace').decode('ascii')
         print(s)
 
+def join_lines(a: str, b: str) -> str:
+    if not a:
+        return b
+    if not b:
+        return a
+    return a + '\n' + b
+
 def returncode_to_status(retcode: int) -> str:
     # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the related
     # functions here because the status returned by subprocess is munged. It
@@ -1266,20 +1273,18 @@ class SingleTestRunner:
 
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
 
+        if parse_task is not None:
+            res, error = await parse_task
+            if error:
+                additional_error = join_lines(additional_error, error)
+            result = result or res
+
         if stdo_task is not None:
             stdo = decode(await stdo_task)
         if stde_task is not None:
             stde = decode(await stde_task)
 
-        if additional_error is not None:
-            stde += '\n' + additional_error
-
-        if parse_task is not None:
-            res, error = await parse_task
-            if error:
-                stde += '\n' + error
-            result = result or res
-
+        stde = join_lines(stde, additional_error)
         self.runobj.complete(returncode, result, stdo, stde)
 
 
