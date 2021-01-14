@@ -181,6 +181,19 @@ class TestException(MesonException):
 
 
 @enum.unique
+class ConsoleUser(enum.Enum):
+
+    # the logger can use the console
+    LOGGER = 0
+
+    # the console is used by gdb
+    GDB = 1
+
+    # the console is used to write stdout/stderr
+    STDOUT = 2
+
+
+@enum.unique
 class TestResult(enum.Enum):
 
     PENDING = 'PENDING'
@@ -1105,6 +1118,13 @@ class SingleTestRunner:
 
         self.runobj = TestRun(test, test_env, name, timeout)
 
+        if self.options.gdb:
+            self.console_mode = ConsoleUser.GDB
+        elif self.options.verbose and not self.runobj.needs_parsing:
+            self.console_mode = ConsoleUser.STDOUT
+        else:
+            self.console_mode = ConsoleUser.LOGGER
+
     def _get_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
@@ -1203,7 +1223,7 @@ class SingleTestRunner:
         if self.runobj.needs_parsing:
             stdout = asyncio.subprocess.PIPE
             stderr = None if self.options.verbose else asyncio.subprocess.PIPE
-        elif not self.options.verbose:
+        elif self.console_mode is ConsoleUser.LOGGER:
             stdout = asyncio.subprocess.PIPE
             stderr = asyncio.subprocess.PIPE if self.options.split else asyncio.subprocess.STDOUT
 
@@ -1231,7 +1251,7 @@ class SingleTestRunner:
             while not reader.at_eof():
                 line = decode(await reader.readline())
                 stdo_lines.append(line)
-                if self.options.verbose:
+                if self.console_mode is ConsoleUser.STDOUT:
                     print(line, end='')
                 yield line
 
