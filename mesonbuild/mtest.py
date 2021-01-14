@@ -240,6 +240,9 @@ class TestResult(enum.Enum):
         return self in {TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR}
 
+    def is_finished(self) -> bool:
+        return self not in {TestResult.PENDING, TestResult.RUNNING}
+
     def was_killed(self) -> bool:
         return self in (TestResult.TIMEOUT, TestResult.INTERRUPT)
 
@@ -248,8 +251,10 @@ class TestResult(enum.Enum):
             decorator = mlog.red
         elif self in (TestResult.SKIP, TestResult.EXPECTEDFAIL):
             decorator = mlog.yellow
-        else:
+        elif self.is_finished():
             decorator = mlog.green
+        else:
+            decorator = mlog.blue
         return decorator(s)
 
     def get_text(self, colorize: bool) -> str:
@@ -579,6 +584,17 @@ class ConsoleLogger(TestLogger):
             self.progress_task = asyncio.ensure_future(report_progress())
 
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
+        if harness.options.verbose and test.cmdline:
+            self.flush()
+            print(harness.format(test, mlog.colorize_console(),
+                                 max_left_width=self.max_left_width,
+                                 right=test.res.get_text(mlog.colorize_console())))
+            print(test.res.get_command_marker() + test.cmdline)
+            if harness.options.num_processes == 1:
+                print(self.output_start, flush=True)
+            else:
+                print(flush=True)
+
         self.started_tests += 1
         self.running_tests.add(test)
         self.running_tests.move_to_end(test, last=False)
@@ -592,12 +608,14 @@ class ConsoleLogger(TestLogger):
         else:
             return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
-    def print_log(self, result: 'TestRun', log: str) -> None:
-        cmdline = result.cmdline
-        if not cmdline:
-            print(result.res.get_command_marker() + result.stdo)
-            return
-        print(result.res.get_command_marker() + cmdline)
+    def print_log(self, harness: 'TestHarness', result: 'TestRun', log: str) -> None:
+        if not harness.options.verbose:
+            cmdline = result.cmdline
+            if not cmdline:
+                print(result.res.get_command_marker() + result.stdo)
+                return
+            print(result.res.get_command_marker() + cmdline)
+
         if log:
             print(self.output_start)
             print_safe(log, end='')
@@ -612,12 +630,18 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
-                  flush=True)
-            if harness.options.verbose and harness.options.num_processes > 1:
-                self.print_log(result, result.get_log(mlog.colorize_console()))
-            elif result.res.is_bad():
-                self.print_log(result, '')
+            if harness.options.verbose and harness.options.num_processes == 1 and result.cmdline:
+                print(self.output_end)
+                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
+                print(flush=True)
+            else:
+                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
+                      flush=True)
+                if harness.options.verbose:
+                    self.print_log(harness, result, result.get_log(mlog.colorize_console()))
+                elif result.res.is_bad():
+                    self.print_log(harness, result, '')
+
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
