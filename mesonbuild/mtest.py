@@ -30,6 +30,7 @@ import random
 import re
 import signal
 import subprocess
+import shlex
 import sys
 import textwrap
 import time
@@ -188,8 +189,13 @@ def returncode_to_status(retcode: int) -> str:
         signame = 'SIGinvalid'
     return '(exit status {} or signal {} {})'.format(retcode, signum, signame)
 
+# TODO for Windows
+sh_quote: T.Callable[[str], str] = lambda x: x
+if not is_windows():
+    sh_quote = shlex.quote
+
 def env_tuple_to_str(env: T.Iterable[T.Tuple[str, str]]) -> str:
-    return ''.join(["{}='{}' ".format(k, v) for k, v in env])
+    return ''.join(["{}={} ".format(k, sh_quote(v)) for k, v in env])
 
 
 class TestException(MesonException):
@@ -871,7 +877,8 @@ class TestRun:
         if not self.cmd:
             return None
         test_only_env = set(self.env.items()) - set(os.environ.items())
-        return env_tuple_to_str(test_only_env) + ' '.join(self.cmd)
+        return env_tuple_to_str(test_only_env) + \
+            ' '.join((sh_quote(x) for x in self.cmd))
 
     def complete_skip(self, message: str) -> None:
         self.starttime = time.time()
