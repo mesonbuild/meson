@@ -18,10 +18,11 @@
 from . import mparser, mesonlib, mlog
 from . import environment, dependencies
 
-import abc
-import os, copy, re
-import collections.abc
 from functools import wraps
+import abc
+import collections.abc
+import itertools
+import os, copy, re
 import typing as T
 
 TV_fw_var = T.Union[str, int, float, bool, list, dict, 'InterpreterObject', 'ObjectHolder']
@@ -229,7 +230,9 @@ class permittedKwargs:
         return T.cast(TV_func, wrapped)
 
 
-def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> T.Callable[..., T.Any]:
+def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
+                   varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type]]] = None,
+                   min_varargs: int = 0, max_varargs: int = 0) -> T.Callable[..., T.Any]:
     """Decorator that types type checking of positional arguments.
 
     allows replacing this:
@@ -260,10 +263,25 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
             args = _get_callee_args(wrapped_args)[2]
+
+            # These are implementation programming errors, end users should never see them.
             assert isinstance(args, list), args
-            if len(args) != len(types):
-                raise InvalidArguments(f'{name} takes exactly {len(types)} arguments, but got {len(args)}.')
-            for i, (arg, type_) in enumerate(zip(args, types), start=1):
+            assert max_varargs >= 0, 'max_varrags cannot be negative'
+            assert min_varargs >= 0, 'min_varrags cannot be negative'
+
+            num_args = len(args)
+            num_types = len(types)
+
+            if varargs:
+                num_types += min_varargs
+                if max_varargs == 0 and num_args < num_types:
+                    raise InvalidArguments(f'{name} takes at least {num_types} arguments, but got {num_args}.')
+                elif max_varargs != 0 and (num_args < num_types or num_args > num_types + max_varargs - min_varargs):
+                    raise InvalidArguments(f'{name} takes between {num_types} and {num_types + max_varargs - min_varargs} arguments, but got {len(args)}.')
+            elif num_args != num_types:
+                raise InvalidArguments(f'{name} takes exactly {num_types} arguments, but got {num_args}.')
+
+            for i, (arg, type_) in enumerate(itertools.zip_longest(args, types, fillvalue=varargs), start=1):
                 if not isinstance(arg, type_):
                     if isinstance(type_, tuple):
                         shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in type_))
@@ -276,7 +294,17 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]]) -> 
             # wrapped_args can vary.
             nargs = list(wrapped_args)
             i = nargs.index(args)
-            nargs[i] = tuple(args)
+            if varargs:
+                # if we have varargs we need to split them into a separate
+                # tuple, as python's typing doesn't understand tuples with
+                # fixed elements and variadic elements, only one or the other.
+                # so in that cas we need T.Tuple[int, str, float, T.Tuple[str, ...]]
+                pos = args[:len(types)]
+                var = list(args[len(types):])
+                pos.append(var)
+                nargs[i] = tuple(pos)
+            else:
+                nargs[i] = tuple(args)
             return f(*nargs, **wrapped_kwargs)
 
         return T.cast(TV_func, wrapper)
