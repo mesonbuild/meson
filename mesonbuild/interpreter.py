@@ -1950,7 +1950,7 @@ class MesonMain(InterpreterObject):
                                   self.interpreter.subdir)
         found, cached = self.interpreter.environment.find_program(
             [prog], MachineChoice.BUILD, [], search_dirs=[search_dir],
-            subdir=self.interpreter.subdir)
+            subdir=self.interpreter.subdir, subproject=self.interpreter.subproject)
         assert isinstance(found, ExternalProgram)
         if not cached:
             # Only log the script once, we don't really care if we found src/dothing.py 10 times
@@ -3431,7 +3431,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         prog_or_fallback, cached = self.environment.find_program(
             args, for_machine, versions=wanted, search_dirs=search_dirs,
-            subdir=self.subdir, required=required)
+            subdir=self.subdir, required=required, subproject=self.subproject)
 
         if isinstance(prog_or_fallback, str):
             mlog.log('Fallback to subproject', mlog.bold(prog_or_fallback), 'which provides program',
@@ -3441,7 +3441,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
             # Do the lookup again, as we should find a cached version
             prog_or_fallback, cached = self.environment.find_program(
-                args, for_machine, wanted, search_dirs, self.subdir)
+                args, for_machine, wanted, search_dirs, self.subdir, subproject=self.subproject)
             assert isinstance(prog_or_fallback, ExternalProgram), prog_or_fallback
 
         prog_or_fallback.log(cached)

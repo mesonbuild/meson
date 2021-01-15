@@ -94,7 +94,8 @@ class ExternalProject(InterpreterObject):
         configure_path = Path(self.src_dir, self.configure_command)
         # need subdir because configure is a script
         prog, cached = interp.environment.find_program(
-            [configure_path.as_posix()], MachineChoice.BUILD, [], subdir=interp.subdir)
+            [configure_path.as_posix()], MachineChoice.BUILD, [], subdir=interp.subdir,
+            subproject=interp.subproject)
         assert isinstance(prog, ExternalProgram)
         prog.log(cached)
         if not prog.found():

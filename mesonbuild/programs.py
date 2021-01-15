@@ -376,7 +376,22 @@ class EmptyExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
 
 class ScriptProgram(ExternalProgram):
 
-    """A wrapper around a local script."""
+    """A wrapper around a local script.
+
+    Needs to konw what subproject it is from, as we don't want to return
+    scripts from one subprojct in another.
+    """
+
+    def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
+                 silent: bool = False, search_dir: T.Optional[str] = None,
+                 extra_search_dirs: T.Optional[T.List[str]] = None,
+                 for_machine: MachineChoice = MachineChoice.BUILD,
+                 version_arg: T.Optional[T.List[str]] = None,
+                 subproject: str = ''):
+        super().__init__(name, command=command, silent=silent, search_dir=search_dir,
+                         extra_search_dirs=extra_search_dirs, for_machine=for_machine,
+                         version_arg=version_arg)
+        self.subproject = subproject
 
     @functools.lru_cache()
     def get_version(self) -> T.Optional[str]:

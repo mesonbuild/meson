@@ -2163,7 +2163,7 @@ class Environment:
                      versions: T.List[str], search_dirs: T.Optional[T.List[str]] = None,
                      subdir: T.Optional[str] = None, required: bool = False,
                      version_arg: T.Optional[T.List[str]] = None,
-                     configtool: bool = False) -> \
+                     configtool: bool = False, subproject: str = '') -> \
                          T.Tuple[T.Union[ExternalProgram, str], bool]:
         """Find a program from the program cache, or find it new.
 
@@ -2192,6 +2192,9 @@ class Environment:
             key = (command, tuple(search_dirs))
             if key in self.coredata.programs[for_machine]:
                 for candidate in self.coredata.programs[for_machine][key]:
+                    # Don't return scripts from other subprojects
+                    if isinstance(candidate, ScriptProgram) and candidate.subproject != subproject:
+                        continue
                     if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
                         return (candidate, True)
 
@@ -2288,7 +2291,7 @@ class Environment:
                 prog = ScriptProgram(
                     command, search_dir=search_dir,
                     extra_search_dirs=extra_search_dirs,
-                    silent=True)
+                    silent=True, subproject=subproject)
                 if prog.found():
                     if versions and not mesonlib.version_compare_many(prog.get_version(), versions)[0]:
                         continue
