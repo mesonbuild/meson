@@ -2192,7 +2192,7 @@ class Environment:
             key = (command, tuple(search_dirs))
             if key in self.coredata.programs[for_machine]:
                 for candidate in self.coredata.programs[for_machine][key]:
-                    if mesonlib.version_compare_many(candidate.get_version(), versions):
+                    if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
                         return (candidate, True)
 
         def cache(prog: ExternalProgram) -> None:
@@ -2263,7 +2263,7 @@ class Environment:
                             'Program', command, 'version not detected, but version constraints',
                             ', '.join(versions),  'present. the resulting program may not work.'
                         )
-                    elif not mesonlib.version_compare_many(version, versions):
+                    elif not mesonlib.version_compare_many(version, versions)[0]:
                         continue
                 cache(prog)
                 return (prog, False)
