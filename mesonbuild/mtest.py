@@ -140,12 +140,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         '"subprojname:" to run all tests defined by "subprojname".')
 
 
-def print_safe(s: str) -> None:
+def print_safe(s: str, end: str = '\n') -> None:
     try:
-        print(s)
+        print(s, end=end)
     except UnicodeEncodeError:
         s = s.encode('ascii', errors='backslashreplace').decode('ascii')
-        print(s)
+        print(s, end=end)
 
 def join_lines(a: str, b: str) -> str:
     if not a:
@@ -228,15 +228,18 @@ class TestResult(enum.Enum):
     def was_killed(self) -> bool:
         return self in (TestResult.TIMEOUT, TestResult.INTERRUPT)
 
-    def get_text(self, colorize: bool) -> str:
-        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
+    def colorize(self, s: str) -> mlog.AnsiDecorator:
         if self.is_bad():
             decorator = mlog.red
         elif self in (TestResult.SKIP, TestResult.EXPECTEDFAIL):
             decorator = mlog.yellow
         else:
             decorator = mlog.green
-        return decorator(result_str).get_text(colorize)
+        return decorator(s)
+
+    def get_text(self, colorize: bool) -> str:
+        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
+        return self.colorize(result_str).get_text(colorize)
 
 
 TYPE_TAPResult = T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout']
@@ -553,6 +556,22 @@ class ConsoleLogger(TestLogger):
         self.running_tests.move_to_end(test, last=False)
         self.request_update()
 
+    def shorten_log(self, result: 'TestRun') -> str:
+        log = result.get_log()
+        lines = log.splitlines()
+        if len(lines) < 103:
+            return log
+        else:
+            log = '\n'.join(lines[:2])
+            log += '\n--- Listing only the last 100 lines from a long log. ---\n'
+            log += lines[2] + '\n'
+            log += '\n'.join(lines[-100:])
+            return log
+
+    def print_log(self, result: 'TestRun', log: str) -> None:
+        print_safe(log, end='')
+        print(flush=True)
+
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and harness.options.verbose:
@@ -579,7 +598,7 @@ class ConsoleLogger(TestLogger):
                     print('\n\nThe output from the failed tests:\n')
                 for i, result in enumerate(harness.collected_failures, 1):
                     print(harness.format(result, mlog.colorize_console()))
-                    print_safe(result.get_log_short())
+                    self.print_log(result, self.shorten_log(result))
                     if i == 10:
                         break
 
@@ -813,6 +832,13 @@ class TestRun:
         self.stdo = stdo
         self.stde = stde
 
+    @property
+    def cmdline(self) -> T.Optional[str]:
+        if not self.cmd:
+            return None
+        test_only_env = set(self.env.items()) - set(os.environ.items())
+        return env_tuple_to_str(test_only_env) + ' '.join(self.cmd)
+
     def complete_skip(self, message: str) -> None:
         self.starttime = time.time()
         self._complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None)
@@ -826,11 +852,8 @@ class TestRun:
         if self.cmd is None:
             res += 'NONE\n'
         else:
-            test_only_env = set(self.env.items()) - set(os.environ.items())
             starttime_str = time.strftime("%H:%M:%S", time.gmtime(self.starttime))
-            res += '{} {}{}\n'.format(
-                starttime_str, env_tuple_to_str(test_only_env), ' '.join(self.cmd)
-            )
+            res += '{} {}\n'.format(starttime_str, self.cmdline)
         if self.stdo:
             res += '--- stdout ---\n'
             res += self.stdo
@@ -843,18 +866,6 @@ class TestRun:
             res += '\n'
         res += '-------\n'
         return res
-
-    def get_log_short(self) -> str:
-        log = self.get_log()
-        lines = log.splitlines()
-        if len(lines) < 103:
-            return log
-        else:
-            log = '\n'.join(lines[:2])
-            log += '\n--- Listing only the last 100 lines from a long log. ---\n'
-            log += lines[2] + '\n'
-            log += '\n'.join(lines[-100:])
-            return log
 
     @property
     def needs_parsing(self) -> bool:
