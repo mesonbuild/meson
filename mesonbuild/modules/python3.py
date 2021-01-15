@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import sysconfig
-from .. import mesonlib, dependencies
+from .. import mesonlib
 
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue

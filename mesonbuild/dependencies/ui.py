@@ -15,7 +15,6 @@
 # This file contains the detection logic for external dependencies that
 # are UI-related.
 import os
-import re
 import subprocess
 import typing as T
 from collections import OrderedDict

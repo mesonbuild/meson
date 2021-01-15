@@ -1044,7 +1044,7 @@ class GnomeModule(ExtensionModule):
         custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs.get('check', False):
-            program = get_program(state.environment, ['gtkdoc-check'])
+            check_cmd = get_program(state.environment, ['gtkdoc-check'])
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
             check_args = [targetname + '-check', check_cmd]

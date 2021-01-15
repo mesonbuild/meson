@@ -2224,12 +2224,13 @@ class Environment:
         # We must iterate because any of the names could match the special program
         if configtool:
             class_ = ExternalProgramConfigTool
-        for command in commands:
-            if command in SPECIAL_PROGRAMS:
-                class_ = SPECIAL_PROGRAMS[command]
-                break
         else:
-            class_ = ExternalProgram
+            for command in commands:
+                if command in SPECIAL_PROGRAMS:
+                    class_ = SPECIAL_PROGRAMS[command]
+                    break
+            else:
+                class_ = ExternalProgram
 
         # If that fails check to see if we need to go to a wrap.
         fallback = None

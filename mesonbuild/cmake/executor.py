@@ -24,8 +24,8 @@ import os
 
 from .. import mlog
 from ..environment import Environment
-from ..mesonlib import Popen_safe, MachineChoice, is_windows, OptionKey
-from ..programs import NonExistingExternalProgram, ExternalProgram
+from ..mesonlib import MachineChoice, OptionKey
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

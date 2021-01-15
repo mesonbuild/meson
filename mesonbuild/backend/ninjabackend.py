@@ -29,7 +29,6 @@ from .. import modules
 from .. import environment, mesonlib
 from .. import build
 from .. import mlog
-from .. import dependencies
 from .. import programs
 from .. import compilers
 from ..arglist import CompilerArgs

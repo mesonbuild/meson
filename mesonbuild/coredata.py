@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import collections
 from . import mlog, mparser
 import pickle, os, uuid
 import sys
 from itertools import chain
 from pathlib import PurePath
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     default_libdir, default_libexecdir, default_prefix, split_args,
@@ -398,7 +397,7 @@ class CoreData:
         host_cache = DependencyCache(self.options, MachineChoice.BUILD)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.programs: PerMachine[T.DefaultDict['ProgramCacheKey', T.List['ExternalProgram']]] = \
-            PerMachine(collections.defaultdict(list), collections.defaultdict(list))
+            PerMachine(defaultdict(list), defaultdict(list))
 
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
