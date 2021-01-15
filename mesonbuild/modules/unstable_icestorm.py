@@ -12,11 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import typing as T
+
 from .. import mesonlib
-from ..interpreterbase import flatten
 from ..interpreterbase import FeatureNew
+from ..interpreterbase import flatten
+from ..mesonlib import MachineChoice
+from ..programs import ExternalProgram
 
 from . import ExtensionModule
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
+
+
+def get_program(env: 'Environment', names: T.List[str]) -> ExternalProgram:
+    """Helper to get a program and assert that it's found, and is not a fallback."""
+    # TODO: these currently are set to HOST, but I think they should be BUILD
+    prog, cached = env.find_program(names, MachineChoice.BUILD, [])
+    assert isinstance(prog, ExternalProgram)
+    prog.log(cached)
+    if not prog.found():
+        raise mesonlib.MesonException('Required program {} not found'.format(', '.join(names)))
+    return prog
+
 
 class IceStormModule(ExtensionModule):
 
@@ -27,11 +46,11 @@ class IceStormModule(ExtensionModule):
         self.yosys_bin = None
 
     def detect_binaries(self, interpreter):
-        self.yosys_bin = interpreter.find_program_impl(['yosys'])
-        self.arachne_bin = interpreter.find_program_impl(['arachne-pnr'])
-        self.icepack_bin = interpreter.find_program_impl(['icepack'])
-        self.iceprog_bin = interpreter.find_program_impl(['iceprog'])
-        self.icetime_bin = interpreter.find_program_impl(['icetime'])
+        self.yosys_bin = get_program(interpreter.environment, ['yosys'])
+        self.arachne_bin = get_program(interpreter.environment, ['arachne-pnr'])
+        self.icepack_bin = get_program(interpreter.environment, ['icepack'])
+        self.iceprog_bin = get_program(interpreter.environment, ['iceprog'])
+        self.icetime_bin = get_program(interpreter.environment, ['icetime'])
 
     def project(self, interpreter, state, args, kwargs):
         if not self.yosys_bin:

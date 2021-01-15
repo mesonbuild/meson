@@ -17,11 +17,12 @@ import shutil
 from .. import mlog
 from .. import build
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, NonExistingExternalProgram
+from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..interpreter import extract_required_kwarg
+from ..programs import NonExistingExternalProgram
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -47,7 +48,7 @@ class QtBaseModule(ExtensionModule):
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         if qt.found():
             # Get all tools and then make sure that they are the right version
-            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
+            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect()
             if version_compare(qt.version, '>=5.14.0'):
                 self.rcc_supports_depfiles = True
             else:

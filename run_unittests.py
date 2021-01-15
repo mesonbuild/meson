@@ -60,7 +60,8 @@ from mesonbuild.mesonlib import (
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
-from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
+from mesonbuild.dependencies import PkgConfigDependency
+from mesonbuild.programs import ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
@@ -185,7 +186,10 @@ def skipIfNoPkgconfig(f):
     '''
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
-        if not is_ci() and shutil.which('pkg-config') is None:
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+        if not is_ci() and not prog.found():
             raise unittest.SkipTest('pkg-config not found')
         return f(*args, **kwargs)
     return wrapped
@@ -197,9 +201,12 @@ def skipIfNoPkgconfigDep(depname):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            if not is_ci() and shutil.which('pkg-config') is None:
+            env = get_fake_env()
+            prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+            assert isinstance(prog, ExternalProgram)
+            if not is_ci() and not prog.found():
                 raise unittest.SkipTest('pkg-config not found')
-            if not is_ci() and subprocess.call(['pkg-config', '--exists', depname]) != 0:
+            if not is_ci() and subprocess.call(prog.get_command() + ['--exists', depname]) != 0:
                 raise unittest.SkipTest('pkg-config dependency {} not found.'.format(depname))
             return func(*args, **kwargs)
         return wrapped
@@ -288,33 +295,6 @@ def temp_filename():
             os.remove(filename)
         except OSError:
             pass
-
-@contextmanager
-def no_pkgconfig():
-    '''
-    A context manager that overrides shutil.which and ExternalProgram to force
-    them to return None for pkg-config to simulate it not existing.
-    '''
-    old_which = shutil.which
-    old_search = ExternalProgram._search
-
-    def new_search(self, name, search_dir):
-        if name == 'pkg-config':
-            return [None]
-        return old_search(self, name, search_dir)
-
-    def new_which(cmd, *kwargs):
-        if cmd == 'pkg-config':
-            return None
-        return old_which(cmd, *kwargs)
-
-    shutil.which = new_which
-    ExternalProgram._search = new_search
-    try:
-        yield
-    finally:
-        shutil.which = old_which
-        ExternalProgram._search = old_search
 
 
 class InternalTests(unittest.TestCase):
@@ -851,6 +831,7 @@ class InternalTests(unittest.TestCase):
             self._test_all_naming(cc, env, patterns, 'windows-mingw')
 
     @skipIfNoPkgconfig
+    @mock.patch.dict(PkgConfigDependency.pkgbin_cache, clear=True)
     def test_pkgconfig_parse_libs(self):
         '''
         Unit test for parsing of pkg-config output to search for libraries
@@ -869,8 +850,12 @@ class InternalTests(unittest.TestCase):
             subprocess.check_call(['ar', 'csr', str(name), str(out)])
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
+            # This will put a pkg-config in the cache, which will be used by
+            # the PkgConfigDependency
+            pkgbin, cached = env.find_program(['pkg-config'], MachineChoice.HOST, [])
+            assert not cached
+            assert isinstance(pkgbin, ExternalProgram)
             compiler = env.detect_c_compiler(MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
             env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
@@ -900,16 +885,11 @@ class InternalTests(unittest.TestCase):
                 if args[-1] == 'internal':
                     return 0, '-L{} -lpthread -lm -lc -lrt -ldl'.format(p1.as_posix()), ''
 
-            old_call = PkgConfigDependency._call_pkgbin
-            old_check = PkgConfigDependency.check_pkgconfig
-            PkgConfigDependency._call_pkgbin = fake_call_pkgbin
-            PkgConfigDependency.check_pkgconfig = lambda x, _: pkgbin
-            # Test begins
-            try:
+            with mock.patch.object(PkgConfigDependency, '_call_pkgbin', fake_call_pkgbin):
                 kwargs = {'required': True, 'silent': True}
                 foo_dep = PkgConfigDependency('foo', env, kwargs)
                 self.assertEqual(foo_dep.get_link_args(),
-                                 [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
+                                [(p1 / 'libfoo.a').as_posix(), (p2 / 'libbar.a').as_posix()])
                 bar_dep = PkgConfigDependency('bar', env, kwargs)
                 self.assertEqual(bar_dep.get_link_args(), [(p2 / 'libbar.a').as_posix()])
                 internal_dep = PkgConfigDependency('internal', env, kwargs)
@@ -920,13 +900,6 @@ class InternalTests(unittest.TestCase):
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
                             self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
-            finally:
-                # Test ends
-                PkgConfigDependency._call_pkgbin = old_call
-                PkgConfigDependency.check_pkgconfig = old_check
-                # Reset dependency class to ensure that in-process configure doesn't mess up
-                PkgConfigDependency.pkgbin_cache = {}
-                PkgConfigDependency.class_pkgbin = PerMachine(None, None)
 
     def test_version_compare(self):
         comparefunc = mesonbuild.mesonlib.version_compare_many
@@ -3980,27 +3953,27 @@ class AllPlatformTests(BasePlatformTests):
     def test_native_dep_pkgconfig(self):
         testdir = os.path.join(self.unit_test_dir,
                                '46 native dep pkgconfig var')
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
-            crossfile.write(textwrap.dedent(
-                '''[binaries]
-                pkgconfig = '{0}'
+        with temp_filename() as crossfile:
+            self.meson_cross_file = crossfile
+            with open(crossfile, 'w') as f:
+                f.write(textwrap.dedent(
+                    f'''\
+                    [binaries]
+                    pkgconfig = '{os.path.join(testdir, "cross_pkgconfig.py")}'
 
-                [properties]
+                    [properties]
 
-                [host_machine]
-                system = 'linux'
-                cpu_family = 'arm'
-                cpu = 'armv7'
-                endian = 'little'
-                '''.format(os.path.join(testdir, 'cross_pkgconfig.py'))))
-            crossfile.flush()
-            self.meson_cross_file = crossfile.name
+                    [host_machine]
+                    system = 'linux'
+                    cpu_family = 'arm'
+                    cpu = 'armv7'
+                    endian = 'little'
+                    '''))
 
-        env = {'PKG_CONFIG_LIBDIR':  os.path.join(testdir,
-                                                  'native_pkgconfig')}
-        self.init(testdir, extra_args=['-Dstart_native=false'], override_envvars=env)
-        self.wipe()
-        self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
+            env = {'PKG_CONFIG_LIBDIR':  os.path.join(testdir, 'native_pkgconfig')}
+            self.init(testdir, extra_args=['-Dstart_native=false'], override_envvars=env)
+            self.wipe()
+            self.init(testdir, extra_args=['-Dstart_native=true'], override_envvars=env)
 
     @skipIfNoPkgconfig
     @unittest.skipIf(is_windows(), 'Help needed with fixing this test on windows')
@@ -5225,8 +5198,8 @@ class FailureTests(BasePlatformTests):
     function can fail, and creating failing tests for all of them is tedious
     and slows down testing.
     '''
-    dnf = "[Dd]ependency.*not found(:.*)?"
-    nopkg = '[Pp]kg-config.*not found'
+    dnf = r"[Dd]ependency.*not found(:.*)?"
+    nopkg = r'Could not find a pkg-config binary for machine \d'
 
     def setUp(self):
         super().setUp()
@@ -5305,7 +5278,10 @@ class FailureTests(BasePlatformTests):
 
     @skipIfNoPkgconfig
     def test_dependency(self):
-        if subprocess.call(['pkg-config', '--exists', 'zlib']) != 0:
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+        if subprocess.call(prog.get_command() + ['--exists', 'zlib']) != 0:
             raise unittest.SkipTest('zlib not found with pkg-config')
         a = (("dependency('zlib', method : 'fail')", "'fail' is invalid"),
              ("dependency('zlib', static : '1')", "[Ss]tatic.*boolean"),
@@ -5332,12 +5308,19 @@ class FailureTests(BasePlatformTests):
 
     def test_sdl2_notfound_dependency(self):
         # Want to test failure, so skip if available
-        if shutil.which('sdl2-config'):
-            raise unittest.SkipTest('sdl2-config found')
-        self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
-        if shutil.which('pkg-config'):
+        env = get_fake_env()
+
+        conf, _ = env.find_program(['sdl2-config'], MachineChoice.HOST, [])
+        assert isinstance(conf, ExternalProgram)
+        if not conf.found():
+            self.assertMesonRaises("dependency('sdl2', method : 'sdlconfig')", self.dnf)
+
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+        if not prog.found():
             self.assertMesonRaises("dependency('sdl2', method : 'pkg-config')", self.dnf)
-        with no_pkgconfig():
+        with mock.patch('mesonbuild.programs.ExternalProgramPkgConfig.found',
+                        mock.Mock(return_value=False)):
             # Look for pkg-config, cache it, then
             # Use cached pkg-config without erroring out, then
             # Use cached pkg-config to error out
@@ -6049,11 +6032,14 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, override_envvars={'PKG_CONFIG_LIBDIR': privatedir1})
         privatedir2 = self.privatedir
 
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
         env = {
             'PKG_CONFIG_LIBDIR': os.pathsep.join([privatedir1, privatedir2]),
             'PKG_CONFIG_SYSTEM_LIBRARY_PATH': '/usr/lib',
         }
-        self._run(['pkg-config', 'dependency-test', '--validate'], override_envvars=env)
+        self._run(prog.get_command() + ['dependency-test', '--validate'], override_envvars=env)
 
         # pkg-config strips some duplicated flags so we have to parse the
         # generated file ourself.
@@ -6078,21 +6064,21 @@ class LinuxlikeTests(BasePlatformTests):
                     matched_lines += 1
             self.assertEqual(len(expected), matched_lines)
 
-        cmd = ['pkg-config', 'requires-test']
+        cmd = prog.get_command() + ['requires-test']
         out = self._run(cmd + ['--print-requires'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
-        cmd = ['pkg-config', 'requires-private-test']
+        cmd = prog.get_command() + ['requires-private-test']
         out = self._run(cmd + ['--print-requires-private'], override_envvars=env).strip().split('\n')
         if not is_openbsd():
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo >= 1.0', 'libhello']))
         else:
             self.assertEqual(sorted(out), sorted(['libexposed', 'libfoo>=1.0', 'libhello']))
 
-        cmd = ['pkg-config', 'pub-lib-order']
+        cmd = prog.get_command() + ['pub-lib-order']
         out = self._run(cmd + ['--libs'], override_envvars=env).strip().split()
         self.assertEqual(out, ['-llibmain2', '-llibinternal'])
 
@@ -6175,9 +6161,13 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         Test that qt4 and qt5 detection with pkgconfig works.
         '''
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+
         # Verify Qt4 or Qt5 can be found with pkg-config
-        qt4 = subprocess.call(['pkg-config', '--exists', 'QtCore'])
-        qt5 = subprocess.call(['pkg-config', '--exists', 'Qt5Core'])
+        qt4 = subprocess.call(prog.get_command() + ['--exists', 'QtCore'])
+        qt5 = subprocess.call(prog.get_command() + ['--exists', 'Qt5Core'])
         testdir = os.path.join(self.framework_test_dir, '4 qt')
         self.init(testdir, extra_args=['-Dmethod=pkg-config'])
         # Confirm that the dependency was found with pkg-config
@@ -6200,7 +6190,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_sanitize=address', '-Db_lundef=false'])
         self.build()
 
-    def test_qt5dependency_qmake_detection(self):
+    def test_find_program_qmake_qt5(self) -> None:
         '''
         Test that qt5 detection with qmake works. This can't be an ordinary
         test case because it involves setting the environment.
@@ -6212,13 +6202,10 @@ class LinuxlikeTests(BasePlatformTests):
             output = subprocess.getoutput('qmake --version')
             if 'Qt version 5' not in output:
                 raise unittest.SkipTest('Qmake found, but it is not for Qt 5.')
-        # Disable pkg-config codepath and force searching with qmake/qmake-qt5
-        testdir = os.path.join(self.framework_test_dir, '4 qt')
-        self.init(testdir, extra_args=['-Dmethod=qmake'])
-        # Confirm that the dependency was found with qmake
-        mesonlog = self.get_meson_log()
-        self.assertRegex('\n'.join(mesonlog),
-                         r'Run-time dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
+        env = get_fake_env()
+        prog, _ = env.find_program(
+            ['qmake-qt5', 'qmake'], MachineChoice.HOST, ['>= 5'])
+        self.assertTrue(prog.found())
 
     def glob_sofiles_without_privdir(self, g):
         files = glob(g)
@@ -6658,8 +6645,13 @@ class LinuxlikeTests(BasePlatformTests):
                 gobject_found = True
         self.assertTrue(glib_found)
         self.assertTrue(gobject_found)
-        if subprocess.call(['pkg-config', '--exists', 'glib-2.0 >= 2.56.2']) != 0:
+
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+        if subprocess.call(prog.get_command() + ['--exists', 'glib-2.0 >= 2.56.2']) != 0:
             raise unittest.SkipTest('glib >= 2.56.2 needed for the rest')
+
         targets = self.introspect('--targets')
         docbook_target = None
         for t in targets:
@@ -6869,7 +6861,11 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkgconfig_usage(self):
         testdir1 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependency')
         testdir2 = os.path.join(self.unit_test_dir, '27 pkgconfig usage/dependee')
-        if subprocess.call(['pkg-config', '--cflags', 'glib-2.0'],
+
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+        if subprocess.call(prog.get_command() + ['--cflags', 'glib-2.0'],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL) != 0:
             raise unittest.SkipTest('Glib 2.0 dependency not available.')
@@ -6884,10 +6880,10 @@ class LinuxlikeTests(BasePlatformTests):
             myenv = os.environ.copy()
             myenv['PKG_CONFIG_PATH'] = pkg_dir
             # Private internal libraries must not leak out.
-            pkg_out = subprocess.check_output(['pkg-config', '--static', '--libs', 'libpkgdep'], env=myenv)
+            pkg_out = subprocess.check_output(prog.get_command() + ['--static', '--libs', 'libpkgdep'], env=myenv)
             self.assertFalse(b'libpkgdep-int' in pkg_out, 'Internal library leaked out.')
             # Dependencies must not leak to cflags when building only a shared library.
-            pkg_out = subprocess.check_output(['pkg-config', '--cflags', 'libpkgdep'], env=myenv)
+            pkg_out = subprocess.check_output(prog.get_command() + ['--cflags', 'libpkgdep'], env=myenv)
             self.assertFalse(b'glib' in pkg_out, 'Internal dependency leaked to headers.')
             # Test that the result is usable.
             self.init(testdir2, override_envvars=myenv)
@@ -6971,9 +6967,14 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkgconfig_formatting(self):
         testdir = os.path.join(self.unit_test_dir, '38 pkgconfig format')
         self.init(testdir)
+
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs-only-l', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output(prog.get_command() + ['--libs-only-l', 'libsomething'], env=myenv)
         deps = [b'-lgobject-2.0', b'-lgio-2.0', b'-lglib-2.0', b'-lsomething']
         if is_windows() or is_cygwin() or is_osx() or is_openbsd():
             # On Windows, libintl is a separate library
@@ -6985,9 +6986,14 @@ class LinuxlikeTests(BasePlatformTests):
     def test_pkgconfig_csharp_library(self):
         testdir = os.path.join(self.unit_test_dir, '50 pkgconfig csharp library')
         self.init(testdir)
+
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output(prog.get_command() + ['--libs', 'libsomething'], env=myenv)
 
         self.assertEqual("-r/usr/lib/libsomething.dll", str(stdo.decode('ascii')).strip())
 
@@ -6998,9 +7004,14 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.unit_test_dir, '53 pkgconfig static link order')
         self.init(testdir)
+
+        env = get_fake_env()
+        prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+        assert isinstance(prog, ExternalProgram)
+
         myenv = os.environ.copy()
         myenv['PKG_CONFIG_PATH'] = self.privatedir
-        stdo = subprocess.check_output(['pkg-config', '--libs', 'libsomething'], env=myenv)
+        stdo = subprocess.check_output(prog.get_command() + ['--libs', 'libsomething'], env=myenv)
         deps = stdo.split()
         self.assertTrue(deps.index(b'-lsomething') < deps.index(b'-ldependency'))
 
@@ -8160,9 +8171,13 @@ class NativeFileTests(BasePlatformTests):
         else:
             binary = 'python2'
 
+            env = get_fake_env()
+            prog, _ = env.find_program(env.default_pkgconfig, MachineChoice.HOST, [])
+            assert isinstance(prog, ExternalProgram)
+
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
-                rc = subprocess.call(['pkg-config', '--cflags', 'python{}'.format(v)],
+                rc = subprocess.call(prog.get_command() + ['--cflags', 'python{}'.format(v)],
                                      stdout=subprocess.DEVNULL,
                                      stderr=subprocess.DEVNULL)
                 if rc == 0:

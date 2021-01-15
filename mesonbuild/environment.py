@@ -27,6 +27,12 @@ from .mesonlib import (
     PerMachineDefaultable, PerThreeMachineDefaultable, split_args, quote_arg, OptionKey
 )
 from . import mlog
+from .programs import (
+    ExternalProgram, EmptyExternalProgram, NonExistingExternalProgram,
+    InternalProgram, OverrideProgram, ScriptProgram, SPECIAL_PROGRAMS,
+    ExternalProgramConfigTool,
+)
+from .wrap import WrapMode
 
 from .envconfig import (
     BinaryTable, MachineInfo, Properties, known_cpu_families, CMakeVariables,
@@ -141,6 +147,8 @@ CompilersDict = T.Dict[str, Compiler]
 if T.TYPE_CHECKING:
     import argparse
 
+    from .wrap.wrap import Resolver
+
 
 def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T.Optional[str]:
     """
@@ -208,7 +216,6 @@ def detect_ninja(version: str = '1.8.2', log: bool = False) -> T.List[str]:
     return r[0] if r else None
 
 def detect_ninja_command_and_version(version: str = '1.8.2', log: bool = False) -> (T.List[str], str):
-    from .dependencies.base import ExternalProgram
     env_ninja = os.environ.get('NINJA', None)
     for n in [env_ninja] if env_ninja else ['ninja', 'ninja-build', 'samu']:
         prog = ExternalProgram(n, silent=True)
@@ -673,6 +680,8 @@ class Environment:
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
+        self.program_overrides: PerMachine[T.DefaultDict['coredata.ProgramCacheKey', T.List['ExternalProgram']]] = \
+            PerMachine(collections.defaultdict(list), collections.defaultdict(list))
 
         # Command line options override those from cross/native files
         self.options.update(options.cmd_line_options)
@@ -694,7 +703,6 @@ class Environment:
 
         exe_wrapper = self.lookup_binary_entry(MachineChoice.HOST, 'exe_wrapper')
         if exe_wrapper is not None:
-            from .dependencies import ExternalProgram
             self.exe_wrapper = ExternalProgram.from_bin_list(self, MachineChoice.HOST, 'exe_wrapper')
         else:
             self.exe_wrapper = None
@@ -742,9 +750,12 @@ class Environment:
         self.cuda_static_linker = ['nvlink']
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
-        self.default_cmake = ['cmake']
-        self.default_pkgconfig = ['pkg-config']
-        self.wrap_resolver = None
+        self.default_cmake = ['cmake', 'Cmake']           # type: T.List[str]
+        # No, there is no 'pkgconfig', but for some reason this worked
+        # previously, so keep it working
+        self.default_pkgconfig = ['pkgconfig', 'pkg-config', 'Pkg-config', 'pkgconf']  # type: T.List[str]
+        self.default_ninja = ['ninja', 'ninja-build', 'samu']  # type: T.List[str]
+        self.wrap_resolver = None  # type: T.Optional[Resolver]
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
@@ -911,7 +922,7 @@ class Environment:
     def is_library(self, fname):
         return is_library(fname)
 
-    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.List[str]:
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
         return self.binaries[for_machine].lookup_entry(name)
 
     @staticmethod
@@ -2149,6 +2160,195 @@ class Environment:
 
     def get_exe_wrapper(self):
         if not self.need_exe_wrapper():
-            from .dependencies import EmptyExternalProgram
             return EmptyExternalProgram()
         return self.exe_wrapper
+
+    def find_program(self, commands: T.Sequence['mesonlib.FileOrString'], for_machine: MachineChoice,
+                     versions: T.List[str], search_dirs: T.Optional[T.List[str]] = None,
+                     subdir: T.Optional[str] = None, required: bool = False,
+                     version_arg: T.Optional[T.List[str]] = None,
+                     configtool: bool = False, subproject: str = '') -> \
+                         T.Tuple[T.Union[ExternalProgram, str], bool]:
+        """Find a program from the program cache, or find it new.
+
+        The return value is (ExternalProgram, cached), or a string. If it is
+        a string that is as subproject that should be initialized.
+
+        It may return a NonExistingExternalProgram, it's the callers job to
+        decide if it wants to accept that or not.
+
+        :commands: Possible names of the command
+        :for_machine: whether this is for the host or build machine
+        :versions: A version value to pass to mesonlib.version_compare_many
+        :search_dirs: directories to look for the program
+        :subdir: the current subdir that meson is interpreting. This must by
+            None when this function is not called by an Interpreter.
+        :required: If this is required and can be wrapped, do that
+        """
+        search_dirs = search_dirs or []
+
+        # Try to find the program in the cache, using any of the names given.
+        # If any of them are cached return that.
+        # XXX: should we then put the other names in the cache too?
+        for command in commands:
+            if isinstance(command, mesonlib.File):
+                continue
+            key = (command, for_machine, tuple(search_dirs))
+            if key in self.coredata.programs[for_machine]:
+                for candidate in self.coredata.programs[for_machine][key]:
+                    # Don't return scripts from other subprojects
+                    if isinstance(candidate, ScriptProgram) and candidate.subproject != subproject:
+                        continue
+                    if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
+                        return (candidate, True)
+                    elif candidate.get_version() == 'undefined':
+                        mlog.debug(f'Could not find a version for program {candidate.name}.')
+                        return (candidate, True)
+
+            if key in self.program_overrides[for_machine]:
+                for candidate in self.program_overrides[for_machine][key]:
+                    if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
+                        return (candidate, True)
+                    elif candidate.get_version() == 'undefined':
+                        mlog.debug(f'Could not find a version for program {candidate.name}.')
+                        return (candidate, True)
+
+        def cache(prog: ExternalProgram) -> None:
+            """Helper to put the program in the cache.
+
+            relies on command from the outer scope.
+            """
+            self.coredata.programs[for_machine][(command, for_machine, tuple(search_dirs))].append(prog)
+
+        # Check for special program handling, such as with cmake and pkg-config
+        # We must iterate because any of the names could match the special program
+        if configtool:
+            class_ = ExternalProgramConfigTool
+        else:
+            for command in commands:
+                if command in SPECIAL_PROGRAMS:
+                    class_ = SPECIAL_PROGRAMS[command]
+                    break
+            else:
+                class_ = ExternalProgram
+
+        # If that fails check to see if we need to go to a wrap.
+        fallback = None
+        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+        if wrap_mode is not WrapMode.nofallback and self.wrap_resolver:
+            fallback = self.wrap_resolver.find_program_provider(commands)
+        if fallback and wrap_mode is WrapMode.forcefallback:
+            # If we don't have a subdir, we don't have an interpreter, and
+            # therefore cannot initialize a subproject
+            if subdir is None:
+                raise mesonlib.MesonException(
+                    'A subproject is required, but cannot be initalized currently.')
+            return (fallback, False)
+
+        # Next, look to see if the relavent machine file has overrides for any
+        # of these commands.
+        for command in commands:
+            if isinstance(command, mesonlib.File):
+                # this is a local file, we don't want to consider it until
+                # after we've checked the machine files.
+                continue
+            cmd = self.lookup_binary_entry(for_machine, command)
+            if cmd is None:
+                continue
+            prog = class_.from_entry(command, cmd, silent=True)
+            if prog.found():
+                version = prog.get_version()
+                if versions:
+                    if not version:
+                        mlog.warning(
+                            'Program', command, 'version could not be determined, but version constraints',
+                            ', '.join(versions),  'present. the resulting program may not work.'
+                        )
+                    elif not mesonlib.version_compare_many(version, versions):
+                        continue
+                cache(prog)
+                return (prog, False)
+
+        # Try just looking for the thing in path now
+        for command in commands:
+            if isinstance(command, mesonlib.File):
+                command = command.fname
+            prog = class_(command, silent=True, version_arg=version_arg)
+            if prog.found():
+                version = prog.get_version()
+                if versions:
+                    if not version:
+                        mlog.warning(
+                            'Program', command, 'version not detected, but version constraints',
+                            ', '.join(versions),  'present. the resulting program may not work.'
+                        )
+                    elif not mesonlib.version_compare_many(version, versions)[0]:
+                        continue
+                cache(prog)
+                return (prog, False)
+
+        # If the subdir is not None, then we can try looking for local files.
+        if subdir is not None:
+            source_dir = os.path.join(self.get_source_dir(), subdir)
+            for command in commands:
+                if isinstance(command, mesonlib.File):
+                    if command.is_built:
+                        search_dir = os.path.join(self.get_build_dir(),
+                                                  command.subdir)
+                    else:
+                        search_dir = os.path.join(self.get_source_dir(),
+                                                  command.subdir)
+                    command = command.fname
+                    extra_search_dirs = []
+                else:
+                    search_dir = source_dir
+                    extra_search_dirs = search_dirs
+
+                prog = ScriptProgram(
+                    command, search_dir=search_dir,
+                    extra_search_dirs=extra_search_dirs,
+                    silent=True, subproject=subproject)
+                if prog.found():
+                    if versions and not mesonlib.version_compare_many(prog.get_version(), versions)[0]:
+                        continue
+                    cache(prog)
+                    return (prog, False)
+
+        # If we still haven't found it, look for a few special cases
+        for command in commands:
+            if isinstance(command, str) and command.endswith('python3'):
+                prog = class_('python3', mesonlib.python_command, silent=True, version_arg=version_arg)
+                if versions and mesonlib.version_compare_many(prog.get_version(), versions):
+                    cache(prog)
+                    return (prog, False)
+
+        # if we reach this point and still havent found anything, but have a
+        # valid wrap to try do that.
+        if required and fallback:
+            if subdir is None:
+                raise mesonlib.MesonException(
+                    'A subproject is required, but cannot be initalized currently.')
+            return (fallback, False)
+
+        # Finally, give up and return a NonExistingExternalProgram
+        #
+        # Don't cache not-founds in case someone asks for a different version
+        prog = NonExistingExternalProgram(commands[0])
+        return (prog, False)
+
+    def override_program(self, name: str, program: T.Union['OverrideProgram', InternalProgram],
+                         for_machine: MachineChoice) -> None:
+        """Override a program with one that will be built.
+
+        Raises if the program is already in the cache.
+        """
+        key = (name, for_machine, tuple())
+        found = self.coredata.programs[for_machine].get(key)
+        if found:
+            msg = 'Tried to override executable "{}" which has already been {}.'.format(
+                name, 'overridden' if isinstance(found, (OverrideProgram, InternalProgram)) else 'found')
+            raise EnvironmentException(msg)
+
+        assert isinstance(program, (OverrideProgram, InternalProgram))
+
+        self.program_overrides[for_machine][key].append(program)

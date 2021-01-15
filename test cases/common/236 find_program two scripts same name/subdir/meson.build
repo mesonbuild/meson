@@ -1,0 +1,1 @@
+prog = find_program('script.py', version : '== 2.0.0')

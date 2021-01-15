@@ -48,7 +48,7 @@ class AstPrinter(AstVisitor):
         self.is_newline = False
 
     def append_padded(self, data: str, node: mparser.BaseNode) -> None:
-        if self.result[-1] not in [' ', '\n']:
+        if self.result and self.result[-1] not in [' ', '\n']:
             data = ' ' + data
         self.append(data + ' ', node)
 

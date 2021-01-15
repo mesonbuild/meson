@@ -22,13 +22,14 @@ from enum import Enum, unique
 import itertools
 from pathlib import PurePath, Path
 from functools import lru_cache
+import textwrap
 
 from . import backends
 from .. import modules
 from .. import environment, mesonlib
 from .. import build
 from .. import mlog
-from .. import dependencies
+from .. import programs
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import (
@@ -47,6 +48,7 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
 from ..build import InvalidArguments
 from ..interpreter import Interpreter
+from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
@@ -420,6 +422,8 @@ class NinjaBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.name = 'ninja'
+        self.ninja_command: T.List[str] = []
+        self.ninja_version: T.Optional[str] = None
         self.ninja_filename = 'build.ninja'
         self.fortran_deps = {}
         self.all_outputs = {}
@@ -504,11 +508,16 @@ int dummy;
 
         raise MesonException('Could not determine vs dep dependency prefix string.')
 
-    def generate(self):
-        ninja = environment.detect_ninja_command_and_version(log=True)
-        if ninja is None:
+    def generate(self) -> None:
+        ninja, cached = self.environment.find_program(
+            self.environment.default_ninja, MachineChoice.BUILD, ['>= 1.8.2'])
+        assert isinstance(ninja, ExternalProgram)
+        ninja.log(cached)
+        if not ninja.found():
             raise MesonException('Could not detect Ninja v1.8.2 or newer')
-        (self.ninja_command, self.ninja_version) = ninja
+        self.ninja_command = ninja.get_command()
+        self.ninja_version = ninja.get_version()
+
         outfilename = os.path.join(self.environment.get_build_dir(), self.ninja_filename)
         tempfilename = outfilename + '~'
         with open(tempfilename, 'w', encoding='utf-8') as outfile:
@@ -519,10 +528,11 @@ int dummy;
 
             num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
             if num_pools > 0:
-                outfile.write('''pool link_pool
-  depth = {}
+                outfile.write(textwrap.dedent('''\
+                    pool link_pool
+                      depth = {}
 
-'''.format(num_pools))
+                    '''.format(num_pools)))
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
@@ -1036,7 +1046,7 @@ int dummy;
                         raise MesonException(msg.format(exe_wrap.name, target.name))
                     cmd += exe_wrap.get_command()
             cmd.append(abs_exe)
-        elif isinstance(texe, dependencies.ExternalProgram):
+        elif isinstance(texe, programs.ExternalProgram):
             cmd += texe.get_command()
         elif isinstance(texe, build.CustomTarget):
             deps.append(self.get_target_filename(texe))

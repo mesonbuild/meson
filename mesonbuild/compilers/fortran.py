@@ -37,10 +37,11 @@ from mesonbuild.mesonlib import (
 
 if T.TYPE_CHECKING:
     from ..coredata import KeyedOptionDictType
-    from ..dependencies import Dependency, ExternalProgram
+    from ..dependencies import Dependency
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker
+    from ..programs import ExternalProgram
 
 
 class FortranCompiler(CLikeCompiler, Compiler):

@@ -27,6 +27,7 @@ from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
 from ..mesonlib import OptionKey
+from ..programs import ExternalProgram
 
 class ExternalProject(InterpreterObject):
     def __init__(self,
@@ -76,19 +77,30 @@ class ExternalProject(InterpreterObject):
         # self.prefix is an absolute path, so we cannot append it to another path.
         self.rel_prefix = self.prefix.relative_to(self.prefix.root)
 
-        self.make = self.interpreter.find_program_impl('make')
-        self.make = self.make.get_command()[0]
+        make, cached = interpreter.environment.find_program(['make'], MachineChoice.BUILD, [])
+        assert isinstance(make, ExternalProgram)
+        make.log(cached)
+        if not make.found():
+            raise MesonException('Could not find required program make')
+        self.make = make.get_command()[0]
 
-        self._configure()
+        self._configure(interpreter)
 
         self.targets = self._create_targets()
 
-    def _configure(self):
+    def _configure(self, interp: Interpreter):
         # Assume it's the name of a script in source dir, like 'configure',
         # 'autogen.sh', etc).
         configure_path = Path(self.src_dir, self.configure_command)
-        configure_prog = self.interpreter.find_program_impl(configure_path.as_posix())
-        configure_cmd = configure_prog.get_command()
+        # need subdir because configure is a script
+        prog, cached = interp.environment.find_program(
+            [configure_path.as_posix()], MachineChoice.BUILD, [], subdir=interp.subdir,
+            subproject=interp.subproject)
+        assert isinstance(prog, ExternalProgram)
+        prog.log(cached)
+        if not prog.found():
+            raise MesonException('Could not find required program configure')
+        configure_cmd = prog.get_command()
 
         d = {'PREFIX': self.prefix.as_posix(),
              'LIBDIR': self.libdir.as_posix(),

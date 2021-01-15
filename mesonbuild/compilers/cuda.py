@@ -28,10 +28,11 @@ from .compilers import (Compiler, cuda_buildtype_args, cuda_optimization_args,
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
     from ..coredata import KeyedOptionDictType
-    from ..dependencies import Dependency, ExternalProgram
+    from ..dependencies import Dependency
     from ..environment import Environment  # noqa: F401
     from ..envconfig import MachineInfo
     from ..linkers import DynamicLinker
+    from ..programs import ExternalProgram
 
 
 class _Phase(enum.Enum):

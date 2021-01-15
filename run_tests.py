@@ -124,7 +124,7 @@ def get_fake_options(prefix=''):
     opts.cmd_line_options = {}
     return opts
 
-def get_fake_env(sdir='', bdir=None, prefix='', opts=None):
+def get_fake_env(sdir='', bdir=None, prefix='', opts=None) -> Environment:
     if opts is None:
         opts = get_fake_options(prefix)
     env = Environment(sdir, bdir, opts)
@@ -267,7 +267,6 @@ def clear_meson_configure_class_caches():
     compilers.CCompiler.find_library_cache = {}
     compilers.CCompiler.find_framework_cache = {}
     dependencies.PkgConfigDependency.pkgbin_cache = {}
-    dependencies.PkgConfigDependency.class_pkgbin = mesonlib.PerMachine(None, None)
 
 def run_configure_inprocess(commandlist, env=None):
     stderr = StringIO()

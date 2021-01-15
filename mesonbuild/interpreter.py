@@ -22,7 +22,10 @@ from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
 from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
-from .dependencies import ExternalProgram
+from .programs import (
+    ExternalProgram, NonExistingExternalProgram, OverrideProgram,
+    InternalProgram, ScriptProgram,
+)
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
 from .interpreterbase import InterpreterBase
@@ -55,6 +58,7 @@ if T.TYPE_CHECKING:
     from .envconfig import MachineInfo
     from .environment import Environment
     from .modules import ExtensionModule
+    from .interpreterbase import FeatureCheckBase
 
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
@@ -71,10 +75,6 @@ def stringifyUserArguments(args):
     elif isinstance(args, str):
         return "'%s'" % args
     raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
-
-
-class OverrideProgram(dependencies.ExternalProgram):
-    pass
 
 
 class FeatureOptionHolder(InterpreterObject, ObjectHolder):
@@ -104,16 +104,21 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder):
     def auto_method(self, args, kwargs):
         return self.held_object.is_auto()
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+def extract_required_kwarg(kwargs: T.Dict[str, T.Any], subproject: str,
+                           feature_check: T.Optional['FeatureCheckBase'] = None,
+                           default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
     val = kwargs.get('required', default)
+    if not isinstance(val, (bool, FeatureOptionHolder)):
+        raise InterpreterException('required keyword argument must be boolean or a feature option')
+
     disabled = False
     required = False
-    feature = None
+    feature = None  # T.Optional[FeatureOptionHolder]
     if isinstance(val, FeatureOptionHolder):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
         feature_check.use(subproject)
-        option = val.held_object
+        option = val.held_object  # type: coredata.UserFeatureOption
         feature = val.name
         if option.is_disabled():
             disabled = True
@@ -121,8 +126,6 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
             required = True
     elif isinstance(val, bool):
         required = val
-    else:
-        raise InterpreterException('required keyword argument must be boolean or a feature option')
 
     # Keep boolean value in kwargs to simplify other places where this kwarg is
     # checked.
@@ -130,9 +133,9 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
 
     return disabled, required, feature
 
-def extract_search_dirs(kwargs):
-    search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
-    search_dirs = [Path(d).expanduser() for d in search_dirs]
+def extract_search_dirs(kwargs: T.Dict[str, T.Any]) -> T.List[str]:
+    _search_dirs = mesonlib.stringlistify(kwargs.get('dirs', []))
+    search_dirs = [Path(d).expanduser() for d in _search_dirs]
     for d in search_dirs:
         if mesonlib.is_windows() and d.root.startswith('\\'):
             # a Unix-path starting with `/` that is not absolute on Windows.
@@ -140,7 +143,7 @@ def extract_search_dirs(kwargs):
             continue
         if not d.is_absolute():
             raise InvalidCode('Search directory {} is not an absolute path.'.format(d))
-    return list(map(str, search_dirs))
+    return [str(d) for d in search_dirs]
 
 class TryRunResultHolder(InterpreterObject):
     def __init__(self, res):
@@ -537,7 +540,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, ep, subproject, backend=None):
+    def __init__(self, ep, subproject, backend: T.Optional[Backend] = None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
         self.subproject = subproject
@@ -567,41 +570,29 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
 
     def _full_path(self):
         exe = self.held_object
-        if isinstance(exe, build.Executable):
-            return self.backend.get_target_filename_abs(exe)
+        if isinstance(exe, InternalProgram):
+            assert self.backend is not None
+            return self.backend.get_target_filename_abs(exe.wraps)
         return exe.get_path()
 
     def found(self):
-        return isinstance(self.held_object, build.Executable) or self.held_object.found()
+        return self.held_object.found()
 
     def get_command(self):
         return self.held_object.get_command()
 
     def get_name(self):
-        exe = self.held_object
-        if isinstance(exe, build.Executable):
-            return exe.name
-        return exe.get_name()
+        return self.held_object.get_name()
 
-    def get_version(self, interpreter):
-        if isinstance(self.held_object, build.Executable):
-            return self.held_object.project_version
-        if not self.cached_version:
-            raw_cmd = self.get_command() + ['--version']
-            cmd = [self, '--version']
-            res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
-            if res.returncode != 0:
-                m = 'Running {!r} failed'
-                raise InterpreterException(m.format(raw_cmd))
-            output = res.stdout.strip()
-            if not output:
-                output = res.stderr.strip()
-            match = re.search(r'([0-9][0-9\.]+)', output)
-            if not match:
-                m = 'Could not find a version number in output of {!r}'
-                raise InterpreterException(m.format(raw_cmd))
-            self.cached_version = match.group(1)
-        return self.cached_version
+    def get_version(self, interpreter) -> str:
+        try:
+            ver = self.held_object.get_version()
+        except mesonlib.MesonException as e:
+            raise InterpreterException(str(e))
+        if ver is None:
+            m = 'Could not find a version number in output of {}'
+            raise InterpreterException(m.format(' '.join(self.get_command())))
+        return ver
 
 class ExternalLibraryHolder(InterpreterObject, ObjectHolder):
     def __init__(self, el, pv):
@@ -1832,10 +1823,8 @@ class ModuleHolder(InterpreterObject, ObjectHolder):
             target_machine=self.interpreter.builtin['target_machine'].held_object,
             current_node=self.current_node
         )
-        # Many modules do for example self.interpreter.find_program_impl(),
-        # so we have to ensure they use the current interpreter and not the one
-        # that first imported that module, otherwise it will use outdated
-        # overrides.
+        # Ensure that the called module is using the current interpreter in
+        # case we've changed subprojects
         self.held_object.interpreter = self.interpreter
         if self.held_object.is_snippet(method_name):
             value = fn(self.interpreter, state, args, kwargs)
@@ -1919,11 +1908,10 @@ class Summary:
         mlog.log(*line, sep=list_sep)
 
 class MesonMain(InterpreterObject):
-    def __init__(self, build, interpreter):
+    def __init__(self, build, interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
         self.build = build
         self.interpreter = interpreter
-        self._found_source_scripts = {}
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build': self.is_cross_build_method,
                              'has_exe_wrapper': self.has_exe_wrapper_method,
@@ -1951,7 +1939,7 @@ class MesonMain(InterpreterObject):
                              'backend': self.backend_method,
                              })
 
-    def _find_source_script(self, prog: T.Union[str, ExecutableHolder], args):
+    def _find_source_script(self, prog: T.Union[str, ExecutableHolder, ExternalProgramHolder], args):
         if isinstance(prog, ExecutableHolder):
             prog_path = self.interpreter.backend.get_target_filename(prog.held_object)
             return build.RunScript([prog_path], args)
@@ -1961,16 +1949,15 @@ class MesonMain(InterpreterObject):
         # Prefer scripts in the current source directory
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
-        key = (prog, search_dir)
-        if key in self._found_source_scripts:
-            found = self._found_source_scripts[key]
-        else:
-            found = dependencies.ExternalProgram(prog, search_dir=search_dir)
-            if found.found():
-                self._found_source_scripts[key] = found
-            else:
-                m = 'Script or command {!r} not found or not executable'
-                raise InterpreterException(m.format(prog))
+        found, cached = self.interpreter.environment.find_program(
+            [prog], MachineChoice.BUILD, [], search_dirs=[search_dir],
+            subdir=self.interpreter.subdir, subproject=self.interpreter.subproject)
+        assert isinstance(found, ExternalProgram)
+        if not cached:
+            # Only log the script once, we don't really care if we found src/dothing.py 10 times
+            found.log(cached)
+        if not found.found():
+            raise InterpreterException('Could not find script {}'.format(prog))
         return build.RunScript(found.get_command(), args)
 
     def _process_script_args(
@@ -2005,7 +1992,7 @@ class MesonMain(InterpreterObject):
             elif isinstance(a, build.ConfigureFile):
                 new = True
                 script_args.append(os.path.join(a.subdir, a.targetname))
-            elif isinstance(a, dependencies.ExternalProgram):
+            elif isinstance(a, ExternalProgram):
                 script_args.extend(a.command)
                 new = True
             else:
@@ -2163,8 +2150,9 @@ class MesonMain(InterpreterObject):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
-    @permittedKwargs({})
-    def override_find_program_method(self, args, kwargs):
+    @FeatureNewKwargs('meson.override_find_program', '0.56.0', ['native'])
+    @permittedKwargs({'native'})
+    def override_find_program_method(self, args: T.List[T.Any], kwargs: T.Dict[str, T.Any]) -> None:
         if len(args) != 2:
             raise InterpreterException('Override needs two arguments')
         name, exe = args
@@ -2178,9 +2166,25 @@ class MesonMain(InterpreterObject):
             if not os.path.exists(abspath):
                 raise InterpreterException('Tried to override %s with a file that does not exist.' % name)
             exe = OverrideProgram(name, abspath)
-        if not isinstance(exe, (dependencies.ExternalProgram, build.Executable)):
-            raise InterpreterException('Second argument must be an external program or executable.')
-        self.interpreter.add_find_program_override(name, exe)
+        elif isinstance(exe, ScriptProgram):
+            exe = OverrideProgram(
+                exe.name, exe.command, silent=True,
+                for_machine=exe.for_machine,
+                version_arg=exe.version_arg)
+        elif isinstance(exe, build.Executable):
+            exe = InternalProgram(exe, self.interpreter.project_version)
+        elif isinstance(exe, ExternalProgram):
+            exe = OverrideProgram(
+                exe.name, exe.command, silent=True,
+                for_machine=exe.for_machine,
+                version_arg=exe.version_arg)
+        else:
+            raise InterpreterException(
+                'Second argument must be a File, external program, or executable.')
+
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+
+        self.interpreter.environment.override_program(name, exe, for_machine)
 
     @FeatureNew('meson.override_dependency', '0.54.0')
     @permittedKwargs({'native'})
@@ -2554,7 +2558,7 @@ class Interpreter(InterpreterBase):
             return DataHolder(item)
         elif isinstance(item, dependencies.Dependency):
             return DependencyHolder(item, self.subproject)
-        elif isinstance(item, dependencies.ExternalProgram):
+        elif isinstance(item, ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
         elif hasattr(item, 'held_object'):
             return item
@@ -2579,7 +2583,7 @@ class Interpreter(InterpreterBase):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
-            elif isinstance(v, dependencies.ExternalProgram):
+            elif isinstance(v, ExternalProgram):
                 return ExternalProgramHolder(v, self.subproject)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
@@ -2761,7 +2765,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         return DependencyHolder(dep, self.subproject)
 
     @noKwargs
-    def func_assert(self, node, args, kwargs):
+    def func_assert(self, node: mparser.ArrayNode, args: T.List[T.Any], kwargs: T.Dict[str, T.Any]) -> None:
         if len(args) == 1:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
             value = args[0]
@@ -2817,7 +2821,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         expanded_args = []
         if isinstance(cmd, ExternalProgramHolder):
             cmd = cmd.held_object
-            if isinstance(cmd, build.Executable):
+            if isinstance(cmd, (build.Executable, InternalProgram)):
                 progname = node.args.arguments[0].value
                 msg = 'Program {!r} was overridden with the compiled executable {!r}'\
                       ' and therefore cannot be used during configuration'
@@ -3172,7 +3176,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.build.project_name = proj_name
         self.active_projectname = proj_name
-        self.project_version = kwargs.get('version', 'undefined')
+        self.project_version: str = kwargs.get('version', 'undefined')
         if not isinstance(self.project_version, str):
             raise InvalidCode('The version keyword argument must be a string.')
         if self.build.project_version is None:
@@ -3401,163 +3405,52 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         return success
 
-    def program_from_file_for(self, for_machine, prognames):
-        for p in unholder(prognames):
-            if isinstance(p, mesonlib.File):
-                continue # Always points to a local (i.e. self generated) file.
-            if not isinstance(p, str):
-                raise InterpreterException('Executable name must be a string')
-            prog = ExternalProgram.from_bin_list(self.environment, for_machine, p)
-            if prog.found():
-                return ExternalProgramHolder(prog, self.subproject)
-        return None
-
-    def program_from_system(self, args, search_dirs, extra_info):
-        # Search for scripts relative to current subdir.
-        # Do not cache found programs because find_program('foobar')
-        # might give different results when run from different source dirs.
-        source_dir = os.path.join(self.environment.get_source_dir(), self.subdir)
-        for exename in args:
-            if isinstance(exename, mesonlib.File):
-                if exename.is_built:
-                    search_dir = os.path.join(self.environment.get_build_dir(),
-                                              exename.subdir)
-                else:
-                    search_dir = os.path.join(self.environment.get_source_dir(),
-                                              exename.subdir)
-                exename = exename.fname
-                extra_search_dirs = []
-            elif isinstance(exename, str):
-                search_dir = source_dir
-                extra_search_dirs = search_dirs
-            else:
-                raise InvalidArguments('find_program only accepts strings and '
-                                       'files, not {!r}'.format(exename))
-            extprog = dependencies.ExternalProgram(exename, search_dir=search_dir,
-                                                   extra_search_dirs=extra_search_dirs,
-                                                   silent=True)
-            progobj = ExternalProgramHolder(extprog, self.subproject)
-            if progobj.found():
-                extra_info.append('({})'.format(' '.join(progobj.get_command())))
-                return progobj
-
-    def program_from_overrides(self, command_names, extra_info):
-        for name in command_names:
-            if not isinstance(name, str):
-                continue
-            if name in self.build.find_overrides:
-                exe = self.build.find_overrides[name]
-                extra_info.append(mlog.blue('(overridden)'))
-                return ExternalProgramHolder(exe, self.subproject, self.backend)
-        return None
-
-    def store_name_lookups(self, command_names):
-        for name in command_names:
-            if isinstance(name, str):
-                self.build.searched_programs.add(name)
-
-    def add_find_program_override(self, name, exe):
-        if name in self.build.searched_programs:
-            raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
-                                       % name)
-        if name in self.build.find_overrides:
-            raise InterpreterException('Tried to override executable "%s" which has already been overridden.'
-                                       % name)
-        self.build.find_overrides[name] = exe
-
     def notfound_program(self, args):
-        return ExternalProgramHolder(dependencies.NonExistingExternalProgram(' '.join(args)), self.subproject)
-
-    # TODO update modules to always pass `for_machine`. It is bad-form to assume
-    # the host machine.
-    def find_program_impl(self, args, for_machine: MachineChoice = MachineChoice.HOST,
-                          required=True, silent=True, wanted='', search_dirs=None,
-                          version_func=None):
-        args = mesonlib.listify(args)
-
-        extra_info = []
-        progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
-        if progobj is None:
-            progobj = self.notfound_program(args)
-
-        if not progobj.found():
-            mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
-            if required:
-                m = 'Program {!r} not found'
-                raise InterpreterException(m.format(progobj.get_name()))
-            return progobj
-
-        if wanted:
-            if version_func:
-                version = version_func(progobj)
-            else:
-                version = progobj.get_version(self)
-            is_found, not_found, found = mesonlib.version_compare_many(version, wanted)
-            if not is_found:
-                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'),
-                         'found', mlog.normal_cyan(version), 'but need:',
-                         mlog.bold(', '.join(["'{}'".format(e) for e in not_found])), *extra_info)
-                if required:
-                    m = 'Invalid version of program, need {!r} {!r} found {!r}.'
-                    raise InterpreterException(m.format(progobj.get_name(), not_found, version))
-                return self.notfound_program(args)
-            extra_info.insert(0, mlog.normal_cyan(version))
-
-        # Only store successful lookups
-        self.store_name_lookups(args)
-        mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.green('YES'), *extra_info)
-        return progobj
-
-    def program_lookup(self, args, for_machine, required, search_dirs, extra_info):
-        progobj = self.program_from_overrides(args, extra_info)
-        if progobj:
-            return progobj
-
-        fallback = None
-        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
-        if wrap_mode != WrapMode.nofallback and self.environment.wrap_resolver:
-            fallback = self.environment.wrap_resolver.find_program_provider(args)
-        if fallback and wrap_mode == WrapMode.forcefallback:
-            return self.find_program_fallback(fallback, args, required, extra_info)
-
-        progobj = self.program_from_file_for(for_machine, args)
-        if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, extra_info)
-        if progobj is None and args[0].endswith('python3'):
-            prog = dependencies.ExternalProgram('python3', mesonlib.python_command, silent=True)
-            progobj = ExternalProgramHolder(prog, self.subproject) if prog.found() else None
-        if progobj is None and fallback and required:
-            progobj = self.find_program_fallback(fallback, args, required, extra_info)
-
-        return progobj
-
-    def find_program_fallback(self, fallback, args, required, extra_info):
-        mlog.log('Fallback to subproject', mlog.bold(fallback), 'which provides program',
-                 mlog.bold(' '.join(args)))
-        sp_kwargs = { 'required': required }
-        self.do_subproject(fallback, 'meson', sp_kwargs)
-        return self.program_from_overrides(args, extra_info)
+        return ExternalProgramHolder(NonExistingExternalProgram(' '.join(args)), self.subproject)
 
     @FeatureNewKwargs('find_program', '0.53.0', ['dirs'])
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['find_program'])
-    def func_find_program(self, node, args, kwargs):
+    def func_find_program(self, node: mparser.BaseNode, args: T.Union[T.Any, T.List[T.Any]], kwargs: T.Dict[str, T.Any]):
         if not args:
-            raise InterpreterException('No program name specified.')
-
+            raise InterpreterException('No program name(s) specified to find_program().')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
             mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
             return self.notfound_program(args)
 
+        args = listify(args)
+        for n in args:
+            if not isinstance(n, (str, mesonlib.File)):
+                raise InterpreterException('Arguments to find_program must be strings or File objects')
+        args = T.cast(T.List['mesonlib.FileOrString'], args)
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required,
-                                      silent=False, wanted=wanted,
-                                      search_dirs=search_dirs)
+
+        prog_or_fallback, cached = self.environment.find_program(
+            args, for_machine, versions=wanted, search_dirs=search_dirs,
+            subdir=self.subdir, required=required, subproject=self.subproject)
+
+        if isinstance(prog_or_fallback, str):
+            mlog.log('Fallback to subproject', mlog.bold(prog_or_fallback), 'which provides program',
+                     mlog.bold(' '.join(args)))
+            sp_kwargs = {'required': required}
+            self.do_subproject(prog_or_fallback, 'meson', sp_kwargs)
+
+            # Do the lookup again, as we should find a cached version
+            prog_or_fallback, cached = self.environment.find_program(
+                args, for_machine, wanted, search_dirs, self.subdir, subproject=self.subproject)
+            assert isinstance(prog_or_fallback, ExternalProgram), prog_or_fallback
+
+        prog_or_fallback.log(cached)
+        if not prog_or_fallback.found() and required:
+            m = 'Program {!r} not found'
+            raise InterpreterException(m.format(prog_or_fallback.name))
+
+        return ExternalProgramHolder(prog_or_fallback, self.subproject, self.backend)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
@@ -4040,10 +3933,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
         cleaned_args = []
         for i in unholder(listify(all_args)):
-            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, dependencies.ExternalProgram, mesonlib.File)):
+            if not isinstance(i, (str, build.BuildTarget, build.CustomTarget, ExternalProgram, mesonlib.File)):
                 mlog.debug('Wrong type:', str(i))
                 raise InterpreterException('Invalid argument to run_target.')
-            if isinstance(i, dependencies.ExternalProgram) and not i.found():
+            if isinstance(i, ExternalProgram) and not i.found():
                 raise InterpreterException('Tried to use non-existing executable {!r}'.format(i.name))
             cleaned_args.append(i)
         name = args[0]
@@ -4628,7 +4521,7 @@ different subdirectory.
             for i in inp:
                 if isinstance(i, str):
                     exe_wrapper.append(i)
-                elif isinstance(i, dependencies.ExternalProgram):
+                elif isinstance(i, ExternalProgram):
                     if not i.found():
                         raise InterpreterException('Tried to use non-found executable.')
                     exe_wrapper += i.get_command()
