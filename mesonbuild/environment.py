@@ -2218,7 +2218,7 @@ class Environment:
 
             relies on command from the outer scope.
             """
-            self.coredata.programs[for_machine][(command, tuple(search_dirs))].append(prog)
+            self.coredata.programs[for_machine][(command, for_machine, tuple(search_dirs))].append(prog)
 
         # Check for special program handling, such as with cmake and pkg-config
         # We must iterate because any of the names could match the special program
