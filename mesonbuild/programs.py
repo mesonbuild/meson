@@ -427,6 +427,7 @@ class InternalProgram(ExternalProgram):
         self.path = exe.filename
         self.command = exe.outputs
         self.version = version
+        self.wraps = exe
 
     def found(self) -> bool:
         return True

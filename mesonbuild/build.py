@@ -1461,7 +1461,10 @@ class Generator:
         exe = unholder(args[0])
         if not isinstance(exe, (Executable, programs.ExternalProgram)):
             raise InvalidArguments('First generator argument must be an executable.')
-        self.exe = exe
+        if isinstance(exe, programs.InternalProgram):
+            self.exe = exe.wraps
+        else:
+            self.exe = exe
         self.depfile = None
         self.capture = False
         self.depends = []
@@ -2205,6 +2208,9 @@ class CustomTarget(Target):
             elif isinstance(c, File):
                 self.depend_files.append(c)
                 final_cmd.append(c)
+            elif isinstance(c, programs.InternalProgram):
+                self.dependencies.append(c.wraps)
+                final_cmd.append(c.wraps)
             elif isinstance(c, programs.ExternalProgram):
                 if not c.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')

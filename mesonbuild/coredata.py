@@ -44,7 +44,7 @@ if T.TYPE_CHECKING:
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
     CompilerCheckCacheKey = T.Tuple[T.Tuple[str, ...], str, str, T.Tuple[str, ...], str]
     # format is (name of program, search_paths)
-    ProgramCacheKey = T.Tuple['FileOrString', T.Tuple[str, ...]]
+    ProgramCacheKey = T.Tuple['FileOrString', MachineChoice, T.Tuple[str, ...]]
 
 version = '0.56.99'
 backendlist = ['ninja', 'vs', 'vs2010', 'vs2015', 'vs2017', 'vs2019', 'xcode']

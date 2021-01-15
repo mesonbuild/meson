@@ -2191,7 +2191,7 @@ class Environment:
         for command in commands:
             if isinstance(command, mesonlib.File):
                 continue
-            key = (command, tuple(search_dirs))
+            key = (command, for_machine, tuple(search_dirs))
             if key in self.coredata.programs[for_machine]:
                 for candidate in self.coredata.programs[for_machine][key]:
                     # Don't return scripts from other subprojects
@@ -2199,10 +2199,16 @@ class Environment:
                         continue
                     if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
                         return (candidate, True)
+                    elif candidate.get_version() == 'undefined':
+                        mlog.debug(f'Could not find a version for program {candidate.name}.')
+                        return (candidate, True)
 
             if key in self.program_overrides[for_machine]:
                 for candidate in self.program_overrides[for_machine][key]:
                     if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
+                        return (candidate, True)
+                    elif candidate.get_version() == 'undefined':
+                        mlog.debug(f'Could not find a version for program {candidate.name}.')
                         return (candidate, True)
 
         def cache(prog: ExternalProgram) -> None:
@@ -2333,7 +2339,7 @@ class Environment:
 
         Raises if the program is already in the cache.
         """
-        key = (name, tuple())
+        key = (name, for_machine, tuple())
         found = self.coredata.programs[for_machine].get(key)
         if found:
             msg = 'Tried to override executable "{}" which has already been {}.'.format(

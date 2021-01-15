@@ -540,7 +540,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder):
         return DependencyHolder(new_dep, self.subproject)
 
 class ExternalProgramHolder(InterpreterObject, ObjectHolder):
-    def __init__(self, ep, subproject, backend=None):
+    def __init__(self, ep, subproject, backend: T.Optional[Backend] = None):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, ep)
         self.subproject = subproject
@@ -571,7 +571,8 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder):
     def _full_path(self):
         exe = self.held_object
         if isinstance(exe, InternalProgram):
-            return self.backend.get_target_filename_abs(exe)
+            assert self.backend is not None
+            return self.backend.get_target_filename_abs(exe.wraps)
         return exe.get_path()
 
     def found(self):
@@ -2171,7 +2172,7 @@ class MesonMain(InterpreterObject):
                 for_machine=exe.for_machine,
                 version_arg=exe.version_arg)
         elif isinstance(exe, build.Executable):
-            exe = InternalProgram(exe, self.interpreter.build.project_version)
+            exe = InternalProgram(exe, self.interpreter.project_version)
         elif isinstance(exe, ExternalProgram):
             exe = OverrideProgram(
                 exe.name, exe.command, silent=True,
@@ -3175,7 +3176,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not self.is_subproject():
             self.build.project_name = proj_name
         self.active_projectname = proj_name
-        self.project_version = kwargs.get('version', 'undefined')
+        self.project_version: str = kwargs.get('version', 'undefined')
         if not isinstance(self.project_version, str):
             raise InvalidCode('The version keyword argument must be a string.')
         if self.build.project_version is None:
@@ -3449,7 +3450,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             m = 'Program {!r} not found'
             raise InterpreterException(m.format(prog_or_fallback.name))
 
-        return ExternalProgramHolder(prog_or_fallback, self.subproject)
+        return ExternalProgramHolder(prog_or_fallback, self.subproject, self.backend)
 
     def func_find_library(self, node, args, kwargs):
         raise InvalidCode('find_library() is removed, use meson.get_compiler(\'name\').find_library() instead.\n'
