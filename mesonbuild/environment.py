@@ -751,7 +751,9 @@ class Environment:
         self.gcc_static_linker = ['gcc-ar']
         self.clang_static_linker = ['llvm-ar']
         self.default_cmake = ['cmake', 'Cmake']           # type: T.List[str]
-        self.default_pkgconfig = ['pkg-config', 'Pkg-config', 'pkgconf']  # type: T.List[str]
+        # No, there is no 'pkgconfig', but for some reason this worked
+        # previously, so keep it working
+        self.default_pkgconfig = ['pkgconfig', 'pkg-config', 'Pkg-config', 'pkgconf']  # type: T.List[str]
         self.default_ninja = ['ninja', 'ninja-build', 'samu']  # type: T.List[str]
         self.wrap_resolver = None  # type: T.Optional[Resolver]
 

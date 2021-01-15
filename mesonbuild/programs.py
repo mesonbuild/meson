@@ -499,6 +499,8 @@ class ExternalProgramQMake(ExternalProgram):
 
 SPECIAL_PROGRAMS = {
     'cmake': ExternalProgramCMake,
+    'pkgconfig': ExternalProgramPkgConfig,
     'pkg-config': ExternalProgramPkgConfig,
+    'pkgconf': ExternalProgramPkgConfig,
     'qmake': ExternalProgramQMake,
 }  # type: T.Dict[str, T.Type[ExternalProgram]]
