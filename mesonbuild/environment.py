@@ -680,6 +680,8 @@ class Environment:
         self.binaries = binaries.default_missing()
         self.properties = properties.default_missing()
         self.cmakevars = cmakevars.default_missing()
+        self.program_overrides: PerMachine[T.DefaultDict['coredata.ProgramCacheKey', T.List['ExternalProgram']]] = \
+            PerMachine(collections.defaultdict(list), collections.defaultdict(list))
 
         # Command line options override those from cross/native files
         self.options.update(options.cmd_line_options)
@@ -2198,6 +2200,11 @@ class Environment:
                     if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
                         return (candidate, True)
 
+            if key in self.program_overrides[for_machine]:
+                for candidate in self.program_overrides[for_machine][key]:
+                    if mesonlib.version_compare_many(candidate.get_version(), versions)[0]:
+                        return (candidate, True)
+
         def cache(prog: ExternalProgram) -> None:
             """Helper to put the program in the cache.
 
@@ -2335,4 +2342,4 @@ class Environment:
 
         assert isinstance(program, (OverrideProgram, InternalProgram))
 
-        self.coredata.programs[for_machine][key] = program
+        self.program_overrides[for_machine][key].append(program)
