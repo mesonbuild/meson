@@ -1280,6 +1280,13 @@ class Vs2010Backend(backends.Backend):
                     self.add_additional_options(lang, inc_cl, file_args)
                     self.add_preprocessor_defines(lang, inc_cl, file_defines)
                     self.add_include_dirs(lang, inc_cl, file_inc_dirs)
+                    # Transform filename relative to src dir instead of relative to vcxproj so that the filenames
+                    # for extract_all_objects match ninja backend
+                    file_abs = os.path.abspath(f"{self.source_dir}\\{target.subdir}\\{s}")
+                    file_rel_to_src_dir = os.path.relpath(file_abs, self.source_dir)
+                    dirpart, fnamepart = os.path.split(file_rel_to_src_dir)
+                    file = File(True, dirpart, fnamepart)
+                    ET.SubElement(inc_cl, 'ObjectFileName').text = "$(IntDir)" + self.object_filename_from_source(target, file)
             for lang in pch_sources:
                 impl = pch_sources[lang][1]
                 if impl and path_normalize_add(impl, previous_sources):
