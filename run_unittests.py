@@ -3378,7 +3378,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertFalse(os.path.isdir(scommondir))
         self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'scommon'],
                                             cwd=workdir,
-                                            stdout=subprocess.DEVNULL), 0)
+                                            stderr=subprocess.DEVNULL), 0)
         self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'invalid/path/to/scommon'],
                                             cwd=workdir,
                                             stderr=subprocess.DEVNULL), 0)
@@ -3401,7 +3401,7 @@ class AllPlatformTests(BasePlatformTests):
         ambiguous_wrap = os.path.join(spdir, 'ambiguous.wrap')
         self.assertNotEqual(subprocess.call(self.wrap_command + ['promote', 'ambiguous'],
                                             cwd=workdir,
-                                            stdout=subprocess.DEVNULL), 0)
+                                            stderr=subprocess.DEVNULL), 0)
         self.assertFalse(os.path.isfile(ambiguous_wrap))
         subprocess.check_call(self.wrap_command + ['promote', 'subprojects/s2/subprojects/ambiguous.wrap'], cwd=workdir)
         self.assertTrue(os.path.isfile(ambiguous_wrap))
