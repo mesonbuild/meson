@@ -4698,6 +4698,28 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
 
     @skip_if_no_cmake
+    def test_cmake_in_prefix(self):
+        ''' 
+        '''
+        with tempfile.TemporaryDirectory() as temp_prefixdirname:
+            # build library
+            testdirbase = os.path.join(self.unit_test_dir, '86 cmake in prefix')
+            proj1dir = os.path.join(testdirbase, 'proj1')
+            self.init(proj1dir, extra_args=['--prefix=' + temp_prefixdirname,
+                                            ], default_args=False)
+            self.build()
+            self.install(use_destdir=False)
+
+            # build user of library
+            proj2dir = os.path.join(testdirbase, 'proj2')
+            self.new_builddir()
+            self.init(proj2dir, extra_args=['--prefix=' + temp_prefixdirname,
+                                            '--default-dependency-sources=both',
+                                            ], default_args=False)
+            self.build()
+
+
+    @skip_if_no_cmake
     def test_cmake_parser(self):
         testdir = os.path.join(self.unit_test_dir, '65 cmake parser')
         self.init(testdir, extra_args=['-Dcmake_prefix_path=' + os.path.join(testdir, 'prefix')])
@@ -6938,6 +6960,27 @@ class LinuxlikeTests(BasePlatformTests):
             self.new_builddir()
             self.init(os.path.join(testdirbase, 'app'),
                       override_envvars={'PKG_CONFIG_PATH': pkg_dir})
+            self.build()
+
+    @skipIfNoPkgconfig
+    def test_pkgconfig_in_prefix(self):
+        '''
+        '''
+        with tempfile.TemporaryDirectory() as temp_prefixdirname:
+            # build library
+            testdirbase = os.path.join(self.unit_test_dir, '85 pkg-config in prefix')
+            proj1dir = os.path.join(testdirbase, 'proj1')
+            self.init(proj1dir, extra_args=['--prefix=' + temp_prefixdirname,
+                                            ], default_args=False)
+            self.build()
+            self.install(use_destdir=False)
+
+            # build user of library
+            proj2dir = os.path.join(testdirbase, 'proj2')
+            self.new_builddir()
+            self.init(proj2dir, extra_args=['--prefix=' + temp_prefixdirname,
+                                            '--default-dependency-sources=both',
+                                            ], default_args=False)
             self.build()
 
     @skipIfNoPkgconfig

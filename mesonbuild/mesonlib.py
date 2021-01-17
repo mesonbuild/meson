@@ -1832,6 +1832,7 @@ _BUILTIN_NAMES = {
     'force_fallback_for',
     'pkg_config_path',
     'cmake_prefix_path',
+    'default_dependency_sources',
 }
 
 

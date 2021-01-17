@@ -1116,6 +1116,8 @@ BUILTIN_OPTIONS = OrderedDict(chain(BUILTIN_DIR_OPTIONS.items(), BUILTIN_CORE_OP
 
 BUILTIN_OPTIONS_PER_MACHINE: 'KeyedOptionDictType' = OrderedDict([
     (OptionKey('pkg_config_path'), BuiltinOption(UserArrayOption, 'List of additional paths for pkg-config to search', [])),
+    (OptionKey('default_dependency_sources'), BuiltinOption(UserComboOption, 'Where to look for pkg-config and cmake dependencies', 'system',
+                                                            choices=['system', 'both'])), # FIXME: Add 'install' choice. See #7848.
     (OptionKey('cmake_prefix_path'), BuiltinOption(UserArrayOption, 'List of additional prefixes for cmake to search', [])),
 ])
 
