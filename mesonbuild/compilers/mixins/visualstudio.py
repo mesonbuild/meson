@@ -60,31 +60,13 @@ vs64_instruction_set_args = {
     'neon': None,
 }  # T.Dicst[str, T.Optional[T.List[str]]]
 
-msvc_buildtype_args = {
-    'plain': [],
-    'debug': ["/RTC1"],
-    'debugoptimized': [],
-    'release': [],
-    'minsize': [],
-    'custom': [],
-}  # type: T.Dict[str, T.List[str]]
-
-# Clang-cl /Zi and /Z7 do the same thing
-# quoting the docs (https://clang.llvm.org/docs/MSVCCompatibility.html):
-#
-# Clang emits relatively complete CodeView debug information if /Z7 or /Zi is
-# passed. Microsoft’s link.exe will transform the CodeView debug information
-# into a PDB
-clangcl_buildtype_args = msvc_buildtype_args.copy()
-clangcl_buildtype_args['debug'] = ['/Zi', '/Ob0', '/Od', '/RTC1']
-
 msvc_optimization_args = {
-    '0': ['/Od', '/Ob0'],
-    'g': ['/O0'],
+    '0': [], # /Od is default in msvc, no need to specify it
+    'g': [], # No specific flag to optimize debugging, /Zi or /ZI will create debug information
     '1': ['/O1'],
-    '2': ['/O2', '/Ob1'],
-    '3': ['/O2', '/Ob2', '/Gw'],
-    's': ['/O1', '/Gw'], # Implies /Os.
+    '2': ['/O2'],
+    '3': ['/O2', '/Gw'],
+    's': ['/O1', '/Gw'],
 }  # type: T.Dict[str, T.List[str]]
 
 msvc_debug_args = {
@@ -183,7 +165,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
         return ['/Fo' + target]
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return msvc_buildtype_args[buildtype]
+        return []
 
     def get_debug_args(self, is_debug: bool) -> T.List[str]:
         return msvc_debug_args[is_debug]
@@ -432,6 +414,3 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
     def get_pch_base_name(self, header: str) -> str:
         return header
-
-    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        return clangcl_buildtype_args[buildtype]
