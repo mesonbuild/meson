@@ -285,8 +285,8 @@ base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pie'): coredata.UserBooleanOption('Build executables as position independent', False),
     OptionKey('b_bitcode'): coredata.UserBooleanOption('Generate and embed bitcode (only macOS/iOS/tvOS)', False),
     OptionKey('b_vscrt'): coredata.UserComboOption('VS run-time library type to use.',
-                                                   ['none', 'md', 'mdd', 'mt', 'mtd', 'from_buildtype', 'static_from_buildtype'],
-                                                   'from_buildtype'),
+                                                   ['none', 'md', 'mdd', 'mt', 'mtd', 'from_debug', 'static_from_debug'],
+                                                   'from_debug'),
 }
 
 def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
@@ -340,9 +340,9 @@ def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') 
         args.append('-fembed-bitcode')
     try:
         crt_val = options[OptionKey('b_vscrt')].value
-        buildtype = options[OptionKey('buildtype')].value
+        debug = options[OptionKey('debug')].value
         try:
-            args += compiler.get_crt_compile_args(crt_val, buildtype)
+            args += compiler.get_crt_compile_args(crt_val, debug)
         except AttributeError:
             pass
     except KeyError:
@@ -397,9 +397,9 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
 
     try:
         crt_val = options[OptionKey('b_vscrt')].value
-        buildtype = options[OptionKey('buildtype')].value
+        debug = options[OptionKey('debug')].value
         try:
-            args += linker.get_crt_link_args(crt_val, buildtype)
+            args += linker.get_crt_link_args(crt_val, debug)
         except AttributeError:
             pass
     except KeyError:
@@ -985,10 +985,10 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_disable_assert_args(self) -> T.List[str]:
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
         raise EnvironmentError('This compiler does not support Windows CRT selection')
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, debug: bool) -> T.List[str]:
         raise EnvironmentError('This compiler does not support Windows CRT selection')
 
     def get_compile_only_args(self) -> T.List[str]:

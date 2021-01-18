@@ -395,8 +395,8 @@ class CLikeCompiler(Compiler):
             # us in that case and will error out asking us to pick one.
             try:
                 crt_val = env.coredata.options[OptionKey('b_vscrt')].value
-                buildtype = env.coredata.options[OptionKey('buildtype')].value
-                cargs += self.get_crt_compile_args(crt_val, buildtype)
+                debug = env.coredata.options[OptionKey('debug')].value
+                cargs += self.get_crt_compile_args(crt_val, debug)
             except (KeyError, AttributeError):
                 pass
 
@@ -1203,11 +1203,11 @@ class CLikeCompiler(Compiler):
             raise mesonlib.MesonException('Cannot find frameworks with non-clang compiler')
         return self._find_framework_impl(name, env, extra_dirs, allow_system)
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         return []
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, debug: bool) -> T.List[str]:
         # TODO: does this belong here or in GnuLike or maybe PosixLike?
         return []
 

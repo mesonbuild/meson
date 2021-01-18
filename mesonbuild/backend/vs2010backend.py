@@ -831,14 +831,14 @@ class Vs2010Backend(backends.Backend):
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
         # CRT type; debug or release
-        if vscrt_type.value == 'from_buildtype':
+        if vscrt_type.value == 'from_debug':
             if self.buildtype == 'debug':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebugDLL'
             else:
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
-        elif vscrt_type.value == 'static_from_buildtype':
+        elif vscrt_type.value == 'static_from_debug':
             if self.buildtype == 'debug':
                 ET.SubElement(type_config, 'UseDebugLibraries').text = 'true'
                 ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDebug'

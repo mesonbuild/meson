@@ -397,34 +397,18 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
 
         return clike_debug_args[is_debug] + ddebug_args
 
-    def _get_crt_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def _get_crt_args(self, crt_val: str, debug: bool) -> T.List[str]:
         if not self.info.is_windows():
             return []
 
         if crt_val in self.mscrt_args:
             return self.mscrt_args[crt_val]
-        assert(crt_val in ['from_buildtype', 'static_from_buildtype'])
+        assert(crt_val in ['from_debug', 'static_from_debug'])
 
-        dbg = 'mdd'
-        rel = 'md'
-        if crt_val == 'static_from_buildtype':
-            dbg = 'mtd'
-            rel = 'mt'
-
-        # Match what build type flags used to do.
-        if buildtype == 'plain':
-            return []
-        elif buildtype == 'debug':
-            return self.mscrt_args[dbg]
-        elif buildtype == 'debugoptimized':
-            return self.mscrt_args[rel]
-        elif buildtype == 'release':
-            return self.mscrt_args[rel]
-        elif buildtype == 'minsize':
-            return self.mscrt_args[rel]
-        else:
-            assert(buildtype == 'custom')
-            raise EnvironmentException('Requested C runtime based on buildtype, but buildtype is "custom".')
+        if crt_val == 'static_from_debug':
+            return self.mscrt_args['mtd'] if debug else self.mscrt_args['mt']
+        
+        return self.mscrt_args['mdd'] if debug else self.mscrt_args['md']
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -625,10 +609,10 @@ class DCompiler(Compiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
         return []
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, debug: bool) -> T.List[str]:
         return []
 
 
@@ -748,8 +732,8 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_pic_args(self) -> T.List[str]:
         return ['-relocation-model=pic']
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        return self._get_crt_args(crt_val, buildtype)
+    def get_crt_link_args(self, crt_val: str, debug: bool) -> T.List[str]:
+        return self._get_crt_args(crt_val, debug)
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         return self._translate_args_to_nongnu(args)
@@ -830,8 +814,8 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
             return ['-m32']
         return []
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        return self._get_crt_args(crt_val, buildtype)
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
+        return self._get_crt_args(crt_val, debug)
 
     def unix_args_to_native(self, args: T.List[str]) -> T.List[str]:
         return self._translate_args_to_nongnu(args)

@@ -154,7 +154,7 @@ class RustCompiler(Compiler):
             args.append('--edition=' + std.value)
         return args
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
         # Rust handles this for us, we don't need to do anything
         return []
 

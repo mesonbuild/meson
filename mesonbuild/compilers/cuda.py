@@ -316,17 +316,17 @@ class CudaCompiler(Compiler):
                      libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
         return ['-l' + libname] # FIXME
 
-    def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        return self._to_host_flags(self.host_compiler.get_crt_compile_args(crt_val, buildtype))
+    def get_crt_compile_args(self, crt_val: str, debug: bool) -> T.List[str]:
+        return self._to_host_flags(self.host_compiler.get_crt_compile_args(crt_val, debug))
 
-    def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
+    def get_crt_link_args(self, crt_val: str, debug: bool) -> T.List[str]:
         # nvcc defaults to static, release version of msvc runtime and provides no
         # native option to override it; override it with /NODEFAULTLIB
         host_link_arg_overrides = []
-        host_crt_compile_args = self.host_compiler.get_crt_compile_args(crt_val, buildtype)
+        host_crt_compile_args = self.host_compiler.get_crt_compile_args(crt_val, debug)
         if any(arg in ['/MDd', '/MD', '/MTd'] for arg in host_crt_compile_args):
             host_link_arg_overrides += ['/NODEFAULTLIB:LIBCMT.lib']
-        return self._cook_link_args(host_link_arg_overrides + self.host_compiler.get_crt_link_args(crt_val, buildtype))
+        return self._cook_link_args(host_link_arg_overrides + self.host_compiler.get_crt_link_args(crt_val, debug))
 
     def get_target_link_args(self, target: 'BuildTarget') -> T.List[str]:
         return self._cook_link_args(super().get_target_link_args(target))

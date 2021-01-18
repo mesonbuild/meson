@@ -125,24 +125,21 @@ platforms or with all compilers:
 | b_pgo       | off           | off, generate, use      | Use profile guided optimization |
 | b_sanitize  | none          | see below               | Code sanitizer to use |
 | b_staticpic | true          | true, false             | Build static libraries as position independent |
-| b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0)|
-| b_vscrt     | from_buildtype| none, md, mdd, mt, mtd, from_buildtype, static_from_buildtype | VS runtime library to use (since 0.48.0) (static_from_buildtype since 0.56.0) |
+| b_pie       | false         | true, false             | Build position-independent executables (since 0.49.0) |
+| b_vscrt     | from_debug | none, md, mdd, mt, mtd, from_debug, static_from_debug | VS runtime library to use (since 0.48.0) (from_debug, static_from_debug since 0.57.0) |
 
 The value of `b_sanitize` can be one of: `none`, `address`, `thread`,
 `undefined`, `memory`, `address,undefined`.
 
-<a name="b_vscrt-from_buildtype"></a>
-The default value of `b_vscrt` is `from_buildtype`. The following table is used
-internally to pick the CRT compiler arguments for `from_buildtype` or
-`static_from_buildtype` *(since 0.56)* based on the value of the `buildtype` option:
+<a name="b_vscrt-from_debug"></a>
+*(since 0.57.0)* The default value of `b_vscrt` is `from_debug`. The following table is used
+internally to pick the CRT compiler arguments for `from_debug` or
+`static_from_debug` based on the value of the `debug` option:
 
-| buildtype      | from_buildtype | static_from_buildtype |
-| --------       | -------------- | --------------------- |
-| debug          | `/MDd`         | `/MTd`                |
-| debugoptimized | `/MD`          | `/MT`                 |
-| release        | `/MD`          | `/MT`                 |
-| minsize        | `/MD`          | `/MT`                 |
-| custom         | error!         | error!                |
+| debug      | from_debug | static_from_debug |
+| ---------- | -----------| ----------------- |
+| true       | `/MDd`     | `/MTd`            |
+| false      | `/MD`      | `/MT`             |
 
 ### Notes about Apple Bitcode support
 
