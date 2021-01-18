@@ -5819,7 +5819,7 @@ class WindowsTests(BasePlatformTests):
 
         self.new_builddir()
         self.init(testdir, extra_args=['-Dbuildtype=debugoptimized'])
-        sanitycheck_vscrt('/MD')
+        sanitycheck_vscrt('/MDd')
 
         self.new_builddir()
         self.init(testdir, extra_args=['-Dbuildtype=release'])
