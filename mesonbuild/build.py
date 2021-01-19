@@ -1412,7 +1412,7 @@ You probably should put it in link_with instead.''')
         m = 'Could not get a dynamic linker for build target {!r}'
         raise AssertionError(m.format(self.name))
 
-    def get_using_rustc(self) -> bool:
+    def uses_rust(self) -> bool:
         """Is this target a rust target."""
         return self.sources and self.sources[0].fname.endswith('.rs')
 
@@ -1687,7 +1687,7 @@ class Executable(BuildTarget):
                     self.import_filename = self.gcc_import_filename
 
         if m.is_windows() and ('cs' in self.compilers or
-                               self.get_using_rustc() or
+                               self.uses_rust() or
                                self.get_using_msvc()):
             self.debug_filename = self.name + '.pdb'
 
@@ -1877,7 +1877,7 @@ class SharedLibrary(BuildTarget):
             suffix = 'dll'
             self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
             self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
-            if self.get_using_rustc():
+            if self.uses_rust():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.dll.lib

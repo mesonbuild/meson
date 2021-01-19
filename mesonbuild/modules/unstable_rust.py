@@ -85,7 +85,7 @@ class RustModule(ExtensionModule):
         base_target: BuildTarget = unholder(args[1])
         if not isinstance(base_target, BuildTarget):
             raise InterpreterException('Second positional argument to rustmod.test() must be a library or executable')
-        if not base_target.get_using_rustc():
+        if not base_target.uses_rust():
             raise InterpreterException('Second positional argument to rustmod.test() must be a rust based target')
         extra_args = stringlistify(kwargs.get('args', []))
 
