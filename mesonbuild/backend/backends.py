@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+from itertools import chain
 from pathlib import Path
 import enum
 import json
@@ -767,7 +768,7 @@ class Backend:
             # pkg-config puts the thread flags itself via `Cflags:`
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
-            for lt in target.link_targets:
+            for lt in chain(target.link_targets, target.link_whole_targets):
                 priv_dir = self.get_target_private_dir(lt)
                 commands += compiler.get_include_args(priv_dir, False)
         return commands
