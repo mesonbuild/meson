@@ -637,7 +637,7 @@ int dummy;
         if self.environment.is_llvm_ir(source) or \
            self.environment.is_assembly(source):
             return False
-        suffix = os.path.splitext(source)[1][1:]
+        suffix = os.path.splitext(source)[1][1:].lower()
         for lang in self.langs_cant_unity:
             if lang not in target.compilers:
                 continue
@@ -925,7 +925,7 @@ int dummy;
         all_suffixes = set(compilers.lang_suffixes['cpp']) | set(compilers.lang_suffixes['fortran'])
         selected_sources = []
         for source in compiled_sources:
-            ext = os.path.splitext(source)[1][1:]
+            ext = os.path.splitext(source)[1][1:].lower()
             if ext in all_suffixes:
                 selected_sources.append(source)
         return selected_sources
