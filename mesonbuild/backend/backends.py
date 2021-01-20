@@ -45,6 +45,11 @@ if T.TYPE_CHECKING:
     InstallType = T.List[T.Tuple[str, str, T.Optional['FileMode']]]
     InstallSubdirsType = T.List[T.Tuple[str, str, T.Optional['FileMode'], T.Tuple[T.Set[str], T.Set[str]]]]
 
+# Languages that can mix with C or C++ but don't support unity builds yet
+# because the syntax we use for unity builds is specific to C/++/ObjC/++.
+# Assembly files cannot be unitified and neither can LLVM IR files
+LANGS_CANT_UNITY = ('d', 'fortran')
+
 class TestProtocol(enum.Enum):
 
     EXITCODE = 0
@@ -637,6 +642,9 @@ class Backend:
             unity_size = self.get_option_for_target(OptionKey('unity_size'), extobj.target)
 
             for comp, srcs in compsrcs.items():
+                if comp.language in LANGS_CANT_UNITY:
+                    sources += srcs
+                    continue
                 for i in range(len(srcs) // unity_size + 1):
                     osrc = self.get_unity_source_file(extobj.target,
                                                       comp.get_default_suffix(), i)
