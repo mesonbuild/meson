@@ -45,7 +45,7 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
-from ..build import InvalidArguments
+from ..build import GeneratedList, InvalidArguments
 from ..interpreter import Interpreter
 
 if T.TYPE_CHECKING:
@@ -691,13 +691,6 @@ int dummy;
         src_block['sources'] += sources
         src_block['generated_sources'] += generated_sources
 
-    def is_rust_target(self, target):
-        if len(target.sources) > 0:
-            first_file = target.sources[0]
-            if first_file.fname.endswith('.rs'):
-                return True
-        return False
-
     def generate_target(self, target):
         try:
             if isinstance(target, build.BuildTarget):
@@ -723,7 +716,7 @@ int dummy;
         if isinstance(target, build.Jar):
             self.generate_jar_target(target)
             return
-        if self.is_rust_target(target):
+        if target.uses_rust():
             self.generate_rust_target(target)
             return
         if 'cs' in target.compilers:
@@ -1588,12 +1581,27 @@ int dummy;
         args = rustc.compiler_args()
         # Compiler args for compiling this target
         args += compilers.get_base_compile_args(base_proxy, rustc)
+        self.generate_generator_list_rules(target)
+
+        orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
+
         main_rust_file = None
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments('Rust target {} contains a non-rust source file.'.format(target.get_basename()))
             if main_rust_file is None:
                 main_rust_file = i.rel_to_builddir(self.build_to_src)
+        for g in target.get_generated_sources():
+            for i in g.get_outputs():
+                if not rustc.can_compile(i):
+                    raise InvalidArguments('Rust target {} contains a non-rust source file.'.format(target.get_basename()))
+                if isinstance(g, GeneratedList):
+                    fname = os.path.join(self.get_target_private_dir(target), i)
+                else:
+                    fname = i
+                if main_rust_file is None:
+                    main_rust_file = fname
+                orderdeps.append(fname)
         if main_rust_file is None:
             raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
         target_name = os.path.join(target.subdir, target.get_filename())
@@ -1631,7 +1639,6 @@ int dummy;
         args += target.get_extra_args('rust')
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
-        orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
         linkdirs = OrderedDict()
         for d in target.link_targets:
             linkdirs[d.subdir] = True
@@ -1678,7 +1685,7 @@ int dummy;
                 args += ['-C', 'link-arg=' + rpath_arg + ':' + os.path.join(rustc.get_sysroot(), 'lib')]
         compiler_name = self.get_compiler_rule_name('rust', target.for_machine)
         element = NinjaBuildElement(self.all_outputs, target_name, compiler_name, main_rust_file)
-        if len(orderdeps) > 0:
+        if orderdeps:
             element.add_orderdep(orderdeps)
         element.add_item('ARGS', args)
         element.add_item('targetdep', depfile)
