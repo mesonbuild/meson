@@ -533,3 +533,20 @@ development but are not compiled in release builds. Note that (since
 Meson 0.57.0) you can set optimization to, say, 2 in your debug builds
 if you want to. If you tried to set this flag based on optimization
 level, it would fail in this case.
+
+## How do I use a library before declaring it?
+
+This is valid (and good) code:
+```
+libA = library('libA', 'fileA.cpp', link_with : [])
+libB = library('libB', 'fileB.cpp', link_with : [libA])
+```
+But there is currently no way to get something like this to work:
+```
+libB = library('libB', 'fileB.cpp', link_with : [libA])
+libA = library('libA', 'fileA.cpp', link_with : [])
+```
+This means that you HAVE to write your `library(...)` calls in the order that the
+dependencies flow. While ideas to make arbitrary orders possible exist, they were
+rejected because reordering the `library(...)` calls was considered the "proper"
+way. See [here](https://github.com/mesonbuild/meson/issues/8178) for the discussion.
