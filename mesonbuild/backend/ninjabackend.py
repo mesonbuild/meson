@@ -2602,7 +2602,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_fortran_orderdeps(self, target, compiler):
         if compiler.language != 'fortran':
             return []
-        return [os.path.join(self.get_target_dir(lt), lt.get_filename()) for lt in target.link_targets]
+        return [
+            os.path.join(self.get_target_dir(lt), lt.get_filename())
+            for lt in itertools.chain(target.link_targets, target.link_whole_targets)
+        ]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         header = pch[0]
