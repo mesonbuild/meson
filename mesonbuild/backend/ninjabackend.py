@@ -626,11 +626,6 @@ int dummy;
             srcs[f] = s
         return srcs
 
-    # Languages that can mix with C or C++ but don't support unity builds yet
-    # because the syntax we use for unity builds is specific to C/++/ObjC/++.
-    # Assembly files cannot be unitified and neither can LLVM IR files
-    langs_cant_unity = ('d', 'fortran')
-
     def get_target_source_can_unity(self, target, source):
         if isinstance(source, File):
             source = source.fname
@@ -638,7 +633,7 @@ int dummy;
            self.environment.is_assembly(source):
             return False
         suffix = os.path.splitext(source)[1][1:].lower()
-        for lang in self.langs_cant_unity:
+        for lang in backends.LANGS_CANT_UNITY:
             if lang not in target.compilers:
                 continue
             if suffix in target.compilers[lang].file_suffixes:
@@ -769,7 +764,7 @@ int dummy;
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
             langs = set(target.compilers.keys())
-            langs_cant = langs.intersection(self.langs_cant_unity)
+            langs_cant = langs.intersection(backends.LANGS_CANT_UNITY)
             if langs_cant:
                 langs_are = langs = ', '.join(langs_cant).upper()
                 langs_are += ' are' if len(langs_cant) > 1 else ' is'
