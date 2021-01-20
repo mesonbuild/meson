@@ -46,7 +46,7 @@ class DependencyScanner:
         self.sources_with_exports = [] # type: T.List[str]
 
     def scan_file(self, fname: str) -> None:
-        suffix = os.path.splitext(fname)[1][1:]
+        suffix = os.path.splitext(fname)[1][1:].lower()
         if suffix in lang_suffixes['fortran']:
             self.scan_fortran_file(fname)
         elif suffix in lang_suffixes['cpp']:
@@ -131,7 +131,7 @@ class DependencyScanner:
         return objname
 
     def module_name_for(self, src: str) -> str:
-        suffix= os.path.splitext(src)[1][1:]
+        suffix = os.path.splitext(src)[1][1:].lower()
         if suffix in lang_suffixes['fortran']:
             exported = self.exports[src]
             # Module foo:bar goes to a file name foo@bar.smod
