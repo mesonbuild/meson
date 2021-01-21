@@ -9,6 +9,11 @@ summary({'Some boolean': false,
          'A list': ['string', 1, true],
          'empty list': [],
         }, section: 'Configuration')
+summary({'missing prog': find_program('xyzzy', required: false),
+         'existing prog': import('python').find_installation(),
+         'missing dep': dependency('', required: false),
+         'internal dep': declare_dependency(),
+        }, section: 'Stuff')
 summary('A number', 1, section: 'Configuration')
 summary('yes', true, bool_yn : true, section: 'Configuration')
 summary('no', false, bool_yn : true, section: 'Configuration')
