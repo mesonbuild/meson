@@ -1876,14 +1876,6 @@ class Summary:
             self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
 
-    def text_len(self, v):
-        if isinstance(v, str):
-            return len(v)
-        elif isinstance(v, mlog.AnsiDecorator):
-            return len(v.text)
-        else:
-            raise RuntimeError('Expecting only strings or AnsiDecorator')
-
     def dump(self):
         mlog.log(self.project_name, mlog.normal_cyan(self.project_version))
         for section, values in self.sections.items():
@@ -1909,7 +1901,7 @@ class Summary:
         line_len = indent
         lines_sep = list_sep.rstrip() + lines_sep
         for v in arr:
-            v_len = self.text_len(v) + len(list_sep)
+            v_len = len(v) + len(list_sep)
             if line and line_len + v_len > max_len:
                 mlog.log(*line, sep=list_sep, end=lines_sep)
                 line_len = indent
