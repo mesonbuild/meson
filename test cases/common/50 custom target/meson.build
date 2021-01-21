@@ -15,6 +15,7 @@ mytarget = custom_target('bindat',
 output : 'data.dat',
 input : 'data_source.txt',
 command : [python, comp, '--input=@INPUT@', '--output=@OUTPUT@', useless],
+env: {'MY_COMPILER_ENV': 'value'},
 install : true,
 install_dir : 'subdir'
 )

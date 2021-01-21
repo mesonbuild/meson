@@ -1,0 +1,11 @@
+## custom_target() now accepts `env` keyword argument
+
+Environment variables can now be passed to `custom_target()` command.
+
+```meson
+env = environment()
+env.append('PATH', '/foo')
+custom_target(..., env: env)
+custom_target(..., env: {'MY_ENV': 'value'})
+custom_target(..., env: ['MY_ENV=value'])
+```

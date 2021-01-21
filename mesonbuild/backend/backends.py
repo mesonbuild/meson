@@ -125,10 +125,10 @@ class TargetInstallData:
         self.optional = optional
 
 class ExecutableSerialisation:
-    def __init__(self, cmd_args, env=None, exe_wrapper=None,
+    def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
                  workdir=None, extra_paths=None, capture=None) -> None:
         self.cmd_args = cmd_args
-        self.env = env or {}
+        self.env = env
         if exe_wrapper is not None:
             assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
         self.exe_runner = exe_wrapper
@@ -378,7 +378,8 @@ class Backend:
         return obj_list
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
-                             extra_bdeps=None, capture=None, force_serialize=False):
+                             extra_bdeps=None, capture=None, force_serialize=False,
+                             env: T.Optional[build.EnvironmentVariables] = None):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
@@ -427,6 +428,9 @@ class Backend:
         if any('\n' in c for c in cmd_args):
             reasons.append('because command contains newlines')
 
+        if env and env.varnames:
+            reasons.append('to set env')
+
         force_serialize = force_serialize or bool(reasons)
 
         if capture:
@@ -440,7 +444,6 @@ class Backend:
                     ', '.join(reasons))
 
         workdir = workdir or self.environment.get_build_dir()
-        env = {}
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
@@ -451,7 +454,7 @@ class Backend:
         # Take a digest of the cmd args, env, workdir, and capture. This avoids
         # collisions and also makes the name deterministic over regenerations
         # which avoids a rebuild by Ninja because the cmdline stays the same.
-        data = bytes(str(sorted(env.items())) + str(cmd_args) + str(workdir) + str(capture),
+        data = bytes(str(env) + str(cmd_args) + str(workdir) + str(capture),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
