@@ -39,7 +39,8 @@ def run_exe(exe: ExecutableSerialisation) -> int:
     else:
         cmd_args = exe.cmd_args
     child_env = os.environ.copy()
-    child_env.update(exe.env)
+    if exe.env:
+        child_env = exe.env.get_env(child_env)
     if exe.extra_paths:
         child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
                              child_env['PATH'])

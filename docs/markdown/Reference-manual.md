@@ -372,6 +372,10 @@ following.
 - `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
 - `output`: list of output files
+- `env` *(since 0.57.0)*: environment variables to set, such as
+  `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+  or an [`environment()` object](#environment-object) which allows more
+  sophisticated environment juggling.
 
 The list of strings passed to the `command` keyword argument accept
 the following special string substitutions:

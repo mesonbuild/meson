@@ -2315,7 +2315,8 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                                       'depfile',
                                       'build_by_default',
                                       'build_always_stale',
-                                      'console'},
+                                      'console',
+                                      'env'},
                     'dependency': {'default_options',
                                    'embed',
                                    'fallback',
@@ -3997,6 +3998,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise SubdirDoneRequest()
 
     @stringArgs
+    @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
     @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
@@ -4018,6 +4020,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             except mesonlib.MesonException:
                 mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
 This will become a hard error in the future.''' % kwargs['input'], location=self.current_node)
+        kwargs['env'] = self.unpack_env_kwarg(kwargs)
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend), self)
         self.add_target(name, tg.held_object)
         return tg
