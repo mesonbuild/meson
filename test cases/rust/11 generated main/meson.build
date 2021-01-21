@@ -11,6 +11,9 @@ c = custom_target(
 executable('custom_target_main', c)
 executable('custom_target_index_main', c[0])
 
-gen = generator(gen, arguments : ['@OUTPUT@'], output : '@BASENAME@.rs')
+gener = generator(gen, arguments : ['@OUTPUT@'], output : '@BASENAME@.rs')
 # Doesn't actually use gen.py as input, just a limitation of generators
-executable('generator_main', gen.process(['gen.py']))
+executable('generator_main', gener.process(['gen.py']))
+
+subdir('sub')
+executable('custom_target_subdir_main', s)
