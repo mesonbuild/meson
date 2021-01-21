@@ -17,3 +17,5 @@ executable('generator_main', gener.process(['gen.py']))
 
 subdir('sub')
 executable('custom_target_subdir_main', s)
+
+executable('link_with_generated_lib', 'generated_lib_main.rs', link_with : lib)
