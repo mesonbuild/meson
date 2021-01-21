@@ -130,6 +130,9 @@ class AnsiDecorator:
             text = '"{}"'.format(text)
         return text
 
+    def __len__(self) -> int:
+        return len(self.text)
+
     def __str__(self) -> str:
         return self.get_text(colorize_console())
 
