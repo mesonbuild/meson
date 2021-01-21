@@ -1854,7 +1854,7 @@ class Summary:
         self.sections = collections.defaultdict(dict)
         self.max_key_len = 0
 
-    def add_section(self, section, values, kwargs):
+    def add_section(self, section, values, kwargs, subproject):
         bool_yn = kwargs.get('bool_yn', False)
         if not isinstance(bool_yn, bool):
             raise InterpreterException('bool_yn keyword argument must be boolean')
@@ -1866,13 +1866,17 @@ class Summary:
                 raise InterpreterException('Summary section {!r} already have key {!r}'.format(section, k))
             formatted_values = []
             for i in listify(v):
-                if not isinstance(i, (str, int)):
-                    m = 'Summary value in section {!r}, key {!r}, must be string, integer or boolean'
-                    raise InterpreterException(m.format(section, k))
-                if bool_yn and isinstance(i, bool):
+                i = unholder(i)
+                if isinstance(i, bool) and bool_yn:
                     formatted_values.append(mlog.green('YES') if i else mlog.red('NO'))
-                else:
+                elif isinstance(i, (str, int, bool)):
                     formatted_values.append(str(i))
+                elif isinstance(i, (ExternalProgram, Dependency)):
+                    FeatureNew.single_use('dependency or external program in summary', '0.57.0', subproject)
+                    formatted_values.append(i.summary_value())
+                else:
+                    m = 'Summary value in section {!r}, key {!r}, must be string, integer, boolean, dependency or external program'
+                    raise InterpreterException(m.format(section, k))
             self.sections[section][k] = (formatted_values, list_sep)
             self.max_key_len = max(self.max_key_len, len(k))
 
@@ -3284,7 +3288,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     def summary_impl(self, section, values, kwargs):
         if self.subproject not in self.summary:
             self.summary[self.subproject] = Summary(self.active_projectname, self.project_version)
-        self.summary[self.subproject].add_section(section, values, kwargs)
+        self.summary[self.subproject].add_section(section, values, kwargs, self.subproject)
 
     def _print_summary(self):
         # Add automatic 'Supbrojects' section in main project.

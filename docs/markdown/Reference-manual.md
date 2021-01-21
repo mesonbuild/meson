@@ -1313,7 +1313,11 @@ The content is a series of key/value pairs grouped into sections. If the section
 keyword argument is omitted, those key/value pairs are implicitly grouped into a section
 with no title. key/value pairs can optionally be grouped into a dictionary,
 but keep in mind that dictionaries does not guarantee ordering. `key` must be string,
-`value` can only be integer, boolean, string, or a list of those.
+`value` can be:
+
+- an integer, boolean or string
+- *since 0.57.0* an external program or a dependency
+- a list of those.
 
 `summary()` can be called multiple times as long as the same section/key
 pair doesn't appear twice. All sections will be collected and printed at

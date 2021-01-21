@@ -4745,6 +4745,12 @@ class AllPlatformTests(BasePlatformTests):
                 no             : NO
                 coma list      : a, b, c
 
+              Stuff
+                missing prog   : NO
+                existing prog  : ''' + sys.executable + '''
+                missing dep    : NO
+                internal dep   : YES
+
               Plugins
                 long coma list : alpha, alphacolor, apetag, audiofx, audioparsers, auparse,
                                  autodetect, avi

@@ -134,6 +134,13 @@ class Dependency:
     def is_built(self) -> bool:
         return False
 
+    def summary_value(self) -> T.Union[str, mlog.AnsiDecorator, mlog.AnsiText]:
+        if not self.found():
+            return mlog.red('NO')
+        if not self.version:
+            return mlog.green('YES')
+        return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
+
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
             converted = []
@@ -262,6 +269,11 @@ class InternalDependency(Dependency):
             else:
                 setattr(result, k, copy.deepcopy(v, memo))
         return result
+
+    def summary_value(self) -> mlog.AnsiDecorator:
+        # Omit the version.  Most of the time it will be just the project
+        # version, which is uninteresting in the summary.
+        return mlog.green('YES')
 
     def is_built(self) -> bool:
         if self.sources or self.libraries or self.whole_libraries:
@@ -1887,6 +1899,11 @@ class ExternalProgram:
                          '(%s)' % ' '.join(self.command))
             else:
                 mlog.log('Program', mlog.bold(name), 'found:', mlog.red('NO'))
+
+    def summary_value(self) -> T.Union[str, mlog.AnsiDecorator]:
+        if not self.found():
+            return mlog.red('NO')
+        return self.path
 
     def __repr__(self) -> str:
         r = '<{} {!r} -> {!r}>'
