@@ -635,7 +635,7 @@ class ManifestInterpreter:
         # it, as it vaslty simplifes things.
         with builder.assignment_builder('rust') as abuilder:
             with abuilder.function_builder('import') as fbuilder:
-                fbuilder.positional('rust')
+                fbuilder.positional('unstable-rust')
 
         self.__parse_features(opt_builder)
 
