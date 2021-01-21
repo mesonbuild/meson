@@ -18,6 +18,7 @@ import tempfile
 import shlex
 import typing as T
 import collections
+import pathlib
 
 from . import coredata
 from .linkers import ArLinker, ArmarLinker, VisualStudioLinker, DLinker, CcrxLinker, Xc16Linker, CompCertLinker, C2000Linker, IntelVisualStudioLinker, AIXArLinker
@@ -844,12 +845,13 @@ class Environment:
                 self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
 
     def _set_default_properties_from_env(self) -> None:
-        """Properties which can alkso be set from the environment."""
+        """Properties which can also be set from the environment."""
         # name, evar, split
         opts: T.List[T.Tuple[str, T.List[str], bool]] = [
             ('boost_includedir', ['BOOST_INCLUDEDIR'], False),
             ('boost_librarydir', ['BOOST_LIBRARYDIR'], False),
             ('boost_root', ['BOOST_ROOT', 'BOOSTROOT'], True),
+            ('java_home', ['JAVA_HOME'], False),
         ]
 
         for (name, evars, split), for_machine in itertools.product(opts, MachineChoice):
@@ -1677,7 +1679,11 @@ class Environment:
         self._handle_exceptions(popen_exceptions, compilers)
 
     def detect_java_compiler(self, for_machine):
-        exelist = self.lookup_binary_entry(for_machine, 'java')
+        java_home = self.properties[for_machine].get_java_home()
+        if java_home is not None:
+            exelist = [str(pathlib.Path(java_home) / 'bin' / 'javac')]
+        else:
+            exelist = self.lookup_binary_entry(for_machine, 'javac')
         info = self.machines[for_machine]
         if exelist is None:
             # TODO support fallback

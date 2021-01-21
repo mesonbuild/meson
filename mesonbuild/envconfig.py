@@ -208,6 +208,14 @@ class Properties:
         assert isinstance(res, bool)
         return res
 
+    def get_java_home(self) -> T.Optional[str]:
+        if 'java_home' not in self.properties:
+            return None
+
+        raw = self.properties['java_home']
+        assert isinstance(raw, str)
+        return raw
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.properties == other.properties
