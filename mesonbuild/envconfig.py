@@ -136,9 +136,9 @@ class CMakeSkipCompilerTest(Enum):
 class Properties:
     def __init__(
             self,
-            properties: T.Optional[T.Dict[str, T.Union[str, bool, int, T.List[str]]]] = None,
+            properties: T.Optional[T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]] = None,
     ):
-        self.properties = properties or {}  # type: T.Dict[str, T.Union[str, bool, int, T.List[str]]]
+        self.properties = properties or {}  # type: T.Dict[str, T.Optional[T.Union[str, bool, int, T.List[str]]]]
 
     def has_stdlib(self, language: str) -> bool:
         return language + '_stdlib' in self.properties
@@ -210,13 +210,17 @@ class Properties:
         assert isinstance(res, bool)
         return res
 
+    def get_java_home(self) -> T.Optional[Path]:
+        value = T.cast(T.Optional[str], self.properties.get('java_home'))
+        return Path(value) if value else None
+
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):
             return self.properties == other.properties
         return NotImplemented
 
     # TODO consider removing so Properties is less freeform
-    def __getitem__(self, key: str) -> T.Union[str, bool, int, T.List[str]]:
+    def __getitem__(self, key: str) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
         return self.properties[key]
 
     # TODO consider removing so Properties is less freeform
@@ -224,7 +228,7 @@ class Properties:
         return item in self.properties
 
     # TODO consider removing, for same reasons as above
-    def get(self, key: str, default: T.Union[str, bool, int, T.List[str]] = None) -> T.Union[str, bool, int, T.List[str]]:
+    def get(self, key: str, default: T.Optional[T.Union[str, bool, int, T.List[str]]] = None) -> T.Optional[T.Union[str, bool, int, T.List[str]]]:
         return self.properties.get(key, default)
 
 class MachineInfo:
