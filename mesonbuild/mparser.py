@@ -446,8 +446,8 @@ class IfNode(BaseNode):
 class IfClauseNode(BaseNode):
     def __init__(self, linenode: BaseNode):
         super().__init__(linenode.lineno, linenode.colno, linenode.filename)
-        self.ifs = []          # type: T.List[IfNode]
-        self.elseblock = None  # type: T.Union[EmptyNode, CodeBlockNode]
+        self.ifs: T.List[IfNode] = []
+        self.elseblock: T.Union[EmptyNode, CodeBlockNode] = EmptyNode(-1, -1, '')
 
 class UMinusNode(BaseNode):
     def __init__(self, current_location: Token, value: BaseNode):
