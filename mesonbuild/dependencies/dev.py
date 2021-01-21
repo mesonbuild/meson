@@ -18,6 +18,8 @@
 import glob
 import os
 import re
+import pathlib
+import shutil
 import typing as T
 
 from .. import mesonlib, mlog
@@ -32,6 +34,7 @@ from ..compilers.c import AppleClangCCompiler
 from ..compilers.cpp import AppleClangCPPCompiler
 
 if T.TYPE_CHECKING:
+    from ..envconfig import MachineInfo
     from .. environment import Environment
 
 
@@ -503,6 +506,59 @@ class ZlibSystemDependency(ExternalDependency):
     @staticmethod
     def get_methods():
         return [DependencyMethods.SYSTEM]
+
+
+class JDKSystemDependency(ExternalDependency):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
+        super().__init__('jdk', environment, kwargs)
+
+        m = self.env.machines[self.for_machine]
+
+        if 'java' not in environment.coredata.compilers[self.for_machine]:
+            environment.detect_compiler_for('java', self.for_machine)
+        self.javac = environment.coredata.compilers[self.for_machine]['java']
+        self.version = self.javac.version
+
+        if 'version' in kwargs and not version_compare(self.version, kwargs['version']):
+            mlog.error(f'Incorrect JDK version found ({self.version}), wanted {kwargs["version"]}')
+            self.is_found = False
+            return
+
+        self.java_home = environment.properties[self.for_machine].get_java_home()
+        if not self.java_home:
+            self.java_home = pathlib.Path(shutil.which(self.javac.exelist[0])).resolve().parents[1]
+
+        platform_include_dir = self.__machine_info_to_platform_include_dir(m)
+        if platform_include_dir is None:
+            mlog.error("Could not find a JDK platform include directory for your OS, please open an issue or provide a pull request.")
+            self.is_found = False
+            return
+
+        java_home_include = self.java_home / 'include'
+        self.compile_args.append(f'-I{java_home_include}')
+        self.compile_args.append(f'-I{java_home_include / platform_include_dir}')
+        self.is_found = True
+
+    @staticmethod
+    def get_methods() -> T.List[DependencyMethods]:
+        return [DependencyMethods.SYSTEM]
+
+    @staticmethod
+    def __machine_info_to_platform_include_dir(m: 'MachineInfo') -> T.Optional[str]:
+        """Translates the machine information to the platform-dependent include directory
+
+        When inspecting a JDK release tarball or $JAVA_HOME, inside the `include/` directory is a
+        platform dependent folder that must be on the target's include path in addition to the
+        parent `include/` directory.
+        """
+        if m.is_linux():
+            return 'linux'
+        elif m.is_windows():
+            return 'win32'
+        elif m.is_darwin():
+            return 'darwin'
+
+        return None
 
 
 llvm_factory = DependencyFactory(

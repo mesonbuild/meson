@@ -857,12 +857,13 @@ class Environment:
                 self.binaries[for_machine].binaries.setdefault(name, mesonlib.split_args(p_env))
 
     def _set_default_properties_from_env(self) -> None:
-        """Properties which can alkso be set from the environment."""
+        """Properties which can also be set from the environment."""
         # name, evar, split
         opts: T.List[T.Tuple[str, T.List[str], bool]] = [
             ('boost_includedir', ['BOOST_INCLUDEDIR'], False),
             ('boost_librarydir', ['BOOST_LIBRARYDIR'], False),
             ('boost_root', ['BOOST_ROOT', 'BOOSTROOT'], True),
+            ('java_home', ['JAVA_HOME'], False),
         ]
 
         for (name, evars, split), for_machine in itertools.product(opts, MachineChoice):
@@ -920,7 +921,7 @@ class Environment:
     def is_library(self, fname):
         return is_library(fname)
 
-    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.List[str]:
+    def lookup_binary_entry(self, for_machine: MachineChoice, name: str) -> T.Optional[T.List[str]]:
         return self.binaries[for_machine].lookup_entry(name)
 
     @staticmethod

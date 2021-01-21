@@ -236,6 +236,7 @@ section.
   `exe_wrapper` specified in `[binaries]` to run generated executables in CMake
   subprojects. This setting has no effect if the `exe_wrapper` was not specified.
   The default value is `true`. (*new in 0.56.0*)
+- `java_home` is an absolute path pointing to the root of a Java installation.
 
 ### CMake variables
 
