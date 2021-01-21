@@ -960,7 +960,8 @@ int dummy;
 
         meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
                                                           extra_bdeps=target.get_transitive_build_target_deps(),
-                                                          capture=ofilenames[0] if target.capture else None)
+                                                          capture=ofilenames[0] if target.capture else None,
+                                                          env=target.env)
         if meson_exe_cmd:
             cmd = meson_exe_cmd
             cmd_type = ' (wrapped by meson {})'.format(reason)

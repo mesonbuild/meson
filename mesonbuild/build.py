@@ -2153,6 +2153,7 @@ class CustomTarget(Target):
         'build_by_default',
         'override_options',
         'console',
+        'env',
     ])
 
     def __init__(self, name, subdir, subproject, kwargs, absolute_paths=False, backend=None):
@@ -2325,6 +2326,7 @@ class CustomTarget(Target):
             else:
                 mlog.debug(i)
                 raise InvalidArguments('Unknown type {!r} in depend_files.'.format(type(i).__name__))
+        self.env = kwargs.get('env')
 
     def get_dependencies(self):
         return self.dependencies
