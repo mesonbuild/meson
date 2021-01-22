@@ -480,6 +480,7 @@ class ConsoleLogger(TestLogger):
 
     SCISSORS = "\u2700 "
     HLINE = "\u2015"
+    RTRI = "\u25B6 "
 
     def __init__(self) -> None:
         self.update = asyncio.Event()
@@ -502,11 +503,13 @@ class ConsoleLogger(TestLogger):
 
         self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
         self.output_end = dashes('', self.HLINE, self.cols - 2)
+        self.sub = self.RTRI
         try:
             self.output_start.encode(sys.stdout.encoding or 'ascii')
         except UnicodeEncodeError:
             self.output_start = dashes('8<', '-', self.cols - 2)
             self.output_end = dashes('', '-', self.cols - 2)
+            self.sub = '| '
 
     def flush(self) -> None:
         if self.should_erase_line:
@@ -593,7 +596,9 @@ class ConsoleLogger(TestLogger):
                                  max_left_width=self.max_left_width,
                                  right=test.res.get_text(mlog.colorize_console())))
             print(test.res.get_command_marker() + test.cmdline)
-            if harness.options.num_processes == 1:
+            if test.needs_parsing:
+                pass
+            elif harness.options.num_processes == 1:
                 print(self.output_start, flush=True)
             else:
                 print(flush=True)
@@ -607,7 +612,8 @@ class ConsoleLogger(TestLogger):
         if not harness.options.verbose and not harness.options.print_errorlogs:
             return ''
 
-        log = result.get_log(mlog.colorize_console())
+        log = result.get_log(mlog.colorize_console(),
+                             stderr_only=result.needs_parsing)
         if harness.options.verbose:
             return log
 
@@ -632,6 +638,16 @@ class ConsoleLogger(TestLogger):
             print(self.output_end)
         print(flush=True)
 
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
+        if harness.options.verbose or (harness.options.print_errorlogs and result.is_bad()):
+            self.flush()
+            print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
+                                 prefix=self.sub,
+                                 middle=s,
+                                 right=result.get_text(mlog.colorize_console())), flush=True)
+
+            self.request_update()
+
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and harness.options.verbose:
@@ -641,7 +657,8 @@ class ConsoleLogger(TestLogger):
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
             if harness.options.verbose and harness.options.num_processes == 1 and result.cmdline:
-                print(self.output_end)
+                if not result.needs_parsing:
+                    print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
                 print(flush=True)
             else:
@@ -912,18 +929,19 @@ class TestRun:
                  stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         self._complete(returncode, res, stdo, stde)
 
-    def get_log(self, colorize: bool = False) -> str:
+    def get_log(self, colorize: bool = False, stderr_only: bool = False) -> str:
+        stdo = '' if stderr_only else self.stdo
         if self.stde:
             res = ''
-            if self.stdo:
+            if stdo:
                 res += mlog.cyan('stdout:').get_text(colorize) + '\n'
-                res += self.stdo
+                res += stdo
                 if res[-1:] != '\n':
                     res += '\n'
             res += mlog.cyan('stderr:').get_text(colorize) + '\n'
             res += self.stde
         else:
-            res = self.stdo
+            res = stdo
         if res and res[-1:] != '\n':
             res += '\n'
         return res
@@ -993,7 +1011,7 @@ class TestRunTAP(TestRun):
                 self.results.append(i)
                 if i.result.is_bad():
                     res = TestResult.FAIL
-                harness.log_subtest(self, '{} {}'.format(i.number, i.name), i.result)
+                harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
             elif isinstance(i, TAPParser.Error):
                 error = '\nTAP parsing error: ' + i.message
                 res = TestResult.ERROR
@@ -1499,7 +1517,9 @@ class TestHarness:
 
     def format(self, result: TestRun, colorize: bool,
                max_left_width: int = 0,
+               prefix: str = '',
                left: T.Optional[str] = None,
+               middle: T.Optional[str] = None,
                right: T.Optional[str] = None) -> str:
 
         if left is None:
@@ -1511,8 +1531,11 @@ class TestHarness:
         # A non-default max_left_width lets the logger print more stuff before the
         # name, while ensuring that the rightmost columns remain aligned.
         max_left_width = max(max_left_width, self.max_left_width)
-        extra_name_width = max_left_width + self.name_max_len + 1 - uniwidth(result.name) - uniwidth(left)
-        middle = result.name + (' ' * max(1, extra_name_width))
+
+        if middle is None:
+            middle = result.name
+        extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left) - uniwidth(prefix)
+        middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
             right = '{res} {dur:{durlen}.2f}s'.format(
@@ -1522,7 +1545,7 @@ class TestHarness:
             detail = result.detail
             if detail:
                 right += '   ' + detail
-        return left + middle + right
+        return prefix + left + middle + right
 
     def summary(self) -> str:
         return textwrap.dedent('''
