@@ -262,11 +262,12 @@ class FileMode:
         return perms
 
 class File:
-    def __init__(self, is_built: bool, subdir: str, fname: str):
+    def __init__(self, is_built: bool, subdir: str, fname: str, lang_clarification: T.Union[str, None] = None):
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
-        self.hash = hash((is_built, subdir, fname))
+        self.lang_clarification = lang_clarification
+        self.hash = hash((is_built, subdir, fname, lang_clarification))
 
     def __str__(self) -> str:
         return self.relative_name()
@@ -280,10 +281,10 @@ class File:
 
     @staticmethod
     @lru_cache(maxsize=None)
-    def from_source_file(source_root: str, subdir: str, fname: str) -> 'File':
+    def from_source_file(source_root: str, subdir: str, fname: str, lang_clarification: T.Union[str, None] = None) -> 'File':
         if not os.path.isfile(os.path.join(source_root, subdir, fname)):
             raise MesonException('File %s does not exist.' % fname)
-        return File(False, subdir, fname)
+        return File(False, subdir, fname, lang_clarification)
 
     @staticmethod
     def from_built_file(subdir: str, fname: str) -> 'File':

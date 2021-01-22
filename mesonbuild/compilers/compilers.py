@@ -486,6 +486,11 @@ class Compiler(metaclass=abc.ABCMeta):
     @lru_cache(maxsize=None)
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         if isinstance(src, mesonlib.File):
+            if src.lang_clarification is not None:
+                suffix = os.path.splitext(src.fname)[1]
+                assert(suffix in ['.C', '.H'])
+                assert(src.lang_clarification in ['c', 'cpp'])
+                return self.language == src.lang_clarification
             src = src.fname
         suffix = os.path.splitext(src)[1].lower()
         return bool(suffix) and suffix[1:] in self.can_compile_suffixes
