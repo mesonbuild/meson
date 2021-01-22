@@ -1578,7 +1578,7 @@ class TestHarness:
             l.flush()
 
     def open_logfiles(self) -> None:
-        if not self.options.logbase or self.options.verbose:
+        if not self.options.logbase or self.options.gdb:
             return
 
         namebase = None
