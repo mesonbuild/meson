@@ -450,6 +450,9 @@ class TestLogger:
     def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         pass
 
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
+        pass
+
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         pass
 
@@ -929,7 +932,7 @@ class TestRun:
     def needs_parsing(self) -> bool:
         return False
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         async for l in lines:
             pass
         return TestResult.OK, ''
@@ -978,17 +981,19 @@ class TestRunTAP(TestRun):
 
         super().complete(returncode, res, stdo, stde)
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         res = TestResult.OK
         error = ''
 
         async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Bailout):
                 res = TestResult.ERROR
+                harness.log_subtest(self, i.message, res)
             elif isinstance(i, TAPParser.Test):
                 self.results.append(i)
                 if i.result.is_bad():
                     res = TestResult.FAIL
+                harness.log_subtest(self, '{} {}'.format(i.number, i.name), i.result)
             elif isinstance(i, TAPParser.Error):
                 error = '\nTAP parsing error: ' + i.message
                 res = TestResult.ERROR
@@ -1006,7 +1011,7 @@ class TestRunRust(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
@@ -1022,7 +1027,9 @@ class TestRunRust(TestRun):
             if line.startswith('test ') and not line.startswith('test result'):
                 _, name, _, result = line.rstrip().split(' ')
                 name = name.replace('::', '.')
-                self.results.append(parse_res(n, name, result))
+                t = parse_res(n, name, result)
+                self.results.append(t)
+                harness.log_subtest(self, name, t.result)
                 n += 1
 
         if all(t.result is TestResult.SKIP for t in self.results):
@@ -1305,7 +1312,7 @@ class SingleTestRunner:
             cmd = self.cmd + self.test.cmd_args + self.options.test_args
             self.runobj.start(cmd)
             harness.log_start_test(self.runobj)
-            await self._run_cmd(cmd)
+            await self._run_cmd(harness, cmd)
         return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *,
@@ -1342,7 +1349,7 @@ class SingleTestRunner:
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
                               postwait_fn=postwait_fn if not is_windows() else None)
 
-    async def _run_cmd(self, cmd: T.List[str]) -> None:
+    async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
             stderr = None
@@ -1367,7 +1374,7 @@ class SingleTestRunner:
 
         parse_task = None
         if self.runobj.needs_parsing:
-            parse_task = self.runobj.parse(p.stdout_lines(self.console_mode))
+            parse_task = self.runobj.parse(harness, p.stdout_lines(self.console_mode))
 
         stdo_task, stde_task = p.communicate(self.console_mode)
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
@@ -1709,6 +1716,10 @@ class TestHarness:
             loop.run_until_complete(self._run_tests(runners))
         finally:
             self.close_logfiles()
+
+    def log_subtest(self, test: TestRun, s: str, res: TestResult) -> None:
+        for l in self.loggers:
+            l.log_subtest(self, test, s, res)
 
     def log_start_test(self, test: TestRun) -> None:
         for l in self.loggers:
