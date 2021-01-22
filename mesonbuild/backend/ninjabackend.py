@@ -852,7 +852,7 @@ int dummy;
                 elif is_unity and self.get_target_source_can_unity(target, src):
                     abs_src = os.path.join(self.environment.get_build_dir(),
                                            src.rel_to_builddir(self.build_to_src))
-                    unity_src.append(abs_src)
+                    unity_src.append(File(True, '', abs_src, src.lang_clarification))
                 else:
                     o, s = self.generate_single_compile(target, src, False, [], header_deps)
                     obj_list.append(o)
