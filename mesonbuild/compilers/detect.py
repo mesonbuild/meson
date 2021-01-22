@@ -47,6 +47,8 @@ from ..linkers import (
     VisualStudioLinker,
     VisualStudioLikeLinkerMixin,
     WASMDynamicLinker,
+    TinyCDynamicLinker,
+    TinyCArLinker,
 )
 from .compilers import Compiler
 from .c import (
@@ -68,6 +70,7 @@ from .c import (
     CompCertCCompiler,
     C2000CCompiler,
     VisualStudioCCompiler,
+    TinyCCompiler,
 )
 from .cpp import (
     CPPCompiler,
@@ -324,6 +327,8 @@ def detect_static_linker(env: 'Environment', compiler: Compiler) -> StaticLinker
             return CcrxLinker(linker)
         if out.startswith('GNU ar') and ('xc16-ar' in linker or 'xc16-ar.exe' in linker):
             return Xc16Linker(linker)
+        if out.startswith('GNU ar') and compiler.id == 'tcc':
+            return TinyCArLinker(linker)
         if out.startswith('TMS320C2000') and ('ar2000' in linker or 'ar2000.exe' in linker):
             return C2000Linker(linker)
         if out.startswith('The CompCert'):
@@ -395,6 +400,8 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
         elif 'ccomp' in compiler_name:
             arg = '-version'
         elif 'cl2000' in compiler_name:
+            arg = '-version'
+        elif 'tcc' in compiler_name:
             arg = '-version'
         elif compiler_name in {'icl', 'icl.exe'}:
             # if you pass anything to icl you get stuck in a pager
@@ -620,6 +627,14 @@ def _detect_c_or_cpp_compiler(env: 'Environment', lang: str, for_machine: Machin
             cls = C2000CCompiler if lang == 'c' else C2000CPPCompiler
             env.coredata.add_lang_args(cls.language, cls, for_machine, env)
             linker = C2000DynamicLinker(compiler, for_machine, version=version)
+            return cls(
+                ccache + compiler, version, for_machine, is_cross, info,
+                exe_wrap, full_version=full_version, linker=linker)
+
+        if 'tcc ' in out and lang == 'c':
+            cls = TinyCCompiler
+            env.coredata.add_lang_args(cls.language, cls, for_machine, env)
+            linker = TinyCDynamicLinker(compiler, for_machine, cls.LINKER_PREFIX, [], version=version)
             return cls(
                 ccache + compiler, version, for_machine, is_cross, info,
                 exe_wrap, full_version=full_version, linker=linker)

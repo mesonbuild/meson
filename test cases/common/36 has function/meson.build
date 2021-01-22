@@ -87,7 +87,7 @@ foreach cc : compilers
     assert(cc.has_function('alloca', prefix : '#include <alloca.h>',
            args : unit_test_args),
            'built-in alloca must be found with #include')
-    if not cc.compiles(defines_has_builtin, args : unit_test_args)
+    if not cc.compiles(defines_has_builtin, args : unit_test_args) and cc.get_id() != 'tcc'
       assert(not cc.has_function('alloca',
              prefix : '#include <alloca.h>\n#undef alloca',
              args : unit_test_args),

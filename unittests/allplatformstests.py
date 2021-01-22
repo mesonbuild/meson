@@ -818,7 +818,9 @@ class AllPlatformTests(BasePlatformTests):
         intel = IntelGnuLikeCompiler
         msvc = (VisualStudioCCompiler, VisualStudioCPPCompiler)
         clangcl = (ClangClCCompiler, ClangClCPPCompiler)
+        tcc = mesonbuild.compilers.TinyCCompiler
         ar = mesonbuild.linkers.ArLinker
+        tccar = mesonbuild.linkers.TinyCArLinker
         lib = mesonbuild.linkers.VisualStudioLinker
         langs = [('c', 'CC'), ('cpp', 'CXX')]
         if not is_windows() and platform.machine().lower() != 'e2k':
@@ -845,6 +847,9 @@ class AllPlatformTests(BasePlatformTests):
                 elif 'clang' in ebase:
                     self.assertIsInstance(ecc, clang)
                     self.assertIsInstance(elinker, ar)
+                elif ebase == 'tcc':
+                    self.assertIsInstance(ecc, tcc)
+                    self.assertIsInstance(elinker, tccar)
                 elif ebase.startswith('ic'):
                     self.assertIsInstance(ecc, intel)
                     self.assertIsInstance(elinker, ar)
@@ -1003,6 +1008,11 @@ class AllPlatformTests(BasePlatformTests):
         not LDFLAGS.
         '''
         testdir = os.path.join(self.common_test_dir, '132 get define')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TCC compilers')
+
         define = 'MESON_TEST_DEFINE_VALUE'
         # NOTE: this list can't have \n, ' or "
         # \n is never substituted by the GNU pre-processor via a -D define
@@ -2379,6 +2389,7 @@ class AllPlatformTests(BasePlatformTests):
         with open(filename, 'wb') as f:
             pickle.dump(obj, f)
 
+    @skip_if_not_base_option('b_coverage')
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '48 reconfigure')
         self.init(testdir, extra_args=['-Dopt1=val1', '-Dsub1:werror=true'])
@@ -3385,6 +3396,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3405,6 +3418,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3425,6 +3440,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3445,6 +3462,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3465,6 +3484,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3485,6 +3506,8 @@ class AllPlatformTests(BasePlatformTests):
                 raise SkipTest('llvm-cov not found')
         if cc.get_id() == 'msvc':
             raise SkipTest('Test only applies to non-MSVC compilers')
+        if cc.get_id() == 'tcc':
+            raise SkipTest('Test only applies to non-TinyC compilers')
         self.init(testdir, extra_args=['-Db_coverage=true'])
         self.build()
         self.run_tests()
@@ -3551,6 +3574,8 @@ class AllPlatformTests(BasePlatformTests):
     @skipUnless(is_linux() and (re.search('^i.86$|^x86$|^x64$|^x86_64$|^amd64$', platform.processor()) is not None),
         'Requires ASM compiler for x86 or x86_64 platform currently only available on Linux CI runners')
     def test_nostdlib(self):
+        if 'tcc' in os.environ.get('CC', 'dummy'):
+            raise SkipTest('TinyCC does not correctly support extended asm.')
         testdir = os.path.join(self.unit_test_dir, '78 nostdlib')
         machinefile = os.path.join(self.builddir, 'machine.txt')
         with open(machinefile, 'w', encoding='utf-8') as f:

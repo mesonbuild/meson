@@ -112,6 +112,7 @@ class LinuxlikeTests(BasePlatformTests):
         soname = get_soname(lib1)
         self.assertEqual(soname, 'prefixsomelib.suffix')
 
+    @skip_if_not_base_option('b_pie')
     def test_pic(self):
         '''
         Test that -fPIC is correctly added to static libraries when b_staticpic
@@ -519,6 +520,11 @@ class LinuxlikeTests(BasePlatformTests):
                 print(f'{key!s} was {v!r}')
                 raise
             self.wipe()
+        # TCC won't fail if wrong -std=... values are passed to it, it will
+        # just ignore them
+        if compiler.get_id() == 'tcc':
+            return
+
         # Check that an invalid std option in CFLAGS/CPPFLAGS fails
         # Needed because by default ICC ignores invalid options
         cmd_std = '-std=FAIL'
@@ -1015,6 +1021,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.meson_cross_file = crossfile.name
         self.init(testdir)
 
+    @skip_if_not_base_option('b_coverage')
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '13 reconfigure')
         self.init(testdir, extra_args=['-Db_coverage=true'], default_args=False)
@@ -1317,6 +1324,10 @@ class LinuxlikeTests(BasePlatformTests):
              https://stackoverflow.com/questions/48532868/gcc-library-option-with-a-colon-llibevent-a
         '''
         testdir = os.path.join(self.unit_test_dir, '97 link full name','libtestprovider')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        compiler = detect_c_compiler(env, MachineChoice.HOST)
+        if compiler.get_id() == 'tcc':
+            raise SkipTest('TinyC compiler does not support -l:libfullname.a.')
         oldprefix = self.prefix
         # install into installdir without using DESTDIR
         installdir = self.installdir
@@ -1524,6 +1535,11 @@ class LinuxlikeTests(BasePlatformTests):
 
         # Build some libraries and install them
         testdir = os.path.join(self.unit_test_dir, '67 static link/lib')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_id() == 'tcc':
+            raise SkipTest("TinyC Compiler doesn't work on this.")
+
         libdir = os.path.join(self.installdir, self.libdir)
         oldprefix = self.prefix
         self.prefix = self.installdir
@@ -1683,6 +1699,8 @@ class LinuxlikeTests(BasePlatformTests):
             raise SkipTest('Prelinking not supported on Darwin.')
         if 'clang' in os.environ.get('CC', 'dummy'):
             raise SkipTest('Prelinking not supported with Clang.')
+        if 'tcc' in os.environ.get('CC', 'dummy'):
+            raise unittest.SkipTest('Prelinking not supported with TCC.')
         testdir = os.path.join(self.unit_test_dir, '87 prelinking')
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = detect_c_compiler(env, MachineChoice.HOST)

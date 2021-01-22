@@ -308,6 +308,10 @@ class AIXArLinker(ArLikeLinker):
     id = 'aixar'
     std_args = ['-csr', '-Xany']
 
+class TinyCArLinker(ArLikeLinker):
+    id = 'ar'
+    # TinyC does not support thin archives
+    std_args = ['csr']
 
 def prepare_rpaths(raw_rpaths: str, build_dir: str, from_dir: str) -> T.List[str]:
     # The rpaths we write must be relative if they point to the build dir,
@@ -1465,3 +1469,78 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
         return []
+
+class TinyCDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
+    """Linker for TCC compiler."""
+    id = 'tcc'
+
+    def get_allow_undefined_args(self) -> T.List[str]:
+        return []
+
+    def get_pic_args(self) -> T.List[str]:
+        raise mesonlib.MesonException('This linker does not support PIC')
+
+    def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
+        if not args:
+            return args
+        return self._apply_prefix('--whole-archive') + args + self._apply_prefix('--no-whole-archive')
+
+    def get_coverage_args(self) -> T.List[str]:
+        return []
+
+    def export_dynamic_args(self, env: 'Environment') -> T.List[str]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            return self._apply_prefix('--export-all-symbols')
+        return self._apply_prefix('-export-dynamic')
+
+    def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
+                         rpath_paths: str, build_rpath: str,
+                         install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            return ([], set())
+        if not rpath_paths and not install_rpath and not build_rpath:
+            return ([], set())
+        args = []
+        origin_placeholder = '$ORIGIN'
+        processed_rpaths = prepare_rpaths(rpath_paths, build_dir, from_dir)
+        all_paths = mesonlib.OrderedSet([os.path.join(origin_placeholder, p) for p in processed_rpaths])
+        rpath_dirs_to_remove = set()
+        for p in all_paths:
+            rpath_dirs_to_remove.add(p.encode('utf8'))
+        # Build_rpath is used as-is (it is usually absolute).
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+            for p in build_rpath.split(':'):
+                rpath_dirs_to_remove.add(p.encode('utf8'))
+
+        # In order to avoid relinking for RPATH removal, the binary needs to contain just
+        # enough space in the ELF header to hold the final installation RPATH.
+        paths = ':'.join(all_paths)
+        if len(paths) < len(install_rpath):
+            padding = 'X' * (len(install_rpath) - len(paths))
+            if not paths:
+                paths = padding
+            else:
+                paths = paths + ':' + padding
+        args.extend(self._apply_prefix('-rpath,' + paths))
+
+        for p in rpath_paths:
+            args.extend(['-L' + os.path.join(build_dir, p)])
+
+        return (args, rpath_dirs_to_remove)
+
+    def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
+                        suffix: str, soversion: str, darwin_versions: T.Tuple[str, str]) -> T.List[str]:
+        m = env.machines[self.for_machine]
+        if m.is_windows() or m.is_cygwin():
+            # For PE/COFF the soname argument has no effect
+            return []
+        sostr = '' if soversion is None else '.' + soversion
+        return self._apply_prefix(f'-soname,{prefix}{shlib_name}.{suffix}{sostr}')
+
+    def thread_flags(self, env: 'Environment') -> T.List[str]:
+        if env.machines[self.for_machine].is_haiku():
+            return []
+        return ['-pthread']

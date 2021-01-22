@@ -719,3 +719,79 @@ class C2000CCompiler(C2000Compiler, CCompiler):
         if path == '':
             path = '.'
         return ['--include_path=' + path]
+
+class TinyCCompiler(CCompiler):
+    LINKER_PREFIX = '-Wl,'
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 linker: T.Optional['DynamicLinker'] = None,
+                 full_version: T.Optional[str] = None):
+        self.id = 'tcc'
+        CCompiler.__init__(self, exelist, version, for_machine, is_cross,
+                           info, exe_wrapper, linker=linker, full_version=full_version)
+        self.can_compile_suffixes.add('s')
+        self.base_options = {
+            OptionKey(o) for o in ['b_ndebug', 'b_staticpic']}
+
+    def get_options(self) -> 'KeyedOptionDictType':
+        opts = CCompiler.get_options(self)
+        key = OptionKey('std', machine=self.for_machine, lang=self.language)
+        opts[key].choices = ['none', 'c99', 'c11']
+        return opts
+
+    def get_always_args(self) -> T.List[str]:
+        return []
+
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        args = []
+        std = options[OptionKey('std', lang=self.language, machine=self.for_machine)]
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
+
+    def get_dependency_gen_args(self, outtarget: str, outfile: str) -> T.List[str]:
+        return ['-MD', '-MF', outfile]
+
+    def get_optimization_args(self, optimization_level: str) -> T.List[str]:
+        optimization_args = {
+            '0': ['-O0'],
+            'g': ['-O0', '-g'],
+            '1': ['-O1'],
+            '2': ['-O2'],
+            '3': ['-O3'],
+            's': ['-Os'],
+        }  # type: T.Dict[str, T.List[str]]
+        return optimization_args[optimization_level]
+
+    def get_no_optimization_args(self) -> T.List[str]:
+        return self.get_optimization_args('0')
+
+    def get_pic_args(self) -> T.List[str]:
+        return []
+
+    def get_coverage_args(self) -> T.List[str]:
+        return []
+
+    def get_warn_args(self, level: str) -> T.List[str]:
+        warn_args = {
+            '0': [],
+            '1': ['-Wall'],
+            '2': ['-Wall', '-Werror'],
+            '3': ['-Wall', '-Werror', '-Wunsupported', '-Wwrite-strings']
+        }
+        return warn_args[level]
+
+    def get_buildtype_args(self, buildtype: str) -> T.List[str]:
+        return []
+
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        return ['-g'] if is_debug else []
+
+    def compute_parameters_with_absolute_paths(self, parameter_list: T.List[str], build_dir: str) -> T.List[str]:
+        for idx, i in enumerate(parameter_list):
+            if i[:2] == '-I' or i[:2] == '-L':
+                parameter_list[idx] = i[:2] + os.path.normpath(os.path.join(build_dir, i[2:]))
+
+        return parameter_list

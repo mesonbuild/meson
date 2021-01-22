@@ -127,6 +127,7 @@ __all__ = [
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
     'CythonCompiler',
+    'TinyCCompiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -189,6 +190,7 @@ from .c import (
     CompCertCCompiler,
     C2000CCompiler,
     VisualStudioCCompiler,
+    TinyCCompiler,
 )
 from .cpp import (
     CPPCompiler,

@@ -33,6 +33,7 @@ from .linkers import (
     C2000Linker,
     AIXArLinker,
     PGIStaticLinker,
+    TinyCArLinker,
     NvidiaHPC_StaticLinker,
 
     DynamicLinker,
@@ -63,6 +64,7 @@ from .linkers import (
     AIXDynamicLinker,
     OptlinkDynamicLinker,
     CudaLinker,
+    TinyCDynamicLinker,
 
     prepare_rpaths,
     order_rpaths,
@@ -90,6 +92,7 @@ __all__ = [
     'CompCertLinker',
     'C2000Linker',
     'AIXArLinker',
+    'TinyCArLinker',
     'PGIStaticLinker',
     'NvidiaHPC_StaticLinker',
 
