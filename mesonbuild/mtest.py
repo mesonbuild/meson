@@ -442,7 +442,7 @@ class TestLogger:
     def start(self, harness: 'TestHarness') -> None:
         pass
 
-    def start_test(self, test: 'TestRun') -> None:
+    def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         pass
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
@@ -578,7 +578,7 @@ class ConsoleLogger(TestLogger):
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
 
-    def start_test(self, test: 'TestRun') -> None:
+    def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
         self.started_tests += 1
         self.running_tests.add(test)
         self.running_tests.move_to_end(test, last=False)
@@ -1279,12 +1279,16 @@ class SingleTestRunner:
     def timeout(self) -> T.Optional[int]:
         return self.runobj.timeout
 
-    async def run(self) -> TestRun:
+    async def run(self, harness: 'TestHarness') -> TestRun:
         if self.cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
+            harness.log_start_test(self.runobj)
             self.runobj.complete_skip(skip_stdout)
         else:
-            await self._run_cmd(self.cmd + self.test.cmd_args + self.options.test_args)
+            cmd = self.cmd + self.test.cmd_args + self.options.test_args
+            self.runobj.start(cmd)
+            harness.log_start_test(self.runobj)
+            await self._run_cmd(cmd)
         return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *,
@@ -1322,7 +1326,6 @@ class SingleTestRunner:
                               postwait_fn=postwait_fn if not is_windows() else None)
 
     async def _run_cmd(self, cmd: T.List[str]) -> None:
-        self.runobj.start(cmd)
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
             stderr = None
@@ -1690,6 +1693,10 @@ class TestHarness:
         finally:
             self.close_logfiles()
 
+    def log_start_test(self, test: TestRun) -> None:
+        for l in self.loggers:
+            l.start_test(self, test)
+
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
@@ -1701,9 +1708,7 @@ class TestHarness:
             async with semaphore:
                 if interrupted or (self.options.repeat > 1 and self.fail_count):
                     return
-                for l in self.loggers:
-                    l.start_test(test.runobj)
-                res = await test.run()
+                res = await test.run(self)
                 self.process_test_result(res)
 
         def test_done(f: asyncio.Future) -> None:
