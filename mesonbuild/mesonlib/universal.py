@@ -30,34 +30,117 @@ import textwrap
 from mesonbuild import mlog
 
 if T.TYPE_CHECKING:
-    from .build import ConfigurationData
-    from .coredata import KeyedOptionDictType, UserOption
-    from .compilers.compilers import CompilerType
-    from .interpreterbase import ObjectHolder
+    from ..build import ConfigurationData
+    from ..coredata import KeyedOptionDictType, UserOption
+    from ..compilers.compilers import CompilerType
+    from ..interpreterbase import ObjectHolder
 
-    FileOrString = T.Union['File', str]
+FileOrString = T.Union['File', str]
 
 _T = T.TypeVar('_T')
 _U = T.TypeVar('_U')
 
-have_fcntl = False
-have_msvcrt = False
+__all__ = [
+    'GIT',
+    'an_unpicklable_object',
+    'python_command',
+    'project_meson_versions',
+    'File',
+    'FileMode',
+    'GitException',
+    'LibType',
+    'MachineChoice',
+    'MesonException',
+    'EnvironmentException',
+    'FileOrString',
+    'GitException',
+    'OptionKey',
+    'dump_conf_header',
+    'OptionOverrideProxy',
+    'OptionProxy',
+    'OptionType',
+    'OrderedSet',
+    'PerMachine',
+    'PerMachineDefaultable',
+    'PerThreeMachine',
+    'PerThreeMachineDefaultable',
+    'ProgressBar',
+    'TemporaryDirectoryWinProof',
+    'Version',
+    'check_direntry_issues',
+    'classify_unity_sources',
+    'current_vs_supports_modules',
+    'darwin_get_object_archs',
+    'default_libdir',
+    'default_libexecdir',
+    'default_prefix',
+    'detect_subprojects',
+    'detect_vcs',
+    'do_conf_file',
+    'do_conf_str',
+    'do_define',
+    'do_replacement',
+    'exe_exists',
+    'expand_arguments',
+    'extract_as_list',
+    'get_compiler_for_source',
+    'get_filenames_templates_dict',
+    'get_library_dirs',
+    'get_variable_regex',
+    'get_wine_shortpath',
+    'git',
+    'has_path_sep',
+    'is_aix',
+    'is_android',
+    'is_ascii_string',
+    'is_cygwin',
+    'is_debianlike',
+    'is_dragonflybsd',
+    'is_freebsd',
+    'is_haiku',
+    'is_hurd',
+    'is_irix',
+    'is_linux',
+    'is_netbsd',
+    'is_openbsd',
+    'is_osx',
+    'is_qnx',
+    'is_sunos',
+    'is_windows',
+    'iter_regexin_iter',
+    'join_args',
+    'listify',
+    'partition',
+    'path_is_in_root',
+    'Popen_safe',
+    'quiet_git',
+    'quote_arg',
+    'relative_to_if_possible',
+    'relpath',
+    'replace_if_different',
+    'run_once',
+    'get_meson_command',
+    'set_meson_command',
+    'split_args',
+    'stringlistify',
+    'substitute_values',
+    'substring_is_in_list',
+    'typeslistify',
+    'unholder',
+    'verbose_git',
+    'version_compare',
+    'version_compare_condition_with_min',
+    'version_compare_many',
+    'windows_proof_rm',
+    'windows_proof_rmtree',
+]
+
+
 # TODO: this is such a hack, this really should be either in coredata or in the
 # interpreter
 # {subproject: project_meson_version}
 project_meson_versions = collections.defaultdict(str)  # type: T.DefaultDict[str, str]
 
-try:
-    import fcntl
-    have_fcntl = True
-except Exception:
-    pass
-
-try:
-    import msvcrt
-    have_msvcrt = True
-except Exception:
-    pass
 
 from glob import glob
 
@@ -66,7 +149,7 @@ if os.path.basename(sys.executable) == 'meson.exe':
     python_command = [sys.executable, 'runpython']
 else:
     python_command = [sys.executable]
-meson_command = None
+_meson_command = None
 
 class MesonException(Exception):
     '''Exceptions thrown by Meson'''
@@ -117,20 +200,24 @@ def verbose_git(cmd: T.List[str], workingdir: str, check: bool = False) -> bool:
 
 def set_meson_command(mainfile: str) -> None:
     global python_command
-    global meson_command
+    global _meson_command
     # On UNIX-like systems `meson` is a Python script
     # On Windows `meson` and `meson.exe` are wrapper exes
     if not mainfile.endswith('.py'):
-        meson_command = [mainfile]
+        _meson_command = [mainfile]
     elif os.path.isabs(mainfile) and mainfile.endswith('mesonmain.py'):
         # Can't actually run meson with an absolute path to mesonmain.py, it must be run as -m mesonbuild.mesonmain
-        meson_command = python_command + ['-m', 'mesonbuild.mesonmain']
+        _meson_command = python_command + ['-m', 'mesonbuild.mesonmain']
     else:
         # Either run uninstalled, or full path to meson-script.py
-        meson_command = python_command + [mainfile]
+        _meson_command = python_command + [mainfile]
     # We print this value for unit tests.
     if 'MESON_COMMAND_TESTS' in os.environ:
-        mlog.log('meson_command is {!r}'.format(meson_command))
+        mlog.log('meson_command is {!r}'.format(_meson_command))
+
+
+def get_meson_command() -> T.Optional[T.List[str]]:
+    return _meson_command
 
 
 def is_ascii_string(astring: T.Union[str, bytes]) -> bool:
@@ -1564,29 +1651,6 @@ class OrderedSet(T.MutableSet[_T]):
     def difference(self, set_: T.Union[T.Set[_T], 'OrderedSet[_T]']) -> 'OrderedSet[_T]':
         return type(self)(e for e in self if e not in set_)
 
-class BuildDirLock:
-
-    def __init__(self, builddir: str) -> None:
-        self.lockfilename = os.path.join(builddir, 'meson-private/meson.lock')
-
-    def __enter__(self) -> None:
-        self.lockfile = open(self.lockfilename, 'w')
-        try:
-            if have_fcntl:
-                fcntl.flock(self.lockfile, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            elif have_msvcrt:
-                msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_NBLCK, 1)
-        except (BlockingIOError, PermissionError):
-            self.lockfile.close()
-            raise MesonException('Some other Meson process is already using this build directory. Exiting.')
-
-    def __exit__(self, *args: T.Any) -> None:
-        if have_fcntl:
-            fcntl.flock(self.lockfile, fcntl.LOCK_UN)
-        elif have_msvcrt:
-            msvcrt.locking(self.lockfile.fileno(), msvcrt.LK_UNLCK, 1)
-        self.lockfile.close()
-
 def relpath(path: str, start: str) -> str:
     # On Windows a relative path can't be evaluated for paths on two different
     # drives (i.e. c:\foo and f:\bar).  The only thing left to do is to use the
@@ -1965,7 +2029,7 @@ class OptionKey:
             raw3 = raw2
             for_machine = MachineChoice.HOST
 
-        from .compilers import all_languages
+        from ..compilers import all_languages
         if any(raw3.startswith(f'{l}_') for l in all_languages):
             lang, opt = raw3.split('_', 1)
         else:

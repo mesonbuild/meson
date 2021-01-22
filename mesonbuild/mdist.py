@@ -245,7 +245,7 @@ def run(options):
     b = build.load(options.wd)
     # This import must be load delayed, otherwise it will get the default
     # value of None.
-    from mesonbuild.mesonlib import meson_command
+    from mesonbuild.mesonlib import get_meson_command
     src_root = b.environment.source_dir
     bld_root = b.environment.build_dir
     priv_dir = os.path.join(bld_root, 'meson-private')
@@ -279,7 +279,7 @@ def run(options):
     rc = 0
     if not options.no_tests:
         # Check only one.
-        rc = check_dist(names[0], meson_command, extra_meson_args, bld_root, priv_dir)
+        rc = check_dist(names[0], get_meson_command(), extra_meson_args, bld_root, priv_dir)
     if rc == 0:
         for name in names:
             create_hash(name)

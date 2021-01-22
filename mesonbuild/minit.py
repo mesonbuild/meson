@@ -174,7 +174,7 @@ def run(options: 'argparse.Namespace') -> int:
             print('Build directory already exists, deleting it.')
             shutil.rmtree(options.builddir)
         print('Building...')
-        cmd = mesonlib.meson_command + [options.builddir]
+        cmd = mesonlib.get_meson_command() + [options.builddir]
         ret = subprocess.run(cmd)
         if ret.returncode:
             raise SystemExit

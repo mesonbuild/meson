@@ -867,7 +867,7 @@ class Environment:
         # re-initialized with project options by the interpreter during
         # build file parsing.
         # meson_command is used by the regenchecker script, which runs meson
-        self.coredata = coredata.CoreData(options, self.scratch_dir, mesonlib.meson_command)
+        self.coredata = coredata.CoreData(options, self.scratch_dir, mesonlib.get_meson_command())
         self.first_invocation = True
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
@@ -887,7 +887,7 @@ class Environment:
         return self.coredata
 
     def get_build_command(self, unbuffered=False):
-        cmd = mesonlib.meson_command[:]
+        cmd = mesonlib.get_meson_command().copy()
         if unbuffered and 'python' in os.path.basename(cmd[0]):
             cmd.insert(1, '-u')
         return cmd
