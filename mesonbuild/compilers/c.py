@@ -16,7 +16,8 @@ import os.path
 import typing as T
 
 from .. import coredata
-from ..mesonlib import MachineChoice, MesonException, mlog, version_compare, OptionKey
+from .. import mlog
+from ..mesonlib import MachineChoice, MesonException, version_compare, OptionKey
 from .c_function_attributes import C_FUNC_ATTRIBUTES
 from .mixins.clike import CLikeCompiler
 from .mixins.ccrx import CcrxCompiler

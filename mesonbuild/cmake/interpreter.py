@@ -1322,7 +1322,7 @@ class CMakeInterpreter:
 
             # Generate the command list
             command = []  # type: T.List[T.Union[str, IdNode, IndexNode]]
-            command += mesonlib.meson_command
+            command += mesonlib.get_meson_command()
             command += ['--internal', 'cmake_run_ctgt']
             command += ['-o', '@OUTPUT@']
             if tgt.original_outputs:

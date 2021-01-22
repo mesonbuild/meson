@@ -3026,14 +3026,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
     def generate_gcov_clean(self):
         gcno_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcno', 'CUSTOM_COMMAND', 'PHONY')
-        gcno_elem.add_item('COMMAND', mesonlib.meson_command + ['--internal', 'delwithsuffix', '.', 'gcno'])
+        gcno_elem.add_item('COMMAND', mesonlib.get_meson_command() + ['--internal', 'delwithsuffix', '.', 'gcno'])
         gcno_elem.add_item('description', 'Deleting gcno files')
         self.add_build(gcno_elem)
         # Alias that runs the target defined above
         self.create_target_alias('meson-clean-gcno')
 
         gcda_elem = NinjaBuildElement(self.all_outputs, 'meson-clean-gcda', 'CUSTOM_COMMAND', 'PHONY')
-        gcda_elem.add_item('COMMAND', mesonlib.meson_command + ['--internal', 'delwithsuffix', '.', 'gcda'])
+        gcda_elem.add_item('COMMAND', mesonlib.get_meson_command() + ['--internal', 'delwithsuffix', '.', 'gcda'])
         gcda_elem.add_item('description', 'Deleting gcda files')
         self.add_build(gcda_elem)
         # Alias that runs the target defined above
