@@ -11,6 +11,11 @@ endif
 exe = executable('trivialprog', 'trivial.cc', extra_files : 'something.txt')
 test('runtest', exe)
 
+if (cpp.get_id() == 'gcc') or (cpp.get_id() == 'clang')
+  exe2 = executable('trivialprog2', files('trivial2.C', language: 'cpp'))
+  test('runtest2', exe2)
+endif
+
 has_not_changed = false
 if is_disabler(exe)
     has_not_changed = true

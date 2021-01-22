@@ -837,6 +837,25 @@ Then you can use it in `bar2` like this:
 ```
 
 Meson will then do the right thing.
+Meson uses the file extension to guess the programming language.
+Because .C is sometimes used for 'c' code and sometimes for 'cpp'
+code, you must specify the `language: kwarg` like that:
+```meson
+    files('fileA.C', language: 'cpp')
+    files('fileB.C', language: 'c')
+```
+Writing `files('fileB.C')` defaults to 'c', but doing this is
+deprecated, because in the future it might default to 'cpp', breaking
+your code.
+Note that both gcc and clang will ignore your wish to interpret a .C
+file as 'c' code, they will always interpret it as 'cpp' code and
+meson cannot change that.
+Therefore, using .C for 'c' code is strongly discouraged, because
+it makes you project practically unbuildable on most machines.
+Using .C files for 'cpp' code is discouraged by meson,
+[iso-cpp](https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#S-source)
+and [google](https://google.github.io/styleguide/cppguide.html#File_Names).
+
 
 ### generator()
 
