@@ -600,15 +600,21 @@ class ConsoleLogger(TestLogger):
         self.running_tests.move_to_end(test, last=False)
         self.request_update()
 
-    def shorten_log(self, result: 'TestRun') -> str:
+    def shorten_log(self, harness: 'TestHarness', result: 'TestRun') -> str:
+        if not harness.options.verbose and not harness.options.print_errorlogs:
+            return ''
+
         log = result.get_log(mlog.colorize_console())
+        if harness.options.verbose:
+            return log
+
         lines = log.splitlines()
         if len(lines) < 100:
             return log
         else:
             return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
 
-    def print_log(self, harness: 'TestHarness', result: 'TestRun', log: str) -> None:
+    def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         if not harness.options.verbose:
             cmdline = result.cmdline
             if not cmdline:
@@ -616,6 +622,7 @@ class ConsoleLogger(TestLogger):
                 return
             print(result.res.get_command_marker() + cmdline)
 
+        log = self.shorten_log(harness, result)
         if log:
             print(self.output_start)
             print_safe(log, end='')
@@ -637,10 +644,8 @@ class ConsoleLogger(TestLogger):
             else:
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                       flush=True)
-                if harness.options.verbose:
-                    self.print_log(harness, result, result.get_log(mlog.colorize_console()))
-                elif result.res.is_bad():
-                    self.print_log(harness, result, '')
+                if harness.options.verbose or result.res.is_bad():
+                    self.print_log(harness, result)
 
         self.request_update()
 
@@ -650,18 +655,8 @@ class ConsoleLogger(TestLogger):
         if self.progress_task:
             await self.progress_task
 
-        if harness.collected_failures:
-            if harness.options.print_errorlogs:
-                if len(harness.collected_failures) > 10:
-                    print('\n\nThe output from 10 first failed tests:\n')
-                else:
-                    print('\n\nThe output from the failed tests:\n')
-                for i, result in enumerate(harness.collected_failures, 1):
-                    print(harness.format(result, mlog.colorize_console()))
-                    self.print_log(result, self.shorten_log(result))
-                    if i == 10:
-                        break
-
+        if harness.collected_failures and \
+                (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
             for i, result in enumerate(harness.collected_failures, 1):
                 print(harness.format(result, mlog.colorize_console()))
