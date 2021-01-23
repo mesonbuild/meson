@@ -657,7 +657,7 @@ equality_expression: relational_expression | (equality_expression equality_opera
 equality_operator: "==" | "!="
 expression: assignment_expression
 expression_list: expression ("," expression)*
-expression_statememt: expression
+expression_statement: expression
 function_expression: id_expression "(" [argument_list] ")"
 hex_literal: "0x" HEX_NUMBER
 HEX_NUMBER: /[a-fA-F0-9]+/
