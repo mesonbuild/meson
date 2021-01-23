@@ -14,6 +14,7 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+from itertools import chain
 from pathlib import Path
 import enum
 import json
@@ -43,6 +44,11 @@ if T.TYPE_CHECKING:
 
     InstallType = T.List[T.Tuple[str, str, T.Optional['FileMode']]]
     InstallSubdirsType = T.List[T.Tuple[str, str, T.Optional['FileMode'], T.Tuple[T.Set[str], T.Set[str]]]]
+
+# Languages that can mix with C or C++ but don't support unity builds yet
+# because the syntax we use for unity builds is specific to C/++/ObjC/++.
+# Assembly files cannot be unitified and neither can LLVM IR files
+LANGS_CANT_UNITY = ('d', 'fortran')
 
 class TestProtocol(enum.Enum):
 
@@ -636,6 +642,9 @@ class Backend:
             unity_size = self.get_option_for_target(OptionKey('unity_size'), extobj.target)
 
             for comp, srcs in compsrcs.items():
+                if comp.language in LANGS_CANT_UNITY:
+                    sources += srcs
+                    continue
                 for i in range(len(srcs) // unity_size + 1):
                     osrc = self.get_unity_source_file(extobj.target,
                                                       comp.get_default_suffix(), i)
@@ -767,7 +776,7 @@ class Backend:
             # pkg-config puts the thread flags itself via `Cflags:`
         # Fortran requires extra include directives.
         if compiler.language == 'fortran':
-            for lt in target.link_targets:
+            for lt in chain(target.link_targets, target.link_whole_targets):
                 priv_dir = self.get_target_private_dir(lt)
                 commands += compiler.get_include_args(priv_dir, False)
         return commands

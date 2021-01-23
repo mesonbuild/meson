@@ -626,19 +626,14 @@ int dummy;
             srcs[f] = s
         return srcs
 
-    # Languages that can mix with C or C++ but don't support unity builds yet
-    # because the syntax we use for unity builds is specific to C/++/ObjC/++.
-    # Assembly files cannot be unitified and neither can LLVM IR files
-    langs_cant_unity = ('d', 'fortran')
-
     def get_target_source_can_unity(self, target, source):
         if isinstance(source, File):
             source = source.fname
         if self.environment.is_llvm_ir(source) or \
            self.environment.is_assembly(source):
             return False
-        suffix = os.path.splitext(source)[1][1:]
-        for lang in self.langs_cant_unity:
+        suffix = os.path.splitext(source)[1][1:].lower()
+        for lang in backends.LANGS_CANT_UNITY:
             if lang not in target.compilers:
                 continue
             if suffix in target.compilers[lang].file_suffixes:
@@ -762,7 +757,7 @@ int dummy;
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
             langs = set(target.compilers.keys())
-            langs_cant = langs.intersection(self.langs_cant_unity)
+            langs_cant = langs.intersection(backends.LANGS_CANT_UNITY)
             if langs_cant:
                 langs_are = langs = ', '.join(langs_cant).upper()
                 langs_are += ' are' if len(langs_cant) > 1 else ' is'
@@ -918,7 +913,7 @@ int dummy;
         all_suffixes = set(compilers.lang_suffixes['cpp']) | set(compilers.lang_suffixes['fortran'])
         selected_sources = []
         for source in compiled_sources:
-            ext = os.path.splitext(source)[1][1:]
+            ext = os.path.splitext(source)[1][1:].lower()
             if ext in all_suffixes:
                 selected_sources.append(source)
         return selected_sources
@@ -2602,7 +2597,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
     def get_fortran_orderdeps(self, target, compiler):
         if compiler.language != 'fortran':
             return []
-        return [os.path.join(self.get_target_dir(lt), lt.get_filename()) for lt in target.link_targets]
+        return [
+            os.path.join(self.get_target_dir(lt), lt.get_filename())
+            for lt in itertools.chain(target.link_targets, target.link_whole_targets)
+        ]
 
     def generate_msvc_pch_command(self, target, compiler, pch):
         header = pch[0]
