@@ -51,6 +51,18 @@ def get_backend_from_coredata(builddir: Path) -> str:
     assert isinstance(backend, str)
     return backend
 
+def parse_introspect_buildoptions(builddir: Path) -> T.Dict[str, T.Dict[str, dict]]:
+    path_to_intro = builddir / 'meson-info' / 'intro-buildoptions.json'
+    if not path_to_intro.exists():
+        raise MesonException('`{}` is missing! Directory is not configured yet?'.format(path_to_intro.name))
+    with path_to_intro.open() as f:
+        schema = json.load(f)
+
+    parsed_data = {}
+    for option in schema:
+        parsed_data[option['name']] = option
+    return parsed_data
+
 def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     """
     Converts a List of name-to-dict to a dict of name-to-dicts (since names are not unique)
@@ -184,6 +196,10 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
     sln = slns[0]
 
     cmd = ['msbuild']
+
+    # Add configuration because otherwise msbuild defaults to "Debug" when building individual vcxprojs
+    intro_buildoptions = parse_introspect_buildoptions(builddir)
+    cmd.append(f'-p:configuration={intro_buildoptions["buildtype"]["value"]}')
 
     if options.targets:
         intro_data = parse_introspect_data(builddir)

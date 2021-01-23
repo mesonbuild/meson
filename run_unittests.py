@@ -4790,11 +4790,16 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(os.path.join(self.builddir, 'sub', get_static_lib_name('foo')))
 
         # run_target
-
         testdir = os.path.join(self.common_test_dir, '52 run target')
         self.init(testdir, extra_args=['--wipe'])
         out = self._run([*self.meson_command, 'compile', '-C', self.builddir, 'py3hi'])
         self.assertIn('I am Python3.', out)
+        # with different build type https://github.com/mesonbuild/meson/issues/8237
+        if self.backend is Backend.vs:
+            self._run([*self.meson_command, 'configure', self.builddir, '-Dbuildtype=release'])
+            self.init(testdir, extra_args=['--wipe'])
+            out = self._run([*self.meson_command, 'compile', '-C', self.builddir, 'py3hi'])
+            self.assertIn('I am Python3.', out)
 
         # `--$BACKEND-args`
 
