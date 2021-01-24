@@ -348,8 +348,20 @@ class FileMode:
             perms |= stat.S_ISVTX
         return perms
 
+already_warned_about_C_H = False
 class File:
     def __init__(self, is_built: bool, subdir: str, fname: str):
+        global already_warned_about_C_H
+        if not already_warned_about_C_H:
+            if fname.endswith(".C") or fname.endswith(".H"):
+                already_warned_about_C_H = True
+                mlog.warning("""You are using .C or .H files in your project. Do not do that.
+         If it is plain C code, use .h and .c instead, to avoid confusion
+             and to make your project work with gcc and clang.
+         If it is C++ code, use one of these instead to avoid confusion:
+             .h .cc .hh .cpp .hpp .cxx .hpp .c++ .(The ISO recommends .h and .cpp).
+         In either case, your build might break with future updates of meson.
+         See https://github.com/mesonbuild/meson/pull/8239 for the discussions.""")
         self.is_built = is_built
         self.subdir = subdir
         self.fname = fname
