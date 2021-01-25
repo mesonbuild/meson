@@ -1593,7 +1593,7 @@ int dummy;
                 if isinstance(g, GeneratedList):
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
-                    fname = i
+                    fname = os.path.join(g.get_subdir(), i)
                 if main_rust_file is None:
                     main_rust_file = fname
                 orderdeps.append(fname)
