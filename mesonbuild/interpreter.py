@@ -4140,6 +4140,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if not isinstance(should_fail, bool):
             raise InterpreterException('Keyword argument should_fail must be a boolean.')
         timeout = kwargs.get('timeout', 30)
+        if not isinstance(timeout, int):
+            raise InterpreterException('Timeout must be an integer.')
+        if timeout <= 0:
+            FeatureNew('test() timeout <= 0', '0.57.0').use(self.subproject)
         if 'workdir' in kwargs:
             workdir = kwargs['workdir']
             if not isinstance(workdir, str):
@@ -4148,8 +4152,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Workdir keyword argument must be an absolute path.')
         else:
             workdir = None
-        if not isinstance(timeout, int):
-            raise InterpreterException('Timeout must be an integer.')
         protocol = kwargs.get('protocol', 'exitcode')
         if protocol not in {'exitcode', 'tap', 'gtest', 'rust'}:
             raise InterpreterException('Protocol must be one of "exitcode", "tap", "gtest", or "rust".')
@@ -4638,6 +4640,8 @@ different subdirectory.
         timeout_multiplier = kwargs.get('timeout_multiplier', 1)
         if not isinstance(timeout_multiplier, int):
             raise InterpreterException('Timeout multiplier must be a number.')
+        if timeout_multiplier <= 0:
+            FeatureNew('add_test_setup() timeout_multiplier <= 0', '0.57.0').use(self.subproject)
         is_default = kwargs.get('is_default', False)
         if not isinstance(is_default, bool):
             raise InterpreterException('is_default option must be a boolean')
