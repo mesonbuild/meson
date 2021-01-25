@@ -119,7 +119,9 @@ the following:
   environment juggling. *(since 0.52.0)* A dictionary is also accepted.
 - `exe_wrapper`: a list containing the wrapper command or script followed by the arguments to it
 - `gdb`: if `true`, the tests are also run under `gdb`
-- `timeout_multiplier`: a number to multiply the test timeout with
+- `timeout_multiplier`: a number to multiply the test timeout with.
+  *Since 0.57* if timeout_multiplier is `<= 0` the test has infinite duration,
+  in previous versions of Meson the test would fail with a timeout immediately.
 - `is_default` *(since 0.49.0)*: a bool to set whether this is the default test setup.
   If `true`, the setup will be used whenever `meson test` is run
   without the `--setup` option.
@@ -1730,7 +1732,8 @@ test(..., env: nomalloc, ...)
 
 - `timeout`: the amount of seconds the test is allowed to run, a test
   that exceeds its time limit is always considered failed, defaults to
-  30 seconds
+  30 seconds. *Since 0.57* if timeout is `<= 0` the test has infinite duration,
+  in previous versions of Meson the test would fail with a timeout immediately.
 
 - `workdir`: absolute path that will be used as the working directory
   for the test

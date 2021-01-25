@@ -129,7 +129,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument('-t', '--timeout-multiplier', type=float, default=None,
                         help='Define a multiplier for test timeout, for example '
                         ' when running tests in particular conditions they might take'
-                        ' more time to execute.')
+                        ' more time to execute. (<= 0 to disable timeout)')
     parser.add_argument('--setup', default=None, dest='setup',
                         help='Which test setup to use.')
     parser.add_argument('--test-args', default=[], type=split_args,
@@ -492,7 +492,7 @@ class ConsoleLogger(TestLogger):
             spaces=' ' * TestResult.maxlen(),
             dur=int(time.time() - self.progress_test.starttime),
             durlen=harness.duration_max_len,
-            timeout=int(self.progress_test.timeout))
+            timeout=int(self.progress_test.timeout or -1))
         detail = self.progress_test.detail
         if detail:
             right += '   ' + detail
@@ -1158,12 +1158,14 @@ class SingleTestRunner:
         self.env = env
         self.options = options
 
-        if self.options.gdb or self.test.timeout is None:
+        if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
-        elif self.options.timeout_multiplier is not None:
-            timeout = self.test.timeout * self.options.timeout_multiplier
-        else:
+        elif self.options.timeout_multiplier is None:
             timeout = self.test.timeout
+        elif self.options.timeout_multiplier <= 0:
+            timeout = None
+        else:
+            timeout = self.test.timeout * self.options.timeout_multiplier
 
         self.runobj = TestRun(test, test_env, name, timeout)
 
