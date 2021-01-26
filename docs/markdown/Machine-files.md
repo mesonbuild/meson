@@ -34,7 +34,7 @@ A boolean must be either `true` or `false`, and unquoted.
 option = false
 ```
 
-An integer must be either an unquoted numeric constant;
+An integer must be an unquoted numeric constant.
 ```ini
 option = 42
 ```
