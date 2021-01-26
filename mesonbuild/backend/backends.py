@@ -22,9 +22,10 @@ import os
 import pickle
 import re
 import shlex
-import subprocess
 import textwrap
 import typing as T
+import hashlib
+import copy
 
 from .. import build
 from .. import dependencies
@@ -105,7 +106,7 @@ class InstallData:
         self.data: 'InstallType' = []
         self.po_package_name: str = ''
         self.po = []
-        self.install_scripts: T.List[build.RunScript] = []
+        self.install_scripts: T.List[ExecutableSerialisation] = []
         self.install_subdirs: 'InstallSubdirsType' = []
         self.mesonintrospect = mesonintrospect
         self.version = version
@@ -377,13 +378,11 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
-                             extra_bdeps=None, capture=None, force_serialize=False,
-                             env: T.Optional[build.EnvironmentVariables] = None):
-        '''
-        Serialize an executable for running with a generator or a custom target
-        '''
-        import hashlib
+    def get_executable_serialisation(self, cmd, workdir=None,
+                                     extra_bdeps=None, capture=None,
+                                     env: T.Optional[build.EnvironmentVariables] = None):
+        exe = cmd[0]
+        cmd_args = cmd[1:]
         if isinstance(exe, dependencies.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
@@ -403,11 +402,10 @@ class Backend:
         is_cross_built = not self.environment.machines.matches_build_machine(exe_for_machine)
         if is_cross_built and self.environment.need_exe_wrapper():
             exe_wrapper = self.environment.get_exe_wrapper()
-            if not exe_wrapper.found():
-                msg = 'The exe_wrapper {!r} defined in the cross file is ' \
-                      'needed by target {!r}, but was not found. Please ' \
-                      'check the command and/or add it to PATH.'
-                raise MesonException(msg.format(exe_wrapper.name, tname))
+            if not exe_wrapper or not exe_wrapper.found():
+                msg = 'An exe_wrapper is needed but was not found. Please define one ' \
+                      'in cross file and check the command and/or add it to PATH.'
+                raise MesonException(msg)
         else:
             if exe_cmd[0].endswith('.jar'):
                 exe_cmd = ['java', '-jar'] + exe_cmd
@@ -415,11 +413,24 @@ class Backend:
                 exe_cmd = ['mono'] + exe_cmd
             exe_wrapper = None
 
+        workdir = workdir or self.environment.get_build_dir()
+        return ExecutableSerialisation(exe_cmd + cmd_args, env,
+                                       exe_wrapper, workdir,
+                                       extra_paths, capture)
+
+    def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
+                             extra_bdeps=None, capture=None, force_serialize=False,
+                             env: T.Optional[build.EnvironmentVariables] = None):
+        '''
+        Serialize an executable for running with a generator or a custom target
+        '''
+        cmd = [exe] + cmd_args
+        es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, env)
         reasons = []
-        if extra_paths:
+        if es.extra_paths:
             reasons.append('to set PATH')
 
-        if exe_wrapper:
+        if es.exe_runner:
             reasons.append('to use exe_wrapper')
 
         if workdir:
@@ -440,10 +451,9 @@ class Backend:
             if not capture:
                 return None, ''
             return ((self.environment.get_build_command() +
-                    ['--internal', 'exe', '--capture', capture, '--'] + exe_cmd + cmd_args),
+                    ['--internal', 'exe', '--capture', capture, '--'] + es.cmd_args),
                     ', '.join(reasons))
 
-        workdir = workdir or self.environment.get_build_dir()
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
@@ -454,15 +464,12 @@ class Backend:
         # Take a digest of the cmd args, env, workdir, and capture. This avoids
         # collisions and also makes the name deterministic over regenerations
         # which avoids a rebuild by Ninja because the cmdline stays the same.
-        data = bytes(str(env) + str(cmd_args) + str(workdir) + str(capture),
+        data = bytes(str(env) + str(cmd_args) + str(es.workdir) + str(capture),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
-            es = ExecutableSerialisation(exe_cmd + cmd_args, env,
-                                         exe_wrapper, workdir,
-                                         extra_paths, capture)
             pickle.dump(es, f)
         return (self.environment.get_build_command() + ['--internal', 'exe', '--unpickle', exe_data],
                 ', '.join(reasons))
@@ -1186,16 +1193,16 @@ class Backend:
         return inputs, outputs, cmd
 
     def run_postconf_scripts(self) -> None:
+        from ..scripts.meson_exe import run_exe
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
                }
-        child_env = os.environ.copy()
-        child_env.update(env)
 
         for s in self.build.postconf_scripts:
-            cmd = s['exe'] + s['args']
-            subprocess.check_call(cmd, env=child_env)
+            name = ' '.join(s.cmd_args)
+            mlog.log('Running postconf script {!r}'.format(name))
+            run_exe(s, env)
 
     def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')
@@ -1324,18 +1331,18 @@ class Backend:
                         d.targets.append(i)
 
     def generate_custom_install_script(self, d: InstallData) -> None:
-        result: T.List[build.RunScript] = []
+        result: T.List[ExecutableSerialisation] = []
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
         for i in self.build.install_scripts:
-            exe = i['exe']
-            args = i['args']
             fixed_args = []
-            for a in args:
+            for a in i.cmd_args:
                 a = a.replace('@SOURCE_ROOT@', srcdir)
                 a = a.replace('@BUILD_ROOT@', builddir)
                 fixed_args.append(a)
-            result.append(build.RunScript(exe, fixed_args))
+            es = copy.copy(i)
+            es.cmd_args = fixed_args
+            result.append(es)
         d.install_scripts = result
 
     def generate_header_install(self, d: InstallData) -> None:

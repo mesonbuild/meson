@@ -2609,14 +2609,6 @@ class Data:
         else:
             self.rename = rename
 
-class RunScript(dict):
-    def __init__(self, script, args):
-        super().__init__()
-        assert(isinstance(script, list))
-        assert(isinstance(args, list))
-        self['exe'] = script
-        self['args'] = args
-
 class TestSetup:
     def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
                  timeout_multiplier: int, env: EnvironmentVariables):

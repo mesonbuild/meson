@@ -30,6 +30,7 @@ from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
 from .mesonlib import is_windows, Popen_safe
 from .scripts import depfixer, destdir_join
+from .scripts.meson_exe import run_exe
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -485,17 +486,12 @@ class Installer:
         if self.options.quiet:
             env['MESON_INSTALL_QUIET'] = '1'
 
-        child_env = os.environ.copy()
-        child_env.update(env)
-
         for i in d.install_scripts:
             self.did_install_something = True  # Custom script must report itself if it does nothing.
-            script = i['exe']
-            args = i['args']
-            name = ' '.join(script + args)
+            name = ' '.join(i.cmd_args)
             self.log('Running custom install script {!r}'.format(name))
             try:
-                rc = subprocess.call(script + args, env=child_env)
+                rc = run_exe(i, env)
             except OSError:
                 print('FAILED: install script \'{}\' could not be run, stopped'.format(name))
                 # POSIX shells return 127 when a command could not be found

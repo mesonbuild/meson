@@ -180,7 +180,7 @@ class I18nModule(ExtensionModule):
                     pkg_arg]
             if lang_arg:
                 args.append(lang_arg)
-            iscript = build.RunScript(script, args)
+            iscript = state.backend.get_executable_serialisation(script + args)
             targets.append(iscript)
 
         return ModuleReturnValue(None, targets)
