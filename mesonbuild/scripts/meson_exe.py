@@ -30,7 +30,7 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--capture')
     return parser
 
-def run_exe(exe: ExecutableSerialisation) -> int:
+def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) -> int:
     if exe.exe_runner:
         if not exe.exe_runner.found():
             raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
@@ -39,6 +39,8 @@ def run_exe(exe: ExecutableSerialisation) -> int:
     else:
         cmd_args = exe.cmd_args
     child_env = os.environ.copy()
+    if extra_env:
+        child_env.update(extra_env)
     if exe.env:
         child_env = exe.env.get_env(child_env)
     if exe.extra_paths:
@@ -56,14 +58,21 @@ def run_exe(exe: ExecutableSerialisation) -> int:
                          stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
-    if exe.pickled and p.returncode != 0:
-        print('while executing {!r}'.format(cmd_args))
-
     if p.returncode == 0xc0000135:
         # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
         raise FileNotFoundError('due to missing DLLs')
 
-    if exe.capture and p.returncode == 0:
+    if p.returncode != 0:
+        if exe.pickled:
+            print('while executing {!r}'.format(cmd_args))
+        if not exe.capture:
+            print('--- stdout ---')
+            print(stdout.decode())
+        print('--- stderr ---')
+        print(stderr.decode())
+        return p.returncode
+
+    if exe.capture:
         skip_write = False
         try:
             with open(exe.capture, 'rb') as cur:
@@ -73,11 +82,8 @@ def run_exe(exe: ExecutableSerialisation) -> int:
         if not skip_write:
             with open(exe.capture, 'wb') as output:
                 output.write(stdout)
-    else:
-        sys.stdout.buffer.write(stdout)
-    if stderr:
-        sys.stderr.buffer.write(stderr)
-    return p.returncode
+
+    return 0
 
 def run(args: T.List[str]) -> int:
     global options

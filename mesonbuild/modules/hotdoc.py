@@ -350,7 +350,7 @@ class HotdocTargetBuilder:
 
         install_script = None
         if install is True:
-            install_script = HotdocRunScript(self.build_command, [
+            install_script = self.state.backend.get_executable_serialisation(self.build_command + [
                 "--internal", "hotdoc",
                 "--install", os.path.join(fullname, 'html'),
                 '--name', self.name,
@@ -389,11 +389,6 @@ class HotdocTarget(build.CustomTarget):
         res['subprojects'] = []
 
         return res
-
-
-class HotdocRunScript(build.RunScript):
-    def __init__(self, script, args):
-        super().__init__(script, args)
 
 
 class HotDocModule(ExtensionModule):

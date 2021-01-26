@@ -26,6 +26,7 @@ from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import windows_proof_rmtree, MesonException, quiet_git
 from mesonbuild.wrap import wrap
 from mesonbuild import mlog, build
+from .scripts.meson_exe import run_exe
 
 archive_choices = ['gztar', 'xztar', 'zip']
 archive_extension = {'gztar': '.tar.gz',
@@ -79,17 +80,15 @@ def process_submodules(dirname):
 
 def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
     assert(os.path.isabs(dist_root))
-    env = os.environ.copy()
+    env = {}
     env['MESON_DIST_ROOT'] = dist_root
     env['MESON_SOURCE_ROOT'] = src_root
     env['MESON_BUILD_ROOT'] = bld_root
     for d in dist_scripts:
-        script = d['exe']
-        args = d['args']
-        name = ' '.join(script + args)
+        name = ' '.join(d.cmd_args)
         print('Running custom dist script {!r}'.format(name))
         try:
-            rc = subprocess.call(script + args, env=env)
+            rc = run_exe(d, env)
             if rc != 0:
                 sys.exit('Dist script errored out')
         except OSError:
