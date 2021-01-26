@@ -899,7 +899,7 @@ class GnomeModule(ExtensionModule):
             args.append('--media=' + '@@'.join(media))
         if langs:
             args.append('--langs=' + '@@'.join(langs))
-        inscript = build.RunScript(script, args)
+        inscript = state.backend.get_executable_serialisation(script + args)
 
         potargs = state.environment.get_build_command() + [
             '--internal', 'yelphelper', 'pot',
@@ -1051,7 +1051,7 @@ class GnomeModule(ExtensionModule):
             self.interpreter.add_test(state.current_node, check_args, check_kwargs, True)
         res = [custom_target, alias_target]
         if kwargs.get('install', True):
-            res.append(build.RunScript(command, args))
+            res.append(state.backend.get_executable_serialisation(command + args))
         return ModuleReturnValue(custom_target, res)
 
     def _get_build_args(self, kwargs, state, depends):

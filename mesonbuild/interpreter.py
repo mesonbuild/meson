@@ -34,7 +34,7 @@ from .interpreterbase import ObjectHolder, MesonVersionString
 from .interpreterbase import TYPE_var, TYPE_nkwargs
 from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
-from .backend.backends import TestProtocol, Backend
+from .backend.backends import TestProtocol, Backend, ExecutableSerialisation
 
 from pathlib import Path, PurePath
 import os
@@ -1948,11 +1948,8 @@ class MesonMain(InterpreterObject):
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
-        if isinstance(prog, ExecutableHolder):
-            prog_path = self.interpreter.backend.get_target_filename(prog.held_object)
-            return build.RunScript([prog_path], args)
-        elif isinstance(prog, ExternalProgramHolder):
-            return build.RunScript(prog.get_command(), args)
+        if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
+            return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
         # Prefer scripts in the current source directory
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
@@ -1970,7 +1967,7 @@ class MesonMain(InterpreterObject):
         else:
             m = 'Script or command {!r} not found or not executable'
             raise InterpreterException(m.format(prog))
-        return build.RunScript(found.get_command(), args)
+        return self.interpreter.backend.get_executable_serialisation([found] + args)
 
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
@@ -2557,7 +2554,7 @@ class Interpreter(InterpreterBase):
             return GeneratedListHolder(item)
         elif isinstance(item, build.RunTarget):
             raise RuntimeError('This is not a pipe.')
-        elif isinstance(item, build.RunScript):
+        elif isinstance(item, ExecutableSerialisation):
             raise RuntimeError('Do not do this.')
         elif isinstance(item, build.Data):
             return DataHolder(item)
@@ -2584,7 +2581,7 @@ class Interpreter(InterpreterBase):
                 self.module_method_callback(v)
             elif isinstance(v, build.GeneratedList):
                 pass
-            elif isinstance(v, build.RunScript):
+            elif isinstance(v, ExecutableSerialisation):
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
