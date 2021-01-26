@@ -32,7 +32,7 @@ jobs:
           - { name: Fedora,           id: fedora   }
           - { name: OpenSUSE,         id: opensuse }
           - { name: Ubuntu Bionic,    id: bionic   }
-          - { name: Ubuntu Eoan,      id: eoan     }
+          - { name: Ubuntu Rolling,   id: ubuntu-rolling  }
     steps:
       - uses: actions/checkout@v2
 
