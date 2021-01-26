@@ -1,11 +1,18 @@
 name: $(BuildID)
 
-trigger:
+pr:
   branches:
     include:
     - 'master'
     # Release branches
     - '0.*'
+  paths:
+    include:
+    - mesonbuild/
+    - "test cases"/
+    # - azure-pipeline.yml
+    - ci/azure-steps.yml
+    - ci/run.ps1
 
 variables:
   CI: 1
