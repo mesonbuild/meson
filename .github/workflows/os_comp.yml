@@ -21,7 +21,6 @@ on:
       - "run_unittests.py"
 
 jobs:
-  arch:
     name: ${{ matrix.cfg.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -42,8 +41,8 @@ jobs:
       # via the `args` array ub the image.json
       run: bash -c 'source /ci/env_vars.sh; cd $GITHUB_WORKSPACE; ./run_tests.py $CI_ARGS'
 
-  eoan:
-    name: 'Ubuntu Eoan'
+  ubuntu-rolling:
+    name: 'Ubuntu Rolling'
     runs-on: ubuntu-latest
 
     strategy:
@@ -72,7 +71,7 @@ jobs:
             CXX: 'g++'
 
     container:
-      image: mesonbuild/eoan
+      image: mesonbuild/ubuntu-rolling
       env:
         MESON_RSP_THRESHOLD: ${{ matrix.cfg.MESON_RSP_THRESHOLD }}
         MESON_ARGS: ${{ matrix.cfg.MESON_ARGS }}
