@@ -1947,26 +1947,29 @@ class MesonMain(InterpreterObject):
                              'backend': self.backend_method,
                              })
 
-    def _find_source_script(self, prog: T.Union[str, ExecutableHolder], args):
+    def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
         if isinstance(prog, ExecutableHolder):
             prog_path = self.interpreter.backend.get_target_filename(prog.held_object)
             return build.RunScript([prog_path], args)
         elif isinstance(prog, ExternalProgramHolder):
             return build.RunScript(prog.get_command(), args)
-
         # Prefer scripts in the current source directory
         search_dir = os.path.join(self.interpreter.environment.source_dir,
                                   self.interpreter.subdir)
         key = (prog, search_dir)
         if key in self._found_source_scripts:
             found = self._found_source_scripts[key]
+        elif isinstance(prog, mesonlib.File):
+            prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
+            found = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
         else:
             found = dependencies.ExternalProgram(prog, search_dir=search_dir)
-            if found.found():
-                self._found_source_scripts[key] = found
-            else:
-                m = 'Script or command {!r} not found or not executable'
-                raise InterpreterException(m.format(prog))
+
+        if found.found():
+            self._found_source_scripts[key] = found
+        else:
+            m = 'Script or command {!r} not found or not executable'
+            raise InterpreterException(m.format(prog))
         return build.RunScript(found.get_command(), args)
 
     def _process_script_args(
@@ -2016,9 +2019,12 @@ class MesonMain(InterpreterObject):
         return script_args
 
     @permittedKwargs(set())
-    def add_install_script_method(self, args: 'T.Tuple[T.Union[str, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
+    def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
+        if isinstance(args[0], mesonlib.File):
+            FeatureNew.single_use('Passing file object to script parameter of add_install_script',
+                                  '0.57.0', self.interpreter.subproject)
         script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.install_scripts.append(script)
@@ -2027,6 +2033,9 @@ class MesonMain(InterpreterObject):
     def add_postconf_script_method(self, args, kwargs):
         if len(args) < 1:
             raise InterpreterException('add_postconf_script takes one or more arguments')
+        if isinstance(args[0], mesonlib.File):
+            FeatureNew.single_use('Passing file object to script parameter of add_postconf_script',
+                                  '0.57.0', self.interpreter.subproject)
         script_args = self._process_script_args('add_postconf_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.postconf_scripts.append(script)
@@ -2038,6 +2047,9 @@ class MesonMain(InterpreterObject):
         if len(args) > 1:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
                                   '0.49.0', self.interpreter.subproject)
+        if isinstance(args[0], mesonlib.File):
+            FeatureNew.single_use('Passing file object to script parameter of add_dist_script',
+                                  '0.57.0', self.interpreter.subproject)
         if self.interpreter.subproject != '':
             raise InterpreterException('add_dist_script may not be used in a subproject.')
         script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)

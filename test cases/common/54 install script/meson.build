@@ -25,3 +25,11 @@ t = custom_target(
 
 meson.add_install_script('myinstall.py', 'customtarget', t, '--mode=copy')
 meson.add_install_script('myinstall.py', 'customtargetindex', t[0], '--mode=copy')
+
+installer = configure_file(
+  input : 'myinstall.py',
+  output : 'myinstall_copy.py',
+  copy : true,
+)
+
+meson.add_install_script(installer, 'otherdir', afile, '--mode=copy')
