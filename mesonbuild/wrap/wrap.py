@@ -353,8 +353,10 @@ class Resolver:
             raise WrapException(m)
 
     def resolve_git_submodule(self) -> bool:
+        # Is git installed? If not, we're probably not in a git repository and
+        # definitely cannot try to conveniently set up a submodule.
         if not GIT:
-            raise WrapException('Git program not found.')
+            return False
         # Are we in a git repository?
         ret, out = quiet_git(['rev-parse'], self.subdir_root)
         if not ret:
