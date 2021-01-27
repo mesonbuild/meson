@@ -1,4 +1,4 @@
-project('c++ test', 'cpp')
+project('c++ test', 'cpp', version: files('VERSION'))
 
 cpp = meson.get_compiler('cpp')
 if cpp.get_id() == 'intel'

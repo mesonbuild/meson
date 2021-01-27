@@ -5212,6 +5212,12 @@ class AllPlatformTests(BasePlatformTests):
             os.utime(str(cmakefile))
         self.assertReconfiguredBuildIsNoop()
 
+    def test_version_file(self):
+        srcdir = os.path.join(self.common_test_dir, '2 cpp')
+        self.init(srcdir)
+        projinfo = self.introspect('--projectinfo')
+        self.assertEqual(projinfo['version'], '1.0.0')
+
 
 class FailureTests(BasePlatformTests):
     '''
