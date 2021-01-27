@@ -1422,6 +1422,66 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), ['string'], None)
         self.assertEqual(str(cm.exception), 'foo takes between 2 and 3 arguments, but got 1.')
 
+    def test_typed_pos_args_variadic_and_optional(self) -> None:
+        @typed_pos_args('foo', str, optargs=[str], varargs=str, min_varargs=0)
+        def _(obj, node, args: T.Tuple[str, T.List[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(AssertionError) as cm:
+            _(None, mock.Mock(), ['string'], None)
+        self.assertEqual(
+            str(cm.exception),
+            'varargs and optargs not supported together as this would be ambiguous')
+
+    def test_typed_pos_args_min_optargs_not_met(self) -> None:
+        @typed_pos_args('foo', str, str, optargs=[str])
+        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string'], None)
+        self.assertEqual(str(cm.exception), 'foo takes at least 2 arguments, but got 1.')
+
+    def test_typed_pos_args_min_optargs_max_exceeded(self) -> None:
+        @typed_pos_args('foo', str, optargs=[str])
+        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+            self.assertTrue(False)  # should not be reachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), ['string', '1', '2'], None)
+        self.assertEqual(str(cm.exception), 'foo takes at most 2 arguments, but got 3.')
+
+    def test_typed_pos_args_optargs_not_given(self) -> None:
+        @typed_pos_args('foo', str, optargs=[str])
+        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+            self.assertEqual(len(args), 2)
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'string')
+            self.assertIsNone(args[1])
+
+        _(None, mock.Mock(), ['string'], None)
+
+    def test_typed_pos_args_optargs_some_given(self) -> None:
+        @typed_pos_args('foo', str, optargs=[str, int])
+        def _(obj, node, args: T.Tuple[str, T.Optional[str], T.Optional[int]], kwargs) -> None:
+            self.assertEqual(len(args), 3)
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'string')
+            self.assertIsInstance(args[1], str)
+            self.assertEqual(args[1], '1')
+            self.assertIsNone(args[2])
+
+        _(None, mock.Mock(), ['string', '1'], None)
+
+    def test_typed_pos_args_optargs_all_given(self) -> None:
+        @typed_pos_args('foo', str, optargs=[str])
+        def _(obj, node, args: T.Tuple[str, T.Optional[str]], kwargs) -> None:
+            self.assertEqual(len(args), 2)
+            self.assertIsInstance(args[0], str)
+            self.assertEqual(args[0], 'string')
+            self.assertIsInstance(args[1], str)
+
+        _(None, mock.Mock(), ['string', '1'], None)
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
