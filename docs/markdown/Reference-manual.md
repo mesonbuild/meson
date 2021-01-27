@@ -1432,7 +1432,9 @@ Project supports the following keyword arguments.
 
 - `version`: which is a free form string describing the version of
   this project. You can access the value in your Meson build files
-  with `meson.project_version()`.
+  with `meson.project_version()`. Since 0.57.0 this can also be a
+  `File` object pointing to a file that contains exactly one line of
+  text.
 
 ### run_command()
 
