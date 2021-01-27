@@ -18,8 +18,8 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BuildTarget, Executable, InvalidArguments
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter import ExecutableHolder, permitted_kwargs
-from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew
+from ..interpreter import ExecutableHolder, BuildTargetHolder, permitted_kwargs
+from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args
 from ..mesonlib import stringlistify, unholder, listify
 
 if T.TYPE_CHECKING:
@@ -35,7 +35,8 @@ class RustModule(ExtensionModule):
         super().__init__(interpreter)
 
     @permittedKwargs(permitted_kwargs['test'] | {'dependencies'} ^ {'protocol'})
-    def test(self, state: 'ModuleState', args: T.List, kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+    @typed_pos_args('rust.test', str, BuildTargetHolder)
+    def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTargetHolder], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.
 
         Rust puts it's unitests inside it's main source files, unlike most
@@ -77,14 +78,8 @@ class RustModule(ExtensionModule):
         rust.test('rust_lib_test', rust_lib)
         ```
         """
-        if len(args) != 2:
-            raise InterpreterException('rustmod.test() takes exactly 2 positional arguments')
-        name: str = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First positional argument to rustmod.test() must be a string')
+        name = args[0]
         base_target: BuildTarget = unholder(args[1])
-        if not isinstance(base_target, BuildTarget):
-            raise InterpreterException('Second positional argument to rustmod.test() must be a library or executable')
         if not base_target.uses_rust():
             raise InterpreterException('Second positional argument to rustmod.test() must be a rust based target')
         extra_args = stringlistify(kwargs.get('args', []))
