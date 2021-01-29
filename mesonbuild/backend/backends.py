@@ -137,6 +137,7 @@ class ExecutableSerialisation:
         self.extra_paths = extra_paths
         self.capture = capture
         self.pickled = False
+        self.skip_if_destdir = False
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],

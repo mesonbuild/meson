@@ -429,7 +429,7 @@ class Installer:
                 self.install_man(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 restore_selinux_contexts()
-                self.run_install_script(d, fullprefix)
+                self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
                 if not self.options.quiet and self.preserved_file_count > 0:
@@ -483,7 +483,7 @@ class Installer:
                 self.did_install_something = True
             set_mode(outfilename, install_mode, d.install_umask)
 
-    def run_install_script(self, d: InstallData, fullprefix: str) -> None:
+    def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
                'MESON_BUILD_ROOT': d.build_dir,
                'MESON_INSTALL_PREFIX': d.prefix,
@@ -494,8 +494,11 @@ class Installer:
             env['MESON_INSTALL_QUIET'] = '1'
 
         for i in d.install_scripts:
-            self.did_install_something = True  # Custom script must report itself if it does nothing.
             name = ' '.join(i.cmd_args)
+            if i.skip_if_destdir and destdir:
+                self.log('Skipping custom install script because DESTDIR is set {!r}'.format(name))
+                continue
+            self.did_install_something = True  # Custom script must report itself if it does nothing.
             self.log('Running custom install script {!r}'.format(name))
             try:
                 rc = run_exe(i, env)
