@@ -34,7 +34,7 @@ from ..mesonlib import (
     join_args, unholder,
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency, ExternalProgram
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -50,6 +50,10 @@ native_glib_version = None
 
 class GnomeModule(ExtensionModule):
     gir_dep = None
+
+    install_glib_compile_schemas = False
+    install_gio_querymodules = []
+    install_gtk_update_icon_cache = False
 
     @staticmethod
     def _get_native_glib_version(state):
@@ -79,6 +83,65 @@ class GnomeModule(ExtensionModule):
                      '  include_directories of targets with GLib < 2.51.3:',
                      mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
                      once=True)
+
+    def _get_native_dep(self, state, depname, required=True):
+        kwargs = {'native': True, 'required': required}
+        holder = self.interpreter.func_dependency(state.current_node, [depname], kwargs)
+        return holder.held_object
+
+    def _get_native_binary(self, state, name, depname, varname, required=True):
+        # Look in overrides in case glib/gtk/etc are built as subproject
+        prog = self.interpreter.program_from_overrides([name], [])
+        if prog is not None:
+            return unholder(prog)
+
+        # Look in machine file
+        prog = state.environment.lookup_binary_entry(MachineChoice.HOST, name)
+        if prog is not None:
+            return ExternalProgram.from_entry(name, prog)
+
+        # Check if pkgconfig has a variable
+        dep = self._get_native_dep(state, depname, required=False)
+        if dep.found() and dep.type_name == 'pkgconfig':
+            value = dep.get_pkgconfig_variable(varname, {})
+            if value:
+                return ExternalProgram(name, value)
+
+        # Normal program lookup
+        return unholder(self.interpreter.find_program_impl(name, required=required))
+
+    @permittedKwargs({'glib_compile_schemas', 'gio_querymodules', 'gtk_update_icon_cache'})
+    @noPosargs
+    @FeatureNew('gnome.post_install', '0.57.0')
+    def post_install(self, state, args, kwargs):
+        rv = []
+        datadir_abs = os.path.join(state.environment.get_prefix(), state.environment.get_datadir())
+        if kwargs.get('glib_compile_schemas', False) and not self.install_glib_compile_schemas:
+            self.install_glib_compile_schemas = True
+            prog = self._get_native_binary(state, 'glib-compile-schemas', 'gio-2.0', 'glib_compile_schemas')
+            schemasdir = os.path.join(datadir_abs, 'glib-2.0', 'schemas')
+            script = state.backend.get_executable_serialisation([prog, schemasdir])
+            script.skip_if_destdir = True
+            rv.append(script)
+        for d in mesonlib.extract_as_list(kwargs, 'gio_querymodules'):
+            if d not in self.install_gio_querymodules:
+                self.install_gio_querymodules.append(d)
+                prog = self._get_native_binary(state, 'gio-querymodules', 'gio-2.0', 'gio_querymodules')
+                moduledir = os.path.join(state.environment.get_prefix(), d)
+                script = state.backend.get_executable_serialisation([prog, moduledir])
+                script.skip_if_destdir = True
+                rv.append(script)
+        if kwargs.get('gtk_update_icon_cache', False) and not self.install_gtk_update_icon_cache:
+            self.install_gtk_update_icon_cache = True
+            prog = self._get_native_binary(state, 'gtk4-update-icon-cache', 'gtk-4.0', 'gtk4_update_icon_cache', required=False)
+            found = isinstance(prog, build.Executable) or prog.found()
+            if not found:
+                prog = self._get_native_binary(state, 'gtk-update-icon-cache', 'gtk+-3.0', 'gtk_update_icon_cache')
+            icondir = os.path.join(datadir_abs, 'icons', 'hicolor')
+            script = state.backend.get_executable_serialisation([prog, '-q', '-t' ,'-f', icondir])
+            script.skip_if_destdir = True
+            rv.append(script)
+        return ModuleReturnValue(None, rv)
 
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
@@ -418,23 +481,9 @@ class GnomeModule(ExtensionModule):
 
     def _get_gir_dep(self, state):
         if not self.gir_dep:
-            kwargs = {'native': True, 'required': True}
-            holder = self.interpreter.func_dependency(state.current_node, ['gobject-introspection-1.0'], kwargs)
-            self.gir_dep = holder.held_object
-            giscanner = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-scanner')
-            if giscanner is not None:
-                self.giscanner = ExternalProgram.from_entry('g-ir-scanner', giscanner)
-            elif self.gir_dep.type_name == 'pkgconfig':
-                self.giscanner = ExternalProgram('g_ir_scanner', self.gir_dep.get_pkgconfig_variable('g_ir_scanner', {}))
-            else:
-                self.giscanner = self.interpreter.find_program_impl('g-ir-scanner')
-            gicompiler = state.environment.lookup_binary_entry(MachineChoice.HOST, 'g-ir-compiler')
-            if gicompiler is not None:
-                self.gicompiler = ExternalProgram.from_entry('g-ir-compiler', gicompiler)
-            elif self.gir_dep.type_name == 'pkgconfig':
-                self.gicompiler = ExternalProgram('g_ir_compiler', self.gir_dep.get_pkgconfig_variable('g_ir_compiler', {}))
-            else:
-                self.gicompiler = self.interpreter.find_program_impl('g-ir-compiler')
+            self.gir_dep = self._get_native_dep(state, 'gobject-introspection-1.0')
+            self.giscanner = self._get_native_binary(state, 'g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
+            self.gicompiler = self._get_native_binary(state, 'g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
