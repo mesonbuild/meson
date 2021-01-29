@@ -1851,6 +1851,10 @@ the following methods.
   `MESON_BUILD_ROOT`, `MESON_INSTALL_PREFIX`,
   `MESON_INSTALL_DESTDIR_PREFIX`, and `MESONINTROSPECT` set.
   All positional arguments are passed as parameters.
+  *since 0.57.0* `skip_if_destdir` boolean keyword argument (defaults to `false`)
+  can be specified. If `true` the script will not be run if DESTDIR is set during
+  installation. This is useful in the case the script updates system wide
+  cache that is only needed when copying files into final destination.
 
   *(since 0.54.0)* If `meson install` is called with the `--quiet` option, the
   environment variable `MESON_INSTALL_QUIET` will be set.
