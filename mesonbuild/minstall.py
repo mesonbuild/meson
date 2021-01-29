@@ -53,6 +53,7 @@ if T.TYPE_CHECKING:
         profile: bool
         quiet: bool
         wd: str
+        destdir: str
 
 
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
@@ -72,6 +73,8 @@ def add_arguments(parser: argparse.Namespace) -> None:
                         help='Only overwrite files that are older than the copied file.')
     parser.add_argument('--quiet', default=False, action='store_true',
                         help='Do not print every file that was installed.')
+    parser.add_argument('--destdir', default=None,
+                        help='Sets or overrides DESTDIR environment. (Since 0.57.0)')
 
 class DirMaker:
     def __init__(self, lf: T.TextIO):
@@ -405,6 +408,10 @@ class Installer:
     def do_install(self, datafilename: str) -> None:
         with open(datafilename, 'rb') as ifile:
             d = self.check_installdata(pickle.load(ifile))
+
+        # Override in the env because some scripts could be relying on it.
+        if self.options.destdir is not None:
+            os.environ['DESTDIR'] = self.options.destdir
 
         destdir = os.environ.get('DESTDIR', '')
         fullprefix = destdir_join(destdir, d.prefix)
