@@ -2015,15 +2015,20 @@ class MesonMain(InterpreterObject):
                 '0.55.0', self.interpreter.subproject)
         return script_args
 
-    @permittedKwargs(set())
+    @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
+    @permittedKwargs({'skip_if_destdir'})
     def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_install_script',
                                   '0.57.0', self.interpreter.subproject)
+        skip_if_destdir = kwargs.get('skip_if_destdir', False)
+        if not isinstance(skip_if_destdir, bool):
+            raise InterpreterException('skip_if_destdir keyword argument must be boolean')
         script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
+        script.skip_if_destdir = skip_if_destdir
         self.build.install_scripts.append(script)
 
     @permittedKwargs(set())
