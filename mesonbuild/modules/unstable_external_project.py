@@ -119,7 +119,10 @@ class ExternalProject(InterpreterObject):
                 link_exelist = compiler.get_linker_exelist()
                 link_args = self.env.coredata.get_external_link_args(MachineChoice.HOST, lang)
         if link_exelist:
-            self.run_env['LD'] = self._quote_and_join(link_exelist)
+            # FIXME: Do not pass linker because Meson uses CC as linker wrapper,
+            # but autotools often expects the real linker (e.h. GNU ld).
+            # self.run_env['LD'] = self._quote_and_join(link_exelist)
+            pass
         self.run_env['LDFLAGS'] = self._quote_and_join(link_args)
 
         self.run_env = self.user_env.get_env(self.run_env)
