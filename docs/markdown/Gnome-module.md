@@ -357,3 +357,20 @@ Takes as argument a module name and returns the path where that
 module's HTML files will be installed. Usually used with
 `install_data` to install extra files, such as images, to the output
 directory.
+
+### gnome.post_install()
+
+*Since 0.57.0*
+
+Post-install update of various system wide caches. Each script will be executed
+only once even if `gnome.post_install()` is called multiple times from multiple
+subprojects. If `DESTDIR` is specified during installation all scripts will be
+skipped.
+
+It takes the following keyword arguments:
+- `glib_compile_schemas`: If set to `true`, update `gschemas.compiled` file in
+  `<prefix>/<datadir>/glib-2.0/schemas`.
+- `gio_querymodules`: List of directories relative to `prefix` where
+  `giomodule.cache` file will be updated.
+- `gtk_update_icon_cache`: If set to `true`, update `icon-theme.cache` file in
+  `<prefix>/<datadir>/icons/hicolor`.
