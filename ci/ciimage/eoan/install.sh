@@ -51,6 +51,7 @@ dub build urld --compiler=gdc
 dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=ldc2
 dub build dubtestproject:test2 --compiler=ldc2
+dub build dubtestproject:test3 --compiler=gdc
 
 # cleanup
 apt-get -y clean

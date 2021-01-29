@@ -43,6 +43,7 @@ dub build urld --compiler=dmd
 dub_fetch dubtestproject
 dub build dubtestproject:test1 --compiler=dmd
 dub build dubtestproject:test2 --compiler=dmd
+dub build dubtestproject:test3 --compiler=dmd
 
 # Cleanup
 zypper --non-interactive clean --all
