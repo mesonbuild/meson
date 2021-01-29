@@ -90,11 +90,11 @@ class ExternalProject(InterpreterObject):
         configure_prog = self.interpreter.find_program_impl(configure_path.as_posix())
         configure_cmd = configure_prog.get_command()
 
-        d = {'PREFIX': self.prefix.as_posix(),
-             'LIBDIR': self.libdir.as_posix(),
-             'INCLUDEDIR': self.includedir.as_posix(),
-             }
-        self._validate_configure_options(d.keys())
+        d = [('PREFIX', '--prefix=@PREFIX@', self.prefix.as_posix()),
+             ('LIBDIR', '--libdir=@PREFIX@/@LIBDIR@', self.libdir.as_posix()),
+             ('INCLUDEDIR', '--includedir=@PREFIX@/@INCLUDEDIR@', self.includedir.as_posix()),
+             ]
+        self._validate_configure_options(d)
 
         configure_cmd += self._format_options(self.configure_options, d)
 
@@ -102,7 +102,7 @@ class ExternalProject(InterpreterObject):
             host = '{}-{}-{}'.format(self.host_machine.cpu_family,
                                      self.build_machine.system,
                                      self.host_machine.system)
-            d = {'HOST': host}
+            d = [('HOST', None, host)]
             configure_cmd += self._format_options(self.cross_configure_options, d)
 
         # Set common env variables like CFLAGS, CC, etc.
@@ -136,23 +136,23 @@ class ExternalProject(InterpreterObject):
     def _quote_and_join(self, array: T.List[str]) -> str:
         return ' '.join([shlex.quote(i) for i in array])
 
-    def _validate_configure_options(self, required_keys: T.List[str]):
+    def _validate_configure_options(self, variables: T.List[T.Tuple[str, str, str]]):
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
-        for key in required_keys:
+        for key, default, val in variables:
             key_format = '@{}@'.format(key)
             for option in self.configure_options:
                 if key_format in option:
                     break
             else:
-                m = 'At least one configure option must contain "{}" key'
-                raise InterpreterException(m.format(key_format))
+                FeatureNew('Default configure_option', '0.57.0').use(self.subproject)
+                self.configure_options.append(default)
 
-    def _format_options(self, options: T.List[str], variables: T.Dict[str, str]) -> T.List[str]:
+    def _format_options(self, options: T.List[str], variables: T.List[T.Tuple[str, str, str]]) -> T.List[str]:
         out = []
         missing = set()
         regex = get_variable_regex('meson')
-        confdata = {k: (v, None) for k, v in variables.items()}
+        confdata = {k: (v, None) for k, d, v in variables}
         for o in options:
             arg, missing_vars = do_replacement(regex, o, 'meson', confdata)
             missing.update(missing_vars)
