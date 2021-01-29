@@ -162,12 +162,13 @@ class ExternalProject(InterpreterObject):
 
     def _run(self, step: str, command: T.List[str]):
         mlog.log('External project {}:'.format(self.name), mlog.bold(step))
-        m = 'Running command: ' + str(command)
+        m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
         log_filename = Path(mlog.log_dir, '{}-{}.log'.format(self.name, step))
         output = None
         if not self.verbose:
             output = open(log_filename, 'w')
             output.write(m + '\n')
+            output.flush()
         else:
             mlog.log(m)
         p, o, e = Popen_safe(command, cwd=str(self.build_dir), env=self.run_env,
@@ -186,6 +187,7 @@ class ExternalProject(InterpreterObject):
                 '--srcdir', self.src_dir.as_posix(),
                 '--builddir', self.build_dir.as_posix(),
                 '--installdir', self.install_dir.as_posix(),
+                '--logdir', mlog.log_dir,
                 '--make', self.make,
                 ]
         if self.verbose:

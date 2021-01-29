@@ -27,6 +27,7 @@ class ExternalProject:
         self.src_dir = options.srcdir
         self.build_dir = options.builddir
         self.install_dir = options.installdir
+        self.log_dir = options.logdir
         self.verbose = options.verbose
         self.stampfile = options.stampfile
         self.depfile = options.depfile
@@ -55,17 +56,15 @@ class ExternalProject:
 
     def build(self) -> int:
         make_cmd = [self.make]
-        if not self.verbose:
-            make_cmd.append('--quiet')
         if self.gnu_make():
             make_cmd.append('-j' + str(multiprocessing.cpu_count()))
 
-        rc = self._run(make_cmd)
+        rc = self._run('build', make_cmd)
         if rc != 0:
             return rc
 
         install_cmd = make_cmd + ['DESTDIR= ' + self.install_dir, 'install']
-        rc = self._run(install_cmd)
+        rc = self._run('install', install_cmd)
         if rc != 0:
             return rc
 
@@ -74,10 +73,23 @@ class ExternalProject:
 
         return 0
 
-    def _run(self, command: T.List[str]) -> int:
-        output = None if self.verbose else subprocess.DEVNULL
+    def _run(self, step: str, command: T.List[str]) -> int:
+        m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
+        log_filename = Path(self.log_dir, '{}-{}.log'.format(self.name, step))
+        output = None
+        if not self.verbose:
+            output = open(log_filename, 'w')
+            output.write(m + '\n')
+            output.flush()
+        else:
+            print(m)
         p, o, e = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
                              cwd=self.build_dir)
+        if p.returncode != 0:
+            m = '{} step returned error code {}.'.format(step, p.returncode)
+            if not self.verbose:
+                m += '\nSee logs: ' + str(log_filename)
+            print(m)
         return p.returncode
 
 def run(args: T.List[str]) -> int:
@@ -86,6 +98,7 @@ def run(args: T.List[str]) -> int:
     parser.add_argument('--srcdir')
     parser.add_argument('--builddir')
     parser.add_argument('--installdir')
+    parser.add_argument('--logdir')
     parser.add_argument('--make')
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('stampfile')
