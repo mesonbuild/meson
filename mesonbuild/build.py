@@ -223,6 +223,13 @@ class Build:
         self.searched_programs = set() # The list of all programs that have been searched for.
         self.dependency_overrides = PerMachine({}, {})
 
+    def get_build_targets(self):
+        build_targets = OrderedDict()
+        for name, t in self.targets.items():
+            if isinstance(t, BuildTarget):
+                build_targets[name] = t
+        return build_targets
+
     def copy(self):
         other = Build(self.environment)
         for k, v in self.__dict__.items():
