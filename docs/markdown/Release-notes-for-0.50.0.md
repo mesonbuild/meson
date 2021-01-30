@@ -7,19 +7,20 @@ short-description: Release notes for 0.50.0
 
 ## Added `cmake_module_path` and `cmake_args` to dependency
 
-The CMake dependency backend can now make use of existing `Find<name>.cmake`
-files by setting the `CMAKE_MODULE_PATH` with the new `dependency()` property
-`cmake_module_path`. The paths given to `cmake_module_path` should be relative
-to the project source directory.
+The CMake dependency backend can now make use of existing
+`Find<name>.cmake` files by setting the `CMAKE_MODULE_PATH` with the
+new `dependency()` property `cmake_module_path`. The paths given to
+`cmake_module_path` should be relative to the project source
+directory.
 
-Furthermore the property `cmake_args` was added to give CMake additional
-parameters.
+Furthermore the property `cmake_args` was added to give CMake
+additional parameters.
 
 ## Added PGI compiler support
 
 Nvidia / PGI C, C++ and Fortran
 [no-cost](https://www.pgroup.com/products/community.htm) compilers are
-now supported.  They have been tested on Linux so far.
+now supported. They have been tested on Linux so far.
 
 
 
@@ -65,8 +66,10 @@ not.
 
 ## Fix ninja console log from generators with multiple output nodes
 
-This resolves [issue #4760](https://github.com/mesonbuild/meson/issues/4760)
-where a generator with multiple output nodes printed an empty string to the console
+This resolves [issue
+#4760](https://github.com/mesonbuild/meson/issues/4760) where a
+generator with multiple output nodes printed an empty string to the
+console
 
 ## `introspect --buildoptions` can now be used without configured build directory
 
@@ -100,11 +103,11 @@ executable(..., include_directories: foo_inc)
 
 ## Fortran submodule support
 
-Initial support for Fortran `submodule` was added, where the submodule is in
-the same or different file than the parent `module`.
-The submodule hierarchy specified in the source Fortran code `submodule`
-statements are used by Meson to resolve source file dependencies.
-For example:
+Initial support for Fortran `submodule` was added, where the submodule
+is in the same or different file than the parent `module`. The
+submodule hierarchy specified in the source Fortran code `submodule`
+statements are used by Meson to resolve source file dependencies. For
+example:
 
 ```fortran
 submodule (ancestor:parent) child
@@ -113,13 +116,14 @@ submodule (ancestor:parent) child
 
 ## Add `subproject_dir` to `--projectinfo` introspection output
 
-This allows applications interfacing with Meson (such as IDEs) to know about
-an overridden subproject directory.
+This allows applications interfacing with Meson (such as IDEs) to know
+about an overridden subproject directory.
 
 ## Find library with its headers
 
-The `find_library()` method can now also verify if the library's headers are
-found in a single call, using the `has_header()` method internally.
+The `find_library()` method can now also verify if the library's
+headers are found in a single call, using the `has_header()` method
+internally.
 
 ```meson
 # Aborts if the 'z' library is found but not its header file
@@ -128,8 +132,9 @@ zlib = find_library('z', has_headers : 'zlib.h')
 zlib = find_library('z', has_headers : 'zlib.h', required : false)
 ```
 
-Any keyword argument with the `header_` prefix passed to `find_library()` will
-be passed to the `has_header()` method with the prefix removed.
+Any keyword argument with the `header_` prefix passed to
+`find_library()` will be passed to the `has_header()` method with the
+prefix removed.
 
 ```meson
 libfoo = find_library('foo',
@@ -214,9 +219,9 @@ what to extract. Previously, file paths could only be passed as strings.
 
 ## Changed the JSON format of the introspection
 
-All paths used in the meson introspection JSON format are now absolute. This
-affects the `filename` key in the targets introspection and the output of
-`--buildsystem-files`.
+All paths used in the meson introspection JSON format are now
+absolute. This affects the `filename` key in the targets introspection
+and the output of `--buildsystem-files`.
 
 Furthermore, the `filename` and `install_filename` keys in the targets
 introspection are now lists of strings with identical length.
@@ -262,21 +267,22 @@ The output format is as follows:
 ]
 ```
 
-The `required` keyword specifies whether the dependency is marked as required
-in the `meson.build` (all dependencies are required by default). The
-`conditional` key indicates whether the `dependency()` function was called
-inside a conditional block. In a real meson run these dependencies might not be
-used, thus they _may_ not be required, even if the `required` key is set. The
-`has_fallback` key just indicates whether a fallback was directly set in the
-`dependency()` function.
+The `required` keyword specifies whether the dependency is marked as
+required in the `meson.build` (all dependencies are required by
+default). The `conditional` key indicates whether the `dependency()`
+function was called inside a conditional block. In a real meson run
+these dependencies might not be used, thus they _may_ not be required,
+even if the `required` key is set. The `has_fallback` key just
+indicates whether a fallback was directly set in the `dependency()`
+function.
 
 ## `introspect --targets` can now be used without configured build directory
 
-It is now possible to run `meson introspect --targets /path/to/meson.build`
-without a configured build directory.
+It is now possible to run `meson introspect --targets
+/path/to/meson.build` without a configured build directory.
 
-The generated output is similar to running the introspection with a build
-directory. However, there are some key differences:
+The generated output is similar to running the introspection with a
+build directory. However, there are some key differences:
 
 - The paths in `filename` now are _relative_ to the future build directory
 - The `install_filename` key is completely missing
@@ -285,26 +291,27 @@ directory. However, there are some key differences:
   - Empty lists for `compiler` and `parameters` and `generated_sources`
   - The `sources` list _should_ contain all sources of the target
 
-There is no guarantee that the sources list in `target_sources` is correct.
-There might be differences, due to internal limitations. It is also not
-guaranteed that all targets will be listed in the output. It might even be
-possible that targets are listed, which won't exist when meson is run normally.
-This can happen if a target is defined inside an if statement.
-Use this feature with care.
+There is no guarantee that the sources list in `target_sources` is
+correct. There might be differences, due to internal limitations. It
+is also not guaranteed that all targets will be listed in the output.
+It might even be possible that targets are listed, which won't exist
+when meson is run normally. This can happen if a target is defined
+inside an if statement. Use this feature with care.
 
 ## Added option to introspect multiple parameters at once
 
 Meson introspect can now print the results of multiple introspection
-commands in a single call. The results are then printed as a single JSON
-object.
+commands in a single call. The results are then printed as a single
+JSON object.
 
 The format for a single command was not changed to keep backward
 compatibility.
 
-Furthermore the option `-a,--all`, `-i,--indent` and `-f,--force-object-output`
-were added to print all introspection information in one go, format the
-JSON output (the default is still compact JSON) and force use the new
-output format, even if only one introspection command was given.
+Furthermore the option `-a,--all`, `-i,--indent` and
+`-f,--force-object-output` were added to print all introspection
+information in one go, format the JSON output (the default is still
+compact JSON) and force use the new output format, even if only one
+introspection command was given.
 
 A complete introspection dump is also stored in the `meson-info`
 directory. This dump will be (re)generated each time meson updates the
@@ -319,10 +326,10 @@ Additionlly the format of `meson introspect target` was changed:
 
 ## `meson configure` can now print the default options of an unconfigured project
 
-With this release, it is also possible to get a list of all build options
-by invoking `meson configure` with the project source directory or
-the path to the root `meson.build`. In this case, meson will print the
-default values of all options.
+With this release, it is also possible to get a list of all build
+options by invoking `meson configure` with the project source
+directory or the path to the root `meson.build`. In this case, meson
+will print the default values of all options.
 
 ## HDF5
 
@@ -330,13 +337,14 @@ HDF5 support is added via pkg-config.
 
 ## Added the `meson-info.json` introspection file
 
-Meson now generates a `meson-info.json` file in the `meson-info` directory
-to provide introspection information about the latest meson run. This file
-is updated when the build configuration is changed and the build files are
-(re)generated.
+Meson now generates a `meson-info.json` file in the `meson-info`
+directory to provide introspection information about the latest meson
+run. This file is updated when the build configuration is changed and
+the build files are (re)generated.
 
 ## New kwarg `install:` for `configure_file()`
 
-Previously when using `configure_file()`, you could install the outputted file
-by setting the `install_dir:` keyword argument. Now, there is an explicit kwarg
-`install:` to enable/disable it. Omitting it will maintain the old behaviour.
+Previously when using `configure_file()`, you could install the
+outputted file by setting the `install_dir:` keyword argument. Now,
+there is an explicit kwarg `install:` to enable/disable it. Omitting
+it will maintain the old behaviour.

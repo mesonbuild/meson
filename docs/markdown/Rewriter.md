@@ -4,9 +4,9 @@ short-description: Automatic modification of the build system files
 
 # Meson file rewriter
 
-Since version 0.50.0, meson has the functionality to perform some basic
-modification on the `meson.build` files from the command line. The currently
-supported operations are:
+Since version 0.50.0, meson has the functionality to perform some
+basic modification on the `meson.build` files from the command line.
+The currently supported operations are:
 
 - For build targets:
   - Add/Remove source files
@@ -19,22 +19,23 @@ supported operations are:
   - Modify a select set of kwargs
   - Modify the default options list
 
-The rewriter has both, a normal command line interface and a "script mode". The
-normal CLI is mostly designed for everyday use. The "script mode", on the
-other hand, is meant to be used by external programs (IDEs, graphical
-frontends, etc.)
+The rewriter has both, a normal command line interface and a "script
+mode". The normal CLI is mostly designed for everyday use. The "script
+mode", on the other hand, is meant to be used by external programs
+(IDEs, graphical frontends, etc.)
 
-The rewriter itself is considered stable, however the user interface and the
-"script mode" API might change in the future. These changes may also break
-backwards comaptibility to older releases.
+The rewriter itself is considered stable, however the user interface
+and the "script mode" API might change in the future. These changes
+may also break backwards comaptibility to older releases.
 
 We are also open to suggestions for API improvements.
 
 ## Using the rewriter
 
-All rewriter functions are accessed via `meson rewrite`. The meson rewriter
-assumes that it is run inside the project root directory. If this isn't the
-case, use `--sourcedir` to specify the actual project source directory.
+All rewriter functions are accessed via `meson rewrite`. The meson
+rewriter assumes that it is run inside the project root directory. If
+this isn't the case, use `--sourcedir` to specify the actual project
+source directory.
 
 ### Adding and removing sources
 
@@ -67,17 +68,19 @@ src = ['main.cpp', 'fileA.cpp', 'fileB.cpp']
 exe1 = executable('testExe', src)
 ```
 
-In this case, `exe1` could also have been used for the target name. This is
-possible because the rewriter also searches for assignments and unique meson
-IDs, which can be acquired with introspection. If there are multiple targets
-with the same name, meson will do nothing and print an error message.
+In this case, `exe1` could also have been used for the target name.
+This is possible because the rewriter also searches for assignments
+and unique meson IDs, which can be acquired with introspection. If
+there are multiple targets with the same name, meson will do nothing
+and print an error message.
 
-For more information see the help output of the rewriter target command.
+For more information see the help output of the rewriter target
+command.
 
 ### Setting the project version
 
-It is also possible to set kwargs of specific functions with the rewriter. The
-general command for setting or removing kwargs is:
+It is also possible to set kwargs of specific functions with the
+rewriter. The general command for setting or removing kwargs is:
 
 ```bash
 meson rewrite kwargs {set/delete} <function type> <function ID> <key1> <value1> <key2> <value2> ...
@@ -97,10 +100,10 @@ Currently, only the following function types are supported:
 
 For more information see the help output of the rewrite kwargs command.
 
-Note msys bash may expand `/` to a path. Passing `//` will be converted to
-`/` by msys bash but in order to keep usage shell-agnostic, the rewrite command
-also allows `//` as the function ID such that it will work in both msys bash
-and other shells.
+Note msys bash may expand `/` to a path. Passing `//` will be
+converted to `/` by msys bash but in order to keep usage
+shell-agnostic, the rewrite command also allows `//` as the function
+ID such that it will work in both msys bash and other shells.
 
 ### Setting the project default options
 
@@ -112,9 +115,10 @@ meson rewrite default-options {set/delete} <opt1> <value1> <opt2> <value2> ...
 
 ## Limitations
 
-Rewriting a meson file is not guaranteed to keep the indentation of the modified
-functions. Additionally, comments inside a modified statement will be removed.
-Furthermore, all source files will be sorted alphabetically.
+Rewriting a meson file is not guaranteed to keep the indentation of
+the modified functions. Additionally, comments inside a modified
+statement will be removed. Furthermore, all source files will be
+sorted alphabetically.
 
 For instance adding `e.c` to srcs in the following code
 
@@ -150,9 +154,10 @@ srcs = [
 
 ## Using the "script mode"
 
-The "script mode" should be the preferred API for third party programs, since
-it offers more flexibility and higher API stability. The "scripts" are stored
-in JSON format and executed with `meson rewrite command <JSON file or string>`.
+The "script mode" should be the preferred API for third party
+programs, since it offers more flexibility and higher API stability.
+The "scripts" are stored in JSON format and executed with `meson
+rewrite command <JSON file or string>`.
 
 The JSON format is defined as follows:
 
@@ -229,13 +234,14 @@ The format for the type `default_options` is defined as follows:
 }
 ```
 
-For operation `delete`, the values of the `options` can be anything (including `null`)
+For operation `delete`, the values of the `options` can be anything
+(including `null`)
 
 ## Extracting information
 
-The rewriter also offers operation `info` for the types `target` and `kwargs`.
-When this operation is used, meson will print a JSON dump to stderr, containing
-all available information to the rewriter about the build target / function
-kwargs in question.
+The rewriter also offers operation `info` for the types `target` and
+`kwargs`. When this operation is used, meson will print a JSON dump to
+stderr, containing all available information to the rewriter about the
+build target / function kwargs in question.
 
 The output format is currently experimental and may change in the future.

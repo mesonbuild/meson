@@ -18,8 +18,9 @@ have multiple statements on one line as in e.g. *C*. Function and
 method calls' argument lists can be split over multiple lines. Meson
 will autodetect this case and do the right thing.
 
-In other cases, *(added 0.50)* you can get multi-line statements by ending the
-line with a `\`.  Apart from line ending whitespace has no syntactic meaning.
+In other cases, *(added 0.50)* you can get multi-line statements by
+ending the line with a `\`. Apart from line ending whitespace has no
+syntactic meaning.
 
 ## Variables
 
@@ -365,10 +366,11 @@ The following methods are defined for all arrays:
 
 ## Dictionaries
 
-Dictionaries are delimited by curly braces. A dictionary can contain an
-arbitrary number of key: value pairs. Keys are required to be strings, but values can
-be objects of any type. Prior to *0.53.0* keys were required to be literal
-strings, i.e., you could not use a variable containing a string value as a key.
+Dictionaries are delimited by curly braces. A dictionary can contain
+an arbitrary number of key: value pairs. Keys are required to be
+strings, but values can be objects of any type. Prior to *0.53.0* keys
+were required to be literal strings, i.e., you could not use a
+variable containing a string value as a key.
 
 ```meson
 my_dict = {'foo': 42, 'bar': 'baz'}
@@ -403,8 +405,8 @@ if 'foo' not in my_dict
 endif
 ```
 
-*Since 0.53.0* Keys can be any expression evaluating to a string value, not limited
-to string literals any more.
+*Since 0.53.0* Keys can be any expression evaluating to a string
+value, not limited to string literals any more.
 
 ```meson
 d = {'a' + 'b' : 42}
@@ -616,24 +618,25 @@ subdir('tests')
 
 ## User-defined functions and methods
 
-Meson does not currently support user-defined functions or
-methods. The addition of user-defined functions would make Meson
+Meson does not currently support user-defined functions or methods.
+The addition of user-defined functions would make Meson
 Turing-complete which would make it harder to reason about and more
 difficult to integrate with tools like IDEs. More details about this
 are [in the
-FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup-in-python). If
-because of this limitation you find yourself copying and pasting code
-a lot you may be able to use a [`foreach` loop
+FAQ](FAQ.md#why-is-meson-not-just-a-python-module-so-i-could-code-my-build-setup-in-python).
+If because of this limitation you find yourself copying and pasting
+code a lot you may be able to use a [`foreach` loop
 instead](#foreach-statements).
 
 ## Stability Promises
 
 Meson is very actively developed and continuously improved. There is a
-possibility that future enhancements to the Meson build system will require
-changes to the syntax. Such changes might be the addition of new reserved
-keywords, changing the meaning of existing keywords or additions around the
-basic building blocks like statements and fundamental types. It is planned
-to stabilize the syntax with the 1.0 release.
+possibility that future enhancements to the Meson build system will
+require changes to the syntax. Such changes might be the addition of
+new reserved keywords, changing the meaning of existing keywords or
+additions around the basic building blocks like statements and
+fundamental types. It is planned to stabilize the syntax with the 1.0
+release.
 
 ## Grammar
 

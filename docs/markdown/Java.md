@@ -5,7 +5,8 @@ short-description: Compiling Java programs
 
 # Compiling Java applications
 
-Meson has experimental support for compiling Java programs. The basic syntax consists of only one function and would be used like this:
+Meson has experimental support for compiling Java programs. The basic
+syntax consists of only one function and would be used like this:
 
 ```meson
 project('javaprog', 'java')

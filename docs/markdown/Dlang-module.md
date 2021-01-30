@@ -40,4 +40,5 @@ initial one. The module will only update the values specified in
 `generate_dub_file()`.
 
 Although not required, you will need to have a `description` and
-`license` if you want to publish the package in the [D package registry](https://code.dlang.org/).
+`license` if you want to publish the package in the [D package
+registry](https://code.dlang.org/).

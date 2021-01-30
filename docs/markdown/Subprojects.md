@@ -25,8 +25,9 @@ supported but not guaranteed to work.
 
 ## A subproject example
 
-Usually dependencies consist of some header files plus a library to link against.
-To declare this internal dependency use `declare_dependency` function.
+Usually dependencies consist of some header files plus a library to
+link against. To declare this internal dependency use
+`declare_dependency` function.
 
 As an example, suppose we have a simple project that provides a shared
 library. Its `meson.build` would look like this.
@@ -46,12 +47,14 @@ libsimple_dep = declare_dependency(include_directories : inc,
 
 ### Naming convention for dependency variables
 
-Ideally the dependency variable name should be of `<project_name>_dep` form.
-This way one can just use it without even looking inside build definitions of that subproject.
+Ideally the dependency variable name should be of `<project_name>_dep`
+form. This way one can just use it without even looking inside build
+definitions of that subproject.
 
-In cases where there are multiple dependencies need to be declared, the default one
-should be named as `<project_name>_dep` (e.g. `gtest_dep`), and others can have
-`<project_name>_<other>_<name>_dep` form (e.g. `gtest_main_dep` - gtest with main function).
+In cases where there are multiple dependencies need to be declared,
+the default one should be named as `<project_name>_dep` (e.g.
+`gtest_dep`), and others can have `<project_name>_<other>_<name>_dep`
+form (e.g. `gtest_main_dep` - gtest with main function).
 
 There may be exceptions to these rules where common sense should be applied.
 
@@ -59,10 +62,11 @@ There may be exceptions to these rules where common sense should be applied.
 
 *New in 0.54.0*
 
-In some cases a project may define special variables via pkg-config or cmake
-that a caller needs to know about. Meson provides a `dependency.get_variable`
-method to hide what kind of dependency is provided, and this is available to
-subprojects as well. Use the `variables` keyword to add a dict of strings:
+In some cases a project may define special variables via pkg-config or
+cmake that a caller needs to know about. Meson provides a
+`dependency.get_variable` method to hide what kind of dependency is
+provided, and this is available to subprojects as well. Use the
+`variables` keyword to add a dict of strings:
 
 ```meson
 my_dep = declare_dependency(..., variables : {'var': 'value', 'number': '3'})
@@ -74,8 +78,8 @@ Which another project can access via:
 var = my_dep.get_variable(internal : 'var', cmake : 'CMAKE_VAR')
 ```
 
-The values of the dict must be strings, as pkg-config and cmake will return
-variables as strings.
+The values of the dict must be strings, as pkg-config and cmake will
+return variables as strings.
 
 ### Build options in subproject
 
@@ -89,8 +93,8 @@ as a subproject, use the `is_subproject` function.
 
 ## Using a subproject
 
-All subprojects must be inside `subprojects` directory.
-The `subprojects` directory must be at the top level of your project.
+All subprojects must be inside `subprojects` directory. The
+`subprojects` directory must be at the top level of your project.
 Subproject declaration must be in your top level `meson.build`.
 
 ### A simple example
@@ -171,12 +175,13 @@ executable('my_project',
   install : true)
 ```
 
-With this setup when libsimple is provided by the system, we use it. When
-that is not the case we use the embedded version (the one from subprojects).
+With this setup when libsimple is provided by the system, we use it.
+When that is not the case we use the embedded version (the one from
+subprojects).
 
-Note that `libsimple_dep` can point to an external or an internal dependency but
-you don't have to worry about their differences. Meson will take care
-of the details for you.
+Note that `libsimple_dep` can point to an external or an internal
+dependency but you don't have to worry about their differences. Meson
+will take care of the details for you.
 
 ### Subprojects depending on other subprojects
 
@@ -269,28 +274,29 @@ the following command-line options:
 
 *Since 0.49.0*
 
-`meson subprojects` has various subcommands to manage all subprojects. If the
-subcommand fails on any subproject the execution continues with other subprojects.
-All subcommands accept `--sourcedir` argument pointing to the root source dir
-of the main project.
+`meson subprojects` has various subcommands to manage all subprojects.
+If the subcommand fails on any subproject the execution continues with
+other subprojects. All subcommands accept `--sourcedir` argument
+pointing to the root source dir of the main project.
 
-*Since 0.56.0* all subcommands accept `--types <file|git|hg|svn>` argument to
-run the subcommands only on subprojects of the given types. Multiple types can
-be set as comma separated list e.g. `--types git,file`.
+*Since 0.56.0* all subcommands accept `--types <file|git|hg|svn>`
+argument to run the subcommands only on subprojects of the given
+types. Multiple types can be set as comma separated list e.g. `--types
+git,file`.
 
-*Since 0.56.0* If the subcommand fails on any subproject an error code is returned
-at the end instead of retuning success.
+*Since 0.56.0* If the subcommand fails on any subproject an error code
+is returned at the end instead of retuning success.
 
 ### Download subprojects
 
 *Since 0.49.0*
 
-Meson will automatically download needed subprojects during configure, unless
-**--wrap-mode=nodownload** option is passed. It is sometimes preferable to
-download all subprojects in advance, so the meson configure can be performed
-offline. The command-line `meson subprojects download` can be used for that, it
-will download all missing subprojects, but will not update already fetched
-subprojects.
+Meson will automatically download needed subprojects during configure,
+unless **--wrap-mode=nodownload** option is passed. It is sometimes
+preferable to download all subprojects in advance, so the meson
+configure can be performed offline. The command-line `meson
+subprojects download` can be used for that, it will download all
+missing subprojects, but will not update already fetched subprojects.
 
 ### Update subprojects
 
@@ -330,11 +336,11 @@ To pull latest version of all your subprojects at once, just run the command:
 
 *Since 0.49.0*
 
-The command-line `meson subprojects checkout <branch_name>` will checkout a
-branch, or create one with `-b` argument, in every git subprojects. This is
-useful when starting local changes across multiple subprojects. It is still your
-responsibility to commit and push in each repository where you made local
-changes.
+The command-line `meson subprojects checkout <branch_name>` will
+checkout a branch, or create one with `-b` argument, in every git
+subprojects. This is useful when starting local changes across
+multiple subprojects. It is still your responsibility to commit and
+push in each repository where you made local changes.
 
 To come back to the revision set in wrap file (i.e. master), just run
 `meson subprojects checkout` with no branch name.
@@ -346,9 +352,9 @@ To come back to the revision set in wrap file (i.e. master), just run
 *Since 0.51.0*
 
 The command-line `meson subprojects foreach <command> [...]` will
-execute a command in each subproject directory. For example this can be useful
-to check the status of subprojects (e.g. with `git status` or `git diff`) before
-performing other actions on them.
+execute a command in each subproject directory. For example this can
+be useful to check the status of subprojects (e.g. with `git status`
+or `git diff`) before performing other actions on them.
 
 ## Why must all subprojects be inside a single directory?
 

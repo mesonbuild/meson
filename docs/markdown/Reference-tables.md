@@ -159,20 +159,21 @@ These are the parameter names for passing language specific arguments to your bu
 | Rust          | rust_args     | rust_link_args    |
 | Vala          | vala_args     | vala_link_args    |
 
-All these `<lang>_*` options are specified per machine. See in [specifying
-options per machine](Builtin-options.md#Specifying-options-per-machine) for on
-how to do this in cross builds.
+All these `<lang>_*` options are specified per machine. See in
+[specifying options per
+machine](Builtin-options.md#Specifying-options-per-machine) for on how
+to do this in cross builds.
 
 ## Compiler and linker flag environment variables
 
 These environment variables will be used to modify the compiler and
 linker flags.
 
-It is recommended that you **do not use these**. They are provided purely to
-for backwards compatibility with other build systems. There are many caveats to
-their use, especially when rebuilding the project. It is **highly** recommended
-that you use [the command line arguments](#language-arguments-parameter-names)
-instead.
+It is recommended that you **do not use these**. They are provided
+purely to for backwards compatibility with other build systems. There
+are many caveats to their use, especially when rebuilding the project.
+It is **highly** recommended that you use [the command line
+arguments](#language-arguments-parameter-names) instead.
 
 | Name      | Comment                                  |
 | -----     | -------                                  |
@@ -185,8 +186,8 @@ instead.
 | RUSTFLAGS | Flags for the Rust compiler              |
 | LDFLAGS   | The linker flags, used for all languages |
 
-N.B. these settings are specified per machine, and so the environment varibles
-actually come in pairs. See the [environment variables per
+N.B. these settings are specified per machine, and so the environment
+varibles actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
 ## Function Attributes
@@ -282,8 +283,8 @@ These are the values that can be passed to `dependency` function's
 
 ## Compiler and Linker selection variables
 
-N.B. these settings are specified per machine, and so the environment varibles
-actually come in pairs. See the [environment variables per
+N.B. these settings are specified per machine, and so the environment
+varibles actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
 | Language      | Compiler | Linker    | Note                                        |
@@ -298,16 +299,17 @@ machine](#Environment-variables-per-machine) section for details.
 | Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 
-*The old environment variales are still supported, but are deprecated and will
-be removed in a future version of meson.*
+*The old environment variales are still supported, but are deprecated
+and will be removed in a future version of meson.*
 
 ## Environment variables per machine
 
-Since *0.54.0*, Following Autotool and other legacy build systems, environment
-variables that affect machine-specific settings come in pairs: for every bare
-environment variable `FOO`, there is a suffixed `FOO_FOR_BUILD`, where `FOO`
-just affects the host machine configuration, while `FOO_FOR_BUILD` just affects
-the build machine configuration. For example:
+Since *0.54.0*, Following Autotool and other legacy build systems,
+environment variables that affect machine-specific settings come in
+pairs: for every bare environment variable `FOO`, there is a suffixed
+`FOO_FOR_BUILD`, where `FOO` just affects the host machine
+configuration, while `FOO_FOR_BUILD` just affects the build machine
+configuration. For example:
 
  - `PKG_CONFIG_PATH_FOR_BUILD` controls the paths pkg-config will search for
    just `native: true` dependencies (build machine).
@@ -315,12 +317,13 @@ the build machine configuration. For example:
  - `PKG_CONFIG_PATH` controls the paths pkg-config will search for just
    `native: false` dependencies (host machine).
 
-This mirrors the `build.` prefix used for (built-in) meson options, which has
-the same meaning.
+This mirrors the `build.` prefix used for (built-in) meson options,
+which has the same meaning.
 
-This is useful for cross builds. In the native builds, build = host, and the
-unsuffixed environment variables alone will suffice.
+This is useful for cross builds. In the native builds, build = host,
+and the unsuffixed environment variables alone will suffice.
 
-Prior to *0.54.0*, there was no `_FOR_BUILD`-suffixed variables, and most
-environment variables only effected native machine configurations, though this
-wasn't consistent (e.g. `PKG_CONFIG_PATH` still affected cross builds).
+Prior to *0.54.0*, there was no `_FOR_BUILD`-suffixed variables, and
+most environment variables only effected native machine
+configurations, though this wasn't consistent (e.g. `PKG_CONFIG_PATH`
+still affected cross builds).

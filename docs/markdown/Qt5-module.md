@@ -25,14 +25,15 @@ This method generates the necessary targets to build translation files with lrel
  - `qresource` rcc source file to extract ts_files from; cannot be used with ts_files kwarg. Available since v0.56.0.
  - `rcc_extra_arguments`, any additional arguments to `rcc` (optional), when used with `qresource. Available since v0.56.0.
 
-Returns either: a list of custom targets for the compiled translations, or, if
-using a `qresource` file, a single custom target containing the processed
-source file, which should be passed to a main build target.
+Returns either: a list of custom targets for the compiled
+translations, or, if using a `qresource` file, a single custom target
+containing the processed source file, which should be passed to a main
+build target.
 
 ## has_tools
 
-This method returns `true` if all tools used by this module are found, `false`
-otherwise.
+This method returns `true` if all tools used by this module are found,
+`false` otherwise.
 
 It should be used to compile optional Qt code:
 ```meson
@@ -56,10 +57,11 @@ This method takes the following keyword arguments:
 See [Qt dependencies](Dependencies.md#qt4-qt5)
 
 The 'modules' argument is used to include Qt modules in the project.
-See the Qt documentation for the [list of modules](http://doc.qt.io/qt-5/qtmodules.html).
+See the Qt documentation for the [list of
+modules](http://doc.qt.io/qt-5/qtmodules.html).
 
-The 'private_headers' argument allows usage of Qt's modules private headers.
-(since v0.47.0)
+The 'private_headers' argument allows usage of Qt's modules private
+headers. (since v0.47.0)
 
 ## Example
 A simple example would look like this:
@@ -78,9 +80,10 @@ executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            dependencies : qt5_dep)
 ```
 
-Sometimes, translations are embedded inside the binary using qresource files.
-In this case the ts files do not need to be explicitly listed, but will be
-inferred from the built qm files listed in the qresource file. For example:
+Sometimes, translations are embedded inside the binary using qresource
+files. In this case the ts files do not need to be explicitly listed,
+but will be inferred from the built qm files listed in the qresource
+file. For example:
 
 ```meson
 qt5 = import('qt5')

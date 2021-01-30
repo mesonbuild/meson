@@ -30,12 +30,13 @@ static library).
 To use this kind of a project as a dependency you could just copy and
 extract it inside your project's `subprojects` directory.
 
-However there is a simpler way. You can specify a Wrap file that tells Meson
-how to download it for you. If you then use this subproject in your build,
-Meson will automatically download and extract it during build. This makes
-subproject embedding extremely easy.
+However there is a simpler way. You can specify a Wrap file that tells
+Meson how to download it for you. If you then use this subproject in
+your build, Meson will automatically download and extract it during
+build. This makes subproject embedding extremely easy.
 
-All wrap files must have a name of `<project_name>.wrap` form and be in `subprojects` dir.
+All wrap files must have a name of `<project_name>.wrap` form and be
+in `subprojects` dir.
 
 Currently Meson has four kinds of wraps:
 - wrap-file
@@ -45,10 +46,11 @@ Currently Meson has four kinds of wraps:
 
 ## wrap format
 
-Wrap files are written in ini format, with a single header containing the type
-of wrap, followed by properties describing how to obtain the sources, validate
-them, and modify them if needed. An example wrap-file for the wrap named
-`libfoobar` would have a filename `libfoobar.wrap` and would look like this:
+Wrap files are written in ini format, with a single header containing
+the type of wrap, followed by properties describing how to obtain the
+sources, validate them, and modify them if needed. An example
+wrap-file for the wrap named `libfoobar` would have a filename
+`libfoobar.wrap` and would look like this:
 
 ```ini
 [wrap-file]
@@ -68,9 +70,12 @@ revision = head
 ```
 
 ## Accepted configuration properties for wraps
-- `directory` - name of the subproject root directory, defaults to the name of the wrap.
 
-Since *0.55.0* those can be used in all wrap types, they were previously reserved to `wrap-file`:
+- `directory` - name of the subproject root directory, defaults to the
+  name of the wrap.
+
+Since *0.55.0* those can be used in all wrap types, they were
+previously reserved to `wrap-file`:
 
 - `patch_url` - download url to retrieve an optional overlay archive
 - `patch_fallback_url` - fallback URL to be used when download from `patch_url` fails *Since: 0.55.0*
@@ -90,9 +95,10 @@ Since *0.55.0* those can be used in all wrap types, they were previously reserve
   directory.
 
 Since *0.55.0* it is possible to use only the `source_filename` and
-`patch_filename` value in a .wrap file (without `source_url` and `patch_url`) to
-specify a local archive in the `subprojects/packagefiles` directory. The `*_hash`
-entries are optional when using this method. This method should be preferred over
+`patch_filename` value in a .wrap file (without `source_url` and
+`patch_url`) to specify a local archive in the
+`subprojects/packagefiles` directory. The `*_hash` entries are
+optional when using this method. This method should be preferred over
 the old `packagecache` approach described below.
 
 Since *0.49.0* if `source_filename` or `patch_filename` is found in the
@@ -136,16 +142,17 @@ thousands of lines of code. Once you have a working build definition,
 just zip up the Meson build files (and others you have changed) and
 put them somewhere where you can download them.
 
-Prior to *0.55.0* Meson build patches were only supported for wrap-file mode.
-When using wrap-git, the repository must contain all Meson build definitions.
-Since *0.55.0* Meson build patches are supported for any wrap modes, including
-wrap-git.
+Prior to *0.55.0* Meson build patches were only supported for
+wrap-file mode. When using wrap-git, the repository must contain all
+Meson build definitions. Since *0.55.0* Meson build patches are
+supported for any wrap modes, including wrap-git.
 
 ## `provide` section
 
 *Since *0.55.0*
 
-Wrap files can define the dependencies it provides in the `[provide]` section.
+Wrap files can define the dependencies it provides in the `[provide]`
+section.
 
 ```ini
 [provide]
@@ -177,27 +184,31 @@ if not foo_dep.found()
 endif
 ```
 
-- Sometimes not-found dependency is preferable to a fallback when the feature is
-  not explicitly requested by the user. In that case
-  `dependency('foo-1.0', required: get_option('foo_opt'))` will only fallback
-  when the user sets `foo_opt` to `enabled` instead of `auto`.
+- Sometimes not-found dependency is preferable to a fallback when the
+  feature is not explicitly requested by the user. In that case
+  `dependency('foo-1.0', required: get_option('foo_opt'))` will only
+  fallback when the user sets `foo_opt` to `enabled` instead of
+  `auto`.
 
-If it is desired to fallback for an optional dependency, the `fallback`
-or `allow_fallback` keyword arguments must be passed explicitly. *Since
-0.56.0*, `dependency('foo-1.0', required: get_option('foo_opt'),
-allow_fallback: true)` will use the fallback even when `foo_opt` is set
-to `auto`.  On version *0.55.0* the same effect could be achieved with
-`dependency('foo-1.0', required: get_option('foo_opt'), fallback: 'foo')`.
+If it is desired to fallback for an optional dependency, the
+`fallback` or `allow_fallback` keyword arguments must be passed
+explicitly. *Since 0.56.0*, `dependency('foo-1.0', required:
+get_option('foo_opt'), allow_fallback: true)` will use the fallback
+even when `foo_opt` is set to `auto`. On version *0.55.0* the same
+effect could be achieved with `dependency('foo-1.0', required:
+get_option('foo_opt'), fallback: 'foo')`.
 
-This mechanism assumes the subproject calls `meson.override_dependency('foo-1.0', foo_dep)`
-so Meson knows which dependency object should be used as fallback. Since that
-method was introduced in version *0.54.0*, as a transitional aid for projects
-that do not yet make use of it the variable name can be provided in the wrap file
-with entries in the format `foo-1.0 = foo_dep`.
+This mechanism assumes the subproject calls
+`meson.override_dependency('foo-1.0', foo_dep)` so Meson knows which
+dependency object should be used as fallback. Since that method was
+introduced in version *0.54.0*, as a transitional aid for projects
+that do not yet make use of it the variable name can be provided in
+the wrap file with entries in the format `foo-1.0 = foo_dep`.
 
 For example when using a recent enough version of glib that uses
-`meson.override_dependency()` to override `glib-2.0`, `gobject-2.0` and `gio-2.0`,
-a wrap file would look like:
+`meson.override_dependency()` to override `glib-2.0`, `gobject-2.0`
+and `gio-2.0`, a wrap file would look like:
+
 ```ini
 [wrap-git]
 url=https://gitlab.gnome.org/GNOME/glib.git
@@ -207,7 +218,9 @@ revision=glib-2-62
 dependency_names = glib-2.0, gobject-2.0, gio-2.0
 ```
 
-With older version of glib dependency variable names need to be specified:
+With older version of glib dependency variable names need to be
+specified:
+
 ```ini
 [wrap-git]
 url=https://gitlab.gnome.org/GNOME/glib.git
@@ -219,25 +232,32 @@ gobject-2.0=gobject_dep
 gio-2.0=gio_dep
 ```
 
-Programs can also be provided by wrap files, with the `program_names` key:
+Programs can also be provided by wrap files, with the `program_names`
+key:
+
 ```ini
 [provide]
 program_names = myprog, otherprog
 ```
 
-With such wrap file, `find_program('myprog')` will automatically fallback to use
-the subproject, assuming it uses `meson.override_find_program('myprog')`.
+With such wrap file, `find_program('myprog')` will automatically
+fallback to use the subproject, assuming it uses
+`meson.override_find_program('myprog')`.
 
 ## Using wrapped projects
 
-Wraps provide a convenient way of obtaining a project into your subproject directory.
-Then you use it as a regular subproject (see [subprojects](Subprojects.md)).
+Wraps provide a convenient way of obtaining a project into your
+subproject directory. Then you use it as a regular subproject (see
+[subprojects](Subprojects.md)).
 
 ## Getting wraps
 
 Usually you don't want to write your wraps by hand.
 
-There is an online repository called [WrapDB](https://wrapdb.mesonbuild.com) that provides
-many dependencies ready to use. You can read more about WrapDB [here](Using-the-WrapDB.md).
+There is an online repository called
+[WrapDB](https://wrapdb.mesonbuild.com) that provides many
+dependencies ready to use. You can read more about WrapDB
+[here](Using-the-WrapDB.md).
 
-There is also a Meson subcommand to get and manage wraps (see [using wraptool](Using-wraptool.md)).
+There is also a Meson subcommand to get and manage wraps (see [using
+wraptool](Using-wraptool.md)).

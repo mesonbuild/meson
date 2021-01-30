@@ -22,8 +22,8 @@ To install a wrap, go to your source root, make sure that the
 This will stage the subproject ready to use. If you have multiple
 subprojects you need to download them all manually.
 
-Specifying branch name is optional. If not specified, the list
-of potential branches is sorted alphabetically and the last branch is 
+Specifying branch name is optional. If not specified, the list of
+potential branches is sorted alphabetically and the last branch is
 used.
 
 *Note* The tool was added in 0.32.0, for versions older than that you

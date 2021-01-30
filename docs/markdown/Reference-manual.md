@@ -54,9 +54,9 @@ Like `add_global_arguments` but the arguments are passed to the linker.
   bool add_languages(*langs*)
 ```
 
-Add programming languages used by the project. Equivalent to having them in the
-`project` declaration. This function is usually used to add languages that are
-only used under some conditions, like this:
+Add programming languages used by the project. Equivalent to having
+them in the `project` declaration. This function is usually used to
+add languages that are only used under some conditions, like this:
 
 ```meson
 project('foobar', 'c')
@@ -141,11 +141,12 @@ runtarget alias_target(target_name, dep1, ...)
 
 *(since 0.52.0)*
 
-This function creates a new top-level target. Like all top-level targets, this
-integrates with the selected backend. For instance, with you can
-run it as `meson compile target_name`. This is a dummy target that does not execute any
-command, but ensures that all dependencies are built. Dependencies can be any
-build target (e.g. return value of [executable()](#executable), custom_target(), etc)
+This function creates a new top-level target. Like all top-level
+targets, this integrates with the selected backend. For instance, with
+you can run it as `meson compile target_name`. This is a dummy target
+that does not execute any command, but ensures that all dependencies
+are built. Dependencies can be any build target (e.g. return value of
+[executable()](#executable), custom_target(), etc)
 
 ### assert()
 
@@ -165,13 +166,14 @@ statement instead.
 ```
 
 Creates a benchmark item that will be run when the benchmark target is
-run. The behavior of this function is identical to [`test()`](#test) except for:
+run. The behavior of this function is identical to [`test()`](#test)
+except for:
 
 * benchmark() has no `is_parallel` keyword because benchmarks are not run in parallel
 * benchmark() does not automatically add the `MALLOC_PERTURB_` environment variable
 
-*Note:* Prior to 0.52.0 benchmark would warn that `depends` and `priority`
-were unsupported, this is incorrect.
+*Note:* Prior to 0.52.0 benchmark would warn that `depends` and
+`priority` were unsupported, this is incorrect.
 
 ### both_libraries()
 
@@ -181,9 +183,9 @@ were unsupported, this is incorrect.
 
 *(since 0.46.0)*
 
-Builds both a static and shared library with the given
-sources. Positional and keyword arguments are otherwise the same as
-for [`library`](#library). Source files will be compiled only once and
+Builds both a static and shared library with the given sources.
+Positional and keyword arguments are otherwise the same as for
+[`library`](#library). Source files will be compiled only once and
 object files will be reused to build both shared and static libraries,
 unless `b_staticpic` user option or `pic` argument are set to false in
 which case sources will be compiled twice.
@@ -253,8 +255,8 @@ When a [`configuration_data()`](#configuration_data) object is passed
 to the `configuration:` keyword argument, it takes a template file as
 the `input:` (optional) and produces the `output:` (required) by
 substituting values from the configuration data as detailed in [the
-configuration file documentation](Configuration.md). *(since 0.49.0)* A
-dictionary can be passed instead of a
+configuration file documentation](Configuration.md). *(since 0.49.0)*
+A dictionary can be passed instead of a
 [`configuration_data()`](#configuration_data) object.
 
 When a list of strings is passed to the `command:` keyword argument,
@@ -398,14 +400,15 @@ the following special string substitutions:
 - `@BASENAME@`: the input filename, with extension removed
 - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
 
-*(since 0.47.0)* The `depfile` keyword argument also accepts the `@BASENAME@` and `@PLAINNAME@` substitutions.
+*(since 0.47.0)* The `depfile` keyword argument also accepts the
+ `@BASENAME@` and `@PLAINNAME@` substitutions.
 
 The returned object also has methods that are documented in the
 [object methods section](#custom-target-object) below.
 
-**Note:** Assuming that `command:` is executed by a POSIX `sh` shell is not
-portable, notably to Windows. Instead, consider using a `native: true`
-[executable()](#executable), or a python script.
+**Note:** Assuming that `command:` is executed by a POSIX `sh` shell
+is not portable, notably to Windows. Instead, consider using a
+`native: true` [executable()](#executable), or a python script.
 
 ### declare_dependency()
 
@@ -540,11 +543,11 @@ add CMake `COMPONENTS` for the `find_package` lookup)
 - `disabler` *(since 0.49.0)*: if `true` and the dependency couldn't be found,
   returns a [disabler object](#disabler-object) instead of a not-found dependency.
 
-If dependency_name is `''`, the dependency is always not found.  So
+If dependency_name is `''`, the dependency is always not found. So
 with `required: false`, this always returns a dependency object for
 which the `found()` method returns `false`, and which can be passed
 like any other dependency to the `dependencies:` keyword argument of a
-`build_target`.  This can be used to implement a dependency which is
+`build_target`. This can be used to implement a dependency which is
 sometimes not required e.g. in some branches of a conditional, or with
 a `fallback:` kwarg, can be used to declare an optional dependency
 that only looks in the specified subproject, and only if that's
@@ -606,12 +609,12 @@ libraries (`.so`, `.dll`, etc) will be linked.
 
 With the Ninja backend, Meson will create a build-time [order-only
 dependency](https://ninja-build.org/manual.html#ref_dependencies) on
-all generated input files, including unknown files. This is needed
-to bootstrap the generation of the real dependencies in the
-[depfile](https://ninja-build.org/manual.html#ref_headers)
-generated by your compiler to determine when to rebuild sources.
-Ninja relies on this dependency file for all input files, generated
-and non-generated. The behavior is similar for other backends.
+all generated input files, including unknown files. This is needed to
+bootstrap the generation of the real dependencies in the
+[depfile](https://ninja-build.org/manual.html#ref_headers) generated
+by your compiler to determine when to rebuild sources. Ninja relies on
+this dependency file for all input files, generated and non-generated.
+The behavior is similar for other backends.
 
 Executable supports the following keyword arguments. Note that just
 like the positional arguments above, these keyword arguments can also
@@ -796,9 +799,9 @@ Keyword arguments are the following:
 Meson will also autodetect scripts with a shebang line and run them
 with the executable/interpreter specified in it both on Windows
 (because the command invocator will reject the command otherwise) and
-Unixes (if the script file does not have the executable bit
-set). Hence, you *must not* manually add the interpreter while using
-this script as part of a list of commands.
+Unixes (if the script file does not have the executable bit set).
+Hence, you *must not* manually add the interpreter while using this
+script as part of a list of commands.
 
 If you need to check for a program in a non-standard location, you can
 just pass an absolute path to `find_program`, e.g.
@@ -926,7 +929,8 @@ The only exceptions are: `sysconfdir`, `localstatedir`, and
 configuration as-is, which may be absolute, or relative to `prefix`.
 [`install_dir` arguments](Installing.md) handles that as expected, but
 if you need the absolute path to one of these e.g. to use in a define
-etc., you should use `get_option('prefix') / get_option('localstatedir')`
+etc., you should use `get_option('prefix') /
+get_option('localstatedir')`
 
 For options of type `feature` a
 [feature option object](#feature-option-object)
@@ -1108,8 +1112,7 @@ Accepts the following keywords:
 
 Installs the specified man files from the source tree into system's
 man directory during the install step. This directory can be
-overridden by specifying it with the `install_dir` keyword
-argument.
+overridden by specifying it with the `install_dir` keyword argument.
 
 Accepts the following keywords:
 
@@ -1117,14 +1120,20 @@ Accepts the following keywords:
   format and optionally the owner/uid and group/gid for the installed files.
   An example value could be `['rwxr-sr-x', 'root', 'root']`.
 
-*(since 0.49.0)* [manpages are no longer compressed implicitly][install_man_49].
+*(since 0.49.0)* [manpages are no longer compressed
+ implicitly][install_man_49].
 
-[install_man_49]: https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
+[install_man_49]:
+https://mesonbuild.com/Release-notes-for-0-49-0.html#manpages-are-no-longer-compressed-implicitly
 
 ### install_subdir()
 
 ``` meson
-    void install_subdir(subdir_name, install_dir : ..., exclude_files : ..., exclude_directories : ..., strip_directory : ...)
+    void install_subdir(subdir_name,
+                        install_dir : ...,
+                        exclude_files : ...,
+                        exclude_directories : ...,
+                        strip_directory : ...)
 ```
 
 Installs the entire given subdirectory and its contents from the
@@ -1286,8 +1295,8 @@ them for the default behaviour for each platform.
 
 This function prints its argument to stdout.
 
-*(since 0.54.0)* Can take more than one argument that will be separated by
-space.
+*(since 0.54.0)* Can take more than one argument that will be
+separated by space.
 
 ### warning()
 
@@ -1315,19 +1324,21 @@ This function is used to summarize build configuration at the end of the build
 process. This function provides a way for projects (and subprojects) to report
 this information in a clear way.
 
-The content is a series of key/value pairs grouped into sections. If the section
-keyword argument is omitted, those key/value pairs are implicitly grouped into a section
-with no title. key/value pairs can optionally be grouped into a dictionary,
-but keep in mind that dictionaries does not guarantee ordering. `key` must be string,
+The content is a series of key/value pairs grouped into sections. If
+the section keyword argument is omitted, those key/value pairs are
+implicitly grouped into a section with no title. key/value pairs can
+optionally be grouped into a dictionary, but keep in mind that
+dictionaries does not guarantee ordering. `key` must be string,
 `value` can be:
 
 - an integer, boolean or string
 - *since 0.57.0* an external program or a dependency
 - a list of those.
 
-`summary()` can be called multiple times as long as the same section/key
-pair doesn't appear twice. All sections will be collected and printed at
-the end of the configuration in the same order as they have been called.
+`summary()` can be called multiple times as long as the same
+section/key pair doesn't appear twice. All sections will be collected
+and printed at the end of the configuration in the same order as they
+have been called.
 
 Keyword arguments:
 - `section`: title to group a set of key/value pairs.
@@ -1388,10 +1399,10 @@ It may be followed by the list of programming languages that the project uses.
 
 *(since 0.40.0)* The list of languages is optional.
 
-These languages may be used both for `native: false` (the default) (host
-machine) targets and for `native: true` (build machine) targets. *(since
-0.56.0)* The build machine compilers for the specified languages are not
-required.
+These languages may be used both for `native: false` (the default)
+(host machine) targets and for `native: true` (build machine) targets.
+*(since 0.56.0)* The build machine compilers for the specified
+languages are not required.
 
 Supported values for languages are `c`, `cpp` (for `C++`), `cuda`, `d`,
 `objc`, `objcpp`, `fortran`, `java`, `cs` (for `C#`), `vala` and `rust`.
@@ -1442,8 +1453,8 @@ Project supports the following keyword arguments.
     runresult run_command(command, list_of_args, ...)
 ```
 
-Runs the command specified in positional arguments.  `command` can be
-a string, or the output of [`find_program()`](#find_program),
+Runs the command specified in positional arguments. `command` can be a
+string, or the output of [`find_program()`](#find_program),
 [`files()`](#files) or [`configure_file()`](#configure_file), or [a
 compiler object](#compiler-object).
 
@@ -1474,10 +1485,10 @@ runtarget run_target(target_name, ...)
 
 This function creates a new top-level target that runs a specified
 command with the specified arguments. Like all top-level targets, this
-integrates with the selected backend. For instance, you can
-run it as `meson compile target_name`. Note that a run target produces no
-output as far as Meson is concerned. It is only meant for tasks such
-as running a code formatter or flashing an external device's firmware
+integrates with the selected backend. For instance, you can run it as
+`meson compile target_name`. Note that a run target produces no output
+as far as Meson is concerned. It is only meant for tasks such as
+running a code formatter or flashing an external device's firmware
 with a built file.
 
 The command is run from an *unspecified* directory, and Meson will set
@@ -1618,15 +1629,15 @@ This function has one keyword argument.
     subdir_done()
 ```
 
-Stops further interpretation of the meson script file from the point of
-the invocation. All steps executed up to this point are valid and will
-be executed by meson. This means that all targets defined before the call
-of `subdir_done` will be build.
+Stops further interpretation of the meson script file from the point
+of the invocation. All steps executed up to this point are valid and
+will be executed by meson. This means that all targets defined before
+the call of `subdir_done` will be build.
 
-If the current script was called by `subdir` the execution returns to the
-calling directory and continues as if the script had reached the end.
-If the current script is the top level script meson configures the project
-as defined up to this point.
+If the current script was called by `subdir` the execution returns to
+the calling directory and continues as if the script had reached the
+end. If the current script is the top level script meson configures
+the project as defined up to this point.
 
 Example:
 ```meson
@@ -1684,30 +1695,31 @@ argument to [`dependency()`](#dependency).
 
 Defines a test to run with the test harness. Takes two positional
 arguments, the first is the name of the test and the second is the
-executable to run.  The executable can be an [executable build target
+executable to run. The executable can be an [executable build target
 object](#build-target-object) returned by
 [`executable()`](#executable) or an [external program
 object](#external-program-object) returned by
 [`find_program()`](#find_program).
 
-*(since 0.55.0)* When cross compiling, if an exe_wrapper is needed and defined
-the environment variable `MESON_EXE_WRAPPER` will be set to the string value
-of that wrapper (implementation detail: using `mesonlib.join_args`). Test
-scripts may use this to run cross built binaries. If your test needs
-`MESON_EXE_WRAPPER` in cross build situations it is your responsibility to
-return code 77 to tell the harness to report "skip".
+*(since 0.55.0)* When cross compiling, if an exe_wrapper is needed and
+defined the environment variable `MESON_EXE_WRAPPER` will be set to
+the string value of that wrapper (implementation detail: using
+`mesonlib.join_args`). Test scripts may use this to run cross built
+binaries. If your test needs `MESON_EXE_WRAPPER` in cross build
+situations it is your responsibility to return code 77 to tell the
+harness to report "skip".
 
 By default, environment variable
 [`MALLOC_PERTURB_`](http://man7.org/linux/man-pages/man3/mallopt.3.html)
 is automatically set by `meson test` to a random value between 1..255.
 This can help find memory leaks on configurations using glibc,
-including with non-GCC compilers. However, this can have a performance impact,
-and may fail a test due to external libraries whose internals are out of the
-user's control. To check if this feature is causing an expected runtime crash,
-disable the feature by temporarily setting environment variable
-`MALLOC_PERTURB_=0`. While it's preferable to only temporarily disable this
-check, if a project requires permanent disabling of this check
-in meson.build do like:
+including with non-GCC compilers. However, this can have a performance
+impact, and may fail a test due to external libraries whose internals
+are out of the user's control. To check if this feature is causing an
+expected runtime crash, disable the feature by temporarily setting
+environment variable `MALLOC_PERTURB_=0`. While it's preferable to
+only temporarily disable this check, if a project requires permanent
+disabling of this check in meson.build do like:
 
 ```meson
 nomalloc = environment({'MALLOC_PERTURB_': '0'})
@@ -1798,10 +1810,10 @@ result to `output`. This method returns a
 used to signal dependencies if other targets use the file outputted
 by this.
 
-For example, if you generate a header with this and want to use that in
-a build target, you must add the return value to the sources of that
-build target. Without that, Meson will not know the order in which to
-build the targets.
+For example, if you generate a header with this and want to use that
+in a build target, you must add the return value to the sources of
+that build target. Without that, Meson will not know the order in
+which to build the targets.
 
 If you desire more specific behavior than what this command provides,
 you should use `custom_target`.
@@ -2369,11 +2381,12 @@ The following keyword arguments can be used:
   `sizeof`, `has_type`, `has_function`, `has_member`, `has_members`,
   `check_header`, `has_header`, `has_header_symbol`, `get_define`
 
-**Note:** These compiler checks do not use compiler arguments added with
-`add_*_arguments()`, via `-Dlang_args` on the command-line, or through
-`CFLAGS`/`LDFLAGS`, etc in the environment. Hence, you can trust that
-the tests will be fully self-contained, and won't fail because of custom
-flags added by other parts of the build file or by users.
+**Note:** These compiler checks do not use compiler arguments added
+with `add_*_arguments()`, via `-Dlang_args` on the command-line, or
+through `CFLAGS`/`LDFLAGS`, etc in the environment. Hence, you can
+trust that the tests will be fully self-contained, and won't fail
+because of custom flags added by other parts of the build file or by
+users.
 
 Note that if you have a single prefix with all your dependencies, you
 might find it easier to append to the environment variables
@@ -2387,10 +2400,10 @@ cross-compiling. In that case you need to use a specs file. See:
 
 ### `build target` object
 
-A build target is either an [executable](#executable),
-[shared library](#shared_library), [static library](#static_library),
-[both shared and static library](#both_libraries) or
-[shared module](#shared_module).
+A build target is either an [executable](#executable), [shared
+library](#shared_library), [static library](#static_library), [both
+shared and static library](#both_libraries) or [shared
+module](#shared_module).
 
 - `extract_all_objects()`: is same as `extract_objects` but returns all
   object files generated by this target. *(since 0.46.0)* keyword argument

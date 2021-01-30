@@ -9,14 +9,15 @@ guarantee that the package will get accepted. Use common sense.
 
 ## Setting up the tools
 
-The [mesonwrap repository](https://github.com/mesonbuild/mesonwrap) provides tools
-to maintain the WrapDB. Read-only features such can be used by anyone without Meson admin rights.
+The [mesonwrap repository](https://github.com/mesonbuild/mesonwrap)
+provides tools to maintain the WrapDB. Read-only features such can be
+used by anyone without Meson admin rights.
 
 ## Personal access token
 
-Some tools require access to the Github API.
-A [personal access token](https://github.com/settings/tokens) may be required
-if the freebie Github API quota is exhausted. `public_repo` scope is required
+Some tools require access to the Github API. A [personal access
+token](https://github.com/settings/tokens) may be required if the
+freebie Github API quota is exhausted. `public_repo` scope is required
 for write operations.
 
 ```
@@ -31,7 +32,8 @@ github_token = <github token>
 mesonwrap review zlib --pull-request=1 [--approve]
 ```
 
-Since not every check can be automated please pay attention to the following during the review:
+Since not every check can be automated please pay attention to the
+following during the review:
 
 - Download link points to an authoritative upstream location.
 - Version branch is created from master.

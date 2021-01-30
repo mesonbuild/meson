@@ -2,7 +2,8 @@
 title: Design rationale
 ...
 
-This is the original design rationale for Meson. The syntax it describes does not match the released version
+This is the original design rationale for Meson. The syntax it
+describes does not match the released version
 ==
 
 A software developer's most important tool is the editor. If you talk
@@ -65,7 +66,8 @@ what would it take to build a "good" build system. What kind of syntax
 would suit this problem? What sort of problems would this application
 need to solve? What sort of solutions would be the most appropriate?
 
-To get things started, here is a list of requirements any modern cross-platform build system needs to provide.
+To get things started, here is a list of requirements any modern
+cross-platform build system needs to provide.
 
 ### 1. Must be simple to use
 
@@ -174,7 +176,8 @@ examples we would like to emphasize that this is not in any way the
 final code. It is proof of concept code that works in the system as it
 currently exists (February 2013), but may change at any time.
 
-Let's start simple. Here is the code to compile a single executable binary.
+Let's start simple. Here is the code to compile a single executable
+binary.
 
 ```meson
 project('compile one', 'c')

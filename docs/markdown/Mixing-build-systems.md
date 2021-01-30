@@ -2,21 +2,21 @@
 
 Meson has been designed with the principle that all dependencies are
 either provided by "the platform" via a mechanism such as Pkg-Config
-or that they are built as Meson subprojects under the main
-project. There are several projects that would like to mix build
-systems, that is, build dependencies in the same build directory as
-the other build system by having one build system call the other. The
-build directories do not necessarily need to be inside each other, but
-that is the common case.
+or that they are built as Meson subprojects under the main project.
+There are several projects that would like to mix build systems, that
+is, build dependencies in the same build directory as the other build
+system by having one build system call the other. The build
+directories do not necessarily need to be inside each other, but that
+is the common case.
 
-This page lists the Meson project's stance on mixing build
-systems. The tl/dr version is that while we do provide some
-functionality for this use case, it only works for simple
-cases. Anything more complex can not be made reliable and trying to do
-that would burden Meson developers with an effectively infinite
-maintenance burden. Thus these use cases are not guaranteed to work,
-and even if a project using them works today there are no guarantees
-that it will work in any future version.
+This page lists the Meson project's stance on mixing build systems.
+The tl/dr version is that while we do provide some functionality for
+this use case, it only works for simple cases. Anything more complex
+can not be made reliable and trying to do that would burden Meson
+developers with an effectively infinite maintenance burden. Thus these
+use cases are not guaranteed to work, and even if a project using them
+works today there are no guarantees that it will work in any future
+version.
 
 ## The definition of "build system mixing"
 

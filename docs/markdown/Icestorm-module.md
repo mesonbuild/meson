@@ -2,14 +2,14 @@
 
 This module is available since version 0.45.0.
 
-**Note**: this module is unstable. It is only provided as a technology
-preview.  Its API may change in arbitrary ways between releases or it
+**Note**: this module is unstable. It is only provided as a technology
+preview. Its API may change in arbitrary ways between releases or it
 might be removed from Meson altogether.
 
 ## Usage
 
-This module provides an experimental method to create FPGA bitstreams using
-the [IceStorm](http://www.clifford.at/icestorm/) suite of tools.
+This module provides an experimental method to create FPGA bitstreams
+using the [IceStorm](http://www.clifford.at/icestorm/) suite of tools.
 
 The module exposes only one method called `project` and it is used
 like this:
