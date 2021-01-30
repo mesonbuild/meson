@@ -983,12 +983,15 @@ class Vs2010Backend(backends.Backend):
                 file_args[l] += args
         # The highest priority includes. In order of directory search:
         # target private dir, target build dir, target source dir
-        for args in file_args.values():
-            t_inc_dirs = [self.relpath(self.get_target_private_dir(target),
-                                       self.get_target_dir(target))]
-            if target.implicit_include_directories:
-                t_inc_dirs += ['.', proj_to_src_dir]
-            args += ['-I' + arg for arg in t_inc_dirs]
+        if target.implicit_include_directories:
+            for args in file_args.values():
+                t_inc_dirs = [
+                    self.relpath(self.get_target_private_dir(target),
+                                 self.get_target_dir(target)),
+                    '.',
+                    proj_to_src_dir,
+                ]
+                args += ['-I' + arg for arg in t_inc_dirs]
 
         # Split preprocessor defines and include directories out of the list of
         # all extra arguments. The rest go into %(AdditionalOptions).

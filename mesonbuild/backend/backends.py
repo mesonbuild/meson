@@ -671,11 +671,11 @@ class Backend:
     def get_pch_include_args(self, compiler, target):
         args = []
         pchpath = self.get_target_private_dir(target)
-        includeargs = compiler.get_include_args(pchpath, False)
         p = target.get_pch(compiler.get_language())
         if p:
             args += compiler.get_pch_use_args(pchpath, p[0])
-        return includeargs + args
+            args += compiler.get_include_args(pchpath, False)
+        return args
 
     def create_msvc_pch_implementation(self, target, lang, pch_header):
         # We have to include the language in the file name, otherwise

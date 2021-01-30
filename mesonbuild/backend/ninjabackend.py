@@ -2454,11 +2454,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # both Meson and Autotools in parallel as part of the transition.
         if target.implicit_include_directories:
             commands += self.get_source_dir_include_args(target, compiler)
-        if target.implicit_include_directories:
             commands += self.get_build_dir_include_args(target, compiler)
-        # Finally add the private dir for the target to the include path. This
-        # must override everything else and must be the final path added.
-        commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+            # Finally add the private dir for the target to the include path.
+            # This must override everything else and must be the final path
+            # added.
+            commands += compiler.get_include_args(self.get_target_private_dir(target), False)
+
         return commands
 
     def generate_single_compile(self, target, src, is_generated=False, header_deps=None, order_deps=None):
