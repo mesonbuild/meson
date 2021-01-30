@@ -28,18 +28,19 @@ now give a dictionary.
 runtarget alias_target(target_name, dep1, ...)
 ```
 
-This function creates a new top-level target. Like all top-level targets, this
-integrates with the selected backend. For instance, with Ninja you can
-run it as `ninja target_name`. This is a dummy target that does not execute any
-command, but ensures that all dependencies are built. Dependencies can be any
-build target (e.g. return value of executable(), custom_target(), etc)
+This function creates a new top-level target. Like all top-level
+targets, this integrates with the selected backend. For instance, with
+Ninja you can run it as `ninja target_name`. This is a dummy target
+that does not execute any command, but ensures that all dependencies
+are built. Dependencies can be any build target (e.g. return value of
+executable(), custom_target(), etc)
 
 
 ## Enhancements to the pkg_config_path argument
 
-Setting sys_root in the [properties] section of your cross file will now set
-PKG_CONFIG_SYSROOT_DIR automatically for host system dependencies when
-cross compiling.
+Setting sys_root in the [properties] section of your cross file will
+now set PKG_CONFIG_SYSROOT_DIR automatically for host system
+dependencies when cross compiling.
 
 ## The meson test program now accepts an additional "--gdb-path" argument to specify the GDB binary
 
@@ -53,13 +54,14 @@ $ meson test --gdb --gdb-path cgdb testname
 
 ## Better support for illumos and Solaris
 
-illumos (and hopefully Solaris) support has been dramatically improved, and one
-can reasonably expect projects to compile.
+illumos (and hopefully Solaris) support has been dramatically
+improved, and one can reasonably expect projects to compile.
 
 ## Splitting of Compiler.get_function_attribute('visibility')
 
-On macOS there is no `protected` visibility, which results in the visbility
-check always failing. 0.52.0 introduces two changes to improve this situation:
+On macOS there is no `protected` visibility, which results in the
+visbility check always failing. 0.52.0 introduces two changes to
+improve this situation:
 
 1. the "visibility" check no longer includes "protected"
 2. a new set of "split" checks are introduced which check for a single
@@ -86,9 +88,9 @@ Add `dependency('blocks')` to use the Clang blocks extension.
 
 ## Meson's builtin b_lundef is now supported on macOS
 
-This has always been possible, but there are some additional restrictions on
-macOS (mainly do to Apple only features). With the linker internal
-re-architecture this has become possible
+This has always been possible, but there are some additional
+restrictions on macOS (mainly do to Apple only features). With the
+linker internal re-architecture this has become possible
 
 ## Compiler and dynamic linker representation split
 
@@ -119,7 +121,8 @@ python run_project_tests.py --only fortran
 python run_project_tests.py --only fortran python3
 ```
 
-This assists Meson development by only running the tests for the portion of Meson being worked on during local development.
+This assists Meson development by only running the tests for the
+portion of Meson being worked on during local development.
 
 ## Experimental Webassembly support via Emscripten
 
@@ -129,13 +132,14 @@ subject to change.
 
 ## Version check in `find_program()`
 
-A new `version` keyword argument has been added to `find_program` to specify
-the required version. See [`dependency()`](#dependency) for argument format.
-The version of the program is determined by running `program_name --version`
-command. If stdout is empty it fallbacks to stderr. If the output contains more
-text than simply a version number, only the first occurrence of numbers separated
-by dots is kept. If the output is more complicated than that, the version
-checking will have to be done manually using [`run_command()`](#run_command).
+A new `version` keyword argument has been added to `find_program` to
+specify the required version. See [`dependency()`](#dependency) for
+argument format. The version of the program is determined by running
+`program_name --version` command. If stdout is empty it fallbacks to
+stderr. If the output contains more text than simply a version number,
+only the first occurrence of numbers separated by dots is kept. If the
+output is more complicated than that, the version checking will have
+to be done manually using [`run_command()`](#run_command).
 
 ## Added `vs_module_defs` to `shared_module()`
 
@@ -144,9 +148,9 @@ Like `shared_library()`, `shared_module()` now accepts
 
 ## Improved support for static libraries
 
-Static libraries had numerous shortcomings in the past, especially when using
-uninstalled static libraries. This release brings many internal changes in the
-way they are handled, including:
+Static libraries had numerous shortcomings in the past, especially
+when using uninstalled static libraries. This release brings many
+internal changes in the way they are handled, including:
 
 - `link_whole:` of static libraries. In the example below, lib2 used to miss
   symbols from lib1 and was unusable.
@@ -172,10 +176,10 @@ lib2 = both_libraries(sources, link_with : lib1, install : true)
 pkg.generate(lib2)
 ```
 
-Many projects have been using `extract_all_objects()` to work around those issues,
-and hopefully those hacks could now be removed. Since this is a pretty large
-change, please double check if your static libraries behave correctly, and
-report any regression.
+Many projects have been using `extract_all_objects()` to work around
+those issues, and hopefully those hacks could now be removed. Since
+this is a pretty large change, please double check if your static
+libraries behave correctly, and report any regression.
 
 ## Enhancements to the kconfig module
 
@@ -189,9 +193,9 @@ all include directories of the dependency are marked as system dependencies.
 
 The default value of `include_type` is `'preserve'`.
 
-Additionally, it is also possible to check and change the `include_type`
-state of an existing dependency object with the new `include_type()` and
-`as_system()` methods.
+Additionally, it is also possible to check and change the
+`include_type` state of an existing dependency object with the new
+`include_type()` and `as_system()` methods.
 
 ## Enhancements to `configure_file()`
 
@@ -212,10 +216,10 @@ Simplify `native` flag behavior in `add_global_arguments`,
 
  - No native flag is the same as `native: false`
 
-This further simplifies behavior to match the "build vs host" decision done in
-last release with `c_args` vs `build_c_args`. The underlying motivation in both
-cases is to execute the same commands whether the overall build is native or
-cross.
+This further simplifies behavior to match the "build vs host" decision
+done in last release with `c_args` vs `build_c_args`. The underlying
+motivation in both cases is to execute the same commands whether the
+overall build is native or cross.
 
 ## Allow checking if a variable is a disabler
 
@@ -225,15 +229,16 @@ and false otherwise.
 
 ## gtkdoc-check support
 
-`gnome.gtkdoc()` now has a `check` keyword argument. If `true` runs it will run
-`gtkdoc-check` when running unit tests. Note that this has the downside of
-rebuilding the doc for each build, which is often very slow. It usually should
-be enabled only in CI.
+`gnome.gtkdoc()` now has a `check` keyword argument. If `true` runs it
+will run `gtkdoc-check` when running unit tests. Note that this has
+the downside of rebuilding the doc for each build, which is often very
+slow. It usually should be enabled only in CI.
 
 ## `gnome.gtkdoc()` returns target object
 
-`gnome.gtkdoc()` now returns a target object that can be passed as dependency to
-other targets using generated doc files (e.g. in `content_files` of another doc).
+`gnome.gtkdoc()` now returns a target object that can be passed as
+dependency to other targets using generated doc files (e.g. in
+`content_files` of another doc).
 
 ## Dist is now a top level command
 
@@ -245,4 +250,3 @@ determine which kinds of archives to create:
 ```meson
 meson dist --formats=xztar,zip
 ```
-

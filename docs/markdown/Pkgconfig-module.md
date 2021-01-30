@@ -62,27 +62,29 @@ keyword arguments.
    pkg-config files in projects which also have architecture-dependent outputs.
 - `conflicts` (*since 0.36.0, incorrectly issued a warning prior to 0.54.0*) list of strings to be put in the `Conflicts` field.
 
-Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally be passed
-as first positional argument. If one is provided a default value will be
-provided for all required fields of the pc file:
+Since 0.46 a `StaticLibrary` or `SharedLibrary` object can optionally
+be passed as first positional argument. If one is provided a default
+value will be provided for all required fields of the pc file:
 - `install_dir` is set to `pkgconfig` folder in the same location than the provided library.
 - `description` is set to the project's name followed by the library's name.
 - `name` is set to the library's name.
 
-Since 0.54.0 uninstalled pkg-config files are generated as well. They are
-located in `<build dir>/meson-uninstalled/`. It is sometimes
-useful to build projects against libraries built by meson without having to
-install them into a prefix. In order to do so, just set
+Since 0.54.0 uninstalled pkg-config files are generated as well. They
+are located in `<build dir>/meson-uninstalled/`. It is sometimes
+useful to build projects against libraries built by meson without
+having to install them into a prefix. In order to do so, just set
 `PKG_CONFIG_PATH=<builddir>/meson-uninstalled` before building your
-application. That will cause pkg-config to prefer those `-uninstalled.pc` files
-and find libraries and headers from the meson builddir. This is an experimental
-feature provided on a best-effort basis, it might not work in all use-cases.
+application. That will cause pkg-config to prefer those
+`-uninstalled.pc` files and find libraries and headers from the meson
+builddir. This is an experimental feature provided on a best-effort
+basis, it might not work in all use-cases.
 
 ### Implicit dependencies
 
-The exact rules followed to find dependencies that are implicitly added into the
-pkg-config file have evolved over time. Here are the rules as of Meson *0.49.0*,
-previous versions might have slightly different behaviour.
+The exact rules followed to find dependencies that are implicitly
+added into the pkg-config file have evolved over time. Here are the
+rules as of Meson *0.49.0*, previous versions might have slightly
+different behaviour.
 
 - Not found libraries or dependencies are ignored.
 - Libraries and dependencies are private by default (i.e. added into

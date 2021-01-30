@@ -1,12 +1,18 @@
 # Porting from Autotools
 
-This page uses [AppStream-glib](https://github.com/hughsie/appstream-glib/) as an example project. AppStream-Glib contains some libraries, GObject Introspection data, tests, man pages, i18n, bash-completion with optional flags to build/not build support for some things.
+This page uses
+[AppStream-glib](https://github.com/hughsie/appstream-glib/) as an
+example project. AppStream-Glib contains some libraries, GObject
+Introspection data, tests, man pages, i18n, bash-completion with
+optional flags to build/not build support for some things.
 
-Meson comes with a helper script `ac_converter` that you can use to convert the basic autoconf checks for your project.
+Meson comes with a helper script `ac_converter` that you can use to
+convert the basic autoconf checks for your project.
 
 ## Configure.ac
 
-First let's look at `configure.ac` and write the same in `meson.build`.
+First let's look at `configure.ac` and write the same in
+`meson.build`.
 
 ```autoconf
 AC_PREREQ(2.63)
@@ -54,7 +60,8 @@ AC_SUBST(AS_MICRO_VERSION)
 AC_SUBST(AS_VERSION)
 ```
 
-You don't need to do the same in Meson, because it does not have two different types of files (Makefile, configure).
+You don't need to do the same in Meson, because it does not have two
+different types of files (Makefile, configure).
 
 ### Auto headers
 
@@ -74,9 +81,12 @@ configure_file(output : 'config.h',
                configuration : conf)
 ```
 
-Meson doesn't support autoheaders, you need to manually specify what do you want to see in header file, write `configuration_data()` object and use `configure_file()`.
+Meson doesn't support autoheaders, you need to manually specify what
+do you want to see in header file, write `configuration_data()` object
+and use `configure_file()`.
 
-You can also substitute variables of type `@SOME_VAR@` with configure data. The details are on the [configuration page](Configuration.md).
+You can also substitute variables of type `@SOME_VAR@` with configure
+data. The details are on the [configuration page](Configuration.md).
 
 ### Finding programs
 
@@ -148,7 +158,8 @@ option('enable-dep11', type : 'boolean', value : true, description : 'enable DEP
 
 ## Makefile.am
 
-Next step is `Makefile.am`. In meson you don't need to have other file, you still use `meson.build`.
+Next step is `Makefile.am`. In meson you don't need to have other
+file, you still use `meson.build`.
 
 ### Sub directories
 
@@ -193,7 +204,10 @@ EXTRA_DIST =                                            \
         config.h
 ```
 
-In Meson you don't need have `*CLEANFILES`, because in meson you are building in temporary directory (usually called `build`), you manually removing it. You also not need to use `EXTRA_DIST`, because you will make tarballs via `git archive` or something like this.
+In Meson you don't need have `*CLEANFILES`, because in meson you are
+building in temporary directory (usually called `build`), you manually
+removing it. You also not need to use `EXTRA_DIST`, because you will
+make tarballs via `git archive` or something like this.
 
 ### glib-compile-resources
 

@@ -12,35 +12,41 @@ When first running Meson, set it in an environment variable.
 $ CC=mycc meson <options>
 ```
 
-Note that environment variables like `CC` only works in native builds. The `CC`
-refers to the compiler for the host platform, that is the compiler used to
-compile programs that run on the machine we will eventually install the project
-on. The compiler used to build things that run on the machine we do the
-building can be specified with `CC_FOR_BUILD`. You can use it in cross builds.
+Note that environment variables like `CC` only works in native builds.
+The `CC` refers to the compiler for the host platform, that is the
+compiler used to compile programs that run on the machine we will
+eventually install the project on. The compiler used to build things
+that run on the machine we do the building can be specified with
+`CC_FOR_BUILD`. You can use it in cross builds.
 
-Note that environment variables are never the idiomatic way to do anything with
-Meson, however. It is better to use the native and cross files. And the tools
-for the host platform in cross builds can only be specified with a cross file.
+Note that environment variables are never the idiomatic way to do
+anything with Meson, however. It is better to use the native and cross
+files. And the tools for the host platform in cross builds can only be
+specified with a cross file.
 
-There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
+There is a table of all environment variables supported
+[Here](Reference-tables.md#compiler-and-linker-selection-variables)
 
 
 ## Set linker
 
 *New in 0.53.0*
 
-Like the compiler, the linker is selected via the `<compiler variable>_LD`
-environment variable, or through the `<compiler entry>_ld` entry in a native
-or cross file. You must be aware of whether you're using a compiler that
-invokes the linker itself (most compilers including GCC and Clang) or a
-linker that is invoked directly (when using MSVC or compilers that act like
-it, including Clang-Cl). With the former `c_ld` or `CC_LD` should be the value
-to pass to the compiler's special argument (such as `-fuse-ld` with clang and
-gcc), with the latter it should be an executable, such as `lld-link.exe`.
+Like the compiler, the linker is selected via the `<compiler
+variable>_LD` environment variable, or through the `<compiler
+entry>_ld` entry in a native or cross file. You must be aware of
+whether you're using a compiler that invokes the linker itself (most
+compilers including GCC and Clang) or a linker that is invoked
+directly (when using MSVC or compilers that act like it, including
+Clang-Cl). With the former `c_ld` or `CC_LD` should be the value to
+pass to the compiler's special argument (such as `-fuse-ld` with clang
+and gcc), with the latter it should be an executable, such as
+`lld-link.exe`.
 
-*NOTE* In meson 0.53.0 the `ld` entry in the cross/native file and the `LD`
-environment variable were used, this resulted in a large number of regressions
-and was changed in 0.53.1 to `<lang>_ld` and `<comp variable>_LD`.
+*NOTE* In meson 0.53.0 the `ld` entry in the cross/native file and the
+`LD` environment variable were used, this resulted in a large number
+of regressions and was changed in 0.53.1 to `<lang>_ld` and `<comp
+variable>_LD`.
 
 ```console
 $ CC=clang CC_LD=lld meson <options>
@@ -60,7 +66,8 @@ c = 'clang'
 c_ld = 'lld'
 ```
 
-There is a table of all environment variables supported [Here](Reference-tables.md#compiler-and-linker-selection-variables)
+There is a table of all environment variables supported
+[Here](Reference-tables.md#compiler-and-linker-selection-variables)
 
 
 ## Set default C/C++ language version
@@ -90,8 +97,8 @@ executable(..., dependencies : thread_dep)
 ## Set extra compiler and linker flags from the outside (when e.g. building distro packages)
 
 The behavior is the same as with other build systems, with environment
-variables during first invocation. Do not use these when you need to rebuild
-the source
+variables during first invocation. Do not use these when you need to
+rebuild the source
 
 ```console
 $ CFLAGS=-fsomething LDFLAGS=-Wl,--linker-flag meson <options>
@@ -245,9 +252,10 @@ executable(..., install : true, install_dir : get_option('libexecdir'))
 
 ## Use existing `Find<name>.cmake` files
 
-Meson can use the CMake `find_package()` ecosystem if CMake is installed.
-To find a dependency with custom `Find<name>.cmake`, set the `cmake_module_path`
-property to the path in your project where the CMake scripts are stored.
+Meson can use the CMake `find_package()` ecosystem if CMake is
+installed. To find a dependency with custom `Find<name>.cmake`, set
+the `cmake_module_path` property to the path in your project where the
+CMake scripts are stored.
 
 Example for a `FindCmakeOnlyDep.cmake` in a `cmake` subdirectory:
 

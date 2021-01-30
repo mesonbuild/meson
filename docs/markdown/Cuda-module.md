@@ -62,8 +62,9 @@ Multiple architectures and compute capabilities may be passed in using
 - Lists of strings
 - Space (` `), comma (`,`) or semicolon (`;`)-separated strings
 
-The single-word architectural sets `'All'`, `'Common'` or `'Auto'` cannot be
-mixed with architecture names or compute capabilities. Their interpretation is:
+The single-word architectural sets `'All'`, `'Common'` or `'Auto'`
+cannot be mixed with architecture names or compute capabilities. Their
+interpretation is:
 
 | Name              | Compute Capability |
 |-------------------|--------------------|
@@ -162,8 +163,9 @@ This will print
 
     Message: Building for architectures sm30 sm35 sm50 compute50
 
-_Note:_ This function is intended to closely replicate CMake's FindCUDA module function
-`CUDA_SELECT_NVCC_ARCH_FLAGS(out_variable, [list of CUDA compute architectures])`
+_Note:_ This function is intended to closely replicate CMake's
+FindCUDA module function `CUDA_SELECT_NVCC_ARCH_FLAGS(out_variable,
+[list of CUDA compute architectures])`
 
 
 
@@ -174,11 +176,11 @@ _Since: 0.50.0_
 cuda.min_driver_version(cuda_version_string)
 ```
 
-Returns the minimum NVIDIA proprietary driver version required, on the host
-system, by kernels compiled with a CUDA Toolkit with the given version string.
+Returns the minimum NVIDIA proprietary driver version required, on the
+host system, by kernels compiled with a CUDA Toolkit with the given
+version string.
 
-The output of this function is generally intended for informative message
-printing, but could be used for assertions or to conditionally enable
-features known to exist within the minimum NVIDIA driver required.
-
-
+The output of this function is generally intended for informative
+message printing, but could be used for assertions or to conditionally
+enable features known to exist within the minimum NVIDIA driver
+required.

@@ -69,10 +69,10 @@ page](#dependencies-with-custom-lookup-functionality).
 *Note* new in 0.51.0
 *new in 0.54.0, the `internal` keyword*
 
-When you need to get an arbitrary variables from a dependency that can be
-found multiple ways and you don't want to constrain the type you can use
-the generic `get_variable` method. This currently supports cmake, pkg-config,
-and config-tool based variables.
+When you need to get an arbitrary variables from a dependency that can
+be found multiple ways and you don't want to constrain the type you
+can use the generic `get_variable` method. This currently supports
+cmake, pkg-config, and config-tool based variables.
 
 ```meson
 foo_dep = dependency('foo')
@@ -80,14 +80,15 @@ var = foo_dep.get_variable(cmake : 'CMAKE_VAR', pkgconfig : 'pkg-config-var', co
 ```
 
 It accepts the keywords 'cmake', 'pkgconfig', 'pkgconfig_define',
-'configtool', 'internal', and 'default_value'. 'pkgconfig_define' works just
-like the 'define_variable' argument to `get_pkgconfig_variable`. When this
-method is invoked the keyword corresponding to the underlying type of the
-dependency will be used to look for a variable. If that variable cannot be
-found or if the caller does not provide an argument for the type of
-dependency, one of the following will happen: If 'default_value' was provided
-that value will be returned, if 'default_value' was not provided then an
-error will be raised.
+'configtool', 'internal', and 'default_value'. 'pkgconfig_define'
+works just like the 'define_variable' argument to
+`get_pkgconfig_variable`. When this method is invoked the keyword
+corresponding to the underlying type of the dependency will be used to
+look for a variable. If that variable cannot be found or if the caller
+does not provide an argument for the type of dependency, one of the
+following will happen: If 'default_value' was provided that value will
+be returned, if 'default_value' was not provided then an error will be
+raised.
 
 # Declaring your own
 
@@ -130,8 +131,8 @@ What this declaration means is that first Meson tries to look up the
 dependency from the system (such as by using pkg-config). If it is not
 available, then it builds subproject named `foo` and from that
 extracts a variable `foo_dep`. That means that the return value of
-this function is either an external or an internal dependency
-object. Since they can be used interchangeably, the rest of the build
+this function is either an external or an internal dependency object.
+Since they can be used interchangeably, the rest of the build
 definitions do not need to care which one it is. Meson will take care
 of all the work behind the scenes to make this work.
 
@@ -156,14 +157,14 @@ The dependency method order for `auto` is:
 
 Meson can use the CMake `find_package()` function to detect
 dependencies with the builtin `Find<NAME>.cmake` modules and exported
-project configurations (usually in `/usr/lib/cmake`). Meson is able
-to use both the old-style `<NAME>_LIBRARIES` variables as well as
+project configurations (usually in `/usr/lib/cmake`). Meson is able to
+use both the old-style `<NAME>_LIBRARIES` variables as well as
 imported targets.
 
 It is possible to manually specify a list of CMake targets that should
 be used with the `modules` property. However, this step is optional
-since meson tries to automatically guess the correct target based on the
-name of the dependency.
+since meson tries to automatically guess the correct target based on
+the name of the dependency.
 
 Depending on the dependency it may be necessary to explicitly specify
 a CMake target with the `modules` property if meson is unable to guess
@@ -173,22 +174,25 @@ it automatically.
     cmake_dep = dependency('ZLIB', method : 'cmake', modules : ['ZLIB::ZLIB'])
 ```
 
-Support for adding additional `COMPONENTS` for the CMake `find_package` lookup
-is provided with the `components` kwarg (*introduced in 0.54.0*). All specified
-componets will be passed directly to `find_package(COMPONENTS)`.
+Support for adding additional `COMPONENTS` for the CMake
+`find_package` lookup is provided with the `components` kwarg
+(*introduced in 0.54.0*). All specified componets will be passed
+directly to `find_package(COMPONENTS)`.
 
 Support for packages which require a specified version for CMake
-`find_package` to succeed is provided with the `cmake_package_version` kwarg
-(*introduced in 0.57.0*). The specified `cmake_package_version` will be
-passed directly as the second parameter to `find_package`.
+`find_package` to succeed is provided with the `cmake_package_version`
+kwarg (*introduced in 0.57.0*). The specified `cmake_package_version`
+will be passed directly as the second parameter to `find_package`.
 
-It is also possible to reuse existing `Find<name>.cmake` files with the
-`cmake_module_path` property. Using this property is equivalent to setting the
-`CMAKE_MODULE_PATH` variable in CMake. The path(s) given to `cmake_module_path`
-should all be relative to the project source directory. Absolute paths
-should only be used if the CMake files are not stored in the project itself.
+It is also possible to reuse existing `Find<name>.cmake` files with
+the `cmake_module_path` property. Using this property is equivalent to
+setting the `CMAKE_MODULE_PATH` variable in CMake. The path(s) given
+to `cmake_module_path` should all be relative to the project source
+directory. Absolute paths should only be used if the CMake files are
+not stored in the project itself.
 
-Additional CMake parameters can be specified with the `cmake_args` property.
+Additional CMake parameters can be specified with the `cmake_args`
+property.
 
 ## Dub
 
@@ -216,15 +220,16 @@ DC="dmd" meson builddir
 Some dependencies have specific detection logic.
 
 Generic dependency names are case-sensitive<sup>[1](#footnote1)</sup>,
-but these dependency names are matched case-insensitively.  The
+but these dependency names are matched case-insensitively. The
 recommended style is to write them in all lower-case.
 
-In some cases, more than one detection method exists, and the `method` keyword
-may be used to select a detection method to use.  The `auto` method uses any
-checking mechanisms in whatever order meson thinks is best.
+In some cases, more than one detection method exists, and the `method`
+keyword may be used to select a detection method to use. The `auto`
+method uses any checking mechanisms in whatever order meson thinks is
+best.
 
-e.g. libwmf and CUPS provide both pkg-config and config-tool support. You can
-force one or another via the `method` keyword:
+e.g. libwmf and CUPS provide both pkg-config and config-tool support.
+You can force one or another via the `method` keyword:
 
 ```meson
 cups_dep = dependency('cups', method : 'pkg-config')
@@ -247,8 +252,9 @@ libgcrypt_dep = dependency('libgcrypt', version: '>= 1.8')
 gpgme_dep = dependency('gpgme', version: '>= 1.0')
 ```
 
-*Since 0.55.0* Meson won't search $PATH any more for a config tool binary when
-cross compiling if the config tool did not have an entry in the cross file.
+*Since 0.55.0* Meson won't search $PATH any more for a config tool
+binary when cross compiling if the config tool did not have an entry
+in the cross file.
 
 ## AppleFrameworks
 
@@ -293,12 +299,12 @@ You can call `dependency` multiple times with different modules and
 use those to link against your targets.
 
 If your boost headers or libraries are in non-standard locations you
-can set the `BOOST_ROOT`, or the `BOOST_INCLUDEDIR` and `BOOST_LIBRARYDIR`
-environment variables. *(added in 0.56.0)* You can also set these
-parameters as `boost_root`, `boost_include`, and `boost_librarydir` in your
-native or cross machine file. Note that machine file variables are
-preferred to environment variables, and that specifying any of these
-disables system-wide search for boost.
+can set the `BOOST_ROOT`, or the `BOOST_INCLUDEDIR` and
+`BOOST_LIBRARYDIR` environment variables. *(added in 0.56.0)* You can
+also set these parameters as `boost_root`, `boost_include`, and
+`boost_librarydir` in your native or cross machine file. Note that
+machine file variables are preferred to environment variables, and
+that specifying any of these disables system-wide search for boost.
 
 You can set the argument `threading` to `single` to use boost
 libraries that have been compiled for single-threaded use instead.
@@ -367,12 +373,15 @@ language-specific, you must specify the requested language using the
  * `dependency('hdf5', language: 'cpp')` for the C++ HDF5 headers and libraries
  * `dependency('hdf5', language: 'fortran')` for the Fortran HDF5 headers and libraries
 
-Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the `HL` high-level HDF5 functions are linked for each language.
+Meson uses pkg-config to find HDF5. The standard low-level HDF5
+function and the `HL` high-level HDF5 functions are linked for each
+language.
 
 `method` may be `auto`, `config-tool` or `pkg-config`.
 
 *New in 0.56.0* the `config-tool` method.
-*New in 0.56.0* the dependencies now return proper dependency types and `get_variable` and similar methods should work as expected.
+*New in 0.56.0* the dependencies now return proper dependency types
+ and `get_variable` and similar methods should work as expected.
 
 ## libwmf
 
@@ -382,13 +391,13 @@ Meson uses pkg-config to find HDF5. The standard low-level HDF5 function and the
 
 ## LLVM
 
-Meson has native support for LLVM going back to version LLVM version 3.5.
-It supports a few additional features compared to other config-tool based
-dependencies.
+Meson has native support for LLVM going back to version LLVM version
+3.5. It supports a few additional features compared to other
+config-tool based dependencies.
 
-As of 0.44.0 Meson supports the `static` keyword argument for
-LLVM. Before this LLVM >= 3.9 would always dynamically link, while
-older versions would statically link, due to a quirk in `llvm-config`.
+As of 0.44.0 Meson supports the `static` keyword argument for LLVM.
+Before this LLVM >= 3.9 would always dynamically link, while older
+versions would statically link, due to a quirk in `llvm-config`.
 
 `method` may be `auto`, `config-tool`, or `cmake`.
 
@@ -412,10 +421,13 @@ llvm_dep = dependency(
 ```
 
 ### Using LLVM tools
-When using LLVM as library but also needing its tools, it is often beneficial to use the same version.
-This can partially be achieved with the `version` argument of `find_program()`.
-However, distributions tend to package different LLVM versions in rather different ways.
-Therefore, it is often better to use the llvm dependency directly to retrieve the tools:
+
+When using LLVM as library but also needing its tools, it is often
+beneficial to use the same version. This can partially be achieved
+with the `version` argument of `find_program()`. However,
+distributions tend to package different LLVM versions in rather
+different ways. Therefore, it is often better to use the llvm
+dependency directly to retrieve the tools:
 
 ```meson
 llvm_dep = dependency('llvm', version : ['>= 8', '< 9'])
@@ -495,9 +507,9 @@ Python3 is handled specially by meson:
     - On Windows the fallback is the current `python3` interpreter.
     - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
 
-Note that `python3` found by this dependency might differ from the one used in
-`python3` module because modules uses the current interpreter, but dependency tries
-`pkg-config` first.
+Note that `python3` found by this dependency might differ from the one
+used in `python3` module because modules uses the current interpreter,
+but dependency tries `pkg-config` first.
 
 `method` may be `auto`, `extraframework`, `pkg-config` or `sysconfig`
 
@@ -534,42 +546,46 @@ the list of sources for the target. The `modules` keyword of
 `dependency` works just like it does with Boost. It tells which
 subparts of Qt the program uses.
 
-You can set the `main` keyword argument to `true` to use the `WinMain()`
-function provided by qtmain static library (this argument does nothing on platforms
-other than Windows).
+You can set the `main` keyword argument to `true` to use the
+`WinMain()` function provided by qtmain static library (this argument
+does nothing on platforms other than Windows).
 
-Setting the optional `private_headers` keyword to true adds the private header
-include path of the given module(s) to the compiler flags.  (since v0.47.0)
+Setting the optional `private_headers` keyword to true adds the
+private header include path of the given module(s) to the compiler
+flags. (since v0.47.0)
 
-**Note** using private headers in your project is a bad idea, do so at your own
-risk.
+**Note** using private headers in your project is a bad idea, do so at
+your own risk.
 
 `method` may be `auto`, `pkg-config` or `qmake`.
 
 ## SDL2
 
-SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool, or as an
-OSX framework.
+SDL2 can be located using `pkg-confg`, the `sdl2-config` config tool,
+or as an OSX framework.
 
-`method` may be `auto`, `config-tool`, `extraframework` or `pkg-config`.
+`method` may be `auto`, `config-tool`, `extraframework` or
+`pkg-config`.
 
 ## Threads
 
-This dependency selects the appropriate compiler flags and/or libraries to use
-for thread support.
+This dependency selects the appropriate compiler flags and/or
+libraries to use for thread support.
 
 See [threads](Threads.md).
 
 ## Valgrind
 
-Meson will find valgrind using `pkg-config`, but only uses the compilation flags
-and avoids trying to link with it's non-PIC static libs.
+Meson will find valgrind using `pkg-config`, but only uses the
+compilation flags and avoids trying to link with it's non-PIC static
+libs.
 
 ## Vulkan
 
 *(added 0.42.0)*
 
-Vulkan can be located using `pkg-config`, or the `VULKAN_SDK` environment variable.
+Vulkan can be located using `pkg-config`, or the `VULKAN_SDK`
+environment variable.
 
 `method` may be `auto`, `pkg-config` or `system`.
 
@@ -601,20 +617,22 @@ $ wx-config --libs std stc
 
 *(added 0.51.0)*
 
-Shaderc currently does not ship with any means of detection. Nevertheless, Meson
-can try to detect it using `pkg-config`, but will default to looking for the
-appropriate library manually. If the `static` keyword argument is `true`,
-`shaderc_combined` is preferred. Otherwise, `shaderc_shared` is preferred. Note
-that it is not possible to obtain the shaderc version using this method.
+Shaderc currently does not ship with any means of detection.
+Nevertheless, Meson can try to detect it using `pkg-config`, but will
+default to looking for the appropriate library manually. If the
+`static` keyword argument is `true`, `shaderc_combined` is preferred.
+Otherwise, `shaderc_shared` is preferred. Note that it is not possible
+to obtain the shaderc version using this method.
 
 `method` may be `auto`, `pkg-config` or `system`.
 
 ## Zlib
 
-Zlib ships with pkg-config and cmake support, but on some operating systems
-(windows, macOs, FreeBSD, dragonflybsd), it is provided as part of the base
-operating system without pkg-config support. The new System finder can be used
-on these OSes to link with the bundled version.
+Zlib ships with pkg-config and cmake support, but on some operating
+systems (windows, macOs, FreeBSD, dragonflybsd), it is provided as
+part of the base operating system without pkg-config support. The new
+System finder can be used on these OSes to link with the bundled
+version.
 
 `method` may be `auto`, `pkg-config`, `cmake`, or `system`.
 
@@ -624,9 +642,9 @@ on these OSes to link with the bundled version.
 
 *(Since 0.54.0)*
 
-Curses (and ncurses) are a cross platform pain in the butt. Meson wraps up
-these dependencies in the `curses` dependency. This covers both `ncurses`
-(preferred) and other curses implementations.
+Curses (and ncurses) are a cross platform pain in the butt. Meson
+wraps up these dependencies in the `curses` dependency. This covers
+both `ncurses` (preferred) and other curses implementations.
 
 `method` may be `auto`, `pkg-config`, `config-tool`, or `system`.
 

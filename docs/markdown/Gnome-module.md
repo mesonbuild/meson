@@ -3,7 +3,7 @@
 This module provides helper tools for build operations needed when
 building Gnome/GLib programs.
 
-**Note**: the compilation commands here might not work properly when
+**Note**: the compilation commands here might not work properly when
   you change the source files. This is a bug in the respective
   compilers which do not expose the required dependency
   information. This has been reported upstream in [this bug]. Until
@@ -128,9 +128,9 @@ Returns an array of two elements which are: `[c_source, header_file]`
 ### gnome.mkenums()
 
 Generates enum files for GObject using the `glib-mkenums` tool. The
-first argument is the base name of the output files, unless `c_template`
-and `h_template` are specified. In this case, the output files will be
-the base name of the values passed as templates.
+first argument is the base name of the output files, unless
+`c_template` and `h_template` are specified. In this case, the output
+files will be the base name of the values passed as templates.
 
 This method is essentially a wrapper around the `glib-mkenums` tool's
 command line API. It is the most featureful method for enum creation.
@@ -252,14 +252,14 @@ one XML file.
   bundle depending on previous options
 * `install_header`: (*Added 0.46.0*) if true, install the header file
 
-Starting *0.46.0*, this function returns a list of at least two custom targets
-(in order): one for the source code and one for the header. The list will
-contain a third custom target for the generated docbook files if that keyword
-argument is passed.
+Starting *0.46.0*, this function returns a list of at least two custom
+targets (in order): one for the source code and one for the header.
+The list will contain a third custom target for the generated docbook
+files if that keyword argument is passed.
 
-Earlier versions return a single custom target representing all the outputs.
-Generally, you should just add this list of targets to a top level target's
-source list.
+Earlier versions return a single custom target representing all the
+outputs. Generally, you should just add this list of targets to a top
+level target's source list.
 
 Example:
 
@@ -344,11 +344,12 @@ of the module.
   Note that this has the downside of rebuilding the doc for each build, which is
   often very slow. It usually should be enabled only in CI.
 
-This also creates a `$module-doc` target that can be run to build documentation.
-Normally the documentation is only built on install.
+This also creates a `$module-doc` target that can be run to build
+documentation. Normally the documentation is only built on install.
 
-*Since 0.52.0* Returns a target object that can be passed as dependency to other
-targets using generated doc files (e.g. in `content_files` of another doc).
+*Since 0.52.0* Returns a target object that can be passed as
+dependency to other targets using generated doc files (e.g. in
+`content_files` of another doc).
 
 ### gnome.gtkdoc_html_dir()
 

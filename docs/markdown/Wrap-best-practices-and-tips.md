@@ -43,9 +43,9 @@ internal_inc = include_directories('.') # At top level meson.build
 
 Some platforms (e.g. iOS) requires linking everything in your main app
 statically. In other cases you might want shared libraries. They are
-also faster during development due to Meson's relinking
-optimization. However building both library types on all builds is
-slow and wasteful.
+also faster during development due to Meson's relinking optimization.
+However building both library types on all builds is slow and
+wasteful.
 
 Your project should use the `library` method that can be toggled
 between shared and static with the `default_library` builtin option.
@@ -139,21 +139,20 @@ quickly run afoul of the [One Definition Rule
 (ODR)](https://en.wikipedia.org/wiki/One_Definition_Rule) in C++, as
 you have more than one definition of a symbol, yielding undefined
 behavior. While C does not have a strict ODR rule, there is no
-language in the standard which guarantees such behavior to
-work. Violations of the ODR can lead to weird idiosyncratic failures
-such as segfaults. In the overwhelming number of cases, exposing
-library sources via the `sources` argument in `declare_dependency` is
-thus incorrect. If you wish to get full cross-library performance,
-consider building `mysupportlib` as a static library instead and
-employing LTO.
+language in the standard which guarantees such behavior to work.
+Violations of the ODR can lead to weird idiosyncratic failures such as
+segfaults. In the overwhelming number of cases, exposing library
+sources via the `sources` argument in `declare_dependency` is thus
+incorrect. If you wish to get full cross-library performance, consider
+building `mysupportlib` as a static library instead and employing LTO.
 
 There are exceptions to this rule. If there are some natural
-constraints on how your library is to be used, you can expose
-sources. For instance, the WrapDB module for GoogleTest directly
-exposes the sources of GTest and GMock. This is valid, as GTest and
-GMock will only ever be used in *terminal* link targets. A terminal
-target is the final target in a dependency link chain, for instance
-`myexe` in the last example, whereas `mylibrary` is an intermediate
-link target. For most libraries this rule is not applicable though, as
-you cannot in general control how others consume your library, and as
-such should not expose sources.
+constraints on how your library is to be used, you can expose sources.
+For instance, the WrapDB module for GoogleTest directly exposes the
+sources of GTest and GMock. This is valid, as GTest and GMock will
+only ever be used in *terminal* link targets. A terminal target is the
+final target in a dependency link chain, for instance `myexe` in the
+last example, whereas `mylibrary` is an intermediate link target. For
+most libraries this rule is not applicable though, as you cannot in
+general control how others consume your library, and as such should
+not expose sources.

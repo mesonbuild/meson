@@ -9,8 +9,9 @@ Meson has been designed to be as simple to use as possible. This page
 outlines the initial steps needed for installation, troubleshooting,
 and standard use.
 
-For more advanced configuration please refer to the command line help `meson --help`
-or the Meson documentation located at the [Mesonbuild](https://mesonbuild.com) website.
+For more advanced configuration please refer to the command line help
+`meson --help` or the Meson documentation located at the
+[Mesonbuild](https://mesonbuild.com) website.
 
 Table of Contents:
 * [Requirements](#requirements)
@@ -57,7 +58,8 @@ Install as root:
 $ pip3 install meson
 ```
 
-*If you are unsure whether to install as root or a local user, install as a local user.*
+*If you are unsure whether to install as root or a local user, install
+ as a local user.*
 
 
 Installation from source
@@ -76,12 +78,20 @@ Common Issues:
 $ meson builddir
 $ bash: /usr/bin/meson: No such file or directory
 ```
-Description: The default installation prefix for the python pip module installation is not included in your shell environment PATH. The default prefix for python pip installation modules is located under ``/usr/local``.
+
+Description: The default installation prefix for the python pip module
+installation is not included in your shell environment PATH. The
+default prefix for python pip installation modules is located under
+``/usr/local``.
 
 **Resolution:
-This issue can be resolved by altering the default shell environment PATH to include ``/usr/local/bin``. **
+This issue can be resolved by altering the default shell environment
+PATH to include ``/usr/local/bin``. **
 
-*Note: There are other ways of fixing this issue such as using symlinks or copying the binaries to a default path and these methods are not recommended or supported as they may break package management interoperability.*
+*Note: There are other ways of fixing this issue such as using
+ symlinks or copying the binaries to a default path and these methods
+ are not recommended or supported as they may break package management
+ interoperability.*
 
 
 Compiling a Meson project
@@ -99,19 +109,19 @@ $ meson test
 
 The only thing to note is that you need to create a separate build
 directory. Meson will not allow you to build source code inside your
-source tree. All build artifacts are stored in the build
-directory. This allows you to have multiple build trees with different
+source tree. All build artifacts are stored in the build directory.
+This allows you to have multiple build trees with different
 configurations at the same time. This way generated files are not
 added into revision control by accident.
 
-To recompile after code changes, just type `meson compile`. The build command
-is always the same. You can do arbitrary changes to source code and
-build system files and Meson will detect those and will do the right
-thing. If you want to build optimized binaries, just use the argument
-`--buildtype=debugoptimized` when running Meson. It is recommended
-that you keep one build directory for unoptimized builds and one for
-optimized ones. To compile any given configuration, just go into the
-corresponding build directory and run `meson compile`.
+To recompile after code changes, just type `meson compile`. The build
+command is always the same. You can do arbitrary changes to source
+code and build system files and Meson will detect those and will do
+the right thing. If you want to build optimized binaries, just use the
+argument `--buildtype=debugoptimized` when running Meson. It is
+recommended that you keep one build directory for unoptimized builds
+and one for optimized ones. To compile any given configuration, just
+go into the corresponding build directory and run `meson compile`.
 
 Meson will automatically add compiler flags to enable debug
 information and compiler warnings (i.e. `-g` and `-Wall`). This means

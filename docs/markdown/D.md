@@ -16,14 +16,20 @@ executable('myapp', 'app.d')
 
 ## [Conditional compilation](https://dlang.org/spec/version.html)
 
-If you are using the [version()](https://dlang.org/spec/version.html#version-specification) feature for conditional compilation,
-you can use it using the `d_module_versions` target property:
+If you are using the
+[version()](https://dlang.org/spec/version.html#version-specification)
+feature for conditional compilation, you can use it using the
+`d_module_versions` target property:
+
 ```meson
 project('myapp', 'd')
 executable('myapp', 'app.d', d_module_versions: ['Demo', 'FeatureA'])
 ```
 
-For debugging, [debug()](https://dlang.org/spec/version.html#debug) conditions are compiled automatically in debug builds, and extra identifiers can be added with the `d_debug` argument:
+For debugging, [debug()](https://dlang.org/spec/version.html#debug)
+conditions are compiled automatically in debug builds, and extra
+identifiers can be added with the `d_debug` argument:
+
 ```meson
 project('myapp', 'd')
 executable('myapp', 'app.d', d_debug: [3, 'DebugFeatureA'])
@@ -31,15 +37,15 @@ executable('myapp', 'app.d', d_debug: [3, 'DebugFeatureA'])
 
 ## Using embedded unittests
 
-If you are using embedded [unittest functions](https://dlang.org/spec/unittest.html), your source code needs
-to be compiled twice, once in regular
-mode, and once with unittests active. This is done by setting the
-`d_unittest` target property to `true`.
-Meson will only ever pass the respective compiler's `-unittest` flag,
-and never have the compiler generate an empty main function.
-If you need that feature in a portable way, create an empty `main()`
-function for unittests yourself, since the GNU D compiler
-does not have this feature.
+If you are using embedded [unittest
+functions](https://dlang.org/spec/unittest.html), your source code
+needs to be compiled twice, once in regular mode, and once with
+unittests active. This is done by setting the `d_unittest` target
+property to `true`. Meson will only ever pass the respective
+compiler's `-unittest` flag, and never have the compiler generate an
+empty main function. If you need that feature in a portable way,
+create an empty `main()` function for unittests yourself, since the
+GNU D compiler does not have this feature.
 
 This is an example for using D unittests with Meson:
 ```meson
@@ -87,13 +93,13 @@ install_subdir('src/mylib/', install_dir: 'include/d/mylib/')
 ```
 
 It is important to make the D sources install in a subdirectory in the
- include path, in this case `/usr/include/d/mylib/mylib`.
-All D compilers include the `/usr/include/d` directory by default, and
- if your library would be installed into `/usr/include/d/mylib`, there
-is a high chance that, when you compile your project again on a
-machine where you installed it, the compiler will prefer the old
-installed include over the new version in the source tree, leading to
-very confusing errors.
+include path, in this case `/usr/include/d/mylib/mylib`. All D
+compilers include the `/usr/include/d` directory by default, and if
+your library would be installed into `/usr/include/d/mylib`, there is
+a high chance that, when you compile your project again on a machine
+where you installed it, the compiler will prefer the old installed
+include over the new version in the source tree, leading to very
+confusing errors.
 
 This is an example of how to use the D library we just built and
 installed in an application:
@@ -113,7 +119,9 @@ compilers will lead to problems.
 # Integrating with DUB
 
 DUB is a fully integrated build system for D, but it is also a way to
-provide dependencies. Adding dependencies from the [D package registry](https://code.dlang.org/)
-is pretty straight forward. You can find how to do this in
-[Dependencies](Dependencies.md#some-notes-on-dub). You can also automatically
-generate a `dub.json` file as explained in [Dlang](Dlang-module.md#generate_dub_file).
+provide dependencies. Adding dependencies from the [D package
+registry](https://code.dlang.org/) is pretty straight forward. You can
+find how to do this in
+[Dependencies](Dependencies.md#some-notes-on-dub). You can also
+automatically generate a `dub.json` file as explained in
+[Dlang](Dlang-module.md#generate_dub_file).

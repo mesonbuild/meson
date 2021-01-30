@@ -22,18 +22,19 @@ Let say you would like to refer to your executable so something like `my_exe`.
 
 ## Dependency usage
 
-The `dependency` function is the recommended way to handle dependencies. If your wrap files
-have the necessary `[provide]` entries, everything will work automatically both when
-compiling your own and when using system dependencies.
+The `dependency` function is the recommended way to handle
+dependencies. If your wrap files have the necessary `[provide]`
+entries, everything will work automatically both when compiling your
+own and when using system dependencies.
 
 You should only need `subproject` when you need to extract non dependencies/programs.
 
 ## Naming options
 
 There are two ways of naming project options. As an example for
-booleans the first one is `foo` and the second one is
-`enable-foo`. The former style is recommended, because in Meson
-options have strong type, rather than being just strings.
+booleans the first one is `foo` and the second one is `enable-foo`.
+The former style is recommended, because in Meson options have strong
+type, rather than being just strings.
 
 You should try to name options the same as is common in other
 projects. This is especially important for yielding options, because
@@ -54,10 +55,11 @@ platform are isolated in one place.
 
 # Sorting source paths
 
-The source file arrays should all be sorted. This makes it easier to spot
-errors and often reduces merge conflicts. Furthermore, the paths should be
-sorted with a natural sorting algorithm, so that numbers are sorted in an
-intuitive way (`1, 2, 3, 10, 20` instead of `1, 10, 2, 20, 3`).
+The source file arrays should all be sorted. This makes it easier to
+spot errors and often reduces merge conflicts. Furthermore, the paths
+should be sorted with a natural sorting algorithm, so that numbers are
+sorted in an intuitive way (`1, 2, 3, 10, 20` instead of `1, 10, 2,
+20, 3`).
 
 Numbers should also be sorted before characters (`a111` before `ab0`).
 Furthermore, strings should be sorted case insensitive.

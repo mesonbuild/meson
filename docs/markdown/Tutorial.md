@@ -48,8 +48,9 @@ project('tutorial', 'c')
 executable('demo', 'main.c')
 ```
 
-That is all. Note that unlike Autotools you [do not need to add any source
-headers to the list of sources](FAQ.md#do-i-need-to-add-my-headers-to-the-sources-list-like-in-autotools).
+That is all. Note that unlike Autotools you [do not need to add any
+source headers to the list of
+sources](FAQ.md#do-i-need-to-add-my-headers-to-the-sources-list-like-in-autotools).
 
 We are now ready to build our application. First we need
 to initialize the build by going into the source directory and issuing
@@ -117,7 +118,7 @@ use GTK+. The new version looks like this.
 #include <gtk/gtk.h>
 
 //
-// Should provided the active view for a GTK application 
+// Should provided the active view for a GTK application
 //
 static void activate(GtkApplication* app, gpointer user_data)
 {
@@ -177,10 +178,10 @@ $ meson compile
 ```
 
 Once you have set up your build directory the first time, you don't
-ever need to run the `meson` command again. You always just run
-`meson compile`. Meson will automatically detect when you have done changes to
-build definitions and will take care of everything so users don't have
-to care. In this case the following output is produced.
+ever need to run the `meson` command again. You always just run `meson
+compile`. Meson will automatically detect when you have done changes
+to build definitions and will take care of everything so users don't
+have to care. In this case the following output is produced.
 
     [1/1] Regenerating build files
     The Meson build system
