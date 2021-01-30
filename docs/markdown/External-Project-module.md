@@ -54,8 +54,10 @@ build system. Usually in a `meson.build` file placed in the top directory of a
 subproject, but could be also in any subdir.
 
 Its first positional argument is the name of the configure script to be
-executed (e.g. `configure` or `autogen.sh`), that file must be in the current
-directory and executable.
+executed (e.g. `configure`), that file must be in the current directory and
+executable. Note that if a bootstrap script is required (e.g. `autogen.sh` when
+building from git instead of tarball), it can be done using `run_command()`
+before calling `add_project()` method.
 
 Keyword arguments:
 - `configure_options`: An array of strings to be passed as arguments to the
@@ -63,7 +65,11 @@ Keyword arguments:
   them to the configure script: `@PREFIX@`, `@LIBDIR@` and `@INCLUDEDIR@`.
   Note that `libdir` and `includedir` paths are relative to `prefix` in Meson
   but some configure scripts requires absolute path, in that case they can be
-  passed as `'--libdir=@PREFIX@/@LIBDIR@'`.
+  passed as `'--libdir=@PREFIX@/@LIBDIR@'`. *Since 0.57.0* default arguments are
+  added in case some tags are not found in `configure_options`:
+  `'--prefix=@PREFIX@'`, `'--libdir=@PREFIX@/@LIBDIR@'`, and
+  `'--includedir=@PREFIX@/@INCLUDEDIR@'`. It was previously considered a fatal
+  error to not specify them.
 - `cross_configure_options`: Extra options appended to `configure_options` only
   when cross compiling. special tag `@HOST@` will be replaced by
   `'{}-{}-{}'.format(host_machine.cpu_family(), build_machine.system(), host_machine.system()`.
