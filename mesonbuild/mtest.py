@@ -30,6 +30,7 @@ import random
 import re
 import signal
 import subprocess
+import shlex
 import sys
 import textwrap
 import time
@@ -140,12 +141,12 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         '"subprojname:" to run all tests defined by "subprojname".')
 
 
-def print_safe(s: str) -> None:
+def print_safe(s: str, end: str = '\n') -> None:
     try:
-        print(s)
+        print(s, end=end)
     except UnicodeEncodeError:
         s = s.encode('ascii', errors='backslashreplace').decode('ascii')
-        print(s)
+        print(s, end=end)
 
 def join_lines(a: str, b: str) -> str:
     if not a:
@@ -153,6 +154,15 @@ def join_lines(a: str, b: str) -> str:
     if not b:
         return a
     return a + '\n' + b
+
+def dashes(s: str, dash: str, cols: int) -> str:
+    if not s:
+        return dash * cols
+    s = ' ' + s + ' '
+    width = uniwidth(s)
+    first = (cols - width) // 2
+    s = dash * first + s
+    return s + dash * (cols - first - width)
 
 def returncode_to_status(retcode: int) -> str:
     # Note: We can't use `os.WIFSIGNALED(result.returncode)` and the related
@@ -179,8 +189,13 @@ def returncode_to_status(retcode: int) -> str:
         signame = 'SIGinvalid'
     return '(exit status {} or signal {} {})'.format(retcode, signum, signame)
 
+# TODO for Windows
+sh_quote: T.Callable[[str], str] = lambda x: x
+if not is_windows():
+    sh_quote = shlex.quote
+
 def env_tuple_to_str(env: T.Iterable[T.Tuple[str, str]]) -> str:
-    return ''.join(["{}='{}' ".format(k, v) for k, v in env])
+    return ''.join(["{}={} ".format(k, sh_quote(v)) for k, v in env])
 
 
 class TestException(MesonException):
@@ -225,18 +240,29 @@ class TestResult(enum.Enum):
         return self in {TestResult.FAIL, TestResult.TIMEOUT, TestResult.INTERRUPT,
                         TestResult.UNEXPECTEDPASS, TestResult.ERROR}
 
+    def is_finished(self) -> bool:
+        return self not in {TestResult.PENDING, TestResult.RUNNING}
+
     def was_killed(self) -> bool:
         return self in (TestResult.TIMEOUT, TestResult.INTERRUPT)
 
-    def get_text(self, colorize: bool) -> str:
-        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
+    def colorize(self, s: str) -> mlog.AnsiDecorator:
         if self.is_bad():
             decorator = mlog.red
         elif self in (TestResult.SKIP, TestResult.EXPECTEDFAIL):
             decorator = mlog.yellow
-        else:
+        elif self.is_finished():
             decorator = mlog.green
-        return decorator(result_str).get_text(colorize)
+        else:
+            decorator = mlog.blue
+        return decorator(s)
+
+    def get_text(self, colorize: bool) -> str:
+        result_str = '{res:{reslen}}'.format(res=self.value, reslen=self.maxlen())
+        return self.colorize(result_str).get_text(colorize)
+
+    def get_command_marker(self) -> str:
+        return str(self.colorize('>>> '))
 
 
 TYPE_TAPResult = T.Union['TAPParser.Test', 'TAPParser.Error', 'TAPParser.Version', 'TAPParser.Plan', 'TAPParser.Bailout']
@@ -421,7 +447,10 @@ class TestLogger:
     def start(self, harness: 'TestHarness') -> None:
         pass
 
-    def start_test(self, test: 'TestRun') -> None:
+    def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
+        pass
+
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, res: TestResult) -> None:
         pass
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
@@ -449,6 +478,10 @@ class ConsoleLogger(TestLogger):
     SPINNER = "\U0001f311\U0001f312\U0001f313\U0001f314" + \
               "\U0001f315\U0001f316\U0001f317\U0001f318"
 
+    SCISSORS = "\u2700 "
+    HLINE = "\u2015"
+    RTRI = "\u25B6 "
+
     def __init__(self) -> None:
         self.update = asyncio.Event()
         self.running_tests = OrderedSet()  # type: OrderedSet['TestRun']
@@ -461,6 +494,22 @@ class ConsoleLogger(TestLogger):
         self.test_count = 0
         self.started_tests = 0
         self.spinner_index = 0
+        try:
+            self.cols, _ = os.get_terminal_size(1)
+            self.is_tty = True
+        except OSError:
+            self.cols = 80
+            self.is_tty = False
+
+        self.output_start = dashes(self.SCISSORS, self.HLINE, self.cols - 2)
+        self.output_end = dashes('', self.HLINE, self.cols - 2)
+        self.sub = self.RTRI
+        try:
+            self.output_start.encode(sys.stdout.encoding or 'ascii')
+        except UnicodeEncodeError:
+            self.output_start = dashes('8<', '-', self.cols - 2)
+            self.output_end = dashes('', '-', self.cols - 2)
+            self.sub = '| '
 
     def flush(self) -> None:
         if self.should_erase_line:
@@ -501,14 +550,6 @@ class ConsoleLogger(TestLogger):
                               left=left, right=right)
         self.print_progress(line)
 
-    @staticmethod
-    def is_tty() -> bool:
-        try:
-            _, _ = os.get_terminal_size(1)
-            return True
-        except OSError:
-            return False
-
     def start(self, harness: 'TestHarness') -> None:
         async def report_progress() -> None:
             loop = asyncio.get_event_loop()
@@ -541,17 +582,71 @@ class ConsoleLogger(TestLogger):
             self.flush()
 
         self.test_count = harness.test_count
+        self.cols = max(self.cols, harness.max_left_width + 30)
 
-        if self.is_tty() and not harness.need_console:
+        if self.is_tty and not harness.need_console:
             # Account for "[aa-bb/cc] OO " in the progress report
             self.max_left_width = 3 * len(str(self.test_count)) + 8
             self.progress_task = asyncio.ensure_future(report_progress())
 
-    def start_test(self, test: 'TestRun') -> None:
+    def start_test(self, harness: 'TestHarness', test: 'TestRun') -> None:
+        if harness.options.verbose and test.cmdline:
+            self.flush()
+            print(harness.format(test, mlog.colorize_console(),
+                                 max_left_width=self.max_left_width,
+                                 right=test.res.get_text(mlog.colorize_console())))
+            print(test.res.get_command_marker() + test.cmdline)
+            if test.needs_parsing:
+                pass
+            elif harness.options.num_processes == 1:
+                print(self.output_start, flush=True)
+            else:
+                print(flush=True)
+
         self.started_tests += 1
         self.running_tests.add(test)
         self.running_tests.move_to_end(test, last=False)
         self.request_update()
+
+    def shorten_log(self, harness: 'TestHarness', result: 'TestRun') -> str:
+        if not harness.options.verbose and not harness.options.print_errorlogs:
+            return ''
+
+        log = result.get_log(mlog.colorize_console(),
+                             stderr_only=result.needs_parsing)
+        if harness.options.verbose:
+            return log
+
+        lines = log.splitlines()
+        if len(lines) < 100:
+            return log
+        else:
+            return str(mlog.bold('Listing only the last 100 lines from a long log.\n')) + '\n'.join(lines[-100:])
+
+    def print_log(self, harness: 'TestHarness', result: 'TestRun') -> None:
+        if not harness.options.verbose:
+            cmdline = result.cmdline
+            if not cmdline:
+                print(result.res.get_command_marker() + result.stdo)
+                return
+            print(result.res.get_command_marker() + cmdline)
+
+        log = self.shorten_log(harness, result)
+        if log:
+            print(self.output_start)
+            print_safe(log, end='')
+            print(self.output_end)
+        print(flush=True)
+
+    def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
+        if harness.options.verbose or (harness.options.print_errorlogs and result.is_bad()):
+            self.flush()
+            print(harness.format(test, mlog.colorize_console(), max_left_width=self.max_left_width,
+                                 prefix=self.sub,
+                                 middle=s,
+                                 right=result.get_text(mlog.colorize_console())), flush=True)
+
+            self.request_update()
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.running_tests.remove(result)
@@ -561,8 +656,17 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
-                  flush=True)
+            if harness.options.verbose and harness.options.num_processes == 1 and result.cmdline:
+                if not result.needs_parsing:
+                    print(self.output_end)
+                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
+                print(flush=True)
+            else:
+                print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
+                      flush=True)
+                if harness.options.verbose or result.res.is_bad():
+                    self.print_log(harness, result)
+
         self.request_update()
 
     async def finish(self, harness: 'TestHarness') -> None:
@@ -571,18 +675,8 @@ class ConsoleLogger(TestLogger):
         if self.progress_task:
             await self.progress_task
 
-        if harness.collected_failures:
-            if harness.options.print_errorlogs:
-                if len(harness.collected_failures) > 10:
-                    print('\n\nThe output from 10 first failed tests:\n')
-                else:
-                    print('\n\nThe output from the failed tests:\n')
-                for i, result in enumerate(harness.collected_failures, 1):
-                    print(harness.format(result, mlog.colorize_console()))
-                    print_safe(result.get_log_short())
-                    if i == 10:
-                        break
-
+        if harness.collected_failures and \
+                (harness.options.print_errorlogs or harness.options.verbose):
             print("\nSummary of Failures:\n")
             for i, result in enumerate(harness.collected_failures, 1):
                 print(harness.format(result, mlog.colorize_console()))
@@ -597,8 +691,14 @@ class TextLogfileBuilder(TestFileLogger):
         self.file.write('Inherited environment: {}\n\n'.format(inherit_env))
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
-        self.file.write(harness.format(result, False))
-        self.file.write("\n\n" + result.get_log() + "\n")
+        self.file.write(harness.format(result, False) + '\n')
+        cmdline = result.cmdline
+        if cmdline:
+            starttime_str = time.strftime("%H:%M:%S", time.gmtime(result.starttime))
+            self.file.write(starttime_str + ' ' + cmdline + '\n')
+            self.file.write(dashes('output', '-', 78) + '\n')
+            self.file.write(result.get_log())
+            self.file.write(dashes('', '-', 78) + '\n\n')
 
     async def finish(self, harness: 'TestHarness') -> None:
         if harness.collected_failures:
@@ -813,6 +913,14 @@ class TestRun:
         self.stdo = stdo
         self.stde = stde
 
+    @property
+    def cmdline(self) -> T.Optional[str]:
+        if not self.cmd:
+            return None
+        test_only_env = set(self.env.items()) - set(os.environ.items())
+        return env_tuple_to_str(test_only_env) + \
+            ' '.join((sh_quote(x) for x in self.cmd))
+
     def complete_skip(self, message: str) -> None:
         self.starttime = time.time()
         self._complete(GNU_SKIP_RETURNCODE, TestResult.SKIP, message, None)
@@ -821,46 +929,28 @@ class TestRun:
                  stdo: T.Optional[str], stde: T.Optional[str]) -> None:
         self._complete(returncode, res, stdo, stde)
 
-    def get_log(self) -> str:
-        res = '--- command ---\n'
-        if self.cmd is None:
-            res += 'NONE\n'
-        else:
-            test_only_env = set(self.env.items()) - set(os.environ.items())
-            starttime_str = time.strftime("%H:%M:%S", time.gmtime(self.starttime))
-            res += '{} {}{}\n'.format(
-                starttime_str, env_tuple_to_str(test_only_env), ' '.join(self.cmd)
-            )
-        if self.stdo:
-            res += '--- stdout ---\n'
-            res += self.stdo
+    def get_log(self, colorize: bool = False, stderr_only: bool = False) -> str:
+        stdo = '' if stderr_only else self.stdo
         if self.stde:
-            if res[-1:] != '\n':
-                res += '\n'
-            res += '--- stderr ---\n'
+            res = ''
+            if stdo:
+                res += mlog.cyan('stdout:').get_text(colorize) + '\n'
+                res += stdo
+                if res[-1:] != '\n':
+                    res += '\n'
+            res += mlog.cyan('stderr:').get_text(colorize) + '\n'
             res += self.stde
-        if res[-1:] != '\n':
-            res += '\n'
-        res += '-------\n'
-        return res
-
-    def get_log_short(self) -> str:
-        log = self.get_log()
-        lines = log.splitlines()
-        if len(lines) < 103:
-            return log
         else:
-            log = '\n'.join(lines[:2])
-            log += '\n--- Listing only the last 100 lines from a long log. ---\n'
-            log += lines[2] + '\n'
-            log += '\n'.join(lines[-100:])
-            return log
+            res = stdo
+        if res and res[-1:] != '\n':
+            res += '\n'
+        return res
 
     @property
     def needs_parsing(self) -> bool:
         return False
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         async for l in lines:
             pass
         return TestResult.OK, ''
@@ -909,17 +999,19 @@ class TestRunTAP(TestRun):
 
         super().complete(returncode, res, stdo, stde)
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         res = TestResult.OK
         error = ''
 
         async for i in TAPParser().parse_async(lines):
             if isinstance(i, TAPParser.Bailout):
                 res = TestResult.ERROR
+                harness.log_subtest(self, i.message, res)
             elif isinstance(i, TAPParser.Test):
                 self.results.append(i)
                 if i.result.is_bad():
                     res = TestResult.FAIL
+                harness.log_subtest(self, i.name or f'subtest {i.number}', i.result)
             elif isinstance(i, TAPParser.Error):
                 error = '\nTAP parsing error: ' + i.message
                 res = TestResult.ERROR
@@ -937,7 +1029,7 @@ class TestRunRust(TestRun):
     def needs_parsing(self) -> bool:
         return True
 
-    async def parse(self, lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
+    async def parse(self, harness: 'TestHarness', lines: T.AsyncIterator[str]) -> T.Tuple[TestResult, str]:
         def parse_res(n: int, name: str, result: str) -> TAPParser.Test:
             if result == 'ok':
                 return TAPParser.Test(n, name, TestResult.OK, None)
@@ -953,7 +1045,9 @@ class TestRunRust(TestRun):
             if line.startswith('test ') and not line.startswith('test result'):
                 _, name, _, result = line.rstrip().split(' ')
                 name = name.replace('::', '.')
-                self.results.append(parse_res(n, name, result))
+                t = parse_res(n, name, result)
+                self.results.append(t)
+                harness.log_subtest(self, name, t.result)
                 n += 1
 
         if all(t.result is TestResult.SKIP for t in self.results):
@@ -1150,13 +1244,31 @@ class TestSubprocess:
 
 class SingleTestRunner:
 
-    def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 env: T.Dict[str, str], name: str,
+    def __init__(self, test: TestSerialisation, env: T.Dict[str, str], name: str,
                  options: argparse.Namespace):
         self.test = test
-        self.test_env = test_env
-        self.env = env
         self.options = options
+        self.cmd = self._get_cmd()
+
+        if self.cmd and self.test.extra_paths:
+            env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + env['PATH']
+            winecmd = []
+            for c in self.cmd:
+                winecmd.append(c)
+                if os.path.basename(c).startswith('wine'):
+                    env['WINEPATH'] = get_wine_shortpath(
+                        winecmd,
+                        ['Z:' + p for p in self.test.extra_paths] + env.get('WINEPATH', '').split(';')
+                    )
+                    break
+
+        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
+        # (i.e., the test or the environment don't explicitly set it), set
+        # it ourselves. We do this unconditionally for regular tests
+        # because it is extremely useful to have.
+        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
+        if ('MALLOC_PERTURB_' not in env or not env['MALLOC_PERTURB_']) and not options.benchmark:
+            env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
 
         if self.options.gdb or self.test.timeout is None or self.test.timeout <= 0:
             timeout = None
@@ -1167,16 +1279,17 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
-        self.runobj = TestRun(test, test_env, name, timeout)
+        self.runobj = TestRun(test, env, name, timeout)
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.options.verbose and not self.runobj.needs_parsing:
+        elif self.options.verbose and self.options.num_processes == 1 and \
+                not self.runobj.needs_parsing:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER
 
-    def _get_cmd(self) -> T.Optional[T.List[str]]:
+    def _get_test_cmd(self) -> T.Optional[T.List[str]]:
         if self.test.fname[0].endswith('.jar'):
             return ['java', '-jar'] + self.test.fname
         elif not self.test.is_cross_built and run_with_mono(self.test.fname[0]):
@@ -1196,6 +1309,12 @@ class SingleTestRunner:
                 return self.test.exe_runner.get_command() + self.test.fname
         return self.test.fname
 
+    def _get_cmd(self) -> T.Optional[T.List[str]]:
+        test_cmd = self._get_test_cmd()
+        if not test_cmd:
+            return None
+        return TestHarness.get_wrapper(self.options) + test_cmd
+
     @property
     def visible_name(self) -> str:
         return self.runobj.name
@@ -1204,14 +1323,16 @@ class SingleTestRunner:
     def timeout(self) -> T.Optional[int]:
         return self.runobj.timeout
 
-    async def run(self) -> TestRun:
-        cmd = self._get_cmd()
-        if cmd is None:
+    async def run(self, harness: 'TestHarness') -> TestRun:
+        if self.cmd is None:
             skip_stdout = 'Not run because can not execute cross compiled binaries.'
+            harness.log_start_test(self.runobj)
             self.runobj.complete_skip(skip_stdout)
         else:
-            wrap = TestHarness.get_wrapper(self.options)
-            await self._run_cmd(wrap + cmd + self.test.cmd_args + self.options.test_args)
+            cmd = self.cmd + self.test.cmd_args + self.options.test_args
+            self.runobj.start(cmd)
+            harness.log_start_test(self.runobj)
+            await self._run_cmd(harness, cmd)
         return self.runobj
 
     async def _run_subprocess(self, args: T.List[str], *,
@@ -1248,28 +1369,7 @@ class SingleTestRunner:
         return TestSubprocess(p, stdout=stdout, stderr=stderr,
                               postwait_fn=postwait_fn if not is_windows() else None)
 
-    async def _run_cmd(self, cmd: T.List[str]) -> None:
-        if self.test.extra_paths:
-            self.env['PATH'] = os.pathsep.join(self.test.extra_paths + ['']) + self.env['PATH']
-            winecmd = []
-            for c in cmd:
-                winecmd.append(c)
-                if os.path.basename(c).startswith('wine'):
-                    self.env['WINEPATH'] = get_wine_shortpath(
-                        winecmd,
-                        ['Z:' + p for p in self.test.extra_paths] + self.env.get('WINEPATH', '').split(';')
-                    )
-                    break
-
-        # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
-        # (i.e., the test or the environment don't explicitly set it), set
-        # it ourselves. We do this unconditionally for regular tests
-        # because it is extremely useful to have.
-        # Setting MALLOC_PERTURB_="0" will completely disable this feature.
-        if ('MALLOC_PERTURB_' not in self.env or not self.env['MALLOC_PERTURB_']) and not self.options.benchmark:
-            self.env['MALLOC_PERTURB_'] = str(random.randint(1, 255))
-
-        self.runobj.start(cmd)
+    async def _run_cmd(self, harness: 'TestHarness', cmd: T.List[str]) -> None:
         if self.console_mode is ConsoleUser.GDB:
             stdout = None
             stderr = None
@@ -1289,12 +1389,12 @@ class SingleTestRunner:
         p = await self._run_subprocess(cmd + extra_cmd,
                                        stdout=stdout,
                                        stderr=stderr,
-                                       env=self.env,
+                                       env=self.runobj.env,
                                        cwd=self.test.workdir)
 
         parse_task = None
         if self.runobj.needs_parsing:
-            parse_task = self.runobj.parse(p.stdout_lines(self.console_mode))
+            parse_task = self.runobj.parse(harness, p.stdout_lines(self.console_mode))
 
         stdo_task, stde_task = p.communicate(self.console_mode)
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
@@ -1386,7 +1486,7 @@ class TestHarness:
         if (test.is_cross_built and test.needs_exe_wrapper and
                 test.exe_runner and test.exe_runner.found()):
             env['MESON_EXE_WRAPPER'] = join_args(test.exe_runner.get_command())
-        return SingleTestRunner(test, test_env, env, name, options)
+        return SingleTestRunner(test, env, name, options)
 
     def process_test_result(self, result: TestRun) -> None:
         if result.res is TestResult.TIMEOUT:
@@ -1409,23 +1509,35 @@ class TestHarness:
         for l in self.loggers:
             l.log(self, result)
 
+    @property
+    def numlen(self) -> int:
+        return len(str(self.test_count))
+
+    @property
+    def max_left_width(self) -> int:
+        return 2 * self.numlen + 2
+
     def format(self, result: TestRun, colorize: bool,
                max_left_width: int = 0,
+               prefix: str = '',
                left: T.Optional[str] = None,
+               middle: T.Optional[str] = None,
                right: T.Optional[str] = None) -> str:
-        numlen = len(str(self.test_count))
 
         if left is None:
             left = '{num:{numlen}}/{testcount} '.format(
-                numlen=numlen,
+                numlen=self.numlen,
                 num=result.num,
                 testcount=self.test_count)
 
         # A non-default max_left_width lets the logger print more stuff before the
         # name, while ensuring that the rightmost columns remain aligned.
-        max_left_width = max(max_left_width, 2 * numlen + 2)
-        extra_name_width = max_left_width + self.name_max_len + 1 - uniwidth(result.name) - uniwidth(left)
-        middle = result.name + (' ' * max(1, extra_name_width))
+        max_left_width = max(max_left_width, self.max_left_width)
+
+        if middle is None:
+            middle = result.name
+        extra_mid_width = max_left_width + self.name_max_len + 1 - uniwidth(middle) - uniwidth(left) - uniwidth(prefix)
+        middle += ' ' * max(1, extra_mid_width)
 
         if right is None:
             right = '{res} {dur:{durlen}.2f}s'.format(
@@ -1435,7 +1547,7 @@ class TestHarness:
             detail = result.detail
             if detail:
                 right += '   ' + detail
-        return left + middle + right
+        return prefix + left + middle + right
 
     def summary(self) -> str:
         return textwrap.dedent('''
@@ -1580,7 +1692,7 @@ class TestHarness:
             l.flush()
 
     def open_logfiles(self) -> None:
-        if not self.options.logbase or self.options.verbose:
+        if not self.options.logbase or self.options.gdb:
             return
 
         namebase = None
@@ -1630,6 +1742,14 @@ class TestHarness:
         finally:
             self.close_logfiles()
 
+    def log_subtest(self, test: TestRun, s: str, res: TestResult) -> None:
+        for l in self.loggers:
+            l.log_subtest(self, test, s, res)
+
+    def log_start_test(self, test: TestRun) -> None:
+        for l in self.loggers:
+            l.start_test(self, test)
+
     async def _run_tests(self, runners: T.List[SingleTestRunner]) -> None:
         semaphore = asyncio.Semaphore(self.options.num_processes)
         futures = deque()  # type: T.Deque[asyncio.Future]
@@ -1641,9 +1761,7 @@ class TestHarness:
             async with semaphore:
                 if interrupted or (self.options.repeat > 1 and self.fail_count):
                     return
-                for l in self.loggers:
-                    l.start_test(test.runobj)
-                res = await test.run()
+                res = await test.run(self)
                 self.process_test_result(res)
 
         def test_done(f: asyncio.Future) -> None:
