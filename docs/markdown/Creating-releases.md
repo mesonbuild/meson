@@ -24,10 +24,10 @@ ninja dist
 ```
 
 This creates a file called `projectname-version.tar.xz` in the build
-tree subdirectory `meson-dist`. This archive contains the full contents
-of the latest commit in revision control including all the submodules
-(recursively). All revision control metadata is removed. Meson then
-takes this archive and tests that it works by doing a full 
+tree subdirectory `meson-dist`. This archive contains the full
+contents of the latest commit in revision control including all the
+submodules (recursively). All revision control metadata is removed.
+Meson then takes this archive and tests that it works by doing a full
 `compile` + `test` + `install` cycle. If all these pass, Meson will
 then create a `SHA-256` checksum file next to the archive.
 
@@ -36,17 +36,19 @@ then create a `SHA-256` checksum file next to the archive.
 
 Meson behaviour is different from Autotools. The Autotools "dist"
 target packages up the current source tree. Meson packages the latest
-revision control commit. The reason for this is that it prevents developers
-from doing accidental releases where the distributed archive does not match
-any commit in revision control (especially the one tagged for the release).
+revision control commit. The reason for this is that it prevents
+developers from doing accidental releases where the distributed
+archive does not match any commit in revision control (especially the
+one tagged for the release).
 
 
 ## Include subprojects in your release
 
-The `meson dist` command has `--include-subprojects` command line option.
-When enabled, the source tree of all subprojects used by the current build
-will also be included in the final tarball. This is useful to distribute
-self contained tarball that can be built offline (i.e. `--wrap-mode=nodownload`).
+The `meson dist` command has `--include-subprojects` command line
+option. When enabled, the source tree of all subprojects used by the
+current build will also be included in the final tarball. This is
+useful to distribute self contained tarball that can be built offline
+(i.e. `--wrap-mode=nodownload`).
 
 
 ## Skip build and test with `--no-tests`

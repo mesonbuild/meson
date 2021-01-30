@@ -12,8 +12,8 @@ use, such as *debug* and *minsize*. There is also a *plain* type that
 adds nothing by default but instead makes it the user's responsibility
 to add everything by hand. This works but is a bit tedious.
 
-In this release we have added new new options to manually toggle
-e.g. optimization levels and debug info so those can be changed
+In this release we have added new new options to manually toggle e.g.
+optimization levels and debug info so those can be changed
 independently of other options. For example by default the debug
 buildtype has no optmization enabled at all. If you wish to use GCC's
 `-Og` instead, you could set it with the following command:
@@ -29,9 +29,11 @@ manually changed with the new base option `b_vscrt`.
 
 ## Meson warns if two calls to `configure_file()` write to the same file
 
-If two calls to [`configure_file()`](Reference-manual.md#configure_file)
-write to the same file Meson will print a `WARNING:` message during
-configuration. For example:
+If two calls to
+[`configure_file()`](Reference-manual.md#configure_file) write to the
+same file Meson will print a `WARNING:` message during configuration.
+For example:
+
 ```meson
 project('configure_file', 'cpp')
 
@@ -82,18 +84,18 @@ not receive any feedback about what the program is doing.
 
 ## `dependency(version:)` now applies to all dependency types
 
-Previously, version constraints were only enforced for dependencies found using
-the pkg-config dependency provider.  These constraints now apply to dependencies
-found using any dependency provider.
+Previously, version constraints were only enforced for dependencies
+found using the pkg-config dependency provider. These constraints now
+apply to dependencies found using any dependency provider.
 
-Some combinations of dependency, host and method do not currently support
-discovery of the version.  In these cases, the dependency will not be found if a
-version constraint is applied, otherwise the `version()` method for the
-dependency object will return `'unknown'`.
+Some combinations of dependency, host and method do not currently
+support discovery of the version. In these cases, the dependency will
+not be found if a version constraint is applied, otherwise the
+`version()` method for the dependency object will return `'unknown'`.
 
-(If discovering the version in one of these combinations is important to you,
-and a method exists to determine the version in that case, please file an issue
-with as much information as possible.)
+(If discovering the version in one of these combinations is important
+to you, and a method exists to determine the version in that case,
+please file an issue with as much information as possible.)
 
 ## python3 module is deprecated
 
@@ -139,17 +141,17 @@ meson.add_dist_script('dist_cleanup.py')
 
 ## Fatal warnings
 
-A new command line option has been added: `--fatal-meson-warnings`. When enabled, any
-warning message printed by Meson will be fatal and raise an exception. It is
-intended to be used by developers and CIs to easily catch deprecation warnings,
-or any other potential issues.
+A new command line option has been added: `--fatal-meson-warnings`.
+When enabled, any warning message printed by Meson will be fatal and
+raise an exception. It is intended to be used by developers and CIs to
+easily catch deprecation warnings, or any other potential issues.
 
 ## Helper methods added for checking GNU style attributes: `__attribute__(...)`
 
-A set of new helpers have been added to the C and C++ compiler objects for
-checking GNU style function attributes. These are not just simpler to use, they
-may be optimized to return fast on compilers that don't support these
-attributes. Currently this is true for MSVC.
+A set of new helpers have been added to the C and C++ compiler objects
+for checking GNU style function attributes. These are not just simpler
+to use, they may be optimized to return fast on compilers that don't
+support these attributes. Currently this is true for MSVC.
 
 ```meson
 cc = meson.get_compiler('c')
@@ -176,11 +178,12 @@ endforeach
 
 ## `gnome.generate_gir()` now optionally accepts multiple libraries
 
-The GNOME module can now generate a single gir for multiple libraries, which
-is something `g-ir-scanner` supported, but had not been exposed yet.
+The GNOME module can now generate a single gir for multiple libraries,
+which is something `g-ir-scanner` supported, but had not been exposed
+yet.
 
-gnome.generate_gir() will now accept multiple positional arguments, if none
-of these arguments are an `Executable` instance.
+gnome.generate_gir() will now accept multiple positional arguments, if
+none of these arguments are an `Executable` instance.
 
 ## Hotdoc module
 
@@ -242,12 +245,13 @@ add_project_arguments(..., native : true)
 add_project_arguments(..., native : false)
 ```
 
-Also remember that cross compilation is a property of each
-target. There can be target that are compiled with the native compiler
-and some which are compiled with the cross compiler.
+Also remember that cross compilation is a property of each target.
+There can be target that are compiled with the native compiler and
+some which are compiled with the cross compiler.
 
 Unfortunately this change is backwards incompatible and may cause some
-projects to fail building. However this should be very rare in practice.
+projects to fail building. However this should be very rare in
+practice.
 
 ## More flexible `override_find_program()`.
 
@@ -264,25 +268,28 @@ Now, by default `shared_library()` sets `-compatibility_version` and
 `-current_version` of a macOS dylib using the `soversion`.
 
 This can be overridden by using the `darwin_versions:` kwarg to
-[`shared_library()`](Reference-manual.md#shared_library). As usual, you can
-also pass this kwarg to `library()` or `build_target()` and it will be used in
-the appropriate circumstances.
+[`shared_library()`](Reference-manual.md#shared_library). As usual,
+you can also pass this kwarg to `library()` or `build_target()` and it
+will be used in the appropriate circumstances.
 
 ## Version comparison
 
-`dependency(version:)` and other version constraints now handle versions
-containing non-numeric characters better, comparing versions using the rpmvercmp
-algorithm (as using the `pkg-config` autoconf macro `PKG_CHECK_MODULES` does).
+`dependency(version:)` and other version constraints now handle
+versions containing non-numeric characters better, comparing versions
+using the rpmvercmp algorithm (as using the `pkg-config` autoconf
+macro `PKG_CHECK_MODULES` does).
 
-This is a breaking change for exact comparison constraints which rely on the
-previous comparison behaviour of extending the compared versions with `'0'`
-elements, up to the same length of `'.'`-separated elements.
+This is a breaking change for exact comparison constraints which rely
+on the previous comparison behaviour of extending the compared
+versions with `'0'` elements, up to the same length of `'.'`-separated
+elements.
 
-For example, a version of `'0.11.0'` would previously match a version constraint
-of `'==0.11'`, but no longer does, being instead considered strictly greater.
+For example, a version of `'0.11.0'` would previously match a version
+constraint of `'==0.11'`, but no longer does, being instead considered
+strictly greater.
 
-Instead, use a version constraint which exactly compares with the precise
-version required, e.g. `'==0.11.0'`.
+Instead, use a version constraint which exactly compares with the
+precise version required, e.g. `'==0.11.0'`.
 
 ## Keyword argument for GNU symbol visibility
 
@@ -308,13 +315,15 @@ clone-recursive=true
 
 ## `subproject()` function now supports the `required:` kwarg
 
-This allows you to declare an optional subproject. You can now call `found()`
-on the return value of the `subproject()` call to see if the subproject is
-available before calling `get_variable()` to fetch information from it.
+This allows you to declare an optional subproject. You can now call
+`found()` on the return value of the `subproject()` call to see if the
+subproject is available before calling `get_variable()` to fetch
+information from it.
 
 ## `dependency()` objects now support the `.name()` method
 
-You can now fetch the name of the dependency that was searched like so:
+You can now fetch the name of the dependency that was searched like
+so:
 
 ```meson
 glib_dep = dependency('glib-2.0')

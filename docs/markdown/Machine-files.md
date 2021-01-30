@@ -1,12 +1,13 @@
 # Cross and Native File reference
 
-Cross and native files are nearly identical, but not completely. This is the
-documentation on the common values used by both, for the specific values of
-one or the other see the [cross compilation](Cross-compilation.md) and [native
+Cross and native files are nearly identical, but not completely. This
+is the documentation on the common values used by both, for the
+specific values of one or the other see the [cross
+compilation](Cross-compilation.md) and [native
 environments](Native-environments.md).
 
-*Changed in 0.56.0* Keys within sections are now case sensitive. This is
-*required to make project options work correctly.
+*Changed in 0.56.0* Keys within sections are now case sensitive. This
+*is required to make project options work correctly.
 
 ## Data Types
 
@@ -54,10 +55,10 @@ The following sections are allowed:
 
 *Since 0.56.0*
 
-String and list concatenation is supported using the `+` operator, joining paths
-is supported using the `/` operator.
-Entries defined in the `[constants]` section can be used in any other section
-(they are always parsed first), entries in any other section can be used only
+String and list concatenation is supported using the `+` operator,
+joining paths is supported using the `/` operator. Entries defined in
+the `[constants]` section can be used in any other section (they are
+always parsed first), entries in any other section can be used only
 within that same section and only after it has been defined.
 
 ```ini
@@ -73,8 +74,10 @@ cpp_args = c_args + ['-DSOMETHING_ELSE']
 c = toolchain / 'gcc'
 ```
 
-This can be useful with cross file composition as well. A generic cross file
-could be composed with a platform specific file where constants are defined:
+This can be useful with cross file composition as well. A generic
+cross file could be composed with a platform specific file where
+constants are defined:
+
 ```ini
 # aarch64.ini
 [constants]
@@ -91,10 +94,12 @@ pkgconfig = arch + '-pkg-config'
 ...
 ```
 
-This can be used as `meson setup --cross-file aarch64.ini --cross-file cross.ini builddir`.
+This can be used as `meson setup --cross-file aarch64.ini --cross-file
+cross.ini builddir`.
 
-Note that file composition happens before the parsing of values. The example
-below results in `b` being `'HelloWorld'`:
+Note that file composition happens before the parsing of values. The
+example below results in `b` being `'HelloWorld'`:
+
 ```ini
 # file1.ini:
 [constants]
@@ -108,8 +113,9 @@ b = a + 'World'
 a = 'Hello'
 ```
 
-The example below results in an error when file1.ini is included before file2.ini
-because `b` would be defined before `a`:
+The example below results in an error when file1.ini is included
+before file2.ini because `b` would be defined before `a`:
+
 ```ini
 # file1.ini:
 [constants]
@@ -130,15 +136,16 @@ internally by meson, or by the `find_program` function.
 These values must be either strings or an array of strings
 
 Compilers and linkers are defined here using `<lang>` and `<lang>_ld`.
-`<lang>_ld` is special because it is compiler specific. For compilers like
-gcc and clang which are used to invoke the linker this is a value to pass to
-their "choose the linker" argument (-fuse-ld= in this case). For compilers
-like MSVC and Clang-Cl, this is the path to a linker for meson to invoke,
-such as `link.exe` or `lld-link.exe`. Support for `ld` is *new in 0.53.0*
+`<lang>_ld` is special because it is compiler specific. For compilers
+like gcc and clang which are used to invoke the linker this is a value
+to pass to their "choose the linker" argument (-fuse-ld= in this
+case). For compilers like MSVC and Clang-Cl, this is the path to a
+linker for meson to invoke, such as `link.exe` or `lld-link.exe`.
+Support for `ld` is *new in 0.53.0*
 
-*changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`, because it
-*regressed a large number of projects. in 0.53.0 the `ld` variable was used
-instead.
+*changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`,
+*because it regressed a large number of projects. in 0.53.0 the `ld`
+*variable was used instead.
 
 Native example:
 
@@ -161,7 +168,9 @@ strip = '/usr/i586-mingw32msvc/bin/strip'
 pkgconfig = '/usr/bin/i586-mingw32msvc-pkg-config'
 ```
 
-An incomplete list of internally used programs that can be overridden here is:
+An incomplete list of internally used programs that can be overridden
+here is:
+
 - cmake
 - cups-config
 - gnustep-config
@@ -178,8 +187,9 @@ An incomplete list of internally used programs that can be overridden here is:
 
 *Deprecated in 0.56.0* use the built-in section instead.
 
-As of 0.50.0 paths and directories such as libdir can be defined in the native
-and cross files in a paths section. These should be strings.
+As of 0.50.0 paths and directories such as libdir can be defined in
+the native and cross files in a paths section. These should be
+strings.
 
 ```ini
 [paths]
@@ -187,10 +197,10 @@ libdir = 'mylibdir'
 prefix = '/my prefix'
 ```
 
-These values will only be loaded when not cross compiling. Any arguments on the
-command line will override any options in the native file. For example, passing
-`--libdir=otherlibdir` would result in a prefix of `/my prefix` and a libdir of
-`otherlibdir`.
+These values will only be loaded when not cross compiling. Any
+arguments on the command line will override any options in the native
+file. For example, passing `--libdir=otherlibdir` would result in a
+prefix of `/my prefix` and a libdir of `otherlibdir`.
 
 ### Properties
 
@@ -200,9 +210,9 @@ In addition to special data that may be specified in cross files, this
 section may contain random key value pairs accessed using the
 `meson.get_external_property()`, or `meson.get_cross_property()`.
 
-*Changed in 0.56.0* putting `<lang>_args` and `<lang>_link_args` in the
-properties section has been deprecated, and should be put in the built-in
-options section.
+*Changed in 0.56.0* putting `<lang>_args` and `<lang>_link_args` in
+the properties section has been deprecated, and should be put in the
+built-in options section.
 
 #### Supported properties
 
@@ -231,9 +241,10 @@ section.
 
 *New in 0.56.0*
 
-All variables set in the `[cmake]` section will be added to the generate CMake
-toolchain file used for both CMake dependencies and CMake subprojects. The type
-of each entry must be either a string or a list of strings.
+All variables set in the `[cmake]` section will be added to the
+generate CMake toolchain file used for both CMake dependencies and
+CMake subprojects. The type of each entry must be either a string or a
+list of strings.
 
 **Note:** All occurrences of `\` in the value of all keys will be replaced with
           a `/` since CMake has a lot of issues with correctly escaping `\` when
@@ -251,8 +262,8 @@ CMAKE_CXX_COMPILER  = 'C:\\user\\bin\\g++'
 CMAKE_SOME_VARIABLE = ['some', 'value with spaces']
 ```
 
-For instance, the `[cmake]` section from above will generate the following
-code in the CMake toolchain file:
+For instance, the `[cmake]` section from above will generate the
+following code in the CMake toolchain file:
 
 ```cmake
 set(CMAKE_C_COMPILER    "/usr/bin/gcc")
@@ -264,14 +275,16 @@ set(CMAKE_SOME_VARIABLE "some" "value with spaces")
 
 *New in 0.56.0*
 
-Path options are not allowed, those must be set in the `[paths]` section.
+Path options are not allowed, those must be set in the `[paths]`
+section.
 
-Being able to set project specific options in a cross or native file can be
-done using the `[project options]` section of the specific file (if doing a
-cross build the options from the native file will be ignored)
+Being able to set project specific options in a cross or native file
+can be done using the `[project options]` section of the specific file
+(if doing a cross build the options from the native file will be
+ignored)
 
-For setting options in subprojects use the `[<subproject>:project options]`
-section instead.
+For setting options in subprojects use the `[<subproject>:project
+options]` section instead.
 
 ```ini
 [project options]
@@ -290,8 +303,9 @@ Meson built-in options can be set the same way:
 c_std = 'c99'
 ```
 
-You can set some meson built-in options on a per-subproject basis, such as
-`default_library` and `werror`. The order of precedence is:
+You can set some meson built-in options on a per-subproject basis,
+such as `default_library` and `werror`. The order of precedence is:
+
 1) Command line
 2) Machine file
 3) Build system definitions
@@ -302,9 +316,9 @@ default_library = 'static'
 werror = false
 ```
 
-Options set on a per-subproject basis will inherit the
-option from the parent if the parent has a setting but the subproject
-doesn't, even when there is a default set meson language.
+Options set on a per-subproject basis will inherit the option from the
+parent if the parent has a setting but the subproject doesn't, even
+when there is a default set meson language.
 
 ```ini
 [built-in options]
@@ -313,9 +327,10 @@ default_library = 'static'
 
 will make subprojects use default_library as static.
 
-Some options can be set on a per-machine basis (in other words, the value of
-the build machine can be different than the host machine in a cross compile).
-In these cases the values from both a cross file and a native file are used.
+Some options can be set on a per-machine basis (in other words, the
+value of the build machine can be different than the host machine in a
+cross compile). In these cases the values from both a cross file and a
+native file are used.
 
 An incomplete list of options is:
 - pkg_config_path
@@ -323,21 +338,21 @@ An incomplete list of options is:
 
 ## Loading multiple machine files
 
-Native files allow layering (cross files can be layered since meson 0.52.0).
-More than one file can be loaded, with values from a previous file being
-overridden by the next. The intention of this is not overriding, but to allow
-composing files. This composition is done by passing the command line
-argument multiple times:
+Native files allow layering (cross files can be layered since meson
+0.52.0). More than one file can be loaded, with values from a previous
+file being overridden by the next. The intention of this is not
+overriding, but to allow composing files. This composition is done by
+passing the command line argument multiple times:
 
 ```console
 meson setup builddir/ --cross-file first.ini --cross-file second.ini --cross-file thrid.ini
 ```
 
-In this case `first.ini` will be loaded, then `second.ini`, with values from
-`second.ini` replacing `first.ini`, and so on.
+In this case `first.ini` will be loaded, then `second.ini`, with
+values from `second.ini` replacing `first.ini`, and so on.
 
-For example, if there is a project using C and C++, python 3.4-3.7, and LLVM
-5-7, and it needs to build with clang 5, 6, and 7, and gcc 5.x, 6.x, and 7.x;
-expressing all of these configurations in monolithic configurations would
-result in 81 different native files. By layering them, it can be expressed by
-just 12 native files.
+For example, if there is a project using C and C++, python 3.4-3.7,
+and LLVM 5-7, and it needs to build with clang 5, 6, and 7, and gcc
+5.x, 6.x, and 7.x; expressing all of these configurations in
+monolithic configurations would result in 81 different native files.
+By layering them, it can be expressed by just 12 native files.

@@ -6,15 +6,16 @@ short-description: Setting up native compilation
 
 New in 0.49.0
 
-Meson has [cross files for describing cross compilation environments](Cross-compilation.md),
-for describing native environments it has equivalent "native files".
+Meson has [cross files for describing cross compilation
+environments](Cross-compilation.md), for describing native
+environments it has equivalent "native files".
 
-Natives describe the *build machine*, and can be used to override properties of
-non-cross builds, as well as properties that are marked as "native" in a cross
-build.
+Natives describe the *build machine*, and can be used to override
+properties of non-cross builds, as well as properties that are marked
+as "native" in a cross build.
 
-There are a couple of reasons you might want to use a native file to keep a
-persistent environment:
+There are a couple of reasons you might want to use a native file to
+keep a persistent environment:
 
 * To build with a non-default native tool chain (such as clang instead of gcc)
 * To use a non-default version of another binary, such as yacc, or llvm-config
@@ -44,6 +45,6 @@ The order of locations tried is as follows:
  - The user local location
  - The system wide locations in order
 
-These files are not intended to be shipped by distributions, unless they are
-specifically for distribution packaging, they are mainly intended for
-developers.
+These files are not intended to be shipped by distributions, unless
+they are specifically for distribution packaging, they are mainly
+intended for developers.

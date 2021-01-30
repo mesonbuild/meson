@@ -72,11 +72,12 @@ The `fs.size(filename)` method returns the size of the file in integer bytes.
 
 ### is_samepath
 
-The `fs.is_samepath(path1, path2)` returns boolean `true` if both paths resolve to the same path.
-For example, suppose path1 is a symlink and path2 is a relative path.
-If path1 can be resolved to path2, then `true` is returned.
-If path1 is not resolved to path2, `false` is returned.
-If path1 or path2 do not exist, `false` is returned.
+The `fs.is_samepath(path1, path2)` returns boolean `true` if both
+paths resolve to the same path. For example, suppose path1 is a
+symlink and path2 is a relative path. If `path1` can be resolved to
+`path2`, then `true` is returned. If `path1` is not resolved to
+`path2`, `false` is returned. If `path1` or `path2` do not exist,
+`false` is returned.
 
 Examples:
 
@@ -102,13 +103,15 @@ fs.is_samepath(p, s)  # false
 
 ## Filename modification
 
-The files need not actually exist yet for these path string manipulation methods.
+The files need not actually exist yet for these path string
+manipulation methods.
 
 ### expanduser
 
 *since 0.54.0*
 
-A path string with a leading `~` is expanded to the user home directory
+A path string with a leading `~` is expanded to the user home
+directory
 
 Examples:
 
@@ -122,8 +125,9 @@ fs.expanduser('~/foo')  # <homedir>/foo
 
 *since 0.54.0*
 
-`fs.as_posix(path)` assumes a Windows path, even if on a Unix-like system.
-Thus, all `'\'` or `'\\'` are turned to '/', even if you meant to escape a character.
+`fs.as_posix(path)` assumes a Windows path, even if on a Unix-like
+system. Thus, all `'\'` or `'\\'` are turned to '/', even if you meant
+to escape a character.
 
 Examples
 
@@ -136,8 +140,8 @@ fs.as_posix('foo\\bar/baz') == 'foo/bar/baz'  # true
 
 ### replace_suffix
 
-The `replace_suffix` method is a *string manipulation* convenient for filename modifications.
-It allows changing the filename suffix like:
+The `replace_suffix` method is a *string manipulation* convenient for
+filename modifications. It allows changing the filename suffix like:
 
 #### swap suffix
 
@@ -188,7 +192,8 @@ fs.name('foo/bar/baz.dll.a')  # baz.dll.a
 
 *since 0.54.0*
 
-Returns the last component of the path, dropping the last part of the suffix
+Returns the last component of the path, dropping the last part of the
+suffix
 
 ```meson
 fs.stem('foo/bar/baz.dll')  # baz

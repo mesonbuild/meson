@@ -7,25 +7,28 @@ short-description: Release notes for 0.56.0
 
 ## Python 3.5 support will be dropped in the next release
 
-The final [Python 3.5 release was 3.5.10 in September](https://www.python.org/dev/peps/pep-0478/#id4).
-This release series is now End-of-Life (EOL). The only LTS distribution that
-still only ships Python 3.5 is Ubuntu 16.04, which will be
-[EOL in April 2021](https://ubuntu.com/about/release-cycle).
+The final [Python 3.5 release was 3.5.10 in
+September](https://www.python.org/dev/peps/pep-0478/#id4). This
+release series is now End-of-Life (EOL). The only LTS distribution
+that still only ships Python 3.5 is Ubuntu 16.04, which will be [EOL
+in April 2021](https://ubuntu.com/about/release-cycle).
 
-Python 3.6 has numerous features that we find useful such as improved support
-for the `typing` module, f-string support, and better integration with the
-`pathlib` module.
+Python 3.6 has numerous features that we find useful such as improved
+support for the `typing` module, f-string support, and better
+integration with the `pathlib` module.
 
-As a result, we will begin requiring Python 3.6 or newer in Meson 0.57, which
-is the next release. Starting with Meson 0.56, we now print a `NOTICE:` when
-a `meson` command is run on Python 3.5 to inform users about this. This notice
-has also been backported into the 0.55.2 stable release.
+As a result, we will begin requiring Python 3.6 or newer in Meson
+0.57, which is the next release. Starting with Meson 0.56, we now
+print a `NOTICE:` when a `meson` command is run on Python 3.5 to
+inform users about this. This notice has also been backported into the
+0.55.2 stable release.
 
 ## `meson test` can now filter tests by subproject
 
-You could always specify a list of tests to run by passing the names as
-arguments to `meson test`. If there were multiple tests with that name (in the
-same project or different subprojects), all of them would be run. Now you can:
+You could always specify a list of tests to run by passing the names
+as arguments to `meson test`. If there were multiple tests with that
+name (in the same project or different subprojects), all of them would
+be run. Now you can:
 
 1. Run all tests with the specified name from a specific subproject: `meson test subprojname:testname`
 1. Run all tests defined in a specific subproject: `meson test subprojectname:`
@@ -42,56 +45,62 @@ $ meson test name1 name2 bar:name3 foo:
 
 ## Native (build machine) compilers not always required by `project()`
 
-When cross-compiling, native (build machine) compilers for the languages
-specified in `project()` are not required, if no targets use them.
+When cross-compiling, native (build machine) compilers for the
+languages specified in `project()` are not required, if no targets use
+them.
 
 ## New `extra_files` key in target introspection
 
-The target introspection (`meson introspect --targets`, `intro-targets.json`)
-now has the new `extra_files` key which lists all files specified via the
-`extra_files` kwarg of a build target (see `executable()`, etc.)
+The target introspection (`meson introspect --targets`,
+`intro-targets.json`) now has the new `extra_files` key which lists
+all files specified via the `extra_files` kwarg of a build target (see
+`executable()`, etc.)
 
 
 ## Preliminary AIX support
 
-AIX is now supported when compiling with gcc. A number of features are not
-supported yet. For example, only gcc is supported (not xlC). Archives with both
-32-bit and 64-bit dynamic libraries are not generated automatically. The rpath
-includes both the build and install rpath, no attempt is made to change the
-rpath at install time. Most advanced features (eg. link\_whole) are not
-supported yet.
+AIX is now supported when compiling with gcc. A number of features are
+not supported yet. For example, only gcc is supported (not xlC).
+Archives with both 32-bit and 64-bit dynamic libraries are not
+generated automatically. The rpath includes both the build and install
+rpath, no attempt is made to change the rpath at install time. Most
+advanced features (eg. link\_whole) are not supported yet.
 
 ## Wraps from subprojects are automatically promoted
 
-It is not required to promote wrap files for subprojects into the main project
-any more. When configuring a subproject, meson will look for any wrap file or
-directory in the subproject's `subprojects/` directory and add them into the
-global list of available subprojects, to be used by any future `subproject()`
-call or `dependency()` fallback. If a subproject with the same name already exists,
-the new wrap file or directory is ignored. That means that the main project can
-always override any subproject's wrap files by providing their own, it also means
-the ordering in which subprojects are configured matters, if 2 subprojects provide
-foo.wrap only the one from the first subproject to be configured will be used.
+It is not required to promote wrap files for subprojects into the main
+project any more. When configuring a subproject, meson will look for
+any wrap file or directory in the subproject's `subprojects/`
+directory and add them into the global list of available subprojects,
+to be used by any future `subproject()` call or `dependency()`
+fallback. If a subproject with the same name already exists, the new
+wrap file or directory is ignored. That means that the main project
+can always override any subproject's wrap files by providing their
+own, it also means the ordering in which subprojects are configured
+matters, if 2 subprojects provide foo.wrap only the one from the first
+subproject to be configured will be used.
 
 This new behavior can be disabled by passing `--wrap-mode=nopromote`.
 
 ## `meson.build_root()` and `meson.source_root()` are deprecated
 
-Those function are common source of issue when used in a subproject because they
-point to the parent project root which is rarely what is expected and is a
-violation of subproject isolation.
+Those function are common source of issue when used in a subproject
+because they point to the parent project root which is rarely what is
+expected and is a violation of subproject isolation.
 
-`meson.current_source_dir()` and `meson.current_build_dir()` should be used instead
-and have been available in all Meson versions. New functions `meson.project_source_root()`
-and `meson.project_build_root()` have been added in Meson 0.56.0 to get the root
-of the current (sub)project.
+`meson.current_source_dir()` and `meson.current_build_dir()` should be
+used instead and have been available in all Meson versions. New
+functions `meson.project_source_root()` and
+`meson.project_build_root()` have been added in Meson 0.56.0 to get
+the root of the current (sub)project.
 
 ## `dep.as_link_whole()`
 
-Dependencies created with `declare_dependency()` now has new method `as_link_whole()`.
-It returns a copy of the dependency object with all link_with arguments changed
-to link_whole. This is useful for example for fallback dependency from a
-subproject built with `default_library=static`.
+Dependencies created with `declare_dependency()` now has new method
+`as_link_whole()`. It returns a copy of the dependency object with all
+link_with arguments changed to link_whole. This is useful for example
+for fallback dependency from a subproject built with
+`default_library=static`.
 
 ```meson
 somelib = static_library('somelib', ...)
@@ -128,11 +137,11 @@ Added support for `nvidia_hpc` NVidia HPC SDK compilers, which are currently in 
 
 ## Project and built-in options can be set in native or cross files
 
-A new set of sections has been added to the cross and native files, `[project
-options]` and `[<subproject_name>:project options]`, where `subproject_name`
-is the name of a subproject. Any options that are allowed in the project can
-be set from this section. They have the lowest precedent, and will be
-overwritten by command line arguments.
+A new set of sections has been added to the cross and native files,
+`[project options]` and `[<subproject_name>:project options]`, where
+`subproject_name` is the name of a subproject. Any options that are
+allowed in the project can be set from this section. They have the
+lowest precedent, and will be overwritten by command line arguments.
 
 
 ```meson
@@ -189,26 +198,28 @@ stabilised (so `unstable-keyval` is still accepted for example).
 
 ## CMake subproject cross compilation support
 
-Meson now supports cross compilation for CMake subprojects. Meson will try to
-automatically guess most of the required CMake toolchain variables from existing
-entries in the cross and native files. These variables will be stored in an
-automatically generate CMake toolchain file in the build directory. The
-remaining variables that can't be guessed can be added by the user in the
-new `[cmake]` cross/native file section.
+Meson now supports cross compilation for CMake subprojects. Meson will
+try to automatically guess most of the required CMake toolchain
+variables from existing entries in the cross and native files. These
+variables will be stored in an automatically generate CMake toolchain
+file in the build directory. The remaining variables that can't be
+guessed can be added by the user in the new `[cmake]` cross/native
+file section.
 
 ## Machine file keys are stored case sensitive
 
-Previous the keys were always lowered, which worked fine for the values that
-were allowed in the machine files. With the addition of per-project options
-we need to make these sensitive to case, as the options in meson_options.txt
-are sensitive to case already.
+Previous the keys were always lowered, which worked fine for the
+values that were allowed in the machine files. With the addition of
+per-project options we need to make these sensitive to case, as the
+options in meson_options.txt are sensitive to case already.
 
 ## Consistency between `declare_dependency()` and `pkgconfig.generate()` variables
 
-The `variables` keyword argument in `declare_dependency()` used to only support
-dictionary and `pkgconfig.generate()` only list of strings. They now both support
-dictionary and list of strings in the format `'name=value'`. This makes easier
-to share a common set of variables for both:
+The `variables` keyword argument in `declare_dependency()` used to
+only support dictionary and `pkgconfig.generate()` only list of
+strings. They now both support dictionary and list of strings in the
+format `'name=value'`. This makes easier to share a common set of
+variables for both:
 
 ```meson
 vars = {'foo': 'bar'}
@@ -218,8 +229,9 @@ pkg.generate(..., variables: vars)
 
 ## Qt5 compile_translations now supports qresource preprocessing
 
-When using qtmod.preprocess() in combination with qtmod.compile_translations()
-to embed translations using rcc, it is no longer required to do this:
+When using qtmod.preprocess() in combination with
+qtmod.compile_translations() to embed translations using rcc, it is no
+longer required to do this:
 
 ```meson
 ts_files = ['list', 'of', 'files']
@@ -233,16 +245,16 @@ Instead, use:
 lang_cpp = qtmod.compile_translations(qresource: 'lang.qrc')
 ```
 
-which will automatically detect and generate the needed compile_translations
-targets.
+which will automatically detect and generate the needed
+compile_translations targets.
 
 ## Controlling subproject dependencies with  `dependency(allow_fallback: ...)`
 
 As an alternative to the `fallback` keyword argument to `dependency`,
 you may use `allow_fallback`, which accepts a boolean value. If `true`
-and the dependency is not found on the system, Meson will fallback
-to a subproject that provides this dependency, even if the dependency
-is optional. If `false`, Meson will not fallback even if a subproject
+and the dependency is not found on the system, Meson will fallback to
+a subproject that provides this dependency, even if the dependency is
+optional. If `false`, Meson will not fallback even if a subproject
 provides this dependency.
 
 ## Custom standard library
@@ -259,19 +271,19 @@ find_library for lookup as well as pkg-config.
 
 ## HDF5 dependency improvements
 
-HDF5 has been improved so that the internal representations have been split.
-This allows selecting pkg-config and config-tool dependencies separately.
-Both work as proper dependencies of their type, so `get_variable` and similar
-now work correctly.
+HDF5 has been improved so that the internal representations have been
+split. This allows selecting pkg-config and config-tool dependencies
+separately. Both work as proper dependencies of their type, so
+`get_variable` and similar now work correctly.
 
 It has also been fixed to use the selected compiler for the build instead of
 the default compiler.
 
 ## External projects
 
-A new experimental module `unstable_external_project` has been added to build
-code using other build systems than Meson. Currently only supporting projects
-with a configure script that generates Makefiles.
+A new experimental module `unstable_external_project` has been added
+to build code using other build systems than Meson. Currently only
+supporting projects with a configure script that generates Makefiles.
 
 ```meson
 project('My Autotools Project', 'c',
@@ -299,21 +311,23 @@ mylib_dep = p.dependency('mylib')
 
 ## `meson subprojects` command
 
-A new `--types` argument has been added to all subcommands to run the command only
-on wraps with the specified types. For example this command will only print `Hello`
-for each git subproject: `meson subprojects foreach --types git echo "Hello"`.
-Multiple types can be set as comma separated list e.g. `--types git,file`.
+A new `--types` argument has been added to all subcommands to run the
+command only on wraps with the specified types. For example this
+command will only print `Hello` for each git subproject: `meson
+subprojects foreach --types git echo "Hello"`. Multiple types can be
+set as comma separated list e.g. `--types git,file`.
 
-Subprojects with no wrap file are now taken into account as well. This happens
-for example for subprojects configured as git submodule, or downloaded manually
-by the user and placed into the `subprojects/` directory.
+Subprojects with no wrap file are now taken into account as well. This
+happens for example for subprojects configured as git submodule, or
+downloaded manually by the user and placed into the `subprojects/`
+directory.
 
-The `checkout` subcommand now always stash any pending changes before switching
-branch. Note that `update` subcommand was already stashing changes before updating
-the branch.
+The `checkout` subcommand now always stash any pending changes before
+switching branch. Note that `update` subcommand was already stashing
+changes before updating the branch.
 
-If the command fails on any subproject the execution continues with other
-subprojects, but at the end an error code is now returned.
+If the command fails on any subproject the execution continues with
+other subprojects, but at the end an error code is now returned.
 
 The `update` subcommand has been reworked:
 - In the case the URL of `origin` is different as the `url` set in wrap file,
@@ -336,22 +350,26 @@ The `update` subcommand has been reworked:
 
 ## Added CompCert C compiler
 
-Added experimental support for the [CompCert formally-verified C compiler](https://github.com/AbsInt/CompCert). The current state of the implementation is good enough to build the [picolibc project](https://github.com/picolibc/picolibc) with CompCert, but might still need additional adjustments for other projects.
+Added experimental support for the [CompCert formally-verified C
+compiler](https://github.com/AbsInt/CompCert). The current state of
+the implementation is good enough to build the [picolibc
+project](https://github.com/picolibc/picolibc) with CompCert, but
+might still need additional adjustments for other projects.
 
 ## Dependencies listed in test and benchmark introspection
 
-The introspection data for tests and benchmarks now includes the target
-ids for executables and built files that are needed by the test.  IDEs can
-use this feature to update the build more quickly before running a test.
+The introspection data for tests and benchmarks now includes the
+target ids for executables and built files that are needed by the
+test. IDEs can use this feature to update the build more quickly
+before running a test.
 
 ## `include_type` support for the CMake subproject object dependency method
 
-The `dependency()` method of the CMake subproject object now also supports the
-`include_type` kwarg which is similar to the sane kwarg in the `dependency()`
-function.
+The `dependency()` method of the CMake subproject object now also
+supports the `include_type` kwarg which is similar to the sane kwarg
+in the `dependency()` function.
 
 ## Deprecate Dependency.get_pkgconfig_variable and Dependency.get_configtool_variable
 
 These have been replaced with the more versatile `get_variable()` method
 already, and shouldn't be used anymore.
-

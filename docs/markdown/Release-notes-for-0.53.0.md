@@ -18,10 +18,11 @@ assert(fs.exists('important_file'),
 
 ## meson dist --include-subprojects
 
-`meson dist` command line now gained `--include-subprojects` command line option.
-When enabled, the source tree of all subprojects used by the current build will
-also be included in the final tarball. This is useful to distribute self contained
-tarball that can be built offline (i.e. `--wrap-mode=nodownload`).
+`meson dist` command line now gained `--include-subprojects` command
+line option. When enabled, the source tree of all subprojects used by
+the current build will also be included in the final tarball. This is
+useful to distribute self contained tarball that can be built offline
+(i.e. `--wrap-mode=nodownload`).
 
 ## Added new Meson templates for `Dlang`, `Rust`, `Objective-C`
 
@@ -31,8 +32,9 @@ Meson now ships with predefined project templates for `Dlang`,
 
 ## Add a new summary() function
 
-A new function [`summary()`](Reference-manual.md#summary) has been added to
-summarize build configuration at the end of the build process.
+A new function [`summary()`](Reference-manual.md#summary) has been
+added to summarize build configuration at the end of the build
+process.
 
 Example:
 ```meson
@@ -69,16 +71,19 @@ My Project 1.0
 
 ## Generic Overrider for Dynamic Linker selection
 
-Previous to meson 0.52.0 you set the dynamic linker using compiler specific
-flags passed via language flags and hoped things worked out. In meson 0.52.0
-meson started detecting the linker and making intelligent decisions about
-using it. Unfortunately this broke choosing a non-default linker.
+Previous to meson 0.52.0 you set the dynamic linker using compiler
+specific flags passed via language flags and hoped things worked out.
+In meson 0.52.0 meson started detecting the linker and making
+intelligent decisions about using it. Unfortunately this broke
+choosing a non-default linker.
 
-Now there is a generic mechanism for doing this. In 0.53.0, you can use the `LD`
-environment variable. **In 0.53.1** this was changed to `<compiler_variable>_LD`,
-such as `CC_LD`, `CXX_LD`, `D_LD`, etc due to regressions. The usual meson
-[environment variable rules](https://mesonbuild.com/Running-Meson.html#environment-variables)
-apply. Alternatively, you can add the following to a cross or native file:
+Now there is a generic mechanism for doing this. In 0.53.0, you can
+use the `LD` environment variable. **In 0.53.1** this was changed to
+`<compiler_variable>_LD`, such as `CC_LD`, `CXX_LD`, `D_LD`, etc due
+to regressions. The usual meson [environment variable
+rules](https://mesonbuild.com/Running-Meson.html#environment-variables)
+apply. Alternatively, you can add the following to a cross or native
+file:
 
 In 0.53.0:
 
@@ -105,10 +110,11 @@ And meson will select the linker if possible.
 
 ## `fortran_std` option
 
-**new in 0.53.0**
-Akin to the `c_std` and `cpp_std` options, the `fortran_std` option sets Fortran compilers to warn or error on non-Fortran standard code.
-Only the Gfortran and Intel Fortran compilers have support for this option.
-Other Fortran compilers ignore the `fortran_std` option.
+**new in 0.53.0** Akin to the `c_std` and `cpp_std` options, the
+`fortran_std` option sets Fortran compilers to warn or error on
+non-Fortran standard code. Only the Gfortran and Intel Fortran
+compilers have support for this option. Other Fortran compilers ignore
+the `fortran_std` option.
 
 Supported values for `fortran_std` include:
 
@@ -120,8 +126,9 @@ Supported values for `fortran_std` include:
 
 ## python.dependency() embed kwarg
 
-Added the `embed` kwarg to the python module dependency function to select
-the python library that can be used to embed python into an application.
+Added the `embed` kwarg to the python module dependency function to
+select the python library that can be used to embed python into an
+application.
 
 ## Scalapack
 
@@ -131,8 +138,9 @@ added in **0.53.0**:
 scalapack = dependency('scalapack')
 ```
 
-Historically and through today, typical Scalapack setups have broken and incomplete pkg-config or
-FindScalapack.cmake. Meson handles finding Scalapack on setups including:
+Historically and through today, typical Scalapack setups have broken
+and incomplete pkg-config or FindScalapack.cmake. Meson handles
+finding Scalapack on setups including:
 
 * Linux: Intel MKL or OpenMPI + Netlib
 * MacOS: Intel MKL or OpenMPI + Netlib
@@ -165,8 +173,8 @@ d += {k : 43}
 
 ## Improved CMake subprojects support
 
-With this release even more CMake projects are supported via
-[CMake subprojects](CMake-module.md#cmake-subprojects) due to these internal
+With this release even more CMake projects are supported via [CMake
+subprojects](CMake-module.md#cmake-subprojects) due to these internal
 improvements:
 
 - Use the CMake file API for CMake >=3.14
@@ -177,14 +185,15 @@ improvements:
 
 ## compiler.get_linker_id()
 
-since 0.53.0, `compiler.get_linker_id()` allows retrieving a lowercase name for the linker.
-Since each compiler family can typically use a variety of linkers depending on operating system,
-this helps users define logic for corner cases not otherwise easily handled.
+since 0.53.0, `compiler.get_linker_id()` allows retrieving a lowercase
+name for the linker. Since each compiler family can typically use a
+variety of linkers depending on operating system, this helps users
+define logic for corner cases not otherwise easily handled.
 
 ## CUDA dependency
 
-Native support for compiling and linking against the CUDA Toolkit using 
-the `dependency` function: 
+Native support for compiling and linking against the CUDA Toolkit
+using the `dependency` function:
 
 ```meson
 project('CUDA test', 'cpp', meson_version: '>= 0.53.0')
@@ -208,4 +217,3 @@ scanning dependencies (--scan-dependencies):
 tests and benchmarks (--tests, --benchmarks, intro-tests.json,
 intro-benchmarks.json):
 - added the `protocol` key
-

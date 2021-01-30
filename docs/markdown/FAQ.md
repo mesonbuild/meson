@@ -61,10 +61,10 @@ Instead of specifying files explicitly, people seem to want to do this:
 executable('myprog', sources : '*.cpp') # This does NOT work!
 ```
 
-Meson does not support this syntax and the reason for this is
-simple. This can not be made both reliable and fast. By reliable we
-mean that if the user adds a new source file to the subdirectory,
-Meson should detect that and make it part of the build automatically.
+Meson does not support this syntax and the reason for this is simple.
+This can not be made both reliable and fast. By reliable we mean that
+if the user adds a new source file to the subdirectory, Meson should
+detect that and make it part of the build automatically.
 
 One of the main requirements of Meson is that it must be fast. This
 means that a no-op build in a tree of 10 000 source files must take no
@@ -396,12 +396,14 @@ advantages:
    so specifying `libfoo.a` instead of `foo.lib` does not change the workflow,
    and is an improvement since it's less ambiguous.
 
-If, for some reason, you really need your project to output static libraries of
-the form `foo.lib` when building with MSVC, you can set the
+If, for some reason, you really need your project to output static
+libraries of the form `foo.lib` when building with MSVC, you can set
+the
 [`name_prefix:`](https://mesonbuild.com/Reference-manual.html#library)
-kwarg to `''` and the [`name_suffix:`](https://mesonbuild.com/Reference-manual.html#library)
-kwarg to `'lib'`. To get the default behaviour for each, you can either not
-specify the kwarg, or pass `[]` (an empty array) to it.
+kwarg to `''` and the
+[`name_suffix:`](https://mesonbuild.com/Reference-manual.html#library)
+kwarg to `'lib'`. To get the default behaviour for each, you can
+either not specify the kwarg, or pass `[]` (an empty array) to it.
 
 ## Do I need to add my headers to the sources list like in Autotools?
 

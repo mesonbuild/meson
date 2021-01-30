@@ -41,8 +41,8 @@ either `gcc` or `msvc`, or that its arguments are not like either. This should
 only be used to select the syntax of the arguments, such as those to test
 with `has_argument`.
 
-See [reference tables](Reference-tables.md#compiler-ids) for a list of supported compiler
-ids and their argument type.
+See [reference tables](Reference-tables.md#compiler-ids) for a list of
+supported compiler ids and their argument type.
 
 ## Does code compile?
 
@@ -167,10 +167,10 @@ not be determined.
 
 ## Does a function exist?
 
-Just having a header doesn't say anything about its
-contents. Sometimes you need to explicitly check if some function
-exists. This is how we would check whether the function `open_memstream`
-exists in header `stdio.h`
+Just having a header doesn't say anything about its contents.
+Sometimes you need to explicitly check if some function exists. This
+is how we would check whether the function `open_memstream` exists in
+header `stdio.h`
 
 ```meson
 if compiler.has_function('open_memstream', prefix : '#include <stdio.h>')
@@ -180,18 +180,18 @@ endif
 
 Note that, on macOS programs can be compiled targeting older macOS
 versions than the one that the program is compiled on. It can't be
-assumed that the OS version that is compiled on matches the OS
-version that the binary will run on.
+assumed that the OS version that is compiled on matches the OS version
+that the binary will run on.
 
 Therefore when detecting function availability with `has_function`, it
 is important to specify the correct header in the prefix argument.
 
 In the example above, the function `open_memstream` is detected, which
-was introduced in macOS 10.13. When the user builds on macOS 10.13, but
-targeting macOS 10.11 (`-mmacosx-version-min=10.11`), this will correctly
-report the function as missing. Without the header however, it would lack
-the necessary availability information and incorrectly report the function
-as available.
+was introduced in macOS 10.13. When the user builds on macOS 10.13,
+but targeting macOS 10.11 (`-mmacosx-version-min=10.11`), this will
+correctly report the function as missing. Without the header however,
+it would lack the necessary availability information and incorrectly
+report the function as available.
 
 ## Does a structure contain a member?
 

@@ -115,19 +115,20 @@ Will produce:
 
 ## Dealing with file encodings
 
-The default meson file encoding to configure files is utf-8. If you need to
-configure a file that is not utf-8 encoded the encoding keyword will allow
-you to specify which file encoding to use. It is however strongly advised to
-convert your non utf-8 file to utf-8 whenever possible. Supported file
-encodings are those of python3, see [standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
+The default meson file encoding to configure files is utf-8. If you
+need to configure a file that is not utf-8 encoded the encoding
+keyword will allow you to specify which file encoding to use. It is
+however strongly advised to convert your non utf-8 file to utf-8
+whenever possible. Supported file encodings are those of python3, see
+[standard-encodings](https://docs.python.org/3/library/codecs.html#standard-encodings).
 
 ## Using dictionaries
 
-Since *0.49.0* `configuration_data()` takes an optional dictionary as first
-argument. If provided, each key/value pair is added into the
+Since *0.49.0* `configuration_data()` takes an optional dictionary as
+first argument. If provided, each key/value pair is added into the
 `configuration_data` as if `set()` method was called for each of them.
-`configure_file()`'s `configuration` kwarg also accepts a dictionary instead of
-a configuration_data object.
+`configure_file()`'s `configuration` kwarg also accepts a dictionary
+instead of a configuration_data object.
 
 Example:
 ```meson

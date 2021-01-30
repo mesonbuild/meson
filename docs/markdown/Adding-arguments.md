@@ -62,7 +62,8 @@ executable('prog', 'prog.cc', cpp_args : '-DCPPTHING')
 Here we create a C++ executable with an extra argument that is used
 during compilation but not for linking.
 
-You can find the parameter name for other languages in the [reference tables](Reference-tables.md).
+You can find the parameter name for other languages in the [reference
+tables](Reference-tables.md).
 
 Specifying extra linker arguments is done in the same way:
 

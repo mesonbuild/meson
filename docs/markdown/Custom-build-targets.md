@@ -33,9 +33,9 @@ See [Generating Sources](Generating-sources.md) for more information on this top
 
 Meson only permits you to specify one command to run. This is by
 design as writing shell pipelines into build definition files leads to
-code that is very hard to maintain. If your command requires
-multiple steps you need to write a wrapper script that does all the
-necessary work.
+code that is very hard to maintain. If your command requires multiple
+steps you need to write a wrapper script that does all the necessary
+work.
 
 When doing this you need to be mindful of the following issues:
 
