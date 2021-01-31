@@ -1,5 +1,5 @@
-## Rust now has a a standard option
+## Rust now has an `std` option
 
-Rust calls these `editions`, however, meson generally refers to such language
-versions as "standards", or "std" for short. Rust uses "std" to keep normalize
-it with other languages.
+Rust calls these `editions`, however, Meson generally refers to such language
+versions as "standards", or `std` for short.  Therefore, Meson's Rust support
+uses `std` for consistency with other languages.

@@ -1,6 +1,6 @@
-## custom_target() now accepts `env` keyword argument
+## `custom_target()` now accepts an `env` keyword argument
 
-Environment variables can now be passed to `custom_target()` command.
+Environment variables can now be passed to the `custom_target()` command.
 
 ```meson
 env = environment()

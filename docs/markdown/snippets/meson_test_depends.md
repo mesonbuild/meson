@@ -12,6 +12,5 @@ using commands like the following:
 This would find the broken commit automatically while at each step
 rebuilding only those pieces of code needed to run the test.
 
-However, this change could cause failures if dependencies are not
-specified correctly in `meson.build`.
-
+However, this change could cause failures when upgrading to 0.57, ifthe
+dependencies are not specified correctly in `meson.build`.
