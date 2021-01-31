@@ -1,4 +1,4 @@
-## Package a subproject
+## Packaging a subproject
 
 The `meson dist` command can now create a distribution tarball for a subproject
 in the same git repository as the main project. This can be useful if parts of
