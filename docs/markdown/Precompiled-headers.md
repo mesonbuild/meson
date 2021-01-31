@@ -62,7 +62,7 @@ Let's say the source files of the binary use the system headers
 #include <string.h>
 ```
 
-And add this to meson:
+And add this to Meson:
 
 ```meson
 executable('myexe', sources : sourcelist, c_pch : 'pch/myexe_pch.h')

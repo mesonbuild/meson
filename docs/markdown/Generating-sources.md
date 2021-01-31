@@ -76,14 +76,14 @@ executable('myexe', ['main.c', foo_h], link_with : libfoo)
 
 Each target that depends on a generated header should add that header
 to it's sources, as seen above with `libfoo` and `myexe`. This is
-because there is no way for meson or the backend to know that `myexe`
+because there is no way for Meson or the backend to know that `myexe`
 depends on `foo.h` just because `libfoo` does, it could be a private
 header.
 
 ### Generating multiple files at a time
 
 Sometimes it makes sense for a single generator to create two or more
-files at a time, (perhaps a header and source file), meson has this
+files at a time, (perhaps a header and source file), Meson has this
 case covered as well. `custom_target`s can be indexed like a list to
 get each output file separately. The order is the same as the order of
 the output argument to `custom_target`

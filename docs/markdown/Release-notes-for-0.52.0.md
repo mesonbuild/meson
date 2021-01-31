@@ -42,7 +42,7 @@ Setting sys_root in the [properties] section of your cross file will
 now set PKG_CONFIG_SYSROOT_DIR automatically for host system
 dependencies when cross compiling.
 
-## The meson test program now accepts an additional "--gdb-path" argument to specify the GDB binary
+## The Meson test program now accepts an additional "--gdb-path" argument to specify the GDB binary
 
 `meson test --gdb testname` invokes GDB with the specific test case. However, sometimes GDB is not in the path or a GDB replacement is wanted.
 Therefore, a `--gdb-path` argument was added to specify which binary is executed (per default `gdb`):

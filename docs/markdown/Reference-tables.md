@@ -114,9 +114,9 @@ set in the cross file.
 Any cpu family not listed in the above list is not guaranteed to
 remain stable in future releases.
 
-Those porting from autotools should note that meson does not add
+Those porting from autotools should note that Meson does not add
 endianness to the name of the cpu_family. For example, autotools
-will call little endian PPC64 "ppc64le", meson will not, you must
+will call little endian PPC64 "ppc64le", Meson will not, you must
 also check the `.endian()` value of the machine for this information.
 
 ## Operating system names
@@ -300,7 +300,7 @@ machine](#Environment-variables-per-machine) section for details.
 | C#            | CSC      | CSC       | The linker is the compiler                  |
 
 *The old environment variales are still supported, but are deprecated
-and will be removed in a future version of meson.*
+and will be removed in a future version of Meson.*
 
 ## Environment variables per machine
 
@@ -317,7 +317,7 @@ configuration. For example:
  - `PKG_CONFIG_PATH` controls the paths pkg-config will search for just
    `native: false` dependencies (host machine).
 
-This mirrors the `build.` prefix used for (built-in) meson options,
+This mirrors the `build.` prefix used for (built-in) Meson options,
 which has the same meaning.
 
 This is useful for cross builds. In the native builds, build = host,

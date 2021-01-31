@@ -13,13 +13,13 @@ single set of files; the choice of which files to include in each
 target depends on the contents of a dictionary or a
 `configuration_data` object. The module can be loaded with:
 
-``` meson
+```meson
 ssmod = import('sourceset')
 ```
 
 A simple example of using the module looks like this:
 
-``` meson
+```meson
 ss = ssmod.source_set()
 # Include main.c unconditionally
 ss.add(files('main.c'))
@@ -36,7 +36,7 @@ executable('exe', sources: ssconfig.sources(),
 
 and it would be equivalent to
 
-``` meson
+```meson
 sources = files('main.c')
 dependencies = []
 if config['FEATURE1'] then
@@ -61,7 +61,7 @@ different configurations.
 
 ### `source_set()`
 
-``` meson
+```meson
 ssmod.source_set()
 ```
 
@@ -79,7 +79,7 @@ and to query it. The source set becomes immutable after any method but
 
 #### `add()`
 
-``` meson
+```meson
 source_set.add([when: varnames_and_deps],
                [if_true: sources_and_deps],
                [if_false: list_of_alt_sources])
@@ -114,7 +114,7 @@ account anymore.
 
 #### `add_all()`
 
-``` meson
+```meson
 source_set.add_all(when: varnames_and_deps,
                    if_true: [source_set1, source_set2, ...])
 source_set.add_all(source_set1, source_set2, ...)
@@ -126,7 +126,7 @@ For each source set listed in the arguments, `apply()` will consider
 their rules only if the conditions in `varnames_and_deps` are
 evaluated positively. For example, the following:
 
-``` meson
+```meson
 sources_b = ssmod.source_set()
 sources_b.add(when: 'HAVE_A', if_true: 'file.c')
 sources = ssmod.source_set()
@@ -135,14 +135,14 @@ sources.add_all(when: 'HAVE_B', if_true: sources_b)
 
 is equivalent to:
 
-``` meson
+```meson
 sources = ssmod.source_set()
 sources.add(when: ['HAVE_A', 'HAVE_B'], if_true: 'file.c')
 ```
 
 #### `all_sources()`
 
-``` meson
+```meson
 list source_set.all_sources(...)
 ```
 
@@ -155,7 +155,7 @@ sources are included (if any).
 
 #### `all_dependencies()` *(since 0.52.0)*
 
-``` meson
+```meson
 list source_set.all_dependencies(...)
 ```
 
@@ -166,7 +166,7 @@ using `add` (including nested source sets) and that were found.
 
 #### `apply()`
 
-``` meson
+```meson
 source_files source_set.apply(conf_data[, strict: false])
 ```
 
@@ -193,7 +193,7 @@ The `source_configuration` object provides methods to query the result of an
 
 #### `sources()`
 
-``` meson
+```meson
 source_config.sources()
 ```
 
@@ -203,7 +203,7 @@ Return the source files corresponding to the applied configuration.
 
 #### `dependencies()`
 
-``` meson
+```meson
 source_config.dependencies()
 ```
 

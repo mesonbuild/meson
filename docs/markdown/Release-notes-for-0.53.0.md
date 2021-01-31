@@ -71,16 +71,16 @@ My Project 1.0
 
 ## Generic Overrider for Dynamic Linker selection
 
-Previous to meson 0.52.0 you set the dynamic linker using compiler
+Previous to Meson 0.52.0 you set the dynamic linker using compiler
 specific flags passed via language flags and hoped things worked out.
-In meson 0.52.0 meson started detecting the linker and making
+In version 0.52.0 Meson started detecting the linker and making
 intelligent decisions about using it. Unfortunately this broke
 choosing a non-default linker.
 
 Now there is a generic mechanism for doing this. In 0.53.0, you can
 use the `LD` environment variable. **In 0.53.1** this was changed to
 `<compiler_variable>_LD`, such as `CC_LD`, `CXX_LD`, `D_LD`, etc due
-to regressions. The usual meson [environment variable
+to regressions. The usual Meson [environment variable
 rules](https://mesonbuild.com/Running-Meson.html#environment-variables)
 apply. Alternatively, you can add the following to a cross or native
 file:
@@ -106,7 +106,7 @@ c = 'clang'
 c_ld = 'lld'
 ```
 
-And meson will select the linker if possible.
+And Meson will select the linker if possible.
 
 ## `fortran_std` option
 

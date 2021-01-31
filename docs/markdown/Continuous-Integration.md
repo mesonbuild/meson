@@ -164,7 +164,7 @@ the AppVeyor docs for more details.
 
 ### Boost
 
-The following statement is sufficient for meson to find Boost:
+The following statement is sufficient for Meson to find Boost:
 
 ```yaml
  - cmd: set BOOST_ROOT=C:\Libraries\boost_1_67_0

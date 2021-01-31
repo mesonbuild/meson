@@ -22,10 +22,10 @@ following command in the source directory.
 
     meson builddir
 
-With this command meson will configure the project and also generate
+With this command Meson will configure the project and also generate
 introspection information that is stored in `intro-*.json` files in
 the `meson-info` directory. The introspection dump will be
-automatically updated when meson is (re)configured, or the build
+automatically updated when Meson is (re)configured, or the build
 options change. Thus, an IDE can watch for changes in this directory
 to know when something changed. Note that `meson-info.json` guaranteed
 to be the last file written.
@@ -35,8 +35,8 @@ The `meson-info` directory should contain the following files:
 | File                           | Description                                                         |
 | ------------------------------ | ------------------------------------------------------------------- |
 | `intro-benchmarks.json`        | Lists all benchmarks                                                |
-| `intro-buildoptions.json`      | Contains a full list of meson configuration options for the project |
-| `intro-buildsystem_files.json` | Full list of all meson build files                                  |
+| `intro-buildoptions.json`      | Contains a full list of Meson configuration options for the project |
+| `intro-buildsystem_files.json` | Full list of all Meson build files                                  |
 | `intro-dependencies.json`      | Lists all dependencies used in the project                          |
 | `intro-installed.json`         | Contains mapping of files to their installed location               |
 | `intro-projectinfo.json`       | Stores basic information about the project (name, version, etc.)    |
@@ -140,7 +140,7 @@ There is no guarantee that the sources list in `target_sources` is
 correct. There might be differences, due to internal limitations. It
 is also not guaranteed that all targets will be listed in the output.
 It might even be possible that targets are listed, which won't exist
-when meson is run normally. This can happen if a target is defined
+when Meson is run normally. This can happen if a target is defined
 inside an if statement. Use this feature with care.
 
 ## Build Options
@@ -199,7 +199,7 @@ output as running it with a freshly configured build directory.
 
 However, this behavior is not guaranteed if subprojects are present.
 Due to internal limitations all subprojects are processed even if they
-are never used in a real meson run. Because of this options for the
+are never used in a real Meson run. Because of this options for the
 subprojects can differ.
 
 ## The dependencies section
@@ -231,7 +231,7 @@ The output format is as follows:
 The `required` keyword specifies whether the dependency is marked as
 required in the `meson.build` (all dependencies are required by
 default). The `conditional` key indicates whether the `dependency()`
-function was called inside a conditional block. In a real meson run
+function was called inside a conditional block. In a real Meson run
 these dependencies might not be used, thus they _may_ not be required,
 even if the `required` key is set. The `has_fallback` key just
 indicates whether a fallback was directly set in the `dependency()`
@@ -302,7 +302,7 @@ This API can also work without a build directory for the
 
 # AST of a `meson.build`
 
-Since meson *0.55.0* it is possible to dump the AST of a `meson.build`
+Since Meson *0.55.0* it is possible to dump the AST of a `meson.build`
 as a JSON object. The interface for this is `meson introspect --ast
 /path/to/meson.build`.
 

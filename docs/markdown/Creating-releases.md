@@ -17,7 +17,7 @@ single command *(available since 0.52.0)*:
 meson dist
 ```
 
-or alternatively (on older meson versions with `ninja` backend):
+or alternatively (on older Meson versions with `ninja` backend):
 
 ```sh
 ninja dist

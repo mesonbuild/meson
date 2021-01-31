@@ -15,7 +15,7 @@ available. This means that Meson must be invoked using the terminal.
 If you wish to use the MSVC compiler, you need to run Meson under
 "Visual Studio command prompt".
 
-All available meson commands are listed on the [commands reference
+All available Meson commands are listed on the [commands reference
 page](Commands.md).
 
 ## Configuring the build directory
@@ -33,7 +33,7 @@ We invoke Meson with the `setup` command, giving it the location of the build
 directory. Meson uses [out of source
 builds](http://voices.canonical.com/jussi.pakkanen/2013/04/16/why-you-should-consider-using-separate-build-directories/).
 
-Hint: The syntax of meson is `meson [command] [arguments] [options]`.
+Hint: The syntax of Meson is `meson [command] [arguments] [options]`.
 The `setup` command takes a `builddir` and a `srcdir` argument. If no
 `srcdir` is given Meson will deduce the `srcdir` based on `pwd` and
 the location of `meson.build`.
@@ -43,7 +43,7 @@ corresponding build backend in the build directory. By default Meson
 generates a *debug build*, which turns on basic warnings and debug
 information and disables compiler optimizations.
 
-Additionally, the invocation can pass options to meson. The list of
+Additionally, the invocation can pass options to Meson. The list of
 options is documented [here](Builtin-options.md).
 
 You can specify a different type of build with the `--buildtype` command line
@@ -100,7 +100,7 @@ compile it in the usual way. A list of backends can be obtained with
 ## Environment variables
 
 Sometimes you want to add extra compiler flags, this can be done by
-passing them in environment variables when calling meson. See [the
+passing them in environment variables when calling Meson. See [the
 reference
 tables](Reference-tables.md#compiler-and-linker-flag-environment-variables)
 for a list of all the environment variables. Be aware however these
@@ -108,7 +108,7 @@ environment variables are only used for the native compiler and will
 not affect the compiler used for cross-compiling, where the flags
 specified in the cross file will be used.
 
-Furthermore it is possible to stop meson from adding flags itself by
+Furthermore it is possible to stop Meson from adding flags itself by
 using the `--buildtype=plain` option, in this case you must provide
 the full compiler and linker arguments needed.
 

@@ -115,7 +115,7 @@ Will produce:
 
 ## Dealing with file encodings
 
-The default meson file encoding to configure files is utf-8. If you
+The default Meson file encoding to configure files is utf-8. If you
 need to configure a file that is not utf-8 encoded the encoding
 keyword will allow you to specify which file encoding to use. It is
 however strongly advised to convert your non utf-8 file to utf-8

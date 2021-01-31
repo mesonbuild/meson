@@ -71,11 +71,11 @@ value will be provided for all required fields of the pc file:
 
 Since 0.54.0 uninstalled pkg-config files are generated as well. They
 are located in `<build dir>/meson-uninstalled/`. It is sometimes
-useful to build projects against libraries built by meson without
+useful to build projects against libraries built by Meson without
 having to install them into a prefix. In order to do so, just set
 `PKG_CONFIG_PATH=<builddir>/meson-uninstalled` before building your
 application. That will cause pkg-config to prefer those
-`-uninstalled.pc` files and find libraries and headers from the meson
+`-uninstalled.pc` files and find libraries and headers from the Meson
 builddir. This is an experimental feature provided on a best-effort
 basis, it might not work in all use-cases.
 

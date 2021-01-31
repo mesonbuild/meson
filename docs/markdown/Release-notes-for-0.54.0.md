@@ -8,7 +8,7 @@ short-description: Release notes for 0.54.0
 ## Emscripten (emcc) now supports threads
 
 In addition to properly setting the compile and linker arguments, a
-new meson builtin has been added to control the PTHREAD_POOL_SIZE
+new Meson builtin has been added to control the PTHREAD_POOL_SIZE
 option, `-D<lang>_thread_count`, which may be set to any integer value
 greater than 0. If it set to 0 then the PTHREAD_POOL_SIZE option will
 not be passed.
@@ -146,7 +146,7 @@ compiler is available after `add_languages()`, if the `native:`
 keyword is absent the languages may be used for either the build or
 host machine, but are never required for the build machine.
 
-This changes the behaviour of the following meson fragment (when
+This changes the behaviour of the following Meson fragment (when
 cross-compiling but a native compiler is not available) from reporting
 an error at `add_language` to reporting an error at `executable`.
 
@@ -182,7 +182,7 @@ have a name() method.
 
 ## New option `--quiet` to `meson install`
 
-Now you can run `meson install --quiet` and meson will not verbosely
+Now you can run `meson install --quiet` and Meson will not verbosely
 print every file as it is being installed. As before, the full log is
 always available inside the builddir in `meson-logs/install-log.txt`.
 
@@ -196,7 +196,7 @@ your workload.
 ## Property support emscripten's wasm-ld
 
 Before 0.54.0 we treated emscripten as both compiler and linker, which
-isn't really true. It does have a linker, called wasm-ld (meson's name
+isn't really true. It does have a linker, called wasm-ld (Meson's name
 is ld.wasm). This is a special version of clang's lld. This will now
 be detected properly.
 
@@ -285,7 +285,7 @@ cross builds.
 This old behavior is inconsistent with the way Autotools works, which
 undermines the purpose of distro-integration that is the only reason
 environment variables are supported at all in Meson. The new behavior
-is not quite the same, but doesn't conflict: meson doesn't always
+is not quite the same, but doesn't conflict: Meson doesn't always
 repond to an environment when Autoconf would, but when it does it
 interprets it as Autotools would.
 
@@ -316,7 +316,7 @@ https://github.com/ninja-build/ninja/releases
 
 ## Added `-C` argument to `meson init` command
 
-The meson init assumes that it is run inside the project root
+The Meson init assumes that it is run inside the project root
 directory. If this isn't the case, you can now use `-C` to specify the
 actual project source directory.
 
@@ -352,7 +352,7 @@ repository.
 The `pkgconfig` module now generates uninstalled pc files as well. For
 any generated `foo.pc` file, an extra `foo-uninstalled.pc` file is
 placed into `<builddir>/meson-uninstalled`. They can be used to build
-applications against libraries built by meson without installing them,
+applications against libraries built by Meson without installing them,
 by pointing `PKG_CONFIG_PATH` to that directory. This is an
 experimental feature provided on a best-effort basis, it might not
 work in all use-cases.

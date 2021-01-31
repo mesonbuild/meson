@@ -54,7 +54,7 @@ should always override this value.
 
 `libdir` is automatically detected based on your platform, it should
 be correct when doing "native" (build machine == host machine)
-compilation. For cross compiles meson will try to guess the correct
+compilation. For cross compiles Meson will try to guess the correct
 libdir, but it may not be accurate, especially on Linux where
 different distributions have different defaults. Using a [cross
 file](Cross-compilation.md#defining-the-environment), particularly the

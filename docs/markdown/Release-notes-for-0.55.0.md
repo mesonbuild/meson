@@ -7,7 +7,7 @@ short-description: Release notes for 0.55.0
 
 ## rpath removal now more careful
 
-On Linux-like systems, meson adds rpath entries to allow running apps
+On Linux-like systems, Meson adds rpath entries to allow running apps
 in the build tree, and then removes those build-time-only rpath
 entries when installing. Rpath entries may also come in via LDFLAGS
 and via .pc files. Meson used to remove those latter rpath entries by
@@ -37,8 +37,8 @@ can be invoked with `meson compile foo:shared_library foo:static_library bar`.
 ## Test protocol for gtest
 
 Due to the popularity of Gtest (google test) among C and C++
-developers meson now supports a special protocol for gtest. With this
-protocol meson injects arguments to gtests to output JUnit, reads that
+developers Meson now supports a special protocol for gtest. With this
+protocol Meson injects arguments to gtests to output JUnit, reads that
 JUnit, and adds the output to the JUnit it generates.
 
 ## meson.add_*_script methods accept new types
@@ -87,7 +87,7 @@ cpp_args = c_args + ['-DSOMETHING_ELSE']
 c = toolchain + '/gcc'
 ```
 
-## Configure CMake subprojects with meson.subproject_options
+## Configure CMake subprojects with Meson.subproject_options
 
 Meson now supports passing configuration options to CMake and
 overriding certain build details extracted from the CMake subproject.
@@ -117,10 +117,10 @@ exe = executable('foo', ...)
 meson.override_find_program('foo', exe)
 
 # In main project:
-# The version check was crashing meson.
+# The version check was crashing Meson.
 prog = find_program('foo', version : '>=1.0')
 
-# This was crashing meson.
+# This was crashing Meson.
 message(prog.path())
 
 # New method to be consistent with built objects.
@@ -156,8 +156,8 @@ the compiler) when the b_ndebug flag is set.
 ## Meson test now produces JUnit xml from results
 
 Meson will now generate a JUnit compatible XML file from test results.
-it will be in the meson-logs directory and is called
-testlog.junit.xml.
+it will be in the `meson-logs` directory and is called
+`testlog.junit.xml`.
 
 ## Config tool based dependencies no longer search PATH for cross compiling
 
@@ -176,7 +176,7 @@ changed), but is now deprecated.
 ## String concatenation in meson_options.txt
 
 It is now possible to use string concatenation (with the `+`
-opperator) in the meson_options.txt file. This allows splitting long
+opperator) in the `meson_options.txt` file. This allows splitting long
 option descriptions.
 
 ```meson

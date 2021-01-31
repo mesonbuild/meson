@@ -84,7 +84,7 @@ things to note. First, you must tell GCC to link the C++ standard
 library statically. If you don't then your app is guaranteed to break
 as different distros have binary-incompatible C++ libraries. The
 second thing is that you need to point your install prefix to some
-empty staging area. Here's the meson command to do that:
+empty staging area. Here's the Meson command to do that:
 
 ```console
 $ LDFLAGS=-static-libstdc++ meson --prefix=/tmp/myapp <other args>

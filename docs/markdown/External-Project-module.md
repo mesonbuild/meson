@@ -42,7 +42,7 @@ Known limitations:
   yet supported.
 - When cross compiling, if `PKG_CONFIG_SYSROOT_DIR` is set in environment or
   `sys_root` in the cross file properties, the external subproject will not be
-  able to find dependencies built by meson using pkg-config. The reason is
+  able to find dependencies built by Meson using pkg-config. The reason is
   pkg-config and pkgconf both prepend the sysroot path to `-I` and `-L` arguments
   from `-uninstalled.pc` files. This is arguably a bug that could be fixed in
   future version of pkg-config/pkgconf.

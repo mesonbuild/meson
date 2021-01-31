@@ -5,7 +5,7 @@
 
 This module provides helper tools for generating cmake package files.
 It also supports the usage of CMake based subprojects, similar to
-the normal [meson subprojects](Subprojects.md).
+the normal [Meson subprojects](Subprojects.md).
 
 
 ## Usage
@@ -22,7 +22,7 @@ lead to unexpected issues in rare cases.
 
 ## CMake subprojects
 
-Using CMake subprojects is similar to using the "normal" meson
+Using CMake subprojects is similar to using the "normal" Meson
 subprojects. They also have to be located in the `subprojects`
 directory.
 
@@ -44,9 +44,9 @@ cm_lib = sub_proj.dependency('cm_lib')
 executable(exe1, ['sources'], dependencies: [cm_lib])
 ```
 
-The `subproject` method is almost identical to the normal meson
+The `subproject` method is almost identical to the normal Meson
 `subproject` function. The only difference is that a CMake project
-instead of a meson project is configured.
+instead of a Meson project is configured.
 
 The returned `sub_proj` supports the same options as a "normal"
 subproject. Meson automatically detects CMake build targets, which can
@@ -54,7 +54,7 @@ be accessed with the methods listed [below](#subproject-object).
 
 It is usually enough to just use the dependency object returned by the
 `dependency()` method in the build targets. This is almost identical
-to using `declare_dependency()` object from a normal meson subproject.
+to using `declare_dependency()` object from a normal Meson subproject.
 
 It is also possible to use executables defined in the CMake project as code
 generators with the `target()` method:
@@ -125,7 +125,7 @@ configured and must be passed to the `subproject` method via the
 `options` key. Altering the configuration object won't have any effect
 on previous `cmake.subproject` calls.
 
-In earlier meson versions CMake command-line parameters could be set
+In earlier Meson versions CMake command-line parameters could be set
 with the `cmake_options` kwarg. However, this feature is deprecated
 since 0.55.0 and only kept for compatibility. It will not work
 together with the `options` kwarg.
@@ -139,7 +139,7 @@ and supports the following methods:
    `include_type` kwarg *(new in 0.56.0)* controls the include type of the
    returned dependency object similar to the same kwarg in the
    [`dependency()`](Reference-manual.md#dependency) function.
- - `include_directories(target)` returns a meson `include_directories()`
+ - `include_directories(target)` returns a Meson `include_directories()`
    object for the specified target. Using this function is not necessary
    if the dependency object is used.
  - `target(target)` returns the raw build target.
@@ -149,7 +149,7 @@ and supports the following methods:
    the subproject. Usually `dependency()` or `target()` should be
    preferred to extract build targets.
  - `found` returns true if the subproject is available, otherwise false
-   *new in meson 0.53.2*
+   *new in Meson 0.53.2*
 
 ### `cmake options` object
 

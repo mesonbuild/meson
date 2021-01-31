@@ -116,5 +116,5 @@ all the work required to bring your build tree up to date.
 Since 0.50.0, it is also possible to get a list of all build options
 by invoking [`meson configure`](Commands.md#configure) with the
 project source directory or the path to the root `meson.build`. In
-this case, meson will print the default values of all options similar
+this case, Meson will print the default values of all options similar
 to the example output from above.
