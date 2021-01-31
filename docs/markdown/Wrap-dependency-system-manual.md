@@ -131,7 +131,7 @@ Meson. Because of this Meson allows you to specify a patch URL.
 For historic reasons this is called a "patch", however, it serves as an
 overlay to add or replace files rather than modifying them. The file
 must be an archive; it is downloaded and automatically extracted into
-the subproject. The extracted files will include a meson build
+the subproject. The extracted files will include a Meson build
 definition for the given subproject.
 
 This approach makes it extremely simple to embed dependencies that

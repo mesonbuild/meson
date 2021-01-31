@@ -138,7 +138,7 @@ of all the work behind the scenes to make this work.
 
 # Dependency method
 
-You can use the keyword `method` to let meson know what method to use
+You can use the keyword `method` to let Meson know what method to use
 when searching for the dependency. The default value is `auto`.
 Additional dependencies methods are `pkg-config`, `config-tool`, `cmake`,
 `system`, `sysconfig`, `qmake`, `extraframework` and `dub`.
@@ -163,11 +163,11 @@ imported targets.
 
 It is possible to manually specify a list of CMake targets that should
 be used with the `modules` property. However, this step is optional
-since meson tries to automatically guess the correct target based on
+since Meson tries to automatically guess the correct target based on
 the name of the dependency.
 
 Depending on the dependency it may be necessary to explicitly specify
-a CMake target with the `modules` property if meson is unable to guess
+a CMake target with the `modules` property if Meson is unable to guess
 it automatically.
 
 ```meson
@@ -196,7 +196,7 @@ property.
 
 ## Dub
 
-Please understand that meson is only able to find dependencies that
+Please understand that Meson is only able to find dependencies that
 exist in the local Dub repository. You need to manually fetch and
 build the target dependencies.
 
@@ -206,10 +206,10 @@ dub fetch urld
 dub build urld
 ```
 
-Other thing you need to keep in mind is that both meson and Dub need
+Other thing you need to keep in mind is that both Meson and Dub need
 to be using the same compiler. This can be achieved using Dub's
 `-compiler` argument and/or manually setting the `DC` environment
-variable when running meson.
+variable when running Meson.
 ```
 dub build urld --compiler=dmd
 DC="dmd" meson builddir
@@ -225,7 +225,7 @@ recommended style is to write them in all lower-case.
 
 In some cases, more than one detection method exists, and the `method`
 keyword may be used to select a detection method to use. The `auto`
-method uses any checking mechanisms in whatever order meson thinks is
+method uses any checking mechanisms in whatever order Meson thinks is
 best.
 
 e.g. libwmf and CUPS provide both pkg-config and config-tool support.
@@ -404,7 +404,7 @@ versions would statically link, due to a quirk in `llvm-config`.
 ### Modules, a.k.a. Components
 
 Meson wraps LLVM's concept of components in it's own modules concept.
-When you need specific components you add them as modules as meson
+When you need specific components you add them as modules as Meson
 will do the right thing:
 
 ```meson
@@ -501,9 +501,9 @@ The `language` keyword may used.
 
 ## Python3
 
-Python3 is handled specially by meson:
+Python3 is handled specially by Meson:
 1. Meson tries to use `pkg-config`.
-2. If `pkg-config` fails meson uses a fallback:
+2. If `pkg-config` fails Meson uses a fallback:
     - On Windows the fallback is the current `python3` interpreter.
     - On OSX the fallback is a framework dependency from `/Library/Frameworks`.
 

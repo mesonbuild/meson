@@ -39,7 +39,7 @@ Every new feature requires some extra steps, namely:
 - Must be registered with the [FeatureChecks
   framework](Release-notes-for-0.47.0.md#feature-detection-based-on-meson_version-in-project)
   that will warn the user if they try to use a new feature while
-  targeting an older meson version.
+  targeting an older Meson version.
 - Needs a release note snippet inside `docs/markdown/snippets/` with
   a heading and a brief paragraph explaining what the feature does
   with an example.
@@ -171,7 +171,7 @@ Additionally:
 * `crossfile.ini` and `nativefile.ini` are passed to the configure step with
 `--cross-file` and `--native-file` options, respectively.
 
-* `mlog.cmd_ci_include()` can be called from anywhere inside meson to
+* `mlog.cmd_ci_include()` can be called from anywhere inside Meson to
 capture the contents of an additional file into the CI log on failure.
 
 Projects needed by unit tests are in the `test cases/unit`
@@ -301,10 +301,10 @@ considered if the platform matches. The following values for
 #### matrix
 
 The `matrix` section can be used to define a test matrix to run
-project tests with different meson options.
+project tests with different Meson options.
 
 In the `options` dict, all possible options and their values are
-specified. Each key in the `options` dict is a meson option. It stores
+specified. Each key in the `options` dict is a Meson option. It stores
 a list of all potential values in a dict format, which allows to skip
 specific values based on the current environment.
 

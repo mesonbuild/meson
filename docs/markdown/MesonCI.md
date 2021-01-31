@@ -40,4 +40,4 @@ image can be tested with `build.py -t test <image>`.
 ### Common image setup
 
 Each docker image has a `/ci` directory with an `env_vars.sh` script.
-This script has to be sourced before running the meson test suite.
+This script has to be sourced before running the Meson test suite.

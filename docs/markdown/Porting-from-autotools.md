@@ -158,7 +158,7 @@ option('enable-dep11', type : 'boolean', value : true, description : 'enable DEP
 
 ## Makefile.am
 
-Next step is `Makefile.am`. In meson you don't need to have other
+Next step is `Makefile.am`. In Meson you don't need to have other
 file, you still use `meson.build`.
 
 ### Sub directories
@@ -204,7 +204,7 @@ EXTRA_DIST =                                            \
         config.h
 ```
 
-In Meson you don't need have `*CLEANFILES`, because in meson you are
+In Meson you don't need have `*CLEANFILES`, because in Meson you are
 building in temporary directory (usually called `build`), you manually
 removing it. You also not need to use `EXTRA_DIST`, because you will
 make tarballs via `git archive` or something like this.

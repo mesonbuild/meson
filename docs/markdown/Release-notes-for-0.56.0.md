@@ -69,7 +69,7 @@ advanced features (eg. link\_whole) are not supported yet.
 ## Wraps from subprojects are automatically promoted
 
 It is not required to promote wrap files for subprojects into the main
-project any more. When configuring a subproject, meson will look for
+project any more. When configuring a subproject, Meson will look for
 any wrap file or directory in the subproject's `subprojects/`
 directory and add them into the global list of available subprojects,
 to be used by any future `subproject()` call or `dependency()`
@@ -173,7 +173,7 @@ Subproject options are assigned like this:
 foo = 'some val'
 ```
 
-Additionally meson level options can be set in the same way, using the
+Additionally Meson level options can be set in the same way, using the
 `[built-in options]` section.
 
 ```ini
@@ -333,7 +333,7 @@ The `update` subcommand has been reworked:
 - In the case the URL of `origin` is different as the `url` set in wrap file,
   the subproject will not be updated unless `--reset` is specified (see below).
 - In the case a subproject directory exists and is not a git repository but has
-  a `[wrap-git]`, meson used to run git commands that would wrongly apply to the
+  a `[wrap-git]`, Meson used to run git commands that would wrongly apply to the
   main project. It now skip the subproject unless `--reset` is specified (see below).
 - The `--rebase` behaviour is now the default for consistency: it was
   already rebasing when current branch and revision are the same, it is

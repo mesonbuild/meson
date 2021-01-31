@@ -39,7 +39,7 @@ If prefix is `/usr/local` (the default), default localstatedir to
 
 Previously to have an option that took more than one value a string
 value would have to be created and split, but validating this was
-difficult. A new array type has been added to the meson_options.txt
+difficult. A new array type has been added to the `meson_options.txt`
 for this case. It works like a 'combo', but allows more than one
 option to be passed. The values can optionally be validated against a
 list of valid values. When used on the command line (with -D), values

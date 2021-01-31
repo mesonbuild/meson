@@ -88,7 +88,7 @@ $ MESON_TESTTHREADS=5 meson test
 
 Tests can be assigned a priority that determines when a test is
 *started*. Tests with higher priority are started first, tests with
-lower priority started later. The default priority is 0, meson makes
+lower priority started later. The default priority is 0, Meson makes
 no guarantee on the ordering of tests with identical priority.
 
 ```meson
@@ -123,7 +123,7 @@ detect this and report these tests as `ERROR`, ignoring the setting of
 
 ## Testing tool
 
-The goal of the meson test tool is to provide a simple way to run
+The goal of the Meson test tool is to provide a simple way to run
 tests in a variety of different ways. The tool is designed to be run
 in the build directory.
 
@@ -263,8 +263,8 @@ streamed out, and is written only once all tests complete running.
 When tests use the `tap` protocol each test will be recorded as a
 testsuite container, with each case named by the number of the result.
 
-When tests use the `gtest` protocol meson will inject arguments to the
-test to generate it's own JUnit XML, which meson will include as part
+When tests use the `gtest` protocol Meson will inject arguments to the
+test to generate it's own JUnit XML, which Meson will include as part
 of this XML file.
 
 *New in 0.55.0*

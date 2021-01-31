@@ -9,7 +9,7 @@ authors:
 # keyval module
 
 This module parses files consisting of a series of `key=value` lines.
-One use of this module is to load kconfig configurations in meson
+One use of this module is to load kconfig configurations in Meson
 projects.
 
 **Note**: this does not provide kconfig frontend tooling to generate a

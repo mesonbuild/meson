@@ -73,7 +73,7 @@ main `meson` binary.
 
 ## Meson and meson configure now accept the same arguments
 
-Previously meson required that builtin arguments (like prefix) be
+Previously Meson required that builtin arguments (like prefix) be
 passed as `--prefix` to `meson` and `-Dprefix` to `meson configure`.
 `meson` now accepts -D form like `meson configure` has. `meson
 configure` also accepts the `--prefix` form, like `meson` has.
@@ -205,11 +205,11 @@ Major differences as of version 1.21.22:
 * some backend messages are produced in ru_RU.KOI8-R even if LANG=C;
 * its preprocessor treats some characters differently.
 
-So every noted difference is properly handled now in meson.
+So every noted difference is properly handled now in Meson.
 
 ## String escape character sequence update
 
-Single-quoted strings in meson have been taught the same set of escape
+Single-quoted strings in Meson have been taught the same set of escape
 sequences as in Python. It is therefore now possible to use arbitrary
 bytes in strings, like for example `NUL` (`\0`) and other ASCII
 control characters. See the chapter about [*Strings* in

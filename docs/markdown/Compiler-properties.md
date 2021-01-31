@@ -161,7 +161,7 @@ specified its contents is put at the top of the source file. This
 argument is typically used for setting `#include` directives in
 configuration files.
 
-In older versions (<= 0.30) meson would error out if the size could
+In older versions (<= 0.30) Meson would error out if the size could
 not be determined. Since version 0.31 it returns -1 if the size could
 not be determined.
 

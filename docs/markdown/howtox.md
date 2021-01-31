@@ -43,7 +43,7 @@ pass to the compiler's special argument (such as `-fuse-ld` with clang
 and gcc), with the latter it should be an executable, such as
 `lld-link.exe`.
 
-*NOTE* In meson 0.53.0 the `ld` entry in the cross/native file and the
+*NOTE* In Meson 0.53.0 the `ld` entry in the cross/native file and the
 `LD` environment variable were used, this resulted in a large number
 of regressions and was changed in 0.53.1 to `<lang>_ld` and `<comp
 variable>_LD`.
