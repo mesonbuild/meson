@@ -1,7 +1,7 @@
 ## The `add_*_script` methods now accept a File as the first argument
 
 Meson now accepts `file` objects, including those produced by
-`configure_file` as the `prog` (first) parameter of the various
+`configure_file`, as the first parameter of the various
 `add_*_script` methods
 
 ```meson
