@@ -131,7 +131,7 @@ a = 'Hello'
 ### Binaries
 
 The binaries section contains a list of binaries. These can be used
-internally by meson, or by the `find_program` function.
+internally by Meson, or by the `find_program` function.
 
 These values must be either strings or an array of strings
 
@@ -140,7 +140,7 @@ Compilers and linkers are defined here using `<lang>` and `<lang>_ld`.
 like gcc and clang which are used to invoke the linker this is a value
 to pass to their "choose the linker" argument (-fuse-ld= in this
 case). For compilers like MSVC and Clang-Cl, this is the path to a
-linker for meson to invoke, such as `link.exe` or `lld-link.exe`.
+linker for Meson to invoke, such as `link.exe` or `lld-link.exe`.
 Support for `ld` is *new in 0.53.0*
 
 *changed in 0.53.1* the `ld` variable was replaced by `<lang>_ld`,
@@ -221,13 +221,13 @@ section.
 
 - `cmake_toolchain_file` specifies an absolute path to an already existing
   CMake toolchain file that will be loaded with `include()` as the last
-  instruction of the automatically generated CMake toolchain file from meson.
+  instruction of the automatically generated CMake toolchain file from Meson.
   (*new in 0.56.0*)
-- `cmake_defaults` is a boolean that specifies whether meson should automatically
+- `cmake_defaults` is a boolean that specifies whether Meson should automatically
   generate default toolchain variables from other sections (`binaries`,
   `host_machine`, etc.) in the machine file. Defaults are always overwritten
   by variables set in the `[cmake]` section. The default is `true`. (*new in 0.56.0*)
-- `cmake_skip_compiler_test` is an enum that specifies when meson should
+- `cmake_skip_compiler_test` is an enum that specifies when Meson should
   automatically generate toolchain variables to skip the CMake compiler
   sanity checks. This only has an effect if `cmake_defaults` is `true`.
   Supported values are `always`, `never`, `dep_only`. The default is `dep_only`.
@@ -303,7 +303,7 @@ Meson built-in options can be set the same way:
 c_std = 'c99'
 ```
 
-You can set some meson built-in options on a per-subproject basis,
+You can set some Meson built-in options on a per-subproject basis,
 such as `default_library` and `werror`. The order of precedence is:
 
 1) Command line
@@ -318,7 +318,7 @@ werror = false
 
 Options set on a per-subproject basis will inherit the option from the
 parent if the parent has a setting but the subproject doesn't, even
-when there is a default set meson language.
+when there is a default set Meson language.
 
 ```ini
 [built-in options]
@@ -338,7 +338,7 @@ An incomplete list of options is:
 
 ## Loading multiple machine files
 
-Native files allow layering (cross files can be layered since meson
+Native files allow layering (cross files can be layered since Meson
 0.52.0). More than one file can be loaded, with values from a previous
 file being overridden by the next. The intention of this is not
 overriding, but to allow composing files. This composition is done by

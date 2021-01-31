@@ -29,7 +29,7 @@ active VS version.
 ## Automatic initialization of subprojects that are git submodules
 
 If you have a directory inside your subprojects directory (usually
-`subprojects/`) that is a git submodule, meson will automatically
+`subprojects/`) that is a git submodule, Meson will automatically
 initialize it if your build files refer to it. This will be done
 without needing a wrap file since git contains all the information
 needed.
@@ -144,9 +144,9 @@ which changes a lot. This is enabled by setting the `unity` option to
 Meson now sets the `MESONINTROSPECT` environment variable in addition
 to `MESON_SOURCE_ROOT` and other variables when running scripts. It is
 guaranteed to point to the correct `mesonintrospect` script, which is
-important when running meson uninstalled from git or when your `PATH`s
+important when running Meson uninstalled from git or when your `PATH`s
 may not be set up correctly.
 
-Specifically, the following meson functions will set it:
+Specifically, the following Meson functions will set it:
 `meson.add_install_script()`, `meson.add_postconf_script()`,
 `run_command()`, `run_target()`.

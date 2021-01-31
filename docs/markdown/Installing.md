@@ -11,7 +11,7 @@ since 0.47.0)*:
 meson install
 ```
 
-or alternatively (on older meson versions with `ninja` backend):
+or alternatively (on older Meson versions with `ninja` backend):
 
 ```sh
 ninja install

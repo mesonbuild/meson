@@ -81,7 +81,7 @@ output as running it with a freshly configured build directory.
 
 However, this behavior is not guaranteed if subprojects are
 present. Due to internal limitations all subprojects are processed
-even if they are never used in a real meson run.  Because of this
+even if they are never used in a real Meson run.  Because of this
 options for the subprojects can differ.
 
 ## `include_directories` accepts a string
@@ -219,7 +219,7 @@ what to extract. Previously, file paths could only be passed as strings.
 
 ## Changed the JSON format of the introspection
 
-All paths used in the meson introspection JSON format are now
+All paths used in the Meson introspection JSON format are now
 absolute. This affects the `filename` key in the targets introspection
 and the output of `--buildsystem-files`.
 
@@ -270,7 +270,7 @@ The output format is as follows:
 The `required` keyword specifies whether the dependency is marked as
 required in the `meson.build` (all dependencies are required by
 default). The `conditional` key indicates whether the `dependency()`
-function was called inside a conditional block. In a real meson run
+function was called inside a conditional block. In a real Meson run
 these dependencies might not be used, thus they _may_ not be required,
 even if the `required` key is set. The `has_fallback` key just
 indicates whether a fallback was directly set in the `dependency()`
@@ -295,7 +295,7 @@ There is no guarantee that the sources list in `target_sources` is
 correct. There might be differences, due to internal limitations. It
 is also not guaranteed that all targets will be listed in the output.
 It might even be possible that targets are listed, which won't exist
-when meson is run normally. This can happen if a target is defined
+when Meson is run normally. This can happen if a target is defined
 inside an if statement. Use this feature with care.
 
 ## Added option to introspect multiple parameters at once
@@ -320,7 +320,7 @@ configuration of the build directory.
 Additionlly the format of `meson introspect target` was changed:
 
   - New: the `sources` key. It stores the source files of a target and their compiler parameters.
-  - New: the `defined_in` key. It stores the meson file where a target is defined
+  - New: the `defined_in` key. It stores the Meson file where a target is defined
   - New: the `subproject` key. It stores the name of the subproject where a target is defined.
   - Added new target types (`jar`, `shared module`).
 
@@ -328,7 +328,7 @@ Additionlly the format of `meson introspect target` was changed:
 
 With this release, it is also possible to get a list of all build
 options by invoking `meson configure` with the project source
-directory or the path to the root `meson.build`. In this case, meson
+directory or the path to the root `meson.build`. In this case, Meson
 will print the default values of all options.
 
 ## HDF5
@@ -338,7 +338,7 @@ HDF5 support is added via pkg-config.
 ## Added the `meson-info.json` introspection file
 
 Meson now generates a `meson-info.json` file in the `meson-info`
-directory to provide introspection information about the latest meson
+directory to provide introspection information about the latest Meson
 run. This file is updated when the build configuration is changed and
 the build files are (re)generated.
 

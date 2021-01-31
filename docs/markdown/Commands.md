@@ -48,7 +48,7 @@ meson configure builddir -Doption=new_value
 
 {{ compile_usage.inc }}
 
-Builds a default or a specified target of a configured meson project.
+Builds a default or a specified target of a configured Meson project.
 
 {{ compile_arguments.inc }}
 
@@ -154,7 +154,7 @@ meson init -C sourcedir
 
 {{ introspect_usage.inc }}
 
-Displays information about a configured meson project.
+Displays information about a configured Meson project.
 
 {{ introspect_arguments.inc }}
 
@@ -196,23 +196,23 @@ DESTDIR=/path/to/staging/area meson install -C builddir
 
 {{ rewrite_usage.inc }}
 
-Modifies the meson project.
+Modifies the Meson project.
 
 {{ rewrite_arguments.inc }}
 
-See [the meson file rewriter documentation](Rewriter.md) for more info.
+See [the Meson file rewriter documentation](Rewriter.md) for more info.
 
 ### setup
 
 {{ setup_usage.inc }}
 
-Configures a build directory for the meson project.
+Configures a build directory for the Meson project.
 
-This is the default meson command (invoked if there was no COMMAND supplied).
+This is the default Meson command (invoked if there was no COMMAND supplied).
 
 {{ setup_arguments.inc }}
 
-See [meson introduction
+See [Meson introduction
 page](Running-Meson.md#configuring-the-build-directory) for more info.
 
 #### Examples:
@@ -228,7 +228,7 @@ meson setup builddir
 
 {{ subprojects_usage.inc }}
 
-Manages subprojects of the meson project.
+Manages subprojects of the Meson project.
 
 {{ subprojects_arguments.inc }}
 
@@ -236,7 +236,7 @@ Manages subprojects of the meson project.
 
 {{ test_usage.inc }}
 
-Run tests for the configure meson project.
+Run tests for the configure Meson project.
 
 {{ test_arguments.inc }}
 

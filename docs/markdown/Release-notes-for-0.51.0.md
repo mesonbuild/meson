@@ -24,7 +24,7 @@ listed.
 Sanity checks previously only used user-specified flags for cross
 compilers, but now do in all cases.
 
-All compilers meson might decide to use for the build are "sanity
+All compilers Meson might decide to use for the build are "sanity
 checked" before other tests are run. This usually involves building
 simple executable and trying to run it. Previously user flags
 (compilation and/or linking flags) were used for sanity checking cross
@@ -98,7 +98,7 @@ endif
 ## Added basic support for the Xtensa CPU toolchain
 
 You can now use `xt-xcc`, `xt-xc++`, `xt-nm`, etc... on your cross
-compilation file and meson won't complain about an unknown toolchain.
+compilation file and Meson won't complain about an unknown toolchain.
 
 
 ## Dependency objects now have a get_variable method
@@ -136,7 +136,7 @@ If you have installed something to `/tmp/dep`, which has a layout like:
 /tmp/dep/bin
 ```
 
-then invoke meson as `meson builddir/ -Dcmake_prefix_path=/tmp/dep`
+then invoke Meson as `meson builddir/ -Dcmake_prefix_path=/tmp/dep`
 
 ## Tests that should fail but did not are now errors
 
@@ -306,7 +306,7 @@ only interface to Fortran by `include biglib.h` or similar.
 Meson can now directly consume CMake based subprojects with the
 CMake module.
 
-Using CMake subprojects is similar to using the "normal" meson
+Using CMake subprojects is similar to using the "normal" Meson
 subprojects. They also have to be located in the `subprojects`
 directory.
 

@@ -201,7 +201,7 @@ matter of calling `host_machine.system()`.
 There are two different values for the CPU. The first one is
 `cpu_family`. It is a general type of the CPU. This should have a
 value from [the CPU Family table](Reference-tables.md#cpu-families).
-*Note* that meson does not add `el` to end cpu_family value for little
+*Note* that Meson does not add `el` to end cpu_family value for little
 endian systems. Big endian and little endian mips are both just
 `mips`, with the `endian` field set approriately.
 
@@ -321,7 +321,7 @@ myvar = meson.get_cross_property('somekey')
 
 ## Cross file locations
 
-As of version 0.44.0 meson supports loading cross files from system
+As of version 0.44.0 Meson supports loading cross files from system
 locations (except on Windows). This will be
 $XDG_DATA_DIRS/meson/cross, or if XDG_DATA_DIRS is undefined, then
 /usr/local/share/meson/cross and /usr/share/meson/cross will be tried

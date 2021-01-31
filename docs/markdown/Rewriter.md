@@ -4,7 +4,7 @@ short-description: Automatic modification of the build system files
 
 # Meson file rewriter
 
-Since version 0.50.0, meson has the functionality to perform some
+Since version 0.50.0, Meson has the functionality to perform some
 basic modification on the `meson.build` files from the command line.
 The currently supported operations are:
 
@@ -32,7 +32,7 @@ We are also open to suggestions for API improvements.
 
 ## Using the rewriter
 
-All rewriter functions are accessed via `meson rewrite`. The meson
+All rewriter functions are accessed via `meson rewrite`. The Meson
 rewriter assumes that it is run inside the project root directory. If
 this isn't the case, use `--sourcedir` to specify the actual project
 source directory.
@@ -70,8 +70,8 @@ exe1 = executable('testExe', src)
 
 In this case, `exe1` could also have been used for the target name.
 This is possible because the rewriter also searches for assignments
-and unique meson IDs, which can be acquired with introspection. If
-there are multiple targets with the same name, meson will do nothing
+and unique Meson IDs, which can be acquired with introspection. If
+there are multiple targets with the same name, Meson will do nothing
 and print an error message.
 
 For more information see the help output of the rewriter target
@@ -115,7 +115,7 @@ meson rewrite default-options {set/delete} <opt1> <value1> <opt2> <value2> ...
 
 ## Limitations
 
-Rewriting a meson file is not guaranteed to keep the indentation of
+Rewriting a Meson file is not guaranteed to keep the indentation of
 the modified functions. Additionally, comments inside a modified
 statement will be removed. Furthermore, all source files will be
 sorted alphabetically.
@@ -240,7 +240,7 @@ For operation `delete`, the values of the `options` can be anything
 ## Extracting information
 
 The rewriter also offers operation `info` for the types `target` and
-`kwargs`. When this operation is used, meson will print a JSON dump to
+`kwargs`. When this operation is used, Meson will print a JSON dump to
 stderr, containing all available information to the rewriter about the
 build target / function kwargs in question.
 

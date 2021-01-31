@@ -83,7 +83,7 @@ If `native` is omitted, the languages may be used for either build or host
 machine, but are never required for the build machine.  (i.e. it is equivalent
 to `add_languages(*langs*, native: false, required: *required*) and
 add_languages(*langs*, native: true, required: false)`. This default behaviour
-may change to `native: false` in a future meson version.
+may change to `native: false` in a future Meson version.
 
 ### add_project_arguments()
 
@@ -647,9 +647,9 @@ be passed to [shared and static libraries](#library).
   when this file changes.
 - `link_language` *(since 0.51.0)* *(broken until 0.55.0)*: makes the linker for this
   target be for the specified language. It is generally unnecessary to set
-  this, as meson will detect the right linker to use in most cases. There are
+  this, as Meson will detect the right linker to use in most cases. There are
   only two cases where this is needed. One, your main function in an
-  executable is not in the language meson picked, or second you want to force
+  executable is not in the language Meson picked, or second you want to force
   a library to use only one ABI.
 - `link_whole` *(since 0.40.0)*: links all contents of the given static libraries
   whether they are used by not, equivalent to the `-Wl,--whole-archive` argument flag of GCC.
@@ -1629,14 +1629,14 @@ This function has one keyword argument.
     subdir_done()
 ```
 
-Stops further interpretation of the meson script file from the point
+Stops further interpretation of the Meson script file from the point
 of the invocation. All steps executed up to this point are valid and
-will be executed by meson. This means that all targets defined before
+will be executed by Meson. This means that all targets defined before
 the call of `subdir_done` will be build.
 
 If the current script was called by `subdir` the execution returns to
 the calling directory and continues as if the script had reached the
-end. If the current script is the top level script meson configures
+end. If the current script is the top level script Meson configures
 the project as defined up to this point.
 
 Example:

@@ -25,11 +25,11 @@ pymod.find_installation(name_or_path, ...)
 Find a python installation matching `name_or_path`.
 
 That argument is optional, if not provided then the returned python
-installation will be the one used to run meson.
+installation will be the one used to run Meson.
 
 If provided, it can be:
 
-- A simple name, eg `python-2.7`, meson will look for an external program
+- A simple name, eg `python-2.7`, Meson will look for an external program
   named that way, using [find_program]
 
 - A path, eg `/usr/local/bin/python3.4m`
@@ -87,7 +87,7 @@ All positional and keyword arguments are the same as for
 [shared_module], excluding `name_suffix` and `name_prefix`, and with
 the addition of the following:
 
-- `subdir`: By default, meson will install the extension module in
+- `subdir`: By default, Meson will install the extension module in
   the relevant top-level location for the python installation, eg
   `/usr/lib/site-packages`. When subdir is passed to this method,
   it will be appended to that location. This keyword argument is
@@ -109,7 +109,7 @@ This method accepts no positional arguments, and the same keyword
 arguments as the standard [dependency] function. It also supports the
 following keyword argument:
 
-- `embed`: *(since 0.53.0)* If true, meson will try to find a python
+- `embed`: *(since 0.53.0)* If true, Meson will try to find a python
   dependency that can be used for embedding python into an
   application.
 

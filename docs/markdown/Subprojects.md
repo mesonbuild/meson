@@ -1,5 +1,5 @@
 ---
-short-description: Using meson projects as subprojects within other meson projects
+short-description: Using Meson projects as subprojects within other Meson projects
 ...
 
 # Subprojects
@@ -19,7 +19,7 @@ becomes a transparent part of the project.
 It should be noted that this is only guaranteed to work for subprojects
 that are built with Meson. The reason is the simple fact that there is
 no possible way to do this reliably with mixed build systems. Because of
-this, only meson subprojects are described here.
+this, only Meson subprojects are described here.
 [CMake based subprojects](CMake-module.md#cmake-subprojects) are also
 supported but not guaranteed to work.
 
@@ -293,7 +293,7 @@ is returned at the end instead of retuning success.
 
 Meson will automatically download needed subprojects during configure,
 unless **--wrap-mode=nodownload** option is passed. It is sometimes
-preferable to download all subprojects in advance, so the meson
+preferable to download all subprojects in advance, so the Meson
 configure can be performed offline. The command-line `meson
 subprojects download` can be used for that, it will download all
 missing subprojects, but will not update already fetched subprojects.

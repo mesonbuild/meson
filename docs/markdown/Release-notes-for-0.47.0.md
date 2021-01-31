@@ -166,7 +166,7 @@ the same as `-Dopt=[]`, an empty list.
 ## Feature detection based on `meson_version:` in `project()`
 
 Meson will now print a `WARNING:` message during configuration if you
-use a function or a keyword argument that was added in a meson version
+use a function or a keyword argument that was added in a Meson version
 that's newer than the version specified inside `project()`. For
 example:
 
@@ -257,7 +257,7 @@ directories created in the install tree. Files will preserve their
 executable mode, but the exact permissions will obey the
 `install_umask`.
 
-The `install_umask` can be overridden in the meson command-line:
+The `install_umask` can be overridden in the Meson command-line:
 
 ```console
 $ meson --install-umask=027 builddir/
