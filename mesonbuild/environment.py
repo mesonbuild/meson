@@ -1006,7 +1006,7 @@ class Environment:
     def _handle_exceptions(self, exceptions, binaries, bintype='compiler'):
         errmsg = 'Unknown {}(s): {}'.format(bintype, binaries)
         if exceptions:
-            errmsg += '\nThe follow exceptions were encountered:'
+            errmsg += '\nThe following exception(s) were encountered:'
             for (c, e) in exceptions.items():
                 errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
         raise EnvironmentException(errmsg)
@@ -1778,8 +1778,8 @@ class Environment:
                     mlog.warning(
                         'Please do not put -C linker= in your compiler '
                         'command, set rust_ld=command in your cross file '
-                        'or use the RUST_LD environment variable. meson '
-                        'will override your seletion otherwise.')
+                        'or use the RUST_LD environment variable, otherwise meson '
+                        'will override your selection.')
 
                 if override is None:
                     extra_args = {}
@@ -1818,7 +1818,7 @@ class Environment:
                 else:
                     # On linux and macos rust will invoke the c compiler for
                     # linking, on windows it will use lld-link or link.exe.
-                    # we will simply ask for the C compiler that coresponds to
+                    # we will simply ask for the C compiler that corresponds to
                     # it, and use that.
                     cc = self._detect_c_or_cpp_compiler('c', for_machine, override_compiler=override)
                     linker = cc.linker
