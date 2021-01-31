@@ -146,7 +146,7 @@ class UserIntegerOption(UserOption[int]):
 
 class OctalInt(int):
     # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
-    # UserUmaskOption uses int(str, 8) to convert it to an integer
+    # UserUmaskOption.to_int() uses int(str, 8) to convert it to an integer
     # So we need to use oct instead of dec here if we do not want values to be misinterpreted.
     def __str__(self):
         return oct(int(self))
