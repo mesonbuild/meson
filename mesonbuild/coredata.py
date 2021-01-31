@@ -144,7 +144,14 @@ class UserIntegerOption(UserOption[int]):
         except ValueError:
             raise MesonException('Value string "%s" is not convertible to an integer.' % valuestring)
 
-class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, int]]):
+class OctalInt(int):
+    # NinjaBackend.get_user_option_args uses str() to converts it to a command line option
+    # UserUmaskOption uses int(str, 8) to convert it to an integer
+    # So we need to use oct instead of dec here if we do not want values to be misinterpreted.
+    def __str__(self):
+        return oct(int(self))
+
+class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
     def __init__(self, description: str, value: T.Any, yielding: T.Optional[bool] = None):
         super().__init__(description, (0, 0o777, value), yielding)
         self.choices = ['preserve', '0000-0777']
@@ -154,12 +161,12 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, int]]):
             return self.value
         return format(self.value, '04o')
 
-    def validate_value(self, value: T.Any) -> T.Union[str, int]:
+    def validate_value(self, value: T.Any) -> T.Union[str, OctalInt]:
         if value is None or value == 'preserve':
             return 'preserve'
-        return super().validate_value(value)
+        return OctalInt(super().validate_value(value))
 
-    def toint(self, valuestring: T.Union[str, int]) -> int:
+    def toint(self, valuestring: T.Union[str, OctalInt]) -> int:
         try:
             return int(valuestring, 8)
         except ValueError as e:
