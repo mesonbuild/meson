@@ -44,11 +44,13 @@ foreach cc : compilers
     error('Found non-existent function "hfkerhisadf".')
   endif
 
-  # With glibc on Linux lchmod is a stub that will always return an error,
-  # we want to detect that and declare that the function is not available.
-  # We can't check for the C library used here of course, but if it's not
-  # implemented in glibc it's probably not implemented in any other 'slimmer'
-  # C library variants either, so the check should be safe either way hopefully.
+  # With glibc (before 2.32, see below) on Linux, lchmod is a stub that will
+  # always return an error, we want to detect that and declare that the
+  # function is not available.
+  # We can't check for the C library used here of course, but the main
+  # alternative Linux C library (musl) doesn't use glibc's stub mechanism;
+  # also, it has implemented lchmod since 2013, so it should be safe to check
+  # that lchmod is available on Linux when not using glibc.
   if host_system == 'linux' or host_system == 'darwin'
     assert (cc.has_function('poll', prefix : '#include <poll.h>',
                             args : unit_test_args),
@@ -57,15 +59,22 @@ foreach cc : compilers
     has_lchmod = cc.has_function('lchmod', prefix : lchmod_prefix, args : unit_test_args)
 
     if host_system == 'linux'
-      glibc_major = cc.get_define('__GLIBC__', prefix: '#include <gnu/libc-version.h>', args: unit_test_args)
-      glibc_minor = cc.get_define('__GLIBC_MINOR__', prefix: '#include <gnu/libc-version.h>', args: unit_test_args)
-      glibc_vers = '@0@.@1@'.format(glibc_major, glibc_minor)
-      message('GLIBC vetsion:', glibc_vers)
+      # __GLIBC__ macro can be retrieved by including almost any C library header
+      glibc_major = cc.get_define('__GLIBC__', prefix: '#include <unistd.h>', args: unit_test_args)
+      # __GLIBC__ will only be set for glibc
+      if glibc_major != ''
+        glibc_minor = cc.get_define('__GLIBC_MINOR__', prefix: '#include <unistd.h>', args: unit_test_args)
+        glibc_vers = '@0@.@1@'.format(glibc_major, glibc_minor)
+        message('GLIBC version:', glibc_vers)
 
-      # lchmod was implemented in glibc 2.32 (https://sourceware.org/pipermail/libc-announce/2020/000029.html)
-      if glibc_vers.version_compare('<2.32')
-        assert (not has_lchmod, '"lchmod" check should have failed')
+        # lchmod was implemented in glibc 2.32 (https://sourceware.org/pipermail/libc-announce/2020/000029.html)
+        if glibc_vers.version_compare('<2.32')
+          assert (not has_lchmod, '"lchmod" check should have failed')
+        else
+          assert (has_lchmod, '"lchmod" check should have succeeded')
+        endif
       else
+        # Other C libraries for Linux should have lchmod
         assert (has_lchmod, '"lchmod" check should have succeeded')
       endif
     else
