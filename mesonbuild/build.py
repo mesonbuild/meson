@@ -2333,6 +2333,9 @@ class CustomTarget(Target, CommandBase):
                 if '@MANDIR@' in install_dir:
                     FeatureNew.single_use('custom_target @MANDIR@ in install_dir', '0.57.0', self.subproject)
 
+                    # Yes this is gross, but all of this logic really belongs in the interpreter.
+                    from .interpreter import validate_manpage_name
+
                     # In this case we have a single '@MANDIR@' for install, but
                     # multiple outputs. We'll assume in that case all of the
                     # outputs are manual files, replace install_dir with a list
@@ -2344,11 +2347,7 @@ class CustomTarget(Target, CommandBase):
                     for i, v in enumerate(install_dir):
                         if v != '@MANDIR@':
                             continue
-                        ext = os.path.splitext(self.outputs[i])[1].lstrip('.')
-                        try:
-                            valid = 0 < int(ext) < 10
-                        except ValueError:
-                            valid = False
+                        valid, ext = validate_manpage_name(self.outputs[i])
                         if not valid:
                             raise InvalidArguments(f'custom_target @MANDIR@ requires a valid man section extension for output')
                         install_dir[i] = os.path.join(self.env.get_mandir(), f'man{ext}')

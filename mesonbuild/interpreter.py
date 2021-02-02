@@ -61,6 +61,22 @@ permitted_method_kwargs = {
                            'sources'},
 }
 
+def validate_manpage_name(filename: 'mesonlib.FileOrString') -> T.Tuple[bool, str]:
+    """Validate whether a man page has a valid name or not.
+
+    Valid man sections are generally 0-8, but Linux and FreeBSD (among
+    others) use section 9 for kernel pages. Some OSes (like Solaris), have
+    sections that end with `m`.
+    """
+    if isinstance(filename, mesonlib.File):
+        filename = filename.fname
+    ext = os.path.splitext(filename)[1].lstrip('.').rstrip('m')
+    try:
+        return (1 <= int(ext) <= 9, ext)
+    except ValueError:
+        return (False, '')
+
+
 def stringifyUserArguments(args):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
@@ -4243,11 +4259,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_install_man(self, node, args, kwargs):
         sources = self.source_strings_to_files(args)
         for s in sources:
-            try:
-                num = int(s.split('.')[-1])
-            except (IndexError, ValueError):
-                num = 0
-            if num < 1 or num > 8:
+            valid, _ = validate_manpage_name(s)
+            if not valid:
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
         custom_install_mode = self._get_kwarg_install_mode(kwargs)
         custom_install_dir = kwargs.get('install_dir', None)
