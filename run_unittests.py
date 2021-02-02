@@ -2224,6 +2224,7 @@ class AllPlatformTests(BasePlatformTests):
             'sub/sub1': 'share/sub1',
             'sub_elided': 'share',
             'nested_elided/sub': 'share',
+            'new_directory': 'share/new_directory',
         }
 
         self.assertEqual(len(intro), len(expected))

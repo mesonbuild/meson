@@ -1140,6 +1140,10 @@ Installs the entire given subdirectory and its contents from the
 source tree to the location specified by the keyword argument
 `install_dir`.
 
+If the subdirectory does not exist in the source tree, an empty directory is
+created in the specified location. *(since 0.45.0)* A newly created
+subdirectory may only be created in the keyword argument `install_dir`.
+
 The following keyword arguments are supported:
 
 - `exclude_files`: a list of file names that should not be installed.
@@ -1187,6 +1191,12 @@ share/
 ```text
 share/
   file1
+```
+
+`install_subdir('new_directory', install_dir : 'share')` creates
+```text
+share/
+  new_directory/
 ```
 
 ### is_disabler()
