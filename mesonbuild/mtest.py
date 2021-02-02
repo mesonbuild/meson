@@ -1428,10 +1428,24 @@ class TestHarness:
         self.loggers.append(ConsoleLogger())
         self.need_console = False
 
+        self.logfile_base = None  # type: T.Optional[str]
+        if self.options.logbase and not self.options.gdb:
+            namebase = None
+            self.logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
+
+            if self.options.wrapper:
+                namebase = os.path.basename(self.get_wrapper(self.options)[0])
+            elif self.options.setup:
+                namebase = self.options.setup.replace(":", "_")
+
+            if namebase:
+                self.logfile_base += '-' + namebase.replace(' ', '_')
+
         if self.options.benchmark:
             self.tests = load_benchmarks(options.wd)
         else:
             self.tests = load_tests(options.wd)
+
         ss = set()
         for t in self.tests:
             for s in t.suite:
@@ -1692,23 +1706,12 @@ class TestHarness:
             l.flush()
 
     def open_logfiles(self) -> None:
-        if not self.options.logbase or self.options.gdb:
+        if not self.logfile_base:
             return
 
-        namebase = None
-        logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
-
-        if self.options.wrapper:
-            namebase = os.path.basename(self.get_wrapper(self.options)[0])
-        elif self.options.setup:
-            namebase = self.options.setup.replace(":", "_")
-
-        if namebase:
-            logfile_base += '-' + namebase.replace(' ', '_')
-
-        self.loggers.append(JunitBuilder(logfile_base + '.junit.xml'))
-        self.loggers.append(JsonLogfileBuilder(logfile_base + '.json'))
-        self.loggers.append(TextLogfileBuilder(logfile_base + '.txt', errors='surrogateescape'))
+        self.loggers.append(JunitBuilder(self.logfile_base + '.junit.xml'))
+        self.loggers.append(JsonLogfileBuilder(self.logfile_base + '.json'))
+        self.loggers.append(TextLogfileBuilder(self.logfile_base + '.txt', errors='surrogateescape'))
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
