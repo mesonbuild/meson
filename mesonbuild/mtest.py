@@ -1114,22 +1114,6 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
             raise MesonVersionMismatchException(obj.version, coredata_version)
     return objs
 
-def load_benchmarks(build_dir: str) -> T.List[TestSerialisation]:
-    datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
-    if not datafile.is_file():
-        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with datafile.open('rb') as f:
-        objs = check_testdata(pickle.load(f))
-    return objs
-
-def load_tests(build_dir: str) -> T.List[TestSerialisation]:
-    datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
-    if not datafile.is_file():
-        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with datafile.open('rb') as f:
-        objs = check_testdata(pickle.load(f))
-    return objs
-
 # Custom waiting primitives for asyncio
 
 async def try_wait_one(*awaitables: T.Any, timeout: T.Optional[T.Union[int, float]]) -> None:
@@ -1441,16 +1425,33 @@ class TestHarness:
             if namebase:
                 self.logfile_base += '-' + namebase.replace(' ', '_')
 
-        if self.options.benchmark:
-            self.tests = load_benchmarks(options.wd)
-        else:
-            self.tests = load_tests(options.wd)
+        startdir = os.getcwd()
+        try:
+            if self.options.wd:
+                os.chdir(self.options.wd)
+            self.build_data = build.load(os.getcwd())
+            if not self.options.setup:
+                self.options.setup = self.build_data.test_setup_default_name
+            if self.options.benchmark:
+                self.tests = self.load_tests('meson_benchmark_setup.dat')
+            else:
+                self.tests = self.load_tests('meson_test_setup.dat')
+        finally:
+            os.chdir(startdir)
 
         ss = set()
         for t in self.tests:
             for s in t.suite:
                 ss.add(s)
         self.suites = list(ss)
+
+    def load_tests(self, file_name: str) -> T.List[TestSerialisation]:
+        datafile = Path('meson-private') / file_name
+        if not datafile.is_file():
+            raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(self.options.wd))
+        with datafile.open('rb') as f:
+            objs = check_testdata(pickle.load(f))
+        return objs
 
     def __enter__(self) -> 'TestHarness':
         return self
@@ -1489,8 +1490,6 @@ class TestHarness:
     def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
         name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
-        if not options.setup:
-            options.setup = self.build_data.test_setup_default_name
         if options.setup:
             env = self.merge_suite_options(options, test)
         else:
@@ -1599,7 +1598,6 @@ class TestHarness:
         try:
             if self.options.wd:
                 os.chdir(self.options.wd)
-            self.build_data = build.load(os.getcwd())
             runners = [self.get_test_runner(test) for test in tests]
             self.duration_max_len = max([len(str(int(runner.timeout or 99)))
                                          for runner in runners])
