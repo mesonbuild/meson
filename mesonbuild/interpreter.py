@@ -1773,7 +1773,7 @@ class ModuleState(T.NamedTuple):
     environment: 'Environment'
     project_name: str
     project_version: str
-    backend: str
+    backend: Backend
     targets: T.Dict[str, build.Target]
     data: T.List[build.Data]
     headers: T.List[build.Headers]

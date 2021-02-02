@@ -39,6 +39,7 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
+    from .backend.backends import Backend
     from .interpreter import Test
     from .mesonlib import FileMode, FileOrString
 
@@ -2204,7 +2205,7 @@ class CustomTarget(Target, CommandBase):
     typename = 'custom'
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
-                 absolute_paths: bool = False, backend: T.Optional[str] = None):
+                 absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies = []
@@ -2219,10 +2220,10 @@ class CustomTarget(Target, CommandBase):
         if unknowns:
             mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(sorted(unknowns))))
 
-    def get_default_install_dir(self, environment):
+    def get_default_install_dir(self, environment: environment.Environment):
         return None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0} {1}: {2}>"
         return repr_str.format(self.__class__.__name__, self.get_id(), self.command)
 
@@ -2352,7 +2353,7 @@ class CustomTarget(Target, CommandBase):
     def should_install(self) -> bool:
         return self.install
 
-    def get_custom_install_dir(self):
+    def get_custom_install_dir(self) -> T.List[T.Optional[str]]:
         return self.install_dir
 
     def get_custom_install_mode(self):
@@ -2361,7 +2362,7 @@ class CustomTarget(Target, CommandBase):
     def get_outputs(self) -> T.List[str]:
         return self.outputs
 
-    def get_filename(self):
+    def get_filename(self) -> str:
         return self.outputs[0]
 
     def get_sources(self):
@@ -2389,12 +2390,11 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Substitution in depfile for custom_target that does not have an input file.')
             return self.depfile
 
-    def is_linkable_target(self):
+    def is_linkable_target(self) -> bool:
         if len(self.outputs) != 1:
             return False
         suf = os.path.splitext(self.outputs[0])[-1]
-        if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so' or suf == '.dylib':
-            return True
+        return suf in {'.a', '.dll', '.lib', '.so', '.dylib'}
 
     def get_link_deps_mapping(self, prefix, environment):
         return {}
@@ -2417,7 +2417,7 @@ class CustomTarget(Target, CommandBase):
     def extract_all_objects_recurse(self):
         return self.get_outputs()
 
-    def type_suffix(self):
+    def type_suffix(self) -> str:
         return "@cus"
 
     def __getitem__(self, index):
