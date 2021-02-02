@@ -27,7 +27,8 @@
   ],
   "stdout": [
     {
-      "line": "ERROR: Target 'too-few-install-dirs' has 3 outputs: ['toofew.h', 'toofew.c', 'toofew.sh'], but only 2 \"install_dir\"s were found."
+      "match": "re",
+      "line": "test cases/failing/42 custom target outputs not matching install_dirs/meson.build:9:0: ERROR: When more than one install dir is provided, the number of install dirs must match the number of outputs. Has 3 outputs: \\['toofew.h', 'toofew.c', 'toofew.sh'\\] but 2 install dirs: \\['([a-z]:)?/usr/include', False\\]"
     }
   ]
 }

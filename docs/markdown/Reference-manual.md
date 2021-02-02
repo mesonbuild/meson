@@ -375,7 +375,10 @@ following.
   in any one of these files triggers a recompilation
 - `input`: list of source files. *(since 0.41.0)* the list is flattened.
 - `install`: when true, this target is installed during the install step
-- `install_dir`: directory to install to
+- `install_dir`: A directory or list of directories to install to.
+  *(since 0.40.0)* A list may be provided. It must be the same length as the
+  list of outputs. Each directory corresponds by index to the outputs of the
+  target. to skip installing one output set the index to `false`.
 - `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
 - `output`: list of output files

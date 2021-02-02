@@ -2319,7 +2319,17 @@ class CustomTarget(Target, CommandBase):
                     FeatureNew.single_use('multiple install_dir for custom_target', '0.40.0', self.subproject)
                 # If an item in this list is False, the output corresponding to
                 # the list index of that item will not be installed
-                self.install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+                install_dir = typeslistify(kwargs['install_dir'], (str, bool))
+                if True in install_dir:
+                    raise InvalidArguments('Only strings and `false` are valid for custom_target install_dir arguments.')
+                if len(install_dir) > 1 and len(install_dir) != len(self.outputs):
+                    raise InvalidArguments(
+                        'When more than one install dir is provided, the '
+                        'number of install dirs must match the number of '
+                        f'outputs. Has {len(self.outputs)} outputs: {self.outputs!r} '
+                        f'but {len(install_dir)} install dirs: {install_dir!r}')
+
+                self.install_dir = install_dir
                 self.install_mode = kwargs.get('install_mode', None)
         else:
             self.install = False
