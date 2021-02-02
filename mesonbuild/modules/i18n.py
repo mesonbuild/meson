@@ -71,7 +71,7 @@ class I18nModule(ExtensionModule):
 
     @FeatureNew('i18n.merge_file', '0.37.0')
     @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
-    @permittedKwargs(build.CustomTarget.known_kwargs | {'data_dirs', 'po_dir', 'type', 'args'})
+    @permittedKwargs(build.CustomTarget.KNOWN_KWARGS | {'data_dirs', 'po_dir', 'type', 'args'})
     def merge_file(self, state, args, kwargs):
         if not shutil.which('xgettext'):
             return self.nogettext_warning()

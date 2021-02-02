@@ -2181,8 +2181,9 @@ class CommandBase:
                 raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
         return final_cmd
 
+
 class CustomTarget(Target, CommandBase):
-    known_kwargs = set([
+    KNOWN_KWARGS = frozenset({
         'input',
         'output',
         'command',
@@ -2199,7 +2200,7 @@ class CustomTarget(Target, CommandBase):
         'override_options',
         'console',
         'env',
-    ])
+    })
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
                  absolute_paths: bool = False, backend: T.Optional[str] = None):
@@ -2213,12 +2214,10 @@ class CustomTarget(Target, CommandBase):
         self.process_kwargs(kwargs, backend)
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
-        unknowns = []
-        for k in kwargs:
-            if k not in CustomTarget.known_kwargs:
-                unknowns.append(k)
+
+        unknowns = set(kwargs).difference(self.KNOWN_KWARGS)
         if unknowns:
-            mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
+            mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(sorted(unknowns))))
 
     def get_default_install_dir(self, environment):
         return None
