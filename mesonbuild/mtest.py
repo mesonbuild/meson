@@ -1654,9 +1654,20 @@ class TestHarness:
         return False
 
     def test_suitable(self, test: TestSerialisation) -> bool:
-        return ((not self.options.include_suites or
-                TestHarness.test_in_suites(test, self.options.include_suites)) and not
-                TestHarness.test_in_suites(test, self.options.exclude_suites))
+        if TestHarness.test_in_suites(test, self.options.exclude_suites):
+            return False
+
+        if self.options.include_suites:
+            # Both force inclusion (overriding add_test_setup) and exclude
+            # everything else
+            return TestHarness.test_in_suites(test, self.options.include_suites)
+
+        if self.options.setup:
+            setup = self.get_test_setup(test)
+            if TestHarness.test_in_suites(test, setup.exclude_suites):
+                return False
+
+        return True
 
     def tests_from_args(self, tests: T.List[TestSerialisation]) -> T.Generator[TestSerialisation, None, None]:
         '''
@@ -1685,14 +1696,7 @@ class TestHarness:
             print('No tests defined.')
             return []
 
-        if self.options.include_suites or self.options.exclude_suites:
-            tests = []
-            for tst in self.tests:
-                if self.test_suitable(tst):
-                    tests.append(tst)
-        else:
-            tests = self.tests
-
+        tests = [t for t in self.tests if self.test_suitable(t)]
         if self.options.args:
             tests = list(self.tests_from_args(tests))
 

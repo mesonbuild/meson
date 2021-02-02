@@ -2617,11 +2617,13 @@ class Data:
 
 class TestSetup:
     def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
-                 timeout_multiplier: int, env: EnvironmentVariables):
+                 timeout_multiplier: int, env: EnvironmentVariables,
+                 exclude_suites: T.List[str]):
         self.exe_wrapper = exe_wrapper
         self.gdb = gdb
         self.timeout_multiplier = timeout_multiplier
         self.env = env
+        self.exclude_suites = exclude_suites
 
 def get_sources_string_names(sources, backend):
     '''
