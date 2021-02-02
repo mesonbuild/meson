@@ -2201,10 +2201,10 @@ class CustomTarget(Target, CommandBase):
         'console',
         'env',
     })
+    typename = 'custom'
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
                  absolute_paths: bool = False, backend: T.Optional[str] = None):
-        self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies = []
