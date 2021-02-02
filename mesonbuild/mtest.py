@@ -1564,14 +1564,14 @@ class TestHarness:
     def total_failure_count(self) -> int:
         return self.fail_count + self.unexpectedpass_count + self.timeout_count
 
-    def doit(self, options: argparse.Namespace) -> int:
+    def doit(self) -> int:
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
         if not tests:
             return 0
-        if not options.no_rebuild and not rebuild_deps(options.wd, tests):
+        if not self.options.no_rebuild and not rebuild_deps(self.options.wd, tests):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current
             # commit should be skipped.  Thus users can directly use `meson test` to
@@ -1913,7 +1913,7 @@ def run(options: argparse.Namespace) -> int:
         try:
             if options.list:
                 return list_tests(th)
-            return th.doit(options)
+            return th.doit()
         except TestException as e:
             print('Meson test encountered an error:\n')
             if os.environ.get('MESON_FORCE_BACKTRACE'):
