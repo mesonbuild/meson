@@ -204,7 +204,8 @@ class ExternalProject(InterpreterObject):
         self.target = build.CustomTarget(self.name,
                                          self.subdir.as_posix(),
                                          self.subproject,
-                                         target_kwargs)
+                                         target_kwargs,
+                                         self.env)
 
         idir = build.InstallDir(self.subdir.as_posix(),
                                 Path('dist', self.rel_prefix).as_posix(),

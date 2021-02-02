@@ -14,10 +14,11 @@
 
 '''This module provides helper functions for generating documentation using hotdoc'''
 
-import os
 from collections import OrderedDict
+import os
+import typing as T
 
-from mesonbuild import mesonlib
+from mesonbuild import environment, mesonlib
 from mesonbuild import mlog, build
 from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue
@@ -26,6 +27,9 @@ from . import get_include_args
 from ..dependencies import Dependency, InternalDependency, ExternalProgram
 from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs
 from ..interpreter import CustomTargetHolder
+
+if T.TYPE_CHECKING:
+    from ..interpreter import ModuleState, Interpreter
 
 
 def ensure_list(value):
@@ -38,7 +42,8 @@ MIN_HOTDOC_VERSION = '0.8.100'
 
 
 class HotdocTargetBuilder:
-    def __init__(self, name, state, hotdoc, interpreter, kwargs):
+    def __init__(self, name: str, state: 'ModuleState', hotdoc, interpreter: 'Interpreter',
+                 kwargs: T.Dict[str, T.Any]):
         self.hotdoc = hotdoc
         self.build_by_default = kwargs.pop('build_by_default', False)
         self.kwargs = kwargs
@@ -335,8 +340,9 @@ class HotdocTargetBuilder:
             ['--builddir', os.path.join(self.builddir, self.subdir)]
 
         target = HotdocTarget(fullname,
-                              subdir=self.subdir,
-                              subproject=self.state.subproject,
+                              self.subdir,
+                              self.state.subproject,
+                              self.state.environment,
                               hotdoc_conf=mesonlib.File.from_built_file(
                                   self.subdir, hotdoc_config_name),
                               extra_extension_paths=self._extra_extension_paths,
@@ -375,9 +381,10 @@ class HotdocTargetHolder(CustomTargetHolder):
 
 
 class HotdocTarget(build.CustomTarget):
-    def __init__(self, name, subdir, subproject, hotdoc_conf, extra_extension_paths, extra_assets,
+    def __init__(self, name: str, subdir: str, subproject: str, env: environment.Environment,
+                 hotdoc_conf, extra_extension_paths, extra_assets,
                  subprojects, **kwargs):
-        super().__init__(name, subdir, subproject, kwargs, absolute_paths=True)
+        super().__init__(name, subdir, subproject, kwargs, env, absolute_paths=True)
         self.hotdoc_conf = hotdoc_conf
         self.extra_extension_paths = extra_extension_paths
         self.extra_assets = extra_assets

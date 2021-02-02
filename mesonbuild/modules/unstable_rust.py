@@ -197,6 +197,7 @@ class RustModule(ExtensionModule):
                 'depend_files': depend_files,
             },
             backend=state.backend,
+            env=state.environment,
         )
 
         return ModuleReturnValue([target], [CustomTargetHolder(target, self.interpreter)])

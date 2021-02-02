@@ -38,6 +38,7 @@ from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, 
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
+    from ..interpreter import ModuleState
 
 # gresource compilation is broken due to the way
 # the resource compiler and Ninja clash about it
@@ -146,7 +147,7 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
                       'install', 'install_dir', 'extra_args', 'build_by_default'})
-    def compile_resources(self, state, args, kwargs):
+    def compile_resources(self, state: 'ModuleState', args, kwargs):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
@@ -258,7 +259,7 @@ class GnomeModule(ExtensionModule):
             depfile = kwargs['output'] + '.d'
             kwargs['depfile'] = depfile
             kwargs['command'] = copy.copy(cmd) + ['--dependency-file', '@DEPFILE@']
-        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs)
+        target_c = GResourceTarget(name, state.subdir, state.subproject, kwargs, state.environment)
 
         if gresource: # Only one target for .gresource files
             return ModuleReturnValue(target_c, [target_c])
@@ -276,7 +277,7 @@ class GnomeModule(ExtensionModule):
             h_kwargs['install'] = install_header
             h_kwargs['install_dir'] = kwargs.get('install_dir',
                                                  state.environment.coredata.get_option(mesonlib.OptionKey('includedir')))
-        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs)
+        target_h = GResourceHeaderTarget(args[0] + '_h', state.subdir, state.subproject, h_kwargs, state.environment)
         rv = [target_c, target_h]
         return ModuleReturnValue(rv, rv)
 
@@ -701,7 +702,7 @@ class GnomeModule(ExtensionModule):
 
         return gir_filelist_filename
 
-    def _make_gir_target(self, state, girfile, scan_command, depends, kwargs):
+    def _make_gir_target(self, state: 'ModuleState', girfile, scan_command, depends, kwargs):
         scankwargs = {'output': girfile,
                       'command': scan_command,
                       'depends': depends}
@@ -714,9 +715,9 @@ class GnomeModule(ExtensionModule):
         if 'build_by_default' in kwargs:
             scankwargs['build_by_default'] = kwargs['build_by_default']
 
-        return GirTarget(girfile, state.subdir, state.subproject, scankwargs)
+        return GirTarget(girfile, state.subdir, state.subproject, scankwargs, state.environment)
 
-    def _make_typelib_target(self, state, typelib_output, typelib_cmd, kwargs):
+    def _make_typelib_target(self, state: 'ModuleState', typelib_output, typelib_cmd, kwargs):
         typelib_kwargs = {
             'output': typelib_output,
             'command': typelib_cmd,
@@ -730,7 +731,7 @@ class GnomeModule(ExtensionModule):
         if 'build_by_default' in kwargs:
             typelib_kwargs['build_by_default'] = kwargs['build_by_default']
 
-        return TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs)
+        return TypelibTarget(typelib_output, state.subdir, state.subproject, typelib_kwargs, state.environment)
 
     # May mutate depends
     def _gather_typelib_includes_and_update_depends(self, state, deps, depends):
@@ -890,7 +891,7 @@ class GnomeModule(ExtensionModule):
 
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'build_by_default', 'depend_files'})
-    def compile_schemas(self, state, args, kwargs):
+    def compile_schemas(self, state: 'ModuleState', args, kwargs):
         if args:
             raise MesonException('Compile_schemas does not take positional arguments.')
         srcdir = os.path.join(state.build_to_src, state.subdir)
@@ -905,7 +906,7 @@ class GnomeModule(ExtensionModule):
             targetname = 'gsettings-compile'
         else:
             targetname = 'gsettings-compile-' + state.subdir.replace('/', '_')
-        target_g = build.CustomTarget(targetname, state.subdir, state.subproject, kwargs)
+        target_g = build.CustomTarget(targetname, state.subdir, state.subproject, kwargs, state.environment)
         return ModuleReturnValue(target_g, [target_g])
 
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
@@ -982,7 +983,7 @@ class GnomeModule(ExtensionModule):
                       'mkdb_args', 'ignore_headers', 'include_directories',
                       'namespace', 'mode', 'expand_content_files', 'module_version',
                       'c_args', 'check'})
-    def gtkdoc(self, state, args, kwargs):
+    def gtkdoc(self, state: 'ModuleState', args, kwargs):
         if len(args) != 1:
             raise MesonException('Gtkdoc must have one positional argument.')
         modulename = args[0]
@@ -1087,7 +1088,7 @@ class GnomeModule(ExtensionModule):
                          'depends': depends,
                          'build_always_stale': True,
                          }
-        custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
+        custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs, state.environment)
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs.get('check', False):
             check_cmd = self.interpreter.find_program_impl('gtkdoc-check')
@@ -1189,7 +1190,7 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('build target', '0.47.0', ['extra_args', 'autocleanup'])
     @permittedKwargs({'interface_prefix', 'namespace', 'extra_args', 'autocleanup', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
-    def gdbus_codegen(self, state, args, kwargs):
+    def gdbus_codegen(self, state: 'ModuleState', args, kwargs):
         if len(args) not in (1, 2):
             raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
@@ -1256,7 +1257,7 @@ class GnomeModule(ExtensionModule):
                              'build_by_default': build_by_default
                              }
 
-        cfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+        cfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs, state.environment)
         targets.append(cfile_custom_target)
 
         output = namebase + '.h'
@@ -1278,7 +1279,7 @@ class GnomeModule(ExtensionModule):
                              'depends': cfile_custom_target
                              }
 
-        hfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+        hfile_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs, state.environment)
         targets.append(hfile_custom_target)
 
         if 'docbook' in kwargs:
@@ -1308,7 +1309,7 @@ class GnomeModule(ExtensionModule):
                                  'depends': cfile_custom_target
                                  }
 
-            docbook_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs)
+            docbook_custom_target = build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs, state.environment)
             targets.append(docbook_custom_target)
 
         return ModuleReturnValue(targets, targets)
@@ -1420,7 +1421,7 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
-    def mkenums_simple(self, state, args, kwargs):
+    def mkenums_simple(self, state: 'ModuleState', args, kwargs):
         hdr_filename = args[0] + '.h'
         body_filename = args[0] + '.c'
 
@@ -1529,7 +1530,7 @@ G_END_DECLS'''
         return ModuleReturnValue([c_file, h_file], [c_file, h_file])
 
     @staticmethod
-    def _make_mkenum_custom_target(state, sources, output, cmd, kwargs):
+    def _make_mkenum_custom_target(state: 'ModuleState', sources, output, cmd, kwargs):
         custom_kwargs = {
             'input': sources,
             'output': output,
@@ -1537,14 +1538,14 @@ G_END_DECLS'''
             'command': cmd
         }
         custom_kwargs.update(kwargs)
-        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs,
+        return build.CustomTarget(output, state.subdir, state.subproject, custom_kwargs, state.environment,
                                   # https://github.com/mesonbuild/meson/issues/973
                                   absolute_paths=True)
 
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
                       'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
                       'extra_args'})
-    def genmarshal(self, state, args, kwargs):
+    def genmarshal(self, state: 'ModuleState', args, kwargs):
         if len(args) != 1:
             raise MesonException(
                 'Genmarshal requires one positional argument.')
@@ -1607,7 +1608,7 @@ G_END_DECLS'''
             # Silence any warnings about missing prototypes
             custom_kwargs['command'] += ['--include-header', header_file]
         custom_kwargs['output'] = output + '.c'
-        body = build.CustomTarget(output + '_c', state.subdir, state.subproject, custom_kwargs)
+        body = build.CustomTarget(output + '_c', state.subdir, state.subproject, custom_kwargs, state.environment)
 
         custom_kwargs['install'] = install_header
         if install_dir is not None:
@@ -1616,7 +1617,7 @@ G_END_DECLS'''
             cmd += ['--pragma-once']
         custom_kwargs['command'] = cmd + ['--header', '@INPUT@']
         custom_kwargs['output'] = header_file
-        header = build.CustomTarget(output + '_h', state.subdir, state.subproject, custom_kwargs)
+        header = build.CustomTarget(output + '_h', state.subdir, state.subproject, custom_kwargs, state.environment)
 
         rv = [body, header]
         return ModuleReturnValue(rv, rv)
@@ -1691,7 +1692,7 @@ G_END_DECLS'''
 
     @permittedKwargs({'sources', 'packages', 'metadata_dirs', 'gir_dirs',
                       'vapi_dirs', 'install', 'install_dir'})
-    def generate_vapi(self, state, args, kwargs):
+    def generate_vapi(self, state: 'ModuleState', args, kwargs):
         if len(args) != 1:
             raise MesonException('The library name is required')
 
@@ -1749,7 +1750,7 @@ G_END_DECLS'''
             # We shouldn't need this locally but we install it
             deps_target = self._generate_deps(state, library, vapi_packages, install_dir)
             created_values.append(deps_target)
-        vapi_target = VapiTarget(vapi_output, state.subdir, state.subproject, custom_kwargs)
+        vapi_target = VapiTarget(vapi_output, state.subdir, state.subproject, custom_kwargs, state.environment)
 
         # So to try our best to get this to just work we need:
         # - link with with the correct library

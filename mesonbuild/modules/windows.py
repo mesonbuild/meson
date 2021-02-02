@@ -15,6 +15,7 @@
 import enum
 import os
 import re
+import typing as T
 
 from .. import mlog
 from .. import mesonlib, build
@@ -25,6 +26,9 @@ from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
 from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
 from ..dependencies import ExternalProgram
+
+if T.TYPE_CHECKING:
+    from ..interpreter import ModuleState
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
@@ -77,7 +81,7 @@ class WindowsModule(ExtensionModule):
 
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    def compile_resources(self, state, args, kwargs):
+    def compile_resources(self, state: 'ModuleState', args, kwargs):
         extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
@@ -152,7 +156,7 @@ class WindowsModule(ExtensionModule):
                 res_kwargs['depfile'] = res_kwargs['output'] + '.d'
                 res_kwargs['command'] += ['--preprocessor-arg=-MD', '--preprocessor-arg=-MQ@OUTPUT@', '--preprocessor-arg=-MF@DEPFILE@']
 
-            res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
+            res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs, state.environment))
 
         add_target(args)
 

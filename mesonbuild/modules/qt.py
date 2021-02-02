@@ -14,14 +14,19 @@
 
 import os
 import shutil
-from .. import mlog
-from .. import build
-from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, Qt6Dependency, NonExistingExternalProgram
+import typing as T
 import xml.etree.ElementTree as ET
+
 from . import ModuleReturnValue, get_include_args, ExtensionModule
-from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from .. import build
+from .. import mlog
+from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, Qt6Dependency, NonExistingExternalProgram
 from ..interpreter import extract_required_kwarg
+from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
+
+if T.TYPE_CHECKING:
+    from ..interpreter import ModuleState
 
 _QT_DEPS_LUT = {
     4: Qt4Dependency,
@@ -134,7 +139,7 @@ class QtBaseModule(ExtensionModule):
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
     @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
-    def preprocess(self, state, args, kwargs):
+    def preprocess(self, state: 'ModuleState', args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
             = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
         sources += args[1:]
@@ -157,7 +162,7 @@ class QtBaseModule(ExtensionModule):
                               'output': name + '.cpp',
                               'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
                               'depend_files': qrc_deps}
-                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs, state.environment)
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
@@ -174,7 +179,7 @@ class QtBaseModule(ExtensionModule):
                     if self.rcc_supports_depfiles:
                         rcc_kwargs['depfile'] = name + '.d'
                         rcc_kwargs['command'] += ['--depfile', '@DEPFILE@']
-                    res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                    res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs, state.environment)
                     sources.append(res_target)
         if ui_files:
             if not self.uic.found():
@@ -217,7 +222,7 @@ class QtBaseModule(ExtensionModule):
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['qresource'])
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['rcc_extra_arguments'])
     @permittedKwargs({'ts_files', 'qresource', 'rcc_extra_arguments', 'install', 'install_dir', 'build_by_default', 'method'})
-    def compile_translations(self, state, args, kwargs):
+    def compile_translations(self, state: 'ModuleState', args, kwargs):
         ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in ['ts_files', 'install_dir']]
         qresource = kwargs.get('qresource')
         if qresource:
@@ -258,7 +263,7 @@ class QtBaseModule(ExtensionModule):
                                'command': cmd}
             if install_dir is not None:
                 lrelease_kwargs['install_dir'] = install_dir
-            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), outdir, state.subproject, lrelease_kwargs)
+            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), outdir, state.subproject, lrelease_kwargs, state.environment)
             translations.append(lrelease_target)
         if qresource:
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])

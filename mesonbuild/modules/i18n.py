@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import shutil
-
 from os import path
-from .. import coredata, mesonlib, build, mlog
-from ..mesonlib import MesonException
-from . import ModuleReturnValue
+import shutil
+import typing as T
+
 from . import ExtensionModule
+from . import ModuleReturnValue
+from .. import coredata, mesonlib, build, mlog
 from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..mesonlib import MesonException
+
+if T.TYPE_CHECKING:
+    from ..interpreter import ModuleState
 
 PRESET_ARGS = {
     'glib': [
@@ -72,7 +76,7 @@ class I18nModule(ExtensionModule):
     @FeatureNew('i18n.merge_file', '0.37.0')
     @FeatureNewKwargs('i18n.merge_file', '0.51.0', ['args'])
     @permittedKwargs(build.CustomTarget.KNOWN_KWARGS | {'data_dirs', 'po_dir', 'type', 'args'})
-    def merge_file(self, state, args, kwargs):
+    def merge_file(self, state: 'ModuleState', args, kwargs):
         if not shutil.which('xgettext'):
             return self.nogettext_warning()
         podir = kwargs.pop('po_dir', None)
@@ -103,7 +107,7 @@ class I18nModule(ExtensionModule):
 
         inputfile = kwargs['input']
         if hasattr(inputfile, 'held_object'):
-            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs)
+            ct = build.CustomTarget(kwargs['output'] + '_merge', state.subdir, state.subproject, kwargs, state.environment)
         else:
             if isinstance(inputfile, list):
                 # We only use this input file to create a name of the custom target.
@@ -118,7 +122,8 @@ class I18nModule(ExtensionModule):
             values = mesonlib.get_filenames_templates_dict([ifile_abs], None)
             outputs = mesonlib.substitute_values([output], values)
             output = outputs[0]
-            ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge', state.subdir, state.subproject, kwargs)
+            ct = build.CustomTarget(output + '_' + state.subdir.replace('/', '@').replace('\\', '@') + '_merge',
+                                    state.subdir, state.subproject, kwargs, state.environment)
         return ModuleReturnValue(ct, [ct])
 
     @FeatureNewKwargs('i18n.gettext', '0.37.0', ['preset'])

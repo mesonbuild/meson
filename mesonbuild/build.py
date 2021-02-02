@@ -2205,13 +2205,15 @@ class CustomTarget(Target, CommandBase):
     typename = 'custom'
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
-                 absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
+                 env: environment.Environment, absolute_paths: bool = False,
+                 backend: T.Optional['Backend'] = None):
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
         self.dependencies = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
+        self.env = env
         self.process_kwargs(kwargs, backend)
         # Whether to use absolute paths for all files on the commandline
         self.absolute_paths = absolute_paths
