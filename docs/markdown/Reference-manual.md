@@ -1836,14 +1836,14 @@ the following methods.
   script file can not be found in the staging directory, it is a hard
   error. This command can only invoked from the main project, calling
   it from a subproject is a hard error. *(since 0.49.0)* Accepts multiple arguments
-  for the fscript. *(since 0.54.0)* The `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`
+  for the script. *(since 0.54.0)* The `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`
   environment variables are set when dist scripts are run.
 
   *(since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
   as well as strings.
 
   *(since 0.57.0)* `file` objects and the output of `configure_file` may be
-  *used as the `script_name` parameter.
+  used as the `script_name` parameter.
 
 - `add_install_script(script_name, arg1, arg2, ...)`: causes the script
   given as an argument to be run during the install step, this script
