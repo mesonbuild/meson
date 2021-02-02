@@ -379,6 +379,10 @@ following.
   *(since 0.40.0)* A list may be provided. It must be the same length as the
   list of outputs. Each directory corresponds by index to the outputs of the
   target. to skip installing one output set the index to `false`.
+  *(since 0.57.0)* accepts the special value of `'@MANDIR@`. In this case
+  meson wil automatically calculate the directory output for each output as
+  if it were a man file based on it's file extension.
+  [Further reading and examples.](howtox.md#Install-my-generated-man-files)
 - `install_mode` *(since 0.47.0)*: the file mode and optionally the
   owner/uid and group/gid
 - `output`: list of output files
@@ -1126,6 +1130,10 @@ Accepts the following keywords:
 Installs the specified man files from the source tree into system's
 man directory during the install step. This directory can be
 overridden by specifying it with the `install_dir` keyword argument.
+
+*Note* `install_man` only accepts static files. See
+[`custom_target`](#custom_target) `install_dir` for how to install manpages
+generated that way.
 
 Accepts the following keywords:
 

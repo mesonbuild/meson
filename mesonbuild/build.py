@@ -2329,6 +2329,30 @@ class CustomTarget(Target, CommandBase):
                         f'outputs. Has {len(self.outputs)} outputs: {self.outputs!r} '
                         f'but {len(install_dir)} install dirs: {install_dir!r}')
 
+                # Do man dir replacement.
+                if '@MANDIR@' in install_dir:
+                    FeatureNew.single_use('custom_target @MANDIR@ in install_dir', '0.57.0', self.subproject)
+
+                    # In this case we have a single '@MANDIR@' for install, but
+                    # multiple outputs. We'll assume in that case all of the
+                    # outputs are manual files, replace install_dir with a list
+                    # of ['@MANDIR@'] equal to the outputs so they all end up
+                    # in the right place
+                    if install_dir == ['@MANDIR@'] and len(self.outputs) > 1:
+                        install_dir = install_dir * len(self.outputs)
+
+                    for i, v in enumerate(install_dir):
+                        if v != '@MANDIR@':
+                            continue
+                        ext = os.path.splitext(self.outputs[i])[1].lstrip('.')
+                        try:
+                            valid = 0 < int(ext) < 10
+                        except ValueError:
+                            valid = False
+                        if not valid:
+                            raise InvalidArguments(f'custom_target @MANDIR@ requires a valid man section extension for output')
+                        install_dir[i] = os.path.join(self.env.get_mandir(), f'man{ext}')
+
                 self.install_dir = install_dir
                 self.install_mode = kwargs.get('install_mode', None)
         else:

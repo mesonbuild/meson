@@ -309,3 +309,51 @@ executable(
   deps : [my_dep]
 )
 ```
+
+## Install my generated man files?
+
+You *cannot* do this by passing the output of `custom_target`
+to `install_man`. This would violate Meson's design goal of
+defining all attributes of a target when it is created.
+
+Since 0.57.0 you can use the special value `'@MANDIR@'` in the `install_dir`
+keyword argument to have meson automatically calculate this for you. For
+example:
+```meson
+custom_target(
+  'my man page',
+  input : 'my_man_page.1.in',
+  output : 'my_man_page.1',
+  comand : ...
+  install : true,
+  install_dir : '@MANDIR@',
+)
+```
+Meson will automatically calculate the install dir as `get_option('mandir') / 'man1'`,
+(`/usr/share/man/man1/my_man_page.1` by default.)
+
+This works for generating multiple man pages at once:
+```meson
+custom_target(
+  'my man page',
+  input : ['my_man_page.1.in', 'my_man_page.2.in,
+  output : ['my_man_page.1', my_man_page.2],
+  comand : ...
+  install : true,
+  install_dir : '@MANDIR@',
+)
+```
+
+And if your custom target outputs multiple things, only some of which are man pages:
+```meson
+docdir = get_option('datadir') / 'docs'
+
+custom_target(
+  'docs',
+  input : 'docs.in',
+  output : ['docs.1', 'docs.pdf', 'docs.html'],
+  comand : ...
+  install : true,
+  install_dir : ['@MANDIR@', docdir / 'pdf', docdir / 'html'],
+)
+```

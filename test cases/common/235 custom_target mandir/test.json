@@ -1,0 +1,9 @@
+{
+  "installed": [
+    { "type": "file", "file": "usr/share/man/man1/page.1" },
+    { "type": "file", "file": "usr/share/man/man4/page.4" },
+    { "type": "file", "file": "usr/share/man/man5/page.5" },
+    { "type": "file", "file": "usr/share/man/man2/page.2" },
+    { "type": "file", "file": "usr/share/man/man3/page.3" }
+  ]
+}
