@@ -4428,7 +4428,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_configure_file(self, node, args, kwargs):
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        actions = set(['configuration', 'command', 'copy']).intersection(kwargs.keys())
+        actions = {'configuration', 'command', 'copy'}.intersection(kwargs.keys())
         if len(actions) == 0:
             raise InterpreterException('Must specify an action with one of these '
                                        'keyword arguments: \'configuration\', '
@@ -4454,7 +4454,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         else:
             fmt = 'meson'
 
-        if fmt not in ('meson', 'cmake', 'cmake@'):
+        if fmt not in {'meson', 'cmake', 'cmake@'}:
             raise InterpreterException('"format" possible values are "meson", "cmake" or "cmake@".')
 
         if 'output_format' in kwargs:
