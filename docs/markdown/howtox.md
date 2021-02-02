@@ -312,11 +312,11 @@ executable(
 
 ## Install my generated man files?
 
-You *cannot* do this by passing the output of `custom_target`
-to `install_man`. This would violate Meson's design goal of
+You *cannot* do this by passing the output of `custom_target` or
+`configure_file` to `install_man`. This would violate Meson's design goal of
 defining all attributes of a target when it is created.
 
-Since 0.57.0 you can use the special value `'@MANDIR@'` in the `install_dir`
+Since 0.58.0 you can use the special value `'@MANDIR@'` in the `install_dir`
 keyword argument to have meson automatically calculate this for you. For
 example:
 ```meson
@@ -355,5 +355,16 @@ custom_target(
   comand : ...
   install : true,
   install_dir : ['@MANDIR@', docdir / 'pdf', docdir / 'html'],
+)
+```
+
+for `configure_file`:
+```meson
+configure_file(
+  ...,
+  input : 'man.1.in',
+  output : 'man.1',
+  install : true,
+  install_dir : '@MANDIR@',
 )
 ```

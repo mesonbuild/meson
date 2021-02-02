@@ -2094,3 +2094,4 @@ class OptionKey:
     def is_base(self) -> bool:
         """Convenience method to check if this is a base option."""
         return self.type is OptionType.BASE
+

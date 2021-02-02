@@ -33,3 +33,11 @@ custom_target(
   install : true,
   install_dir : '@MANDIR@',
 )
+
+configure_file(
+  input : 'page.1.in',
+  output : 'page.8',
+  copy : true,
+  install : true,
+  install_dir : '@MANDIR@',
+)

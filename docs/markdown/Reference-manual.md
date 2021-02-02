@@ -302,6 +302,8 @@ false otherwise.
 - `install_dir`: the subdirectory to install the generated file to
   (e.g. `share/myproject`), if omitted or given the value of empty
   string, the file is not installed.
+  *(since 0.58.0)* the special `'@MANDIR@'` value can be used for generated
+  man pages. [See here for examples](howtox.md#Install-my-generated-man-pages).
 - `install_mode` *(since 0.47.0)*: specify the file mode in symbolic format
   and optionally the owner/uid and group/gid for the installed files.
 - `output`: the output file name. *(since 0.41.0)* may contain
@@ -1132,8 +1134,8 @@ man directory during the install step. This directory can be
 overridden by specifying it with the `install_dir` keyword argument.
 
 *Note* `install_man` only accepts static files. See
-[`custom_target`](#custom_target) `install_dir` for how to install manpages
-generated that way.
+[`custom_target`](#custom_target) `install_dir` or
+[`configure_file`](#configure_file) for more information.
 
 Accepts the following keywords:
 

@@ -4594,6 +4594,12 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                  'This will be a hard error in the next release.')
             else:
                 raise InterpreterException('"install_dir" must be a string')
+        if idir == '@MANDIR@':
+            FeatureNew.single_use('configure_file @MANDIR@ in install_dir', '0.58.0', self.subproject)
+            valid, ext = validate_manpage_name(ofile_fname)
+            if not valid:
+                raise InvalidArguments(f'configure_file @MANDIR@ requires a valid man section extension for output')
+            idir = os.path.join(self.environment.get_mandir(), f'man{ext}')
         install = kwargs.get('install', idir != '')
         if not isinstance(install, bool):
             raise InterpreterException('"install" must be a boolean')
