@@ -268,6 +268,11 @@ clike_debug_args = {False: [],
 base_options: 'KeyedOptionDictType' = {
     OptionKey('b_pch'): coredata.UserBooleanOption('Use precompiled headers', True),
     OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
+    OptionKey('b_lto'): coredata.UserBooleanOption('Use link time optimization', False),
+    OptionKey('b_lto_threads'): coredata.UserIntegerOption('Use multiple threads for Link Time Optimization', (None, None,0)),
+    OptionKey('b_lto_mode'): coredata.UserComboOption('Select between different LTO modes.',
+                                                      ['default', 'thin'],
+                                                      'default'),
     OptionKey('b_sanitize'): coredata.UserComboOption('Code sanitizer to use',
                                                       ['none', 'address', 'thread', 'undefined', 'memory', 'address,undefined'],
                                                       'none'),
@@ -300,11 +305,26 @@ def option_enabled(boptions: T.Set[OptionKey], options: 'KeyedOptionDictType',
     except KeyError:
         return False
 
+
+def get_option_value(options: 'KeyedOptionDictType', opt: OptionKey, fallback: '_T') -> '_T':
+    """Get the value of an option, or the fallback value."""
+    try:
+        v: '_T' = options[opt].value
+    except KeyError:
+        return fallback
+
+    assert isinstance(v, type(fallback)), f'Should have {type(fallback)!r} but was {type(v)!r}'
+    # Mypy doesn't understand that the above assert ensures that v is type _T
+    return v
+
+
 def get_base_compile_args(options: 'KeyedOptionDictType', compiler: 'Compiler') -> T.List[str]:
     args = []  # type T.List[str]
     try:
         if options[OptionKey('b_lto')].value:
-            args.extend(compiler.get_lto_compile_args())
+            args.extend(compiler.get_lto_compile_args(
+                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
+                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
     except KeyError:
         pass
     try:
@@ -926,7 +946,7 @@ class Compiler(metaclass=abc.ABCMeta):
             ret.append(arg)
         return ret
 
-    def get_lto_compile_args(self) -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []
 
     def get_lto_link_args(self) -> T.List[str]:

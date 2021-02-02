@@ -19,7 +19,7 @@ import shutil
 import typing as T
 
 from ... import mesonlib
-from ...linkers import AppleDynamicLinker
+from ...linkers import AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker
 from ...mesonlib import OptionKey
 from ..compilers import CompileCheckMode
 from .gnu import GnuLikeCompiler
@@ -49,7 +49,9 @@ class ClangCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'clang'
         self.defines = defines or {}
-        self.base_options.add(OptionKey('b_colorout'))
+        self.base_options.update(
+            {OptionKey('b_colorout'), OptionKey('b_lto_threads'), OptionKey('b_lto_mode')})
+
         # TODO: this really should be part of the linker base_options, but
         # linkers don't have base_options.
         if isinstance(self.linker, AppleDynamicLinker):
@@ -135,3 +137,18 @@ class ClangCompiler(GnuLikeCompiler):
 
     def get_coverage_link_args(self) -> T.List[str]:
         return ['--coverage']
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        args: T.List[str] = []
+        if mode == 'thin':
+            # Thin LTO requires the use of gold, lld, ld64, or lld-link
+            if not isinstance(self.linker, (AppleDynamicLinker, ClangClDynamicLinker, LLVMDynamicLinker, GnuGoldDynamicLinker)):
+                raise mesonlib.MesonException(f"LLVM's thinLTO only works with gnu gold, lld, lld-link, and ld64, not {self.linker.id}")
+            args.append(f'-flto={mode}')
+        else:
+            assert mode == 'default', 'someone forgot to wire something up'
+            args.extend(super().get_lto_compile_args(threads=threads))
+        # In clang -flto=0 means auto
+        if threads >= 0:
+            args.append(f'-flto-jobs={threads}')
+        return args

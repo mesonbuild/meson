@@ -17,6 +17,7 @@
 import abc
 import functools
 import os
+import multiprocessing
 import pathlib
 import re
 import subprocess
@@ -281,7 +282,9 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
                 return self._split_fetch_real_dirs(line.split('=', 1)[1])
         return []
 
-    def get_lto_compile_args(self) -> T.List[str]:
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        # This provides a base for many compilers, GCC and Clang override this
+        # for their specific arguments
         return ['-flto']
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
@@ -330,7 +333,7 @@ class GnuCompiler(GnuLikeCompiler):
         super().__init__()
         self.id = 'gcc'
         self.defines = defines or {}
-        self.base_options.add(OptionKey('b_colorout'))
+        self.base_options.update({OptionKey('b_colorout'), OptionKey('b_lto_threads')})
 
     def get_colorout_args(self, colortype: str) -> T.List[str]:
         if mesonlib.version_compare(self.version, '>=4.9.0'):
@@ -383,3 +386,13 @@ class GnuCompiler(GnuLikeCompiler):
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         return ['-r', '-o', prelink_name] + obj_list
+
+    def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        if threads == 0:
+            if mesonlib.version_compare(self.version, '>= 10.0'):
+                return ['-flto=auto']
+            # This matches clang's behavior of using the number of cpus
+            return [f'-flto={multiprocessing.cpu_count()}']
+        elif threads > 0:
+            return [f'-flto={threads}']
+        return super().get_lto_compile_args(threads=threads)
