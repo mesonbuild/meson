@@ -1463,16 +1463,19 @@ class TestHarness:
         for l in self.loggers:
             l.close()
 
-    def merge_suite_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
-        if ':' in options.setup:
-            if options.setup not in self.build_data.test_setups:
-                sys.exit("Unknown test setup '{}'.".format(options.setup))
-            current = self.build_data.test_setups[options.setup]
+    def get_test_setup(self, test: T.Optional[TestSerialisation]) -> build.TestSetup:
+        if ':' in self.options.setup:
+            if self.options.setup not in self.build_data.test_setups:
+                sys.exit("Unknown test setup '{}'.".format(self.options.setup))
+            return self.build_data.test_setups[self.options.setup]
         else:
-            full_name = test.project_name + ":" + options.setup
+            full_name = test.project_name + ":" + self.options.setup
             if full_name not in self.build_data.test_setups:
-                sys.exit("Test setup '{}' not found from project '{}'.".format(options.setup, test.project_name))
-            current = self.build_data.test_setups[full_name]
+                sys.exit("Test setup '{}' not found from project '{}'.".format(self.options.setup, test.project_name))
+            return self.build_data.test_setups[full_name]
+
+    def merge_setup_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
+        current = self.get_test_setup(test)
         if not options.gdb:
             options.gdb = current.gdb
         if options.gdb:
@@ -1490,8 +1493,8 @@ class TestHarness:
     def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
         name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
-        if options.setup:
-            env = self.merge_suite_options(options, test)
+        if self.options.setup:
+            env = self.merge_setup_options(options, test)
         else:
             env = os.environ.copy()
         test_env = test.env.get_env(env)
