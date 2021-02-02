@@ -39,7 +39,6 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
-    from .coredata import KeyedOptionDictType, OptionDictType
     from .interpreter import Test
     from .mesonlib import FileMode, FileOrString
 
@@ -2325,7 +2324,7 @@ class CustomTarget(Target):
         for ed in unholder(extra_deps):
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
-                                      .format(type(ed), ed))
+                                       .format(type(ed), ed))
             self.extra_depends.append(ed)
         for i in depend_files:
             if isinstance(i, (File, str)):
