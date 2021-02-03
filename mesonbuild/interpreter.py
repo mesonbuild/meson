@@ -47,6 +47,7 @@ import subprocess
 import collections
 import functools
 import typing as T
+import itertools
 
 import importlib
 
@@ -377,30 +378,29 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder[build.Confi
         else:
             self.held_object.values[name] = (0, desc)
 
-    def has_method(self, args, kwargs):
+    @typed_pos_args('has', str)
+    def has_method(self, args: T.Tuple[str], kwargs):
         return args[0] in self.held_object.values
 
     @FeatureNew('configuration_data.get()', '0.38.0')
     @noArgsFlattening
-    def get_method(self, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get method takes one or two arguments.')
-        name = args[0]
+    @typed_pos_args('configuration_data.get', str, optargs=[object])
+    def get_method(self, args: T.Tuple[str, T.Optional[T.Any]], kwargs):
+        name, fallback = args
         if name in self.held_object:
             return self.held_object.get(name)[0]
-        if len(args) > 1:
-            return args[1]
+        if fallback is not None:
+            return fallback
         raise InterpreterException('Entry %s not in configuration data.' % name)
 
     @FeatureNew('configuration_data.get_unquoted()', '0.44.0')
-    def get_unquoted_method(self, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get method takes one or two arguments.')
-        name = args[0]
+    @typed_pos_args('configuration_data.get_unquoted', str, optargs=[str])
+    def get_unquoted_method(self, args: T.Tuple[str, T.Optional[str]], kwargs):
+        name, fallback = args
         if name in self.held_object:
             val = self.held_object.get(name)[0]
-        elif len(args) > 1:
-            val = args[1]
+        elif fallback:
+            val = fallback
         else:
             raise InterpreterException('Entry %s not in configuration data.' % name)
         if val[0] == '"' and val[-1] == '"':
@@ -418,6 +418,7 @@ class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder[build.Confi
     def keys(self):
         return self.held_object.values.keys()
 
+    # Cannot use typed_pos_args here because the argument type is the same as self
     def merge_from_method(self, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Merge_from takes one positional argument.')
@@ -476,26 +477,18 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
     @FeatureDeprecated('Dependency.get_pkgconfig_variable', '0.56.0',
                        'use Dependency.get_variable(pkgconfig : ...) instead')
     @permittedKwargs({'define_variable', 'default'})
-    def pkgconfig_method(self, args, kwargs):
-        args = listify(args)
-        if len(args) != 1:
-            raise InterpreterException('get_pkgconfig_variable takes exactly one argument.')
+    @typed_pos_args('get_pkgconfig_variable', str)
+    def pkgconfig_method(self, args: T.Tuple[str], kwargs):
         varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_pkgconfig_variable(varname, kwargs)
 
     @FeatureNew('dep.get_configtool_variable', '0.44.0')
     @FeatureDeprecated('Dependency.get_configtool_variable', '0.56.0',
                        'use Dependency.get_variable(configtool : ...) instead')
     @permittedKwargs({})
+    @typed_pos_args('get_configtool_variable', str)
     def configtool_method(self, args, kwargs):
-        args = listify(args)
-        if len(args) != 1:
-            raise InterpreterException('get_configtool_variable takes exactly one argument.')
         varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
 
     @FeatureNew('dep.partial_dependency', '0.46.0')
@@ -525,13 +518,12 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
 
     @FeatureNew('dep.as_system', '0.52.0')
     @permittedKwargs({})
-    def as_system_method(self, args, kwargs):
-        args = listify(args)
-        new_is_system = 'system'
-        if len(args) > 1:
-            raise InterpreterException('as_system takes only one optional value')
-        if len(args) == 1:
+    @typed_pos_args('dependency.as_system', optargs=[str])
+    def as_system_method(self, args: T.Tuple[T.Optional[str]], kwargs):
+        if args[0] is not None:
             new_is_system = args[0]
+        else:
+            new_is_system = 'system'
         new_dep = self.held_object.generate_system_dependency(new_is_system)
         return DependencyHolder(new_dep, self.subproject)
 
@@ -596,7 +588,7 @@ class ExternalProgramHolder(InterpreterObject, ObjectHolder[ExternalProgram]):
             return self.held_object.project_version
         if not self.cached_version:
             raw_cmd = self.get_command() + ['--version']
-            cmd = [self, '--version']
+            cmd = (self, ('--version', ))
             res = interpreter.run_command_impl(interpreter.current_node, cmd, {}, True)
             if res.returncode != 0:
                 m = 'Running {!r} failed'
@@ -662,7 +654,8 @@ class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
 
     @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
     @permittedKwargs({'extra_args', 'preserve_path_from'})
-    def process_method(self, args, kwargs):
+    @typed_pos_args('generator.process', varargs=(str, mesonlib.File), min_varargs=1)
+    def process_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]], kwargs):
         extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
         if 'preserve_path_from' in kwargs:
             preserve_path_from = kwargs['preserve_path_from']
@@ -674,7 +667,7 @@ class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
                 raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
         else:
             preserve_path_from = None
-        gl = self.held_object.process_files('Generator', args, self.interpreter,
+        gl = self.held_object.process_files('Generator', args[0], self.interpreter,
                                             preserve_path_from, extra_args=extras)
         return GeneratedListHolder(gl)
 
@@ -844,8 +837,9 @@ class BuildTargetHolder(TargetHolder[_BuildTarget]):
         return self.interpreter.backend.get_target_dir(self.held_object)
 
     @permittedKwargs({})
-    def extract_objects_method(self, args, kwargs):
-        gobjs = self.held_object.extract_objects(args)
+    @typed_pos_args('target.extract_objects', varargs=(str, mesonlib.File), min_varargs=1)
+    def extract_objects_method(self, args: T.Tuple[T.Tuple['mesonlib.FileOrString']], kwargs):
+        gobjs = self.held_object.extract_objects(args[0])
         return GeneratedObjectsHolder(gobjs)
 
     @FeatureNewKwargs('extract_all_objects', '0.46.0', ['recursive'])
@@ -1029,23 +1023,18 @@ class SubprojectHolder(InterpreterObject, ObjectHolder[T.Optional['Interpreter']
 
     @permittedKwargs({})
     @noArgsFlattening
-    def get_variable_method(self, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Get_variable takes one or two arguments.')
+    @typed_pos_args('subproject.get_variable', str, optargs=[object])
+    def get_variable_method(self, args: T.Tuple[str, T.Optional[object]], kwargs):
         if not self.found():
             raise InterpreterException('Subproject "%s" disabled can\'t get_variable on it.' % (self.subdir))
-        varname = args[0]
-        if not isinstance(varname, str):
-            raise InterpreterException('Get_variable first argument must be a string.')
+        varname, fallback = args
+
         try:
             return self.held_object.variables[varname]
         except KeyError:
-            pass
-
-        if len(args) == 2:
-            return args[1]
-
-        raise InvalidArguments(f'Requested variable "{varname}" not found.')
+            if fallback is not None:
+                return fallback
+            raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
 
 header_permitted_kwargs = {
     'required',
@@ -1175,10 +1164,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def alignment_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Alignment method takes exactly one positional argument.')
-        check_stringlist(args)
+    @typed_pos_args('alignment', str)
+    def alignment_method(self, args: T.Tuple[str], kwargs):
         typename = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1198,15 +1185,12 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def run_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Run method takes exactly one positional argument.')
+    @typed_pos_args('run', (str, mesonlib.File))
+    def run_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs):
         code = args[0]
         if isinstance(code, mesonlib.File):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
-        elif not isinstance(code, str):
-            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -1263,10 +1247,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def has_member_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Has_member takes exactly two arguments.')
-        check_stringlist(args)
+    @typed_pos_args('has_member', str, str)
+    def has_member_method(self, args: T.Tuple[str, str], kwargs):
         typename, membername = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1293,11 +1275,9 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def has_members_method(self, args, kwargs):
-        if len(args) < 2:
-            raise InterpreterException('Has_members needs at least two arguments.')
-        check_stringlist(args)
-        typename, *membernames = args
+    @typed_pos_args('has_members', str, varargs=str, min_varargs=1)
+    def has_members_method(self, args: T.Tuple[str, T.List[str]], kwargs):
+        typename, membernames = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
             raise InterpreterException('Prefix argument of has_members must be a string.')
@@ -1324,10 +1304,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def has_function_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Has_function takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('has_function', str)
+    def has_function_method(self, args: T.Tuple[str], kwargs):
         funcname = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1352,10 +1330,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def has_type_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Has_type takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('has_type', str)
+    def has_type_method(self, args: T.Tuple[str], kwargs):
         typename = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1383,10 +1359,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def compute_int_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Compute_int takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('compute_int', str)
+    def compute_int_method(self, args: T.Tuple[str], kwargs):
         expression = args[0]
         prefix = kwargs.get('prefix', '')
         low = kwargs.get('low', None)
@@ -1415,10 +1389,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def sizeof_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Sizeof takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('sizeof', str)
+    def sizeof_method(self, args: T.Tuple[str], kwargs):
         element = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1438,10 +1410,8 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def get_define_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('get_define() takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('get_define', str)
+    def get_define_method(self, args: T.Tuple[str], kwargs):
         element = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1462,15 +1432,12 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def compiles_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('compiles method takes exactly one argument.')
+    @typed_pos_args('compiles', (str, mesonlib.File))
+    def compiles_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs):
         code = args[0]
         if isinstance(code, mesonlib.File):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
-        elif not isinstance(code, str):
-            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -1495,15 +1462,12 @@ class CompilerHolder(InterpreterObject):
         'args',
         'dependencies',
     })
-    def links_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('links method takes exactly one argument.')
+    @typed_pos_args('links', (str, mesonlib.File))
+    def links_method(self, args: T.Tuple['mesonlib.FileOrString'], kwargs):
         code = args[0]
         if isinstance(code, mesonlib.File):
             code = mesonlib.File.from_absolute_file(
                 code.rel_to_builddir(self.environment.source_dir))
-        elif not isinstance(code, str):
-            raise InvalidArguments('Argument must be string or file.')
         testname = kwargs.get('name', '')
         if not isinstance(testname, str):
             raise InterpreterException('Testname argument must be a string.')
@@ -1524,10 +1488,8 @@ class CompilerHolder(InterpreterObject):
     @FeatureNew('compiler.check_header', '0.47.0')
     @FeatureNewKwargs('compiler.check_header', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)
-    def check_header_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('check_header method takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('check_header', str)
+    def check_header_method(self, args: T.Tuple[str], kwargs):
         hname = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1553,10 +1515,8 @@ class CompilerHolder(InterpreterObject):
 
     @FeatureNewKwargs('compiler.has_header', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)
-    def has_header_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('has_header method takes exactly one argument.')
-        check_stringlist(args)
+    @typed_pos_args('has_header', str)
+    def has_header_method(self, args: T.Tuple[str], kwargs):
         hname = args[0]
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1581,10 +1541,8 @@ class CompilerHolder(InterpreterObject):
 
     @FeatureNewKwargs('compiler.has_header_symbol', '0.50.0', ['required'])
     @permittedKwargs(header_permitted_kwargs)
-    def has_header_symbol_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('has_header_symbol method takes exactly two arguments.')
-        check_stringlist(args)
+    @typed_pos_args('has_header_symbol', str, str)
+    def has_header_symbol_method(self, args: T.Tuple[str, str], kwargs):
         hname, symbol = args
         prefix = kwargs.get('prefix', '')
         if not isinstance(prefix, str):
@@ -1620,13 +1578,10 @@ class CompilerHolder(InterpreterObject):
     @FeatureNewKwargs('compiler.find_library', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(find_library_permitted_kwargs)
+    @typed_pos_args('find_library', str)
     def find_library_method(self, args, kwargs):
         # TODO add dependencies support?
-        if len(args) != 1:
-            raise InterpreterException('find_library method takes one argument.')
         libname = args[0]
-        if not isinstance(libname, str):
-            raise InterpreterException('Library name not a string.')
 
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
@@ -1661,16 +1616,14 @@ class CompilerHolder(InterpreterObject):
         return ExternalLibraryHolder(lib, self.subproject)
 
     @permittedKwargs({})
-    def has_argument_method(self, args: T.Sequence[str], kwargs) -> bool:
-        args = mesonlib.stringlistify(args)
-        if len(args) != 1:
-            raise InterpreterException('has_argument takes exactly one argument.')
-        return self.has_multi_arguments_method(args, kwargs)
+    @typed_pos_args('has_argument', str)
+    def has_argument_method(self, args: T.Tuple[str], kwargs) -> bool:
+        return self.has_multi_arguments_method(list(args), kwargs)
 
     @permittedKwargs({})
-    def has_multi_arguments_method(self, args: T.Sequence[str], kwargs: dict):
-        args = mesonlib.stringlistify(args)
-        result, cached = self.compiler.has_multi_arguments(args, self.environment)
+    @typed_pos_args('has_multi_arguments', varargs=str, min_varargs=1)
+    def has_multi_arguments_method(self, args: T.Tuple[T.List[str]], kwargs: dict):
+        result, cached = self.compiler.has_multi_arguments(args[0], self.environment)
         if result:
             h = mlog.green('YES')
         else:
@@ -1678,24 +1631,25 @@ class CompilerHolder(InterpreterObject):
         cached = mlog.blue('(cached)') if cached else ''
         mlog.log(
             'Compiler for {} supports arguments {}:'.format(
-                self.compiler.get_display_language(), ' '.join(args)),
+                self.compiler.get_display_language(), ' '.join(args[0])),
             h, cached)
         return result
 
     @FeatureNew('compiler.get_supported_arguments', '0.43.0')
     @permittedKwargs({})
-    def get_supported_arguments_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
+    @typed_pos_args('get_supported_arguments', varargs=str, min_varargs=1)
+    def get_supported_arguments_method(self, args: T.Tuple[T.List[str]], kwargs):
         supported_args = []
-        for arg in args:
-            if self.has_argument_method(arg, kwargs):
+        for arg in args[0]:
+            if self.has_argument_method([arg], kwargs):
                 supported_args.append(arg)
         return supported_args
 
     @permittedKwargs({})
-    def first_supported_argument_method(self, args: T.Sequence[str], kwargs: dict) -> T.List[str]:
-        for arg in mesonlib.stringlistify(args):
-            if self.has_argument_method(arg, kwargs):
+    @typed_pos_args('first_supported_argument', varargs=str, min_varargs=1)
+    def first_supported_argument_method(self, args: T.Tuple[T.List[str]], kwargs: dict) -> T.List[str]:
+        for arg in args[0]:
+            if self.has_argument_method([arg], kwargs):
                 mlog.log('First supported argument:', mlog.bold(arg))
                 return [arg]
         mlog.log('First supported argument:', mlog.red('None'))
@@ -1703,15 +1657,13 @@ class CompilerHolder(InterpreterObject):
 
     @FeatureNew('compiler.has_link_argument', '0.46.0')
     @permittedKwargs({})
-    def has_link_argument_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        if len(args) != 1:
-            raise InterpreterException('has_link_argument takes exactly one argument.')
-        return self.has_multi_link_arguments_method(args, kwargs)
+    @typed_pos_args('has_link_argument', str)
+    def has_link_argument_method(self, args: T.Tuple[str], kwargs):
+        return self.has_multi_link_arguments_method(list(args), kwargs)
 
     @FeatureNew('compiler.has_multi_link_argument', '0.46.0')
     @permittedKwargs({})
-    def has_multi_link_arguments_method(self, args, kwargs):
+    def has_multi_link_arguments_method(self, args: T.List[str], kwargs):
         args = mesonlib.stringlistify(args)
         result, cached = self.compiler.has_multi_link_arguments(args, self.environment)
         cached = mlog.blue('(cached)') if cached else ''
@@ -1731,7 +1683,7 @@ class CompilerHolder(InterpreterObject):
         args = mesonlib.stringlistify(args)
         supported_args = []
         for arg in args:
-            if self.has_link_argument_method(arg, kwargs):
+            if self.has_link_argument_method([arg], kwargs):
                 supported_args.append(arg)
         return supported_args
 
@@ -1739,7 +1691,7 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def first_supported_link_argument_method(self, args, kwargs):
         for i in mesonlib.stringlistify(args):
-            if self.has_link_argument_method(i, kwargs):
+            if self.has_link_argument_method([i], kwargs):
                 mlog.log('First supported link argument:', mlog.bold(i))
                 return [i]
         mlog.log('First supported link argument:', mlog.red('None'))
@@ -1747,10 +1699,8 @@ class CompilerHolder(InterpreterObject):
 
     @FeatureNew('compiler.has_function_attribute', '0.48.0')
     @permittedKwargs({})
-    def has_func_attribute_method(self, args, kwargs):
-        args = mesonlib.stringlistify(args)
-        if len(args) != 1:
-            raise InterpreterException('has_func_attribute takes exactly one argument.')
+    @typed_pos_args('has_function_attribute', str)
+    def has_func_attribute_method(self, args: T.Tuple[str], kwargs):
         result, cached = self.compiler.has_func_attribute(args[0], self.environment)
         cached = mlog.blue('(cached)') if cached else ''
         h = mlog.green('YES') if result else mlog.red('NO')
@@ -1761,7 +1711,7 @@ class CompilerHolder(InterpreterObject):
     @permittedKwargs({})
     def get_supported_function_attributes_method(self, args, kwargs):
         args = mesonlib.stringlistify(args)
-        return [a for a in args if self.has_func_attribute_method(a, kwargs)]
+        return [a for a in args if self.has_func_attribute_method([a], kwargs)]
 
     @FeatureNew('compiler.get_argument_syntax_method', '0.49.0')
     @noPosargs
@@ -1914,7 +1864,7 @@ class MesonMain(InterpreterObject):
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
-        
+
         if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
             return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
         found = self.interpreter.func_find_program({}, prog, {}).held_object
@@ -1923,7 +1873,7 @@ class MesonMain(InterpreterObject):
         return es
 
     def _process_script_args(
-            self, name: str, args: T.List[T.Union[
+            self, name: str, args: T.Iterable[T.Union[
                 str, mesonlib.File, CustomTargetHolder,
                 CustomTargetIndexHolder, ConfigureFileHolder,
                 ExternalProgramHolder, ExecutableHolder,
@@ -1960,7 +1910,7 @@ class MesonMain(InterpreterObject):
             else:
                 raise InterpreterException(
                     'Arguments to {} must be strings, Files, CustomTargets, '
-                    'Indexes of CustomTargets, or ConfigureFiles'.format(name))
+                    'Indexes of CustomTargets, or ConfigureFiles, not {}'.format(name, type(a).__name__))
         if new:
             FeatureNew.single_use(
                 'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
@@ -1970,35 +1920,32 @@ class MesonMain(InterpreterObject):
 
     @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
     @permittedKwargs({'skip_if_destdir'})
-    def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
-        if len(args) < 1:
-            raise InterpreterException('add_install_script takes one or more arguments')
+    @typed_pos_args('meson.install_script', (str, mesonlib.File, ExecutableHolder, ExternalProgramHolder), varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExecutableHolder, ExternalProgramHolder))
+    def add_install_script_method(self, args: T.Tuple[T.Union[str,mesonlib.File, ExternalProgramHolder, ExecutableHolder], T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExecutableHolder, ExternalProgramHolder]]], kwargs: T.Dict[str, T.Any]) -> None:
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_install_script',
                                   '0.57.0', self.interpreter.subproject)
         skip_if_destdir = kwargs.get('skip_if_destdir', False)
         if not isinstance(skip_if_destdir, bool):
             raise InterpreterException('skip_if_destdir keyword argument must be boolean')
-        script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
+        script_args = self._process_script_args('add_install_script', args[1], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         script.skip_if_destdir = skip_if_destdir
         self.build.install_scripts.append(script)
 
     @permittedKwargs(set())
-    def add_postconf_script_method(self, args, kwargs):
-        if len(args) < 1:
-            raise InterpreterException('add_postconf_script takes one or more arguments')
+    @typed_pos_args('meson.postconf_script', (str, mesonlib.File, ExternalProgramHolder), varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExternalProgramHolder))
+    def add_postconf_script_method(self, args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgramHolder], T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExternalProgramHolder]]], kwargs) -> None:
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_postconf_script',
                                   '0.57.0', self.interpreter.subproject)
-        script_args = self._process_script_args('add_postconf_script', args[1:], allow_built=True)
+        script_args = self._process_script_args('add_postconf_script', args[1], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.postconf_scripts.append(script)
 
     @permittedKwargs(set())
-    def add_dist_script_method(self, args, kwargs):
-        if len(args) < 1:
-            raise InterpreterException('add_dist_script takes one or more arguments')
+    @typed_pos_args('meson.dist_script', (str, mesonlib.File, ExternalProgramHolder), varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExternalProgramHolder))
+    def add_dist_script_method(self, args: T.Tuple[T.Union[str, mesonlib.File, ExternalProgramHolder], T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder, ExternalProgramHolder]]], kwargs) -> None:
         if len(args) > 1:
             FeatureNew.single_use('Calling "add_dist_script" with multiple arguments',
                                   '0.49.0', self.interpreter.subproject)
@@ -2008,7 +1955,7 @@ class MesonMain(InterpreterObject):
         if self.interpreter.subproject != '':
             FeatureNew.single_use('Calling "add_dist_script" in a subproject',
                                   '0.58.0', self.interpreter.subproject)
-        script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)
+        script_args = self._process_script_args('add_dist_script', args[1], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.dist_scripts.append(script)
 
@@ -2095,9 +2042,8 @@ class MesonMain(InterpreterObject):
         return self.build.environment.is_cross_build()
 
     @permittedKwargs({'native'})
-    def get_compiler_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('get_compiler_method must have one and only one argument.')
+    @typed_pos_args('meson.get_compiler', str)
+    def get_compiler_method(self, args: T.Tuple[str], kwargs):
         cname = args[0]
         for_machine = Interpreter.machine_from_native_kwarg(kwargs)
         clist = self.interpreter.coredata.compilers[for_machine]
@@ -2119,18 +2065,14 @@ class MesonMain(InterpreterObject):
         return self.interpreter.is_subproject()
 
     @permittedKwargs({})
-    def install_dependency_manifest_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Must specify manifest install file name')
-        if not isinstance(args[0], str):
-            raise InterpreterException('Argument must be a string.')
+    @typed_pos_args('meson.install_dependency_manifest', str)
+    def install_dependency_manifest_method(self, args: T.Tuple[str], kwargs):
         self.build.dep_manifest_name = args[0]
 
     @FeatureNew('meson.override_find_program', '0.46.0')
     @permittedKwargs({})
-    def override_find_program_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Override needs two arguments')
+    @typed_pos_args('override', str, (ExternalProgramHolder, ExecutableHolder, mesonlib.File))
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[ExternalProgramHolder, ExecutableHolder, mesonlib.File]], kwargs):
         name, exe = args
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string')
@@ -2147,16 +2089,13 @@ class MesonMain(InterpreterObject):
 
     @FeatureNew('meson.override_dependency', '0.54.0')
     @permittedKwargs({'native'})
-    def override_dependency_method(self, args, kwargs):
-        if len(args) != 2:
-            raise InterpreterException('Override needs two arguments')
+    @typed_pos_args('override', str, DependencyHolder)
+    def override_dependency_method(self, args: T.Tuple[str, DependencyHolder], kwargs):
         name = args[0]
-        dep = args[1]
-        if not isinstance(name, str) or not name:
-            raise InterpreterException('First argument must be a string and cannot be empty')
-        dep = unholder(dep)
-        if not isinstance(dep, dependencies.Dependency):
-            raise InterpreterException('Second argument must be a dependency object')
+        # Don't allow overriding the special '' dependency
+        if not name:
+            raise InterpreterException('overridden dependency name cannot be ""')
+        dep = args[1].held_object
         identifier = dependencies.get_dep_identifier(name, kwargs)
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         override = self.build.dependency_overrides[for_machine].get(identifier)
@@ -2381,7 +2320,7 @@ class Interpreter(InterpreterBase):
             self.ast = ast
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
-        self.generators = []
+        self.generators: T.List[GeneratorHolder] = []
         self.processed_buildfiles = set() # type: T.Set[str]
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
@@ -2631,11 +2570,9 @@ class Interpreter(InterpreterBase):
         assert isinstance(ext_module, ModuleObject)
         self.modules[modname] = ext_module
 
-    @stringArgs
     @noKwargs
-    def func_import(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Import takes one argument.')
+    @typed_pos_args('import', str)
+    def func_import(self, node, args: T.Tuple[str], kwargs):
         modname = args[0]
         if modname.startswith('unstable-'):
             plainname = modname.split('-', 1)[1]
@@ -2650,10 +2587,12 @@ class Interpreter(InterpreterBase):
         self.import_module(modname)
         return ModuleObjectHolder(self.modules[modname], self)
 
-    @stringArgs
     @noKwargs
-    def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+    @typed_pos_args('files', varargs=str)
+    def func_files(self, node, args: T.Tuple[T.List[str]], kwargs):
+        # There is code in the cmake module that relies on `files()` with no
+        # arguments.
+        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args[0]]
 
     # Used by declare_dependency() and pkgconfig.generate()
     def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
@@ -2717,19 +2656,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         return DependencyHolder(dep, self.subproject)
 
     @noKwargs
-    def func_assert(self, node, args, kwargs):
-        if len(args) == 1:
+    @typed_pos_args('assert', bool, optargs=[str])
+    def func_assert(self, node, args: T.Tuple[bool, T.Optional[str]], kwargs):
+        value, message = args
+        if message is None:
             FeatureNew.single_use('assert function without message argument', '0.53.0', self.subproject)
-            value = args[0]
-            message = None
-        elif len(args) == 2:
-            value, message = args
-            if not isinstance(message, str):
-                raise InterpreterException('Assert message not a string.')
-        else:
-            raise InterpreterException('Assert takes between one and two arguments')
-        if not isinstance(value, bool):
-            raise InterpreterException('Assert value not bool.')
         if not value:
             if message is None:
                 from .ast import AstPrinter
@@ -2738,26 +2669,16 @@ external dependencies (including libraries) must go to "dependencies".''')
                 message = printer.result
             raise InterpreterException('Assert failed: ' + message)
 
-    def validate_arguments(self, args, argcount, arg_types):
-        if argcount is not None:
-            if argcount != len(args):
-                raise InvalidArguments('Expected %d arguments, got %d.' %
-                                       (argcount, len(args)))
-        for actual, wanted in zip(args, arg_types):
-            if wanted is not None:
-                if not isinstance(actual, wanted):
-                    raise InvalidArguments('Incorrect argument type.')
-
     @FeatureNewKwargs('run_command', '0.50.0', ['env'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
     @permittedKwargs(permitted_kwargs['run_command'])
-    def func_run_command(self, node, args, kwargs):
+    @typed_pos_args('run_command', (str, mesonlib.File, CompilerHolder, ExternalProgramHolder),
+                    varargs=(str, mesonlib.File, ExternalProgramHolder))
+    def func_run_command(self, node, args: T.Tuple[T.Union[str, mesonlib.File, CompilerHolder, ExternalProgramHolder], T.List[T.Union[str, mesonlib.File, ExternalProgramHolder]]], kwargs):
         return self.run_command_impl(node, args, kwargs)
 
-    def run_command_impl(self, node, args, kwargs, in_builddir=False):
-        if len(args) < 1:
-            raise InterpreterException('Not enough arguments')
-        cmd, *cargs = args
+    def run_command_impl(self, node, args: T.Tuple[T.Union[str, mesonlib.File, CompilerHolder, ExternalProgramHolder], T.List[T.Union[str, mesonlib.File, ExternalProgramHolder]]], kwargs, in_builddir: bool = False):
+        cmd, cargs = args
         capture = kwargs.get('capture', True)
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
@@ -2801,7 +2722,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 raise InterpreterException('Program or command {!r} not found '
                                            'or not executable'.format(cmd))
             cmd = prog
-        for a in listify(cargs):
+        for a in cargs:
             if isinstance(a, str):
                 expanded_args.append(a)
             elif isinstance(a, mesonlib.File):
@@ -2830,10 +2751,8 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
     @permittedKwargs(permitted_kwargs['subproject'])
-    @stringArgs
-    def func_subproject(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Subproject takes exactly one argument')
+    @typed_pos_args('subproject', str)
+    def func_subproject(self, nodes, args: T.Tuple[str], kwargs):
         subp_name = args[0]
         return self.do_subproject(subp_name, 'meson', kwargs)
 
@@ -3037,11 +2956,9 @@ external dependencies (including libraries) must go to "dependencies".''')
 
         raise InterpreterException('Tried to access unknown option "%s".' % optname)
 
-    @stringArgs
     @noKwargs
-    def func_get_option(self, nodes, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Argument required for get_option.')
+    @typed_pos_args('get_option', str)
+    def func_get_option(self, nodes, args: T.Tuple[str], kwargs):
         optname = args[0]
         if ':' in optname:
             raise InterpreterException('Having a colon in option name is forbidden, '
@@ -3055,14 +2972,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         return opt
 
     @noKwargs
-    def func_configuration_data(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InterpreterException('configuration_data takes only one optional positional arguments')
-        elif len(args) == 1:
+    @typed_pos_args('configuration_data', optargs=[dict])
+    def func_configuration_data(self, node, args: T.Tuple[T.Optional[T.Dict[str, T.Any]]], kwargs):
+        if args[0] is not None:
             FeatureNew.single_use('configuration_data dictionary', '0.49.0', self.subproject)
             initial_values = args[0]
-            if not isinstance(initial_values, dict):
-                raise InterpreterException('configuration_data first argument must be a dictionary')
         else:
             initial_values = {}
         return ConfigurationDataHolder(self.subproject, initial_values)
@@ -3090,12 +3004,10 @@ external dependencies (including libraries) must go to "dependencies".''')
         options = {k: v for k, v in self.environment.options.items() if k.is_backend()}
         self.coredata.set_options(options)
 
-    @stringArgs
     @permittedKwargs(permitted_kwargs['project'])
-    def func_project(self, node, args, kwargs):
-        if len(args) < 1:
-            raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
-        proj_name, *proj_langs = args
+    @typed_pos_args('project', str, varargs=str)
+    def func_project(self, node, args: T.Tuple[str, T.List[str]], kwargs):
+        proj_name, proj_langs = args
         if ':' in proj_name:
             raise InvalidArguments(f"Project name {proj_name!r} must not contain ':'")
 
@@ -3515,19 +3427,19 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['find_program'])
-    def func_find_program(self, node, args, kwargs):
-        if not args:
-            raise InterpreterException('No program name specified.')
+    @typed_pos_args('find_program', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_find_program(self, node, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs):
+        largs = list(args[0])
 
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            mlog.log('Program', mlog.bold(' '.join(args)), 'skipped: feature', mlog.bold(feature), 'disabled')
-            return self.notfound_program(args)
+            mlog.log('Program', mlog.bold(' '.join(largs)), 'skipped: feature', mlog.bold(feature), 'disabled')
+            return self.notfound_program(largs)
 
         search_dirs = extract_search_dirs(kwargs)
         wanted = mesonlib.stringlistify(kwargs.get('version', []))
         for_machine = self.machine_from_native_kwarg(kwargs)
-        return self.find_program_impl(args, for_machine, required=required,
+        return self.find_program_impl(largs, for_machine, required=required,
                                       silent=False, wanted=wanted,
                                       search_dirs=search_dirs)
 
@@ -3695,8 +3607,8 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @disablerIfNotFound
     @permittedKwargs(permitted_kwargs['dependency'])
-    def func_dependency(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
+    @typed_pos_args('dependency', str)
+    def func_dependency(self, node, args: T.Tuple[str], kwargs):
         name = args[0]
         display_name = name if name else '(anonymous)'
         mods = extract_as_list(kwargs, 'modules')
@@ -3970,20 +3882,18 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_subdir_done(self, node, args, kwargs):
         raise SubdirDoneRequest()
 
-    @stringArgs
     @FeatureNewKwargs('custom_target', '0.57.0', ['env'])
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
     @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
     @permittedKwargs(permitted_kwargs['custom_target'])
-    def func_custom_target(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
+    @typed_pos_args('custom_target', str)
+    def func_custom_target(self, node, args: T.Tuple[str], kwargs):
         if 'depfile' in kwargs and ('@BASENAME@' in kwargs['depfile'] or '@PLAINNAME@' in kwargs['depfile']):
             FeatureNew.single_use('substitutions in custom_target depfile', '0.47.0', self.subproject)
         return self._func_custom_target_impl(node, args, kwargs)
 
-    def _func_custom_target_impl(self, node, args, kwargs):
+    def _func_custom_target_impl(self, node, args: T.Tuple[str], kwargs):
         'Implementation-only, without FeatureNew checks, for internal use'
         name = args[0]
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
@@ -4003,16 +3913,14 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('run_target', '0.57.0', ['env'])
     @permittedKwargs(permitted_kwargs['run_target'])
-    def func_run_target(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InvalidCode('Run_target takes only one positional argument: the target name.')
-        elif len(args) == 1:
-            if 'command' not in kwargs:
-                raise InterpreterException('Missing "command" keyword argument')
-            all_args = extract_as_list(kwargs, 'command')
-            deps = unholder(extract_as_list(kwargs, 'depends'))
-        else:
-            raise InterpreterException('Run_target needs at least one positional argument.')
+    @typed_pos_args('run_target', str)
+    def func_run_target(self, node, args: T.Tuple[str], kwargs):
+        name = args[0]
+
+        if 'command' not in kwargs:
+            raise InterpreterException('Missing "command" keyword argument')
+        all_args = extract_as_list(kwargs, 'command')
+        deps = unholder(extract_as_list(kwargs, 'depends'))
 
         cleaned_args = []
         for i in unholder(listify(all_args)):
@@ -4025,8 +3933,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if isinstance(cleaned_args[0], str):
             cleaned_args[0] = self.func_find_program(node, cleaned_args[0], {})
         name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument must be a string.')
         cleaned_deps = []
         for d in deps:
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
@@ -4042,30 +3948,26 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNew('alias_target', '0.52.0')
     @noKwargs
-    def func_alias_target(self, node, args, kwargs):
-        if len(args) < 2:
-            raise InvalidCode('alias_target takes at least 2 arguments.')
+    @typed_pos_args('alias_target', str, varargs=(BuildTargetHolder, CustomTargetHolder), min_varargs=1)
+    def func_alias_target(self, node, args: T.Tuple[str, T.List[T.Union[BuildTargetHolder, CustomTargetHolder]]], kwargs):
         name = args[0]
-        if not isinstance(name, str):
-            raise InterpreterException('First argument must be a string.')
-        deps = unholder(listify(args[1:]))
-        for d in deps:
-            if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                raise InterpreterException('Depends items must be build targets.')
+        deps = [unholder(d) for d in args[1]]
         tg = RunTargetHolder(build.AliasTarget(name, deps, self.subdir, self.subproject), self)
         self.add_target(name, tg.held_object)
         return tg
 
     @permittedKwargs(permitted_kwargs['generator'])
-    def func_generator(self, node, args, kwargs):
-        gen = GeneratorHolder(self, args, kwargs)
+    @typed_pos_args('generator', (ExternalProgramHolder, ExecutableHolder))
+    def func_generator(self, node, args: T.Tuple[T.Union[ExternalProgramHolder, ExecutableHolder]], kwargs):
+        gen = GeneratorHolder(self, unholder(args[0]), kwargs)
         self.generators.append(gen)
         return gen
 
     @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
     @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
     @permittedKwargs(permitted_kwargs['benchmark'])
-    def func_benchmark(self, node, args, kwargs):
+    @typed_pos_args('benchmark', str, (mesonlib.File, JarHolder, ExecutableHolder, ExternalProgramHolder))
+    def func_benchmark(self, node, args: T.Tuple[str, T.Union[mesonlib.File, JarHolder, ExecutableHolder, ExternalProgramHolder]], kwargs):
         # is_parallel isn't valid here, so make sure it isn't passed
         if 'is_parallel' in kwargs:
             del kwargs['is_parallel']
@@ -4074,7 +3976,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('test', '0.46.0', ['depends'])
     @FeatureNewKwargs('test', '0.52.0', ['priority'])
     @permittedKwargs(permitted_kwargs['test'])
-    def func_test(self, node, args, kwargs):
+    @typed_pos_args('test', str, (mesonlib.File, JarHolder, ExecutableHolder, ExternalProgramHolder))
+    def func_test(self, node, args: T.Tuple[str, T.Union[mesonlib.File, JarHolder, ExecutableHolder, ExternalProgramHolder]], kwargs):
         if kwargs.get('protocol') == 'gtest':
             FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
         self.add_test(node, args, kwargs, True)
@@ -4106,7 +4009,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         exe = args[1]
         if not isinstance(exe, (ExecutableHolder, JarHolder, ExternalProgramHolder)):
             if isinstance(exe, mesonlib.File):
-                exe = self.func_find_program(node, args[1], {})
+                exe = self.func_find_program(node, [args[1]], {})
             else:
                 raise InterpreterException('Second argument must be executable.')
         par = kwargs.get('is_parallel', True)
@@ -4152,7 +4055,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return Test(name, prj, suite, exe.held_object, depends, par, cmd_args,
                     env, should_fail, timeout, workdir, protocol, priority)
 
-    def add_test(self, node: mparser.BaseNode, args: T.List, kwargs: T.Dict[str, T.Any], is_base_test: bool):
+    def add_test(self, node: mparser.BaseNode, args: T.Tuple[str, T.Union[ExecutableHolder, ExternalProgramHolder]], kwargs: T.Dict[str, T.Any], is_base_test: bool):
         t = self.make_test(node, args, kwargs)
         if is_base_test:
             self.build.tests.append(t)
@@ -4163,8 +4066,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_headers'])
-    def func_install_headers(self, node, args, kwargs):
-        source_files = self.source_strings_to_files(args)
+    @typed_pos_args('install_headers', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_install_headers(self, node, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]], kwargs):
+        source_files = self.source_strings_to_files(args[0])
         install_mode = self._get_kwarg_install_mode(kwargs)
 
         install_subdir = kwargs.get('subdir', '')
@@ -4185,8 +4089,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
     @permittedKwargs(permitted_kwargs['install_man'])
-    def func_install_man(self, node, args, kwargs):
-        sources = self.source_strings_to_files(args)
+    @typed_pos_args('install_man', varargs=(str, mesonlib.File), min_varargs=1)
+    def func_install_man(self, node, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]], kwargs):
+        sources = self.source_strings_to_files(args[0])
         for s in sources:
             try:
                 num = int(s.split('.')[-1])
@@ -4207,9 +4112,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
     @permittedKwargs(permitted_kwargs['subdir'])
-    def func_subdir(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
-        mesonlib.check_direntry_issues(args)
+    @typed_pos_args('subdir', str)
+    def func_subdir(self, node, args: T.Tuple[str], kwargs):
+        mesonlib.check_direntry_issues(list(args))
         if '..' in args[0]:
             raise InvalidArguments('Subdir contains ..')
         if self.subdir == '' and args[0] == self.subproject_dir:
@@ -4276,17 +4181,18 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_data'])
-    def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
+    @typed_pos_args('install_data', varargs=(str, mesonlib.File))
+    def func_install_data(self, node, args: T.Tuple[T.List[T.Union[str, mesonlib.File]]], kwargs):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
-        raw_sources = args + kwsource
         sources: T.List[mesonlib.File] = []
         source_strings: T.List[str] = []
-        for s in raw_sources:
+        for s in itertools.chain(args[0], kwsource):
             if isinstance(s, mesonlib.File):
                 sources.append(s)
             elif isinstance(s, str):
                 source_strings.append(s)
             else:
+                # Could still get a bad source from kwargs
                 raise InvalidArguments('Argument must be string or file.')
         sources += self.source_strings_to_files(source_strings)
         install_dir: T.Optional[str] = kwargs.get('install_dir', None)
@@ -4308,13 +4214,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
     @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
     @permittedKwargs(permitted_kwargs['install_subdir'])
-    @stringArgs
-    def func_install_subdir(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Install_subdir requires exactly one argument.')
-        subdir: str = args[0]
-        if not isinstance(subdir, str):
-            raise InvalidArguments('install_subdir positional argument 1 must be a string.')
+    @typed_pos_args('install_subdir', str)
+    def func_install_subdir(self, node, args: T.Tuple[str], kwargs):
+        subdir = args[0]
         if 'install_dir' not in kwargs:
             raise InvalidArguments('Missing keyword argument install_dir')
         install_dir: str = kwargs['install_dir']
@@ -4483,9 +4385,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 depfile = os.path.join(self.environment.get_scratch_dir(), depfile)
                 values['@DEPFILE@'] = depfile
             # Substitute @INPUT@, @OUTPUT@, etc here.
-            cmd = mesonlib.substitute_values(kwargs['command'], values)
+            cmd, *args = mesonlib.substitute_values(kwargs['command'], values)
             mlog.log('Configuring', mlog.bold(output), 'with command')
-            res = self.run_command_impl(node, cmd,  {}, True)
+            res = self.run_command_impl(node, (cmd, tuple(listify(args))),  {}, True)
             if res.returncode != 0:
                 raise InterpreterException('Running configure command failed.\n%s\n%s' %
                                            (res.stdout, res.stderr))
@@ -4554,9 +4456,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return result
 
     @permittedKwargs(permitted_kwargs['include_directories'])
-    @stringArgs
-    def func_include_directories(self, node, args, kwargs):
-        return self.build_incdir_object(args, kwargs.get('is_system', False))
+    @typed_pos_args('include_directories', varargs=str)
+    def func_include_directories(self, node, args: T.Tuple[T.List[str]], kwargs):
+        # Yes, this requires 0 arguments. There is code relying on that
+        # behavior in the cmake module.
+        return self.build_incdir_object(args[0], kwargs.get('is_system', False))
 
     def build_incdir_object(self, incdir_strings, is_system=False):
         if not isinstance(is_system, bool):
@@ -4596,7 +4500,7 @@ subproject. This is a problem as it hardcodes the relative paths of these two pr
 This makes it impossible to compile the project in any other directory layout and also
 prevents the subproject from changing its own directory layout.
 
-Instead of poking directly at the internals the subproject should be executed and 
+Instead of poking directly at the internals the subproject should be executed and
 it should set a variable that the caller can then use. Something like:
 
 # In subproject
@@ -4606,7 +4510,7 @@ some_dep = declare_depencency(include_directories: include_directories('include'
 some_dep = depencency('some')
 executable(..., dependencies: [some_dep])
 
-This warning will become a hard error in a future Meson release. 
+This warning will become a hard error in a future Meson release.
 ''')
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
@@ -4616,10 +4520,8 @@ This warning will become a hard error in a future Meson release.
         return i
 
     @permittedKwargs(permitted_kwargs['add_test_setup'])
-    @stringArgs
-    def func_add_test_setup(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('Add_test_setup needs one argument for the setup name.')
+    @typed_pos_args('add_test_setup', str)
+    def func_add_test_setup(self, node, args: T.Tuple[str], kwargs):
         setup_name = args[0]
         if re.fullmatch('([_a-zA-Z][_0-9a-zA-Z]*:)?[_a-zA-Z][_0-9a-zA-Z]*', setup_name) is None:
             raise InterpreterException('Setup name may only contain alphanumeric characters.')
@@ -4747,14 +4649,11 @@ This warning will become a hard error in a future Meson release.
 
     @noKwargs
     @noArgsFlattening
-    def func_environment(self, node, args, kwargs):
-        if len(args) > 1:
-            raise InterpreterException('environment takes only one optional positional arguments')
-        elif len(args) == 1:
+    @typed_pos_args('environment', optargs=[(list, dict)])
+    def func_environment(self, node, args: T.Tuple[T.Optional[T.Union[T.List, T.Dict]]], kwargs):
+        if args[0] is not None:
             FeatureNew.single_use('environment positional arguments', '0.52.0', self.subproject)
             initial_values = args[0]
-            if not isinstance(initial_values, dict) and not isinstance(initial_values, list):
-                raise InterpreterException('environment first argument must be a dictionary or a list')
         else:
             initial_values = {}
         return EnvironmentVariablesHolder(initial_values, self.subproject)
@@ -4824,10 +4723,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         if project_root / self.subproject_dir in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
-    def source_strings_to_files(self, sources: T.List[str]) -> T.List[mesonlib.File]:
+    def source_strings_to_files(self, sources: T.Sequence[str]) -> T.List[mesonlib.File]:
         mesonlib.check_direntry_issues(sources)
-        if not isinstance(sources, list):
-            sources = [sources]
         results: T.List[mesonlib.File] = []
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
@@ -5003,35 +4900,30 @@ This will become a hard error in the future.''', location=self.current_node)
 
     @noKwargs
     @noArgsFlattening
-    def func_set_variable(self, node, args, kwargs):
-        if len(args) != 2:
-            raise InvalidCode('Set_variable takes two arguments.')
+    @typed_pos_args('dependency', str, object)
+    def func_set_variable(self, node, args: T.Tuple[str, object], kwargs):
         varname, value = args
         self.set_variable(varname, value)
 
     @noKwargs
     @noArgsFlattening
-    def func_get_variable(self, node, args, kwargs):
-        if len(args) < 1 or len(args) > 2:
-            raise InvalidCode('Get_variable takes one or two arguments.')
-        varname = args[0]
+    @typed_pos_args('get_variable', (str, Disabler), optargs=[object])
+    def func_get_variable(self, node, args: T.Tuple[T.Union[str, Disabler], T.Optional[T.Any]], kwargs):
+        varname, fallback = args
         if isinstance(varname, Disabler):
             return varname
-        if not isinstance(varname, str):
-            raise InterpreterException('First argument must be a string.')
         try:
             return self.variables[varname]
         except KeyError:
             pass
-        if len(args) == 2:
-            return args[1]
+        if fallback is not None:
+            return fallback
         raise InterpreterException('Tried to get unknown variable "%s".' % varname)
 
     @stringArgs
     @noKwargs
-    def func_is_variable(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_variable takes two arguments.')
+    @typed_pos_args('is_variable', object)
+    def func_is_variable(self, node, args: T.Tuple[object], kwargs):
         varname = args[0]
         return varname in self.variables
 
@@ -5044,9 +4936,8 @@ This will become a hard error in the future.''', location=self.current_node)
 
     @FeatureNew('is_disabler', '0.52.0')
     @noKwargs
-    def func_is_disabler(self, node, args, kwargs):
-        if len(args) != 1:
-            raise InvalidCode('Is_disabler takes one argument.')
+    @typed_pos_args('is_disabler', object)
+    def func_is_disabler(self, node, args: T.Tuple[object], kwargs):
         varname = args[0]
         return isinstance(varname, Disabler)
 

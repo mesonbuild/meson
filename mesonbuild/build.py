@@ -1483,12 +1483,7 @@ You probably should put it in link_with instead.''')
                 return
 
 class Generator:
-    def __init__(self, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Generator requires exactly one positional argument: the executable')
-        exe = unholder(args[0])
-        if not isinstance(exe, (Executable, programs.ExternalProgram)):
-            raise InvalidArguments('First generator argument must be an executable.')
+    def __init__(self, exe: T.Union['Executable', dependencies.ExternalProgram], kwargs):
         self.exe = exe
         self.depfile = None
         self.capture = False
@@ -1570,8 +1565,7 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
-        new = False
+    def process_files(self, name, files: T.Iterable['FileOrString'], state, preserve_path_from=None, extra_args=None):
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
         for e in unholder(files):
             fs = [e]

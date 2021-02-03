@@ -236,7 +236,7 @@ class QtBaseModule(ExtensionModule):
             arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
             ui_kwargs = {'output': 'ui_@BASENAME@.h',
                          'arguments': arguments}
-            ui_gen = build.Generator([self.uic], ui_kwargs)
+            ui_gen = build.Generator(self.uic, ui_kwargs)
             ui_output = ui_gen.process_files(f'Qt{self.qt_version} ui', ui_files, state)
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
@@ -255,14 +255,13 @@ class QtBaseModule(ExtensionModule):
             arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
+            moc_gen = build.Generator(self.moc, moc_kwargs)
             moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc header', moc_headers, state)
             sources.append(moc_output)
         if moc_sources:
             arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
             moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc source', moc_sources, state)
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
