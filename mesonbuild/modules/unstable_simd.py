@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib, compilers, mlog
+import typing as T
 
 from . import ExtensionModule
-
-from ..interpreterbase import FeatureNew
+from .. import mesonlib, compilers, mlog
+from ..interpreterbase import FeatureNew, typed_pos_args
 
 class SimdModule(ExtensionModule):
 
@@ -37,13 +37,10 @@ class SimdModule(ExtensionModule):
                       'neon',
                       )
 
-    def check(self, interpreter, state, args, kwargs):
+    @typed_pos_args('simdmod.check', str)
+    def check(self, interpreter, state, args: T.Tuple[str], kwargs):
         result = []
-        if len(args) != 1:
-            raise mesonlib.MesonException('Check requires one argument, a name prefix for checks.')
         prefix = args[0]
-        if not isinstance(prefix, str):
-            raise mesonlib.MesonException('Argument must be a string.')
         if 'compiler' not in kwargs:
             raise mesonlib.MesonException('Must specify compiler keyword')
         if 'sources' in kwargs:
