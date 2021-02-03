@@ -24,7 +24,7 @@ from . import ExtensionModule
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InvalidArguments,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    FeatureNew, FeatureNewKwargs, disablerIfNotFound, typed_pos_args
 )
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_kwargs
 from ..build import known_shmod_kwargs
@@ -366,7 +366,8 @@ class PythonInstallation(ExternalProgramHolder):
         return self.interpreter.holderify(dep)
 
     @permittedKwargs(['pure', 'subdir'])
-    def install_sources_method(self, args, kwargs):
+    @typed_pos_args('python.install_sources', varargs=(str, mesonlib.File))
+    def install_sources_method(self, args: T.Tuple[T.List['mesonlib.FileOrString']], kwargs):
         pure = kwargs.pop('pure', True)
         if not isinstance(pure, bool):
             raise InvalidArguments('"pure" argument must be a boolean.')
@@ -380,7 +381,7 @@ class PythonInstallation(ExternalProgramHolder):
         else:
             kwargs['install_dir'] = os.path.join(self.platlib_install_path, subdir)
 
-        return self.interpreter.holderify(self.interpreter.func_install_data(None, args, kwargs))
+        return self.interpreter.holderify(self.interpreter.func_install_data(None, args[0], kwargs))
 
     @noPosargs
     @permittedKwargs(['pure', 'subdir'])
@@ -406,56 +407,40 @@ class PythonInstallation(ExternalProgramHolder):
         return self.version
 
     @noKwargs
-    def has_path_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('has_path takes exactly one positional argument.')
-        path_name = args[0]
-        if not isinstance(path_name, str):
-            raise InvalidArguments('has_path argument must be a string.')
-
-        return path_name in self.paths
+    @typed_pos_args('python.has_path', str)
+    def has_path_method(self, args: T.Tuple[str], kwargs) -> bool:
+        return args[0] in self.paths
 
     @noKwargs
-    def get_path_method(self, args, kwargs):
-        if len(args) not in (1, 2):
-            raise InvalidArguments('get_path must have one or two arguments.')
-        path_name = args[0]
-        if not isinstance(path_name, str):
-            raise InvalidArguments('get_path argument must be a string.')
+    @typed_pos_args('python.get_path', str, optargs=[object])
+    def get_path_method(self, args: T.Tuple[str, T.Optional[object]], kwargs):
+        # TODO: should we require that fallback is a str or disabler?
+        path_name, fallback = args
 
         try:
             path = self.paths[path_name]
         except KeyError:
-            if len(args) == 2:
-                path = args[1]
+            if fallback is not None:
+                path = fallback
             else:
                 raise InvalidArguments(f'{path_name} is not a valid path name')
 
         return path
 
     @noKwargs
-    def has_variable_method(self, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('has_variable takes exactly one positional argument.')
-        var_name = args[0]
-        if not isinstance(var_name, str):
-            raise InvalidArguments('has_variable argument must be a string.')
-
-        return var_name in self.variables
+    @typed_pos_args('python.has_variable', str)
+    def has_variable_method(self, args: T.Tuple[str], kwargs) -> bool:
+        return args[0] in self.variables
 
     @noKwargs
-    def get_variable_method(self, args, kwargs):
-        if len(args) not in (1, 2):
-            raise InvalidArguments('get_variable must have one or two arguments.')
-        var_name = args[0]
-        if not isinstance(var_name, str):
-            raise InvalidArguments('get_variable argument must be a string.')
-
+    @typed_pos_args('python.get_variable', str, optargs=[object])
+    def get_variable_method(self, args: T.Tuple[str, T.Optional[object]], kwargs):
+        var_name, fallback = args
         try:
             var = self.variables[var_name]
         except KeyError:
-            if len(args) == 2:
-                var = args[1]
+            if fallback is not None:
+                var = fallback
             else:
                 raise InvalidArguments(f'{var_name} is not a valid variable name')
 
@@ -502,21 +487,17 @@ class PythonModule(ExtensionModule):
     @FeatureNewKwargs('python.find_installation', '0.51.0', ['modules'])
     @disablerIfNotFound
     @permittedKwargs({'required', 'modules'})
-    def find_installation(self, interpreter, state, args, kwargs):
+    @typed_pos_args('python.find_installation', optargs=[str])
+    def find_installation(self, interpreter, state, args: T.Tuple[T.Optional[str]], kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
         want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
         found_modules = []    # type: T.List[str]
         missing_modules = []  # type: T.List[str]
 
-        if len(args) > 1:
-            raise InvalidArguments('find_installation takes zero or one positional argument.')
-
         name_or_path = state.environment.lookup_binary_entry(MachineChoice.HOST, 'python')
-        if name_or_path is None and args:
+        if name_or_path is None and args[0] is not None:
             name_or_path = args[0]
-            if not isinstance(name_or_path, str):
-                raise InvalidArguments('find_installation argument must be a string.')
 
         if disabled:
             mlog.log('Program', name_or_path or 'python', 'found:', mlog.red('NO'), '(disabled by:', mlog.bold(feature), ')')
