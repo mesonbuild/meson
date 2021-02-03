@@ -16,6 +16,7 @@
 
 import os
 from collections import OrderedDict
+import typing as T
 
 from mesonbuild import mesonlib
 from mesonbuild import mlog, build
@@ -24,7 +25,7 @@ from . import ModuleReturnValue
 from . import ExtensionModule
 from . import get_include_args
 from ..dependencies import Dependency, InternalDependency
-from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs
+from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs, typed_pos_args
 from ..interpreter import CustomTargetHolder
 from ..programs import ExternalProgram
 
@@ -408,15 +409,13 @@ class HotDocModule(ExtensionModule):
                 MIN_HOTDOC_VERSION, e))
 
     @noKwargs
-    def has_extensions(self, state, args, kwargs):
-        res = self.hotdoc.run_hotdoc(['--has-extension=%s' % extension for extension in args]) == 0
+    @typed_pos_args('hotdoc.has_extensions', varargs=str, min_varargs=1)
+    def has_extensions(self, state, args: T.Tuple[T.List[str]], kwargs):
+        res = self.hotdoc.run_hotdoc(['--has-extension=%s' % extension for extension in args[0]]) == 0
         return ModuleReturnValue(res, [res])
 
-    def generate_doc(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('One positional argument is'
-                                 ' required for the project name.')
-
+    @typed_pos_args('hotdoc.generate_doc', str)
+    def generate_doc(self, state, args: T.Tuple[str], kwargs):
         project_name = args[0]
         builder = HotdocTargetBuilder(project_name, state, self.hotdoc, self.interpreter, kwargs)
         target, install_script = builder.make_targets()
