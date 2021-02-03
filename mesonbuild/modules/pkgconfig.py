@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os, types
+import os
 from pathlib import PurePath
+import typing as T
 
+from . import ExtensionModule
+from . import ModuleReturnValue
 from .. import build
 from .. import dependencies
-from ..dependencies.misc import ThreadDependency
 from .. import mesonlib
 from .. import mlog
-from . import ModuleReturnValue
-from . import ExtensionModule
-from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..dependencies.misc import ThreadDependency
+from ..interpreter import SharedLibraryHolder, StaticLibraryHolder, SharedModuleHolder, BothLibrariesHolder
+from ..interpreterbase import permittedKwargs, FeatureNew, FeatureNewKwargs, typed_pos_args
 
 already_warned_objs = set()
 
@@ -446,27 +448,24 @@ class PkgConfigModule(ExtensionModule):
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
                       'dataonly', 'conflicts', 'uninstalled_variables'})
-    def generate(self, state, args, kwargs):
+    @typed_pos_args('pkgconfig.generate', optargs=[(SharedLibraryHolder, StaticLibraryHolder, SharedModuleHolder, BothLibrariesHolder)])
+    def generate(self, state, args: T.Tuple[T.Optional[T.Union[SharedLibraryHolder, StaticLibraryHolder, SharedModuleHolder, BothLibrariesHolder]]], kwargs):
         default_version = state.project_version['version']
         default_install_dir = None
         default_description = None
         default_name = None
         mainlib = None
         default_subdirs = ['.']
-        if not args and 'version' not in kwargs:
+        if args[0] is None and 'version' not in kwargs:
             FeatureNew.single_use('pkgconfig.generate implicit version keyword', '0.46.0', state.subproject)
-        elif len(args) == 1:
+        elif args[0]:
             FeatureNew.single_use('pkgconfig.generate optional positional argument', '0.46.0', state.subproject)
-            mainlib = getattr(args[0], 'held_object', args[0])
-            if not isinstance(mainlib, (build.StaticLibrary, build.SharedLibrary)):
-                raise mesonlib.MesonException('Pkgconfig_gen first positional argument must be a library object')
+            mainlib = mesonlib.unholder(args[0])
             default_name = mainlib.name
             default_description = state.project_name + ': ' + mainlib.name
             install_dir = mainlib.get_custom_install_dir()[0]
             if isinstance(install_dir, str):
                 default_install_dir = os.path.join(install_dir, 'pkgconfig')
-        elif len(args) > 1:
-            raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
 
         dataonly = kwargs.get('dataonly', False)
         if dataonly:
