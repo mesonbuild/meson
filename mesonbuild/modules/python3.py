@@ -13,11 +13,12 @@
 # limitations under the License.
 
 import sysconfig
-from .. import mesonlib
+import typing as T
 
+from .. import mesonlib
 from . import ExtensionModule
 from mesonbuild.modules import ModuleReturnValue
-from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated
+from ..interpreterbase import noKwargs, noPosargs, permittedKwargs, FeatureDeprecated, typed_pos_args
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
 
@@ -48,6 +49,7 @@ class Python3Module(ExtensionModule):
         return interpreter.func_shared_module(None, args, kwargs)
 
     @noKwargs
+    @noPosargs
     def find_python(self, state, args, kwargs):
         command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
         if command is not None:
@@ -57,13 +59,13 @@ class Python3Module(ExtensionModule):
         return ModuleReturnValue(py3, [py3])
 
     @noKwargs
+    @noPosargs
     def language_version(self, state, args, kwargs):
         return ModuleReturnValue(sysconfig.get_python_version(), [])
 
     @noKwargs
-    def sysconfig_path(self, state, args, kwargs):
-        if len(args) != 1:
-            raise mesonlib.MesonException('sysconfig_path() requires passing the name of path to get.')
+    @typed_pos_args('python3.sysconfig_path', str)
+    def sysconfig_path(self, state, args: T.Tuple[str], kwargs):
         path_name = args[0]
         valid_names = sysconfig.get_path_names()
         if path_name not in valid_names:
