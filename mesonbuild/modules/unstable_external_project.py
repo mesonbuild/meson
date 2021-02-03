@@ -21,7 +21,7 @@ from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement, extract_as_list)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
-from ..interpreterbase import stringArgs, permittedKwargs, typed_pos_args
+from ..interpreterbase import permittedKwargs, typed_pos_args
 from ..interpreter import Interpreter, DependencyHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
@@ -37,7 +37,7 @@ class ExternalProject(InterpreterObject):
                  environment: Environment,
                  build_machine: str,
                  host_machine: str,
-                 configure_command: T.List[str],
+                 configure_command: str,
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
                  env: build.EnvironmentVariables,
@@ -219,12 +219,9 @@ class ExternalProject(InterpreterObject):
 
         return [self.target, idir]
 
-    @stringArgs
     @permittedKwargs({'subdir'})
-    def dependency_method(self, args, kwargs):
-        if len(args) != 1:
-            m = 'ExternalProject.dependency takes exactly 1 positional arguments'
-            raise InterpreterException(m)
+    @typed_pos_args('external_project.dependency', str)
+    def dependency_method(self, args: T.Tuple[str], kwargs):
         libname = args[0]
 
         subdir = kwargs.get('subdir', '')
@@ -258,9 +255,8 @@ class ExternalProjectModule(ExtensionModule):
         self.methods.update({'add_project': self.add_project,
                              })
 
-    @stringArgs
     @permittedKwargs({'configure_options', 'cross_configure_options', 'verbose', 'env'})
-    @typed_pos_args('add_project', str)
+    @typed_pos_args('external_project_mod.add_project', str)
     def add_project(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]):
         configure_command = args[0]
         configure_options = extract_as_list(kwargs, 'configure_options')
