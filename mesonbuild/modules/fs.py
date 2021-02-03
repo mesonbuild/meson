@@ -26,9 +26,8 @@ from ..mesonlib import (
     MesonException,
     path_is_in_root,
 )
-from ..interpreterbase import FeatureNew
+from ..interpreterbase import FeatureNew, typed_pos_args, noKwargs, permittedKwargs
 
-from ..interpreterbase import stringArgs, noKwargs
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter, ModuleState
 
@@ -60,69 +59,57 @@ class FSModule(ExtensionModule):
         return path
 
     def _check(self, check: str, state: 'ModuleState', args: T.Sequence[str]) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.{} takes exactly one argument.'.format(check))
         test_file = self._resolve_dir(state, args[0])
         val = getattr(test_file, check)()
         if isinstance(val, Path):
             val = str(val)
         return ModuleReturnValue(val, [])
 
-    @stringArgs
     @noKwargs
     @FeatureNew('fs.expanduser', '0.54.0')
-    def expanduser(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.expanduser takes exactly one argument.')
+    @typed_pos_args('fs.expanduser', str)
+    def expanduser(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return ModuleReturnValue(str(Path(args[0]).expanduser()), [])
 
-    @stringArgs
     @noKwargs
     @FeatureNew('fs.is_absolute', '0.54.0')
-    def is_absolute(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.is_absolute takes exactly one argument.')
+    @typed_pos_args('fs.is_absolute', str)
+    def is_absolute(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return ModuleReturnValue(PurePath(args[0]).is_absolute(), [])
 
-    @stringArgs
     @noKwargs
     @FeatureNew('fs.as_posix', '0.54.0')
-    def as_posix(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    @typed_pos_args('fs.as_posix', str)
+    def as_posix(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         """
         this function assumes you are passing a Windows path, even if on a Unix-like system
         and so ALL '\' are turned to '/', even if you meant to escape a character
         """
-        if len(args) != 1:
-            raise MesonException('fs.as_posix takes exactly one argument.')
         return ModuleReturnValue(PureWindowsPath(args[0]).as_posix(), [])
 
-    @stringArgs
     @noKwargs
-    def exists(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    @typed_pos_args('fs.exists', str)
+    def exists(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return self._check('exists', state, args)
 
-    @stringArgs
     @noKwargs
-    def is_symlink(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.is_symlink takes exactly one argument.')
+    @typed_pos_args('fs.is_symlink', str)
+    def is_symlink(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return ModuleReturnValue(self._absolute_dir(state, args[0]).is_symlink(), [])
 
-    @stringArgs
     @noKwargs
-    def is_file(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    @typed_pos_args('fs.is_file', str)
+    def is_file(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return self._check('is_file', state, args)
 
-    @stringArgs
     @noKwargs
-    def is_dir(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+    @typed_pos_args('fs.is_dir', str)
+    def is_dir(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return self._check('is_dir', state, args)
 
-    @stringArgs
     @noKwargs
-    def hash(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 2:
-            raise MesonException('fs.hash takes exactly two arguments.')
+    @typed_pos_args('fs.hash', str, str)
+    def hash(self, state: 'ModuleState', args: T.Tuple[str, str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be hashed'.format(file))
@@ -134,11 +121,9 @@ class FSModule(ExtensionModule):
         h.update(file.read_bytes())
         return ModuleReturnValue(h.hexdigest(), [])
 
-    @stringArgs
     @noKwargs
-    def size(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.size takes exactly one argument.')
+    @typed_pos_args('fs.size', str)
+    def size(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         file = self._resolve_dir(state, args[0])
         if not file.is_file():
             raise MesonException('{} is not a file and therefore cannot be sized'.format(file))
@@ -147,11 +132,9 @@ class FSModule(ExtensionModule):
         except ValueError:
             raise MesonException('{} size could not be determined'.format(args[0]))
 
-    @stringArgs
     @noKwargs
-    def is_samepath(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 2:
-            raise MesonException('fs.is_samepath takes exactly two arguments.')
+    @typed_pos_args('fs.is_samepath', str, str)
+    def is_samepath(self, state: 'ModuleState', args: T.Tuple[str, str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         file1 = self._resolve_dir(state, args[0])
         file2 = self._resolve_dir(state, args[1])
         if not file1.exists():
@@ -163,67 +146,49 @@ class FSModule(ExtensionModule):
         except OSError:
             return ModuleReturnValue(False, [])
 
-    @stringArgs
     @noKwargs
-    def replace_suffix(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 2:
-            raise MesonException('fs.replace_suffix takes exactly two arguments.')
+    @typed_pos_args('fs.replace_suffix', str, str)
+    def replace_suffix(self, state: 'ModuleState', args: T.Tuple[str, str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         original = PurePath(args[0])
         new = original.with_suffix(args[1])
         return ModuleReturnValue(str(new), [])
 
-    @stringArgs
     @noKwargs
-    def parent(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.parent takes exactly one argument.')
+    @typed_pos_args('fs.parent', str)
+    def parent(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         original = PurePath(args[0])
         new = original.parent
         return ModuleReturnValue(str(new), [])
 
-    @stringArgs
     @noKwargs
-    def name(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.name takes exactly one argument.')
+    @typed_pos_args('fs.name', str)
+    def name(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         original = PurePath(args[0])
         new = original.name
         return ModuleReturnValue(str(new), [])
 
-    @stringArgs
     @noKwargs
+    @typed_pos_args('fs.stem', str)
     @FeatureNew('fs.stem', '0.54.0')
-    def stem(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
-        if len(args) != 1:
-            raise MesonException('fs.stem takes exactly one argument.')
+    def stem(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         original = PurePath(args[0])
         new = original.stem
         return ModuleReturnValue(str(new), [])
 
-    #@permittedKwargs({'encoding'})
     @FeatureNew('fs.read', '0.57.0')
-    def read(
-        self,
-        state: 'ModuleState',
-        args: T.Sequence['FileOrString'],
-        kwargs: T.Dict[str, T.Any]
-    ) -> ModuleReturnValue:
-        '''
-        Read a file from the source tree and return its value as a decoded
-        string. If the encoding is not specified, the file is assumed to be
-        utf-8 encoded. Paths must be relative by default (to prevent accidents)
-        and are forbidden to be read from the build directory (to prevent build
+    @permittedKwargs({'encoding'})
+    @typed_pos_args('fs.read', (str, File))
+    def read(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
+        """Read a file from the source tree and return its value as a decoded
+        string.
+
+        If the encoding is not specified, the file is assumed to be utf-8
+        encoded. Paths must be relative by default (to prevent accidents) and
+        are forbidden to be read from the build directory (to prevent build
         loops)
-        '''
-        if len(args) != 1:
-            raise MesonException('expected single positional <path> arg')
-
+        """
         path = args[0]
-        if not isinstance(path, (str, File)):
-            raise MesonException(
-                '<path> positional argument must be string or files() object')
-
-        encoding = kwargs.get('encoding', 'utf-8')
+        encoding: str = kwargs.get('encoding', 'utf-8')
         if not isinstance(encoding, str):
             raise MesonException('`encoding` parameter must be a string')
 
