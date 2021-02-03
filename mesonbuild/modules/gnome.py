@@ -34,7 +34,7 @@ from ..mesonlib import (
     join_args, unholder,
 )
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
-from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
+from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs, typed_pos_args
 from ..programs import ExternalProgram, OverrideProgram
 
 if T.TYPE_CHECKING:
@@ -149,7 +149,8 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('gnome.compile_resources', '0.37.0', ['gresource_bundle', 'export', 'install_header'])
     @permittedKwargs({'source_dir', 'c_name', 'dependencies', 'export', 'gresource_bundle', 'install_header',
                       'install', 'install_dir', 'extra_args', 'build_by_default'})
-    def compile_resources(self, state, args, kwargs):
+    @typed_pos_args('gnome.compile_resources', str, (str, mesonlib.File, interpreter.CustomTargetHolder, interpreter.CustomTargetIndexHolder, interpreter.GeneratedListHolder))
+    def compile_resources(self, state, args: T.Tuple[str, T.Union[str, mesonlib.File, interpreter.CustomTargetHolder, interpreter.CustomTargetIndexHolder, interpreter.GeneratedListHolder]], kwargs):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
@@ -157,10 +158,6 @@ class GnomeModule(ExtensionModule):
         cmd = [glib_compile_resources, '@INPUT@']
 
         source_dirs, dependencies = [mesonlib.extract_as_list(kwargs, c, pop=True) for c in  ['source_dir', 'dependencies']]
-
-        if len(args) < 2:
-            raise MesonException('Not enough arguments; the name of the resource '
-                                 'and the path to the XML file are required')
 
         # Validate dependencies
         subdirs = []
@@ -900,9 +897,8 @@ class GnomeModule(ExtensionModule):
 
     @FeatureNewKwargs('build target', '0.40.0', ['build_by_default'])
     @permittedKwargs({'build_by_default', 'depend_files'})
+    @noPosargs
     def compile_schemas(self, state, args, kwargs):
-        if args:
-            raise MesonException('Compile_schemas does not take positional arguments.')
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
@@ -921,15 +917,13 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'media', 'symlink_media', 'languages'})
     @FeatureDeprecatedKwargs('gnome.yelp', '0.43.0', ['languages'],
                              'Use a LINGUAS file in the source directory instead')
-    def yelp(self, state, args, kwargs):
-        if len(args) < 1:
-            raise MesonException('Yelp requires a project id')
-
+    @typed_pos_args('gnome.yelp', str, varargs=str)
+    def yelp(self, state, args: T.Tuple[str, T.List[str]], kwargs):
         project_id = args[0]
         sources = mesonlib.stringlistify(kwargs.pop('sources', []))
         if not sources:
-            if len(args) > 1:
-                sources = mesonlib.stringlistify(args[1:])
+            if args[1]:
+                sources = mesonlib.stringlistify(args[1])
             if not sources:
                 raise MesonException('Yelp requires a list of sources')
         source_str = '@@'.join(sources)
@@ -940,9 +934,6 @@ class GnomeModule(ExtensionModule):
 
         if not isinstance(symlinks, bool):
             raise MesonException('symlink_media must be a boolean')
-
-        if kwargs:
-            raise MesonException('Unknown arguments passed: {}'.format(', '.join(kwargs.keys())))
 
         script = state.environment.get_build_command()
         args = ['--internal',
@@ -992,12 +983,9 @@ class GnomeModule(ExtensionModule):
                       'mkdb_args', 'ignore_headers', 'include_directories',
                       'namespace', 'mode', 'expand_content_files', 'module_version',
                       'c_args', 'check'})
-    def gtkdoc(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Gtkdoc must have one positional argument.')
+    @typed_pos_args('gnome.gtkdoc', str)
+    def gtkdoc(self, state, args: T.Tuple[str], kwargs):
         modulename = args[0]
-        if not isinstance(modulename, str):
-            raise MesonException('Gtkdoc arg must be string.')
         if 'src_dir' not in kwargs:
             raise MesonException('Keyword argument src_dir missing.')
         main_file = kwargs.get('main_sgml', '')
@@ -1151,12 +1139,9 @@ class GnomeModule(ExtensionModule):
         return args
 
     @noKwargs
-    def gtkdoc_html_dir(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Must have exactly one argument.')
+    @typed_pos_args('gnome.gtkdoc_html_dir', str)
+    def gtkdoc_html_dir(self, state, args: T.Tuple[str], kwargs):
         modulename = args[0]
-        if not isinstance(modulename, str):
-            raise MesonException('Argument must be a string')
         return ModuleReturnValue(os.path.join('share/gtk-doc/html', modulename), [])
 
     @staticmethod
@@ -1199,11 +1184,10 @@ class GnomeModule(ExtensionModule):
     @FeatureNewKwargs('build target', '0.47.0', ['extra_args', 'autocleanup'])
     @permittedKwargs({'interface_prefix', 'namespace', 'extra_args', 'autocleanup', 'object_manager', 'build_by_default',
                       'annotations', 'docbook', 'install_header', 'install_dir', 'sources'})
-    def gdbus_codegen(self, state, args, kwargs):
-        if len(args) not in (1, 2):
-            raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
+    @typed_pos_args('gnome.gdbus_codegen', str, optargs=[str])
+    def gdbus_codegen(self, state, args: T.Tuple[str, T.Optional[str]], kwargs):
         namebase = args[0]
-        xml_files = args[1:]
+        xml_files: T.List[str] = [args[1]] if args[1] else []
         cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
@@ -1326,9 +1310,8 @@ class GnomeModule(ExtensionModule):
     @permittedKwargs({'sources', 'c_template', 'h_template', 'install_header', 'install_dir',
                       'comments', 'identifier_prefix', 'symbol_prefix', 'eprod', 'vprod',
                       'fhead', 'fprod', 'ftail', 'vhead', 'vtail', 'depends'})
-    def mkenums(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('Mkenums requires one positional argument.')
+    @typed_pos_args('gnome.mkenums', str)
+    def mkenums(self, state, args: T.Tuple[str], kwargs):
         basename = args[0]
 
         if 'sources' not in kwargs:
@@ -1430,7 +1413,8 @@ class GnomeModule(ExtensionModule):
             return ModuleReturnValue(targets, targets)
 
     @FeatureNew('gnome.mkenums_simple', '0.42.0')
-    def mkenums_simple(self, state, args, kwargs):
+    @typed_pos_args('gnome.mkenums_simple', str)
+    def mkenums_simple(self, state, args: T.Tuple[str], kwargs):
         hdr_filename = args[0] + '.h'
         body_filename = args[0] + '.c'
 
@@ -1554,10 +1538,8 @@ G_END_DECLS'''
     @permittedKwargs({'sources', 'prefix', 'install_header', 'install_dir', 'stdinc',
                       'nostdinc', 'internal', 'skip_source', 'valist_marshallers',
                       'extra_args'})
-    def genmarshal(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException(
-                'Genmarshal requires one positional argument.')
+    @typed_pos_args('gnome.genmarshal', str)
+    def genmarshal(self, state, args: T.Tuple[str], kwargs):
         output = args[0]
 
         if 'sources' not in kwargs:
@@ -1701,14 +1683,9 @@ G_END_DECLS'''
 
     @permittedKwargs({'sources', 'packages', 'metadata_dirs', 'gir_dirs',
                       'vapi_dirs', 'install', 'install_dir'})
-    def generate_vapi(self, state, args, kwargs):
-        if len(args) != 1:
-            raise MesonException('The library name is required')
-
-        if not isinstance(args[0], str):
-            raise MesonException('The first argument must be the name of the library')
+    @typed_pos_args('gnome.generated_vapi', str)
+    def generate_vapi(self, state, args: T.Tuple[str], kwargs):
         created_values = []
-
         library = args[0]
         build_dir = os.path.join(state.environment.get_build_dir(), state.subdir)
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
