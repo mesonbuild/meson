@@ -12,14 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import ExtensionModule
-
-from .. import mesonlib
-from ..mesonlib import typeslistify
-from ..interpreterbase import FeatureNew, noKwargs
-from ..interpreter import InvalidCode
-
 import os
+import typing as T
+
+from . import ExtensionModule
+from .. import mesonlib
+from ..interpreterbase import FeatureNew, noKwargs, typed_pos_args
 
 class KeyvalModule(ExtensionModule):
 
@@ -48,12 +46,9 @@ class KeyvalModule(ExtensionModule):
         return result
 
     @noKwargs
-    def load(self, interpreter, state, args, kwargs):
-        sources = typeslistify(args, (str, mesonlib.File))
-        if len(sources) != 1:
-            raise InvalidCode('load takes only one file input.')
-
-        s = sources[0]
+    @typed_pos_args('keyval.load', (str, mesonlib.File))
+    def load(self, interpreter, state, args: T.Tuple['mesonlib.FileOrString'], kwargs):
+        s = args[0]
         is_built = False
         if isinstance(s, mesonlib.File):
             is_built = is_built or s.is_built
