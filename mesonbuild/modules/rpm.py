@@ -22,13 +22,14 @@ from .. import mlog
 from . import GirTarget, TypelibTarget
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreterbase import noKwargs
+from ..interpreterbase import noKwargs, noPosargs
 
 import os
 
 class RPMModule(ExtensionModule):
 
     @noKwargs
+    @noPosargs
     def generate_spec_template(self, coredata, args, kwargs):
         self.coredata = coredata
         required_compilers = self.__get_required_compilers()
