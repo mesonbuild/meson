@@ -4723,9 +4723,11 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         if project_root / self.subproject_dir in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
-    def source_strings_to_files(self, sources: T.Sequence[str]) -> T.List[mesonlib.File]:
+    def source_strings_to_files(self, sources: T.Sequence[T.Union[mesonlib.File, GeneratedListHolder, TargetHolder, CustomTargetIndexHolder, GeneratedObjectsHolder, str]]) -> \
+            T.List[T.Union[mesonlib.File, GeneratedListHolder, TargetHolder, CustomTargetIndexHolder, GeneratedObjectsHolder]]:
+        # TODO: should we be unohldering here?
         mesonlib.check_direntry_issues(sources)
-        results: T.List[mesonlib.File] = []
+        results: T.List[T.Union[mesonlib.File, GeneratedListHolder, TargetHolder, CustomTargetIndexHolder, GeneratedObjectsHolder]] = []
         for s in sources:
             if isinstance(s, (mesonlib.File, GeneratedListHolder,
                               TargetHolder, CustomTargetIndexHolder,

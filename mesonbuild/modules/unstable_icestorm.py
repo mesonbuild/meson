@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .. import mesonlib
-from ..interpreterbase import flatten
-from ..interpreterbase import FeatureNew
+import typing as T
 
 from . import ExtensionModule
+from .. import mesonlib
+from ..interpreter import CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder
+from ..interpreterbase import FeatureNew
+from ..interpreterbase import flatten, typed_pos_args
 
 class IceStormModule(ExtensionModule):
 
@@ -33,18 +35,13 @@ class IceStormModule(ExtensionModule):
         self.iceprog_bin = interpreter.find_program_impl(['iceprog'])
         self.icetime_bin = interpreter.find_program_impl(['icetime'])
 
-    def project(self, interpreter, state, args, kwargs):
+    @typed_pos_args('icestorm.project', str, varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder), min_varargs=1)
+    def project(self, interpreter, state, args: T.Tuple[str, T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder]]], kwargs):
         if not self.yosys_bin:
             self.detect_binaries(interpreter)
-        if not args:
-            raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
-        arg_sources = args[1:]
-        if not isinstance(proj_name, str):
-            raise mesonlib.MesonException('Argument must be a string.')
+        arg_sources = args[1]
         kwarg_sources = kwargs.get('sources', [])
-        if not isinstance(kwarg_sources, list):
-            kwarg_sources = [kwarg_sources]
         all_sources = interpreter.source_strings_to_files(flatten(arg_sources + kwarg_sources))
         if 'constraint_file' not in kwargs:
             raise mesonlib.MesonException('Constraint file not specified.')
