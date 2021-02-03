@@ -23,12 +23,12 @@ from ..mesonlib import MachineChoice, MesonException, extract_as_list, unholder
 from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
-from ..interpreter import CustomTargetHolder
-from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten, typed_pos_args
+from ..interpreter import CustomTargetHolder, CustomTargetIndexHolder
+from ..interpreterbase import FeatureNew, permittedKwargs, FeatureNewKwargs, flatten, typed_pos_args
 from ..programs import ExternalProgram
 
 if T.TYPE_CHECKING:
-    from ..build import CustomTarget
+    from ..interpreter import ModuleState
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
@@ -81,8 +81,8 @@ class WindowsModule(ExtensionModule):
 
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    @typed_pos_args('windows.compiler_resources', varargs=(str, mesonlib.File, CustomTargetHolder), min_varargs=1)
-    def compile_resources(self, state, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder]]], kwargs):
+    @typed_pos_args('windows.compiler_resources', varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder), min_varargs=1)
+    def compile_resources(self, state: 'ModuleState', args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder]]], kwargs):
         extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
@@ -116,14 +116,16 @@ class WindowsModule(ExtensionModule):
 
         res_targets = []
 
-        def add_target(src: T.Union[str, mesonlib.File, 'CustomTarget']) -> None:
+        def add_target(src: T.Union[str, mesonlib.File, build.CustomTarget, build.CustomTargetIndex]) -> None:
+            if isinstance(src, build.CustomTargetIndex):
+                FeatureNew.single_use('custom_target indices as arguments to windows.resource_compiler', '0.58.0', state.subproject)
             if isinstance(src, str):
                 name_formatted = src
                 name = os.path.join(state.subdir, src)
             elif isinstance(src, mesonlib.File):
                 name_formatted = src.fname
                 name = src.relative_name()
-            elif isinstance(src, build.CustomTarget):
+            elif isinstance(src, (build.CustomTarget, build.CustomTargetIndex)):
                 if len(src.get_outputs()) > 1:
                     raise MesonException('windows.compile_resources does not accept custom targets with more than 1 output.')
 

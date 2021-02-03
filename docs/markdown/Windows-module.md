@@ -7,6 +7,12 @@ Windows.
 
 ### compile_resources
 
+Arguments may be of types (or lists thereof):
+ - `file`
+ - `str`
+ - `custom_target`
+ - `custom_target indicies` *(new in 0.58.0)*
+
 Compiles Windows `rc` files specified in the positional arguments.
 Returns an opaque object that you put in the list of sources for the
 target you want to have the resources in. This method has the
