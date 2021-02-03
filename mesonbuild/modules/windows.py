@@ -15,6 +15,7 @@
 import enum
 import os
 import re
+import typing as T
 
 from .. import mlog
 from .. import mesonlib, build
@@ -23,8 +24,11 @@ from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
-from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten
+from ..interpreterbase import permittedKwargs, FeatureNewKwargs, flatten, typed_pos_args
 from ..programs import ExternalProgram
+
+if T.TYPE_CHECKING:
+    from ..build import CustomTarget
 
 class ResourceCompilerType(enum.Enum):
     windres = 1
@@ -77,7 +81,8 @@ class WindowsModule(ExtensionModule):
 
     @FeatureNewKwargs('windows.compile_resources', '0.47.0', ['depend_files', 'depends'])
     @permittedKwargs({'args', 'include_directories', 'depend_files', 'depends'})
-    def compile_resources(self, state, args, kwargs):
+    @typed_pos_args('windows.compiler_resources', varargs=(str, mesonlib.File, CustomTargetHolder), min_varargs=1)
+    def compile_resources(self, state, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder]]], kwargs):
         extra_args = mesonlib.stringlistify(flatten(kwargs.get('args', [])))
         wrc_depend_files = extract_as_list(kwargs, 'depend_files', pop = True)
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
@@ -111,13 +116,7 @@ class WindowsModule(ExtensionModule):
 
         res_targets = []
 
-        def add_target(src):
-            if isinstance(src, list):
-                for subsrc in src:
-                    add_target(subsrc)
-                return
-            src = unholder(src)
-
+        def add_target(src: T.Union[str, mesonlib.File, 'CustomTarget']) -> None:
             if isinstance(src, str):
                 name_formatted = src
                 name = os.path.join(state.subdir, src)
@@ -154,7 +153,8 @@ class WindowsModule(ExtensionModule):
 
             res_targets.append(build.CustomTarget(name_formatted, state.subdir, state.subproject, res_kwargs))
 
-        add_target(args)
+        for a in unholder(args[0]):
+            add_target(a)
 
         return ModuleReturnValue(res_targets, [res_targets])
 
