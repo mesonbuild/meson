@@ -17,18 +17,18 @@
 
 import json
 import os
+import typing as T
 
 from . import ExtensionModule
-
 from .. import mlog
-
 from ..mesonlib import (
     Popen_safe, MesonException
 )
-
 from ..dependencies.base import DubDependency
 from ..programs import ExternalProgram
 from ..interpreter import DependencyHolder
+from ..interpreterbase import typed_pos_args
+
 
 class DlangModule(ExtensionModule):
     class_dubbin = None
@@ -46,7 +46,7 @@ class DlangModule(ExtensionModule):
             self.dubbin = DlangModule.class_dubbin
 
         if DlangModule.class_dubbin is None:
-            self.dubbin = self.check_dub()
+            self.dubbin = self._check_dub()
             DlangModule.class_dubbin = self.dubbin
         else:
             self.dubbin = DlangModule.class_dubbin
@@ -55,12 +55,10 @@ class DlangModule(ExtensionModule):
             if not self.dubbin:
                 raise MesonException('DUB not found.')
 
-    def generate_dub_file(self, interpreter, state, args, kwargs):
+    @typed_pos_args('dlangmod.generate_dub_file', str, str)
+    def generate_dub_file(self, interpreter, state, args: T.Tuple[str, str], kwargs):
         if not DlangModule.init_dub:
             self._init_dub()
-
-        if len(args) < 2:
-            raise MesonException('Missing arguments')
 
         config = {
             'name': args[0]
@@ -113,7 +111,7 @@ class DlangModule(ExtensionModule):
         p, out = Popen_safe(self.dubbin.get_command() + args, env=env)[0:2]
         return p.returncode, out.strip()
 
-    def check_dub(self):
+    def _check_dub(self):
         dubbin = ExternalProgram('dub', silent=True)
         if dubbin.found():
             try:
