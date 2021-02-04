@@ -21,6 +21,7 @@ on:
       - "run_unittests.py"
 
 jobs:
+  arch:
     name: ${{ matrix.cfg.name }}
     runs-on: ubuntu-latest
     strategy:
