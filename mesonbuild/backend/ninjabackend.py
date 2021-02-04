@@ -2334,17 +2334,6 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_build(element)
         return (rel_obj, rel_src)
 
-    def get_source_dir_include_args(self, target, compiler):
-        curdir = target.get_subdir()
-        tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
-        return compiler.get_include_args(tmppath, False)
-
-    def get_build_dir_include_args(self, target, compiler):
-        curdir = target.get_subdir()
-        if curdir == '':
-            curdir = '.'
-        return compiler.get_include_args(curdir, False)
-
     @lru_cache(maxsize=None)
     def get_normpath_target(self, source) -> str:
         return os.path.normpath(source)

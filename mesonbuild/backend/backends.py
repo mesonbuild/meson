@@ -248,6 +248,17 @@ class Backend:
             return self.environment.coredata.validate_option_value(option_name, override)
         return self.environment.coredata.get_option(option_name.evolve(subproject=target.subproject))
 
+    def get_source_dir_include_args(self, target, compiler):
+        curdir = target.get_subdir()
+        tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
+        return compiler.get_include_args(tmppath, False)
+
+    def get_build_dir_include_args(self, target, compiler):
+        curdir = target.get_subdir()
+        if curdir == '':
+            curdir = '.'
+        return compiler.get_include_args(curdir, False)
+
     def get_target_filename_for_linking(self, target):
         # On some platforms (msvc for instance), the file that is used for
         # dynamic linking is not the same as the dynamic library itself. This
