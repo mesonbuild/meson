@@ -52,10 +52,13 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
                 ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';')
             )
 
+    pipe = subprocess.PIPE
+    if exe.verbose:
+        assert not exe.capture, 'Cannot capture and print to console at the same time'
+        pipe = None
+
     p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
-                         close_fds=False,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
+                         close_fds=False, stdout=pipe, stderr=pipe)
     stdout, stderr = p.communicate()
 
     if p.returncode == 0xc0000135:
@@ -65,6 +68,8 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
     if p.returncode != 0:
         if exe.pickled:
             print('while executing {!r}'.format(cmd_args))
+        if exe.verbose:
+            return p.returncode
         if not exe.capture:
             print('--- stdout ---')
             print(stdout.decode())

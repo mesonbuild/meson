@@ -21,7 +21,6 @@ import json
 import os
 import pickle
 import re
-import shlex
 import textwrap
 import typing as T
 import hashlib
@@ -34,7 +33,7 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS
 from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
-    classify_unity_sources, unholder, OptionKey
+    classify_unity_sources, unholder, OptionKey, join_args
 )
 
 if T.TYPE_CHECKING:
@@ -138,6 +137,7 @@ class ExecutableSerialisation:
         self.capture = capture
         self.pickled = False
         self.skip_if_destdir = False
+        self.verbose = False
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
@@ -421,12 +421,14 @@ class Backend:
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
                              extra_bdeps=None, capture=None, force_serialize=False,
-                             env: T.Optional[build.EnvironmentVariables] = None):
+                             env: T.Optional[build.EnvironmentVariables] = None,
+                             verbose: bool = False):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
         cmd = [exe] + cmd_args
         es = self.get_executable_serialisation(cmd, workdir, extra_bdeps, capture, env)
+        es.verbose = verbose
         reasons = []
         if es.extra_paths:
             reasons.append('to set PATH')
@@ -1193,11 +1195,21 @@ class Backend:
         cmd = [i.replace('\\', '/') for i in cmd]
         return inputs, outputs, cmd
 
+    def get_run_target_env(self, target: build.RunTarget) -> build.EnvironmentVariables:
+        env = target.env if target.env else build.EnvironmentVariables()
+        introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
+        env.add_var(env.set, 'MESON_SOURCE_ROOT', [self.environment.get_source_dir()], {})
+        env.add_var(env.set, 'MESON_BUILD_ROOT', [self.environment.get_build_dir()], {})
+        env.add_var(env.set, 'MESON_SUBDIR', [target.subdir], {})
+        env.add_var(env.set, 'MESONINTROSPECT', [introspect_cmd], {})
+        return env
+
     def run_postconf_scripts(self) -> None:
         from ..scripts.meson_exe import run_exe
+        introspect_cmd = join_args(self.environment.get_build_command() + ['introspect'])
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
-               'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
+               'MESONINTROSPECT': introspect_cmd,
                }
 
         for s in self.build.postconf_scripts:

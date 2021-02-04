@@ -1504,6 +1504,10 @@ and subdirectory the target was defined in, respectively.
 - `depends` is a list of targets that this target depends on but which
   are not listed in the command array (because, for example, the
   script does file globbing internally)
+- `env` *(since 0.57.0)*: environment variables to set, such as
+  `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
+  or an [`environment()` object](#environment-object) which allows more
+  sophisticated environment juggling.
 
 ### set_variable()
 

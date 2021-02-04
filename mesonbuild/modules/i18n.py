@@ -152,12 +152,12 @@ class I18nModule(ExtensionModule):
             potargs.append(datadirs)
         if extra_args:
             potargs.append(extra_args)
-        pottarget = build.RunTarget(packagename + '-pot', potargs[0], potargs[1:], [], state.subdir, state.subproject)
+        pottarget = build.RunTarget(packagename + '-pot', potargs, [], state.subdir, state.subproject)
 
         gmoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'gen_gmo']
         if lang_arg:
             gmoargs.append(lang_arg)
-        gmotarget = build.RunTarget(packagename + '-gmo', gmoargs[0], gmoargs[1:], [], state.subdir, state.subproject)
+        gmotarget = build.RunTarget(packagename + '-gmo', gmoargs, [], state.subdir, state.subproject)
 
         updatepoargs = state.environment.get_build_command() + ['--internal', 'gettext', 'update_po', pkg_arg]
         if lang_arg:
@@ -166,7 +166,7 @@ class I18nModule(ExtensionModule):
             updatepoargs.append(datadirs)
         if extra_args:
             updatepoargs.append(extra_args)
-        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs[0], updatepoargs[1:], [], state.subdir, state.subproject)
+        updatepotarget = build.RunTarget(packagename + '-update-po', updatepoargs, [], state.subdir, state.subproject)
 
         targets = [pottarget, gmotarget, updatepotarget]
 

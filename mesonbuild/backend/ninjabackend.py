@@ -28,7 +28,6 @@ from .. import modules
 from .. import environment, mesonlib
 from .. import build
 from .. import mlog
-from .. import dependencies
 from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import (
@@ -989,65 +988,28 @@ int dummy;
         return '{}{}'.format(subproject_prefix, target.name)
 
     def generate_run_target(self, target):
-        cmd = self.environment.get_build_command() + ['--internal', 'commandrunner']
-        deps = self.unwrap_dep_list(target)
-        arg_strings = []
-        for i in target.args:
-            if isinstance(i, str):
-                arg_strings.append(i)
-            elif isinstance(i, (build.BuildTarget, build.CustomTarget)):
-                relfname = self.get_target_filename(i)
-                arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
-                deps.append(relfname)
-            elif isinstance(i, mesonlib.File):
-                relfname = i.rel_to_builddir(self.build_to_src)
-                arg_strings.append(os.path.join(self.environment.get_build_dir(), relfname))
-            else:
-                raise AssertionError('Unreachable code in generate_run_target: ' + str(i))
-        cmd += [self.environment.get_source_dir(),
-                self.environment.get_build_dir(),
-                target.subdir] + self.environment.get_build_command()
-        texe = target.command
-        try:
-            texe = texe.held_object
-        except AttributeError:
-            pass
-        if isinstance(texe, build.Executable):
-            abs_exe = os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))
-            deps.append(self.get_target_filename(texe))
-            if self.environment.is_cross_build():
-                exe_wrap = self.environment.get_exe_wrapper()
-                if exe_wrap:
-                    if not exe_wrap.found():
-                        msg = 'The exe_wrapper {!r} defined in the cross file is ' \
-                              'needed by run target {!r}, but was not found. ' \
-                              'Please check the command and/or add it to PATH.'
-                        raise MesonException(msg.format(exe_wrap.name, target.name))
-                    cmd += exe_wrap.get_command()
-            cmd.append(abs_exe)
-        elif isinstance(texe, dependencies.ExternalProgram):
-            cmd += texe.get_command()
-        elif isinstance(texe, build.CustomTarget):
-            deps.append(self.get_target_filename(texe))
-            cmd += [os.path.join(self.environment.get_build_dir(), self.get_target_filename(texe))]
-        elif isinstance(texe, mesonlib.File):
-            cmd.append(texe.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir()))
+        target_name = self.build_run_target_name(target)
+        if not target.command:
+            # This is an alias target, it has no command, it just depends on
+            # other targets.
+            elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
         else:
-            cmd.append(target.command)
-        cmd += arg_strings
-
-        if texe:
-            target_name = 'meson-{}'.format(self.build_run_target_name(target))
-            elem = NinjaBuildElement(self.all_outputs, target_name, 'CUSTOM_COMMAND', [])
-            elem.add_item('COMMAND', cmd)
-            elem.add_item('description', 'Running external command {}'.format(target.name))
+            target_env = self.get_run_target_env(target)
+            _, _, cmd = self.eval_custom_target_command(target)
+            desc = 'Running external command {}{}'
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, cmd[0], cmd[1:],
+                                                              force_serialize=True, env=target_env,
+                                                              verbose=True)
+            cmd_type = ' (wrapped by meson {})'.format(reason)
+            internal_target_name = 'meson-{}'.format(target_name)
+            elem = NinjaBuildElement(self.all_outputs, internal_target_name, 'CUSTOM_COMMAND', [])
+            elem.add_item('COMMAND', meson_exe_cmd)
+            elem.add_item('description', desc.format(target.name, cmd_type))
             elem.add_item('pool', 'console')
             # Alias that runs the target defined above with the name the user specified
-            self.create_target_alias(target_name)
-        else:
-            target_name = self.build_run_target_name(target)
-            elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
-
+            self.create_target_alias(internal_target_name)
+        deps = self.unwrap_dep_list(target)
+        deps += self.get_custom_target_depend_files(target)
         elem.add_dep(deps)
         self.add_build(elem)
         self.processed_targets[target.get_id()] = True

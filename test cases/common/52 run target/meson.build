@@ -72,3 +72,9 @@ run_target('ctags',
 
 run_target('clang-format',
   command : converter)
+
+# Check we can pass env to the program
+run_target('check-env',
+  command: [find_program('check-env.py')],
+  env: {'MY_ENV': '1'},
+)
