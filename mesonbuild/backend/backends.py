@@ -21,7 +21,6 @@ import json
 import os
 import pickle
 import re
-import textwrap
 import typing as T
 import hashlib
 import copy
@@ -978,18 +977,8 @@ class Backend:
             if delta > 0.001:
                 raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
 
-    def build_target_to_cmd_array(self, bt, check_cross):
+    def build_target_to_cmd_array(self, bt):
         if isinstance(bt, build.BuildTarget):
-            if check_cross and isinstance(bt, build.Executable) and bt.for_machine is not MachineChoice.BUILD:
-                if (self.environment.is_cross_build() and
-                        self.environment.exe_wrapper is None and
-                        self.environment.need_exe_wrapper()):
-                    s = textwrap.dedent('''
-                        Cannot use target {} as a generator because it is built for the
-                        host machine and no exe wrapper is defined or needs_exe_wrapper is
-                        true. You might want to set `native: true` instead to build it for
-                        the build machine.'''.format(bt.name))
-                    raise MesonException(s)
             arr = [os.path.join(self.environment.get_build_dir(), self.get_target_filename(bt))]
         else:
             arr = bt.get_command()
@@ -1120,11 +1109,9 @@ class Backend:
         inputs = self.get_custom_target_sources(target)
         # Evaluate the command list
         cmd = []
-        index = -1
         for i in target.command:
-            index += 1
             if isinstance(i, build.BuildTarget):
-                cmd += self.build_target_to_cmd_array(i, (index == 0))
+                cmd += self.build_target_to_cmd_array(i)
                 continue
             elif isinstance(i, build.CustomTarget):
                 # GIR scanner will attempt to execute this binary but
