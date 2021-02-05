@@ -1,5 +1,9 @@
 project('cmake_code_gen', ['c', 'cpp'])
 
+if meson.is_cross_build()
+  error('MESON_SKIP_TEST this test does not cross compile correctly.')
+endif
+
 cm = import('cmake')
 
 # Subproject with the "code generator"
