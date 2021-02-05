@@ -974,7 +974,6 @@ int dummy;
             elem.add_item('DEPFILE', rel_dfile)
         if target.console:
             elem.add_item('pool', 'console')
-        cmd = self.replace_paths(target, cmd)
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         self.add_build(elem)

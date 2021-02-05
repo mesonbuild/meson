@@ -1124,10 +1124,7 @@ class Backend:
                     i = os.path.join(self.environment.get_build_dir(), i)
             # FIXME: str types are blindly added ignoring 'target.absolute_paths'
             # because we can't know if they refer to a file or just a string
-            elif not isinstance(i, str):
-                err_msg = 'Argument {0} is of unknown type {1}'
-                raise RuntimeError(err_msg.format(str(i), str(type(i))))
-            else:
+            elif isinstance(i, str):
                 if '@SOURCE_ROOT@' in i:
                     i = i.replace('@SOURCE_ROOT@', source_root)
                 if '@BUILD_ROOT@' in i:
@@ -1157,6 +1154,9 @@ class Backend:
                     else:
                         lead_dir = self.environment.get_build_dir()
                     i = i.replace(source, os.path.join(lead_dir, outdir))
+            else:
+                err_msg = 'Argument {0} is of unknown type {1}'
+                raise RuntimeError(err_msg.format(str(i), str(type(i))))
             cmd.append(i)
         # Substitute the rest of the template strings
         values = mesonlib.get_filenames_templates_dict(inputs, outputs)
