@@ -56,7 +56,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg, relpath, is_linux, git, GIT
+    quote_arg, relpath, is_linux, git
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
@@ -335,7 +335,6 @@ class InternalTests(unittest.TestCase):
         self.assertEqual(searchfunc('oops v1.2.3'), '1.2.3')
         self.assertEqual(searchfunc('2016.oops 1.2.3'), '1.2.3')
         self.assertEqual(searchfunc('2016.x'), 'unknown version')
-
 
     def test_mode_symbolic_to_bits(self):
         modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits
@@ -1459,6 +1458,7 @@ class DataTests(unittest.TestCase):
             res = re.search(r'syn keyword mesonBuiltin(\s+\\\s\w+)+', f.read(), re.MULTILINE)
             defined = set([a.strip() for a in res.group().split('\\')][1:])
             self.assertEqual(defined, set(chain(interp.funcs.keys(), interp.builtin.keys())))
+
     def test_all_functions_defined_in_ast_interpreter(self):
         '''
         Ensure that the all functions defined in the Interpreter are also defined
@@ -1490,7 +1490,6 @@ class DataTests(unittest.TestCase):
             for p in i.iterdir():
                 data_files += [(p.relative_to(mesonbuild_dir).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())]
 
-        from pprint import pprint
         current_files = set(mesondata.keys())
         scanned_files = set([x[0] for x in data_files])
 
@@ -2762,7 +2761,7 @@ class AllPlatformTests(BasePlatformTests):
         for env_var in ['CPPFLAGS', 'CFLAGS']:
             env = {}
             env[env_var] = '-D{}="{}"'.format(define, value)
-            env['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'.format(define)
+            env['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'
             self.init(testdir, extra_args=['-D{}={}'.format(define, value)], override_envvars=env)
 
     def test_custom_target_exe_data_deterministic(self):
@@ -2926,7 +2925,6 @@ class AllPlatformTests(BasePlatformTests):
             return True
         except FileNotFoundError:
             return False
-
 
     def test_dist_hg(self):
         if not self.has_working_hg():
