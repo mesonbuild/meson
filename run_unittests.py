@@ -6417,7 +6417,7 @@ class LinuxlikeTests(BasePlatformTests):
         elif compiler.language == 'cpp':
             env_flag_name = 'CXXFLAGS'
         else:
-            raise NotImplementedError('Language {} not defined.'.format(p))
+            raise NotImplementedError('Language {} not defined.'.format(compiler.language))
         env = {}
         env[env_flag_name] = cmd_std
         with self.assertRaises((subprocess.CalledProcessError, mesonbuild.mesonlib.EnvironmentException),
