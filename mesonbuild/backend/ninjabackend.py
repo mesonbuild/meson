@@ -1396,7 +1396,9 @@ int dummy;
                     break
         return list(result)
 
-    def split_vala_sources(self, t):
+    def split_vala_sources(self, t: build.Target) -> \
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File],
+                    T.Tuple[T.MutableMapping[str, File], T.MutableMapping]]:
         """
         Splits the target's sources into .vala, .gs, .vapi, and other sources.
         Handles both pre-existing and generated sources.
@@ -1405,9 +1407,9 @@ int dummy;
         the keys being the path to the file (relative to the build directory)
         and the value being the object that generated or represents the file.
         """
-        vala = OrderedDict()
-        vapi = OrderedDict()
-        others = OrderedDict()
+        vala: T.MutableMapping[str, File] = OrderedDict()
+        vapi: T.MutableMapping[str, File] = OrderedDict()
+        others: T.MutableMapping[str, File] = OrderedDict()
         othersgen = OrderedDict()
         # Split pre-existing sources
         for s in t.get_sources():
@@ -1449,7 +1451,7 @@ int dummy;
                 srctype[f] = gensrc
         return vala, vapi, (others, othersgen)
 
-    def generate_vala_compile(self, target):
+    def generate_vala_compile(self, target: build.BuildTarget):
         """Vala is compiled into C. Set up all necessary build steps here."""
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
