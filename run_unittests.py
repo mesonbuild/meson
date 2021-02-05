@@ -7660,22 +7660,32 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
         self.meson_cross_file = os.path.join(testdir, 'broken-cross.txt')
         # Force tracebacks so we can detect them properly
         env = {'MESON_FORCE_BACKTRACE': '1'}
-        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*target.*use-exe-wrapper'):
+        error_message = "An exe_wrapper is needed but was not found. Please define one in cross file and check the command and/or add it to PATH."
+        error_message2 = "The exe_wrapper 'broken' defined in the cross file is needed by run target 'run-prog', but was not found. Please check the command and/or add it to PATH."
+
+        with self.assertRaises(MesonException) as cm:
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(testdir, extra_args='-Drun-target=false',
                       inprocess=True,
                       override_envvars=env)
-        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*run target.*run-prog'):
+        self.assertEqual(str(cm.exception), error_message)
+
+        with self.assertRaises(MesonException) as cm:
             # Must run in-process or we'll get a generic CalledProcessError
             self.init(testdir, extra_args='-Dcustom-target=false',
                       inprocess=True,
                       override_envvars=env)
+        self.assertEqual(str(cm.exception), error_message2)
+
         self.init(testdir, extra_args=['-Dcustom-target=false', '-Drun-target=false'],
                   override_envvars=env)
         self.build()
-        with self.assertRaisesRegex(MesonException, 'exe_wrapper.*PATH'):
+
+        with self.assertRaises(MesonException) as cm:
             # Must run in-process or we'll get a generic CalledProcessError
             self.run_tests(inprocess=True, override_envvars=env)
+        self.assertEqual(str(cm.exception),
+                         "The exe_wrapper defined in the cross file 'broken' was not found. Please check the command and/or add it to PATH.")
 
     @skipIfNoPkgconfig
     def test_cross_pkg_config_option(self):
