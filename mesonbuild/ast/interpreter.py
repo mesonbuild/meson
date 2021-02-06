@@ -128,6 +128,7 @@ class AstInterpreter(interpreterbase.InterpreterBase):
                            'subdir_done': self.func_do_nothing,
                            'alias_target': self.func_do_nothing,
                            'summary': self.func_do_nothing,
+                           'range': self.func_do_nothing,
                            })
 
     def func_do_nothing(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> bool:

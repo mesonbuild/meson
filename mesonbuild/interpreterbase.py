@@ -70,6 +70,20 @@ class ObjectHolder(T.Generic[TV_InterpreterObject]):
 class MesonVersionString(str):
     pass
 
+class RangeHolder(InterpreterObject):
+    def __init__(self, start: int, stop: int, step: int) -> None:
+        super().__init__()
+        self.range = range(start, stop, step)
+
+    def __iter__(self) -> T.Iterator[int]:
+        return iter(self.range)
+
+    def __getitem__(self, key: int) -> int:
+        return self.range[key]
+
+    def __len__(self) -> int:
+        return len(self.range)
+
 # Decorators for method calls.
 
 def check_stringlist(a: T.Any, msg: str = 'Arguments must be strings.') -> None:
@@ -950,7 +964,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         assert(isinstance(node, mparser.ForeachClauseNode))
         items = self.evaluate_statement(node.items)
 
-        if isinstance(items, list):
+        if isinstance(items, (list, RangeHolder)):
             if len(node.varnames) != 1:
                 raise InvalidArguments('Foreach on array does not unpack')
             varname = node.varnames[0]
