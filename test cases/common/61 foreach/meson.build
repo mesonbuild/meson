@@ -31,3 +31,23 @@ foreach i : items
 endforeach
 
 assert(result == ['a', 'b'], 'Continue or break in foreach failed')
+
+items = []
+iter = range(2)
+foreach i : iter
+  items += i
+endforeach
+assert(items == [0, 1])
+assert(iter[1] == 1)
+
+items = []
+foreach i : range(1, 2)
+  items += i
+endforeach
+assert(items == [1])
+
+items = []
+foreach i : range(1, 10, 2)
+  items += i
+endforeach
+assert(items == [1, 3, 5, 7, 9])
