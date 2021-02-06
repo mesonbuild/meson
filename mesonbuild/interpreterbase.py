@@ -253,28 +253,30 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
     :optargs: The types of any optional arguments parameters taken. If None
         then no optional paramters are taken.
 
-    allows replacing this:
-    ```python
-    def func(self, node, args, kwargs):
-        if len(args) != 2:
-            raise Exception('... takes exactly 2 arguments)
-        foo: str = args[0]
-        if not isinstance(foo, str):
-            raise ...
-        bar: int = args[1]
-        if not isinstance(bar, int):
-            raise ...
+    Some examples of usage blow:
+    >>> @typed_pos_args('mod.func', str, (str, int))
+    ... def func(self, state: ModuleState, args: T.Tuple[str, T.Union[str, int]], kwargs: T.Dict[str, T.Any]) -> T.Any:
+    ...     pass
 
-        # actual useful stuff
-    ```
-    with:
-    ```python
-    @typed_pos_args('func_name', str, int)
-    def func(self, node, args: T.Tuple[str, int], kwargs):
-        foo, bar = args
+    >>> @typed_pos_args('method', str, varargs=str)
+    ... def method(self, node: BaseNode, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> T.Any:
+    ...     pass
 
-        # actual useful stuff
-    ```
+    >>> @typed_pos_args('method', varargs=str, min_varargs=1)
+    ... def method(self, node: BaseNode, args: T.Tuple[T.List[str]], kwargs: T.Dict[str, T.Any]) -> T.Any:
+    ...     pass
+
+    >>> @typed_pos_args('method', str, optargs=[(str, int), str])
+    ... def method(self, node: BaseNode, args: T.Tuple[str, T.Optional[T.Union[str, int]], T.Optional[str]], kwargs: T.Dict[str, T.Any]) -> T.Any:
+    ...     pass
+
+    When should you chose `typed_pos_args('name', varargs=str,
+    min_varargs=1)` vs `typed_pos_args('name', str, varargs=str)`?
+
+    The answer has to do with the semantics of the function, if all of the
+    inputs are the same type (such as with `files()`) then the former is
+    correct, all of the arguments are string names of files. If the first
+    argument is something else the it should be separated.
     """
     def inner(f: TV_func) -> TV_func:
 
@@ -294,11 +296,12 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
             a_types = types
 
             if varargs:
-                num_types += min_varargs
-                if max_varargs == 0 and num_args < num_types:
-                    raise InvalidArguments(f'{name} takes at least {num_types} arguments, but got {num_args}.')
-                elif max_varargs != 0 and (num_args < num_types or num_args > num_types + max_varargs - min_varargs):
-                    raise InvalidArguments(f'{name} takes between {num_types} and {num_types + max_varargs - min_varargs} arguments, but got {len(args)}.')
+                min_args = num_types + min_varargs
+                max_args = num_types + max_varargs
+                if max_varargs == 0 and num_args < min_args:
+                    raise InvalidArguments(f'{name} takes at least {min_args} arguments, but got {num_args}.')
+                elif max_varargs != 0 and (num_args < min_args or num_args > max_args):
+                    raise InvalidArguments(f'{name} takes between {min_args} and {max_args} arguments, but got {num_args}.')
             elif optargs:
                 if num_args < num_types:
                     raise InvalidArguments(f'{name} takes at least {num_types} arguments, but got {num_args}.')
