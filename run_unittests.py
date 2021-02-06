@@ -57,7 +57,7 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, python_command, version_compare, split_args,
-    quote_arg, relpath, is_linux, git
+    quote_arg, relpath, is_linux, git, ExecutableSerialisation, EnvironmentVariables
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
@@ -5462,6 +5462,33 @@ class AllPlatformTests(BasePlatformTests):
         projinfo = self.introspect('--projectinfo')
         self.assertEqual(projinfo['version'], '1.0.0')
 
+    def test_scripts_loaded_modules(self):
+        '''
+        Simulate a wrapped command, as done for custom_target() that capture
+        output. The script will print all python modules loaded and we verify
+        that it contains only an acceptable subset. Loading too many modules
+        slows down the build when many custom targets get wrapped.
+        '''
+        es = ExecutableSerialisation(['dummy'], env=EnvironmentVariables())
+        p = Path(self.builddir, 'exe.dat')
+        with p.open('wb') as f:
+            pickle.dump(es, f)
+        cmd = self.meson_command + ['--internal', 'test_loaded_modules', str(p)]
+        p = subprocess.run(cmd, stdout=subprocess.PIPE)
+        all_modules = json.loads(p.stdout.splitlines()[0])
+        meson_modules = [m for m in all_modules if 'meson' in m]
+        expected_meson_modules = [
+            'mesonbuild',
+            'mesonbuild.mlog',
+            'mesonbuild.mesonlib.universal',
+            'mesonbuild.mesonlib.exe',
+            'mesonbuild.mesonlib.platform',
+            'mesonbuild.mesonlib.posix',
+            'mesonbuild.mesonlib',
+            'mesonbuild.scripts',
+            'mesonbuild.scripts.test_loaded_modules'
+        ]
+        self.assertEqual(sorted(expected_meson_modules), sorted(meson_modules))
 
 class FailureTests(BasePlatformTests):
     '''

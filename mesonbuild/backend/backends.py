@@ -34,7 +34,7 @@ from .. import mlog
 from ..compilers import LANGUAGES_USING_LDFLAGS
 from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
-    classify_unity_sources, unholder, OptionKey
+    classify_unity_sources, unholder, OptionKey, ExecutableSerialisation, EnvironmentVariables
 )
 
 if T.TYPE_CHECKING:
@@ -125,25 +125,11 @@ class TargetInstallData:
         self.install_mode = install_mode
         self.optional = optional
 
-class ExecutableSerialisation:
-    def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
-                 workdir=None, extra_paths=None, capture=None) -> None:
-        self.cmd_args = cmd_args
-        self.env = env
-        if exe_wrapper is not None:
-            assert(isinstance(exe_wrapper, dependencies.ExternalProgram))
-        self.exe_runner = exe_wrapper
-        self.workdir = workdir
-        self.extra_paths = extra_paths
-        self.capture = capture
-        self.pickled = False
-        self.skip_if_destdir = False
-
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
                  is_cross_built: bool, exe_wrapper: T.Optional[dependencies.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
-                 env: build.EnvironmentVariables, should_fail: bool,
+                 env: EnvironmentVariables, should_fail: bool,
                  timeout: T.Optional[int], workdir: T.Optional[str],
                  extra_paths: T.List[str], protocol: TestProtocol, priority: int,
                  cmd_is_built: bool, depends: T.List[str], version: str):
@@ -392,7 +378,7 @@ class Backend:
 
     def get_executable_serialisation(self, cmd, workdir=None,
                                      extra_bdeps=None, capture=None,
-                                     env: T.Optional[build.EnvironmentVariables] = None):
+                                     env: T.Optional[EnvironmentVariables] = None):
         exe = cmd[0]
         cmd_args = cmd[1:]
         if isinstance(exe, dependencies.ExternalProgram):
@@ -432,7 +418,7 @@ class Backend:
 
     def as_meson_exe_cmdline(self, tname, exe, cmd_args, workdir=None,
                              extra_bdeps=None, capture=None, force_serialize=False,
-                             env: T.Optional[build.EnvironmentVariables] = None):
+                             env: T.Optional[EnvironmentVariables] = None):
         '''
         Serialize an executable for running with a generator or a custom target
         '''
@@ -1205,7 +1191,6 @@ class Backend:
         return inputs, outputs, cmd
 
     def run_postconf_scripts(self) -> None:
-        from ..scripts.meson_exe import run_exe
         env = {'MESON_SOURCE_ROOT': self.environment.get_source_dir(),
                'MESON_BUILD_ROOT': self.environment.get_build_dir(),
                'MESONINTROSPECT': ' '.join([shlex.quote(x) for x in self.environment.get_build_command() + ['introspect']]),
@@ -1214,7 +1199,7 @@ class Backend:
         for s in self.build.postconf_scripts:
             name = ' '.join(s.cmd_args)
             mlog.log('Running postconf script {!r}'.format(name))
-            run_exe(s, env)
+            s.run(env)
 
     def create_install_data(self) -> InstallData:
         strip_bin = self.environment.lookup_binary_entry(MachineChoice.HOST, 'strip')

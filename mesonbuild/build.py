@@ -29,7 +29,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep, unholder,
-    OptionKey,
+    OptionKey, EnvironmentVariables
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -377,53 +377,6 @@ class ExtractedObjects:
             backend.object_filename_from_source(self.target, source)
             for source in self.srclist
         ]
-
-class EnvironmentVariables:
-    def __init__(self):
-        self.envvars = []
-        # The set of all env vars we have operations for. Only used for self.has_name()
-        self.varnames = set()
-
-    def __repr__(self):
-        repr_str = "<{0}: {1}>"
-        return repr_str.format(self.__class__.__name__, self.envvars)
-
-    def add_var(self, method, name, args, kwargs):
-        self.varnames.add(name)
-        self.envvars.append((method, name, args, kwargs))
-
-    def has_name(self, name):
-        return name in self.varnames
-
-    def get_value(self, values, kwargs):
-        separator = kwargs.get('separator', os.pathsep)
-
-        value = ''
-        for var in values:
-            value += separator + var
-        return separator, value.strip(separator)
-
-    def set(self, env, name, values, kwargs):
-        return self.get_value(values, kwargs)[1]
-
-    def append(self, env, name, values, kwargs):
-        sep, value = self.get_value(values, kwargs)
-        if name in env:
-            return env[name] + sep + value
-        return value
-
-    def prepend(self, env, name, values, kwargs):
-        sep, value = self.get_value(values, kwargs)
-        if name in env:
-            return value + sep + env[name]
-
-        return value
-
-    def get_env(self, full_env: T.Dict[str, str]) -> T.Dict[str, str]:
-        env = full_env.copy()
-        for method, name, values, kwargs in self.envvars:
-            env[name] = method(full_env, name, values, kwargs)
-        return env
 
 class Target:
 

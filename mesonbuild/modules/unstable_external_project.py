@@ -19,14 +19,14 @@ import typing as T
 from . import ExtensionModule, ModuleReturnValue
 from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement)
+                        get_variable_regex, do_replacement, OptionKey,
+                        EnvironmentVariables)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
 from ..interpreterbase import stringArgs, permittedKwargs
 from ..interpreter import Interpreter, DependencyHolder, InstallDirHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
-from ..mesonlib import OptionKey
 
 class ExternalProject(InterpreterObject):
     def __init__(self,
@@ -40,7 +40,7 @@ class ExternalProject(InterpreterObject):
                  configure_command: T.List[str],
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
-                 env: build.EnvironmentVariables,
+                 env: EnvironmentVariables,
                  verbose: bool):
         InterpreterObject.__init__(self)
         self.methods.update({'dependency': self.dependency_method,

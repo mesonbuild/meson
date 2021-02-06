@@ -34,7 +34,7 @@ import typing as T
 import os
 import argparse
 
-from .mesonlib import OptionKey
+from .mesonlib import OptionKey, EnvironmentVariables
 
 def get_meson_info_file(info_dir: str) -> str:
     return os.path.join(info_dir, 'meson-info.json')
@@ -313,7 +313,7 @@ def get_test_list(testdata: T.List[backends.TestSerialisation]) -> T.List[T.Dict
         else:
             fname = t.fname
         to['cmd'] = fname + t.cmd_args
-        if isinstance(t.env, build.EnvironmentVariables):
+        if isinstance(t.env, EnvironmentVariables):
             to['env'] = t.env.get_env({})
         else:
             to['env'] = t.env

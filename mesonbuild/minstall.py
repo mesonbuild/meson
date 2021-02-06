@@ -28,9 +28,8 @@ from . import environment
 from .backend.backends import InstallData
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
-from .mesonlib import is_windows, Popen_safe
+from .mesonlib import is_windows, Popen_safe, ExecutableSerialisation
 from .scripts import depfixer, destdir_join
-from .scripts.meson_exe import run_exe
 try:
     from __main__ import __file__ as main_file
 except ImportError:
@@ -347,9 +346,9 @@ class Installer:
             return p.returncode, o, e
         return 0, '', ''
 
-    def run_exe(self, *args: T.Any, **kwargs: T.Any) -> int:
+    def run_exe(self, exe: ExecutableSerialisation, env: dict) -> int:
         if not self.dry_run:
-            return run_exe(*args, **kwargs)
+            return exe.run(env)
         return 0
 
     def log(self, msg: str) -> None:

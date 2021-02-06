@@ -14,7 +14,6 @@
 
 import sys
 import os.path
-import importlib
 import traceback
 import argparse
 import codecs
@@ -145,29 +144,6 @@ class CommandLineParser:
             return 2
         finally:
             mlog.shutdown()
-
-def run_script_command(script_name, script_args):
-    # Map script name to module name for those that doesn't match
-    script_map = {'exe': 'meson_exe',
-                  'install': 'meson_install',
-                  'delsuffix': 'delwithsuffix',
-                  'gtkdoc': 'gtkdochelper',
-                  'hotdoc': 'hotdochelper',
-                  'regencheck': 'regen_checker'}
-    module_name = script_map.get(script_name, script_name)
-
-    try:
-        module = importlib.import_module('mesonbuild.scripts.' + module_name)
-    except ModuleNotFoundError as e:
-        mlog.exception(e)
-        return 1
-
-    try:
-        return module.run(script_args)
-    except MesonException as e:
-        mlog.error('Error in {} helper script:'.format(script_name))
-        mlog.exception(e)
-        return 1
 
 def ensure_stdout_accepts_unicode():
     if sys.stdout.encoding and not sys.stdout.encoding.upper().startswith('UTF-'):

@@ -1,6 +1,4 @@
-# SPDX-license-identifier: Apache-2.0
-# Copyright 2012-2021 The Meson development team
-# Copyright © 2021 Intel Corporation
+# Copyright 2013-2016 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,18 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Helper functions and classes."""
+import sys
+import pickle
+import json
+import typing as T
 
-import os
-
-from .universal import *
-from .exe import *
-
-# Here we import either the posix implementations, the windows implementations,
-# or a generic no-op implementation
-if os.name == 'posix':
-    from .posix import *
-elif os.name == 'nt':
-    from .win32 import *
-else:
-    from .platform import *
+# This script is used by run_unittests.py to verify we don't load too many
+# modules when executing a wrapped command.
+def run(args: T.List[str]) -> int:
+    with open(args[0], 'rb') as f:
+        exe = pickle.load(f)
+    print(json.dumps(list(sys.modules.keys())))

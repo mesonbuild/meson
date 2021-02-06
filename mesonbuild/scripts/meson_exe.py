@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
 import argparse
 import pickle
-import subprocess
 import typing as T
 
-from .. import mesonlib
-from ..backend.backends import ExecutableSerialisation
+from ..mesonlib.exe import ExecutableSerialisation
 
 options = None
 
@@ -29,61 +26,6 @@ def buildparser() -> argparse.ArgumentParser:
     parser.add_argument('--unpickle')
     parser.add_argument('--capture')
     return parser
-
-def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) -> int:
-    if exe.exe_runner:
-        if not exe.exe_runner.found():
-            raise AssertionError('BUG: Can\'t run cross-compiled exe {!r} with not-found '
-                                 'wrapper {!r}'.format(exe.cmd_args[0], exe.exe_runner.get_path()))
-        cmd_args = exe.exe_runner.get_command() + exe.cmd_args
-    else:
-        cmd_args = exe.cmd_args
-    child_env = os.environ.copy()
-    if extra_env:
-        child_env.update(extra_env)
-    if exe.env:
-        child_env = exe.env.get_env(child_env)
-    if exe.extra_paths:
-        child_env['PATH'] = (os.pathsep.join(exe.extra_paths + ['']) +
-                             child_env['PATH'])
-        if exe.exe_runner and mesonlib.substring_is_in_list('wine', exe.exe_runner.get_command()):
-            child_env['WINEPATH'] = mesonlib.get_wine_shortpath(
-                exe.exe_runner.get_command(),
-                ['Z:' + p for p in exe.extra_paths] + child_env.get('WINEPATH', '').split(';')
-            )
-
-    p = subprocess.Popen(cmd_args, env=child_env, cwd=exe.workdir,
-                         close_fds=False,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-
-    if p.returncode == 0xc0000135:
-        # STATUS_DLL_NOT_FOUND on Windows indicating a common problem that is otherwise hard to diagnose
-        raise FileNotFoundError('due to missing DLLs')
-
-    if p.returncode != 0:
-        if exe.pickled:
-            print('while executing {!r}'.format(cmd_args))
-        if not exe.capture:
-            print('--- stdout ---')
-            print(stdout.decode())
-        print('--- stderr ---')
-        print(stderr.decode())
-        return p.returncode
-
-    if exe.capture:
-        skip_write = False
-        try:
-            with open(exe.capture, 'rb') as cur:
-                skip_write = cur.read() == stdout
-        except IOError:
-            pass
-        if not skip_write:
-            with open(exe.capture, 'wb') as output:
-                output.write(stdout)
-
-    return 0
 
 def run(args: T.List[str]) -> int:
     global options
@@ -104,7 +46,7 @@ def run(args: T.List[str]) -> int:
     else:
         exe = ExecutableSerialisation(cmd_args, capture=options.capture)
 
-    return run_exe(exe)
+    return exe.run()
 
 if __name__ == '__main__':
     sys.exit(run(sys.argv[1:]))

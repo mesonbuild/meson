@@ -21,7 +21,8 @@ from . import optinterpreter
 from . import compilers
 from .wrap import wrap, WrapMode
 from . import mesonlib
-from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder
+from .mesonlib import (FileMode, MachineChoice, OptionKey, Popen_safe, listify, extract_as_list, has_path_sep, unholder,
+                       ExecutableSerialisation, EnvironmentVariables)
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
@@ -34,7 +35,7 @@ from .interpreterbase import ObjectHolder, MesonVersionString
 from .interpreterbase import TYPE_var, TYPE_nkwargs
 from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
-from .backend.backends import TestProtocol, Backend, ExecutableSerialisation
+from .backend.backends import TestProtocol, Backend
 
 from pathlib import Path, PurePath
 import os
@@ -247,7 +248,7 @@ class ConfigureFileHolder(InterpreterObject, ObjectHolder):
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder):
     def __init__(self, initial_values=None):
         MutableInterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.EnvironmentVariables())
+        ObjectHolder.__init__(self, EnvironmentVariables())
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
@@ -968,7 +969,7 @@ class RunTargetHolder(TargetHolder):
 class Test(InterpreterObject):
     def __init__(self, name: str, project: str, suite: T.List[str], exe: build.Executable,
                  depends: T.List[T.Union[build.CustomTarget, build.BuildTarget]],
-                 is_parallel: bool, cmd_args: T.List[str], env: build.EnvironmentVariables,
+                 is_parallel: bool, cmd_args: T.List[str], env: EnvironmentVariables,
                  should_fail: bool, timeout: int, workdir: T.Optional[str], protocol: str,
                  priority: int):
         InterpreterObject.__init__(self)
@@ -4133,7 +4134,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
         self.add_test(node, args, kwargs, True)
 
-    def unpack_env_kwarg(self, kwargs) -> build.EnvironmentVariables:
+    def unpack_env_kwarg(self, kwargs) -> EnvironmentVariables:
         envlist = kwargs.get('env', EnvironmentVariablesHolder())
         if isinstance(envlist, EnvironmentVariablesHolder):
             env = envlist.held_object
