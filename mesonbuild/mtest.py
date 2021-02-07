@@ -1114,22 +1114,6 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
             raise MesonVersionMismatchException(obj.version, coredata_version)
     return objs
 
-def load_benchmarks(build_dir: str) -> T.List[TestSerialisation]:
-    datafile = Path(build_dir) / 'meson-private' / 'meson_benchmark_setup.dat'
-    if not datafile.is_file():
-        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with datafile.open('rb') as f:
-        objs = check_testdata(pickle.load(f))
-    return objs
-
-def load_tests(build_dir: str) -> T.List[TestSerialisation]:
-    datafile = Path(build_dir) / 'meson-private' / 'meson_test_setup.dat'
-    if not datafile.is_file():
-        raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(build_dir))
-    with datafile.open('rb') as f:
-        objs = check_testdata(pickle.load(f))
-    return objs
-
 # Custom waiting primitives for asyncio
 
 async def try_wait_one(*awaitables: T.Any, timeout: T.Optional[T.Union[int, float]]) -> None:
@@ -1428,15 +1412,46 @@ class TestHarness:
         self.loggers.append(ConsoleLogger())
         self.need_console = False
 
-        if self.options.benchmark:
-            self.tests = load_benchmarks(options.wd)
-        else:
-            self.tests = load_tests(options.wd)
+        self.logfile_base = None  # type: T.Optional[str]
+        if self.options.logbase and not self.options.gdb:
+            namebase = None
+            self.logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
+
+            if self.options.wrapper:
+                namebase = os.path.basename(self.get_wrapper(self.options)[0])
+            elif self.options.setup:
+                namebase = self.options.setup.replace(":", "_")
+
+            if namebase:
+                self.logfile_base += '-' + namebase.replace(' ', '_')
+
+        startdir = os.getcwd()
+        try:
+            if self.options.wd:
+                os.chdir(self.options.wd)
+            self.build_data = build.load(os.getcwd())
+            if not self.options.setup:
+                self.options.setup = self.build_data.test_setup_default_name
+            if self.options.benchmark:
+                self.tests = self.load_tests('meson_benchmark_setup.dat')
+            else:
+                self.tests = self.load_tests('meson_test_setup.dat')
+        finally:
+            os.chdir(startdir)
+
         ss = set()
         for t in self.tests:
             for s in t.suite:
                 ss.add(s)
         self.suites = list(ss)
+
+    def load_tests(self, file_name: str) -> T.List[TestSerialisation]:
+        datafile = Path('meson-private') / file_name
+        if not datafile.is_file():
+            raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(self.options.wd))
+        with datafile.open('rb') as f:
+            objs = check_testdata(pickle.load(f))
+        return objs
 
     def __enter__(self) -> 'TestHarness':
         return self
@@ -1448,16 +1463,19 @@ class TestHarness:
         for l in self.loggers:
             l.close()
 
-    def merge_suite_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
-        if ':' in options.setup:
-            if options.setup not in self.build_data.test_setups:
-                sys.exit("Unknown test setup '{}'.".format(options.setup))
-            current = self.build_data.test_setups[options.setup]
+    def get_test_setup(self, test: T.Optional[TestSerialisation]) -> build.TestSetup:
+        if ':' in self.options.setup:
+            if self.options.setup not in self.build_data.test_setups:
+                sys.exit("Unknown test setup '{}'.".format(self.options.setup))
+            return self.build_data.test_setups[self.options.setup]
         else:
-            full_name = test.project_name + ":" + options.setup
+            full_name = test.project_name + ":" + self.options.setup
             if full_name not in self.build_data.test_setups:
-                sys.exit("Test setup '{}' not found from project '{}'.".format(options.setup, test.project_name))
-            current = self.build_data.test_setups[full_name]
+                sys.exit("Test setup '{}' not found from project '{}'.".format(self.options.setup, test.project_name))
+            return self.build_data.test_setups[full_name]
+
+    def merge_setup_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
+        current = self.get_test_setup(test)
         if not options.gdb:
             options.gdb = current.gdb
         if options.gdb:
@@ -1475,10 +1493,8 @@ class TestHarness:
     def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
         name = self.get_pretty_suite(test)
         options = deepcopy(self.options)
-        if not options.setup:
-            options.setup = self.build_data.test_setup_default_name
-        if options.setup:
-            env = self.merge_suite_options(options, test)
+        if self.options.setup:
+            env = self.merge_setup_options(options, test)
         else:
             env = os.environ.copy()
         test_env = test.env.get_env(env)
@@ -1564,14 +1580,14 @@ class TestHarness:
     def total_failure_count(self) -> int:
         return self.fail_count + self.unexpectedpass_count + self.timeout_count
 
-    def doit(self, options: argparse.Namespace) -> int:
+    def doit(self) -> int:
         if self.is_run:
             raise RuntimeError('Test harness object can only be used once.')
         self.is_run = True
         tests = self.get_tests()
         if not tests:
             return 0
-        if not options.no_rebuild and not rebuild_deps(options.wd, tests):
+        if not self.options.no_rebuild and not rebuild_deps(self.options.wd, tests):
             # We return 125 here in case the build failed.
             # The reason is that exit code 125 tells `git bisect run` that the current
             # commit should be skipped.  Thus users can directly use `meson test` to
@@ -1585,7 +1601,6 @@ class TestHarness:
         try:
             if self.options.wd:
                 os.chdir(self.options.wd)
-            self.build_data = build.load(os.getcwd())
             runners = [self.get_test_runner(test) for test in tests]
             self.duration_max_len = max([len(str(int(runner.timeout or 99)))
                                          for runner in runners])
@@ -1639,9 +1654,20 @@ class TestHarness:
         return False
 
     def test_suitable(self, test: TestSerialisation) -> bool:
-        return ((not self.options.include_suites or
-                TestHarness.test_in_suites(test, self.options.include_suites)) and not
-                TestHarness.test_in_suites(test, self.options.exclude_suites))
+        if TestHarness.test_in_suites(test, self.options.exclude_suites):
+            return False
+
+        if self.options.include_suites:
+            # Both force inclusion (overriding add_test_setup) and exclude
+            # everything else
+            return TestHarness.test_in_suites(test, self.options.include_suites)
+
+        if self.options.setup:
+            setup = self.get_test_setup(test)
+            if TestHarness.test_in_suites(test, setup.exclude_suites):
+                return False
+
+        return True
 
     def tests_from_args(self, tests: T.List[TestSerialisation]) -> T.Generator[TestSerialisation, None, None]:
         '''
@@ -1670,14 +1696,7 @@ class TestHarness:
             print('No tests defined.')
             return []
 
-        if self.options.include_suites or self.options.exclude_suites:
-            tests = []
-            for tst in self.tests:
-                if self.test_suitable(tst):
-                    tests.append(tst)
-        else:
-            tests = self.tests
-
+        tests = [t for t in self.tests if self.test_suitable(t)]
         if self.options.args:
             tests = list(self.tests_from_args(tests))
 
@@ -1692,23 +1711,12 @@ class TestHarness:
             l.flush()
 
     def open_logfiles(self) -> None:
-        if not self.options.logbase or self.options.gdb:
+        if not self.logfile_base:
             return
 
-        namebase = None
-        logfile_base = os.path.join(self.options.wd, 'meson-logs', self.options.logbase)
-
-        if self.options.wrapper:
-            namebase = os.path.basename(self.get_wrapper(self.options)[0])
-        elif self.options.setup:
-            namebase = self.options.setup.replace(":", "_")
-
-        if namebase:
-            logfile_base += '-' + namebase.replace(' ', '_')
-
-        self.loggers.append(JunitBuilder(logfile_base + '.junit.xml'))
-        self.loggers.append(JsonLogfileBuilder(logfile_base + '.json'))
-        self.loggers.append(TextLogfileBuilder(logfile_base + '.txt', errors='surrogateescape'))
+        self.loggers.append(JunitBuilder(self.logfile_base + '.junit.xml'))
+        self.loggers.append(JsonLogfileBuilder(self.logfile_base + '.json'))
+        self.loggers.append(TextLogfileBuilder(self.logfile_base + '.txt', errors='surrogateescape'))
 
     @staticmethod
     def get_wrapper(options: argparse.Namespace) -> T.List[str]:
@@ -1913,7 +1921,7 @@ def run(options: argparse.Namespace) -> int:
         try:
             if options.list:
                 return list_tests(th)
-            return th.doit(options)
+            return th.doit()
         except TestException as e:
             print('Meson test encountered an error:\n')
             if os.environ.get('MESON_FORCE_BACKTRACE'):

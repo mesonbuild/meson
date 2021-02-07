@@ -39,7 +39,6 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
-    from .coredata import KeyedOptionDictType, OptionDictType
     from .interpreter import Test
     from .mesonlib import FileMode, FileOrString
 
@@ -2325,7 +2324,7 @@ class CustomTarget(Target, CommandBase):
         for ed in unholder(extra_deps):
             if not isinstance(ed, (CustomTarget, BuildTarget)):
                 raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
-                                      .format(type(ed), ed))
+                                       .format(type(ed), ed))
             self.extra_depends.append(ed)
         for i in depend_files:
             if isinstance(i, (File, str)):
@@ -2620,11 +2619,13 @@ class Data:
 
 class TestSetup:
     def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,
-                 timeout_multiplier: int, env: EnvironmentVariables):
+                 timeout_multiplier: int, env: EnvironmentVariables,
+                 exclude_suites: T.List[str]):
         self.exe_wrapper = exe_wrapper
         self.gdb = gdb
         self.timeout_multiplier = timeout_multiplier
         self.env = env
+        self.exclude_suites = exclude_suites
 
 def get_sources_string_names(sources, backend):
     '''

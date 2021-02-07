@@ -125,6 +125,9 @@ the following:
 - `is_default` *(since 0.49.0)*: a bool to set whether this is the default test setup.
   If `true`, the setup will be used whenever `meson test` is run
   without the `--setup` option.
+- `exclude_suites` *(since 0.57.0)*: a list of test suites that should be
+  excluded when using this setup.  Suites specified in the `--suite` option
+  to `meson test` will always run, overriding `add_test_setup` if necessary.
 
 To use the test setup, run `meson test --setup=*name*` inside the
 build dir.

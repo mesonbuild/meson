@@ -2301,7 +2301,8 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'add_languages': {'required', 'native'},
                     'add_project_link_arguments': {'language', 'native'},
                     'add_project_arguments': {'language', 'native'},
-                    'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default'},
+                    'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
+                                       'exclude_suites'},
                     'benchmark': _base_test_args,
                     'build_target': known_build_target_kwargs,
                     'configure_file': {'input',
@@ -4686,8 +4687,10 @@ different subdirectory.
                 raise InterpreterException('\'%s\' is already set as default. '
                                            'is_default can be set to true only once' % self.build.test_setup_default_name)
             self.build.test_setup_default_name = setup_name
+        exclude_suites = mesonlib.stringlistify(kwargs.get('exclude_suites', []))
         env = self.unpack_env_kwarg(kwargs)
-        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env)
+        self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
+                                                             exclude_suites)
 
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
     @stringArgs

@@ -2550,6 +2550,16 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=onlyenv3'])
         # Setup with only a timeout works
         self._run(self.mtest_command + ['--setup=timeout'])
+        # Setup that skips test works
+        self._run(self.mtest_command + ['--setup=good'])
+        with open(os.path.join(self.logdir, 'testlog-good.txt')) as f:
+            exclude_suites_log = f.read()
+        self.assertFalse('buggy' in exclude_suites_log)
+        # --suite overrides add_test_setup(xclude_suites)
+        self._run(self.mtest_command + ['--setup=good', '--suite', 'buggy'])
+        with open(os.path.join(self.logdir, 'testlog-good.txt')) as f:
+            include_suites_log = f.read()
+        self.assertTrue('buggy' in include_suites_log)
 
     def test_testsetup_selection(self):
         testdir = os.path.join(self.unit_test_dir, '14 testsetup selection')
