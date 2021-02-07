@@ -918,7 +918,7 @@ class CustomTargetIndexHolder(TargetHolder):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
 class CustomTargetHolder(TargetHolder):
-    def __init__(self, target, interp):
+    def __init__(self, target: 'build.CustomTarget', interp: 'Interpreter'):
         super().__init__(target, interp)
         self.methods.update({'full_path': self.full_path_method,
                              'to_list': self.to_list_method,
@@ -1132,9 +1132,7 @@ class CompilerHolder(InterpreterObject):
         for i in incdirs:
             if not isinstance(i, IncludeDirsHolder):
                 raise InterpreterException('Include directories argument must be an include_directories object.')
-            for idir in i.held_object.get_incdirs():
-                idir = os.path.join(self.environment.get_source_dir(),
-                                    i.held_object.get_curdir(), idir)
+            for idir in i.held_object.to_string_list(self.environment.get_source_dir()):
                 args += self.compiler.get_include_args(idir, False)
         if not nobuiltins:
             opts = self.environment.coredata.options

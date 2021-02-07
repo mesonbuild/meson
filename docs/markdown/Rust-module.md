@@ -3,7 +3,7 @@ short-description: Rust language integration module
 authors:
     - name: Dylan Baker
       email: dylan@pnwbakers.com
-      years: [2020]
+      years: [2020, 2021]
 ...
 
 # Unstable Rust module
@@ -33,3 +33,51 @@ that automatically.
 
 Additional, test only dependencies may be passed via the dependencies
 argument.
+
+### bindgen(*, input: string | BuildTarget | []string | []BuildTarget, output: strng, include_directories: []include_directories, c_args: []string, args: []string)
+
+This function wraps bindgen to simplify creating rust bindings around C
+libraries. This has two advantages over hand-rolling ones own with a
+`generator` or `custom_target`:
+
+- It handles `include_directories`, so one doesn't have to manually convert them to `-I...`
+- It automatically sets up a depfile, making the results more reliable
+
+
+It takes the following keyword arguments
+
+- input — A list of Files, Strings, or CustomTargets. The first element is
+  the header bindgen will parse, additional elements are dependencies.
+- output — the name of the output rust file
+- include_directories — A list of `include_directories` objects, these are
+  passed to clang as `-I` arguments
+- c_args — A list of string arguments to pass to clang untouched
+- args — A list of string arguments to pass to `bindgen` untouched.
+
+```meson
+rust = import('unstable-rust')
+
+inc = include_directories('..'¸ '../../foo')
+
+generated = rust.bindgen(
+    'myheader.h',
+    'generated.rs',
+    include_directories : [inc, include_directories('foo'),
+    args : ['--no-rustfmt-bindings'],
+    c_args : ['-DFOO=1'],
+)
+```
+
+If the header depeneds on generated headers, those headers must be passed to
+`bindgen` as well to ensure proper dependency ordering, static headers do not
+need to be passed, as a proper depfile is generated:
+
+```meson
+h1 = custom_target(...)
+h2 = custom_target(...)
+
+r1 = rust.bindgen(
+  [h1, h2],  # h1 includes h2,
+  'out.rs',
+)
+```
