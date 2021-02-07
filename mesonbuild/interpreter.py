@@ -2378,7 +2378,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
                     'run_command': {'check', 'capture', 'env'},
-                    'run_target': {'command', 'depends'},
+                    'run_target': {'command', 'depends', 'env'},
                     'shared_library': build.known_shlib_kwargs,
                     'shared_module': build.known_shmod_kwargs,
                     'static_library': build.known_stlib_kwargs,
@@ -4058,6 +4058,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.add_target(name, tg.held_object)
         return tg
 
+    @FeatureNewKwargs('run_target', '0.57.0', ['env'])
     @permittedKwargs(permitted_kwargs['run_target'])
     def func_run_target(self, node, args, kwargs):
         if len(args) > 1:
@@ -4086,8 +4087,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if not isinstance(d, (build.BuildTarget, build.CustomTarget)):
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
-        command, *cmd_args = cleaned_args
-        tg = RunTargetHolder(build.RunTarget(name, command, cmd_args, cleaned_deps, self.subdir, self.subproject), self)
+        env = self.unpack_env_kwarg(kwargs)
+        tg = RunTargetHolder(build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env), self)
         self.add_target(name, tg.held_object)
         full_name = (self.subproject, name)
         assert(full_name not in self.build.run_target_names)

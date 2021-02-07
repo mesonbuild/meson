@@ -956,8 +956,8 @@ class GnomeModule(ExtensionModule):
             '--id=' + project_id,
             '--sources=' + source_str,
         ]
-        pottarget = build.RunTarget('help-' + project_id + '-pot', potargs[0],
-                                    potargs[1:], [], state.subdir, state.subproject)
+        pottarget = build.RunTarget('help-' + project_id + '-pot', potargs,
+                                    [], state.subdir, state.subproject)
 
         poargs = state.environment.get_build_command() + [
             '--internal', 'yelphelper', 'update-po',
@@ -966,8 +966,8 @@ class GnomeModule(ExtensionModule):
             '--sources=' + source_str,
             '--langs=' + '@@'.join(langs),
         ]
-        potarget = build.RunTarget('help-' + project_id + '-update-po', poargs[0],
-                                   poargs[1:], [], state.subdir, state.subproject)
+        potarget = build.RunTarget('help-' + project_id + '-update-po', poargs,
+                                   [], state.subdir, state.subproject)
 
         rv = [inscript, pottarget, potarget]
         return ModuleReturnValue(None, rv)

@@ -28,7 +28,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    MesonException, File, python_command, replace_if_different, OptionKey,
+    MesonException, python_command, replace_if_different, OptionKey,
 )
 from ..environment import Environment, build_filename
 
@@ -121,7 +121,7 @@ class Vs2010Backend(backends.Backend):
                 infilelist = genlist.get_inputs()
                 outfilelist = genlist.get_outputs()
                 source_dir = os.path.join(down, self.build_to_src, genlist.subdir)
-                exe_arr = self.build_target_to_cmd_array(exe, True)
+                exe_arr = self.build_target_to_cmd_array(exe)
                 idgroup = ET.SubElement(parent_node, 'ItemGroup')
                 for i in range(len(infilelist)):
                     if len(infilelist) == len(outfilelist):
@@ -257,9 +257,8 @@ class Vs2010Backend(backends.Backend):
                 for d in target.get_target_dependencies():
                     all_deps[d.get_id()] = d
             elif isinstance(target, build.RunTarget):
-                for d in [target.command] + target.args:
-                    if isinstance(d, (build.BuildTarget, build.CustomTarget)):
-                        all_deps[d.get_id()] = d
+                for d in target.get_dependencies():
+                    all_deps[d.get_id()] = d
             elif isinstance(target, build.BuildTarget):
                 for ldep in target.link_targets:
                     if isinstance(ldep, build.CustomTargetIndex):
@@ -534,27 +533,14 @@ class Vs2010Backend(backends.Backend):
             # is probably a better way than running a this dummy command.
             cmd_raw = python_command + ['-c', 'exit']
         else:
-            cmd_raw = [target.command] + target.args
-        cmd = python_command + \
-            [os.path.join(self.environment.get_script_dir(), 'commandrunner.py'),
-             self.environment.get_source_dir(),
-             self.environment.get_build_dir(),
-             self.get_target_dir(target)] + self.environment.get_build_command()
-        for i in cmd_raw:
-            if isinstance(i, build.BuildTarget):
-                cmd.append(os.path.join(self.environment.get_build_dir(), self.get_target_filename(i)))
-            elif isinstance(i, dependencies.ExternalProgram):
-                cmd += i.get_command()
-            elif isinstance(i, File):
-                relfname = i.rel_to_builddir(self.build_to_src)
-                cmd.append(os.path.join(self.environment.get_build_dir(), relfname))
-            elif isinstance(i, str):
-                # Escape embedded quotes, because we quote the entire argument below.
-                cmd.append(i.replace('"', '\\"'))
-            else:
-                cmd.append(i)
-        cmd_templ = '''"%s" ''' * len(cmd)
-        self.add_custom_build(root, 'run_target', cmd_templ % tuple(cmd))
+            _, _, cmd_raw = self.eval_custom_target_command(target)
+        depend_files = self.get_custom_target_depend_files(target)
+        target_env = self.get_run_target_env(target)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, cmd_raw[0], cmd_raw[1:],
+                                                   force_serialize=True, env=target_env,
+                                                   verbose=True)
+        self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
+                              deps=depend_files)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.add_regen_dependency(root)
         self.add_target_deps(root, target)

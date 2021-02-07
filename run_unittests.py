@@ -2381,6 +2381,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '52 run target')
         self.init(testdir)
         self.run_target('check_exists')
+        self.run_target('check-env')
 
     def test_install_introspection(self):
         '''
