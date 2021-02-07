@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import hashlib
 import typing as T
 import xml.etree.ElementTree as ET
 
@@ -199,30 +200,36 @@ class InstalledFile:
 
 @functools.total_ordering
 class TestDef:
-    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False):
-        self.path = path
+    def __init__(self, path: Path, name: T.Optional[str], args: T.List[str], skip: bool = False, plain_dirs: bool = False, test_path: Path = None):
+        self.actual_path = path
+        self.test_path = test_path if test_path is not None else self.actual_path
         self.name = name
         self.args = args
         self.skip = skip
+        self.plain_dirs = plain_dirs
         self.env = os.environ.copy()
         self.installed_files = []  # type: T.List[InstalledFile]
         self.do_not_set_opts = []  # type: T.List[str]
         self.stdout = [] # type: T.List[T.Dict[str, str]]
 
     def __repr__(self) -> str:
-        return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
+        return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.actual_path), self.name, self.args, self.skip)
 
     def display_name(self) -> str:
         if self.name:
             return '{}   ({})'.format(self.path.as_posix(), self.name)
-        return self.path.as_posix()
+        return self.actual_path.as_posix()
+
+    @property
+    def path(self) -> Path:
+        return self.test_path
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, TestDef):
             # None is not sortable, so replace it with an empty string
-            s_id = int(self.path.name.split(' ')[0])
-            o_id = int(other.path.name.split(' ')[0])
-            return (s_id, self.path, self.name or '') < (o_id, other.path, other.name or '')
+            s_id = int(self.actual_path.name.split(' ')[0])
+            o_id = int(other.actual_path.name.split(' ')[0])
+            return (s_id, self.actual_path, self.name or '') < (o_id, other.actual_path, other.name or '')
         return NotImplemented
 
 failing_logs = []
@@ -455,11 +462,11 @@ def run_test_inprocess(testdir):
 # Build directory name must be the same so Ccache works over
 # consecutive invocations.
 def create_deterministic_builddir(test: TestDef, use_tmpdir: bool) -> str:
-    import hashlib
     src_dir = test.path.as_posix()
     if test.name:
         src_dir += test.name
-    rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
+    seperator = '_' if test.plain_dirs else ' '
+    rel_dirname = f'b{seperator}' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
     abs_pathname = os.path.join(tempfile.gettempdir() if use_tmpdir else os.getcwd(), rel_dirname)
     os.mkdir(abs_pathname)
     return abs_pathname
@@ -620,7 +627,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     return testresult
 
-def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
+def gather_tests(testdir: Path, stdout_mandatory: bool, plain_sources_dir: Path) -> T.List[TestDef]:
     tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
     test_defs = [TestDef(testdir / t, None, []) for t in tests]
@@ -662,6 +669,13 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
                     t.skip = True
                 elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
                     t.skip = True
+
+        if 'plain_dirs' in test_def:
+            assert isinstance(test_def['plain_dirs'], bool)
+            t.plain_dirs = test_def['plain_dirs']
+            new_path = plain_sources_dir / ('src_' + hashlib.sha256(t.path.as_posix().encode(errors='ignore')).hexdigest()[0:10])
+            shutil.copytree(t.path, new_path)
+            t.test_path = new_path
 
         # Skip the matrix code and just update the existing test
         if 'matrix' not in test_def:
@@ -735,7 +749,7 @@ def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
             name = ' '.join([x[0] for x in i if x[0] is not None])
             opts = ['-D' + x[0] for x in i if x[0] is not None]
             skip = any([x[1] for x in i])
-            test = TestDef(t.path, name, opts, skip or t.skip)
+            test = TestDef(t.path, name, opts, skip or t.skip, plain_dirs=t.plain_dirs, test_path=t.test_path)
             test.env.update(env)
             test.installed_files = installed
             test.do_not_set_opts = do_not_set_opts
@@ -920,7 +934,7 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: T.List[str], use_tmp: bool, plain_sources_dir: Path) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
@@ -982,7 +996,7 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
     if only:
         all_tests = [t for t in all_tests if t.category in only]
 
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory), t.skip) for t in all_tests]
+    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, plain_sources_dir), t.skip) for t in all_tests]
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
@@ -1036,7 +1050,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
-            (testnum, testbase) = t.path.name.split(' ', 1)
+            (testnum, testbase) = t.actual_path.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
             if t.name:
                 testname += ' ({})'.format(t.name)
@@ -1319,25 +1333,26 @@ if __name__ == '__main__':
         os.chdir(script_dir)
     check_format()
     check_meson_commands_work(options)
-    try:
-        all_tests = detect_tests_to_run(options.only, options.use_tmpdir)
-        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
-    except StopException:
-        pass
-    print('\nTotal passed tests:', green(str(passing_tests)))
-    print('Total failed tests:', red(str(failing_tests)))
-    print('Total skipped tests:', yellow(str(skipped_tests)))
-    if failing_tests > 0:
-        print('\nMesonlogs of failing tests\n')
-        for l in failing_logs:
-            try:
-                print(l, '\n')
-            except UnicodeError:
-                print(l.encode('ascii', errors='replace').decode(), '\n')
-    for name, dirs, _ in all_tests:
-        dir_names = list(set(x.path.name for x in dirs))
-        for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
-            tests = list(g)
-            if len(tests) != 1:
-                print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
+    with TemporaryDirectoryWinProof(prefix='plain)', dir=None if options.use_tmpdir else os.getcwd()) as plain_sources_dir:
+        try:
+            all_tests = detect_tests_to_run(options.only, options.use_tmpdir, Path(plain_sources_dir))
+            (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
+        except StopException:
+            pass
+        print('\nTotal passed tests:', green(str(passing_tests)))
+        print('Total failed tests:', red(str(failing_tests)))
+        print('Total skipped tests:', yellow(str(skipped_tests)))
+        if failing_tests > 0:
+            print('\nMesonlogs of failing tests\n')
+            for l in failing_logs:
+                try:
+                    print(l, '\n')
+                except UnicodeError:
+                    print(l.encode('ascii', errors='replace').decode(), '\n')
+        for name, dirs, _ in all_tests:
+            dir_names = list(set(x.path.name for x in dirs))
+            for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
+                tests = list(g)
+                if len(tests) != 1:
+                    print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
     raise SystemExit(failing_tests)

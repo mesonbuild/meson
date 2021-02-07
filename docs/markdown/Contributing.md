@@ -215,7 +215,8 @@ Exanple `test.json`:
   },
   "tools": {
     "cmake": ">=3.11"
-  }
+  },
+  "plain_dirs": false
 }
 ```
 
@@ -356,6 +357,14 @@ key-value format. If a tool is specified, it has to be present in the
 environment, and the version requirement must be fulfilled. Otherwise,
 the entire test is skipped (including every element in the test
 matrix).
+
+#### plain_dirs
+
+When `true`, the meson test setup will use paths without spaces for both the
+source and build dir. Using this option should be avoided whenever possible
+since Meson should support paths with spaces whenever possible.
+
+The default is `false`.
 
 #### stdout
 

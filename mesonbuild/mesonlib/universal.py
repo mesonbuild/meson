@@ -116,6 +116,7 @@ __all__ = [
     'quiet_git',
     'quote_arg',
     'relative_to_if_possible',
+    'relative_to',
     'relpath',
     'replace_if_different',
     'run_once',

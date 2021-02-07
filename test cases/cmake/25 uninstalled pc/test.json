@@ -4,5 +4,6 @@
   ],
   "tools": {
     "cmake": ">=3.11"
-  }
+  },
+  "plain_dirs": true
 }

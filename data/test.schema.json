@@ -106,6 +106,9 @@
     "tools": {
       "type": "object"
     },
+    "plain_dirs": {
+      "type": "boolean"
+    },
     "stdout": {
       "type": "array",
       "items": {
