@@ -7017,7 +7017,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         if is_cygwin():
             raise unittest.SkipTest('Windows PE/COFF binaries do not use RPATH')
-        testdir = os.path.join(self.unit_test_dir, '89 pkgconfig build rpath order')
+        testdir = os.path.join(self.unit_test_dir, '90 pkgconfig build rpath order')
         self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
         self.build()
         build_rpath = get_rpath(os.path.join(self.builddir, 'prog'))
@@ -7733,7 +7733,7 @@ class LinuxlikeTests(BasePlatformTests):
         gccver = subprocess.check_output(['cc', '--version'])
         if b'7.5.0' in gccver:
             raise unittest.SkipTest('GCC on Bionic is too old to be supported.')
-        testdir = os.path.join(self.unit_test_dir, '87 prelinking')
+        testdir = os.path.join(self.unit_test_dir, '88 prelinking')
         self.init(testdir)
         self.build()
         outlib = os.path.join(self.builddir, 'libprelinked.a')
@@ -7839,7 +7839,7 @@ class LinuxCrossArmTests(BaseLinuxCrossTests):
         https://github.com/mesonbuild/meson/issues/7997
         check run native test in crossbuild without exe wrapper
         '''
-        testdir = os.path.join(self.unit_test_dir, '88 run native test')
+        testdir = os.path.join(self.unit_test_dir, '89 run native test')
         stamp_file = os.path.join(self.builddir, 'native_test_has_run.stamp')
         self.init(testdir)
         self.build()
