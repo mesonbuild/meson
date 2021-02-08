@@ -7881,7 +7881,6 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
         # Force tracebacks so we can detect them properly
         env = {'MESON_FORCE_BACKTRACE': '1'}
         error_message = "An exe_wrapper is needed but was not found. Please define one in cross file and check the command and/or add it to PATH."
-        error_message2 = "The exe_wrapper 'broken' defined in the cross file is needed by run target 'run-prog', but was not found. Please check the command and/or add it to PATH."
 
         with self.assertRaises(MesonException) as cm:
             # Must run in-process or we'll get a generic CalledProcessError
@@ -7895,7 +7894,7 @@ class LinuxCrossMingwTests(BaseLinuxCrossTests):
             self.init(testdir, extra_args='-Dcustom-target=false',
                       inprocess=True,
                       override_envvars=env)
-        self.assertEqual(str(cm.exception), error_message2)
+        self.assertEqual(str(cm.exception), error_message)
 
         self.init(testdir, extra_args=['-Dcustom-target=false', '-Drun-target=false'],
                   override_envvars=env)

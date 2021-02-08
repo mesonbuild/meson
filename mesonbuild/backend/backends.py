@@ -397,9 +397,17 @@ class Backend:
         if isinstance(exe, dependencies.ExternalProgram):
             exe_cmd = exe.get_command()
             exe_for_machine = exe.for_machine
-        elif isinstance(exe, (build.BuildTarget, build.CustomTarget)):
+        elif isinstance(exe, build.BuildTarget):
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = exe.for_machine
+        elif isinstance(exe, build.CustomTarget):
+            # The output of a custom target can either be directly runnable
+            # or not, that is, a script, a native binary or a cross compiled
+            # binary when exe wrapper is available and when it is not.
+            # This implementation is not exhaustive but it works in the
+            # common cases.
+            exe_cmd = [self.get_target_filename_abs(exe)]
+            exe_for_machine = MachineChoice.BUILD
         else:
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
@@ -470,6 +478,8 @@ class Backend:
         if isinstance(exe, (dependencies.ExternalProgram,
                             build.BuildTarget, build.CustomTarget)):
             basename = exe.name
+        elif isinstance(exe, mesonlib.File):
+            basename = os.path.basename(exe.fname)
         else:
             basename = os.path.basename(exe)
 

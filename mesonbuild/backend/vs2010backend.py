@@ -536,7 +536,7 @@ class Vs2010Backend(backends.Backend):
             _, _, cmd_raw = self.eval_custom_target_command(target)
         depend_files = self.get_custom_target_depend_files(target)
         target_env = self.get_run_target_env(target)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, cmd_raw[0], cmd_raw[1:],
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd_raw[1:],
                                                    force_serialize=True, env=target_env,
                                                    verbose=True)
         self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
