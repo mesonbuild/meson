@@ -995,7 +995,7 @@ int dummy;
             target_env = self.get_run_target_env(target)
             _, _, cmd = self.eval_custom_target_command(target)
             desc = 'Running external command {}{}'
-            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, cmd[0], cmd[1:],
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, target.command[0], cmd[1:],
                                                               force_serialize=True, env=target_env,
                                                               verbose=True)
             cmd_type = ' (wrapped by meson {})'.format(reason)
