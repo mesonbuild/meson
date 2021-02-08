@@ -206,15 +206,15 @@ class QtBaseDependency(ExternalDependency):
         # Keep track of the detection methods used, for logging purposes.
         methods = []
         # Prefer pkg-config, then fallback to `qmake -query`
-        if DependencyMethods.PKGCONFIG in self.methods:
-            mlog.debug('Trying to find qt with pkg-config')
-            self._pkgconfig_detect(mods, kwargs)
-            methods.append('pkgconfig')
-        if not self.is_found and DependencyMethods.QMAKE in self.methods:
-            mlog.debug('Trying to find qt with qmake')
-            self.from_text = self._qmake_detect(mods, kwargs)
-            methods.append('qmake-' + self.name)
-            methods.append('qmake')
+        #if DependencyMethods.PKGCONFIG in self.methods:
+        #    mlog.debug('Trying to find qt with pkg-config')
+        #    self._pkgconfig_detect(mods, kwargs)
+        #    methods.append('pkgconfig')
+        #if not self.is_found and DependencyMethods.QMAKE in self.methods:
+        #    mlog.debug('Trying to find qt with qmake')
+        #    self.from_text = self._qmake_detect(mods, kwargs)
+        #    methods.append('qmake-' + self.name)
+        #    methods.append('qmake')
         if not self.is_found:
             # Reset compile args and link args
             self.compile_args = []
