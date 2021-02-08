@@ -5,6 +5,7 @@ graft data
 graft graphics
 graft man
 graft tools
+graft packaging
 
 include contributing.md
 include COPYING
