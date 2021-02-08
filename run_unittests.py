@@ -52,6 +52,7 @@ import mesonbuild.coredata
 import mesonbuild.modules.gnome
 from mesonbuild.interpreter import Interpreter
 from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
+from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, typed_kwargs, ContainerTypeInfo, KwargInfo
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
@@ -1483,6 +1484,108 @@ class InternalTests(unittest.TestCase):
             self.assertIsInstance(args[1], str)
 
         _(None, mock.Mock(), ['string', '1'], None)
+
+    def test_typed_kwarg_basic(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str)
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            self.assertIsInstance(kwargs['input'], str)
+            self.assertEqual(kwargs['input'], 'foo')
+
+        _(None, mock.Mock(), [], {'input': 'foo'})
+
+    def test_typed_kwarg_missing_required(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str, required=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            self.assertTrue(False)  # should be unreachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), [], {})
+        self.assertEqual(str(cm.exception), 'testfunc is missing required keyword argument "input"')
+
+    def test_typed_kwarg_missing_optional(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Optional[str]]) -> None:
+            self.assertIsNone(kwargs['input'])
+
+        _(None, mock.Mock(), [], {})
+
+    def test_typed_kwarg_default(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str, default='default'),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            self.assertEqual(kwargs['input'], 'default')
+
+        _(None, mock.Mock(), [], {})
+
+    def test_typed_kwarg_container_valid(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str), required=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+            self.assertEqual(kwargs['input'], ['str'])
+
+        _(None, mock.Mock(), [], {'input': ['str']})
+
+    def test_typed_kwarg_container_invalid(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str), required=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+            self.assertTrue(False)  # should be unreachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), [], {'input': {}})
+        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" container type was "dict", but should have been "list"')
+
+    def test_typed_kwarg_contained_invalid(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(dict, str), required=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.Dict[str, str]]) -> None:
+            self.assertTrue(False)  # should be unreachable
+
+        with self.assertRaises(InvalidArguments) as cm:
+            _(None, mock.Mock(), [], {'input': {'key': 1}})
+        self.assertEqual(str(cm.exception), 'testfunc keyword argument "input" contained a value of type "int" but should have been "str"')
+
+    def test_typed_kwarg_container_listify(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str), listify=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+            self.assertEqual(kwargs['input'], ['str'])
+
+        _(None, mock.Mock(), [], {'input': 'str'})
+
+    def test_typed_kwarg_container_pairs(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str, pairs=True), listify=True),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+            self.assertEqual(kwargs['input'], ['a', 'b'])
+
+        _(None, mock.Mock(), [], {'input': ['a', 'b']})
+
+        with self.assertRaises(MesonException) as cm:
+            _(None, mock.Mock(), [], {'input': ['a']})
+        self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" container should be of even length, but is not")
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
