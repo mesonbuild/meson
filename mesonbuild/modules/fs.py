@@ -25,11 +25,18 @@ from ..mesonlib import (
     MesonException,
     path_is_in_root,
 )
-from ..interpreterbase import FeatureNew, typed_pos_args, noKwargs, permittedKwargs
+from ..interpreterbase import FeatureNew, KwargInfo, typed_kwargs, typed_pos_args, noKwargs
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
+
+    from typing_extensions import TypedDict
+
+    class ReadKwArgs(TypedDict):
+        """Keyword Arguments for fs.read."""
+
+        encoding: str
 
 
 class FSModule(ExtensionModule):
@@ -205,9 +212,9 @@ class FSModule(ExtensionModule):
         return str(new)
 
     @FeatureNew('fs.read', '0.57.0')
-    @permittedKwargs({'encoding'})
     @typed_pos_args('fs.read', (str, File))
-    def read(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: T.Dict[str, T.Any]) -> str:
+    @typed_kwargs('fs.read', KwargInfo('encoding', str, default='utf-8'))
+    def read(self, state: 'ModuleState', args: T.Tuple['FileOrString'], kwargs: 'ReadKwArgs') -> str:
         """Read a file from the source tree and return its value as a decoded
         string.
 
@@ -217,10 +224,7 @@ class FSModule(ExtensionModule):
         loops)
         """
         path = args[0]
-        encoding: str = kwargs.get('encoding', 'utf-8')
-        if not isinstance(encoding, str):
-            raise MesonException('`encoding` parameter must be a string')
-
+        encoding = kwargs['encoding']
         src_dir = self.interpreter.environment.source_dir
         sub_dir = self.interpreter.subdir
         build_dir = self.interpreter.environment.get_build_dir()
