@@ -357,6 +357,136 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
     return inner
 
 
+class ContainerTypeInfo:
+
+    """Container information for keyword arguments.
+
+    For keyword arguments that are containers (list or dict), this class encodes
+    that information.
+
+    :param container: the type of container
+    :param contains: the types the container holds
+    :param pairs: if the container is supposed to be of even length.
+        This is mainly used for interfaces that predate the addition of dictionaries, and use
+        `[key, value, key2, value2]` format.
+    :param allow_empty: Whether this container is allowed to be empty
+        There are some cases where containers not only must be passed, but must
+        not be empty, and other cases where an empty container is allowed.
+    """
+
+    def __init__(self, container: T.Type, contains: T.Union[T.Type, T.Tuple[T.Type, ...]], *,
+                 pairs: bool = False, allow_empty: bool = True) :
+        self.container = container
+        self.contains = contains
+        self.pairs = pairs
+        self.allow_empty = allow_empty
+
+    def check(self, value: T.Any) -> T.Optional[str]:
+        """Check that a value is valid.
+
+        :param value: A value to check
+        :return: If there is an error then a string message, otherwise None
+        """
+        if not isinstance(value, self.container):
+            return f'container type was "{type(value).__name__}", but should have been "{self.container.__name__}"'
+        iter_ = iter(value.values()) if isinstance(value, dict) else iter(value)
+        for each in iter_:
+            if not isinstance(each, self.contains):
+                if isinstance(self.contains, tuple):
+                    shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in self.contains))
+                else:
+                    shouldbe = f'"{self.contains.__name__}"'
+                return f'contained a value of type "{type(each).__name__}" but should have been {shouldbe}'
+        if self.pairs and len(value) % 2 != 0:
+            return 'container should be of even length, but is not'
+        if not value and not self.allow_empty:
+            return 'container is empty, but not allowed to be'
+        return None
+
+
+_T = T.TypeVar('_T')
+
+
+class KwargInfo(T.Generic[_T]):
+
+    """A description of a keyword argument to a meson function
+
+    This is used to describe a value to the :func:typed_kwargs function.
+
+    :param name: the name of the parameter
+    :param types: A type or tuple of types that are allowed, or a :class:ContainerType
+    :param required: Whether this is a required keyword argument. defaults to False
+    :param listify: If true, then the argument will be listified before being
+        checked. This is useful for cases where the Meson DSL allows a scalar or
+        a container, but internally we only want to work with containers
+    :param default: A default value to use if this isn't set. defaults to None
+    """
+
+    def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
+                 required: bool = False, listify: bool = False, default: T.Optional[_T] = None):
+        self.name = name
+        self.types = types
+        self.required = required
+        self.listify = listify
+        self.default = default
+
+
+def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
+    """Decorator for type checking keyword arguments.
+
+    Used to wrap a meson DSL implementation function, where it checks various
+    things about keyword arguments, including the type, and various other
+    information. For non-required values it sets the value to a default, which
+    means the value will always be provided.
+
+    :param name: the name of the function, including the object it's attached ot
+        (if applicable)
+    :param *types: KwargInfo entries for each keyword argument.
+    """
+    def inner(f: TV_func) -> TV_func:
+
+        @wraps(f)
+        def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
+            kwargs = _get_callee_args(wrapped_args)[3]
+
+            all_names = {t.name for t in types}
+            unknowns = set(kwargs).difference(all_names)
+            if unknowns:
+                # Warn about unknown argumnts, delete them and continue. This
+                # keeps current behavior
+                ustr = ', '.join([f'"{u}"' for u in sorted(unknowns)])
+                mlog.warning(f'{name} got unknown keyword arguments {ustr}')
+                for u in unknowns:
+                    del kwargs[u]
+
+            for info in types:
+                if info.name in kwargs:
+                    value = kwargs[info.name]
+                    if info.listify:
+                        kwargs[info.name] = value = mesonlib.listify(value)
+                    if isinstance(info.types, ContainerTypeInfo):
+                        msg = info.types.check(value)
+                        if msg is not None:
+                            raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
+                    else:
+                        if not isinstance(value, info.types):
+                            if isinstance(info.types, tuple):
+                                shouldbe = 'one of: {}'.format(", ".join(f'"{t.__name__}"' for t in info.types))
+                            else:
+                                shouldbe = f'"{info.types.__name__}"'
+                            raise InvalidArguments(f'{name} keyword argument "{info.name}"" was of type "{type(value).__name__}" but should have been {shouldbe}')
+                elif info.required:
+                    raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
+                else:
+                    # set the value to the default, this ensuring all kwargs are present
+                    # This both simplifies the typing checking and the usage
+                    kwargs[info.name] = info.default
+
+            return f(*wrapped_args, **wrapped_kwargs)
+        return T.cast(TV_func, wrapper)
+    return inner
+
+
 class FeatureCheckBase(metaclass=abc.ABCMeta):
     "Base class for feature version checks"
 
