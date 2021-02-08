@@ -60,9 +60,9 @@ class InterpreterObject:
 TV_InterpreterObject = T.TypeVar('TV_InterpreterObject')
 
 class ObjectHolder(T.Generic[TV_InterpreterObject]):
-    def __init__(self, obj: InterpreterObject, subproject: T.Optional[str] = None) -> None:
-        self.held_object = obj        # type: InterpreterObject
-        self.subproject = subproject  # type: str
+    def __init__(self, obj: TV_InterpreterObject, subproject: str = '') -> None:
+        self.held_object = obj
+        self.subproject = subproject
 
     def __repr__(self) -> str:
         return '<Holder: {!r}>'.format(self.held_object)
