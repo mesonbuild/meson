@@ -1164,11 +1164,11 @@ class TestSubprocess:
         # asyncio.ensure_future ensures that printing can
         # run in the background, even before it is awaited
         if self.stdo_task is None and self.stdout is not None:
-            decode_task = read_decode(self._process.stdout, console_mode)
-            self.stdo_task = asyncio.ensure_future(decode_task)
+            decode_coro = read_decode(self._process.stdout, console_mode)
+            self.stdo_task = asyncio.ensure_future(decode_coro)
         if self.stderr is not None and self.stderr != asyncio.subprocess.STDOUT:
-            decode_task = read_decode(self._process.stderr, console_mode)
-            self.stde_task = asyncio.ensure_future(decode_task)
+            decode_coro = read_decode(self._process.stderr, console_mode)
+            self.stde_task = asyncio.ensure_future(decode_coro)
 
         return self.stdo_task, self.stde_task
 
@@ -1383,7 +1383,8 @@ class SingleTestRunner:
 
         parse_task = None
         if self.runobj.needs_parsing:
-            parse_task = self.runobj.parse(harness, p.stdout_lines(self.console_mode))
+            parse_coro = self.runobj.parse(harness, p.stdout_lines(self.console_mode))
+            parse_task = asyncio.ensure_future(parse_coro)
 
         stdo_task, stde_task = p.communicate(self.console_mode)
         returncode, result, additional_error = await p.wait(self.runobj.timeout)
