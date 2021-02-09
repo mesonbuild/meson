@@ -65,11 +65,14 @@ conf = configure_file(
   configuration: configuration_data()
 )
 
-
 run_target('configure_script',
   command : conf
 )
 
+custom_target('configure_script_ct',
+  command: conf,
+  output: 'dummy.txt',
+  capture: true)
 
 # Target names that clash with potential builtin functionality.
 run_target('ctags',
