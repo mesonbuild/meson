@@ -408,6 +408,9 @@ class Backend:
             # common cases.
             exe_cmd = [self.get_target_filename_abs(exe)]
             exe_for_machine = MachineChoice.BUILD
+        elif isinstance(exe, mesonlib.File):
+            exe_cmd = [exe.rel_to_builddir(self.environment.source_dir)]
+            exe_for_machine = MachineChoice.BUILD
         else:
             exe_cmd = [exe]
             exe_for_machine = MachineChoice.BUILD
