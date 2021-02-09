@@ -537,14 +537,19 @@ class ConsoleLogger(TestLogger):
         left = '[{}] {} '.format(count, self.SPINNER[self.spinner_index])
         self.spinner_index = (self.spinner_index + 1) % len(self.SPINNER)
 
-        right = '{spaces} {dur:{durlen}}/{timeout:{durlen}}s'.format(
+        right = '{spaces} {dur:{durlen}}'.format(
             spaces=' ' * TestResult.maxlen(),
             dur=int(time.time() - self.progress_test.starttime),
-            durlen=harness.duration_max_len,
-            timeout=int(self.progress_test.timeout or -1))
+            durlen=harness.duration_max_len)
+        if self.progress_test.timeout:
+            right += '/{timeout:{durlen}}'.format(
+                timeout=self.progress_test.timeout,
+                durlen=harness.duration_max_len)
+        right += 's'
         detail = self.progress_test.detail
         if detail:
             right += '   ' + detail
+
         line = harness.format(self.progress_test, colorize=True,
                               max_left_width=self.max_left_width,
                               left=left, right=right)
