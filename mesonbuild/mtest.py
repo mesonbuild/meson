@@ -1490,10 +1490,10 @@ class TestHarness:
             options.timeout_multiplier = current.timeout_multiplier
     #    if options.env is None:
     #        options.env = current.env # FIXME, should probably merge options here.
-        if options.wrapper is not None and current.exe_wrapper is not None:
-            sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
         if options.wrapper is None:
             options.wrapper = current.exe_wrapper
+        elif current.exe_wrapper:
+            sys.exit('Conflict: both test setup and command line specify an exe wrapper.')
         return current.env.get_env(os.environ.copy())
 
     def get_test_runner(self, test: TestSerialisation) -> SingleTestRunner:
