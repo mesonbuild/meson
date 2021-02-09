@@ -2185,8 +2185,7 @@ class MesonMain(InterpreterObject):
         name, exe = args
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string')
-        if hasattr(exe, 'held_object'):
-            exe = exe.held_object
+        exe = unholder(exe)
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
                                         self.interpreter.environment.build_dir)
@@ -2206,8 +2205,7 @@ class MesonMain(InterpreterObject):
         dep = args[1]
         if not isinstance(name, str) or not name:
             raise InterpreterException('First argument must be a string and cannot be empty')
-        if hasattr(dep, 'held_object'):
-            dep = dep.held_object
+        dep = unholder(dep)
         if not isinstance(dep, dependencies.Dependency):
             raise InterpreterException('Second argument must be a dependency object')
         identifier = dependencies.get_dep_identifier(name, kwargs)
@@ -2570,9 +2568,7 @@ class Interpreter(InterpreterBase):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
-        elif hasattr(item, 'held_object'):
-            return item
-        elif isinstance(item, InterpreterObject):
+        elif isinstance(item, (InterpreterObject, ObjectHolder)):
             return item
         else:
             raise InterpreterException('Module returned a value of unknown type.')
@@ -2605,9 +2601,7 @@ class Interpreter(InterpreterBase):
                 return InstallDirHolder(v)
             elif isinstance(v, Test):
                 self.build.tests.append(v)
-            elif hasattr(v, 'held_object'):
-                pass
-            elif isinstance(v, (int, str, bool, Disabler)):
+            elif isinstance(v, (int, str, bool, Disabler, ObjectHolder)):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
