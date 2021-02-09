@@ -956,12 +956,11 @@ int dummy;
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                          extra_bdeps=target.get_transitive_build_target_deps(),
-                                                          capture=ofilenames[0] if target.capture else None,
-                                                          env=target.env)
-        if meson_exe_cmd:
-            cmd = meson_exe_cmd
+        cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
+                                                extra_bdeps=target.get_transitive_build_target_deps(),
+                                                capture=ofilenames[0] if target.capture else None,
+                                                env=target.env)
+        if reason:
             cmd_type = ' (wrapped by meson {})'.format(reason)
         else:
             cmd_type = ''
@@ -2101,11 +2100,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            meson_exe_cmd, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
-                                                              cmdlist[0], cmdlist[1:],
-                                                              capture=outfiles[0] if generator.capture else None)
-            if meson_exe_cmd:
-                cmdlist = meson_exe_cmd
+            cmdlist, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
+                                                        cmdlist[0], cmdlist[1:],
+                                                        capture=outfiles[0] if generator.capture else None)
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
 
