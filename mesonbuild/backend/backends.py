@@ -457,10 +457,10 @@ class Backend:
         if workdir:
             reasons.append('to set workdir')
 
-        if any('\n' in c for c in cmd_args):
+        if any('\n' in c for c in es.cmd_args):
             reasons.append('because command contains newlines')
 
-        if env and env.varnames:
+        if es.env and es.env.varnames:
             reasons.append('to set env')
 
         force_serialize = force_serialize or bool(reasons)
@@ -470,7 +470,7 @@ class Backend:
 
         if not force_serialize:
             if not capture:
-                return None, ''
+                return es.cmd_args, ''
             return ((self.environment.get_build_command() +
                     ['--internal', 'exe', '--capture', capture, '--'] + es.cmd_args),
                     ', '.join(reasons))
@@ -487,7 +487,7 @@ class Backend:
         # Take a digest of the cmd args, env, workdir, and capture. This avoids
         # collisions and also makes the name deterministic over regenerations
         # which avoids a rebuild by Ninja because the cmdline stays the same.
-        data = bytes(str(env) + str(cmd_args) + str(es.workdir) + str(capture),
+        data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
         scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
