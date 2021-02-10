@@ -141,7 +141,8 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
                         '"subprojname:" to run all tests defined by "subprojname".')
 
 
-def print_safe(s: str, end: str = '\n') -> None:
+def print_safe(s: str) -> None:
+    end = '' if s[-1] == '\n' else '\n'
     try:
         print(s, end=end)
     except UnicodeEncodeError:
@@ -639,9 +640,8 @@ class ConsoleLogger(TestLogger):
         log = self.shorten_log(harness, result)
         if log:
             print(self.output_start)
-            print_safe(log, end='')
+            print_safe(log)
             print(self.output_end)
-        print(flush=True)
 
     def log_subtest(self, harness: 'TestHarness', test: 'TestRun', s: str, result: TestResult) -> None:
         if harness.options.verbose or (harness.options.print_errorlogs and result.is_bad()):
@@ -665,12 +665,13 @@ class ConsoleLogger(TestLogger):
                 if not result.needs_parsing:
                     print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
-                print(flush=True)
             else:
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width),
                       flush=True)
                 if harness.options.verbose or result.res.is_bad():
                     self.print_log(harness, result)
+            if harness.options.verbose or result.res.is_bad():
+                print(flush=True)
 
         self.request_update()
 
