@@ -1278,25 +1278,38 @@ class AIXDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
     id = 'ld.aix'
 
     def get_always_args(self) -> T.List[str]:
-        return self._apply_prefix(['-bsvr4', '-bnoipath', '-bbigtoc']) + super().get_always_args()
+        return self._apply_prefix(['-bnoipath', '-bbigtoc']) + super().get_always_args()
 
     def no_undefined_args(self) -> T.List[str]:
-        return self._apply_prefix(['-z', 'defs'])
+        return self._apply_prefix(['-bernotok'])
 
     def get_allow_undefined_args(self) -> T.List[str]:
-        return self._apply_prefix(['-z', 'nodefs'])
+        return self._apply_prefix(['-berok'])
 
     def build_rpath_args(self, env: 'Environment', build_dir: str, from_dir: str,
                          rpath_paths: str, build_rpath: str,
                          install_rpath: str) -> T.Tuple[T.List[str], T.Set[bytes]]:
-        all_paths = mesonlib.OrderedSet(['/opt/freeware/lib']) # for libgcc_s.a
-        for p in rpath_paths:
-            all_paths.add(os.path.join(build_dir, p))
-        if build_rpath != '':
-            all_paths.add(build_rpath)
+        all_paths = mesonlib.OrderedSet() # type: mesonlib.OrderedSet[str]
+        # install_rpath first, followed by other paths, and the system path last
         if install_rpath != '':
             all_paths.add(install_rpath)
-        return (self._apply_prefix([x for p in all_paths for x in ('-R', p)]), set())
+        if build_rpath != '':
+            all_paths.add(build_rpath)
+        for p in rpath_paths:
+            all_paths.add(os.path.join(build_dir, p))
+        # We should consider allowing the $LIBPATH environment variable
+        # to override sys_path.
+        sys_path = env.get_compiler_system_dirs(self.for_machine)
+        if len(sys_path) == 0:
+            # get_compiler_system_dirs doesn't support our compiler.
+            # Use the default system library path
+            all_paths.update(['/usr/lib','/lib'])
+        else:
+            # Include the compiler's default library paths, but filter out paths that don't exist
+            for p in sys_path:
+                if os.path.isdir(p):
+                    all_paths.add(p)
+        return (self._apply_prefix('-blibpath:' + ':'.join(all_paths)), set())
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:
         return ['-pthread']
