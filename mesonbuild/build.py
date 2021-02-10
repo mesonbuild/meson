@@ -2588,32 +2588,6 @@ class CustomTargetIndex:
     def extract_all_objects_recurse(self):
         return self.target.extract_all_objects_recurse()
 
-class ConfigureFile:
-
-    def __init__(self, subdir, sourcename, targetname, configuration_data):
-        self.subdir = subdir
-        self.sourcename = sourcename
-        self.targetname = targetname
-        self.configuration_data = configuration_data
-
-    def __repr__(self):
-        repr_str = "<{0}: {1} -> {2}>"
-        src = os.path.join(self.subdir, self.sourcename)
-        dst = os.path.join(self.subdir, self.targetname)
-        return repr_str.format(self.__class__.__name__, src, dst)
-
-    def get_configuration_data(self):
-        return self.configuration_data
-
-    def get_subdir(self):
-        return self.subdir
-
-    def get_source_name(self):
-        return self.sourcename
-
-    def get_target_name(self):
-        return self.targetname
-
 class ConfigurationData:
     def __init__(self) -> None:
         super().__init__()

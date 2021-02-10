@@ -232,14 +232,6 @@ class RunProcess(InterpreterObject):
     def stderr_method(self, args, kwargs):
         return self.stderr
 
-class ConfigureFileHolder(InterpreterObject, ObjectHolder[build.ConfigureFile]):
-
-    def __init__(self, subdir, sourcename, targetname, configuration_data):
-        InterpreterObject.__init__(self)
-        obj = build.ConfigureFile(subdir, sourcename, targetname, configuration_data)
-        ObjectHolder.__init__(self, obj)
-
-
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.EnvironmentVariables]):
     def __init__(self, initial_values=None, subproject: str = ''):
         MutableInterpreterObject.__init__(self)
@@ -1925,7 +1917,7 @@ class MesonMain(InterpreterObject):
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
                 str, mesonlib.File, CustomTargetHolder,
-                CustomTargetIndexHolder, ConfigureFileHolder,
+                CustomTargetIndexHolder,
                 ExternalProgramHolder, ExecutableHolder,
             ]], allow_built: bool = False) -> T.List[str]:
         script_args = []  # T.List[str]
@@ -1951,26 +1943,23 @@ class MesonMain(InterpreterObject):
                     a.target.build_by_default = True
                 else:
                     a.build_by_default = True
-            elif isinstance(a, build.ConfigureFile):
-                new = True
-                script_args.append(os.path.join(a.subdir, a.targetname))
             elif isinstance(a, ExternalProgram):
                 script_args.extend(a.command)
                 new = True
             else:
                 raise InterpreterException(
-                    'Arguments to {} must be strings, Files, CustomTargets, '
-                    'Indexes of CustomTargets, or ConfigureFiles'.format(name))
+                    'Arguments to {} must be strings, Files, or CustomTargets, '
+                    'Indexes of CustomTargets'.format(name))
         if new:
             FeatureNew.single_use(
                 'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
-                'ConfigureFile, Executable, or ExternalProgram'.format(name),
+                'Executable, or ExternalProgram'.format(name),
                 '0.55.0', self.interpreter.subproject)
         return script_args
 
     @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
     @permittedKwargs({'skip_if_destdir'})
-    def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, ConfigureFileHolder], ...]', kwargs):
+    def add_install_script_method(self, args: 'T.Tuple[T.Union[str, mesonlib.File, ExecutableHolder], T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder], ...]', kwargs):
         if len(args) < 1:
             raise InterpreterException('add_install_script takes one or more arguments')
         if isinstance(args[0], mesonlib.File):
