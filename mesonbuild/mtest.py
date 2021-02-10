@@ -789,7 +789,9 @@ class JunitBuilder(TestLogger):
             )
 
             for subtest in test.results:
-                testcase = et.SubElement(suite, 'testcase', name=str(subtest))
+                # Both name and classname are required. Use the suite name as
+                # the class name, so that e.g. GitLab groups testcases correctly.
+                testcase = et.SubElement(suite, 'testcase', name=str(subtest), classname=suitename)
                 if subtest.result is TestResult.SKIP:
                     et.SubElement(testcase, 'skipped')
                 elif subtest.result is TestResult.ERROR:
@@ -823,7 +825,7 @@ class JunitBuilder(TestLogger):
                 suite.attrib['tests'] = str(int(suite.attrib['tests']) + 1)
 
             testcase = et.SubElement(suite, 'testcase', name=test.name,
-                                     time=str(test.duration))
+                                     classname=test.project, time=str(test.duration))
             if test.res is TestResult.SKIP:
                 et.SubElement(testcase, 'skipped')
                 suite.attrib['skipped'] = str(int(suite.attrib['skipped']) + 1)
