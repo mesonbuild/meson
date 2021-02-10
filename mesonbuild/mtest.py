@@ -604,7 +604,7 @@ class ConsoleLogger(TestLogger):
             print(test.res.get_command_marker() + test.cmdline)
             if test.needs_parsing:
                 pass
-            elif harness.options.num_processes == 1:
+            elif not test.is_parallel:
                 print(self.output_start, flush=True)
             else:
                 print(flush=True)
@@ -661,7 +661,7 @@ class ConsoleLogger(TestLogger):
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
-            if harness.options.verbose and harness.options.num_processes == 1 and result.cmdline:
+            if harness.options.verbose and not result.is_parallel and result.cmdline:
                 if not result.needs_parsing:
                     print(self.output_end)
                 print(harness.format(result, mlog.colorize_console(), max_left_width=self.max_left_width))
@@ -861,7 +861,7 @@ class TestRun:
         return super().__new__(TestRun.PROTOCOL_TO_CLASS[test.protocol])
 
     def __init__(self, test: TestSerialisation, test_env: T.Dict[str, str],
-                 name: str, timeout: T.Optional[int]):
+                 name: str, timeout: T.Optional[int], is_parallel: bool):
         self.res = TestResult.PENDING
         self.test = test
         self._num = None       # type: T.Optional[int]
@@ -878,6 +878,7 @@ class TestRun:
         self.should_fail = test.should_fail
         self.project = test.project_name
         self.junit = None      # type: T.Optional[et.ElementTree]
+        self.is_parallel = is_parallel
 
     def start(self, cmd: T.List[str]) -> None:
         self.res = TestResult.RUNNING
@@ -1269,12 +1270,12 @@ class SingleTestRunner:
         else:
             timeout = self.test.timeout * self.options.timeout_multiplier
 
-        self.runobj = TestRun(test, env, name, timeout)
+        is_parallel = test.is_parallel and self.options.num_processes > 1 and not self.options.gdb
+        self.runobj = TestRun(test, env, name, timeout, is_parallel)
 
         if self.options.gdb:
             self.console_mode = ConsoleUser.GDB
-        elif self.options.verbose and self.options.num_processes == 1 and \
-                not self.runobj.needs_parsing:
+        elif self.options.verbose and not is_parallel and not self.runobj.needs_parsing:
             self.console_mode = ConsoleUser.STDOUT
         else:
             self.console_mode = ConsoleUser.LOGGER
@@ -1304,6 +1305,10 @@ class SingleTestRunner:
         if not test_cmd:
             return None
         return TestHarness.get_wrapper(self.options) + test_cmd
+
+    @property
+    def is_parallel(self) -> bool:
+        return self.runobj.is_parallel
 
     @property
     def visible_name(self) -> str:
@@ -1837,15 +1842,13 @@ class TestHarness:
         try:
             for _ in range(self.options.repeat):
                 for runner in runners:
-                    test = runner.test
-
-                    if not test.is_parallel or runner.options.gdb:
+                    if not runner.is_parallel:
                         await complete_all(futures)
                     future = asyncio.ensure_future(run_test(runner))
                     futures.append(future)
                     running_tests[future] = runner.visible_name
                     future.add_done_callback(test_done)
-                    if not test.is_parallel or runner.options.gdb:
+                    if not runner.is_parallel:
                         await complete(future)
                 if self.options.repeat > 1 and self.fail_count:
                     break
