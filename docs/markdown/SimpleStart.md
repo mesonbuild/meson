@@ -160,5 +160,5 @@ is put in the `build` subdirectory and can be run directly from there.
 ![All finished and ready to go](images/linux_alldone.png)
 
 The project is now ready for development. You can edit the code with
-any editor and it is rebuilt by going in the `build` subdirectory and
-executing the `meson compile` command.
+any editor and it is rebuilt by executing the `ninja` command in the
+`build` directory.
