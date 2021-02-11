@@ -63,6 +63,7 @@ class WindowsModule(ExtensionModule):
         for (arg, match, rc_type) in [
                 ('/?', '^.*Microsoft.*Resource Compiler.*$', ResourceCompilerType.rc),
                 ('--version', '^.*GNU windres.*$', ResourceCompilerType.windres),
+                ('/?', '^.*Resource Converter*$', ResourceCompilerType.rc), # llvm-rc
         ]:
             p, o, e = mesonlib.Popen_safe(rescomp.get_command() + [arg])
             m = re.search(match, o, re.MULTILINE)
