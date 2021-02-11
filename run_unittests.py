@@ -2551,6 +2551,8 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=onlyenv3'])
         # Setup with only a timeout works
         self._run(self.mtest_command + ['--setup=timeout'])
+        # Setup that does not define a wrapper works with --wrapper
+        self._run(self.mtest_command + ['--setup=timeout', '--wrapper', shutil.which('valgrind')])
         # Setup that skips test works
         self._run(self.mtest_command + ['--setup=good'])
         with open(os.path.join(self.logdir, 'testlog-good.txt')) as f:
