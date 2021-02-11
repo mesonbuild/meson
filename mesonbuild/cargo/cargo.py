@@ -700,9 +700,4 @@ class ManifestInterpreter:
         self.__emit_bins(builder)
         self.__emit_tests(builder)
 
-        with builder.object_builder('meson') as obuilder:
-            with obuilder.method_builder('override_dependency') as arbuilder:
-                arbuilder.positional(self.manifest['package']['name'])
-                arbuilder.positional(builder.id('dep'))
-
         return builder.finalize(), opt_builder.finalize()

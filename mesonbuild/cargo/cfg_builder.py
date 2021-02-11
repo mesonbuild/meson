@@ -60,6 +60,13 @@ _UNIX_LIKE_OSES: T.FrozenSet[str] = frozenset({
 
 
 def build(builder: 'NodeBuilder', node: cfg_parser.FunctionNode) -> None:
+    """Convert cfg_parser AST into meson AST.
+
+    cargo/rust's cfg() syntax is a purely functional mini-langauge, with no
+    side effects, in which all the functions return a boolean. This simplify
+    things considerably as we just have to convert things like `any(a, b, c)`
+    into `a or b or c`.
+    """
     if node.name == 'cfg':
         node = node.arguments[0]
 
