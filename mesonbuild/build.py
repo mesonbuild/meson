@@ -587,7 +587,9 @@ class BuildTarget(Target):
         unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
+        self.first_source: T.Union[None, File, GeneratedList, CustomTarget, CustomTargetIndex] = None
         self.sources: T.List[File] = []
+        self.generated: T.Sequence[T.Union[GeneratedList, CustomTarget, CustomTargetIndex]] = []
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects = []
         self.external_deps = []
@@ -606,7 +608,6 @@ class BuildTarget(Target):
         self.need_install = False
         self.pch = {}
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
-        self.generated: T.Sequence[T.Union[GeneratedList, CustomTarget, CustomTargetIndex]] = []
         self.d_features = {}
         self.pic = False
         self.pie = False
@@ -686,6 +687,14 @@ class BuildTarget(Target):
             else:
                 msg = 'Bad source of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
                 raise InvalidArguments(msg)
+
+        # Set the first file, this is only relavent for languages like Rust
+        # where the one file is passed in, but many are consumed.
+        if sources:
+            if isinstance(sources[0], File):
+                self.first_source = self.sources[0]
+            else:
+                self.first_source = self.generated[0]
 
     @staticmethod
     def can_compile_remove_sources(compiler, sources):

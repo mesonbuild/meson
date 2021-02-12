@@ -1547,8 +1547,6 @@ int dummy;
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments('Rust target {} contains a non-rust source file.'.format(target.get_basename()))
-            if main_rust_file is None:
-                main_rust_file = i.rel_to_builddir(self.build_to_src)
         for g in target.get_generated_sources():
             for i in g.get_outputs():
                 if not rustc.can_compile(i):
@@ -1557,11 +1555,15 @@ int dummy;
                     fname = os.path.join(self.get_target_private_dir(target), i)
                 else:
                     fname = os.path.join(g.get_subdir(), i)
-                if main_rust_file is None:
-                    main_rust_file = fname
                 orderdeps.append(fname)
-        if main_rust_file is None:
-            raise RuntimeError('A Rust target has no Rust sources. This is weird. Also a bug. Please report')
+        if isinstance(target.first_source, File):
+            main_rust_file = target.first_source.rel_to_builddir(self.build_to_src)
+        else:
+            i = target.first_source.get_outputs()[0]
+            if isinstance(target.first_source, GeneratedList):
+                main_rust_file = os.path.join(self.get_target_private_dir(target), i)
+            else:
+                main_rust_file = os.path.join(target.first_source.get_subdir(), i)
         target_name = os.path.join(target.subdir, target.get_filename())
         if isinstance(target, build.Executable):
             cratetype = 'bin'
