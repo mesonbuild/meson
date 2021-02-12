@@ -114,7 +114,7 @@ if T.TYPE_CHECKING:
             'proc-macro': bool,
             'harness': bool,
             'edition': Literal['2015', '2018'],
-            'crate-type': Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro'],
+            'crate-type': T.List[Literal['bin', 'lib', 'dylib', 'staticlib', 'cdylib', 'rlib', 'proc-macro']],
             'required-features': T.List[str],
         },
         total=False
@@ -333,7 +333,8 @@ class ManifestInterpreter:
                     fbuilder.positional(name)
                     fbuilder.positional(lib.get('path', 'src/lib.rs'))
 
-                    if lib.get('crate-type') in {'dylib', 'cdylib'}:
+                    # XXX: this is the same hack as described below
+                    if lib.get('crate-type', ['rlib'])[0] in {'dylib', 'cdylib'}:
                         fbuilder.keyword('target_type', 'shared_library')
                     else:
                         # This scoops up the "lib" type as well. Meson very
@@ -342,10 +343,14 @@ class ManifestInterpreter:
                         fbuilder.keyword('target_type', 'static_library')
 
                     # Lib as of 2020-10-23, means rlib. We want to enforce that
-                    if lib.get('crate-type', 'lib') == 'lib':
+                    # XXX: this is wrong, crate-type is a list, and cargo will
+                    # generate one target of each type listed. I messed this up
+                    # early on, so for now we just have a hack to work around this
+                    if lib.get('crate-type', ['lib'])[0] == 'lib':
                         fbuilder.keyword('rust_crate_type', 'rlib')
                     else:
-                        fbuilder.keyword('rust_crate_type', lib['crate-type'])
+                        assert len(lib['crate-type']) == 1
+                        fbuilder.keyword('rust_crate_type', lib['crate-type'][0])
 
                     fbuilder.keyword('version', self.manifest['package']['version'])
 
