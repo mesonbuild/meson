@@ -69,11 +69,12 @@ class TestProtocol(enum.Enum):
         raise MesonException('unknown test format {}'.format(string))
 
     def __str__(self) -> str:
-        if self is self.EXITCODE:
+        cls = type(self)
+        if self is cls.EXITCODE:
             return 'exitcode'
-        elif self is self.GTEST:
+        elif self is cls.GTEST:
             return 'gtest'
-        elif self is self.RUST:
+        elif self is cls.RUST:
             return 'rust'
         return 'tap'
 
