@@ -4934,6 +4934,32 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         else:
             raise InterpreterException('Unknown default_library value: %s.', default_library)
 
+    @staticmethod
+    def __has_rust_sources(sources: T.Sequence[T.Union[GeneratedListHolder, CustomTargetIndexHolder, CustomTargetHolder, mesonlib.File]]) -> bool:
+        """Are there any rust sources in this target?"""
+        for s in sources:
+            if isinstance(s, mesonlib.File):
+                if not s.is_built and s.fname.endswith('.rs'):
+                    return True
+            else:
+                for t in s.held_object.get_outputs():
+                    if t.endswith('.rs'):
+                        return True
+        return False
+
+    def __needs_source_copy(self, sources: T.Sequence[T.Union[GeneratedListHolder, CustomTargetIndexHolder, CustomTargetHolder, mesonlib.File]]) -> bool:
+        """Do we have a mixture of generated and static sources in a language that requires a single source tree.
+
+        Currently only Rust has this requirement, but it's very possible that
+        in the future other languages will impose this same restruction on us
+        """
+        is_mixed = (any(isinstance(s, (GeneratedListHolder, CustomTargetHolder, CustomTargetIndexHolder)) or
+                        (isinstance(s, mesonlib.File) and s.is_built) for s in sources)
+                    and (any(isinstance(s, mesonlib.File) and not s.is_built) for s in sources))
+        if not is_mixed:
+            return False
+        return self.__has_rust_sources(sources)
+
     def build_target(self, node, args, kwargs, targetholder):
         @FeatureNewKwargs('build target', '0.42.0', ['rust_crate_type', 'build_rpath', 'implicit_include_directories'])
         @FeatureNewKwargs('build target', '0.41.0', ['rust_args'])
@@ -4972,6 +4998,32 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             mlog.debug('Unknown target type:', str(targetholder))
             raise RuntimeError('Unreachable code')
         self.kwarg_strings_to_includedirs(kwargs)
+
+        # If we have Rust sources that are both generated and static, we need
+        # to copy the static files to the buid dir. We do this with a
+        # custom_target so that updating a rust source doesn't cause a
+        # reconfigure, just a rebuild
+        if self.__needs_source_copy(sources):
+            os.makedirs(os.path.join(self.environment.build_dir, self.subdir), exist_ok=True)
+            command = 'copy' if self.environment.machines.build.system == 'windows' else 'cp'
+            new_sources = []
+            for s in sources:
+                if isinstance(s, mesonlib.File) and not s.is_built:
+                    ct = build.CustomTarget(
+                        f'meson-copy-source-{s.fname.replace("/", "_")}',
+                        self.subdir,
+                        self.subproject,
+                        {
+                            'input': s,
+                            'output': os.path.basename(s.fname),
+                            'command': [command, '@INPUT@', '@OUTPUT@'],
+                        }
+                    )
+                    self.add_target(ct.name, ct, meson_target=True)
+                    new_sources.append(CustomTargetHolder(ct, self))
+                else:
+                    new_sources.append(s)
+            sources = new_sources
 
         # Filter out kwargs from other target types. For example 'soversion'
         # passed to library() when default_library == 'static'.

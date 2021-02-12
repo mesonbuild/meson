@@ -1,0 +1,3 @@
+pub fn libfun() {
+    println!("Not me, Rust is best!");
+}
