@@ -675,12 +675,12 @@ class BuildTarget(Target):
 
     def process_sourcelist(self, sources):
         sources = listify(sources)
-        added_sources = {} # If the same source is defined multiple times, use it only once.
+        added_sources = set()  # If the same source is defined multiple times, use it only once.
         for s in unholder(sources):
             if isinstance(s, File):
                 if s not in added_sources:
                     self.sources.append(s)
-                    added_sources[s] = True
+                    added_sources.add(s)
             elif isinstance(s, (GeneratedList, CustomTarget, CustomTargetIndex)):
                 self.generated.append(s)
             else:
