@@ -62,7 +62,14 @@ object](Reference-manual.md#meson-object) documentation for details.
 ## meson install --dry-run
 
 New option to meson install command that does not actually install files, but
-only print messages.
+only prints messages.
+
+## Experimental support for C++ modules in Visual Studio
+
+Modules are a new C++ 20 feature for organising source code aiming to
+increase compilation speed and reliability. This support is
+experimental and may change in future releases. It only works with the
+latest preview release of Visual Studio.
 
 ## Qt6 module
 
