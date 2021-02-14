@@ -179,6 +179,7 @@ cuda_buildtype_args = {'plain': [],
                        'debugoptimized': [],
                        'release': [],
                        'minsize': [],
+                       'custom': [],
                        }  # type: T.Dict[str, T.List[str]]
 java_buildtype_args = {'plain': [],
                        'debug': ['-g'],
