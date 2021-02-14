@@ -81,6 +81,7 @@ index.md
 		Shipping-prebuilt-binaries-as-wraps.md
 		fallback-wraptool.md
 	Release-notes.md
+		Release-notes-for-0.57.0.md
 		Release-notes-for-0.56.0.md
 		Release-notes-for-0.55.0.md
 		Release-notes-for-0.54.0.md
