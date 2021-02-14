@@ -1166,18 +1166,6 @@ class Backend:
                     else:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
-                if '@PRIVATE_OUTDIR_' in i:
-                    match = re.search(r'@PRIVATE_OUTDIR_(ABS_)?([^/\s*]*)@', i)
-                    if not match:
-                        msg = 'Custom target {!r} has an invalid argument {!r}' \
-                              ''.format(target.name, i)
-                        raise MesonException(msg)
-                    source = match.group(0)
-                    if match.group(1) is None and not target.absolute_paths:
-                        lead_dir = ''
-                    else:
-                        lead_dir = self.environment.get_build_dir()
-                    i = i.replace(source, os.path.join(lead_dir, outdir))
             else:
                 err_msg = 'Argument {0} is of unknown type {1}'
                 raise RuntimeError(err_msg.format(str(i), str(type(i))))
