@@ -58,7 +58,9 @@ run_target('check_exists',
 run_target('donotrunme',
   command : hex)
 
-# Ensure configure files can be passed
+# Ensure configure files can be passed to run_target(), custom_target() and
+# custom_target() with command wrapped by meson.
+# Those targets are tested in test_run_target_files_path() from run_unittets.py.
 conf = configure_file(
   input: 'configure.in',
   output: 'configure',
@@ -69,10 +71,14 @@ run_target('configure_script',
   command : conf
 )
 
+custom_target('configure_script_ct_capture',
+  command: conf,
+  output: 'dummy_capture.txt',
+  capture: true)
+
 custom_target('configure_script_ct',
   command: conf,
-  output: 'dummy.txt',
-  capture: true)
+  output: 'dummy.txt')
 
 # Target names that clash with potential builtin functionality.
 run_target('ctags',
