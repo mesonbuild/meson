@@ -1123,10 +1123,12 @@ class Backend:
         source_root = self.build_to_src
         build_root = '.'
         outdir = self.get_target_dir(target)
+        pdir = self.get_target_private_dir(target)
         if absolute_outputs:
             source_root = self.environment.get_source_dir()
             build_root = self.environment.get_build_dir()
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
+            pdir = os.path.join(self.environment.get_build_dir(), pdir)
         outputs = []
         for i in target.get_outputs():
             outputs.append(os.path.join(outdir, i))
@@ -1161,10 +1163,6 @@ class Backend:
                     dfilename = os.path.join(outdir, target.depfile)
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
-                    if target.absolute_paths:
-                        pdir = self.get_target_private_dir_abs(target)
-                    else:
-                        pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
             else:
                 err_msg = 'Argument {0} is of unknown type {1}'
