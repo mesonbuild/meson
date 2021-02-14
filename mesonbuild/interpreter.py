@@ -1938,48 +1938,47 @@ class MesonMain(InterpreterObject):
                              'backend': self.backend_method,
                              })
 
-    def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
-        if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
-            return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
-        # Prefer scripts in the current source directory
-        search_dir = os.path.join(self.interpreter.environment.source_dir,
-                                  self.interpreter.subdir)
-        key = (prog, search_dir)
-        if key in self._found_source_scripts:
-            found = self._found_source_scripts[key]
-        elif isinstance(prog, mesonlib.File):
-            prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
-            found = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
-        else:
-            found = dependencies.ExternalProgram(prog, search_dir=search_dir)
+    def _get_executable_serialisation(self, args):
+        # If the first argument is a string or a file, check if it refers to a
+        # program. This is an inconsistency with custom_target() and run_target()
+        # commands where it is user's responsability to use find_program().
+        prog = args[0]
+        if isinstance(prog, (str, mesonlib.File)):
+            # Prefer scripts in the current source directory
+            search_dir = os.path.join(self.interpreter.environment.source_dir,
+                                      self.interpreter.subdir)
+            key = (prog, search_dir)
+            if key in self._found_source_scripts:
+                found = self._found_source_scripts[key]
+            elif isinstance(prog, mesonlib.File):
+                prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
+                found = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
+            else:
+                found = dependencies.ExternalProgram(prog, search_dir=search_dir)
 
-        if found.found():
-            self._found_source_scripts[key] = found
-        else:
-            m = 'Script or command {!r} not found or not executable'
-            raise InterpreterException(m.format(prog))
-        return self.interpreter.backend.get_executable_serialisation([found] + args)
+            if found.found():
+                self._found_source_scripts[key] = found
+            else:
+                m = 'Script or command {!r} not found or not executable'
+                raise InterpreterException(m.format(prog))
+            args[0] = found
+        return self.interpreter.backend.get_executable_serialisation(args)
 
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
                 str, mesonlib.File, CustomTargetHolder,
                 CustomTargetIndexHolder,
                 ExternalProgramHolder, ExecutableHolder,
-            ]], allow_built: bool = False) -> T.List[str]:
-        script_args = []  # T.List[str]
+            ]], allow_built: bool = False) -> None:
         new = False
-        for a in args:
-            a = unholder(a)
-            if isinstance(a, str):
-                script_args.append(a)
-            elif isinstance(a, mesonlib.File):
+        args = unholder(args)
+        for a in args[1:]:
+            if isinstance(a, mesonlib.File):
                 new = True
-                script_args.append(a.rel_to_builddir(self.interpreter.environment.source_dir))
             elif isinstance(a, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
                 if not allow_built:
                     raise InterpreterException('Arguments to {} cannot be built'.format(name))
                 new = True
-                script_args.extend([os.path.join(a.get_subdir(), o) for o in a.get_outputs()])
 
                 # This feels really hacky, but I'm not sure how else to fix
                 # this without completely rewriting install script handling.
@@ -1990,18 +1989,13 @@ class MesonMain(InterpreterObject):
                 else:
                     a.build_by_default = True
             elif isinstance(a, dependencies.ExternalProgram):
-                script_args.extend(a.command)
                 new = True
-            else:
-                raise InterpreterException(
-                    'Arguments to {} must be strings, Files, or CustomTargets, '
-                    'Indexes of CustomTargets'.format(name))
         if new:
             FeatureNew.single_use(
                 'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
                 'Executable, or ExternalProgram'.format(name),
                 '0.55.0', self.interpreter.subproject)
-        return script_args
+        return self._get_executable_serialisation(args)
 
     @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
     @permittedKwargs({'skip_if_destdir'})
@@ -2014,10 +2008,9 @@ class MesonMain(InterpreterObject):
         skip_if_destdir = kwargs.get('skip_if_destdir', False)
         if not isinstance(skip_if_destdir, bool):
             raise InterpreterException('skip_if_destdir keyword argument must be boolean')
-        script_args = self._process_script_args('add_install_script', args[1:], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
-        script.skip_if_destdir = skip_if_destdir
-        self.build.install_scripts.append(script)
+        es = self._process_script_args('add_install_script', args, allow_built=True)
+        es.skip_if_destdir = skip_if_destdir
+        self.build.install_scripts.append(es)
 
     @permittedKwargs(set())
     def add_postconf_script_method(self, args, kwargs):
@@ -2026,9 +2019,8 @@ class MesonMain(InterpreterObject):
         if isinstance(args[0], mesonlib.File):
             FeatureNew.single_use('Passing file object to script parameter of add_postconf_script',
                                   '0.57.0', self.interpreter.subproject)
-        script_args = self._process_script_args('add_postconf_script', args[1:], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
-        self.build.postconf_scripts.append(script)
+        es = self._process_script_args('add_postconf_script', args, allow_built=True)
+        self.build.postconf_scripts.append(es)
 
     @permittedKwargs(set())
     def add_dist_script_method(self, args, kwargs):
@@ -2042,9 +2034,8 @@ class MesonMain(InterpreterObject):
                                   '0.57.0', self.interpreter.subproject)
         if self.interpreter.subproject != '':
             raise InterpreterException('add_dist_script may not be used in a subproject.')
-        script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)
-        script = self._find_source_script(args[0], script_args)
-        self.build.dist_scripts.append(script)
+        es = self._process_script_args('add_dist_script', args, allow_built=True)
+        self.build.dist_scripts.append(es)
 
     @noPosargs
     @permittedKwargs({})

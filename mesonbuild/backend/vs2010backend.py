@@ -150,14 +150,10 @@ class Vs2010Backend(backends.Backend):
                     # Always use a wrapper because MSBuild eats random characters when
                     # there are many arguments.
                     tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-                    cmd, _ = self.as_meson_exe_cmdline(
-                        'generator ' + cmd[0],
-                        cmd[0],
-                        cmd[1:],
-                        workdir=tdir_abs,
-                        capture=outfiles[0] if generator.capture else None,
-                        force_serialize=True
-                    )
+                    es = self.get_executable_serialisation_for_generator(generator, [infilename], [sole_output],
+                                                                         cmd, workdir=tdir_abs)
+                    cmd, _ = self.as_meson_exe_cmdline(es, 'generator ' + cmd[0],
+                                                       force_serialize=True)
                     deps = cmd[-1:] + deps
                     abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
                     os.makedirs(abs_pdir, exist_ok=True)
@@ -531,14 +527,10 @@ class Vs2010Backend(backends.Backend):
         if not target.command:
             # FIXME: This is an alias target that doesn't run any command, there
             # is probably a better way than running a this dummy command.
-            cmd_raw = python_command + ['-c', 'exit']
-        else:
-            _, _, cmd_raw = self.eval_custom_target_command(target)
+            target.command = python_command + ['-c', 'exit']
         depend_files = self.get_custom_target_depend_files(target)
-        target_env = self.get_run_target_env(target)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd_raw[1:],
-                                                   force_serialize=True, env=target_env,
-                                                   verbose=True)
+        es = self.get_executable_serialisation_for_run_target(target)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(es, target.name, force_serialize=True)
         self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
                               deps=depend_files)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
@@ -548,22 +540,14 @@ class Vs2010Backend(backends.Backend):
 
     def gen_custom_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        # We need to always use absolute paths because our invocation is always
-        # from the target dir, not the build root.
-        target.absolute_paths = True
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target, True)
+        (srcs, ofilenames) = self.get_custom_target_inputs_outputs(target, True)
         depend_files = self.get_custom_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
+        # All targets run from the target dir
         tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-        extra_bdeps = target.get_transitive_build_target_deps()
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                   # All targets run from the target dir
-                                                   workdir=tdir_abs,
-                                                   extra_bdeps=extra_bdeps,
-                                                   capture=ofilenames[0] if target.capture else None,
-                                                   force_serialize=True,
-                                                   env=target.env)
+        es = self.get_executable_serialisation_for_custom_target(target, srcs, ofilenames, workdir=tdir_abs)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(es, target.name, force_serialize=True)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
