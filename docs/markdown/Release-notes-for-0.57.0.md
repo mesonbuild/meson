@@ -110,7 +110,7 @@ please file an issue in the Meson bug tracker.
 
 ## Buildtype remains even if dependent options are changed
 
-Setting the `buildtype' option to a value sets the `debug` and
+Setting the `buildtype` option to a value sets the `debug` and
 `optimization` options to predefined values. Traditionally setting the
 options to other values would then change the buildtype to `custom`.
 This is confusing and means that you can't use, for example, debug
