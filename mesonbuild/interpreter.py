@@ -1938,32 +1938,6 @@ class MesonMain(InterpreterObject):
                              'backend': self.backend_method,
                              })
 
-    def _get_executable_serialisation(self, args):
-        # If the first argument is a string or a file, check if it refers to a
-        # program. This is an inconsistency with custom_target() and run_target()
-        # commands where it is user's responsability to use find_program().
-        prog = args[0]
-        if isinstance(prog, (str, mesonlib.File)):
-            # Prefer scripts in the current source directory
-            search_dir = os.path.join(self.interpreter.environment.source_dir,
-                                      self.interpreter.subdir)
-            key = (prog, search_dir)
-            if key in self._found_source_scripts:
-                found = self._found_source_scripts[key]
-            elif isinstance(prog, mesonlib.File):
-                prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
-                found = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
-            else:
-                found = dependencies.ExternalProgram(prog, search_dir=search_dir)
-
-            if found.found():
-                self._found_source_scripts[key] = found
-            else:
-                m = 'Script or command {!r} not found or not executable'
-                raise InterpreterException(m.format(prog))
-            args[0] = found
-        return self.interpreter.backend.get_executable_serialisation(args)
-
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
                 str, mesonlib.File, CustomTargetHolder,
@@ -1995,7 +1969,7 @@ class MesonMain(InterpreterObject):
                 'Calling "{}" with File, CustomTaget, Index of CustomTarget, '
                 'Executable, or ExternalProgram'.format(name),
                 '0.55.0', self.interpreter.subproject)
-        return self._get_executable_serialisation(args)
+        return self.interpreter.backend.get_executable_serialisation(args, self.interpreter.subdir)
 
     @FeatureNewKwargs('add_install_script', '0.57.0', ['skip_if_destdir'])
     @permittedKwargs({'skip_if_destdir'})

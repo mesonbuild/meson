@@ -211,6 +211,7 @@ class Backend:
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
+        self._eval_command_cache = {}
 
     def generate(self) -> None:
         raise RuntimeError('generate is not implemented in {}'.format(type(self).__name__))
@@ -389,14 +390,14 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
-    def get_executable_serialisation(self, orig_cmd):
-        cmd_args = self._eval_command_args(orig_cmd)
+    def get_executable_serialisation(self, orig_cmd, subdir=None):
+        cmd_args = self._eval_command_args(orig_cmd, subdir=subdir)
         return self._get_executable_serialisation(orig_cmd[0], cmd_args)
 
     def check_run_target_command(self, target):
         if hasattr(target, 'backend_es'):
             return
-        cmd_args = self._eval_command_args(target.command)
+        cmd_args = self._eval_command_args(target.command, subdir=target.get_subdir())
         es = self._get_executable_serialisation(target.command[0], cmd_args,
                                                 env=self.get_run_target_env(target))
         es.verbose = True
@@ -408,6 +409,7 @@ class Backend:
         absolute_paths = target.absolute_paths or workdir is not None
         inputs, outputs = self.get_custom_target_inputs_outputs(target, absolute_paths)
         cmd_args = self._eval_command_args(target.command, target.name, inputs, outputs,
+                                           target.get_subdir(),
                                            self.get_target_dir(target),
                                            self.get_target_private_dir(target),
                                            target.depfile,
@@ -1133,7 +1135,8 @@ class Backend:
         inputs = self.get_custom_target_sources(target, absolute_paths)
         return inputs, outputs
 
-    def _eval_command_args(self, orig_cmd, tname=None, inputs=None, outputs=None, outdir='', pdir='', depfile=None, absolute_paths=False):
+    def _eval_command_args(self, orig_cmd, tname=None, inputs=None, outputs=None,
+                           subdir=None, outdir='', pdir='', depfile=None, absolute_paths=False):
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
@@ -1143,17 +1146,35 @@ class Backend:
             build_root = self.environment.get_build_dir()
             outdir = os.path.join(self.environment.get_build_dir(), outdir)
             pdir = os.path.join(self.environment.get_build_dir(), pdir)
-        # Evaluate the command list. First argument must be a full path to be
-        # executable.
+        # Evaluate the command list.
         cmd = []
         for index, i in enumerate(orig_cmd):
+            # If the first argument is a string or a file, check if it refers to a program
+            if index == 0 and subdir is not None and isinstance(i, (str, mesonlib.File)):
+                # Prefer scripts in the current source directory
+                # FIXME: Should be use interpreter.find_program_impl()? But be
+                # careful that at the time of writing backend.interpreter is the
+                # main project interpreter, not current subproject.
+                search_dir = os.path.join(self.environment.get_source_dir(), subdir)
+                key = (i, search_dir)
+                prog = self._eval_command_cache.get(key)
+                if prog is None:
+                    if isinstance(i, mesonlib.File):
+                        prog = i.rel_to_builddir(self.environment.get_source_dir())
+                        prog = dependencies.ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
+                    else:
+                        prog = dependencies.ExternalProgram(i, search_dir=search_dir)
+                    self._eval_command_cache[key] = prog
+                i = prog
+
             if isinstance(i, (build.BuildTarget, build.CustomTargetIndex)):
                 i = self.get_target_filename(i)
+                # Use absolute path for first arg in case it's an executable
                 if absolute_paths or index == 0:
                     i = os.path.join(self.environment.get_build_dir(), i)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)
-                if absolute_paths or index == 0:
+                if absolute_paths:
                     i = os.path.join(self.environment.get_build_dir(), i)
             elif isinstance(i, dependencies.ExternalProgram):
                 if not i.found():
@@ -1164,7 +1185,11 @@ class Backend:
                 i_tdir = self.get_target_dir(i)
                 if absolute_paths:
                     i_tdir = os.path.join(self.environment.get_build_dir(), i_tdir)
-                cmd.extend([os.path.join(i_tdir, o) for o in i.get_outputs()])
+                i_outputs = [os.path.join(i_tdir, o) for o in i.get_outputs()]
+                # Use absolute path for first arg in case it's an executable
+                if index == 0 and not absolute_paths:
+                    i_outputs[0] = os.path.join(self.environment.get_build_dir(), i_outputs[0])
+                cmd.extend(i_outputs)
                 continue
             # FIXME: str types are blindly added ignoring 'absolute_paths'
             # because we can't know if they refer to a file or just a string
