@@ -939,7 +939,9 @@ int dummy;
 
     def generate_custom_target(self, target):
         self.custom_target_generator_inputs(target)
-        (srcs, ofilenames) = self.get_custom_target_inputs_outputs(target)
+        self.check_custom_target_command(target)
+        srcs = target.backend_inputs
+        ofilenames = target.backend_outputs
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
         desc = 'Generating {0} with a custom command{1}'
@@ -956,8 +958,7 @@ int dummy;
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        es = self.get_executable_serialisation_for_custom_target(target, srcs, ofilenames)
-        cmd, reason = self.as_meson_exe_cmdline(es, target.name)
+        cmd, reason = self.as_meson_exe_cmdline(target.backend_es, target.name)
         if reason:
             cmd_type = ' (wrapped by meson {})'.format(reason)
         else:
@@ -989,8 +990,8 @@ int dummy;
             # other targets.
             elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
         else:
-            es = self.get_executable_serialisation_for_run_target(target)
-            meson_exe_cmd, reason = self.as_meson_exe_cmdline(es, target_name)
+            self.check_run_target_command(target)
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.backend_es, target_name)
             cmd_type = ' (wrapped by meson {})'.format(reason)
             internal_target_name = 'meson-{}'.format(target_name)
             desc = 'Running external command {}{}'

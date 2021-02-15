@@ -4067,7 +4067,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Depends items must be build targets.')
             cleaned_deps.append(d)
         env = self.unpack_env_kwarg(kwargs)
-        tg = RunTargetHolder(build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env), self)
+        tg = RunTargetHolder(build.RunTarget(name, cleaned_args, cleaned_deps, self.subdir, self.subproject, env, self.backend), self)
         self.add_target(name, tg.held_object)
         full_name = (self.subproject, name)
         assert(full_name not in self.build.run_target_names)

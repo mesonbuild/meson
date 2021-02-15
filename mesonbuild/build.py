@@ -2204,6 +2204,8 @@ class CustomTarget(Target, CommandBase):
                 unknowns.append(k)
         if unknowns:
             mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
+        if backend is not None:
+            backend.check_custom_target_command(self)
 
     def get_default_install_dir(self, environment):
         return None
@@ -2420,15 +2422,17 @@ class CustomTarget(Target, CommandBase):
             yield CustomTargetIndex(self, i)
 
 class RunTarget(Target, CommandBase):
-    def __init__(self, name, command, dependencies, subdir, subproject, env=None):
+    def __init__(self, name, command, dependencies, subdir, subproject, env=None, backend=None):
         self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
         self.dependencies = dependencies
         self.depend_files = []
-        self.set_command(command)
         self.absolute_paths = False
         self.env = env
+        self.set_command(command)
+        if backend is not None:
+            backend.check_run_target_command(self)
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"

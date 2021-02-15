@@ -393,25 +393,33 @@ class Backend:
         cmd_args = self._eval_command_args(orig_cmd)
         return self._get_executable_serialisation(orig_cmd[0], cmd_args)
 
-    def get_executable_serialisation_for_run_target(self, target):
+    def check_run_target_command(self, target):
+        if hasattr(target, 'backend_es'):
+            return
         cmd_args = self._eval_command_args(target.command)
         es = self._get_executable_serialisation(target.command[0], cmd_args,
                                                 env=self.get_run_target_env(target))
         es.verbose = True
-        return es
+        target.backend_es = es
 
-    def get_executable_serialisation_for_custom_target(self, target, inputs, outputs, workdir=None):
+    def check_custom_target_command(self, target, workdir=None):
+        if hasattr(target, 'backend_es'):
+            return
+        absolute_paths = target.absolute_paths or workdir is not None
+        inputs, outputs = self.get_custom_target_inputs_outputs(target, absolute_paths)
         cmd_args = self._eval_command_args(target.command, target.name, inputs, outputs,
                                            self.get_target_dir(target),
                                            self.get_target_private_dir(target),
                                            target.depfile,
-                                           target.absolute_paths or workdir is not None)
-        target.backend_command = cmd_args
-        return self._get_executable_serialisation(target.command[0], cmd_args,
-                                                  extra_bdeps=target.get_transitive_build_target_deps(),
-                                                  capture=outputs[0] if target.capture else None,
-                                                  env=target.env,
-                                                  workdir=workdir)
+                                           absolute_paths)
+        es = self._get_executable_serialisation(target.command[0], cmd_args,
+                                                extra_bdeps=target.get_transitive_build_target_deps(),
+                                                capture=outputs[0] if target.capture else None,
+                                                env=target.env,
+                                                workdir=workdir)
+        target.backend_es = es
+        target.backend_inputs = inputs
+        target.backend_outputs = outputs
 
     def get_executable_serialisation_for_generator(self, generator, inputs, outputs, cmd_args, workdir=None):
         # FIXME: Should use self._eval_command_args() here instead of duplicating
@@ -1449,7 +1457,7 @@ class Backend:
 
             compiler = []
             if isinstance(target, build.CustomTarget):
-                compiler = target.backend_command
+                compiler = target.backend_es.cmd_args
 
             return [{
                 'language': 'unknown',

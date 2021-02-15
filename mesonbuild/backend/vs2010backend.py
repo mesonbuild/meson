@@ -522,15 +522,18 @@ class Vs2010Backend(backends.Backend):
         tname.text = target.name
         return root
 
-    def gen_run_target_vcxproj(self, target, ofname, guid):
-        root = self.create_basic_crap(target, guid)
+    def check_run_target_command(self, target):
         if not target.command:
             # FIXME: This is an alias target that doesn't run any command, there
             # is probably a better way than running a this dummy command.
             target.command = python_command + ['-c', 'exit']
+        super().check_run_target_command(target)
+
+    def gen_run_target_vcxproj(self, target, ofname, guid):
+        root = self.create_basic_crap(target, guid)
+        self.check_run_target_command(target)
         depend_files = self.get_custom_target_depend_files(target)
-        es = self.get_executable_serialisation_for_run_target(target)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(es, target.name, force_serialize=True)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.backend_es, target.name, force_serialize=True)
         self.add_custom_build(root, 'run_target', ' '.join(self.quote_arguments(wrapper_cmd)),
                               deps=depend_files)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
@@ -538,16 +541,20 @@ class Vs2010Backend(backends.Backend):
         self.add_target_deps(root, target)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
+    def check_custom_target_command(self, target):
+        # All targets run from the target dir
+        workdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
+        super().check_custom_target_command(target, workdir)
+
     def gen_custom_target_vcxproj(self, target, ofname, guid):
         root = self.create_basic_crap(target, guid)
-        (srcs, ofilenames) = self.get_custom_target_inputs_outputs(target, True)
+        self.check_custom_target_command(target)
+        srcs = target.backend_inputs
+        ofilenames = target.backend_outputs
         depend_files = self.get_custom_target_depend_files(target, True)
         # Always use a wrapper because MSBuild eats random characters when
         # there are many arguments.
-        # All targets run from the target dir
-        tdir_abs = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
-        es = self.get_executable_serialisation_for_custom_target(target, srcs, ofilenames, workdir=tdir_abs)
-        wrapper_cmd, _ = self.as_meson_exe_cmdline(es, target.name, force_serialize=True)
+        wrapper_cmd, _ = self.as_meson_exe_cmdline(target.backend_es, target.name, force_serialize=True)
         if target.build_always_stale:
             # Use a nonexistent file to always consider the target out-of-date.
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
