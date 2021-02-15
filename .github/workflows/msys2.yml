@@ -40,6 +40,13 @@ jobs:
             MSYS2_CURSES:
             COMPILER: clang
             TOOLCHAIN: clang
+          - NAME: clangx64ninjallvm
+            MSYSTEM: MINGW64
+            MSYS2_ARCH: x86_64
+            MSYS2_CURSES:
+            COMPILER: clang
+            TOOLCHAIN: clang
+            WINDRES: llvm
 
     defaults:
       run:
@@ -83,6 +90,9 @@ jobs:
             export CXX=clang++
             export OBJC=clang
             export OBJCXX=clang++
+          fi
+          if [[ '${{ matrix.WINDRES }}' == 'llvm' ]]; then
+            export WINDRES=llvm-rc
           fi
 
           if [[ "${{ matrix.MSYS2_CURSES }}" != "" ]]; then
