@@ -1147,7 +1147,7 @@ class Backend:
         # executable.
         cmd = []
         for index, i in enumerate(orig_cmd):
-            if isinstance(i, (build.BuildTarget, build.CustomTarget, build.CustomTargetIndex)):
+            if isinstance(i, (build.BuildTarget, build.CustomTargetIndex)):
                 i = self.get_target_filename(i)
                 if absolute_paths or index == 0:
                     i = os.path.join(self.environment.get_build_dir(), i)
@@ -1158,7 +1158,13 @@ class Backend:
             elif isinstance(i, dependencies.ExternalProgram):
                 if not i.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')
-                cmd += i.get_command()
+                cmd.extend(i.get_command())
+                continue
+            elif isinstance(i, build.CustomTarget):
+                i_tdir = self.get_target_dir(i)
+                if absolute_paths:
+                    i_tdir = os.path.join(self.environment.get_build_dir(), i_tdir)
+                cmd.extend([os.path.join(i_tdir, o) for o in i.get_outputs()])
                 continue
             # FIXME: str types are blindly added ignoring 'absolute_paths'
             # because we can't know if they refer to a file or just a string
