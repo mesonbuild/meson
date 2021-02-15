@@ -65,6 +65,7 @@ from mesonbuild.dependencies import PkgConfigDependency, ExternalProgram
 import mesonbuild.dependencies.base
 from mesonbuild.build import Target, ConfigurationData
 import mesonbuild.modules.pkgconfig
+from mesonbuild.scripts import destdir_join
 
 from mesonbuild.mtest import TAPParser, TestResult
 
@@ -5495,6 +5496,52 @@ class AllPlatformTests(BasePlatformTests):
         # Currently (0.57) these do nothing, but they've always been allowed
         srcdir = os.path.join(self.common_test_dir, '2 cpp')
         self.init(srcdir, extra_args=['-Dbuild.b_lto=true'])
+
+    def test_install_skip_subprojects(self):
+        testdir = os.path.join(self.unit_test_dir, '91 install skip subprojects')
+        self.init(testdir)
+        self.build()
+
+        main_expected = [
+            '',
+            'share',
+            'include',
+            'foo',
+            'bin',
+            'share/foo',
+            'share/foo/foo.dat',
+            'include/foo.h',
+            'foo/foofile',
+            'bin/foo' + exe_suffix,
+        ]
+        bar_expected = [
+            'bar',
+            'share/foo/bar.dat',
+            'include/bar.h',
+            'bin/bar' + exe_suffix,
+            'bar/barfile'
+        ]
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_argument_syntax() == 'msvc':
+            main_expected.append('bin/foo.pdb')
+            bar_expected.append('bin/bar.pdb')
+        prefix = destdir_join(self.installdir, self.prefix)
+        main_expected = [Path(prefix, p) for p in main_expected]
+        bar_expected = [Path(prefix, p) for p in bar_expected]
+        all_expected = main_expected + bar_expected
+
+        def check_installed_files(extra_args, expected):
+            args = ['install', '--destdir', self.installdir] + extra_args
+            self._run(self.meson_command + args, workdir=self.builddir)
+            all_files = [p for p in Path(self.installdir).rglob('*')]
+            self.assertEqual(sorted(expected), sorted(all_files))
+            windows_proof_rmtree(self.installdir)
+
+        check_installed_files([], all_expected)
+        check_installed_files(['--skip-subprojects'], main_expected)
+        check_installed_files(['--skip-subprojects', 'bar'], main_expected)
+        check_installed_files(['--skip-subprojects', 'another'], all_expected)
 
 
 class FailureTests(BasePlatformTests):

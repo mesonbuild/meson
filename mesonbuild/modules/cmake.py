@@ -285,7 +285,7 @@ class CmakeModule(ExtensionModule):
         }
         mesonlib.do_conf_file(template_file, version_file, conf, 'meson')
 
-        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot)
+        res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), version_file)], pkgroot, None, state.subproject)
         return ModuleReturnValue(res, [res])
 
     def create_package_file(self, infile, outfile, PACKAGE_RELATIVE_PATH, extra, confdata):
@@ -370,7 +370,7 @@ class CmakeModule(ExtensionModule):
         if conffile not in interpreter.build_def_files:
             interpreter.build_def_files.append(conffile)
 
-        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir)
+        res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, None, state.subproject)
         interpreter.build.data.append(res)
 
         return res
