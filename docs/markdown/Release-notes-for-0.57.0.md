@@ -24,7 +24,7 @@ Reading text files during configuration is now supported. This can be done at
 any time after `project` has been called
 
 ```meson
-project(myproject', 'c')
+project('myproject', 'c')
 license_text = run_command(
     find_program('python3'), '-c', 'print(open("COPYING").read())'
 ).stdout().strip()
@@ -42,7 +42,7 @@ There are several problems with the above approach:
 
 `fs.read` replaces the above idiom thus:
 ```meson
-project(myproject', 'c')
+project('myproject', 'c')
 fs = import('fs')
 license_text = fs.read('COPYING').strip()
 about_header = configuration_data()
