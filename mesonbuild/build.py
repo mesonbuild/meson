@@ -127,11 +127,13 @@ class DependencyOverride:
 class Headers:
 
     def __init__(self, sources: T.List[File], install_subdir: T.Optional[str],
-                 install_dir: T.Optional[str], install_mode: T.Optional['FileMode']):
+                 install_dir: T.Optional[str], install_mode: T.Optional['FileMode'],
+                 subproject: str):
         self.sources = sources
         self.install_subdir = install_subdir
         self.custom_install_dir = install_dir
         self.custom_install_mode = install_mode
+        self.subproject = subproject
 
     # TODO: we really don't need any of these methods, but they're preserved to
     # keep APIs relying on them working.
@@ -155,10 +157,11 @@ class Headers:
 class Man:
 
     def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
-                 install_mode: T.Optional['FileMode']):
+                 install_mode: T.Optional['FileMode'], subproject: str):
         self.sources = sources
         self.custom_install_dir = install_dir
         self.custom_install_mode = install_mode
+        self.subproject = subproject
 
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.custom_install_dir
@@ -175,7 +178,8 @@ class InstallDir:
     def __init__(self, src_subdir: str, inst_subdir: str, install_dir: str,
                  install_mode: T.Optional['FileMode'],
                  exclude: T.Tuple[T.Set[str], T.Set[str]],
-                 strip_directory: bool, from_source_dir: bool = True):
+                 strip_directory: bool, subproject: str,
+                 from_source_dir: bool = True):
         self.source_subdir = src_subdir
         self.installable_subdir = inst_subdir
         self.install_dir = install_dir
@@ -183,6 +187,7 @@ class InstallDir:
         self.exclude = exclude
         self.strip_directory = strip_directory
         self.from_source_dir = from_source_dir
+        self.subproject = subproject
 
 
 class Build:
@@ -2616,7 +2621,8 @@ class ConfigurationData:
 # during install.
 class Data:
     def __init__(self, sources: T.List[File], install_dir: str,
-                 install_mode: T.Optional['FileMode'] = None, rename: T.List[str] = None):
+                 install_mode: T.Optional['FileMode'], subproject: str,
+                 rename: T.List[str] = None):
         self.sources = sources
         self.install_dir = install_dir
         self.install_mode = install_mode
@@ -2624,6 +2630,7 @@ class Data:
             self.rename = [os.path.basename(f.fname) for f in self.sources]
         else:
             self.rename = rename
+        self.subproject = subproject
 
 class TestSetup:
     def __init__(self, exe_wrapper: T.Optional[T.List[str]], gdb: bool,

@@ -55,6 +55,7 @@ if T.TYPE_CHECKING:
         wd: str
         destdir: str
         dry_run: bool
+        skip_subprojects: str
 
 
 symlink_warning = '''Warning: trying to copy a symlink that points to a file. This will copy the file,
@@ -77,7 +78,9 @@ def add_arguments(parser: argparse.Namespace) -> None:
     parser.add_argument('--destdir', default=None,
                         help='Sets or overrides DESTDIR environment. (Since 0.57.0)')
     parser.add_argument('--dry-run', '-n', action='store_true',
-                        help='Doesn\'t actually install, but print logs.')
+                        help='Doesn\'t actually install, but print logs. (Since 0.57.0)')
+    parser.add_argument('--skip-subprojects', nargs='?', const='*', default='',
+                        help='Do not install files from given subprojects. (Since 0.58.0)')
 
 class DirMaker:
     def __init__(self, lf: T.TextIO, makedirs: T.Callable[..., None]):
@@ -284,6 +287,10 @@ class Installer:
         self.lf = lf
         self.preserved_file_count = 0
         self.dry_run = options.dry_run
+        # [''] means skip none,
+        # ['*'] means skip all,
+        # ['sub1', ...] means skip only those.
+        self.skip_subprojects = [i.strip() for i in options.skip_subprojects.split(',')]
 
     def mkdir(self, *args: T.Any, **kwargs: T.Any) -> None:
         if not self.dry_run:
@@ -351,6 +358,11 @@ class Installer:
         if not self.dry_run:
             return run_exe(*args, **kwargs)
         return 0
+
+    def install_subproject(self, subproject: str) -> bool:
+        if subproject and (subproject in self.skip_subprojects or '*' in self.skip_subprojects):
+            return False
+        return True
 
     def log(self, msg: str) -> None:
         if not self.options.quiet:
@@ -521,43 +533,48 @@ class Installer:
                 raise
 
     def install_subdirs(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
-        for (src_dir, dst_dir, mode, exclude) in d.install_subdirs:
+        for i in d.install_subdirs:
+            if not self.install_subproject(i.subproject):
+                continue
             self.did_install_something = True
-            full_dst_dir = get_destdir_path(destdir, fullprefix, dst_dir)
-            self.log('Installing subdir {} to {}'.format(src_dir, full_dst_dir))
+            full_dst_dir = get_destdir_path(destdir, fullprefix, i.install_path)
+            self.log('Installing subdir {} to {}'.format(i.path, full_dst_dir))
             dm.makedirs(full_dst_dir, exist_ok=True)
-            self.do_copydir(d, src_dir, full_dst_dir, exclude, mode, dm)
+            self.do_copydir(d, i.path, full_dst_dir, i.exclude, i.install_mode, dm)
 
     def install_data(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for i in d.data:
-            fullfilename = i[0]
-            outfilename = get_destdir_path(destdir, fullprefix, i[1])
-            mode = i[2]
+            if not self.install_subproject(i.subproject):
+                continue
+            fullfilename = i.path
+            outfilename = get_destdir_path(destdir, fullprefix, i.install_path)
             outdir = os.path.dirname(outfilename)
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            self.set_mode(outfilename, mode, d.install_umask)
+            self.set_mode(outfilename, i.install_mode, d.install_umask)
 
     def install_man(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for m in d.man:
-            full_source_filename = m[0]
-            outfilename = get_destdir_path(destdir, fullprefix, m[1])
+            if not self.install_subproject(m.subproject):
+                continue
+            full_source_filename = m.path
+            outfilename = get_destdir_path(destdir, fullprefix, m.install_path)
             outdir = os.path.dirname(outfilename)
-            install_mode = m[2]
             if self.do_copyfile(full_source_filename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            self.set_mode(outfilename, install_mode, d.install_umask)
+            self.set_mode(outfilename, m.install_mode, d.install_umask)
 
     def install_headers(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.headers:
-            fullfilename = t[0]
+            if not self.install_subproject(t.subproject):
+                continue
+            fullfilename = t.path
             fname = os.path.basename(fullfilename)
-            outdir = get_destdir_path(destdir, fullprefix, t[1])
+            outdir = get_destdir_path(destdir, fullprefix, t.install_path)
             outfilename = os.path.join(outdir, fname)
-            install_mode = t[2]
             if self.do_copyfile(fullfilename, outfilename, makedirs=(dm, outdir)):
                 self.did_install_something = True
-            self.set_mode(outfilename, install_mode, d.install_umask)
+            self.set_mode(outfilename, t.install_mode, d.install_umask)
 
     def run_install_script(self, d: InstallData, destdir: str, fullprefix: str) -> None:
         env = {'MESON_SOURCE_ROOT': d.source_dir,
@@ -570,6 +587,8 @@ class Installer:
             env['MESON_INSTALL_QUIET'] = '1'
 
         for i in d.install_scripts:
+            if not self.install_subproject(i.subproject):
+                continue
             name = ' '.join(i.cmd_args)
             if i.skip_if_destdir and destdir:
                 self.log('Skipping custom install script because DESTDIR is set {!r}'.format(name))
@@ -588,6 +607,8 @@ class Installer:
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
         for t in d.targets:
+            if not self.install_subproject(t.subproject):
+                continue
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
                 if t.optional:

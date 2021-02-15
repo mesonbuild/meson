@@ -22,7 +22,7 @@ from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
 from ..interpreterbase import stringArgs, permittedKwargs
-from ..interpreter import Interpreter, DependencyHolder, InstallDirHolder
+from ..interpreter import Interpreter, DependencyHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
@@ -212,9 +212,10 @@ class ExternalProject(InterpreterObject):
                                 install_mode=None,
                                 exclude=None,
                                 strip_directory=True,
-                                from_source_dir=False)
+                                from_source_dir=False,
+                                subproject=self.subproject)
 
-        return [self.target, InstallDirHolder(idir)]
+        return [self.target, idir]
 
     @stringArgs
     @permittedKwargs({'subdir'})

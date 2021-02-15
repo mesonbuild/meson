@@ -1966,7 +1966,9 @@ class MesonMain(InterpreterObject):
         else:
             m = 'Script or command {!r} not found or not executable'
             raise InterpreterException(m.format(prog))
-        return self.interpreter.backend.get_executable_serialisation([found] + args)
+        es = self.interpreter.backend.get_executable_serialisation([found] + args)
+        es.subproject = self.interpreter.subproject
+        return es
 
     def _process_script_args(
             self, name: str, args: T.List[T.Union[
@@ -2584,6 +2586,7 @@ class Interpreter(InterpreterBase):
             elif isinstance(v, build.GeneratedList):
                 pass
             elif isinstance(v, ExecutableSerialisation):
+                v.subproject = self.subproject
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
@@ -2593,8 +2596,9 @@ class Interpreter(InterpreterBase):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
-            elif isinstance(v, InstallDirHolder):
-                self.build.install_dirs.append(v.held_object)
+            elif isinstance(v, build.InstallDir):
+                self.build.install_dirs.append(v)
+                return InstallDirHolder(v)
             elif isinstance(v, Test):
                 self.build.tests.append(v)
             elif hasattr(v, 'held_object'):
@@ -4229,7 +4233,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if install_dir is not None and not isinstance(install_dir, str):
             raise InterpreterException('install_dir keyword argument must be a string if provided')
 
-        h = build.Headers(source_files, install_subdir, install_dir, install_mode)
+        h = build.Headers(source_files, install_subdir, install_dir, install_mode, self.subproject)
         self.build.headers.append(h)
 
         return HeadersHolder(h)
@@ -4250,7 +4254,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         if custom_install_dir is not None and not isinstance(custom_install_dir, str):
             raise InterpreterException('install_dir must be a string.')
 
-        m = build.Man(sources, custom_install_dir, custom_install_mode)
+        m = build.Man(sources, custom_install_dir, custom_install_mode, self.subproject)
         self.build.man.append(m)
 
         return ManHolder(m)
@@ -4350,7 +4354,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                     '"rename" and "sources" argument lists must be the same length if "rename" is given. '
                     f'Rename has {len(rename)} elements and sources has {len(sources)}.')
 
-        data = DataHolder(build.Data(sources, install_dir, install_mode, rename))
+        data = DataHolder(build.Data(sources, install_dir, install_mode, self.subproject, rename))
         self.build.data.append(data.held_object)
         return data
 
@@ -4397,7 +4401,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             exclude_directories = set()
         exclude = (exclude_files, exclude_directories)
         install_mode = self._get_kwarg_install_mode(kwargs)
-        idir = build.InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory)
+        idir = build.InstallDir(self.subdir, subdir, install_dir, install_mode, exclude, strip_directory, self.subproject)
         self.build.install_dirs.append(idir)
         return InstallDirHolder(idir)
 
@@ -4587,7 +4591,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                                            'is true')
             cfile = mesonlib.File.from_built_file(ofile_path, ofile_fname)
             install_mode = self._get_kwarg_install_mode(kwargs)
-            self.build.data.append(build.Data([cfile], idir, install_mode))
+            self.build.data.append(build.Data([cfile], idir, install_mode, self.subproject))
         return mesonlib.File.from_built_file(self.subdir, output)
 
     def extract_incdirs(self, kwargs):

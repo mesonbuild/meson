@@ -110,14 +110,14 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             for alias in t.aliases.keys():
                 res[os.path.join(installdata.build_dir, alias)] = \
                     os.path.join(installdata.prefix, t.outdir, os.path.basename(alias))
-        for path, installpath, _ in installdata.data:
-            res[path] = os.path.join(installdata.prefix, installpath)
-        for path, installdir, _ in installdata.headers:
-            res[path] = os.path.join(installdata.prefix, installdir, os.path.basename(path))
-        for path, installpath, _ in installdata.man:
-            res[path] = os.path.join(installdata.prefix, installpath)
-        for path, installpath, _, _ in installdata.install_subdirs:
-            res[path] = os.path.join(installdata.prefix, installpath)
+        for i in installdata.data:
+            res[i.path] = os.path.join(installdata.prefix, i.install_path)
+        for i in installdata.headers:
+            res[i.path] = os.path.join(installdata.prefix, i.install_path, os.path.basename(i.path))
+        for i in installdata.man:
+            res[i.path] = os.path.join(installdata.prefix, i.install_path)
+        for i in installdata.install_subdirs:
+            res[i.path] = os.path.join(installdata.prefix, i.install_path)
     return res
 
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:

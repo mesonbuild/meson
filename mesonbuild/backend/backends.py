@@ -23,7 +23,6 @@ import pickle
 import re
 import typing as T
 import hashlib
-import copy
 
 from .. import build
 from .. import dependencies
@@ -100,20 +99,18 @@ class InstallData:
         self.strip_bin = strip_bin
         self.install_umask = install_umask
         self.targets: T.List[TargetInstallData] = []
-        self.headers: 'InstallType' = []
-        self.man: 'InstallType' = []
-        self.data: 'InstallType' = []
-        self.po_package_name: str = ''
-        self.po = []
+        self.headers: T.List[InstallDataBase] = []
+        self.man: T.List[InstallDataBase] = []
+        self.data: T.List[InstallDataBase] = []
         self.install_scripts: T.List[ExecutableSerialisation] = []
-        self.install_subdirs: 'InstallSubdirsType' = []
+        self.install_subdirs: T.List[SubdirInstallData] = []
         self.mesonintrospect = mesonintrospect
         self.version = version
 
 class TargetInstallData:
     def __init__(self, fname: str, outdir: str, aliases: T.Dict[str, str], strip: bool,
                  install_name_mappings: T.Dict, rpath_dirs_to_remove: T.Set[bytes],
-                 install_rpath: str, install_mode: 'FileMode', optional: bool = False):
+                 install_rpath: str, install_mode: 'FileMode', subproject: str, optional: bool = False):
         self.fname = fname
         self.outdir = outdir
         self.aliases = aliases
@@ -122,7 +119,20 @@ class TargetInstallData:
         self.rpath_dirs_to_remove = rpath_dirs_to_remove
         self.install_rpath = install_rpath
         self.install_mode = install_mode
+        self.subproject = subproject
         self.optional = optional
+
+class InstallDataBase:
+    def __init__(self, path: str, install_path: str, install_mode: 'FileMode', subproject: str):
+        self.path = path
+        self.install_path = install_path
+        self.install_mode = install_mode
+        self.subproject = subproject
+
+class SubdirInstallData(InstallDataBase):
+    def __init__(self, path: str, install_path: str, install_mode: 'FileMode', exclude, subproject: str):
+        super().__init__(path, install_path, install_mode, subproject)
+        self.exclude = exclude
 
 class ExecutableSerialisation:
     def __init__(self, cmd_args, env: T.Optional[build.EnvironmentVariables] = None, exe_wrapper=None,
@@ -138,6 +148,7 @@ class ExecutableSerialisation:
         self.pickled = False
         self.skip_if_destdir = False
         self.verbose = False
+        self.subproject = ''
 
 class TestSerialisation:
     def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
@@ -972,7 +983,7 @@ class Backend:
         with open(ifilename, 'w') as f:
             f.write(json.dumps(mfobj))
         # Copy file from, to, and with mode unchanged
-        d.data.append((ifilename, ofilename, None))
+        d.data.append(InstallDataBase(ifilename, ofilename, None, ''))
 
     def get_regen_filelist(self):
         '''List of all files whose alteration means that the build
@@ -1297,7 +1308,7 @@ class Backend:
                     i = TargetInstallData(self.get_target_filename(t), outdirs[0],
                                           t.get_aliases(), should_strip, mappings,
                                           t.rpath_dirs_to_remove,
-                                          t.install_rpath, install_mode)
+                                          t.install_rpath, install_mode, t.subproject)
                     d.targets.append(i)
 
                     if isinstance(t, (build.SharedLibrary, build.SharedModule, build.Executable)):
@@ -1315,14 +1326,15 @@ class Backend:
                             # Install the import library; may not exist for shared modules
                             i = TargetInstallData(self.get_target_filename_for_linking(t),
                                                   implib_install_dir, {}, False, {}, set(), '', install_mode,
-                                                  optional=isinstance(t, build.SharedModule))
+                                                  t.subproject, optional=isinstance(t, build.SharedModule))
                             d.targets.append(i)
 
                         if not should_strip and t.get_debug_filename():
                             debug_file = os.path.join(self.get_target_dir(t), t.get_debug_filename())
                             i = TargetInstallData(debug_file, outdirs[0],
                                                   {}, False, {}, set(), '',
-                                                  install_mode, optional=True)
+                                                  install_mode, t.subproject,
+                                                  optional=True)
                             d.targets.append(i)
                 # Install secondary outputs. Only used for Vala right now.
                 if num_outdirs > 1:
@@ -1331,7 +1343,8 @@ class Backend:
                         if outdir is False:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
-                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode)
+                        i = TargetInstallData(f, outdir, {}, False, {}, set(), None,
+                                              install_mode, t.subproject)
                         d.targets.append(i)
             elif isinstance(t, build.CustomTarget):
                 # If only one install_dir is specified, assume that all
@@ -1345,7 +1358,7 @@ class Backend:
                     for output in t.get_outputs():
                         f = os.path.join(self.get_target_dir(t), output)
                         i = TargetInstallData(f, outdirs[0], {}, False, {}, set(), None, install_mode,
-                                              optional=not t.build_by_default)
+                                              t.subproject, optional=not t.build_by_default)
                         d.targets.append(i)
                 else:
                     for output, outdir in zip(t.get_outputs(), outdirs):
@@ -1354,23 +1367,11 @@ class Backend:
                             continue
                         f = os.path.join(self.get_target_dir(t), output)
                         i = TargetInstallData(f, outdir, {}, False, {}, set(), None, install_mode,
-                                              optional=not t.build_by_default)
+                                              t.subproject, optional=not t.build_by_default)
                         d.targets.append(i)
 
     def generate_custom_install_script(self, d: InstallData) -> None:
-        result: T.List[ExecutableSerialisation] = []
-        srcdir = self.environment.get_source_dir()
-        builddir = self.environment.get_build_dir()
-        for i in self.build.install_scripts:
-            fixed_args = []
-            for a in i.cmd_args:
-                a = a.replace('@SOURCE_ROOT@', srcdir)
-                a = a.replace('@BUILD_ROOT@', builddir)
-                fixed_args.append(a)
-            es = copy.copy(i)
-            es.cmd_args = fixed_args
-            result.append(es)
-        d.install_scripts = result
+        d.install_scripts = self.build.install_scripts
 
     def generate_header_install(self, d: InstallData) -> None:
         incroot = self.environment.get_includedir()
@@ -1387,7 +1388,7 @@ class Backend:
                     msg = 'Invalid header type {!r} can\'t be installed'
                     raise MesonException(msg.format(f))
                 abspath = f.absolute_path(srcdir, builddir)
-                i = (abspath, outdir, h.get_custom_install_mode())
+                i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject)
                 d.headers.append(i)
 
     def generate_man_install(self, d: InstallData) -> None:
@@ -1401,7 +1402,7 @@ class Backend:
                     subdir = os.path.join(manroot, 'man' + num)
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
                 dstabs = os.path.join(subdir, os.path.basename(f.fname))
-                i = (srcabs, dstabs, m.get_custom_install_mode())
+                i = InstallDataBase(srcabs, dstabs, m.get_custom_install_mode(), m.subproject)
                 d.man.append(i)
 
     def generate_data_install(self, d: InstallData):
@@ -1416,7 +1417,7 @@ class Backend:
             for src_file, dst_name in zip(de.sources, de.rename):
                 assert(isinstance(src_file, mesonlib.File))
                 dst_abs = os.path.join(subdir, dst_name)
-                i = (src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode)
+                i = InstallDataBase(src_file.absolute_path(srcdir, builddir), dst_abs, de.install_mode, de.subproject)
                 d.data.append(i)
 
     def generate_subdir_install(self, d: InstallData) -> None:
@@ -1432,8 +1433,8 @@ class Backend:
                                    sd.install_dir)
             if not sd.strip_directory:
                 dst_dir = os.path.join(dst_dir, os.path.basename(src_dir))
-            d.install_subdirs.append(
-                (src_dir, dst_dir, sd.install_mode, sd.exclude))
+            i = SubdirInstallData(src_dir, dst_dir, sd.install_mode, sd.exclude, sd.subproject)
+            d.install_subdirs.append(i)
 
     def get_introspection_data(self, target_id: str, target: build.Target) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
         '''
