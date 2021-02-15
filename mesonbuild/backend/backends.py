@@ -406,6 +406,7 @@ class Backend:
                                            self.get_target_private_dir(target),
                                            target.depfile,
                                            target.absolute_paths or workdir is not None)
+        target.backend_command = cmd_args
         return self._get_executable_serialisation(target.command[0], cmd_args,
                                                   extra_bdeps=target.get_transitive_build_target_deps(),
                                                   capture=outputs[0] if target.capture else None,
@@ -1448,18 +1449,7 @@ class Backend:
 
             compiler = []
             if isinstance(target, build.CustomTarget):
-                tmp_compiler = target.command
-                if not isinstance(compiler, list):
-                    tmp_compiler = [compiler]
-                for j in tmp_compiler:
-                    if isinstance(j, mesonlib.File):
-                        compiler += [j.absolute_path(self.source_dir, self.build_dir)]
-                    elif isinstance(j, str):
-                        compiler += [j]
-                    elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
-                        compiler += j.get_outputs()
-                    else:
-                        raise RuntimeError('Type "{}" is not supported in get_introspection_data. This is a bug'.format(type(j).__name__))
+                compiler = target.backend_command
 
             return [{
                 'language': 'unknown',
