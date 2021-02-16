@@ -512,7 +512,7 @@ class Installer:
                     self.log('Preserved {} unchanged files, see {} for the full list'
                              .format(self.preserved_file_count, os.path.normpath(self.lf.name)))
         except PermissionError:
-            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ and destdir is None:
+            if shutil.which('pkexec') is not None and 'PKEXEC_UID' not in os.environ and destdir == '':
                 print('Installation failed due to insufficient permissions.')
                 print('Attempting to use polkit to gain elevated privileges...')
                 os.execlp('pkexec', 'pkexec', sys.executable, main_file, *sys.argv[1:],
