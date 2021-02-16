@@ -2530,12 +2530,12 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         # Run tests without setup
         self.run_tests()
-        with open(os.path.join(self.logdir, 'testlog.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog.txt'), encoding='utf-8') as f:
             basic_log = f.read()
         # Run buggy test with setup that has env that will make it fail
         self.assertRaises(subprocess.CalledProcessError,
                           self._run, self.mtest_command + ['--setup=valgrind'])
-        with open(os.path.join(self.logdir, 'testlog-valgrind.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog-valgrind.txt'), encoding='utf-8') as f:
             vg_log = f.read()
         self.assertFalse('TEST_ENV is set' in basic_log)
         self.assertFalse('Memcheck' in basic_log)
@@ -2555,12 +2555,12 @@ class AllPlatformTests(BasePlatformTests):
         self._run(self.mtest_command + ['--setup=timeout', '--wrapper', shutil.which('valgrind')])
         # Setup that skips test works
         self._run(self.mtest_command + ['--setup=good'])
-        with open(os.path.join(self.logdir, 'testlog-good.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog-good.txt'), encoding='utf-8') as f:
             exclude_suites_log = f.read()
         self.assertFalse('buggy' in exclude_suites_log)
         # --suite overrides add_test_setup(xclude_suites)
         self._run(self.mtest_command + ['--setup=good', '--suite', 'buggy'])
-        with open(os.path.join(self.logdir, 'testlog-good.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog-good.txt'), encoding='utf-8') as f:
             include_suites_log = f.read()
         self.assertTrue('buggy' in include_suites_log)
 
@@ -2596,17 +2596,17 @@ class AllPlatformTests(BasePlatformTests):
 
         # Run tests without --setup will cause the default setup to be used
         self.run_tests()
-        with open(os.path.join(self.logdir, 'testlog.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog.txt'), encoding='utf-8') as f:
             default_log = f.read()
 
         # Run tests with explicitly using the same setup that is set as default
         self._run(self.mtest_command + ['--setup=mydefault'])
-        with open(os.path.join(self.logdir, 'testlog-mydefault.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog-mydefault.txt'), encoding='utf-8') as f:
             mydefault_log = f.read()
 
         # Run tests with another setup
         self._run(self.mtest_command + ['--setup=other'])
-        with open(os.path.join(self.logdir, 'testlog-other.txt')) as f:
+        with open(os.path.join(self.logdir, 'testlog-other.txt'), encoding='utf-8') as f:
             other_log = f.read()
 
         self.assertTrue('ENV_A is 1' in default_log)
