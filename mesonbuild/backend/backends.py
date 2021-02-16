@@ -1153,6 +1153,8 @@ class Backend:
                     i = i.replace('@SOURCE_ROOT@', source_root)
                 if '@BUILD_ROOT@' in i:
                     i = i.replace('@BUILD_ROOT@', build_root)
+                if '@CURRENT_SOURCE_DIR@' in i:
+                    i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
                 if '@DEPFILE@' in i:
                     if target.depfile is None:
                         msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
