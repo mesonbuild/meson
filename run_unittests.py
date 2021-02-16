@@ -3769,7 +3769,7 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env()
         for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
             try:
-                comp = getattr(env, f'detect_{l}_compiler')(MachineChoice.HOST)
+                comp = env.detect_compiler_for(l, MachineChoice.HOST)
                 with tempfile.TemporaryDirectory() as d:
                     comp.sanity_check(d, env)
                 langs.append(l)
