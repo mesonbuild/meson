@@ -402,6 +402,13 @@ the following special string substitutions:
 - `@PLAINNAME@`: the input filename, without a path
 - `@BASENAME@`: the input filename, with extension removed
 - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
+- `@SOURCE_ROOT@`: the path to the root of the source tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@BUILD_ROOT@`: the path to the root of the build tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@CURRENT_SOURCE_DIR@`: this is the directory where the currently
+  processed meson.build is located in.  Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
 
 *(since 0.47.0)* The `depfile` keyword argument also accepts the
  `@BASENAME@` and `@PLAINNAME@` substitutions.
@@ -1521,6 +1528,16 @@ and subdirectory the target was defined in, respectively.
   `{'NAME1': 'value1', 'NAME2': 'value2'}` or `['NAME1=value1', 'NAME2=value2']`,
   or an [`environment()` object](#environment-object) which allows more
   sophisticated environment juggling.
+
+*Since 0.57.0* The template strings passed to `command` keyword arguments accept
+the following special substitutions:
+- `@SOURCE_ROOT@`: the path to the root of the source tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@BUILD_ROOT@`: the path to the root of the build tree. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
+- `@CURRENT_SOURCE_DIR@` *Since 0.57.1*: this is the directory where the currently
+  processed meson.build is located in. Depending on the backend,
+  this may be an absolute or a relative to current workdir path.
 
 ### set_variable()
 
