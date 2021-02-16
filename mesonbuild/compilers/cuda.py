@@ -14,6 +14,7 @@
 
 import enum
 import os.path
+import string
 import typing as T
 
 from .. import coredata
@@ -184,6 +185,80 @@ class CudaCompiler(Compiler):
         self.warn_args = {level: self._to_host_flags(flags) for level, flags in host_compiler.warn_args.items()}
 
     @classmethod
+    def _shield_nvcc_list_arg(cls, arg: str, listmode: bool=True) -> str:
+        """
+        Shield an argument against both splitting by NVCC's list-argument
+        parse logic, and interpretation by any shell.
+
+        NVCC seems to consider every comma , that is neither escaped by \ nor inside
+        a double-quoted string a split-point. Single-quotes do not provide protection
+        against splitting; In fact, after splitting they are \-escaped. Unfortunately,
+        double-quotes don't protect against shell expansion. What follows is a
+        complex dance to accomodate everybody.
+        """
+
+        SQ = "'"
+        DQ = '"'
+        CM = ","
+        BS = "\\"
+        DQSQ = DQ+SQ+DQ
+        quotable = set(string.whitespace+'"$`\\')
+
+        if CM not in arg or not listmode:
+            if SQ not in arg:
+                # If any of the special characters "$`\ or whitespace are present, single-quote.
+                # Otherwise return bare.
+                if set(arg).intersection(quotable):
+                    return SQ+arg+SQ
+                else:
+                    return arg # Easy case: no splits, no quoting.
+            else:
+                # There are single quotes. Double-quote them, and single-quote the
+                # strings between them.
+                l = [cls._shield_nvcc_list_arg(s) for s in arg.split(SQ)]
+                l = sum([[s, DQSQ] for s in l][:-1], [])  # Interleave l with DQSQs
+
+                # The list l now has the structure of shielded strings interleaved
+                # with double-quoted single-quotes.
+                #
+                # Plain concatenation would result in the tripling of the length of
+                # a string made up only of single quotes. See if we can merge some
+                # DQSQs together first.
+                def isdqsq(x:str) -> bool:
+                    return x.startswith(SQ) and x.endswith(SQ) and x[1:-1].strip(SQ) == ''
+                for i in range(1, len(l)-2, 2):
+                    if isdqsq(l[i]) and l[i+1] == '' and isdqsq(l[i+2]):
+                        l[i+2] = l[i][:-1]+l[i+2][1:]
+                        l[i]   = ''
+
+                # With DQSQs merged, simply concatenate everything together and return.
+                return ''.join(l)
+        else:
+            # A comma is present, and list mode was active.
+            # We apply (what we guess is) the (primitive) NVCC splitting rule:
+            l = ['']
+            instring = False
+            argit = iter(arg)
+            for c in argit:
+                if   c == CM and not instring:
+                    l.append('')
+                elif c == DQ:
+                    l[-1] += c
+                    instring = not instring
+                elif c == BS:
+                    try:
+                        l[-1] += next(argit)
+                    except StopIteration:
+                        break
+                else:
+                    l[-1] += c
+
+            # Shield individual strings, without listmode, then return them with
+            # escaped commas between them.
+            l = [cls._shield_nvcc_list_arg(s, listmode=False) for s in l]
+            return '\,'.join(l)
+
+    @classmethod
     def _to_host_flags(cls, flags: T.List[str], phase: _Phase = _Phase.COMPILER) -> T.List[str]:
         """
         Translate generic "GCC-speak" plus particular "NVCC-speak" flags to NVCC flags.
@@ -298,26 +373,21 @@ class CudaCompiler(Compiler):
                 # wrap this argument in an -Xcompiler flag and send it down to NVCC.
                 if   flag == '-ffast-math':
                     xflags.append('-use_fast_math')
-                    xflags.append('-Xcompiler')
-                    xflags.append(flag)
+                    xflags.append('-Xcompiler='+flag)
                 elif flag == '-fno-fast-math':
                     xflags.append('-ftz=false')
                     xflags.append('-prec-div=true')
                     xflags.append('-prec-sqrt=true')
-                    xflags.append('-Xcompiler')
-                    xflags.append(flag)
+                    xflags.append('-Xcompiler='+flag)
                 elif flag == '-freciprocal-math':
                     xflags.append('-prec-div=false')
-                    xflags.append('-Xcompiler')
-                    xflags.append(flag)
+                    xflags.append('-Xcompiler='+flag)
                 elif flag == '-fno-reciprocal-math':
                     xflags.append('-prec-div=true')
-                    xflags.append('-Xcompiler')
-                    xflags.append(flag)
+                    xflags.append('-Xcompiler='+flag)
                 else:
-                    xflags.append('-Xcompiler')
-                    xflags.append(f'"{flag}"' if ',' in flag else flag)
-                    # The above shields -Wl, -Wa, -Wp arguments against splitting.
+                    xflags.append('-Xcompiler='+cls._shield_nvcc_list_arg(flag))
+                    # The above should securely handle GCC's -Wl, -Wa, -Wp, arguments.
                 continue
 
 
@@ -336,11 +406,11 @@ class CudaCompiler(Compiler):
                 # -U because it isn't possible to define a macro with a comma in the name.
                 # -U with comma arguments is impossible in GCC-speak (and thus unambiguous
                 #in NVCC-speak, albeit unportable).
-                if flag in {'-I','-L','-l'}:
-                    xflags.append(flag+f'"{val}"' if ',' in val else flag+val)
+                if len(flag) == 2:
+                    xflags.append(flag+cls._shield_nvcc_list_arg(val))
                 else:
                     xflags.append(flag)
-                    xflags.append(f'"{val}"' if ',' in val else val)
+                    xflags.append(cls._shield_nvcc_list_arg(val))
             elif flag == '-O':
                 # Handle optimization levels GCC knows about that NVCC does not.
                 if   val == 'fast':
