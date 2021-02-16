@@ -439,7 +439,7 @@ class CudaCompiler(Compiler):
     def thread_link_flags(self, environment: 'Environment') -> T.List[str]:
         return self._to_host_flags(self.host_compiler.thread_link_flags(environment), _Phase.LINKER)
 
-    def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
+    def sanity_check(self, work_dir: str, env: 'Environment') -> None:
         mlog.debug('Sanity testing ' + self.get_display_language() + ' compiler:', ' '.join(self.exelist))
         mlog.debug('Is cross compiler: %s.' % str(self.is_cross))
 
@@ -483,7 +483,18 @@ class CudaCompiler(Compiler):
         # environment set up properly. Of course, this only works for native
         # builds; For cross builds we must still use the exe_wrapper (if any).
         self.detected_cc = ''
-        flags = ['-w', '-cudart', 'static', source_name]
+        flags = []
+
+        # Disable warnings, compile with statically-linked runtime for minimum
+        # reliance on the system.
+        flags += ['-w', '-cudart', 'static', source_name]
+
+        # Use the -ccbin option, if available, even during sanity checking.
+        # Otherwise, on systems where CUDA does not support the default compiler,
+        # NVCC becomes unusable.
+        flags += self.get_ccbin_args(env.coredata.options)
+
+        # If cross-compiling, we can't run the sanity check, only compile it.
         if self.is_cross and self.exe_wrapper is None:
             # Linking cross built apps is painful. You can't really
             # tell if you should use -nostdlib or not and for example
@@ -563,10 +574,14 @@ class CudaCompiler(Compiler):
 
     def get_options(self) -> 'KeyedOptionDictType':
         opts = super().get_options()
-        key = OptionKey('std', machine=self.for_machine, lang=self.language)
-        opts.update({key: coredata.UserComboOption('C++ language standard to use with cuda',
-                                                     ['none', 'c++03', 'c++11', 'c++14'],
-                                                     'none')})
+        std_key      = OptionKey('std',      machine=self.for_machine, lang=self.language)
+        ccbindir_key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
+        opts.update({
+            std_key:      coredata.UserComboOption('C++ language standard to use with CUDA',
+                                                   ['none', 'c++03', 'c++11', 'c++14', 'c++17'], 'none'),
+            ccbindir_key: coredata.UserStringOption('CUDA non-default toolchain directory to use (-ccbin)',
+                                                    ''),
+        })
         return opts
 
     def _to_host_compiler_options(self, options: 'KeyedOptionDictType') -> 'KeyedOptionDictType':
@@ -574,7 +589,7 @@ class CudaCompiler(Compiler):
         return OptionOverrideProxy(overrides, self.host_compiler.get_options())
 
     def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        args = []
+        args = self.get_ccbin_args(options)
         # On Windows, the version of the C++ standard used by nvcc is dictated by
         # the combination of CUDA version and MSVC version; the --std= is thus ignored
         # and attempting to use it will result in a warning: https://stackoverflow.com/a/51272091/741027
@@ -587,7 +602,8 @@ class CudaCompiler(Compiler):
         return args + self._to_host_flags(self.host_compiler.get_option_compile_args(self._to_host_compiler_options(options)))
 
     def get_option_link_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
-        return self._to_host_flags(self.host_compiler.get_option_link_args(self._to_host_compiler_options(options)), _Phase.LINKER)
+        args = self.get_ccbin_args(options)
+        return args + self._to_host_flags(self.host_compiler.get_option_link_args(self._to_host_compiler_options(options)), _Phase.LINKER)
 
     def get_soname_args(self, env: 'Environment', prefix: str, shlib_name: str,
                         suffix: str, soversion: str,
@@ -688,3 +704,11 @@ class CudaCompiler(Compiler):
 
     def get_dependency_link_args(self, dep: 'Dependency') -> T.List[str]:
         return self._to_host_flags(super().get_dependency_link_args(dep), _Phase.LINKER)
+
+    def get_ccbin_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        key = OptionKey('ccbindir', machine=self.for_machine, lang=self.language)
+        ccbindir = options[key].value
+        if isinstance(ccbindir, str) and ccbindir != '':
+            return [self._shield_nvcc_list_arg('-ccbin='+ccbindir, False)]
+        else:
+            return []
