@@ -216,8 +216,8 @@ class Conf:
         self.print_options('Core options', host_core_options[''])
         if show_build_options:
             self.print_options('', build_core_options[''])
-        self.print_options('Backend options', {str(k): v for k, v in self.coredata.options.items()})
-        self.print_options('Base options', {str(k): v for k, v in self.coredata.options.items()})
+        self.print_options('Backend options', {str(k): v for k, v in self.coredata.options.items() if k.is_backend()})
+        self.print_options('Base options', {str(k): v for k, v in self.coredata.options.items() if k.is_base()})
         self.print_options('Compiler options', host_compiler_options.get('', {}))
         if show_build_options:
             self.print_options('', build_compiler_options.get('', {}))
