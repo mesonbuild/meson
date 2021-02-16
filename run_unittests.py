@@ -5491,6 +5491,11 @@ class AllPlatformTests(BasePlatformTests):
         self.init(srcdir, override_envvars=envs)
         self.build()
 
+    def test_build_b_options(self) -> None:
+        # Currently (0.57) these do nothing, but they've always been allowed
+        srcdir = os.path.join(self.common_test_dir, '2 cpp')
+        self.init(srcdir, extra_args=['-Dbuild.b_lto=true'])
+
 
 class FailureTests(BasePlatformTests):
     '''
