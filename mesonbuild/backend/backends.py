@@ -1207,6 +1207,9 @@ class Backend:
                     i = i.replace('@DEPFILE@', dfilename)
                 if '@PRIVATE_DIR@' in i:
                     i = i.replace('@PRIVATE_DIR@', pdir)
+                if '@CURRENT_SOURCE_DIR@' in i:
+                    source_dir = os.path.join(source_root, subdir)
+                    i = i.replace('@CURRENT_SOURCE_DIR@', source_dir)
             else:
                 err_msg = 'Argument {0} is of unknown type {1}'
                 raise RuntimeError(err_msg.format(str(i), str(type(i))))
