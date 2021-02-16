@@ -29,9 +29,9 @@ if T.TYPE_CHECKING:
     from ...dependencies import Dependency  # noqa: F401
 
 clang_color_args = {
-    'auto': ['-Xclang', '-fcolor-diagnostics'],
-    'always': ['-Xclang', '-fcolor-diagnostics'],
-    'never': ['-Xclang', '-fno-color-diagnostics'],
+    'auto': ['-fcolor-diagnostics'],
+    'always': ['-fcolor-diagnostics'],
+    'never': ['-fno-color-diagnostics'],
 }  # type: T.Dict[str, T.List[str]]
 
 clang_optimization_args = {
