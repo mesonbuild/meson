@@ -148,6 +148,10 @@ class ClangCompiler(GnuLikeCompiler):
         else:
             assert mode == 'default', 'someone forgot to wire something up'
             args.extend(super().get_lto_compile_args(threads=threads))
+        return args
+
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
+        args = self.get_lto_compile_args(threads=threads, mode=mode)
         # In clang -flto=0 means auto
         if threads >= 0:
             args.append(f'-flto-jobs={threads}')
