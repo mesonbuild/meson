@@ -2476,13 +2476,10 @@ class Interpreter(InterpreterBase):
 
     # TODO: Why is this in interpreter.py and not CoreData or Environment?
     def get_non_matching_default_options(self) -> T.Iterator[T.Tuple[str, str, coredata.UserOption]]:
-        env = self.environment
         for def_opt_name, def_opt_value in self.project_default_options.items():
             cur_opt_value = self.coredata.options.get(def_opt_name)
-            if cur_opt_value is not None:
-                def_opt_value = env.coredata.validate_option_value(def_opt_name, def_opt_value)
-                if def_opt_value != cur_opt_value.value:
-                    yield (str(def_opt_name), def_opt_value, cur_opt_value)
+            if cur_opt_value is not None and def_opt_value != cur_opt_value.value:
+                yield (str(def_opt_name), def_opt_value, cur_opt_value)
 
     def build_func_dict(self):
         self.funcs.update({'add_global_arguments': self.func_add_global_arguments,
