@@ -939,7 +939,9 @@ int dummy;
 
     def generate_custom_target(self, target):
         self.custom_target_generator_inputs(target)
-        (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
+        self.check_custom_target_command(target)
+        srcs = target.backend_inputs
+        ofilenames = target.backend_outputs
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
         desc = 'Generating {0} with a custom command{1}'
@@ -956,10 +958,7 @@ int dummy;
             for output in d.get_outputs():
                 elem.add_dep(os.path.join(self.get_target_dir(d), output))
 
-        cmd, reason = self.as_meson_exe_cmdline(target.name, target.command[0], cmd[1:],
-                                                extra_bdeps=target.get_transitive_build_target_deps(),
-                                                capture=ofilenames[0] if target.capture else None,
-                                                env=target.env)
+        cmd, reason = self.as_meson_exe_cmdline(target.backend_es, target.name)
         if reason:
             cmd_type = ' (wrapped by meson {})'.format(reason)
         else:
@@ -991,14 +990,11 @@ int dummy;
             # other targets.
             elem = NinjaBuildElement(self.all_outputs, target_name, 'phony', [])
         else:
-            target_env = self.get_run_target_env(target)
-            _, _, cmd = self.eval_custom_target_command(target)
-            desc = 'Running external command {}{}'
-            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, target.command[0], cmd[1:],
-                                                              force_serialize=True, env=target_env,
-                                                              verbose=True)
+            self.check_run_target_command(target)
+            meson_exe_cmd, reason = self.as_meson_exe_cmdline(target.backend_es, target_name)
             cmd_type = ' (wrapped by meson {})'.format(reason)
             internal_target_name = 'meson-{}'.format(target_name)
+            desc = 'Running external command {}{}'
             elem = NinjaBuildElement(self.all_outputs, internal_target_name, 'CUSTOM_COMMAND', [])
             elem.add_item('COMMAND', meson_exe_cmd)
             elem.add_item('description', desc.format(target.name, cmd_type))
@@ -2100,9 +2096,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                 outfilelist = outfilelist[len(generator.outputs):]
             args = self.replace_paths(target, args, override_subdir=subdir)
             cmdlist = exe_arr + self.replace_extra_args(args, genlist)
-            cmdlist, reason = self.as_meson_exe_cmdline('generator ' + cmdlist[0],
-                                                        cmdlist[0], cmdlist[1:],
-                                                        capture=outfiles[0] if generator.capture else None)
+            es = self.get_executable_serialisation_for_generator(generator, [infilename], [sole_output], cmdlist)
+            cmdlist, reason = self.as_meson_exe_cmdline(es, 'generator ' + cmdlist[0])
             abs_pdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(target))
             os.makedirs(abs_pdir, exist_ok=True)
 

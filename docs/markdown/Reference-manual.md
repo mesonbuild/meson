@@ -402,6 +402,7 @@ the following special string substitutions:
 - `@PLAINNAME@`: the input filename, without a path
 - `@BASENAME@`: the input filename, with extension removed
 - `@PRIVATE_DIR@` *(since 0.50.1)*: path to a directory where the custom target must store all its intermediate files.
+- `@CURRENT_SOURCE_DIR@` *(since 0.58.0)*: this is the directory where the currently processed meson.build is located in
 
 *(since 0.47.0)* The `depfile` keyword argument also accepts the
  `@BASENAME@` and `@PLAINNAME@` substitutions.
@@ -1522,6 +1523,12 @@ and subdirectory the target was defined in, respectively.
   or an [`environment()` object](#environment-object) which allows more
   sophisticated environment juggling.
 
+*Since 0.58.0* The template strings passed to `command` keyword arguments accept
+the following special substitutions:
+- `@SOURCE_DIR@`: the full path to the root of the source tree
+- `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
+- `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
+
 ### set_variable()
 
 ``` meson
@@ -1862,6 +1869,12 @@ the following methods.
   *(since 0.57.0)* `file` objects and the output of `configure_file` may be
   used as the `script_name` parameter.
 
+  *Since 0.58.0* The template strings passed to `command` keyword arguments accept
+  the following special substitutions:
+  * `@SOURCE_DIR@`: the full path to the root of the source tree
+  * `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
+  * `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
+
 - `add_install_script(script_name, arg1, arg2, ...)`: causes the script
   given as an argument to be run during the install step, this script
   will have the environment variables `MESON_SOURCE_ROOT`,
@@ -1905,6 +1918,12 @@ the following methods.
   shell would. If your script uses Python, `shlex.split()` is the
   easiest correct way to do this.
 
+  *Since 0.58.0* The template strings passed to `command` keyword arguments accept
+  the following special substitutions:
+  * `@SOURCE_DIR@`: the full path to the root of the source tree
+  * `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
+  * `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
+
 - `add_postconf_script(script_name, arg1, arg2, ...)`: runs the
   executable given as an argument after all project files have been
   generated. This script will have the environment variables
@@ -1915,6 +1934,12 @@ the following methods.
 
   *(since 0.57.0)* `file` objects and the output of `configure_file` may be
   *used as the `script_name` parameter.
+
+  *Since 0.58.0* The template strings passed to `command` keyword arguments accept
+  the following special substitutions:
+  * `@SOURCE_DIR@`: the full path to the root of the source tree
+  * `@CURRENT_SOURCE_DIR@`: this is the directory where the currently processed meson.build is located in
+  * `@BUILD_DIR@`: the full path to the root of the build dir where the output will be placed
 
 - `backend()` *(since 0.37.0)*: returns a string representing the
   current backend: `ninja`, `vs2010`, `vs2015`, `vs2017`, `vs2019`,

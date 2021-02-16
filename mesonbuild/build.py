@@ -1592,6 +1592,7 @@ class GeneratedList:
         self.depend_files = []
         self.preserve_path_from = preserve_path_from
         self.extra_args = extra_args if extra_args is not None else []
+        self.absolute_paths = False
         if isinstance(self.generator.exe, dependencies.ExternalProgram):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
@@ -2149,15 +2150,11 @@ class SharedModule(SharedLibrary):
         return environment.get_shared_module_dir()
 
 class CommandBase:
-    def flatten_command(self, cmd):
-        cmd = unholder(listify(cmd))
-        final_cmd = []
-        for c in cmd:
-            if isinstance(c, str):
-                final_cmd.append(c)
-            elif isinstance(c, File):
+    def set_command(self, cmd):
+        self.command = unholder(listify(cmd))
+        for c in self.command:
+            if isinstance(c, File):
                 self.depend_files.append(c)
-                final_cmd.append(c)
             elif isinstance(c, dependencies.ExternalProgram):
                 if not c.found():
                     raise InvalidArguments('Tried to use not-found external program in "command"')
@@ -2166,15 +2163,8 @@ class CommandBase:
                     # Can only add a dependency on an external program which we
                     # know the absolute path of
                     self.depend_files.append(File.from_absolute_file(path))
-                final_cmd += c.get_command()
             elif isinstance(c, (BuildTarget, CustomTarget)):
                 self.dependencies.append(c)
-                final_cmd.append(c)
-            elif isinstance(c, list):
-                final_cmd += self.flatten_command(c)
-            else:
-                raise InvalidArguments('Argument {!r} in "command" is invalid'.format(c))
-        return final_cmd
 
 class CustomTarget(Target, CommandBase):
     known_kwargs = set([
@@ -2214,6 +2204,8 @@ class CustomTarget(Target, CommandBase):
                 unknowns.append(k)
         if unknowns:
             mlog.warning('Unknown keyword arguments in target {}: {}'.format(self.name, ', '.join(unknowns)))
+        if backend is not None:
+            backend.check_custom_target_command(self)
 
     def get_default_install_dir(self, environment):
         return None
@@ -2287,6 +2279,7 @@ class CustomTarget(Target, CommandBase):
             raise InvalidArguments("Can't both capture output and output to console")
         if 'command' not in kwargs:
             raise InvalidArguments('Missing keyword argument "command".')
+        self.set_command(kwargs['command'])
         if 'depfile' in kwargs:
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
@@ -2294,7 +2287,6 @@ class CustomTarget(Target, CommandBase):
             if os.path.basename(depfile) != depfile:
                 raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
             self.depfile = depfile
-        self.command = self.flatten_command(kwargs['command'])
         if self.capture:
             for c in self.command:
                 if isinstance(c, str) and '@OUTPUT@' in c:
@@ -2430,15 +2422,17 @@ class CustomTarget(Target, CommandBase):
             yield CustomTargetIndex(self, i)
 
 class RunTarget(Target, CommandBase):
-    def __init__(self, name, command, dependencies, subdir, subproject, env=None):
+    def __init__(self, name, command, dependencies, subdir, subproject, env=None, backend=None):
         self.typename = 'run'
         # These don't produce output artifacts
         super().__init__(name, subdir, subproject, False, MachineChoice.BUILD)
         self.dependencies = dependencies
         self.depend_files = []
-        self.command = self.flatten_command(command)
         self.absolute_paths = False
         self.env = env
+        self.set_command(command)
+        if backend is not None:
+            backend.check_run_target_command(self)
 
     def __repr__(self):
         repr_str = "<{0} {1}: {2}>"
@@ -2568,32 +2562,6 @@ class CustomTargetIndex:
 
     def extract_all_objects_recurse(self):
         return self.target.extract_all_objects_recurse()
-
-class ConfigureFile:
-
-    def __init__(self, subdir, sourcename, targetname, configuration_data):
-        self.subdir = subdir
-        self.sourcename = sourcename
-        self.targetname = targetname
-        self.configuration_data = configuration_data
-
-    def __repr__(self):
-        repr_str = "<{0}: {1} -> {2}>"
-        src = os.path.join(self.subdir, self.sourcename)
-        dst = os.path.join(self.subdir, self.targetname)
-        return repr_str.format(self.__class__.__name__, src, dst)
-
-    def get_configuration_data(self):
-        return self.configuration_data
-
-    def get_subdir(self):
-        return self.subdir
-
-    def get_source_name(self):
-        return self.sourcename
-
-    def get_target_name(self):
-        return self.targetname
 
 class ConfigurationData:
     def __init__(self) -> None:
