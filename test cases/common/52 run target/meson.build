@@ -81,8 +81,25 @@ run_target('ctags',
 run_target('clang-format',
   command : converter)
 
-# Check we can pass env to the program
+# Check we can pass env to the program. Also check some string substitutions
+# that were added in 0.57.0 but not documented. This is documented behaviour
+# since 0.57.1.
 run_target('check-env',
-  command: [find_program('check-env.py')],
+  command: [find_program('check-env.py'), '@SOURCE_ROOT@', '@BUILD_ROOT@',
+            '@CURRENT_SOURCE_DIR@'],
   env: {'MY_ENV': '1'},
+)
+
+# Check some string substitutions that has always been done but never documented.
+# Some projects have been relying on this implementation detail. This is
+# documented behaviour since 0.57.1.
+custom_target('dummy.stamp',
+  command: [find_program('check-env.py'), '@SOURCE_ROOT@', '@BUILD_ROOT@',
+            '@CURRENT_SOURCE_DIR@'],
+  env: {'MESON_SOURCE_ROOT': meson.source_root(),
+        'MESON_BUILD_ROOT': meson.build_root(),
+        'MESON_SUBDIR': meson.current_source_dir(),
+        'MESONINTROSPECT': 'fake value',
+        'MY_ENV': '1'},
+  output: 'dummy.stamp',
 )

@@ -2382,6 +2382,7 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
         self.run_target('check_exists')
         self.run_target('check-env')
+        self.run_target('dummy.stamp')
 
     def test_install_introspection(self):
         '''
