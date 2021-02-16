@@ -2023,7 +2023,6 @@ class OptionKey:
         This takes strings like `mysubproject:build.myoption` and Creates an
         OptionKey out of them.
         """
-
         try:
             subproject, raw2 = raw.split(':')
         except ValueError:
