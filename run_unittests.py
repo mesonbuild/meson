@@ -3061,10 +3061,14 @@ class AllPlatformTests(BasePlatformTests):
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
         cc = env.detect_c_compiler(MachineChoice.HOST)
-        if cc.get_id() == 'clang' and is_windows():
-            raise unittest.SkipTest('LTO not (yet) supported by windows clang')
+        extra_args: T.List[str] = []
+        if cc.get_id() == 'clang':
+            if is_windows():
+                raise unittest.SkipTest('LTO not (yet) supported by windows clang')
+            else:
+                extra_args.append('-D_cargs=-Werror=unused-command-line-argument')
 
-        self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'])
+        self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_threads=8'] + extra_args)
         self.build()
         self.run_tests()
 
@@ -3090,7 +3094,7 @@ class AllPlatformTests(BasePlatformTests):
         elif is_windows():
             raise unittest.SkipTest('LTO not (yet) supported by windows clang')
 
-        self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8'])
+        self.init(testdir, extra_args=['-Db_lto=true', '-Db_lto_mode=thin', '-Db_lto_threads=8', '-Dc_args=-Werror=unused-command-line-argument'])
         self.build()
         self.run_tests()
 
@@ -3099,7 +3103,7 @@ class AllPlatformTests(BasePlatformTests):
         # This assumes all of the targets support lto
         for t in targets:
             for s in t['target_sources']:
-                assert expected.issubset(set(s['parameters'])), f'Incorrect values for {t["name"]}'
+                self.assertTrue(expected.issubset(set(s['parameters'])), f'Incorrect values for {t["name"]}')
 
     def test_dist_git(self):
         if not shutil.which('git'):

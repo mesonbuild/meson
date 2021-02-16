@@ -375,7 +375,9 @@ def get_base_link_args(options: 'KeyedOptionDictType', linker: 'Compiler',
     args = []  # type: T.List[str]
     try:
         if options[OptionKey('b_lto')].value:
-            args.extend(linker.get_lto_link_args())
+            args.extend(linker.get_lto_link_args(
+                threads=get_option_value(options, OptionKey('b_lto_threads'), 0),
+                mode=get_option_value(options, OptionKey('b_lto_mode'), 'default')))
     except KeyError:
         pass
     try:
@@ -950,7 +952,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_lto_compile_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return []
 
-    def get_lto_link_args(self) -> T.List[str]:
+    def get_lto_link_args(self, *, threads: int = 0, mode: str = 'default') -> T.List[str]:
         return self.linker.get_lto_args()
 
     def sanitizer_compile_args(self, value: str) -> T.List[str]:
