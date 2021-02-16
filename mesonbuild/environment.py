@@ -823,11 +823,20 @@ class Environment:
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
                             key = key.evolve(lang=lang)
                             v = mesonlib.listify(self.options.get(key, []))
-                            self.options.setdefault(key, v + p_list)
+                            if self.is_cross_build():
+                                # Only "build." options come from environment variables.
+                                if key.machine is MachineChoice.BUILD:
+                                    self.options.setdefault(key, v + p_list)
+                            else:
+                                self.options[key] = v + p_list
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
                         v = mesonlib.listify(self.options.get(key, []))
-                        self.options.setdefault(key, v + p_list)
+                        if self.is_cross_build():
+                            if key.machine is MachineChoice.BUILD:
+                                self.options.setdefault(key, v + p_list)
+                        else:
+                            self.options[key] = v + p_list
 
     def _set_default_binaries_from_env(self) -> None:
         """Set default binaries from the environment.

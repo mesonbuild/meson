@@ -5476,6 +5476,14 @@ class AllPlatformTests(BasePlatformTests):
         projinfo = self.introspect('--projectinfo')
         self.assertEqual(projinfo['version'], '1.0.0')
 
+    def test_cflags_cppflags(self):
+        envs = {'CPPFLAGS': '-DCPPFLAG',
+                'CFLAGS': '-DCFLAG',
+                'CXXFLAGS': '-DCXXFLAG'}
+        srcdir = os.path.join(self.unit_test_dir, '90 multiple envvars')
+        self.init(srcdir, override_envvars=envs)
+        self.build()
+
 
 class FailureTests(BasePlatformTests):
     '''
