@@ -93,7 +93,7 @@ run_target('check-env',
 # Check some string substitutions that has always been done but never documented.
 # Some projects have been relying on this implementation detail. This is
 # documented behaviour since 0.57.1.
-custom_target('dummy.stamp',
+custom_target('check-env-ct',
   command: [find_program('check-env.py'), '@SOURCE_ROOT@', '@BUILD_ROOT@',
             '@CURRENT_SOURCE_DIR@'],
   env: {'MESON_SOURCE_ROOT': meson.source_root(),
@@ -101,5 +101,5 @@ custom_target('dummy.stamp',
         'MESON_SUBDIR': meson.current_source_dir(),
         'MESONINTROSPECT': 'fake value',
         'MY_ENV': '1'},
-  output: 'dummy.stamp',
+  output: 'check-env-ct',
 )
