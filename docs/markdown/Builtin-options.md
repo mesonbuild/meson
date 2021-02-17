@@ -194,6 +194,7 @@ or compiler being used:
 | cpp_thread_count | 4             | integer value ≥ 0                        | Number of threads to use with emcc when using threads |
 | cpp_winlibs      | see below     | free-form comma-separated list           | Standard Windows libs to link against |
 | fortran_std      | none          | [none, legacy, f95, f2003, f2008, f2018] | Fortran language standard to use |
+| cuda_ccbindir    |               | filesystem path                          | CUDA non-default toolchain directory to use (-ccbin) *(Added in 0.57.1)* |
 
 The default values of `c_winlibs` and `cpp_winlibs` are in
 compiler-specific argument forms, but the libraries are: kernel32,

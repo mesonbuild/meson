@@ -175,8 +175,8 @@ class CompileCheckMode(enum.Enum):
 
 
 cuda_buildtype_args = {'plain': [],
-                       'debug': [],
-                       'debugoptimized': [],
+                       'debug': ['-g', '-G'],
+                       'debugoptimized': ['-g', '-lineinfo'],
                        'release': [],
                        'minsize': [],
                        'custom': [],
