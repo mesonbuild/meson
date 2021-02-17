@@ -4,6 +4,10 @@ if not dependency('glib-2.0', required : false).found() or not find_program('g-i
   error('MESON_SKIP_TEST glib not found.')
 endif
 
+if build_machine.system() == 'cygwin'
+  error('MESON_SKIP_TEST GIR seems to be broken in Cygwin and no-one knows how to fix it. Thus we have to disable this.')
+endif
+
 gnome = import('gnome')
 glib = dependency('glib-2.0')
 gobject = dependency('gobject-2.0')
