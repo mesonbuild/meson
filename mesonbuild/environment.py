@@ -769,13 +769,20 @@ class Environment:
                 subproject = ''
             if section == 'built-in options':
                 for k, v in values.items():
-                    key = OptionKey.from_string(k).evolve(subproject=subproject, machine=machine)
-                    self.options[key] = v
+                    key = OptionKey.from_string(k)
+                    # If we're in the cross file, and there is a `build.foo` warn about that. Later we'll remove it.
+                    if machine is MachineChoice.HOST and key.machine is not machine:
+                        mlog.deprecation('Setting build machine options in cross files, please use a native file instead, this will be removed in meson 0.60', once=True)
+                    if key.subproject:
+                        raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
+                    self.options[key.evolve(subproject=subproject, machine=machine)] = v
             elif section == 'project options':
                 for k, v in values.items():
                     # Project options are always for the machine machine
-                    key = OptionKey.from_string(k).evolve(subproject=subproject)
-                    self.options[key] = v
+                    key = OptionKey.from_string(k)
+                    if key.subproject:
+                        raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
+                    self.options[key.evolve(subproject=subproject)] = v
 
     def _set_default_options_from_env(self) -> None:
         opts: T.List[T.Tuple[str, str]] = (
