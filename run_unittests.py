@@ -3058,6 +3058,8 @@ class AllPlatformTests(BasePlatformTests):
 
     @skip_if_not_base_option('b_lto_threads')
     def test_lto_threads(self):
+        if is_cygwin():
+            raise unittest.SkipTest('LTO is broken on Cygwin.')
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
