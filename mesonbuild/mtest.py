@@ -1887,6 +1887,12 @@ def list_tests(th: TestHarness) -> bool:
     return not tests
 
 def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
+    def convert_path_to_target(path: str) -> str:
+        path = os.path.relpath(path, wd)
+        if os.sep != '/':
+            path = path.replace(os.sep, '/')
+        return path
+
     if not (Path(wd) / 'build.ninja').is_file():
         print('Only ninja backend is supported to rebuild tests before running them.')
         return True
@@ -1901,7 +1907,7 @@ def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
     intro_targets = dict()     # type: T.Dict[str, T.List[str]]
     for target in load_info_file(get_infodir(wd), kind='targets'):
         intro_targets[target['id']] = [
-            os.path.relpath(f, wd)
+            convert_path_to_target(f)
             for f in target['filename']]
     for t in tests:
         for d in t.depends:
