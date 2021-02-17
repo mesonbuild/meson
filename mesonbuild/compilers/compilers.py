@@ -1227,22 +1227,18 @@ def get_global_options(lang: str,
     argkey = OptionKey('args', lang=lang, machine=for_machine)
     largkey = argkey.evolve('link_args')
 
-    # We shouldn't need listify here, but until we have a separate
-    # linker-driver representation and can have that do the combine we have to
-    # do it this way.
-    compile_args = mesonlib.listify(env.options.get(argkey, []))
-    link_args = mesonlib.listify(env.options.get(largkey, []))
+    cargs = coredata.UserArrayOption(
+        description + ' compiler',
+        env.options.get(argkey, []), split_args=True, user_input=True, allow_dups=True)
+    largs = coredata.UserArrayOption(
+        description + ' linker',
+        env.options.get(largkey, []), split_args=True, user_input=True, allow_dups=True)
 
+    # This needs to be done here, so that if we have string values in the env
+    # options that we can safely combine them *after* they've been split
     if comp.INVOKES_LINKER:
-        link_args = compile_args + link_args
+        largs.set_value(largs.value + cargs.value)
 
-    opts: 'KeyedOptionDictType' = {
-        argkey: coredata.UserArrayOption(
-            description + ' compiler',
-            compile_args, split_args=True, user_input=True, allow_dups=True),
-        largkey: coredata.UserArrayOption(
-            description + ' linker',
-            link_args, split_args=True, user_input=True, allow_dups=True),
-    }
+    opts: 'KeyedOptionDictType' = {argkey: cargs, largkey: largs}
 
     return opts
