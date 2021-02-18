@@ -11,7 +11,7 @@ exec = executable('exec',
   'main.c',
   dependencies : [mpic])
 
-test('MPI C', exec, timeout: 10)
+test('MPI C', exec, timeout: 20)
 
 
 # C++ MPI not supported by MS-MPI
@@ -28,7 +28,7 @@ execpp = executable('execpp',
   'main.cpp',
   dependencies : [mpicpp])
 
-test('MPI C++', execpp, timeout: 10)
+test('MPI C++', execpp, timeout: 20)
 
 
 if add_languages('fortran', required : false)
@@ -42,7 +42,7 @@ if add_languages('fortran', required : false)
   'main.f90',
   dependencies : mpif)
 
-  test('MPI Fortran', exef, timeout: 10)
+  test('MPI Fortran', exef, timeout: 20)
 endif
 
 
