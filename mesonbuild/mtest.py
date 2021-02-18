@@ -1004,6 +1004,7 @@ class TestRunTAP(TestRun):
                  stdo: str, stde: str) -> None:
         if returncode != 0 and not res.was_killed():
             res = TestResult.ERROR
+            stde = stde or ''
             stde += '\n(test program exited with status code {})'.format(returncode,)
 
         super().complete(returncode, res, stdo, stde)
