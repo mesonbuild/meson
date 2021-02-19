@@ -118,7 +118,8 @@ class FakeCompilerOptions:
     def __init__(self):
         self.value = []
 
-def get_fake_options(prefix=''):
+# TODO: use a typing.Protocol here
+def get_fake_options(prefix: str = '') -> argparse.Namespace:
     opts = argparse.Namespace()
     opts.native_file = []
     opts.cross_file = None
