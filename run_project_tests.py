@@ -620,129 +620,139 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, 
 
     return testresult
 
+
+def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
+    all_tests: T.List[TestDef] = []
+    test_def = {}
+    test_def_file = t.path / 'test.json'
+    if test_def_file.is_file():
+        test_def = json.loads(test_def_file.read_text())
+
+    # Handle additional environment variables
+    env = {}  # type: T.Dict[str, str]
+    if 'env' in test_def:
+        assert isinstance(test_def['env'], dict)
+        env = test_def['env']
+        for key, val in env.items():
+            val = val.replace('@ROOT@', t.path.resolve().as_posix())
+            val = val.replace('@PATH@', t.env.get('PATH', ''))
+            env[key] = val
+
+    # Handle installed files
+    installed = []  # type: T.List[InstalledFile]
+    if 'installed' in test_def:
+        installed = [InstalledFile(x) for x in test_def['installed']]
+
+    # Handle expected output
+    stdout = test_def.get('stdout', [])
+    if stdout_mandatory and not stdout:
+        raise RuntimeError("{} must contain a non-empty stdout key".format(test_def_file))
+
+    # Handle the do_not_set_opts list
+    do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
+
+    # Skip tests if the tool requirements are not met
+    if 'tools' in test_def:
+        assert isinstance(test_def['tools'], dict)
+        for tool, vers_req in test_def['tools'].items():
+            if tool not in tool_vers_map:
+                t.skip = True
+            elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
+                t.skip = True
+
+    # Skip the matrix code and just update the existing test
+    if 'matrix' not in test_def:
+        t.env.update(env)
+        t.installed_files = installed
+        t.do_not_set_opts = do_not_set_opts
+        t.stdout = stdout
+        return [t]
+
+    new_opt_list: T.List[T.List[T.Tuple[str, bool]]]
+
+    # 'matrix; entry is present, so build multiple tests from matrix definition
+    opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
+    matrix = test_def['matrix']
+    assert "options" in matrix
+    for key, val in matrix["options"].items():
+        assert isinstance(val, list)
+        tmp_opts = []  # type: T.List[T.Tuple[str, bool]]
+        for i in val:
+            assert isinstance(i, dict)
+            assert "val" in i
+            skip = False
+
+            # Skip the matrix entry if environment variable is present
+            if 'skip_on_env' in i:
+                for skip_env_var in i['skip_on_env']:
+                    if skip_env_var in os.environ:
+                        skip = True
+
+            # Only run the test if all compiler ID's match
+            if 'compilers' in i:
+                for lang, id_list in i['compilers'].items():
+                    if lang not in compiler_id_map or compiler_id_map[lang] not in id_list:
+                        skip = True
+                        break
+
+            # Add an empty matrix entry
+            if i['val'] is None:
+                tmp_opts += [(None, skip)]
+                continue
+
+            tmp_opts += [('{}={}'.format(key, i['val']), skip)]
+
+        if opt_list:
+            new_opt_list = []
+            for i in opt_list:
+                for j in tmp_opts:
+                    new_opt_list += [[*i, j]]
+            opt_list = new_opt_list
+        else:
+            opt_list = [[x] for x in tmp_opts]
+
+    # Exclude specific configurations
+    if 'exclude' in matrix:
+        assert isinstance(matrix['exclude'], list)
+        new_opt_list = []
+        for i in opt_list:
+            exclude = False
+            opt_names = [x[0] for x in i]
+            for j in matrix['exclude']:
+                ex_list = ['{}={}'.format(k, v) for k, v in j.items()]
+                if all([x in opt_names for x in ex_list]):
+                    exclude = True
+                    break
+
+            if not exclude:
+                new_opt_list += [i]
+
+        opt_list = new_opt_list
+
+    for i in opt_list:
+        name = ' '.join([x[0] for x in i if x[0] is not None])
+        opts = ['-D' + x[0] for x in i if x[0] is not None]
+        skip = any([x[1] for x in i])
+        test = TestDef(t.path, name, opts, skip or t.skip)
+        test.env.update(env)
+        test.installed_files = installed
+        test.do_not_set_opts = do_not_set_opts
+        test.stdout = stdout
+        all_tests.append(test)
+
+    return all_tests
+
+
 def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
     tests = [t.name for t in testdir.iterdir() if t.is_dir()]
     tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
     test_defs = [TestDef(testdir / t, None, []) for t in tests]
-    all_tests = []  # type: T.List[TestDef]
+    all_tests: T.List[TestDef] = []
     for t in test_defs:
-        test_def = {}
-        test_def_file = t.path / 'test.json'
-        if test_def_file.is_file():
-            test_def = json.loads(test_def_file.read_text())
-
-        # Handle additional environment variables
-        env = {}  # type: T.Dict[str, str]
-        if 'env' in test_def:
-            assert isinstance(test_def['env'], dict)
-            env = test_def['env']
-            for key, val in env.items():
-                val = val.replace('@ROOT@', t.path.resolve().as_posix())
-                val = val.replace('@PATH@', t.env.get('PATH', ''))
-                env[key] = val
-
-        # Handle installed files
-        installed = []  # type: T.List[InstalledFile]
-        if 'installed' in test_def:
-            installed = [InstalledFile(x) for x in test_def['installed']]
-
-        # Handle expected output
-        stdout = test_def.get('stdout', [])
-        if stdout_mandatory and not stdout:
-            raise RuntimeError("{} must contain a non-empty stdout key".format(test_def_file))
-
-        # Handle the do_not_set_opts list
-        do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
-
-        # Skip tests if the tool requirements are not met
-        if 'tools' in test_def:
-            assert isinstance(test_def['tools'], dict)
-            for tool, vers_req in test_def['tools'].items():
-                if tool not in tool_vers_map:
-                    t.skip = True
-                elif not mesonlib.version_compare(tool_vers_map[tool], vers_req):
-                    t.skip = True
-
-        # Skip the matrix code and just update the existing test
-        if 'matrix' not in test_def:
-            t.env.update(env)
-            t.installed_files = installed
-            t.do_not_set_opts = do_not_set_opts
-            t.stdout = stdout
-            all_tests += [t]
-            continue
-
-        # 'matrix; entry is present, so build multiple tests from matrix definition
-        opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
-        matrix = test_def['matrix']
-        assert "options" in matrix
-        for key, val in matrix["options"].items():
-            assert isinstance(val, list)
-            tmp_opts = []  # type: T.List[T.Tuple[str, bool]]
-            for i in val:
-                assert isinstance(i, dict)
-                assert "val" in i
-                skip = False
-
-                # Skip the matrix entry if environment variable is present
-                if 'skip_on_env' in i:
-                    for skip_env_var in i['skip_on_env']:
-                        if skip_env_var in os.environ:
-                            skip = True
-
-                # Only run the test if all compiler ID's match
-                if 'compilers' in i:
-                    for lang, id_list in i['compilers'].items():
-                        if lang not in compiler_id_map or compiler_id_map[lang] not in id_list:
-                            skip = True
-                            break
-
-                # Add an empty matrix entry
-                if i['val'] is None:
-                    tmp_opts += [(None, skip)]
-                    continue
-
-                tmp_opts += [('{}={}'.format(key, i['val']), skip)]
-
-            if opt_list:
-                new_opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
-                for i in opt_list:
-                    for j in tmp_opts:
-                        new_opt_list += [[*i, j]]
-                opt_list = new_opt_list
-            else:
-                opt_list = [[x] for x in tmp_opts]
-
-        # Exclude specific configurations
-        if 'exclude' in matrix:
-            assert isinstance(matrix['exclude'], list)
-            new_opt_list = []  # type: T.List[T.List[T.Tuple[str, bool]]]
-            for i in opt_list:
-                exclude = False
-                opt_names = [x[0] for x in i]
-                for j in matrix['exclude']:
-                    ex_list = ['{}={}'.format(k, v) for k, v in j.items()]
-                    if all([x in opt_names for x in ex_list]):
-                        exclude = True
-                        break
-
-                if not exclude:
-                    new_opt_list += [i]
-
-            opt_list = new_opt_list
-
-        for i in opt_list:
-            name = ' '.join([x[0] for x in i if x[0] is not None])
-            opts = ['-D' + x[0] for x in i if x[0] is not None]
-            skip = any([x[1] for x in i])
-            test = TestDef(t.path, name, opts, skip or t.skip)
-            test.env.update(env)
-            test.installed_files = installed
-            test.do_not_set_opts = do_not_set_opts
-            test.stdout = stdout
-            all_tests += [test]
+        all_tests.extend(load_test_json(t, stdout_mandatory))
 
     return sorted(all_tests)
+
 
 def have_d_compiler():
     if shutil.which("ldc2"):
