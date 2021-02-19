@@ -476,7 +476,7 @@ def format_parameter_file(file_basename: str, test: TestDef, test_build_dir: str
 
     return destination
 
-def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
+def detect_parameter_files(test: TestDef, test_build_dir: str) -> T.Tuple[Path, Path]:
     nativefile = test.path / 'nativefile.ini'
     crossfile = test.path / 'crossfile.ini'
 
@@ -488,7 +488,9 @@ def detect_parameter_files(test: TestDef, test_build_dir: str) -> (Path, Path):
 
     return nativefile, crossfile
 
-def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, should_fail, use_tmp: bool):
+def run_test(test: TestDef, extra_args: T.List[str], compiler: str, backend: Backend,
+            flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
+            should_fail: bool, use_tmp: bool) -> T.Optional[TestResult]:
     if test.skip:
         return None
     build_dir = create_deterministic_builddir(test, use_tmp)
@@ -503,7 +505,10 @@ def run_test(test: TestDef, extra_args, compiler, backend, flags, commands, shou
     finally:
         mesonlib.windows_proof_rmtree(build_dir)
 
-def _run_test(test: TestDef, test_build_dir: str, install_dir: str, extra_args, compiler, backend, flags, commands, should_fail):
+def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
+              extra_args: T.List[str], compiler: str, backend: Backend,
+              flags: T.List[str], commands: T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str]],
+              should_fail: bool) -> TestResult:
     compile_commands, clean_commands, install_commands, uninstall_commands = commands
     gen_start = time.time()
     # Configure in-process
