@@ -461,6 +461,8 @@ def create_deterministic_builddir(test: TestDef, use_tmpdir: bool) -> str:
         src_dir += test.name
     rel_dirname = 'b ' + hashlib.sha256(src_dir.encode(errors='ignore')).hexdigest()[0:10]
     abs_pathname = os.path.join(tempfile.gettempdir() if use_tmpdir else os.getcwd(), rel_dirname)
+    if os.path.exists(abs_pathname):
+        mesonlib.windows_proof_rmtree(abs_pathname)
     os.mkdir(abs_pathname)
     return abs_pathname
 
