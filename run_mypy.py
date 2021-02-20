@@ -25,6 +25,7 @@ modules = [
     'mesonbuild/interpreterbase.py',
     'mesonbuild/linkers.py',
     'mesonbuild/mcompile.py',
+    'mesonbuild/mdevenv.py',
     'mesonbuild/mesonlib/platform.py',
     'mesonbuild/mesonlib/universal.py',
     'mesonbuild/minit.py',

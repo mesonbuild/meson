@@ -22,7 +22,7 @@ import shutil
 
 from . import mesonlib
 from . import mlog
-from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile
+from . import mconf, mdist, minit, minstall, mintro, msetup, mtest, rewriter, msubprojects, munstable_coredata, mcompile, mdevenv
 from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
@@ -64,6 +64,8 @@ class CommandLineParser:
                          help_msg='Modify the project definition')
         self.add_command('compile', mcompile.add_arguments, mcompile.run,
                          help_msg='Build the project')
+        self.add_command('devenv', mdevenv.add_arguments, mdevenv.run,
+                         help_msg='Run commands in developer environment')
 
         # Hidden commands
         self.add_command('runpython', self.add_runpython_arguments, self.run_runpython_command,

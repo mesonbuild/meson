@@ -32,7 +32,6 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabl
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from .interpreterbase import ObjectHolder, MesonVersionString
 from .interpreterbase import TYPE_var, TYPE_nkwargs
-from .interpreterbase import typed_pos_args
 from .modules import ModuleReturnValue, ModuleObject, ModuleState
 from .cmake import CMakeInterpreter
 from .backend.backends import TestProtocol, Backend, ExecutableSerialisation
@@ -256,8 +255,8 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
         if isinstance(initial_values, dict):
             for k, v in initial_values.items():
                 self.set_method([k, v], {})
-        elif isinstance(initial_values, list):
-            for e in initial_values:
+        elif initial_values is not None:
+            for e in mesonlib.stringlistify(initial_values):
                 if '=' not in e:
                     raise InterpreterException('Env var definition must be of type key=val.')
                 (k, val) = e.split('=', 1)
@@ -266,8 +265,6 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
                 if ' ' in k:
                     raise InterpreterException('Env var key must not have spaces in it.')
                 self.set_method([k, val], {})
-        elif initial_values:
-            raise AssertionError('Unsupported EnvironmentVariablesHolder initial_values')
 
     def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
@@ -1915,6 +1912,7 @@ class MesonMain(InterpreterObject):
                              'get_external_property': self.get_external_property_method,
                              'has_external_property': self.has_external_property_method,
                              'backend': self.backend_method,
+                             'add_devenv': self.add_devenv_method,
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
@@ -2240,6 +2238,16 @@ class MesonMain(InterpreterObject):
         prop_name = args[0]
         for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         return prop_name in self.interpreter.environment.properties[for_machine]
+
+    @FeatureNew('add_devenv', '0.58.0')
+    @noKwargs
+    @typed_pos_args('add_devenv', (str, list, dict, EnvironmentVariablesHolder))
+    def add_devenv_method(self, args: T.Union[str, list, dict, EnvironmentVariablesHolder], kwargs: T.Dict[str, T.Any]) -> None:
+        env = args[0]
+        if isinstance(env, (str, list, dict)):
+            env = EnvironmentVariablesHolder(env)
+        self.build.devenv.append(env.held_object)
+
 
 known_library_kwargs = (
     build.known_shlib_kwargs |
@@ -4084,7 +4092,6 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             env = EnvironmentVariablesHolder(envlist)
             env = env.held_object
         else:
-            envlist = listify(envlist)
             # Convert from array to environment object
             env = EnvironmentVariablesHolder(envlist)
             env = env.held_object

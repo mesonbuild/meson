@@ -5579,6 +5579,17 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Duse-sub=true')
         self.build()
 
+    def test_devenv(self):
+        testdir = os.path.join(self.unit_test_dir, '91 devenv')
+        self.init(testdir)
+        self.build()
+
+        cmd = self.meson_command + ['devenv', '-C', self.builddir]
+        script = os.path.join(testdir, 'test-devenv.py')
+        app = os.path.join(self.builddir, 'app')
+        self._run(cmd + python_command + [script])
+        self.assertEqual('This is text.', self._run(cmd + [app]).strip())
+
 
 class FailureTests(BasePlatformTests):
     '''

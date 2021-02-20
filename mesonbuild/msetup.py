@@ -243,6 +243,7 @@ class MesonApp:
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:
                 intr.backend.generate()
+            b.devenv.append(intr.backend.get_devenv())
             build.save(b, dumpfile)
             if env.first_invocation:
                 coredata.write_cmd_line_file(self.build_dir, self.options)
