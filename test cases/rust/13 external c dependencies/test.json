@@ -1,0 +1,15 @@
+{
+  "matrix": {
+    "options": {
+      "static": [
+        { "val": true },
+        { "val": false }
+      ],
+      "method": [
+        { "val": "pkg-config" },
+        { "val": "cmake" },
+        { "val": "system" }
+      ]
+    }
+  }
+}
