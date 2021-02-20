@@ -229,6 +229,7 @@ class Build:
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
         self.dependency_overrides = PerMachine({}, {})
+        self.devenv: T.List[EnvironmentVariables] = []
 
     def get_build_targets(self):
         build_targets = OrderedDict()
@@ -393,7 +394,7 @@ class ExtractedObjects:
         ]
 
 class EnvironmentVariables:
-    def __init__(self):
+    def __init__(self) -> None:
         self.envvars = []
         # The set of all env vars we have operations for. Only used for self.has_name()
         self.varnames = set()

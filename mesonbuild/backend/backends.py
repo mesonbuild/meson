@@ -1491,3 +1491,22 @@ class Backend:
             }]
 
         return []
+
+    def get_devenv(self) -> build.EnvironmentVariables:
+        env = build.EnvironmentVariables()
+        extra_paths = set()
+        for t in self.build.get_targets().values():
+            cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
+            can_run = not cross_built or not self.environment.need_exe_wrapper()
+            in_bindir = t.should_install() and not t.get_install_dir(self.environment)[1]
+            if isinstance(t, build.Executable) and can_run and in_bindir:
+                # Add binaries that are going to be installed in bindir into PATH
+                # so they get used by default instead of searching on system when
+                # in developer environment.
+                extra_paths.add(os.path.join(self.environment.get_build_dir(), self.get_target_dir(t)))
+                if mesonlib.is_windows() or mesonlib.is_cygwin():
+                    # On windows we cannot rely on rpath to run executables from build
+                    # directory. We have to add in PATH the location of every DLL needed.
+                    extra_paths.update(self.determine_windows_extra_paths(t, []))
+        env.prepend('PATH', list(extra_paths))
+        return env

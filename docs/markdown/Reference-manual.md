@@ -2055,6 +2055,19 @@ the following methods.
 
 - `version()`: return a string with the version of Meson.
 
+- `add_devenv()`: *(Since 0.58.0)* add an [`environment()`](#environment) object
+  to the list of environments that will be applied when using [`meson devenv`](Commands.md#devenv)
+  command line. This is useful for developpers who wish to use the project without
+  installing it, it is often needed to set for example the path to plugins
+  directory, etc. Alternatively, a list or dictionary can be passed as first
+  argument.
+  ``` meson
+  devenv = environment()
+  devenv.set('PLUGINS_PATH', meson.current_build_dir())
+  ...
+  meson.add_devenv(devenv)
+  ```
+
 ### `build_machine` object
 
 Provides information about the build machine — the machine that is

@@ -263,3 +263,37 @@ An utility to manage WrapDB dependencies.
 {{ wrap_arguments.inc }}
 
 See [the WrapDB tool documentation](Using-wraptool.md) for more info.
+
+### devenv
+
+*(since 0.58.0)*
+
+{{ devenv_usage.inc }}
+
+Runs a command, or open interactive shell if no command is provided, with
+environment setup to run project from the build directory, without installation.
+
+We automatically handle `bash` and set `$PS1` accordingly. If the automatic `$PS1`
+override is not desired (maybe you have a fancy custom prompt), set the
+`$MESON_DISABLE_PS1_OVERRIDE` environment variable and use `$MESON_PROJECT_NAME`
+when setting the custom prompt, for example with a snippet like the following:
+
+```bash
+...
+if [[ -n "${MESON_PROJECT_NAME-}" ]];
+then
+  PS1+="[ ${MESON_PROJECT_NAME} ]"
+fi
+...
+```
+
+These variables are set in environment in addition to those set using `meson.add_devenv()`:
+- `MESON_DEVENV` is defined to `'1'`.
+- `MESON_PROJECT_NAME` is defined to the main project's name.
+- `PKG_CONFIG_PATH` includes the directory where Meson generates `-uninstalled.pc`
+  files.
+- `PATH` includes every directory where there is an executable that would be
+  installed into `bindir`. On windows it also includes every directory where there
+  is a DLL needed to run those executables.
+
+{{ devenv_arguments.inc }}
