@@ -1399,9 +1399,15 @@ class Backend:
                 num = f.split('.')[-1]
                 subdir = m.get_custom_install_dir()
                 if subdir is None:
-                    subdir = os.path.join(manroot, 'man' + num)
+                    if m.locale:
+                        subdir = os.path.join(manroot, m.locale, 'man' + num)
+                    else:
+                        subdir = os.path.join(manroot, 'man' + num)
+                fname = f.fname
+                if m.locale: # strip locale from file name
+                    fname = fname.replace(f'.{m.locale}', '')
                 srcabs = f.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-                dstabs = os.path.join(subdir, os.path.basename(f.fname))
+                dstabs = os.path.join(subdir, os.path.basename(fname))
                 i = InstallDataBase(srcabs, dstabs, m.get_custom_install_mode(), m.subproject)
                 d.man.append(i)
 
