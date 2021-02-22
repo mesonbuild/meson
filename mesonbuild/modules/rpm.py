@@ -65,7 +65,10 @@ class RPMModule(ExtensionModule):
                     files_devel.add('%%{_includedir}/%s' % hdr_src)
         for man in coredata.man:
             for man_file in man.get_sources():
-                files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
+                if man.locale:
+                    files.add('%%{_mandir}/%s/man%u/%s.*' % (man.locale, int(man_file.split('.')[-1]), man_file))
+                else:
+                    files.add('%%{_mandir}/man%u/%s.*' % (int(man_file.split('.')[-1]), man_file))
         if files_devel:
             devel_subpkg = True
 

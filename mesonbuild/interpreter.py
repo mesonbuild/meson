@@ -778,6 +778,9 @@ class ManHolder(InterpreterObject, ObjectHolder[build.Man]):
     def get_custom_install_mode(self) -> T.Optional[FileMode]:
         return self.held_object.custom_install_mode
 
+    def locale(self) -> T.Optional[str]:
+        return self.held_object.locale
+
     def get_sources(self) -> T.List[mesonlib.File]:
         return self.held_object.sources
 
@@ -2371,7 +2374,7 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     'include_directories': {'is_system'},
                     'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
                     'install_headers': {'install_dir', 'install_mode', 'subdir'},
-                    'install_man': {'install_dir', 'install_mode'},
+                    'install_man': {'install_dir', 'install_mode', 'locale'},
                     'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
                     'jar': build.known_jar_kwargs,
                     'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
@@ -4225,6 +4228,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return HeadersHolder(h)
 
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
+    @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
     @permittedKwargs(permitted_kwargs['install_man'])
     def func_install_man(self, node, args, kwargs):
         sources = self.source_strings_to_files(args)
@@ -4237,10 +4241,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InvalidArguments('Man file must have a file extension of a number between 1 and 8')
         custom_install_mode = self._get_kwarg_install_mode(kwargs)
         custom_install_dir = kwargs.get('install_dir', None)
+        locale = kwargs.get('locale')
         if custom_install_dir is not None and not isinstance(custom_install_dir, str):
             raise InterpreterException('install_dir must be a string.')
 
-        m = build.Man(sources, custom_install_dir, custom_install_mode, self.subproject)
+        m = build.Man(sources, custom_install_dir, custom_install_mode, self.subproject, locale)
         self.build.man.append(m)
 
         return ManHolder(m)

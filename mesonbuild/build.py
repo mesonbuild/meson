@@ -157,11 +157,13 @@ class Headers:
 class Man:
 
     def __init__(self, sources: T.List[File], install_dir: T.Optional[str],
-                 install_mode: T.Optional['FileMode'], subproject: str):
+                 install_mode: T.Optional['FileMode'], subproject: str,
+                 locale: T.Optional[str]):
         self.sources = sources
         self.custom_install_dir = install_dir
         self.custom_install_mode = install_mode
         self.subproject = subproject
+        self.locale = locale
 
     def get_custom_install_dir(self) -> T.Optional[str]:
         return self.custom_install_dir

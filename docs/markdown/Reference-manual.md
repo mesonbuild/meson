@@ -1133,6 +1133,11 @@ Accepts the following keywords:
   format and optionally the owner/uid and group/gid for the installed files.
   An example value could be `['rwxr-sr-x', 'root', 'root']`.
 
+- `locale` *(since 0.58.0)*: can be used to specify the locale into which the
+  man page will be installed within the manual page directory tree.
+  An example manual might be `foo.fr.1` with a locale of `fr`, such
+  that `{mandir}/{locale}/man{num}/foo.1` becomes the installed file.
+
 *(since 0.49.0)* [manpages are no longer compressed
  implicitly][install_man_49].
 
