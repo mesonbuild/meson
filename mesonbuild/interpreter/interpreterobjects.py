@@ -76,25 +76,29 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
                              'auto': self.auto_method,
                              })
 
+    @property
+    def value(self):
+        return self.held_object.value
+
     @noPosargs
     @permittedKwargs({})
     def enabled_method(self, args, kwargs):
-        return self.held_object.is_enabled()
+        return self.value == 'enabled'
 
     @noPosargs
     @permittedKwargs({})
     def disabled_method(self, args, kwargs):
-        return self.held_object.is_disabled()
+        return self.value == 'disabled'
 
     @noPosargs
     @permittedKwargs({})
     def allowed_method(self, args, kwargs):
-        return not self.held_object.is_disabled()
+        return not self.value == 'disabled'
 
     @noPosargs
     @permittedKwargs({})
     def auto_method(self, args, kwargs):
-        return self.held_object.is_auto()
+        return self.value == 'auto'
 
 class RunProcess(InterpreterObject):
 
