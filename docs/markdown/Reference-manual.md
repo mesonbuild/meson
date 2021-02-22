@@ -2818,6 +2818,7 @@ The following methods are defined for all [`feature` options](Build-options.md#f
 - `enabled()`: returns whether the feature was set to `'enabled'`
 - `disabled()`: returns whether the feature was set to `'disabled'`
 - `auto()`: returns whether the feature was set to `'auto'`
+- `allowed()` *(since 0.59.0)*: returns whether the feature was set to `'enabled'` or `'auto'`
 
 ### `generator` object
 

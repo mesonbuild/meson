@@ -72,6 +72,7 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
         self.name = name
         self.methods.update({'enabled': self.enabled_method,
                              'disabled': self.disabled_method,
+                             'allowed': self.allowed_method,
                              'auto': self.auto_method,
                              })
 
@@ -84,6 +85,11 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
     @permittedKwargs({})
     def disabled_method(self, args, kwargs):
         return self.held_object.is_disabled()
+
+    @noPosargs
+    @permittedKwargs({})
+    def allowed_method(self, args, kwargs):
+        return not self.held_object.is_disabled()
 
     @noPosargs
     @permittedKwargs({})
