@@ -142,7 +142,9 @@ def get_parsed_args_ninja(options: 'argparse.Namespace', builddir: Path) -> T.Tu
     if runner is None:
         raise MesonException('Cannot find ninja.')
 
-    cmd = runner + ['-C', builddir.as_posix()]
+    cmd = runner
+    if not builddir.samefile('.'):
+        cmd.extend(['-C', builddir.as_posix()])
 
     # If the value is set to < 1 then don't set anything, which let's
     # ninja/samu decide what to do.
