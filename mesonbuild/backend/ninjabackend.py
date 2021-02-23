@@ -1630,10 +1630,7 @@ int dummy;
             if d == '':
                 d = '.'
             args += ['-L', d]
-        has_shared_deps = False
-        for dep in target.get_dependencies():
-            if isinstance(dep, build.SharedLibrary):
-                has_shared_deps = True
+        has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target.get_dependencies())
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
             # add prefer-dynamic if any of the Rust libraries we link
             # against are dynamic, otherwise we'll end up with
