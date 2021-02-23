@@ -1608,12 +1608,19 @@ int dummy;
                 # dependency, so that collisions with libraries in rustc's
                 # sysroot don't cause ambiguity
                 args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
+            elif d.typename == 'static library':
+                # Rustc doesn't follow Meson's convention that static libraries
+                # are called .a, and implementation libraries are .lib, so we
+                # have to manually handle that.
+                if rustc.linker.id == 'link':
+                    args += ['-C', f'link-arg={self.get_target_filename_for_linking(d)}']
+                else:
+                    args += ['-l', f'static={d.name}']
+                external_deps.extend(d.external_deps)
             else:
-                # Rust uses -l for non rust dependencies, but we still need to add (shared|static)=foo
-                _type = 'static' if d.typename == 'static library' else 'dylib'
-                args += ['-l', f'{_type}={d.name}']
-                if d.typename == 'static library':
-                    external_deps.extend(d.external_deps)
+                # Rust uses -l for non rust dependencies, but we still need to
+                # add dylib=foo
+                args += ['-l', f'dylib={d.name}']
         for e in external_deps:
             for a in e.get_link_args():
                 if a.endswith(('.dll', '.so', '.dylib')):
