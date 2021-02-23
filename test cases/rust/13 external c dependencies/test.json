@@ -10,6 +10,9 @@
         { "val": "cmake" },
         { "val": "system" }
       ]
-    }
+    },
+    "exclude": [
+      { "static": true, "method": "pkg-config" }
+    ]
   }
 }
