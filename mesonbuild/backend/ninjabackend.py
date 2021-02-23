@@ -1610,7 +1610,7 @@ int dummy;
                 args += ['--extern', '{}={}'.format(d.name, os.path.join(d.subdir, d.filename))]
             else:
                 # Rust uses -l for non rust dependencies, but we still need to add (shared|static)=foo
-                _type = 'static' if d.typename == 'static library' else 'shared'
+                _type = 'static' if d.typename == 'static library' else 'dylib'
                 args += ['-l', f'{_type}={d.name}']
                 if d.typename == 'static library':
                     external_deps.extend(d.external_deps)
