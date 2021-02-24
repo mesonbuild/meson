@@ -774,7 +774,7 @@ class JunitBuilder(TestLogger):
         # separately
         if test.results:
             suitename = '{}.{}'.format(test.project, test.name)
-            assert suitename not in self.suites, 'duplicate suite'
+            assert suitename not in self.suites or harness.options.repeat > 1, 'duplicate suite'
 
             suite = self.suites[suitename] = et.Element(
                 'testsuite',
@@ -1627,18 +1627,22 @@ class TestHarness:
             # wrapper script.
             sys.exit(125)
 
-        self.test_count = len(tests)
         self.name_max_len = max([uniwidth(self.get_pretty_suite(test)) for test in tests])
         startdir = os.getcwd()
         try:
             if self.options.wd:
                 os.chdir(self.options.wd)
-            runners = [self.get_test_runner(test) for test in tests]
-            self.duration_max_len = max([len(str(int(runner.timeout or 99)))
-                                         for runner in runners])
-            # Disable the progress report if it gets in the way
-            self.need_console = any((runner.console_mode is not ConsoleUser.LOGGER
-                                     for runner in runners))
+            runners = []             # type: T.List[SingleTestRunner]
+            for i in range(self.options.repeat):
+                runners.extend((self.get_test_runner(test) for test in tests))
+                if i == 0:
+                    self.duration_max_len = max([len(str(int(runner.timeout or 99)))
+                                                 for runner in runners])
+                    # Disable the progress report if it gets in the way
+                    self.need_console = any((runner.console_mode is not ConsoleUser.LOGGER
+                                             for runner in runners))
+
+            self.test_count = len(runners)
             self.run_tests(runners)
         finally:
             os.chdir(startdir)
@@ -1860,16 +1864,15 @@ class TestHarness:
             asyncio.get_event_loop().add_signal_handler(signal.SIGINT, sigint_handler)
             asyncio.get_event_loop().add_signal_handler(signal.SIGTERM, sigterm_handler)
         try:
-            for _ in range(self.options.repeat):
-                for runner in runners:
-                    if not runner.is_parallel:
-                        await complete_all(futures)
-                    future = asyncio.ensure_future(run_test(runner))
-                    futures.append(future)
-                    running_tests[future] = runner.visible_name
-                    future.add_done_callback(test_done)
-                    if not runner.is_parallel:
-                        await complete(future)
+            for runner in runners:
+                if not runner.is_parallel:
+                    await complete_all(futures)
+                future = asyncio.ensure_future(run_test(runner))
+                futures.append(future)
+                running_tests[future] = runner.visible_name
+                future.add_done_callback(test_done)
+                if not runner.is_parallel:
+                    await complete(future)
                 if self.options.repeat > 1 and self.fail_count:
                     break
 

@@ -2524,6 +2524,12 @@ class AllPlatformTests(BasePlatformTests):
         self.assertNotRegex(out, r'WARNING: Overriding.*TEST_VAR_SET')
         self.run_tests()
 
+    def test_testrepeat(self):
+        testdir = os.path.join(self.common_test_dir, '207 tap tests')
+        self.init(testdir)
+        self.build()
+        self._run(self.mtest_command + ['--repeat=2'])
+
     def test_testsetups(self):
         if not shutil.which('valgrind'):
             raise unittest.SkipTest('Valgrind not installed.')
