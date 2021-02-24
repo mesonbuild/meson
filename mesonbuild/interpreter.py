@@ -3119,15 +3119,15 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
     @permittedKwargs(permitted_kwargs['add_languages'])
-    @stringArgs
-    def func_add_languages(self, node, args, kwargs):
+    @typed_pos_args('add_languages', varargs=str)
+    def func_add_languages(self, node, args: T.Tuple[T.List[str]], kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
         if disabled:
-            for lang in sorted(args, key=compilers.sort_clink):
+            for lang in sorted(args[0], key=compilers.sort_clink):
                 mlog.log('Compiler for language', mlog.bold(lang), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         if 'native' in kwargs:
-            return self.add_languages(args, required, self.machine_from_native_kwarg(kwargs))
+            return self.add_languages(args[0], required, self.machine_from_native_kwarg(kwargs))
         else:
             # absent 'native' means 'both' for backwards compatibility
             tv = FeatureNew.get_target_version(self.subproject)
@@ -3135,8 +3135,8 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.warning('add_languages is missing native:, assuming languages are wanted for both host and build.',
                              location=self.current_node)
 
-            success = self.add_languages(args, False, MachineChoice.BUILD)
-            success &= self.add_languages(args, required, MachineChoice.HOST)
+            success = self.add_languages(args[0], False, MachineChoice.BUILD)
+            success &= self.add_languages(args[0], required, MachineChoice.HOST)
             return success
 
     @noArgsFlattening
@@ -4563,28 +4563,28 @@ This warning will become a hard error in a future Meson release.
                                                              exclude_suites)
 
     @permittedKwargs(permitted_kwargs['add_global_arguments'])
-    @stringArgs
-    def func_add_global_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_global_arguments', varargs=str)
+    def func_add_global_arguments(self, node, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_args[for_machine], args, kwargs)
+        self.add_global_arguments(node, self.build.global_args[for_machine], args[0], kwargs)
 
     @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
-    @stringArgs
-    def func_add_global_link_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_global_link_arguments', varargs=str)
+    def func_add_global_link_arguments(self, node, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_link_args[for_machine], args, kwargs)
+        self.add_global_arguments(node, self.build.global_link_args[for_machine], args[0], kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_arguments'])
-    @stringArgs
-    def func_add_project_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_project_arguments', varargs=str)
+    def func_add_project_arguments(self, node, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_args[for_machine], args, kwargs)
+        self.add_project_arguments(node, self.build.projects_args[for_machine], args[0], kwargs)
 
     @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
-    @stringArgs
-    def func_add_project_link_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_project_link_arguments', varargs=str)
+    def func_add_project_link_arguments(self, node, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args, kwargs)
+        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args[0], kwargs)
 
     def warn_about_builtin_args(self, args):
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
@@ -4613,7 +4613,7 @@ This warning will become a hard error in a future Meson release.
                 mlog.warning(f'Consider using the built-in option for language standard version instead of using "{arg}".',
                              location=self.current_node)
 
-    def add_global_arguments(self, node, argsdict, args, kwargs):
+    def add_global_arguments(self, node: mparser.BaseNode, argsdict, args: T.List[str], kwargs) -> None:
         if self.is_subproject():
             msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
@@ -4631,7 +4631,7 @@ This warning will become a hard error in a future Meson release.
         self.add_arguments(node, argsdict[self.subproject],
                            self.project_args_frozen, args, kwargs)
 
-    def add_arguments(self, node, argsdict, args_frozen, args, kwargs):
+    def add_arguments(self, node: mparser.BaseNode, argsdict, args_frozen: bool, args: T.List[str], kwargs):
         if args_frozen:
             msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all ' \
@@ -4922,7 +4922,6 @@ This will become a hard error in the future.''', location=self.current_node)
             return fallback
         raise InterpreterException('Tried to get unknown variable "%s".' % varname)
 
-    @stringArgs
     @noKwargs
     @typed_pos_args('is_variable', object)
     def func_is_variable(self, node, args: T.Tuple[object], kwargs):
