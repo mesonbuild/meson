@@ -62,7 +62,12 @@ provided.
 
 ### Request a new repository
 
-Create an issue on the [wrapdb bug
+*Note:* you should only do this if you have written the build files
+and want to contribute them for inclusion to WrapDB. The maintainers
+have only limited reesources and unfortunately can not take requests
+to write Meson build definitions for arbitrary projects.
+
+The submission starts by creating an issue on the [wrapdb bug
 tracker](https://github.com/mesonbuild/wrapdb/issues) using *Title*
 and *Description* below as a template.
 
@@ -75,7 +80,9 @@ version: <version_you_have_a_wrap_for>
 ```
 
 Wait until the new repository or branch is created. A link to the new
-repository or branch will be posted in a comment to this issue.
+repository or branch will be posted in a comment to this issue. After
+this you can createa a merge request in that repository for your build
+files.
 
 NOTE: Requesting a branch is not necessary. WrapDB maintainer can
 create the branch and modify the PR accordingly if the project
