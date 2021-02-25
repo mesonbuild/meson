@@ -5544,6 +5544,13 @@ class AllPlatformTests(BasePlatformTests):
         check_installed_files(['--skip-subprojects', 'bar'], main_expected)
         check_installed_files(['--skip-subprojects', 'another'], all_expected)
 
+    def test_adding_subproject_to_configure_project(self) -> None:
+        srcdir = os.path.join(self.unit_test_dir, '92 new subproject in configured project')
+        self.init(srcdir)
+        self.build()
+        self.setconf('-Duse-sub=true')
+        self.build()
+
 
 class FailureTests(BasePlatformTests):
     '''
