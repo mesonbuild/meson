@@ -126,8 +126,11 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
         if not self.is_found:
             return
 
-        args = self.get_config_value(['-show', '-noshlib' if kwargs.get('static', False) else '-shlib'], 'args')
-        for arg in args[1:]:
+        # We first need to call the tool with -c to get the compile arguments
+        # and then without -c to get the link arguments.
+        args = self.get_config_value(['-show', '-c'], 'args')[1:]
+        args += self.get_config_value(['-show', '-noshlib' if kwargs.get('static', False) else '-shlib'], 'args')[1:]
+        for arg in args:
             if arg.startswith(('-I', '-f', '-D')) or arg == '-pthread':
                 self.compile_args.append(arg)
             elif arg.startswith(('-L', '-l', '-Wl')):
