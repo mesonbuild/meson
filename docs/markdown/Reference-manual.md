@@ -1979,9 +1979,9 @@ the following methods.
   the "native" compiler if we're not.
 
 - `get_cross_property(propname, fallback_value)`:
-  *Consider `get_external_property()` instead*. Returns the given
-  property from a cross file, the optional fallback_value is returned
-  if not cross compiling or the given property is not found.
+  *Deprecated since 0.58.0, use `get_external_property()` instead*.
+  Returns the given property from a cross file, the optional fallback_value
+  is returned if not cross compiling or the given property is not found.
 
 - `get_external_property(propname, fallback_value, native: true/false)`
   *(since 0.54.0)*: returns the given property from a native or cross file.
