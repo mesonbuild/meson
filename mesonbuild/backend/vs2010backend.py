@@ -272,17 +272,25 @@ class Vs2010Backend(backends.Backend):
                         all_deps[ldep.get_id()] = ldep
                 for obj_id, objdep in self.get_obj_target_deps(target.objects):
                     all_deps[obj_id] = objdep
-                for gendep in target.get_generated_sources():
-                    if isinstance(gendep, build.CustomTarget):
-                        all_deps[gendep.get_id()] = gendep
-                    elif isinstance(gendep, build.CustomTargetIndex):
-                        all_deps[gendep.target.get_id()] = gendep.target
-                    else:
-                        gen_exe = gendep.generator.get_exe()
-                        if isinstance(gen_exe, build.Executable):
-                            all_deps[gen_exe.get_id()] = gen_exe
             else:
                 raise MesonException('Unknown target type for target %s' % target)
+
+            for gendep in target.get_generated_sources():
+                if isinstance(gendep, build.CustomTarget):
+                    all_deps[gendep.get_id()] = gendep
+                elif isinstance(gendep, build.CustomTargetIndex):
+                    all_deps[gendep.target.get_id()] = gendep.target
+                else:
+                    generator = gendep.get_generator()
+                    gen_exe = generator.get_exe()
+                    if isinstance(gen_exe, build.Executable):
+                        all_deps[gen_exe.get_id()] = gen_exe
+                    for d in generator.depends:
+                        if isinstance(d, build.CustomTargetIndex):
+                            all_deps[d.get_id()] = d.target
+                        else:
+                            all_deps[d.get_id()] = d
+
         if not t or not recursive:
             return all_deps
         ret = self.get_target_deps(all_deps, recursive)
