@@ -580,6 +580,9 @@ Returns a [disabler object](#disabler-object).
 
 Print the argument string and halts the build process.
 
+*(since 0.58.0)* Can take more than one argument that will be separated by
+space.
+
 ### environment()
 
 ``` meson

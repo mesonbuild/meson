@@ -5864,6 +5864,11 @@ class FailureTests(BasePlatformTests):
                                "meson.override_dependency('zlib', declare_dependency())",
                                """Tried to override dependency 'zlib' which has already been resolved or overridden""")
 
+    def test_error_func(self):
+        self.assertMesonRaises("error('a', 'b', ['c', ['d', {'e': 'f'}]], 'g')",
+                               "Problem encountered: a b \['c', \['d', {'e' : 'f'}\]\] g")
+
+
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")
 class WindowsTests(BasePlatformTests):
     '''
