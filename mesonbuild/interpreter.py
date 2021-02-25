@@ -32,6 +32,7 @@ from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabl
 from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from .interpreterbase import ObjectHolder, MesonVersionString
 from .interpreterbase import TYPE_var, TYPE_nkwargs
+from .interpreterbase import typed_pos_args
 from .modules import ModuleReturnValue, ExtensionModule
 from .cmake import CMakeInterpreter
 from .backend.backends import TestProtocol, Backend, ExecutableSerialisation
@@ -1947,6 +1948,7 @@ class MesonMain(InterpreterObject):
                              'project_name': self.project_name_method,
                              'get_cross_property': self.get_cross_property_method,
                              'get_external_property': self.get_external_property_method,
+                             'has_external_property': self.has_external_property_method,
                              'backend': self.backend_method,
                              })
 
@@ -2284,6 +2286,14 @@ class MesonMain(InterpreterObject):
                 return self.get_cross_property_method(args, kwargs)
             else:
                 return _get_native()
+
+    @permittedKwargs({'native'})
+    @FeatureNew('meson.has_external_property', '0.58.0')
+    @typed_pos_args('meson.has_external_property', str)
+    def has_external_property_method(self, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> str:
+        prop_name = args[0]
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        return prop_name in self.interpreter.environment.properties[for_machine]
 
 known_library_kwargs = (
     build.known_shlib_kwargs |
