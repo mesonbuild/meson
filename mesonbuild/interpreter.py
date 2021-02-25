@@ -61,16 +61,16 @@ permitted_method_kwargs = {
                            'sources'},
 }
 
-def stringifyUserArguments(args):
+def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
-        return '[%s]' % ', '.join([stringifyUserArguments(x) for x in args])
+        return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
     elif isinstance(args, dict):
-        return '{%s}' % ', '.join(['%s : %s' % (stringifyUserArguments(k), stringifyUserArguments(v)) for k, v in args.items()])
+        return '{%s}' % ', '.join(['%s : %s' % (stringifyUserArguments(k, True), stringifyUserArguments(v, True)) for k, v in args.items()])
     elif isinstance(args, int):
         return str(args)
     elif isinstance(args, str):
-        return "'%s'" % args
-    raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
+        return f"'{args}'" if quote else args
+    raise InvalidArguments('Function accepts only strings, integers, lists, dictionaries and lists thereof.')
 
 
 class OverrideProgram(dependencies.ExternalProgram):
@@ -3276,26 +3276,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             success &= self.add_languages(args, required, MachineChoice.HOST)
             return success
 
-    def get_message_string_arg(self, arg):
-        if isinstance(arg, list):
-            argstr = stringifyUserArguments(arg)
-        elif isinstance(arg, dict):
-            argstr = stringifyUserArguments(arg)
-        elif isinstance(arg, str):
-            argstr = arg
-        elif isinstance(arg, int):
-            argstr = str(arg)
-        else:
-            raise InvalidArguments('Function accepts only strings, integers, lists and lists thereof.')
-
-        return argstr
-
     @noArgsFlattening
     @noKwargs
     def func_message(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('message with more than one argument', '0.54.0', self.subproject)
-        args_str = [self.get_message_string_arg(i) for i in args]
+        args_str = [stringifyUserArguments(i) for i in args]
         self.message_impl(args_str)
 
     def message_impl(self, args):
@@ -3357,13 +3343,16 @@ external dependencies (including libraries) must go to "dependencies".''')
     def func_warning(self, node, args, kwargs):
         if len(args) > 1:
             FeatureNew.single_use('warning with more than one argument', '0.54.0', self.subproject)
-        args_str = [self.get_message_string_arg(i) for i in args]
+        args_str = [stringifyUserArguments(i) for i in args]
         mlog.warning(*args_str, location=node)
 
+    @noArgsFlattening
     @noKwargs
     def func_error(self, node, args, kwargs):
-        self.validate_arguments(args, 1, [str])
-        raise InterpreterException('Problem encountered: ' + args[0])
+        if len(args) > 1:
+            FeatureNew.single_use('error with more than one argument', '0.58.0', self.subproject)
+        args_str = [stringifyUserArguments(i) for i in args]
+        raise InterpreterException('Problem encountered: ' + ' '.join(args_str))
 
     @noKwargs
     @noPosargs
