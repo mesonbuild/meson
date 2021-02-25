@@ -1991,6 +1991,13 @@ the following methods.
   If `native: false` or not specified, variable is retrieved from the
   cross-file if cross-compiling, and from the native-file when not cross-compiling.
 
+- `has_external_property(propname, native: true/false)`
+  *(since 0.58.0)*: checks whether the given property exist in a native or
+  cross file. The optional `native: true` forces checking for the variable
+  in the native file, even when cross-compiling.
+  If `native: false` or not specified, the variable is checked for in the
+  cross-file if cross-compiling, and in the native-file when not cross-compiling.
+
 - `can_run_host_binaries()` *(since 0.55.0)*: returns true if the build machine can run
   binaries compiled for the host. This returns true unless you are
   cross compiling, need a helper to run host binaries, and don't have one.
