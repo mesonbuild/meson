@@ -25,7 +25,7 @@ from .mesonlib import FileMode, MachineChoice, OptionKey, Popen_safe, listify, e
 from .dependencies import ExternalProgram
 from .dependencies import InternalDependency, Dependency, NotFoundDependency, DependencyException
 from .depfile import DepFile
-from .interpreterbase import InterpreterBase
+from .interpreterbase import InterpreterBase, typed_pos_args
 from .interpreterbase import check_stringlist, flatten, noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from .interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from .interpreterbase import InterpreterObject, MutableInterpreterObject, Disabler, disablerIfNotFound
@@ -1922,7 +1922,7 @@ class Summary:
         mlog.log(*line, sep=list_sep)
 
 class MesonMain(InterpreterObject):
-    def __init__(self, build, interpreter):
+    def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
         self.build = build
         self.interpreter = interpreter
@@ -2244,51 +2244,32 @@ class MesonMain(InterpreterObject):
     def project_name_method(self, args, kwargs):
         return self.interpreter.active_projectname
 
+    def __get_external_property_impl(self, propname: str, fallback: T.Optional[object], machine: MachineChoice) -> object:
+        """Shared implementation for get_cross_property and get_external_property."""
+        try:
+            return self.interpreter.environment.properties[machine][propname]
+        except KeyError:
+            if fallback is not None:
+                return fallback
+            raise InterpreterException(f'Unknown property for {machine.get_lower_case_name()} machine: {propname}')
+
     @noArgsFlattening
     @permittedKwargs({})
     @FeatureDeprecated('meson.get_cross_property', '0.58.0', 'Use meson.get_external_property() instead')
-    def get_cross_property_method(self, args, kwargs) -> str:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Must have one or two arguments.')
-        propname = args[0]
-        if not isinstance(propname, str):
-            raise InterpreterException('Property name must be string.')
-        try:
-            props = self.interpreter.environment.properties.host
-            return props[propname]
-        except Exception:
-            if len(args) == 2:
-                return args[1]
-            raise InterpreterException('Unknown cross property: %s.' % propname)
+    @typed_pos_args('meson.get_cross_property', str, optargs=[object])
+    def get_cross_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: T.Dict[str, T.Any]) -> object:
+        propname, fallback = args
+        return self.__get_external_property_impl(propname, fallback, MachineChoice.HOST)
 
     @noArgsFlattening
     @permittedKwargs({'native'})
     @FeatureNew('meson.get_external_property', '0.54.0')
-    def get_external_property_method(self, args: T.Sequence[str], kwargs: dict) -> str:
-        if len(args) < 1 or len(args) > 2:
-            raise InterpreterException('Must have one or two positional arguments.')
-        propname = args[0]
-        if not isinstance(propname, str):
-            raise InterpreterException('Property name must be string.')
+    @typed_pos_args('meson.get_external_property', str, optargs=[object])
+    def get_external_property_method(self, args: T.Tuple[str, T.Optional[object]], kwargs: T.Dict[str, T.Any]) -> object:
+        propname, fallback = args
+        machine = self.interpreter.machine_from_native_kwarg(kwargs)
+        return self.__get_external_property_impl(propname, fallback, machine)
 
-        def _get_native() -> str:
-            try:
-                props = self.interpreter.environment.properties.build
-                return props[propname]
-            except Exception:
-                if len(args) == 2:
-                    return args[1]
-                raise InterpreterException('Unknown native property: %s.' % propname)
-        if 'native' in kwargs:
-            if kwargs['native']:
-                return _get_native()
-            else:
-                return self.get_cross_property_method(args, {})
-        else:  # native: not specified
-            if self.build.environment.is_cross_build():
-                return self.get_cross_property_method(args, kwargs)
-            else:
-                return _get_native()
 
     @permittedKwargs({'native'})
     @FeatureNew('meson.has_external_property', '0.58.0')
