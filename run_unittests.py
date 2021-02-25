@@ -5496,6 +5496,13 @@ class AllPlatformTests(BasePlatformTests):
         srcdir = os.path.join(self.common_test_dir, '2 cpp')
         self.init(srcdir, extra_args=['-Dbuild.b_lto=true'])
 
+    def test_adding_subproject_to_configure_project(self) -> None:
+        srcdir = os.path.join(self.unit_test_dir, '92 new subproject in configured project')
+        self.init(srcdir)
+        self.build()
+        self.setconf('-Duse-sub=true')
+        self.build()
+
 
 class FailureTests(BasePlatformTests):
     '''

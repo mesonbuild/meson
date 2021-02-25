@@ -3169,7 +3169,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         # have any effect.
         self.project_default_options = mesonlib.stringlistify(kwargs.get('default_options', []))
         self.project_default_options = coredata.create_options_dict(self.project_default_options, self.subproject)
-        if self.environment.first_invocation:
+
+        # If this is the first invocation we alway sneed to initialize
+        # builtins, if this is a subproject that is new in a re-invocation we
+        # need to initialize builtins for that
+        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.subprojects):
             default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)
             self.coredata.init_builtins(self.subproject)
