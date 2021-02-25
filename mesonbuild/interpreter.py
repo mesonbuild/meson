@@ -2241,6 +2241,7 @@ class MesonMain(InterpreterObject):
 
     @noArgsFlattening
     @permittedKwargs({})
+    @FeatureDeprecated('meson.get_cross_property', '0.58.0', 'Use meson.get_external_property() instead')
     def get_cross_property_method(self, args, kwargs) -> str:
         if len(args) < 1 or len(args) > 2:
             raise InterpreterException('Must have one or two arguments.')

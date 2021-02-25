@@ -315,7 +315,7 @@ somekey = 'somevalue'
 then you can access that using the `meson` object like this:
 
 ```meson
-myvar = meson.get_cross_property('somekey')
+myvar = meson.get_external_property('somekey')
 # myvar now has the value 'somevalue'
 ```
 
