@@ -1598,6 +1598,7 @@ int dummy;
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
         args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
         linkdirs = mesonlib.OrderedSet()
+        external_deps = target.external_deps.copy()
         for d in target.link_targets:
             linkdirs.add(d.subdir)
             if d.uses_rust():
@@ -1609,14 +1610,27 @@ int dummy;
                 # Rust uses -l for non rust dependencies, but we still need to add (shared|static)=foo
                 _type = 'static' if d.typename == 'static library' else 'shared'
                 args += ['-l', f'{_type}={d.name}']
+                if d.typename == 'static library':
+                    external_deps.extend(d.external_deps)
+        for e in external_deps:
+            for a in e.get_link_args():
+                if a.endswith(('.dll', '.so', '.dylib')):
+                    dir_, lib = os.path.split(a)
+                    linkdirs.add(dir_)
+                    lib, ext = os.path.splitext(lib)
+                    if lib.startswith('lib'):
+                        lib = lib[3:]
+                    args.extend(['-l', f'dylib={lib}'])
+                elif a.startswith('-L'):
+                    args.append(a)
+                elif a.startswith('-l'):
+                    # This should always be a static lib, I think
+                    args.extend(['-l', f'static={a[2:]}'])
         for d in linkdirs:
             if d == '':
                 d = '.'
             args += ['-L', d]
-        has_shared_deps = False
-        for dep in target.get_dependencies():
-            if isinstance(dep, build.SharedLibrary):
-                has_shared_deps = True
+        has_shared_deps = any(isinstance(dep, build.SharedLibrary) for dep in target.get_dependencies())
         if isinstance(target, build.SharedLibrary) or has_shared_deps:
             # add prefer-dynamic if any of the Rust libraries we link
             # against are dynamic, otherwise we'll end up with
