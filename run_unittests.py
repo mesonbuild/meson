@@ -4996,6 +4996,7 @@ class AllPlatformTests(BasePlatformTests):
                                  1
                                  True
                 empty list     :
+                enabled_opt    : enabled
                 A number       : 1
                 yes            : YES
                 no             : NO

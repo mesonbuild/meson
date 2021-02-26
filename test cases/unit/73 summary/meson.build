@@ -8,6 +8,7 @@ summary({'Some boolean': false,
          'Some string': 'Hello World',
          'A list': ['string', 1, true],
          'empty list': [],
+         'enabled_opt': get_option('enabled_opt'),
         }, section: 'Configuration')
 summary({'missing prog': find_program('xyzzy', required: false),
          'existing prog': import('python').find_installation(),
