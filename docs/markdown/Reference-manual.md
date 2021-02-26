@@ -1356,6 +1356,7 @@ dictionaries does not guarantee ordering. `key` must be string,
 
 - an integer, boolean or string
 - *since 0.57.0* an external program or a dependency
+- *since 0.58.0* a feature option
 - a list of those.
 
 `summary()` can be called multiple times as long as the same

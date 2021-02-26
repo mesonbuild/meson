@@ -1877,6 +1877,9 @@ class Summary:
                 elif isinstance(i, (ExternalProgram, Dependency)):
                     FeatureNew.single_use('dependency or external program in summary', '0.57.0', subproject)
                     formatted_values.append(i.summary_value())
+                elif isinstance(i, coredata.UserOption):
+                    FeatureNew.single_use('feature option in summary', '0.58.0', subproject)
+                    formatted_values.append(i.printable_value())
                 else:
                     m = 'Summary value in section {!r}, key {!r}, must be string, integer, boolean, dependency or external program'
                     raise InterpreterException(m.format(section, k))
