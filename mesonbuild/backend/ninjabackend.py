@@ -1624,8 +1624,8 @@ int dummy;
                 elif a.startswith('-L'):
                     args.append(a)
                 elif a.startswith('-l'):
-                    # This should always be a static lib, I think
-                    args.extend(['-l', f'static={a[2:]}'])
+                    _type = 'static' if e.static else 'dylib'
+                    args.extend(['-l', f'{_type}={a[2:]}'])
         for d in linkdirs:
             if d == '':
                 d = '.'
