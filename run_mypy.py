@@ -39,6 +39,7 @@ modules = [
     'mesonbuild/optinterpreter.py',
 
     'run_mypy.py',
+    'run_single_test.py',
     'tools'
 ]
 

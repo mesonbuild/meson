@@ -27,6 +27,8 @@ from enum import Enum
 from glob import glob
 from pathlib import Path
 from unittest import mock
+import typing as T
+
 from mesonbuild import compilers
 from mesonbuild import dependencies
 from mesonbuild import mesonlib
@@ -57,26 +59,27 @@ else:
 if NINJA_CMD is None:
     raise RuntimeError('Could not find Ninja v1.7 or newer')
 
-def guess_backend(backend, msbuild_exe: str):
+def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.List[str]]:
     # Auto-detect backend if unspecified
     backend_flags = []
-    if backend is None:
+    if backend_str is None:
         if msbuild_exe is not None and (mesonlib.is_windows() and not _using_intelcl()):
-            backend = 'vs' # Meson will auto-detect VS version to use
+            backend_str = 'vs' # Meson will auto-detect VS version to use
         else:
-            backend = 'ninja'
+            backend_str = 'ninja'
+
     # Set backend arguments for Meson
-    if backend.startswith('vs'):
-        backend_flags = ['--backend=' + backend]
+    if backend_str.startswith('vs'):
+        backend_flags = ['--backend=' + backend_str]
         backend = Backend.vs
-    elif backend == 'xcode':
+    elif backend_str == 'xcode':
         backend_flags = ['--backend=xcode']
         backend = Backend.xcode
-    elif backend == 'ninja':
+    elif backend_str == 'ninja':
         backend_flags = ['--backend=ninja']
         backend = Backend.ninja
     else:
-        raise RuntimeError('Unknown backend: {!r}'.format(backend))
+        raise RuntimeError('Unknown backend: {!r}'.format(backend_str))
     return (backend, backend_flags)
 
 
@@ -115,7 +118,8 @@ class FakeCompilerOptions:
     def __init__(self):
         self.value = []
 
-def get_fake_options(prefix=''):
+# TODO: use a typing.Protocol here
+def get_fake_options(prefix: str = '') -> argparse.Namespace:
     opts = argparse.Namespace()
     opts.native_file = []
     opts.cross_file = None
@@ -208,9 +212,13 @@ def get_builddir_target_args(backend, builddir, target):
         raise AssertionError('Unknown backend: {!r}'.format(backend))
     return target_args + dir_args
 
-def get_backend_commands(backend, debug=False):
-    install_cmd = []
-    uninstall_cmd = []
+def get_backend_commands(backend: Backend, debug: bool = False) -> \
+        T.Tuple[T.List[str], T.List[str], T.List[str], T.List[str], T.List[str]]:
+    install_cmd: T.List[str] = []
+    uninstall_cmd: T.List[str] = []
+    clean_cmd: T.List[str]
+    cmd: T.List[str]
+    test_cmd: T.List[str]
     if backend is Backend.vs:
         cmd = ['msbuild']
         clean_cmd = cmd + ['/target:Clean']
