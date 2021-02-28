@@ -153,6 +153,9 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         # TODO: using a TypeDict here would improve this
         res = []
+        # get_feature_args can be called multiple times for the same target when there is generated source
+        # so we have to copy the kwargs (target.d_features) dict before popping from it
+        kwargs = kwargs.copy()
         if 'unittest' in kwargs:
             unittest = kwargs.pop('unittest')
             unittest_arg = d_feature_args[self.id]['unittest']
@@ -525,6 +528,9 @@ class DCompiler(Compiler):
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         # TODO: using a TypeDict here would improve this
         res = []
+        # get_feature_args can be called multiple times for the same target when there is generated source
+        # so we have to copy the kwargs (target.d_features) dict before popping from it
+        kwargs = kwargs.copy()
         if 'unittest' in kwargs:
             unittest = kwargs.pop('unittest')
             unittest_arg = d_feature_args[self.id]['unittest']
