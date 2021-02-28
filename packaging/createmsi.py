@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2017 The Meson development team
+# Copyright 2017-2021 The Meson development team
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import uuid
 import sys
 import os
 from glob import glob
-import platform
 import xml.etree.ElementTree as ET
 
 sys.path.append(os.getcwd())
@@ -77,8 +76,7 @@ class PackageGenerator:
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
-        self.bytesize = 32 if '32' in platform.architecture()[0] else 64
-        self.final_output = 'meson-{}-{}.msi'.format(self.version, self.bytesize)
+        self.final_output = 'meson-{}-64.msi'.format(self.version)
         self.staging_dirs = ['dist', 'dist2']
         self.progfile_dir = 'ProgramFiles64Folder'
         redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
@@ -209,8 +207,7 @@ class PackageGenerator:
         ET.SubElement(product, 'MajorUpgrade',
                       {'DowngradeErrorMessage': 'A newer version of Meson is already installed.'})
 
-        if self.bytesize == 64:
-            package.set('Platform', 'x64')
+        package.set('Platform', 'x64')
         ET.SubElement(product, 'Media', {
             'Id': '1',
             'Cabinet': 'meson.cab',
@@ -295,8 +292,7 @@ class PackageGenerator:
                 'Guid': gen_guid(),
             })
             self.feature_components[staging_dir].append(component_id)
-            if self.bytesize == 64:
-                comp_xml_node.set('Win64', 'yes')
+            comp_xml_node.set('Win64', 'yes')
             if self.component_num == 0:
                 ET.SubElement(comp_xml_node, 'Environment', {
                     'Id': 'Environment',
