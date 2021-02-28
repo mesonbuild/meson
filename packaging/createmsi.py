@@ -139,6 +139,7 @@ class PackageGenerator:
                 'distutils.version',
                 'distutils.command.build_ext',
                 'distutils.command.build',
+                'filecmp',
                 ]
 
     def build_dist(self):
