@@ -30,6 +30,9 @@ import xml.etree.ElementTree as ET
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
 
+# Elementtree does not support CDATA. So hack it.
+WINVER_CHECK = '<![CDATA[Installed OR (VersionNT64 > 602)]]>'
+
 def gen_guid():
     '''
        Generate guid
@@ -205,6 +208,9 @@ class PackageGenerator:
             'SummaryCodepage': '1252',
         })
 
+        condition = ET.SubElement(product, 'Condition', {'Message': 'This application is only supported on Windows 10 or higher.'})
+
+        condition.text = 'X'*len(WINVER_CHECK)
         ET.SubElement(product, 'MajorUpgrade',
                       {'DowngradeErrorMessage': 'A newer version of Meson is already installed.'})
 
@@ -270,6 +276,12 @@ class PackageGenerator:
         doc = xml.dom.minidom.parse(self.main_xml)
         with open(self.main_xml, 'w') as open_file:
             open_file.write(doc.toprettyxml())
+        # One last fix, add CDATA.
+        with open(self.main_xml, 'r') as open_file:
+            data = open_file.read()
+        data = data.replace('X'*len(WINVER_CHECK), WINVER_CHECK)
+        with open(self.main_xml, 'w') as open_file:
+            open_file.write(data)
 
     def build_features(self, top_feature, staging_dir):
         '''
