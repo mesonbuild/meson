@@ -220,13 +220,15 @@ class DmdLikeCompilerMixin(CompilerMixinBase):
             for idir_obj in import_dirs:
                 basedir = idir_obj.get_curdir()
                 for idir in idir_obj.get_incdirs():
+                    bldtreedir = os.path.join(basedir, idir)
                     # Avoid superfluous '/.' at the end of paths when d is '.'
                     if idir not in ('', '.'):
-                        expdir = os.path.join(basedir, idir)
+                        expdir = bldtreedir
                     else:
                         expdir = basedir
                     srctreedir = os.path.join(build_to_src, expdir)
                     res.append('{0}{1}'.format(import_dir_arg, srctreedir))
+                    res.append('{0}{1}'.format(import_dir_arg, bldtreedir))
 
         if kwargs:
             raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
@@ -592,13 +594,15 @@ class DCompiler(Compiler):
             for idir_obj in import_dirs:
                 basedir = idir_obj.get_curdir()
                 for idir in idir_obj.get_incdirs():
+                    bldtreedir = os.path.join(basedir, idir)
                     # Avoid superfluous '/.' at the end of paths when d is '.'
                     if idir not in ('', '.'):
-                        expdir = os.path.join(basedir, idir)
+                        expdir = bldtreedir
                     else:
                         expdir = basedir
                     srctreedir = os.path.join(build_to_src, expdir)
                     res.append('{0}{1}'.format(import_dir_arg, srctreedir))
+                    res.append('{0}{1}'.format(import_dir_arg, bldtreedir))
 
         if kwargs:
             raise EnvironmentException('Unknown D compiler feature(s) selected: %s' % ', '.join(kwargs.keys()))
