@@ -1009,16 +1009,16 @@ class Compiler(metaclass=abc.ABCMeta):
         return []
 
     def get_crt_compile_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        raise OSError('This compiler does not support Windows CRT selection')
+        raise EnvironmentException('This compiler does not support Windows CRT selection')
 
     def get_crt_link_args(self, crt_val: str, buildtype: str) -> T.List[str]:
-        raise OSError('This compiler does not support Windows CRT selection')
+        raise EnvironmentException('This compiler does not support Windows CRT selection')
 
     def get_compile_only_args(self) -> T.List[str]:
         return []
 
     def get_preprocess_only_args(self) -> T.List[str]:
-        raise OSError('This compiler does not have a preprocessor')
+        raise EnvironmentException('This compiler does not have a preprocessor')
 
     def get_default_include_dirs(self) -> T.List[str]:
         return []
@@ -1095,7 +1095,7 @@ class Compiler(metaclass=abc.ABCMeta):
         return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self) -> str:
-        raise OSError(f'{self.id} does not implement get_depfile_suffix')
+        raise EnvironmentException(f'{self.id} does not implement get_depfile_suffix')
 
     def get_no_stdinc_args(self) -> T.List[str]:
         """Arguments to turn off default inclusion of standard libraries."""
@@ -1112,13 +1112,13 @@ class Compiler(metaclass=abc.ABCMeta):
         pass
 
     def get_module_incdir_args(self) -> T.Tuple[str, ...]:
-        raise OSError(f'{self.id} does not implement get_module_incdir_args')
+        raise EnvironmentException(f'{self.id} does not implement get_module_incdir_args')
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
-        raise OSError(f'{self.id} does not implement get_module_outdir_args')
+        raise EnvironmentException(f'{self.id} does not implement get_module_outdir_args')
 
     def module_name_to_filename(self, module_name: str) -> str:
-        raise OSError(f'{self.id} does not implement module_name_to_filename')
+        raise EnvironmentException(f'{self.id} does not implement module_name_to_filename')
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         """Arguments to pass the compiler and/or linker for checks.
@@ -1212,7 +1212,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         """Used by D for extra language features."""
         # TODO: using a TypeDict here would improve this
-        raise OSError(f'{self.id} does not implement get_feature_args')
+        raise EnvironmentException(f'{self.id} does not implement get_feature_args')
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
