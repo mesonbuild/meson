@@ -1031,7 +1031,7 @@ class Compiler(HoldableObject, metaclass=abc.ABCMeta):
         return []
 
     def get_preprocess_only_args(self) -> T.List[str]:
-        raise EnvironmentException('This compiler does not have a preprocessor')
+        raise EnvironmentException(f'The {self.id} compiler for {self.language} does not have a preprocessor')
 
     def get_default_include_dirs(self) -> T.List[str]:
         # TODO: This is a candidate for returning an immutable list
