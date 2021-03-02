@@ -7318,6 +7318,18 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(relative_path_dep.get_link_args(), link_args)
 
     @skipIfNoPkgconfig
+    def test_pkgconfig_duplicate_path_entries(self):
+        testdir = os.path.join(self.unit_test_dir, '111 pkgconfig duplicate path entries')
+        pkg_dir = os.path.join(testdir, 'pkgconfig')
+
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        env.coredata.set_options({OptionKey('pkg_config_path'): pkg_dir}, subproject='')
+
+        PkgConfigDependency.setup_env({}, env, MachineChoice.HOST, pkg_dir)
+        pkg_config_path = env.coredata.options[OptionKey('pkg_config_path')].value
+        self.assertTrue(len(pkg_config_path) == 1)
+
+    @skipIfNoPkgconfig
     def test_pkgconfig_internal_libraries(self):
         '''
         '''
