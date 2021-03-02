@@ -261,7 +261,7 @@ class ExternalProjectModule(ExtensionModule):
             raise InterpreterException('add_project takes exactly one positional argument')
         configure_command = args[0]
         configure_options = kwargs.get('configure_options', [])
-        cross_configure_options = kwargs.get('cross_configure_options', ['--host={host}'])
+        cross_configure_options = kwargs.get('cross_configure_options', ['--host=@HOST@'])
         verbose = kwargs.get('verbose', False)
         env = self.interpreter.unpack_env_kwarg(kwargs)
         project = ExternalProject(self.interpreter,
