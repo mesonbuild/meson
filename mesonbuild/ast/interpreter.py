@@ -70,10 +70,10 @@ class AstInterpreter(interpreterbase.InterpreterBase):
     def __init__(self, source_root: str, subdir: str, subproject: str, visitors: T.Optional[T.List[AstVisitor]] = None):
         super().__init__(source_root, subdir, subproject)
         self.visitors = visitors if visitors is not None else []
-        self.visited_subdirs = {}     # type: T.Dict[str, bool]
-        self.assignments = {}         # type: T.Dict[str, BaseNode]
-        self.assign_vals = {}         # type: T.Dict[str, T.Any]
-        self.reverse_assignment = {}  # type: T.Dict[str, BaseNode]
+        self.processed_buildfiles = set() # type: T.Set[str]
+        self.assignments = {}             # type: T.Dict[str, BaseNode]
+        self.assign_vals = {}             # type: T.Dict[str, T.Any]
+        self.reverse_assignment = {}      # type: T.Dict[str, BaseNode]
         self.funcs.update({'project': self.func_do_nothing,
                            'test': self.func_do_nothing,
                            'benchmark': self.func_do_nothing,
@@ -150,10 +150,11 @@ class AstInterpreter(interpreterbase.InterpreterBase):
         buildfilename = os.path.join(subdir, environment.build_filename)
         absname = os.path.join(self.source_root, buildfilename)
         symlinkless_dir = os.path.realpath(absdir)
-        if symlinkless_dir in self.visited_subdirs:
+        build_file = os.path.join(symlinkless_dir, 'meson.build')
+        if build_file in self.processed_buildfiles:
             sys.stderr.write('Trying to enter {} which has already been visited --> Skipping\n'.format(args[0]))
             return
-        self.visited_subdirs[symlinkless_dir] = True
+        self.processed_buildfiles.add(build_file)
 
         if not os.path.isfile(absname):
             sys.stderr.write(f'Unable to find build file {buildfilename} --> Skipping\n')
