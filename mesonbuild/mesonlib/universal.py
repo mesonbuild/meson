@@ -107,6 +107,7 @@ __all__ = [
     'is_qnx',
     'is_sunos',
     'is_windows',
+    'is_wsl',
     'iter_regexin_iter',
     'join_args',
     'listify',
@@ -597,6 +598,8 @@ def is_windows() -> bool:
     platname = platform.system().lower()
     return platname == 'windows'
 
+def is_wsl() -> bool:
+    return is_linux() and 'microsoft' in platform.version().lower()
 
 def is_cygwin() -> bool:
     return sys.platform == 'cygwin'
