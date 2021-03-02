@@ -6,3 +6,5 @@ test('compare', exe)
 
 meson.add_dist_script('replacer.py', '"incorrect"', '"correct"')
 meson.add_dist_script(find_program('replacer.py'), '"incorrect"', '"correct"')
+
+subproject('sub')
