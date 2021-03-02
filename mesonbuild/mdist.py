@@ -78,13 +78,19 @@ def process_submodules(dirname):
         del_gitfiles(os.path.join(dirname, v))
 
 
-def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
+def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts, subprojects):
     assert(os.path.isabs(dist_root))
     env = {}
     env['MESON_DIST_ROOT'] = dist_root
     env['MESON_SOURCE_ROOT'] = src_root
     env['MESON_BUILD_ROOT'] = bld_root
     for d in dist_scripts:
+        if d.subproject and d.subproject not in subprojects:
+            continue
+        subdir = subprojects.get(d.subproject, '')
+        env['MESON_PROJECT_DIST_ROOT'] = os.path.join(dist_root, subdir)
+        env['MESON_PROJECT_SOURCE_ROOT'] = os.path.join(src_root, subdir)
+        env['MESON_PROJECT_BUILD_ROOT'] = os.path.join(bld_root, subdir)
         name = ' '.join(d.cmd_args)
         print(f'Running custom dist script {name!r}')
         try:
@@ -141,7 +147,7 @@ def git_clone(src_root, distdir):
 def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
     distdir = os.path.join(dist_sub, dist_name)
     git_clone(src_root, distdir)
-    for path in subprojects:
+    for path in subprojects.values():
         sub_src_root = os.path.join(src_root, path)
         sub_distdir = os.path.join(distdir, path)
         if os.path.exists(sub_distdir):
@@ -150,7 +156,7 @@ def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scri
             git_clone(sub_src_root, sub_distdir)
         else:
             shutil.copytree(sub_src_root, sub_distdir)
-    run_dist_scripts(src_root, bld_root, distdir, dist_scripts)
+    run_dist_scripts(src_root, bld_root, distdir, dist_scripts, subprojects)
     output_names = []
     for a in archives:
         compressed_name = distdir + archive_extension[a]
@@ -278,13 +284,13 @@ def run(options):
 
     archives = determine_archives_to_generate(options)
 
-    subprojects = []
+    subprojects = {}
     extra_meson_args = []
     if options.include_subprojects:
         subproject_dir = os.path.join(src_root, b.subproject_dir)
         for sub in b.subprojects:
             directory = wrap.get_directory(subproject_dir, sub)
-            subprojects.append(os.path.join(b.subproject_dir, directory))
+            subprojects[sub] = os.path.join(b.subproject_dir, directory)
         extra_meson_args.append('-Dwrap_mode=nodownload')
 
     if is_git(src_root):

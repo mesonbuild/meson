@@ -2028,7 +2028,8 @@ class MesonMain(InterpreterObject):
             FeatureNew.single_use('Passing file object to script parameter of add_dist_script',
                                   '0.57.0', self.interpreter.subproject)
         if self.interpreter.subproject != '':
-            raise InterpreterException('add_dist_script may not be used in a subproject.')
+            FeatureNew.single_use('Calling "add_dist_script" in a subproject',
+                                  '0.58.0', self.interpreter.subproject)
         script_args = self._process_script_args('add_dist_script', args[1:], allow_built=True)
         script = self._find_source_script(args[0], script_args)
         self.build.dist_scripts.append(script)

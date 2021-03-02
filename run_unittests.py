@@ -3189,6 +3189,10 @@ class AllPlatformTests(BasePlatformTests):
                 _git_init(project_dir)
                 self.init(project_dir)
                 self.build('dist')
+
+                self.new_builddir()
+                self.init(project_dir, extra_args=['-Dsub:broken_dist_script=false'])
+                self._run(self.meson_command + ['dist', '--include-subprojects'], workdir=self.builddir)
         except PermissionError:
             # When run under Windows CI, something (virus scanner?)
             # holds on to the git files so cleaning up the dir

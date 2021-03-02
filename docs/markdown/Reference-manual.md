@@ -1907,16 +1907,25 @@ the following methods.
   archived. Note that this runs the script file that is in the
   _staging_ directory, not the one in the source directory. If the
   script file can not be found in the staging directory, it is a hard
-  error. This command can only invoked from the main project, calling
-  it from a subproject is a hard error. *(since 0.49.0)* Accepts multiple arguments
-  for the script. *(since 0.54.0)* The `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`
-  environment variables are set when dist scripts are run.
-
+  error. The `MESON_DIST_ROOT` environment variables is set when dist scripts is
+  run.
+  *(since 0.49.0)* Accepts multiple arguments for the script.
+  *(since 0.54.0)* The `MESON_SOURCE_ROOT` and `MESON_BUILD_ROOT`
+  environment variables are set when dist scripts are run. They are path to the
+  root source and build directory of the main project, even when the script
+  comes from a subproject.
   *(since 0.55.0)* The output of `configure_file`, `files`, and `find_program`
   as well as strings.
-
   *(since 0.57.0)* `file` objects and the output of `configure_file` may be
   used as the `script_name` parameter.
+  *(since 0.58.0)* This command can be invoked from a subproject, it was a hard
+  error in earlier versions. Subproject dist scripts will only be executed
+  when running `meson dist --include-subprojects`. `MESON_PROJECT_SOURCE_ROOT`,
+  `MESON_PROJECT_BUILD_ROOT` and `MESON_PROJECT_DIST_ROOT` environment
+  variables are set when dist scripts are run. They are identical to
+  `MESON_SOURCE_ROOT`, `MESON_BUILD_ROOT` and `MESON_DIST_ROOT` for main project
+  scripts, but for subproject scripts they have the path to the root of the
+  subproject appended, usually `subprojects/<subproject-name>`.
 
 - `add_install_script(script_name, arg1, arg2, ...)`: causes the script
   given as an argument to be run during the install step, this script
