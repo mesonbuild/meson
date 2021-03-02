@@ -512,7 +512,7 @@ class Resolver:
     def check_hash(self, what: str, path: str, hash_required: bool = True) -> None:
         if what + '_hash' not in self.wrap.values and not hash_required:
             return
-        expected = self.wrap.get(what + '_hash')
+        expected = self.wrap.get(what + '_hash').lower()
         h = hashlib.sha256()
         with open(path, 'rb') as f:
             h.update(f.read())
@@ -526,7 +526,7 @@ class Resolver:
         mlog.log('Downloading', mlog.bold(self.packagename), what, 'from', mlog.bold(srcurl))
         try:
             dhash, tmpfile = self.get_data(srcurl)
-            expected = self.wrap.get(what + '_hash')
+            expected = self.wrap.get(what + '_hash').lower()
             if dhash != expected:
                 os.remove(tmpfile)
                 raise WrapException('Incorrect hash for {}:\n {} expected\n {} actual.'.format(what, expected, dhash))
