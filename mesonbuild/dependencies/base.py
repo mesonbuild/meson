@@ -669,8 +669,8 @@ class PkgConfigDependency(ExternalDependency):
     @staticmethod
     def setup_env(env: T.MutableMapping[str, str], environment: 'Environment', for_machine: MachineChoice,
                   extra_path: T.Optional[str] = None) -> None:
-        extra_paths: T.List[str] = environment.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value
-        if extra_path:
+        extra_paths: T.List[str] = environment.coredata.options[OptionKey('pkg_config_path', machine=for_machine)].value[:]
+        if extra_path and extra_path not in extra_paths:
             extra_paths.append(extra_path)
         sysroot = environment.properties[for_machine].get_sys_root()
         if sysroot:
