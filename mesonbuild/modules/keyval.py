@@ -25,7 +25,6 @@ class KeyvalModule(ExtensionModule):
     @FeatureNew('Keyval Module', '0.55.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.snippets.add('load')
 
     def _load_file(self, path_to_config):
         result = dict()
@@ -47,7 +46,7 @@ class KeyvalModule(ExtensionModule):
         return result
 
     @noKwargs
-    def load(self, interpreter, state, args, kwargs):
+    def load(self, state, args, kwargs):
         sources = typeslistify(args, (str, mesonlib.File))
         if len(sources) != 1:
             raise InvalidCode('load takes only one file input.')
@@ -56,12 +55,12 @@ class KeyvalModule(ExtensionModule):
         is_built = False
         if isinstance(s, mesonlib.File):
             is_built = is_built or s.is_built
-            s = s.absolute_path(interpreter.environment.source_dir, interpreter.environment.build_dir)
+            s = s.absolute_path(self.interpreter.environment.source_dir, self.interpreter.environment.build_dir)
         else:
-            s = os.path.join(interpreter.environment.source_dir, s)
+            s = os.path.join(self.interpreter.environment.source_dir, s)
 
-        if s not in interpreter.build_def_files and not is_built:
-            interpreter.build_def_files.append(s)
+        if s not in self.interpreter.build_def_files and not is_built:
+            self.interpreter.build_def_files.append(s)
 
         return self._load_file(s)
 

@@ -140,13 +140,6 @@ def _get_callee_args(wrapped_args: T.Sequence[T.Any], want_subproject: bool = Fa
                 subproject = s.subproject
             else:
                 subproject = wrapped_args[1].subproject
-    elif n == 5:
-        # Module snippets have 5 args: self, interpreter, state, args, kwargs
-        node = wrapped_args[2].current_node
-        args = wrapped_args[3]
-        kwargs = wrapped_args[4]
-        if want_subproject:
-            subproject = wrapped_args[2].subproject
     else:
         raise AssertionError(f'Unknown args: {wrapped_args!r}')
     # Sometimes interpreter methods are called internally with None instead of

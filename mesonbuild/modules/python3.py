@@ -26,10 +26,9 @@ class Python3Module(ExtensionModule):
     @FeatureDeprecated('python3 module', '0.48.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.snippets.add('extension_module')
 
     @permittedKwargs(known_shmod_kwargs)
-    def extension_module(self, interpreter, state, args, kwargs):
+    def extension_module(self, state, args, kwargs):
         if 'name_prefix' in kwargs:
             raise mesonlib.MesonException('Name_prefix is set automatically, specifying it is forbidden.')
         if 'name_suffix' in kwargs:
@@ -45,7 +44,7 @@ class Python3Module(ExtensionModule):
             suffix = []
         kwargs['name_prefix'] = ''
         kwargs['name_suffix'] = suffix
-        return interpreter.func_shared_module(None, args, kwargs)
+        return self.interpreter.func_shared_module(None, args, kwargs)
 
     @noKwargs
     def find_python(self, state, args, kwargs):

@@ -10,7 +10,7 @@ from .. import coredata
 from .. import build
 from .. import mlog
 
-from ..modules import ModuleReturnValue, ModuleObject, ModuleState
+from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
 from ..interpreterbase import (InterpreterObject, ObjectHolder, MutableInterpreterObject,
                                FeatureNewKwargs, FeatureNew, FeatureDeprecated,
@@ -802,19 +802,12 @@ class ModuleObjectHolder(InterpreterObject, ObjectHolder['ModuleObject']):
         # so we have to ensure they use the current interpreter and not the one
         # that first imported that module, otherwise it will use outdated
         # overrides.
-        modobj.interpreter = self.interpreter
-        if method_name in modobj.snippets:
-            ret = method(self.interpreter, state, args, kwargs)
-        else:
-            # This is not 100% reliable but we can't use hash()
-            # because the Build object contains dicts and lists.
-            num_targets = len(self.interpreter.build.targets)
-            ret = method(state, args, kwargs)
-            if num_targets != len(self.interpreter.build.targets):
-                raise InterpreterException('Extension module altered internal state illegally.')
-            if isinstance(ret, ModuleReturnValue):
-                self.interpreter.process_new_values(ret.new_objects)
-                ret = ret.return_value
+        if isinstance(modobj, ExtensionModule):
+            modobj.interpreter = self.interpreter
+        ret = method(state, args, kwargs)
+        if isinstance(ret, ModuleReturnValue):
+            self.interpreter.process_new_values(ret.new_objects)
+            ret = ret.return_value
         return self.interpreter.holderify(ret)
 
 _Target = T.TypeVar('_Target', bound=build.Target)

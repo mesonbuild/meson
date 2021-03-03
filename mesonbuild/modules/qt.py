@@ -41,7 +41,6 @@ class QtBaseModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter', qt_version=5):
         ExtensionModule.__init__(self, interpreter)
-        self.snippets.add('has_tools')
         self.qt_version = qt_version
         self.moc: 'ExternalProgram' = NonExistingExternalProgram('moc')
         self.uic: 'ExternalProgram' = NonExistingExternalProgram('uic')
@@ -170,7 +169,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @permittedKwargs({'method', 'required'})
     @FeatureNew('qt.has_tools', '0.54.0')
-    def has_tools(self, interpreter, state, args, kwargs):
+    def has_tools(self, state, args, kwargs):
         method = kwargs.get('method', 'auto')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
         if disabled:

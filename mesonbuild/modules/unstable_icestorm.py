@@ -23,7 +23,6 @@ class IceStormModule(ExtensionModule):
     @FeatureNew('FPGA/Icestorm Module', '0.45.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('project')
         self.yosys_bin = None
 
     def detect_binaries(self, interpreter):
@@ -33,9 +32,9 @@ class IceStormModule(ExtensionModule):
         self.iceprog_bin = interpreter.find_program_impl(['iceprog'])
         self.icetime_bin = interpreter.find_program_impl(['icetime'])
 
-    def project(self, interpreter, state, args, kwargs):
+    def project(self, state, args, kwargs):
         if not self.yosys_bin:
-            self.detect_binaries(interpreter)
+            self.detect_binaries(self.interpreter)
         if not args:
             raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
@@ -45,11 +44,11 @@ class IceStormModule(ExtensionModule):
         kwarg_sources = kwargs.get('sources', [])
         if not isinstance(kwarg_sources, list):
             kwarg_sources = [kwarg_sources]
-        all_sources = interpreter.source_strings_to_files(flatten(arg_sources + kwarg_sources))
+        all_sources = self.interpreter.source_strings_to_files(flatten(arg_sources + kwarg_sources))
         if 'constraint_file' not in kwargs:
             raise mesonlib.MesonException('Constraint file not specified.')
 
-        constraint_file = interpreter.source_strings_to_files(kwargs['constraint_file'])
+        constraint_file = self.interpreter.source_strings_to_files(kwargs['constraint_file'])
         if len(constraint_file) != 1:
             raise mesonlib.MesonException('Constraint file must contain one and only one entry.')
         blif_name = proj_name + '_blif'
@@ -61,26 +60,26 @@ class IceStormModule(ExtensionModule):
         time_name = proj_name + '-time'
         upload_name = proj_name + '-upload'
 
-        blif_target = interpreter.func_custom_target(None, [blif_name], {
+        blif_target = self.interpreter.func_custom_target(None, [blif_name], {
             'input': all_sources,
             'output': blif_fname,
             'command': [self.yosys_bin, '-q', '-p', 'synth_ice40 -blif @OUTPUT@', '@INPUT@']})
 
-        asc_target = interpreter.func_custom_target(None, [asc_name], {
+        asc_target = self.interpreter.func_custom_target(None, [asc_name], {
             'input': blif_target,
             'output': asc_fname,
             'command': [self.arachne_bin, '-q', '-d', '1k', '-p', constraint_file, '@INPUT@', '-o', '@OUTPUT@']})
 
-        bin_target = interpreter.func_custom_target(None, [bin_name], {
+        bin_target = self.interpreter.func_custom_target(None, [bin_name], {
             'input': asc_target,
             'output': bin_fname,
             'command': [self.icepack_bin, '@INPUT@', '@OUTPUT@'],
             'build_by_default': True})
 
-        interpreter.func_run_target(None, [upload_name], {
+        self.interpreter.func_run_target(None, [upload_name], {
             'command': [self.iceprog_bin, bin_target]})
 
-        interpreter.func_run_target(None, [time_name], {
+        self.interpreter.func_run_target(None, [time_name], {
             'command': [self.icetime_bin, bin_target]})
 
 def initialize(*args, **kwargs):

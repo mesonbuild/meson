@@ -91,8 +91,6 @@ class ModuleObject:
         # FIXME: Port all modules to stop using self.interpreter and use API on
         # ModuleState instead.
         self.interpreter = interpreter
-        # FIXME: Port all modules to remove snippets methods.
-        self.snippets: T.Set[str] = set()
 
 # FIXME: Port all modules to use ModuleObject directly.
 class ExtensionModule(ModuleObject):

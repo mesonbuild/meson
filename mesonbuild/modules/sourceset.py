@@ -189,12 +189,11 @@ class SourceSetModule(ExtensionModule):
     @FeatureNew('SourceSet module', '0.51.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.snippets.add('source_set')
 
     @noKwargs
     @noPosargs
-    def source_set(self, interpreter, state, args, kwargs):
-        return SourceSetHolder(interpreter)
+    def source_set(self, state, args, kwargs):
+        return SourceSetHolder(self.interpreter)
 
 def initialize(*args, **kwargs):
     return SourceSetModule(*args, **kwargs)
