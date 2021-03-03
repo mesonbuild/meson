@@ -31,7 +31,7 @@ from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCod
 from ..interpreterbase import InterpreterObject, Disabler, disablerIfNotFound
 from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..interpreterbase import ObjectHolder, RangeHolder
-from ..modules import ModuleObject
+from ..modules import ModuleObject, MutableModuleObject
 from ..cmake import CMakeInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
 
@@ -46,7 +46,7 @@ from .interpreterobjects import (SubprojectHolder, MachineHolder, EnvironmentVar
                                  SharedModuleHolder, HeadersHolder, BothLibrariesHolder,
                                  BuildTargetHolder, DataHolder, JarHolder, Test, RunProcess,
                                  ManHolder, GeneratorHolder, InstallDirHolder, extract_required_kwarg,
-                                 extract_search_dirs)
+                                 extract_search_dirs, MutableModuleObjectHolder)
 
 from pathlib import Path
 import os
@@ -363,7 +363,7 @@ class Interpreter(InterpreterBase):
 
         if isinstance(item, build.CustomTarget):
             return CustomTargetHolder(item, self)
-        elif isinstance(item, (int, str, bool, Disabler, InterpreterObject)) or item is None:
+        elif isinstance(item, (int, str, bool, Disabler, InterpreterObject, mesonlib.File)) or item is None:
             return item
         elif isinstance(item, build.Executable):
             return ExecutableHolder(item, self)
@@ -379,6 +379,8 @@ class Interpreter(InterpreterBase):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
+        elif isinstance(item, MutableModuleObject):
+            return MutableModuleObjectHolder(item, self)
         elif isinstance(item, ModuleObject):
             return ModuleObjectHolder(item, self)
         elif isinstance(item, (InterpreterObject, ObjectHolder)):
@@ -825,7 +827,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             prefix = self.coredata.options[OptionKey('prefix')].value
 
             from ..modules.cmake import CMakeSubprojectOptions
-            options = kwargs.get('options', CMakeSubprojectOptions())
+            options = unholder(kwargs.get('options', CMakeSubprojectOptions()))
             if not isinstance(options, CMakeSubprojectOptions):
                 raise InterpreterException('"options" kwarg must be CMakeSubprojectOptions'
                                            ' object (created by cmake.subproject_options())')

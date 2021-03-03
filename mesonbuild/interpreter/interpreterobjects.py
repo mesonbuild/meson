@@ -2,6 +2,7 @@ import os
 import shlex
 import subprocess
 import re
+import copy
 
 from pathlib import Path, PurePath
 
@@ -809,6 +810,12 @@ class ModuleObjectHolder(InterpreterObject, ObjectHolder['ModuleObject']):
             self.interpreter.process_new_values(ret.new_objects)
             ret = ret.return_value
         return self.interpreter.holderify(ret)
+
+class MutableModuleObjectHolder(ModuleObjectHolder, MutableInterpreterObject):
+    def __deepcopy__(self, memo):
+        # Deepcopy only held object, not interpreter
+        modobj = copy.deepcopy(self.held_object, memo)
+        return MutableModuleObjectHolder(modobj, self.interpreter)
 
 _Target = T.TypeVar('_Target', bound=build.Target)
 

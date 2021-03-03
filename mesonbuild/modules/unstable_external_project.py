@@ -16,11 +16,11 @@ import os, subprocess, shlex
 from pathlib import Path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue, ModuleState
+from . import ExtensionModule, ModuleReturnValue, ModuleState, ModuleObject
 from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement, extract_as_list)
-from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
+from ..interpreterbase import InterpreterException, FeatureNew
 from ..interpreterbase import permittedKwargs, typed_pos_args
 from ..interpreter import Interpreter, DependencyHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
@@ -28,7 +28,7 @@ from ..dependencies.base import InternalDependency, PkgConfigDependency
 from ..environment import Environment
 from ..mesonlib import OptionKey
 
-class ExternalProject(InterpreterObject):
+class ExternalProject(ModuleObject):
     def __init__(self,
                  interpreter: Interpreter,
                  subdir: str,
@@ -42,7 +42,7 @@ class ExternalProject(InterpreterObject):
                  cross_configure_options: T.List[str],
                  env: build.EnvironmentVariables,
                  verbose: bool):
-        InterpreterObject.__init__(self)
+        super().__init__()
         self.methods.update({'dependency': self.dependency_method,
                              })
 
@@ -221,7 +221,7 @@ class ExternalProject(InterpreterObject):
 
     @permittedKwargs({'subdir'})
     @typed_pos_args('external_project.dependency', str)
-    def dependency_method(self, args: T.Tuple[str], kwargs):
+    def dependency_method(self, state, args: T.Tuple[str], kwargs):
         libname = args[0]
 
         subdir = kwargs.get('subdir', '')
