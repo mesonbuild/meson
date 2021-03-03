@@ -2580,26 +2580,22 @@ class Interpreter(InterpreterBase):
             if isinstance(v, (build.BuildTarget, build.CustomTarget, build.RunTarget)):
                 self.add_target(v.name, v)
             elif isinstance(v, list):
-                self.module_method_callback(v)
-            elif isinstance(v, build.GeneratedList):
-                pass
+                self.process_new_values(v)
             elif isinstance(v, ExecutableSerialisation):
                 v.subproject = self.subproject
                 self.build.install_scripts.append(v)
             elif isinstance(v, build.Data):
                 self.build.data.append(v)
-            elif isinstance(v, dependencies.ExternalProgram):
-                return ExternalProgramHolder(v, self.subproject)
             elif isinstance(v, dependencies.InternalDependency):
                 # FIXME: This is special cased and not ideal:
                 # The first source is our new VapiTarget, the rest are deps
                 self.process_new_values(v.sources[0])
             elif isinstance(v, build.InstallDir):
                 self.build.install_dirs.append(v)
-                return InstallDirHolder(v)
             elif isinstance(v, Test):
                 self.build.tests.append(v)
-            elif isinstance(v, (int, str, bool, Disabler, ObjectHolder)):
+            elif isinstance(v, (int, str, bool, Disabler, ObjectHolder, build.GeneratedList,
+                                dependencies.ExternalProgram)):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
