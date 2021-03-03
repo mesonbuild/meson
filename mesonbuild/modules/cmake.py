@@ -216,8 +216,6 @@ class CmakeModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('configure_package_config_file')
-        self.snippets.add('subproject')
 
     def detect_voidp_size(self, env):
         compilers = env.coredata.compilers.host
@@ -318,7 +316,7 @@ class CmakeModule(ExtensionModule):
         mesonlib.replace_if_different(outfile, outfile_tmp)
 
     @permittedKwargs({'input', 'name', 'install_dir', 'configuration'})
-    def configure_package_config_file(self, interpreter, state, args, kwargs):
+    def configure_package_config_file(self, state, args, kwargs):
         if args:
             raise mesonlib.MesonException('configure_package_config_file takes only keyword arguments.')
 
@@ -369,11 +367,11 @@ class CmakeModule(ExtensionModule):
         conf.mark_used()
 
         conffile = os.path.normpath(inputfile.relative_name())
-        if conffile not in interpreter.build_def_files:
-            interpreter.build_def_files.append(conffile)
+        if conffile not in self.interpreter.build_def_files:
+            self.interpreter.build_def_files.append(conffile)
 
         res = build.Data([mesonlib.File(True, ofile_path, ofile_fname)], install_dir, None, state.subproject)
-        interpreter.build.data.append(res)
+        self.interpreter.build.data.append(res)
 
         return res
 
@@ -382,13 +380,13 @@ class CmakeModule(ExtensionModule):
     @FeatureDeprecatedKwargs('subproject', '0.55.0', ['cmake_options'])
     @permittedKwargs({'cmake_options', 'required', 'options'})
     @stringArgs
-    def subproject(self, interpreter, state, args, kwargs):
+    def subproject(self, state, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('Subproject takes exactly one argument')
         if 'cmake_options' in kwargs and 'options' in kwargs:
             raise InterpreterException('"options" cannot be used together with "cmake_options"')
         dirname = args[0]
-        subp = interpreter.do_subproject(dirname, 'cmake', kwargs)
+        subp = self.interpreter.do_subproject(dirname, 'cmake', kwargs)
         if not subp.held_object:
             return subp
         return CMakeSubprojectHolder(subp, dirname)

@@ -36,7 +36,6 @@ class DlangModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('generate_dub_file')
 
     def _init_dub(self):
         if DlangModule.class_dubbin is None:
@@ -55,7 +54,7 @@ class DlangModule(ExtensionModule):
             if not self.dubbin:
                 raise MesonException('DUB not found.')
 
-    def generate_dub_file(self, interpreter, state, args, kwargs):
+    def generate_dub_file(self, state, args, kwargs):
         if not DlangModule.init_dub:
             self._init_dub()
 

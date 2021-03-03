@@ -37,7 +37,6 @@ class FSModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
-        self.snippets.add('generate_dub_file')
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
         """

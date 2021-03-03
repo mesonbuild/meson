@@ -473,7 +473,6 @@ class PythonModule(ExtensionModule):
     @FeatureNew('Python Module', '0.46.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.snippets.add('find_installation')
 
     # https://www.python.org/dev/peps/pep-0397/
     def _get_win_pythonpath(self, name_or_path):
@@ -502,7 +501,7 @@ class PythonModule(ExtensionModule):
     @FeatureNewKwargs('python.find_installation', '0.51.0', ['modules'])
     @disablerIfNotFound
     @permittedKwargs({'required', 'modules'})
-    def find_installation(self, interpreter, state, args, kwargs):
+    def find_installation(self, state, args, kwargs):
         feature_check = FeatureNew('Passing "feature" option to find_installation', '0.48.0')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, feature_check)
         want_modules = mesonlib.extract_as_list(kwargs, 'modules')  # type: T.List[str]
@@ -587,7 +586,7 @@ class PythonModule(ExtensionModule):
                 mlog.debug(stderr)
 
             if isinstance(info, dict) and 'version' in info and self._check_version(name_or_path, info['version']):
-                res = PythonInstallation(interpreter, python, info)
+                res = PythonInstallation(self.interpreter, python, info)
             else:
                 res = ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
                 if required:

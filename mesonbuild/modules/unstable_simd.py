@@ -23,7 +23,6 @@ class SimdModule(ExtensionModule):
     @FeatureNew('SIMD module', '0.42.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
-        self.snippets.add('check')
         # FIXME add Altivec and AVX512.
         self.isets = ('mmx',
                       'sse',
@@ -37,7 +36,7 @@ class SimdModule(ExtensionModule):
                       'neon',
                       )
 
-    def check(self, interpreter, state, args, kwargs):
+    def check(self, state, args, kwargs):
         result = []
         if len(args) != 1:
             raise mesonlib.MesonException('Check requires one argument, a name prefix for checks.')
@@ -55,7 +54,7 @@ class SimdModule(ExtensionModule):
         compiler = kwargs['compiler'].compiler
         if not isinstance(compiler, compilers.compilers.Compiler):
             raise mesonlib.MesonException('Compiler argument must be a compiler object.')
-        cdata = interpreter.func_configuration_data(None, [], {})
+        cdata = self.interpreter.func_configuration_data(None, [], {})
         conf = cdata.held_object
         for iset in self.isets:
             if iset not in kwargs:
@@ -79,7 +78,7 @@ class SimdModule(ExtensionModule):
             old_lang_args = mesonlib.extract_as_list(lib_kwargs, langarg_key)
             all_lang_args = old_lang_args + args
             lib_kwargs[langarg_key] = all_lang_args
-            result.append(interpreter.func_static_lib(None, [libname], lib_kwargs))
+            result.append(self.interpreter.func_static_lib(None, [libname], lib_kwargs))
         return [result, cdata]
 
 def initialize(*args, **kwargs):
