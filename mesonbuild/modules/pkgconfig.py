@@ -445,7 +445,7 @@ class PkgConfigModule(ExtensionModule):
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
-                      'dataonly', 'conflicts'})
+                      'dataonly', 'conflicts', 'uninstalled_variables'})
     def generate(self, state, args, kwargs):
         default_version = state.project_version['version']
         default_install_dir = None
