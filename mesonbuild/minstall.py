@@ -148,7 +148,7 @@ def set_chown(path: str, user: T.Optional[str] = None, group: T.Optional[str] = 
         Use a real function rather than a lambda to help mypy out. Also real
         functions are faster.
         """
-        real_os_chown(path, gid, uid, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
+        real_os_chown(path, uid, gid, dir_fd=dir_fd, follow_symlinks=follow_symlinks)
 
     try:
         os.chown = chown
