@@ -86,15 +86,19 @@ class ModuleState:
 class ModuleObject:
     """Base class for all objects returned by modules
     """
-    def __init__(self, interpreter: T.Optional['Interpreter'] = None) -> None:
+    def __init__(self) -> None:
         self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
-        # FIXME: Port all modules to stop using self.interpreter and use API on
-        # ModuleState instead.
-        self.interpreter = interpreter
 
-# FIXME: Port all modules to use ModuleObject directly.
-class ExtensionModule(ModuleObject):
+class MutableModuleObject(ModuleObject):
     pass
+
+# FIXME: Port all modules to stop using self.interpreter and use API on
+# ModuleState instead. Modules should stop using this class and instead use
+# ModuleObject base class.
+class ExtensionModule(ModuleObject):
+    def __init__(self, interpreter: 'Interpreter') -> None:
+        super().__init__()
+        self.interpreter = interpreter
 
 def is_module_library(fname):
     '''

@@ -19,14 +19,14 @@ from ..mesonlib import version_compare
 from ..interpreter import CompilerHolder
 from ..compilers import CudaCompiler
 
-from . import ModuleObject
+from . import ExtensionModule
 
 from ..interpreterbase import (
     flatten, permittedKwargs, noKwargs,
     InvalidArguments, FeatureNew
 )
 
-class CudaModule(ModuleObject):
+class CudaModule(ExtensionModule):
 
     @FeatureNew('CUDA module', '0.50.0')
     def __init__(self, *args, **kwargs):

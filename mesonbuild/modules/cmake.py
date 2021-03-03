@@ -16,16 +16,12 @@ import os, os.path, pathlib
 import shutil
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue
+from . import ExtensionModule, ModuleReturnValue, ModuleObject
 
 from .. import build, mesonlib, mlog
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
 from ..interpreter import ConfigurationDataHolder, SubprojectHolder, DependencyHolder
 from ..interpreterbase import (
-    InterpreterException,
-    InterpreterObject,
-    ObjectHolder,
-
     FeatureNew,
     FeatureNewKwargs,
     FeatureDeprecatedKwargs,
@@ -72,12 +68,12 @@ endmacro()
 ####################################################################################
 '''
 
-class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
+class CMakeSubproject(ModuleObject):
     def __init__(self, subp, pv):
         assert(isinstance(subp, SubprojectHolder))
         assert(hasattr(subp, 'cm_interpreter'))
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, subp, pv)
+        super().__init__()
+        self.subp = subp
         self.methods.update({'get_variable': self.get_variable,
                              'dependency': self.dependency,
                              'include_directories': self.include_directories,
@@ -92,7 +88,7 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
             raise InterpreterException('Exactly one argument is required.')
 
         tgt = args[0]
-        res = self.held_object.cm_interpreter.target_info(tgt)
+        res = self.subp.cm_interpreter.target_info(tgt)
         if res is None:
             raise InterpreterException(f'The CMake target {tgt} does not exist\n' +
                                        '  Use the following command in your meson.build to list all available targets:\n\n' +
@@ -104,15 +100,15 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
 
     @noKwargs
     @stringArgs
-    def get_variable(self, args, kwargs):
-        return self.held_object.get_variable_method(args, kwargs)
+    def get_variable(self, state, args, kwargs):
+        return self.subp.get_variable_method(args, kwargs)
 
     @FeatureNewKwargs('dependency', '0.56.0', ['include_type'])
     @permittedKwargs({'include_type'})
     @stringArgs
-    def dependency(self, args, kwargs):
+    def dependency(self, state, args, kwargs):
         info = self._args_to_info(args)
-        orig = self.get_variable([info['dep']], {})
+        orig = self.get_variable(state, [info['dep']], {})
         assert isinstance(orig, DependencyHolder)
         actual = orig.include_type_method([], {})
         if 'include_type' in kwargs and kwargs['include_type'] != actual:
@@ -122,35 +118,35 @@ class CMakeSubprojectHolder(InterpreterObject, ObjectHolder):
 
     @noKwargs
     @stringArgs
-    def include_directories(self, args, kwargs):
+    def include_directories(self, state, args, kwargs):
         info = self._args_to_info(args)
-        return self.get_variable([info['inc']], kwargs)
+        return self.get_variable(state, [info['inc']], kwargs)
 
     @noKwargs
     @stringArgs
-    def target(self, args, kwargs):
+    def target(self, state, args, kwargs):
         info = self._args_to_info(args)
-        return self.get_variable([info['tgt']], kwargs)
+        return self.get_variable(state, [info['tgt']], kwargs)
 
     @noKwargs
     @stringArgs
-    def target_type(self, args, kwargs):
+    def target_type(self, state, args, kwargs):
         info = self._args_to_info(args)
         return info['func']
 
     @noPosargs
     @noKwargs
-    def target_list(self, args, kwargs):
-        return self.held_object.cm_interpreter.target_list()
+    def target_list(self, state, args, kwargs):
+        return self.subp.cm_interpreter.target_list()
 
     @noPosargs
     @noKwargs
     @FeatureNew('CMakeSubproject.found()', '0.53.2')
-    def found_method(self, args, kwargs):
-        return self.held_object is not None
+    def found_method(self, state, args, kwargs):
+        return self.subp is not None
 
 
-class CMakeSubprojectOptions(InterpreterObject):
+class CMakeSubprojectOptions(ModuleObject):
     def __init__(self) -> None:
         super().__init__()
         self.cmake_options = []  # type: T.List[str]
@@ -173,39 +169,39 @@ class CMakeSubprojectOptions(InterpreterObject):
         return self.target_options.global_options
 
     @noKwargs
-    def add_cmake_defines(self, args, kwargs) -> None:
+    def add_cmake_defines(self, state, args, kwargs) -> None:
         self.cmake_options += cmake_defines_to_args(args)
 
     @stringArgs
     @permittedKwargs({'target'})
-    def set_override_option(self, args, kwargs) -> None:
+    def set_override_option(self, state, args, kwargs) -> None:
         if len(args) != 2:
             raise InvalidArguments('set_override_option takes exactly 2 positional arguments')
         self._get_opts(kwargs).set_opt(args[0], args[1])
 
     @permittedKwargs({'target'})
-    def set_install(self, args, kwargs) -> None:
+    def set_install(self, state, args, kwargs) -> None:
         if len(args) != 1 or not isinstance(args[0], bool):
             raise InvalidArguments('set_install takes exactly 1 boolean argument')
         self._get_opts(kwargs).set_install(args[0])
 
     @stringArgs
     @permittedKwargs({'target'})
-    def append_compile_args(self, args, kwargs) -> None:
+    def append_compile_args(self, state, args, kwargs) -> None:
         if len(args) < 2:
             raise InvalidArguments('append_compile_args takes at least 2 positional arguments')
         self._get_opts(kwargs).append_args(args[0], args[1:])
 
     @stringArgs
     @permittedKwargs({'target'})
-    def append_link_args(self, args, kwargs) -> None:
+    def append_link_args(self, state, args, kwargs) -> None:
         if not args:
             raise InvalidArguments('append_link_args takes at least 1 positional argument')
         self._get_opts(kwargs).append_link_args(args)
 
     @noPosargs
     @noKwargs
-    def clear(self, args, kwargs) -> None:
+    def clear(self, state, args, kwargs) -> None:
         self.cmake_options.clear()
         self.target_options = TargetOptions()
 
@@ -389,7 +385,7 @@ class CmakeModule(ExtensionModule):
         subp = self.interpreter.do_subproject(dirname, 'cmake', kwargs)
         if not subp.held_object:
             return subp
-        return CMakeSubprojectHolder(subp, dirname)
+        return CMakeSubproject(subp, dirname)
 
     @FeatureNew('subproject_options', '0.55.0')
     @noKwargs
