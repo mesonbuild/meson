@@ -41,6 +41,7 @@ from .interpreterbase import FeatureNew
 if T.TYPE_CHECKING:
     from .interpreter import Test
     from .mesonlib import FileMode, FileOrString
+    from .mesonlib.backend import Backend
 
 pch_kwargs = set(['c_pch', 'cpp_pch'])
 
@@ -2218,7 +2219,7 @@ class CustomTarget(Target, CommandBase):
     ])
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
-                 absolute_paths: bool = False, backend: T.Optional[str] = None):
+                 absolute_paths: bool = False, backend: T.Optional['Backend'] = None):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
