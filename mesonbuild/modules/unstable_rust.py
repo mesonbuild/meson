@@ -24,7 +24,8 @@ from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew,
 from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 
 if T.TYPE_CHECKING:
-    from ..interpreter import ModuleState, Interpreter
+    from . import ModuleState
+    from ..interpreter import Interpreter
     from ..dependencies import ExternalProgram
 
 

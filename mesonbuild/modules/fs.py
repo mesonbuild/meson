@@ -29,7 +29,8 @@ from ..mesonlib import (
 from ..interpreterbase import FeatureNew, typed_pos_args, noKwargs, permittedKwargs
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter, ModuleState
+    from . import ModuleState
+    from ..interpreter import Interpreter
 
 
 class FSModule(ExtensionModule):
