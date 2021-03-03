@@ -1065,7 +1065,7 @@ arguments. The following keyword arguments are supported:
 
   `install_mode: 'rw-r--r--'` for just the file mode
 
-  `install_mode: ['rw-r--r--', 'nobody', 'nobody']` for the file mode and the user/group
+  `install_mode: ['rw-r--r--', 'nobody', 'nogroup']` for the file mode and the user/group
 
   `install_mode: ['rw-r-----', 0, 0]` for the file mode and uid/gid
 
