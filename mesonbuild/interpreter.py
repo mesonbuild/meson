@@ -33,7 +33,7 @@ from .interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, Fe
 from .interpreterbase import ObjectHolder, MesonVersionString
 from .interpreterbase import TYPE_var, TYPE_nkwargs
 from .interpreterbase import typed_pos_args
-from .modules import ModuleReturnValue, ExtensionModule
+from .modules import ModuleReturnValue, ModuleObject, ModuleState
 from .cmake import CMakeInterpreter
 from .backend.backends import TestProtocol, Backend, ExecutableSerialisation
 
@@ -55,7 +55,6 @@ if T.TYPE_CHECKING:
     from .compilers import Compiler
     from .envconfig import MachineInfo
     from .environment import Environment
-    from .modules import ExtensionModule
 
 permitted_method_kwargs = {
     'partial_dependency': {'compile_args', 'link_args', 'links', 'includes',
@@ -1765,93 +1764,43 @@ class CompilerHolder(InterpreterObject):
         return self.compiler.get_argument_syntax()
 
 
-class ModuleState(T.NamedTuple):
-
-    """Object passed to a module when it a method is called.
-
-    holds the current state of the meson process at a given method call in
-    the interpreter.
-    """
-
-    source_root: str
-    build_to_src: str
-    subproject: str
-    subdir: str
-    current_lineno: str
-    environment: 'Environment'
-    project_name: str
-    project_version: str
-    backend: str
-    targets: T.Dict[str, build.Target]
-    data: T.List[build.Data]
-    headers: T.List[build.Headers]
-    man: T.List[build.Man]
-    global_args: T.Dict[str, T.List[str]]
-    project_args: T.Dict[str, T.List[str]]
-    build_machine: 'MachineInfo'
-    host_machine: 'MachineInfo'
-    target_machine: 'MachineInfo'
-    current_node: mparser.BaseNode
-
-
-class ModuleHolder(InterpreterObject, ObjectHolder['ExtensionModule']):
-    def __init__(self, modname: str, module: 'ExtensionModule', interpreter: 'Interpreter'):
+class ModuleObjectHolder(InterpreterObject, ObjectHolder['ModuleObject']):
+    def __init__(self, modobj: 'ModuleObject', interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, module)
-        self.modname = modname
+        ObjectHolder.__init__(self, modobj)
         self.interpreter = interpreter
 
     def method_call(self, method_name, args, kwargs):
-        try:
-            fn = getattr(self.held_object, method_name)
-        except AttributeError:
-            raise InvalidArguments('Module %s does not have method %s.' % (self.modname, method_name))
-        if method_name.startswith('_'):
-            raise InvalidArguments('Function {!r} in module {!r} is private.'.format(method_name, self.modname))
-        if not getattr(fn, 'no-args-flattening', False):
+        modobj = self.held_object
+        method = modobj.methods.get(method_name)
+        if not method and not modobj.methods:
+            # FIXME: Port all modules to use the methods dict.
+            method = getattr(modobj, method_name, None)
+            if method_name.startswith('_'):
+                raise InvalidArguments('Method {!r} is private.'.format(method_name))
+        if not method:
+            raise InvalidCode('Unknown method "%s" in object.' % method_name)
+        if not getattr(method, 'no-args-flattening', False):
             args = flatten(args)
-        # This is not 100% reliable but we can't use hash()
-        # because the Build object contains dicts and lists.
-        num_targets = len(self.interpreter.build.targets)
-        state = ModuleState(
-            source_root = self.interpreter.environment.get_source_dir(),
-            build_to_src=mesonlib.relpath(self.interpreter.environment.get_source_dir(),
-                                          self.interpreter.environment.get_build_dir()),
-            subproject=self.interpreter.subproject,
-            subdir=self.interpreter.subdir,
-            current_lineno=self.interpreter.current_lineno,
-            environment=self.interpreter.environment,
-            project_name=self.interpreter.build.project_name,
-            project_version=self.interpreter.build.dep_manifest[self.interpreter.active_projectname],
-            # The backend object is under-used right now, but we will need it:
-            # https://github.com/mesonbuild/meson/issues/1419
-            backend=self.interpreter.backend,
-            targets=self.interpreter.build.targets,
-            data=self.interpreter.build.data,
-            headers=self.interpreter.build.get_headers(),
-            man=self.interpreter.build.get_man(),
-            #global_args_for_build = self.interpreter.build.global_args.build,
-            global_args = self.interpreter.build.global_args.host,
-            #project_args_for_build = self.interpreter.build.projects_args.build.get(self.interpreter.subproject, {}),
-            project_args = self.interpreter.build.projects_args.host.get(self.interpreter.subproject, {}),
-            build_machine=self.interpreter.builtin['build_machine'].held_object,
-            host_machine=self.interpreter.builtin['host_machine'].held_object,
-            target_machine=self.interpreter.builtin['target_machine'].held_object,
-            current_node=self.current_node
-        )
+        state = ModuleState(self.interpreter)
         # Many modules do for example self.interpreter.find_program_impl(),
         # so we have to ensure they use the current interpreter and not the one
         # that first imported that module, otherwise it will use outdated
         # overrides.
-        self.held_object.interpreter = self.interpreter
-        if self.held_object.is_snippet(method_name):
-            value = fn(self.interpreter, state, args, kwargs)
-            return self.interpreter.holderify(value)
+        modobj.interpreter = self.interpreter
+        if method_name in modobj.snippets:
+            ret = method(self.interpreter, state, args, kwargs)
         else:
-            value = fn(state, args, kwargs)
+            # This is not 100% reliable but we can't use hash()
+            # because the Build object contains dicts and lists.
+            num_targets = len(self.interpreter.build.targets)
+            ret = method(state, args, kwargs)
             if num_targets != len(self.interpreter.build.targets):
                 raise InterpreterException('Extension module altered internal state illegally.')
-            return self.interpreter.module_method_callback(value)
+            if isinstance(ret, ModuleReturnValue):
+                self.interpreter.process_new_values(ret.new_objects)
+                ret = ret.return_value
+        return self.interpreter.holderify(ret)
 
 
 class Summary:
@@ -2401,7 +2350,7 @@ class Interpreter(InterpreterBase):
                 subproject: str = '',
                 subdir: str = '',
                 subproject_dir: str = 'subprojects',
-                modules: T.Optional[T.Dict[str, ExtensionModule]] = None,
+                modules: T.Optional[T.Dict[str, ModuleObject]] = None,
                 default_project_options: T.Optional[T.Dict[str, str]] = None,
                 mock: bool = False,
                 ast: T.Optional[mparser.CodeBlockNode] = None,
@@ -2566,6 +2515,8 @@ class Interpreter(InterpreterBase):
             return DependencyHolder(item, self.subproject)
         elif isinstance(item, dependencies.ExternalProgram):
             return ExternalProgramHolder(item, self.subproject)
+        elif isinstance(item, ModuleObject):
+            return ModuleObjectHolder(item, self)
         elif isinstance(item, (InterpreterObject, ObjectHolder)):
             return item
         else:
@@ -2599,13 +2550,6 @@ class Interpreter(InterpreterBase):
                 pass
             else:
                 raise InterpreterException('Module returned a value of unknown type.')
-
-    def module_method_callback(self, return_object):
-        if not isinstance(return_object, ModuleReturnValue):
-            raise InterpreterException('Bug in module, it returned an invalid object')
-        invalues = return_object.new_objects
-        self.process_new_values(invalues)
-        return self.holderify(return_object.return_value)
 
     def get_build_def_files(self) -> T.List[str]:
         return self.build_def_files
@@ -2676,7 +2620,7 @@ class Interpreter(InterpreterBase):
         except ImportError:
             raise InvalidArguments('Module "%s" does not exist' % (modname, ))
         ext_module = module.initialize(self)
-        assert isinstance(ext_module, ExtensionModule)
+        assert isinstance(ext_module, ModuleObject)
         self.modules[modname] = ext_module
 
     @stringArgs
@@ -2696,7 +2640,7 @@ class Interpreter(InterpreterBase):
                 mlog.warning('Module %s has no backwards or forwards compatibility and might not exist in future releases.' % modname, location=node)
                 modname = 'unstable_' + plainname
         self.import_module(modname)
-        return ModuleHolder(modname, self.modules[modname], self)
+        return ModuleObjectHolder(self.modules[modname], self)
 
     @stringArgs
     @noKwargs

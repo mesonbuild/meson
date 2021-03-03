@@ -18,21 +18,58 @@
 import os
 
 from .. import build
-from ..mesonlib import unholder
+from ..mesonlib import unholder, relpath
 import typing as T
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
-    from ..interpreterbase import TYPE_var
+    from ..interpreterbase import TYPE_var, TYPE_nvar, TYPE_nkwargs
 
-class ExtensionModule:
+class ModuleState:
+    """Object passed to all module methods.
+
+    This is a WIP API provided to modules, it should be extended to have everything
+    needed so modules does not touch any other part of Meson internal APIs.
+    """
+
     def __init__(self, interpreter: 'Interpreter') -> None:
+        self.source_root = interpreter.environment.get_source_dir()
+        self.build_to_src = relpath(interpreter.environment.get_source_dir(),
+                                    interpreter.environment.get_build_dir())
+        self.subproject = interpreter.subproject
+        self.subdir = interpreter.subdir
+        self.current_lineno = interpreter.current_lineno
+        self.environment = interpreter.environment
+        self.project_name = interpreter.build.project_name
+        self.project_version = interpreter.build.dep_manifest[interpreter.active_projectname]
+        # The backend object is under-used right now, but we will need it:
+        # https://github.com/mesonbuild/meson/issues/1419
+        self.backend = interpreter.backend
+        self.targets = interpreter.build.targets
+        self.data = interpreter.build.data
+        self.headers = interpreter.build.get_headers()
+        self.man = interpreter.build.get_man()
+        self.global_args = interpreter.build.global_args.host
+        self.project_args = interpreter.build.projects_args.host.get(interpreter.subproject, {})
+        self.build_machine = interpreter.builtin['build_machine'].held_object
+        self.host_machine = interpreter.builtin['host_machine'].held_object
+        self.target_machine = interpreter.builtin['target_machine'].held_object
+        self.current_node = interpreter.current_node
+
+class ModuleObject:
+    """Base class for all objects returned by modules
+    """
+    def __init__(self, interpreter: T.Optional['Interpreter'] = None) -> None:
+        self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
+        # FIXME: Port all modules to stop using self.interpreter and use API on
+        # ModuleState instead.
         self.interpreter = interpreter
-        self.snippets = set()  # type: T.Set[str] # List of methods that operate only on the interpreter.
+        # FIXME: Port all modules to remove snippets methods.
+        self.snippets: T.Set[str] = set()
 
-    def is_snippet(self, funcname: str) -> bool:
-        return funcname in self.snippets
-
+# FIXME: Port all modules to use ModuleObject directly.
+class ExtensionModule(ModuleObject):
+    pass
 
 def get_include_args(include_dirs, prefix='-I'):
     '''

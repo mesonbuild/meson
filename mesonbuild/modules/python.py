@@ -21,7 +21,6 @@ from pathlib import Path
 from .. import mesonlib
 from ..mesonlib import MachineChoice, MesonException
 from . import ExtensionModule
-from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InvalidArguments,
@@ -399,12 +398,12 @@ class PythonInstallation(ExternalProgramHolder):
         else:
             res = os.path.join(self.platlib_install_path, subdir)
 
-        return self.interpreter.module_method_callback(ModuleReturnValue(res, []))
+        return res
 
     @noPosargs
     @noKwargs
     def language_version_method(self, args, kwargs):
-        return self.interpreter.module_method_callback(ModuleReturnValue(self.version, []))
+        return self.version
 
     @noKwargs
     def has_path_method(self, args, kwargs):
@@ -414,7 +413,7 @@ class PythonInstallation(ExternalProgramHolder):
         if not isinstance(path_name, str):
             raise InvalidArguments('has_path argument must be a string.')
 
-        return self.interpreter.module_method_callback(ModuleReturnValue(path_name in self.paths, []))
+        return path_name in self.paths
 
     @noKwargs
     def get_path_method(self, args, kwargs):
@@ -432,7 +431,7 @@ class PythonInstallation(ExternalProgramHolder):
             else:
                 raise InvalidArguments('{} is not a valid path name'.format(path_name))
 
-        return self.interpreter.module_method_callback(ModuleReturnValue(path, []))
+        return path
 
     @noKwargs
     def has_variable_method(self, args, kwargs):
@@ -442,7 +441,7 @@ class PythonInstallation(ExternalProgramHolder):
         if not isinstance(var_name, str):
             raise InvalidArguments('has_variable argument must be a string.')
 
-        return self.interpreter.module_method_callback(ModuleReturnValue(var_name in self.variables, []))
+        return var_name in self.variables
 
     @noKwargs
     def get_variable_method(self, args, kwargs):
@@ -460,7 +459,7 @@ class PythonInstallation(ExternalProgramHolder):
             else:
                 raise InvalidArguments('{} is not a valid variable name'.format(var_name))
 
-        return self.interpreter.module_method_callback(ModuleReturnValue(var, []))
+        return var
 
     @noPosargs
     @noKwargs
