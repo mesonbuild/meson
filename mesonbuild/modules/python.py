@@ -63,10 +63,10 @@ class PythonDependency(ExternalDependency):
             pkg_version = self.variables.get('LDVERSION') or self.version
             pkg_libdir = self.variables.get('LIBPC')
             pkg_embed = '-embed' if self.embed and mesonlib.version_compare(self.version, '>=3.8') else ''
-            pkg_name = 'python-{}{}'.format(pkg_version, pkg_embed)
+            pkg_name = f'python-{pkg_version}{pkg_embed}'
 
             # If python-X.Y.pc exists in LIBPC, we will try to use it
-            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, '{}.pc'.format(pkg_name))).is_file():
+            if pkg_libdir is not None and Path(os.path.join(pkg_libdir, f'{pkg_name}.pc')).is_file():
                 old_pkg_libdir = os.environ.get('PKG_CONFIG_LIBDIR')
                 old_pkg_path = os.environ.get('PKG_CONFIG_PATH')
 
@@ -77,10 +77,10 @@ class PythonDependency(ExternalDependency):
 
                 try:
                     self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
-                    mlog.debug('Found "{}" via pkgconfig lookup in LIBPC ({})'.format(pkg_name, pkg_libdir))
+                    mlog.debug(f'Found "{pkg_name}" via pkgconfig lookup in LIBPC ({pkg_libdir})')
                     py_lookup_method = 'pkgconfig'
                 except MesonException as e:
-                    mlog.debug('"{}" could not be found in LIBPC ({})'.format(pkg_name, pkg_libdir))
+                    mlog.debug(f'"{pkg_name}" could not be found in LIBPC ({pkg_libdir})')
                     mlog.debug(e)
 
                 if old_pkg_path is not None:
@@ -91,16 +91,16 @@ class PythonDependency(ExternalDependency):
                 else:
                     os.environ.pop('PKG_CONFIG_LIBDIR', None)
             else:
-                mlog.debug('"{}" could not be found in LIBPC ({}), this is likely due to a relocated python installation'.format(pkg_name, pkg_libdir))
+                mlog.debug(f'"{pkg_name}" could not be found in LIBPC ({pkg_libdir}), this is likely due to a relocated python installation')
 
             # If lookup via LIBPC failed, try to use fallback PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH mechanisms
             if self.pkgdep is None or not self.pkgdep.found():
                 try:
                     self.pkgdep = PkgConfigDependency(pkg_name, environment, kwargs)
-                    mlog.debug('Found "{}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_name))
+                    mlog.debug(f'Found "{pkg_name}" via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH')
                     py_lookup_method = 'pkgconfig-fallback'
                 except MesonException as e:
-                    mlog.debug('"{}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH'.format(pkg_name))
+                    mlog.debug(f'"{pkg_name}" could not be found via fallback pkgconfig lookup in PKG_CONFIG_LIBDIR/PKG_CONFIG_PATH')
                     mlog.debug(e)
 
         if self.pkgdep and self.pkgdep.found():
@@ -118,11 +118,11 @@ class PythonDependency(ExternalDependency):
                 else:
                     self._find_libpy(python_holder, environment)
                 if self.is_found:
-                    mlog.debug('Found "python-{}" via SYSCONFIG module'.format(self.version))
+                    mlog.debug(f'Found "python-{self.version}" via SYSCONFIG module')
                     py_lookup_method = 'sysconfig'
 
         if self.is_found:
-            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green('YES ({})'.format(py_lookup_method)))
+            mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.green(f'YES ({py_lookup_method})'))
         else:
             mlog.log('Dependency', mlog.bold(self.name), 'found:', mlog.red('NO'))
 
@@ -135,7 +135,7 @@ class PythonDependency(ExternalDependency):
             libdir = os.path.join(self.variables.get('base'), 'bin')
             libdirs = [libdir]
         else:
-            libname = 'python{}'.format(self.version)
+            libname = f'python{self.version}'
             if 'DEBUG_EXT' in self.variables:
                 libname += self.variables['DEBUG_EXT']
             if 'ABIFLAGS' in self.variables:
@@ -170,20 +170,20 @@ class PythonDependency(ExternalDependency):
             return '32'
         elif self.platform in ('win64', 'win-amd64'):
             return '64'
-        mlog.log('Unknown Windows Python platform {!r}'.format(self.platform))
+        mlog.log(f'Unknown Windows Python platform {self.platform!r}')
         return None
 
     def get_windows_link_args(self):
         if self.platform.startswith('win'):
             vernum = self.variables.get('py_version_nodot')
             if self.static:
-                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
+                libpath = Path('libs') / f'libpython{vernum}.a'
             else:
                 comp = self.get_compiler()
                 if comp.id == "gcc":
-                    libpath = 'python{}.dll'.format(vernum)
+                    libpath = f'python{vernum}.dll'
                 else:
-                    libpath = Path('libs') / 'python{}.lib'.format(vernum)
+                    libpath = Path('libs') / f'python{vernum}.lib'
             lib = Path(self.variables.get('base')) / libpath
         elif self.platform == 'mingw':
             if self.static:
@@ -212,7 +212,7 @@ class PythonDependency(ExternalDependency):
             arch = '64'
         else:
             # We can't cross-compile Python 3 dependencies on Windows yet
-            mlog.log('Unknown architecture {!r} for'.format(arch),
+            mlog.log(f'Unknown architecture {arch!r} for',
                      mlog.bold(self.name))
             self.is_found = False
             return
@@ -429,7 +429,7 @@ class PythonInstallation(ExternalProgramHolder):
             if len(args) == 2:
                 path = args[1]
             else:
-                raise InvalidArguments('{} is not a valid path name'.format(path_name))
+                raise InvalidArguments(f'{path_name} is not a valid path name')
 
         return path
 
@@ -457,7 +457,7 @@ class PythonInstallation(ExternalProgramHolder):
             if len(args) == 2:
                 var = args[1]
             else:
-                raise InvalidArguments('{} is not a valid variable name'.format(var_name))
+                raise InvalidArguments(f'{var_name} is not a valid variable name')
 
         return var
 
@@ -544,7 +544,7 @@ class PythonModule(ExtensionModule):
             for mod in want_modules:
                 p, out, err = mesonlib.Popen_safe(
                     python.command +
-                    ['-c', 'import {}'.format(mod)])
+                    ['-c', f'import {mod}'])
                 if p.returncode != 0:
                     missing_modules.append(mod)
                 else:
@@ -591,7 +591,7 @@ class PythonModule(ExtensionModule):
             else:
                 res = ExternalProgramHolder(NonExistingExternalProgram(), state.subproject)
                 if required:
-                    raise mesonlib.MesonException('{} is not a valid python or it is missing setuptools'.format(python))
+                    raise mesonlib.MesonException(f'{python} is not a valid python or it is missing setuptools')
 
         return res
 

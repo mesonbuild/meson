@@ -79,7 +79,7 @@ def guess_backend(backend_str: str, msbuild_exe: str) -> T.Tuple['Backend', T.Li
         backend_flags = ['--backend=ninja']
         backend = Backend.ninja
     else:
-        raise RuntimeError('Unknown backend: {!r}'.format(backend_str))
+        raise RuntimeError(f'Unknown backend: {backend_str!r}')
     return (backend, backend_flags)
 
 
@@ -169,7 +169,7 @@ def get_meson_script():
     meson_cmd = shutil.which('meson')
     if meson_cmd:
         return meson_cmd
-    raise RuntimeError('Could not find {!r} or a meson in PATH'.format(meson_script))
+    raise RuntimeError(f'Could not find {meson_script!r} or a meson in PATH')
 
 def get_backend_args_for_dir(backend, builddir):
     '''
@@ -184,16 +184,16 @@ def find_vcxproj_with_target(builddir, target):
     import re, fnmatch
     t, ext = os.path.splitext(target)
     if ext:
-        p = r'<TargetName>{}</TargetName>\s*<TargetExt>\{}</TargetExt>'.format(t, ext)
+        p = fr'<TargetName>{t}</TargetName>\s*<TargetExt>\{ext}</TargetExt>'
     else:
-        p = r'<TargetName>{}</TargetName>'.format(t)
+        p = fr'<TargetName>{t}</TargetName>'
     for _, _, files in os.walk(builddir):
         for f in fnmatch.filter(files, '*.vcxproj'):
             f = os.path.join(builddir, f)
             with open(f, encoding='utf-8') as o:
                 if re.search(p, o.read(), flags=re.MULTILINE):
                     return f
-    raise RuntimeError('No vcxproj matching {!r} in {!r}'.format(p, builddir))
+    raise RuntimeError(f'No vcxproj matching {p!r} in {builddir!r}')
 
 def get_builddir_target_args(backend, builddir, target):
     dir_args = []
@@ -209,7 +209,7 @@ def get_builddir_target_args(backend, builddir, target):
     elif backend is Backend.ninja:
         target_args = [target]
     else:
-        raise AssertionError('Unknown backend: {!r}'.format(backend))
+        raise AssertionError(f'Unknown backend: {backend!r}')
     return target_args + dir_args
 
 def get_backend_commands(backend: Backend, debug: bool = False) -> \
@@ -239,7 +239,7 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         install_cmd = cmd + ['install']
         uninstall_cmd = cmd + ['uninstall']
     else:
-        raise AssertionError('Unknown backend: {!r}'.format(backend))
+        raise AssertionError(f'Unknown backend: {backend!r}')
     return cmd, clean_cmd, test_cmd, install_cmd, uninstall_cmd
 
 def ensure_backend_detects_changes(backend):
@@ -385,7 +385,7 @@ def main():
         else:
             cross_test_args = mesonlib.python_command + ['run_cross_test.py']
             for cf in options.cross:
-                print(mlog.bold('Running {} cross tests.'.format(cf)))
+                print(mlog.bold(f'Running {cf} cross tests.'))
                 print(flush=True)
                 cmd = cross_test_args + ['cross/' + cf]
                 if options.failfast:

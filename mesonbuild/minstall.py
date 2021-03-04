@@ -392,7 +392,7 @@ class Installer:
                 raise RuntimeError('Destination {!r} already exists and is not '
                                    'a file'.format(to_file))
             if self.should_preserve_existing_file(from_file, to_file):
-                append_to_log(self.lf, '# Preserving old file {}\n'.format(to_file))
+                append_to_log(self.lf, f'# Preserving old file {to_file}\n')
                 self.preserved_file_count += 1
                 return False
             self.remove(to_file)
@@ -401,7 +401,7 @@ class Installer:
             dirmaker, outdir = makedirs
             # Create dirs if needed
             dirmaker.makedirs(outdir, exist_ok=True)
-        self.log('Installing {} to {}'.format(from_file, outdir))
+        self.log(f'Installing {from_file} to {outdir}')
         if os.path.islink(from_file):
             if not os.path.exists(from_file):
                 # Dangling symlink. Replicate as is.
@@ -443,9 +443,9 @@ class Installer:
                      each element of the set is a path relative to src_dir.
         '''
         if not os.path.isabs(src_dir):
-            raise ValueError('src_dir must be absolute, got {}'.format(src_dir))
+            raise ValueError(f'src_dir must be absolute, got {src_dir}')
         if not os.path.isabs(dst_dir):
-            raise ValueError('dst_dir must be absolute, got {}'.format(dst_dir))
+            raise ValueError(f'dst_dir must be absolute, got {dst_dir}')
         if exclude is not None:
             exclude_files, exclude_dirs = exclude
         else:
@@ -463,7 +463,7 @@ class Installer:
                 if os.path.isdir(abs_dst):
                     continue
                 if os.path.exists(abs_dst):
-                    print('Tried to copy directory {} but a file of that name already exists.'.format(abs_dst))
+                    print(f'Tried to copy directory {abs_dst} but a file of that name already exists.')
                     sys.exit(1)
                 dm.makedirs(abs_dst)
                 self.copystat(abs_src, abs_dst)
@@ -475,7 +475,7 @@ class Installer:
                     continue
                 abs_dst = os.path.join(dst_dir, filepart)
                 if os.path.isdir(abs_dst):
-                    print('Tried to copy file {} but a directory of that name already exists.'.format(abs_dst))
+                    print(f'Tried to copy file {abs_dst} but a directory of that name already exists.')
                     sys.exit(1)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
@@ -538,7 +538,7 @@ class Installer:
                 continue
             self.did_install_something = True
             full_dst_dir = get_destdir_path(destdir, fullprefix, i.install_path)
-            self.log('Installing subdir {} to {}'.format(i.path, full_dst_dir))
+            self.log(f'Installing subdir {i.path} to {full_dst_dir}')
             dm.makedirs(full_dst_dir, exist_ok=True)
             self.do_copydir(d, i.path, full_dst_dir, i.exclude, i.install_mode, dm)
 
@@ -591,18 +591,18 @@ class Installer:
                 continue
             name = ' '.join(i.cmd_args)
             if i.skip_if_destdir and destdir:
-                self.log('Skipping custom install script because DESTDIR is set {!r}'.format(name))
+                self.log(f'Skipping custom install script because DESTDIR is set {name!r}')
                 continue
             self.did_install_something = True  # Custom script must report itself if it does nothing.
-            self.log('Running custom install script {!r}'.format(name))
+            self.log(f'Running custom install script {name!r}')
             try:
                 rc = self.run_exe(i, env)
             except OSError:
-                print('FAILED: install script \'{}\' could not be run, stopped'.format(name))
+                print(f'FAILED: install script \'{name}\' could not be run, stopped')
                 # POSIX shells return 127 when a command could not be found
                 sys.exit(127)
             if rc != 0:
-                print('FAILED: install script \'{}\' exit code {}, stopped'.format(name, rc))
+                print(f'FAILED: install script \'{name}\' exit code {rc}, stopped')
                 sys.exit(rc)
 
     def install_targets(self, d: InstallData, dm: DirMaker, destdir: str, fullprefix: str) -> None:
@@ -612,10 +612,10 @@ class Installer:
             if not os.path.exists(t.fname):
                 # For example, import libraries of shared modules are optional
                 if t.optional:
-                    self.log('File {!r} not found, skipping'.format(t.fname))
+                    self.log(f'File {t.fname!r} not found, skipping')
                     continue
                 else:
-                    raise RuntimeError('File {!r} could not be found'.format(t.fname))
+                    raise RuntimeError(f'File {t.fname!r} could not be found')
             file_copied = False # not set when a directory is copied
             fname = check_for_stampfile(t.fname)
             outdir = get_destdir_path(destdir, fullprefix, t.outdir)
@@ -627,7 +627,7 @@ class Installer:
             install_name_mappings = t.install_name_mappings
             install_mode = t.install_mode
             if not os.path.exists(fname):
-                raise RuntimeError('File {!r} could not be found'.format(fname))
+                raise RuntimeError(f'File {fname!r} could not be found')
             elif os.path.isfile(fname):
                 file_copied = self.do_copyfile(fname, outname, makedirs=(dm, outdir))
                 self.set_mode(outname, install_mode, d.install_umask)
@@ -639,8 +639,8 @@ class Installer:
                     returncode, stdo, stde = self.Popen_safe(d.strip_bin + [outname])
                     if returncode != 0:
                         print('Could not strip file.\n')
-                        print('Stdout:\n{}\n'.format(stdo))
-                        print('Stderr:\n{}\n'.format(stde))
+                        print(f'Stdout:\n{stdo}\n')
+                        print(f'Stderr:\n{stde}\n')
                         sys.exit(1)
                 if fname.endswith('.js'):
                     # Emscripten outputs js files and optionally a wasm file.
@@ -655,7 +655,7 @@ class Installer:
                 dm.makedirs(outdir, exist_ok=True)
                 self.do_copydir(d, fname, outname, None, install_mode, dm)
             else:
-                raise RuntimeError('Unknown file type for {!r}'.format(fname))
+                raise RuntimeError(f'Unknown file type for {fname!r}')
             printed_symlink_error = False
             for alias, to in aliases.items():
                 try:
@@ -695,7 +695,7 @@ def rebuild_all(wd: str) -> bool:
 
     ret = subprocess.run(ninja + ['-C', wd]).returncode
     if ret != 0:
-        print('Could not rebuild {}'.format(wd))
+        print(f'Could not rebuild {wd}')
         return False
 
     return True

@@ -43,7 +43,7 @@ class QtBaseModule(ExtensionModule):
         if self.tools_detected:
             return
         self.tools_detected = True
-        mlog.log('Detecting Qt{version} tools'.format(version=self.qt_version))
+        mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
         qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
         if qt.found():
@@ -55,7 +55,7 @@ class QtBaseModule(ExtensionModule):
                 mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
                     mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
         else:
-            suffix = '-qt{}'.format(self.qt_version)
+            suffix = f'-qt{self.qt_version}'
             self.moc = NonExistingExternalProgram(name='moc' + suffix)
             self.uic = NonExistingExternalProgram(name='uic' + suffix)
             self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
@@ -143,10 +143,10 @@ class QtBaseModule(ExtensionModule):
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt{2} installation"
         if (moc_headers or moc_sources) and not self.moc.found():
-            raise MesonException(err_msg.format('MOC', 'moc-qt{}'.format(self.qt_version), self.qt_version))
+            raise MesonException(err_msg.format('MOC', f'moc-qt{self.qt_version}', self.qt_version))
         if rcc_files:
             if not self.rcc.found():
-                raise MesonException(err_msg.format('RCC', 'rcc-qt{}'.format(self.qt_version), self.qt_version))
+                raise MesonException(err_msg.format('RCC', f'rcc-qt{self.qt_version}', self.qt_version))
             # custom output name set? -> one output file, multiple otherwise
             if args:
                 qrc_deps = []
@@ -178,12 +178,12 @@ class QtBaseModule(ExtensionModule):
                     sources.append(res_target)
         if ui_files:
             if not self.uic.found():
-                raise MesonException(err_msg.format('UIC', 'uic-qt{}'.format(self.qt_version), self.qt_version))
+                raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
             arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
             ui_kwargs = {'output': 'ui_@BASENAME@.h',
                          'arguments': arguments}
             ui_gen = build.Generator([self.uic], ui_kwargs)
-            ui_output = ui_gen.process_files('Qt{} ui'.format(self.qt_version), ui_files, state)
+            ui_output = ui_gen.process_files(f'Qt{self.qt_version} ui', ui_files, state)
             sources.append(ui_output)
         inc = get_include_args(include_dirs=include_directories)
         compile_args = []
@@ -202,14 +202,14 @@ class QtBaseModule(ExtensionModule):
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = moc_gen.process_files('Qt{} moc header'.format(self.qt_version), moc_headers, state)
+            moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc header', moc_headers, state)
             sources.append(moc_output)
         if moc_sources:
             arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
             moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = moc_gen.process_files('Qt{} moc source'.format(self.qt_version), moc_sources, state)
+            moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc source', moc_sources, state)
             sources.append(moc_output)
         return ModuleReturnValue(sources, sources)
 
@@ -237,7 +237,7 @@ class QtBaseModule(ExtensionModule):
                 if c.endswith('.qm'):
                     ts_files.append(c.rstrip('.qm')+'.ts')
                 else:
-                    raise MesonException('qt.compile_translations: qresource can only contain qm files, found {}'.format(c))
+                    raise MesonException(f'qt.compile_translations: qresource can only contain qm files, found {c}')
             results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs.get('rcc_extra_arguments', [])})
         self._detect_tools(state.environment, kwargs.get('method', 'auto'))
         translations = []
@@ -258,7 +258,7 @@ class QtBaseModule(ExtensionModule):
                                'command': cmd}
             if install_dir is not None:
                 lrelease_kwargs['install_dir'] = install_dir
-            lrelease_target = build.CustomTarget('qt{}-compile-{}'.format(self.qt_version, ts), outdir, state.subproject, lrelease_kwargs)
+            lrelease_target = build.CustomTarget(f'qt{self.qt_version}-compile-{ts}', outdir, state.subproject, lrelease_kwargs)
             translations.append(lrelease_target)
         if qresource:
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])

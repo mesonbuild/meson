@@ -160,7 +160,7 @@ def update_git(r, wrap, repo_dir, options):
             mlog.log(mlog.red(str(e)))
             return False
     elif url != origin_url:
-        mlog.log('  -> URL changed from {!r} to {!r}'.format(origin_url, url))
+        mlog.log(f'  -> URL changed from {origin_url!r} to {url!r}')
         return False
     try:
         # Same as `git branch --show-current` but compatible with older git version
@@ -251,7 +251,7 @@ def update_svn(r, wrap, repo_dir, options):
     return True
 
 def update(r, wrap, repo_dir, options):
-    mlog.log('Updating {}...'.format(wrap.name))
+    mlog.log(f'Updating {wrap.name}...')
     if wrap.type == 'file':
         return update_file(r, wrap, repo_dir, options)
     elif wrap.type == 'git':
@@ -271,14 +271,14 @@ def checkout(r, wrap, repo_dir, options):
     if not branch_name:
         # It could be a detached git submodule for example.
         return True
-    mlog.log('Checkout {} in {}...'.format(branch_name, wrap.name))
+    mlog.log(f'Checkout {branch_name} in {wrap.name}...')
     if git_checkout(repo_dir, branch_name, create=options.b):
         git_show(repo_dir)
         return True
     return False
 
 def download(r, wrap, repo_dir, options):
-    mlog.log('Download {}...'.format(wrap.name))
+    mlog.log(f'Download {wrap.name}...')
     if os.path.isdir(repo_dir):
         mlog.log('  -> Already downloaded')
         return True
@@ -291,7 +291,7 @@ def download(r, wrap, repo_dir, options):
     return True
 
 def foreach(r, wrap, repo_dir, options):
-    mlog.log('Executing command in {}'.format(repo_dir))
+    mlog.log(f'Executing command in {repo_dir}')
     if not os.path.isdir(repo_dir):
         mlog.log('  -> Not downloaded yet')
         return True
@@ -310,7 +310,7 @@ def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
     p.add_argument('--types', default='',
-                   help='Comma-separated list of subproject types. Supported types are: {} (default: all)'.format(ALL_TYPES_STRING))
+                   help=f'Comma-separated list of subproject types. Supported types are: {ALL_TYPES_STRING} (default: all)')
 
 def add_subprojects_argument(p):
     p.add_argument('subprojects', nargs='*',
@@ -372,7 +372,7 @@ def run(options):
     types = [t.strip() for t in options.types.split(',')] if options.types else []
     for t in types:
         if t not in ALL_TYPES:
-            raise MesonException('Unknown subproject type {!r}, supported types are: {}'.format(t, ALL_TYPES_STRING))
+            raise MesonException(f'Unknown subproject type {t!r}, supported types are: {ALL_TYPES_STRING}')
     failures = []
     for wrap in wraps:
         if types and wrap.type not in types:

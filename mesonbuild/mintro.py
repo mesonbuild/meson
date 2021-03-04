@@ -391,7 +391,7 @@ def get_infodir(builddir: T.Optional[str] = None) -> str:
 
 def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
     return os.path.join(infodir,
-                        'meson-info.json' if not kind else 'intro-{}.json'.format(kind))
+                        'meson-info.json' if not kind else f'intro-{kind}.json')
 
 def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
     with open(get_info_file(infodir, kind)) as fp:
@@ -509,7 +509,7 @@ def write_meson_info_file(builddata: build.Build, errors: list, build_files_upda
         if not intro_types[i].func:
             continue
         intro_info[i] = {
-            'file': 'intro-{}.json'.format(i),
+            'file': f'intro-{i}.json',
             'updated': i in updated_introspection_files
         }
 

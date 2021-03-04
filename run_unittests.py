@@ -205,7 +205,7 @@ def skipIfNoPkgconfigDep(depname):
             if not is_ci() and shutil.which('pkg-config') is None:
                 raise unittest.SkipTest('pkg-config not found')
             if not is_ci() and subprocess.call(['pkg-config', '--exists', depname]) != 0:
-                raise unittest.SkipTest('pkg-config dependency {} not found.'.format(depname))
+                raise unittest.SkipTest(f'pkg-config dependency {depname} not found.')
             return func(*args, **kwargs)
         return wrapped
     return wrapper
@@ -230,10 +230,10 @@ def skip_if_not_language(lang):
         def wrapped(*args, **kwargs):
             try:
                 env = get_fake_env()
-                f = getattr(env, 'detect_{}_compiler'.format(lang))
+                f = getattr(env, f'detect_{lang}_compiler')
                 f(MachineChoice.HOST)
             except EnvironmentException:
-                raise unittest.SkipTest('No {} compiler found.'.format(lang))
+                raise unittest.SkipTest(f'No {lang} compiler found.')
             return func(*args, **kwargs)
         return wrapped
     return wrapper
@@ -248,7 +248,7 @@ def skip_if_env_set(key):
             old = None
             if key in os.environ:
                 if not is_ci():
-                    raise unittest.SkipTest('Env var {!r} set, skipping'.format(key))
+                    raise unittest.SkipTest(f'Env var {key!r} set, skipping')
                 old = os.environ.pop(key)
             try:
                 return func(*args, **kwargs)
@@ -271,7 +271,7 @@ def skip_if_not_base_option(feature):
             key = OptionKey(feature)
             if key not in cc.base_options:
                 raise unittest.SkipTest(
-                    '{} not available with {}'.format(feature, cc.id))
+                    f'{feature} not available with {cc.id}')
             return f(*args, **kwargs)
         return wrapped
     return actual
@@ -898,11 +898,11 @@ class InternalTests(unittest.TestCase):
                 if '--libs' not in args:
                     return 0, '', ''
                 if args[-1] == 'foo':
-                    return 0, '-L{} -lfoo -L{} -lbar'.format(p2.as_posix(), p1.as_posix()), ''
+                    return 0, f'-L{p2.as_posix()} -lfoo -L{p1.as_posix()} -lbar', ''
                 if args[-1] == 'bar':
-                    return 0, '-L{} -lbar'.format(p2.as_posix()), ''
+                    return 0, f'-L{p2.as_posix()} -lbar', ''
                 if args[-1] == 'internal':
-                    return 0, '-L{} -lpthread -lm -lc -lrt -ldl'.format(p1.as_posix()), ''
+                    return 0, f'-L{p1.as_posix()} -lpthread -lm -lc -lrt -ldl', ''
 
             old_call = PkgConfigDependency._call_pkgbin
             old_check = PkgConfigDependency.check_pkgconfig
@@ -923,7 +923,7 @@ class InternalTests(unittest.TestCase):
                     link_args = internal_dep.get_link_args()
                     for link_arg in link_args:
                         for lib in ('pthread', 'm', 'c', 'dl', 'rt'):
-                            self.assertNotIn('lib{}.a'.format(lib), link_arg, msg=link_args)
+                            self.assertNotIn(f'lib{lib}.a', link_arg, msg=link_args)
             finally:
                 # Test ends
                 PkgConfigDependency._call_pkgbin = old_call
@@ -1040,17 +1040,17 @@ class InternalTests(unittest.TestCase):
             ver_b = Version(b)
             if op is operator.eq:
                 for o, name in [(op, 'eq'), (operator.ge, 'ge'), (operator.le, 'le')]:
-                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                    self.assertTrue(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
             if op is operator.lt:
                 for o, name in [(op, 'lt'), (operator.le, 'le'), (operator.ne, 'ne')]:
-                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                    self.assertTrue(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
                 for o, name in [(operator.gt, 'gt'), (operator.ge, 'ge'), (operator.eq, 'eq')]:
-                    self.assertFalse(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                    self.assertFalse(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
             if op is operator.gt:
                 for o, name in [(op, 'gt'), (operator.ge, 'ge'), (operator.ne, 'ne')]:
-                    self.assertTrue(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                    self.assertTrue(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
                 for o, name in [(operator.lt, 'lt'), (operator.le, 'le'), (operator.eq, 'eq')]:
-                    self.assertFalse(o(ver_a, ver_b), '{} {} {}'.format(ver_a, name, ver_b))
+                    self.assertFalse(o(ver_a, ver_b), f'{ver_a} {name} {ver_b}')
 
     def test_msvc_toolset_version(self):
         '''
@@ -1073,7 +1073,7 @@ class InternalTests(unittest.TestCase):
             # See https://devblogs.microsoft.com/cppblog/finding-the-visual-c-compiler-tools-in-visual-studio-2017/
             vctools_ver = (Path(os.environ['VCINSTALLDIR']) / 'Auxiliary' / 'Build' / 'Microsoft.VCToolsVersion.default.txt').read_text()
         self.assertTrue(vctools_ver.startswith(toolset_ver),
-                        msg='{!r} does not start with {!r}'.format(vctools_ver, toolset_ver))
+                        msg=f'{vctools_ver!r} does not start with {toolset_ver!r}')
 
     def test_split_args(self):
         split_args = mesonbuild.mesonlib.split_args
@@ -1290,7 +1290,7 @@ class InternalTests(unittest.TestCase):
                     errors.append((p.resolve(), e))
 
         for f, e in errors:
-            print('Failed to validate: "{}"'.format(f))
+            print(f'Failed to validate: "{f}"')
             print(str(e))
 
         self.assertFalse(errors)
@@ -1545,7 +1545,7 @@ class DataTests(unittest.TestCase):
                     end = len(md)
                 # Extract the content for this section
                 return md[section.end():end]
-        raise RuntimeError('Could not find "{}" heading'.format(name))
+        raise RuntimeError(f'Could not find "{name}" heading')
 
     def test_builtin_options_documented(self):
         '''
@@ -1605,7 +1605,7 @@ class DataTests(unittest.TestCase):
             elif debug == 'false':
                 debug = False
             else:
-                raise RuntimeError('Invalid debug value {!r} in row:\n{}'.format(debug, m.group()))
+                raise RuntimeError(f'Invalid debug value {debug!r} in row:\n{m.group()}')
             env.coredata.set_option(OptionKey('buildtype'), buildtype)
             self.assertEqual(env.coredata.options[OptionKey('buildtype')].value, buildtype)
             self.assertEqual(env.coredata.options[OptionKey('optimization')].value, opt)
@@ -1731,7 +1731,7 @@ class BasePlatformTests(unittest.TestCase):
         else:
             # VS doesn't have a stable output when no changes are done
             # XCode backend is untested with unit tests, help welcome!
-            self.no_rebuild_stdout = ['UNKNOWN BACKEND {!r}'.format(self.backend.name)]
+            self.no_rebuild_stdout = [f'UNKNOWN BACKEND {self.backend.name!r}']
 
         self.builddirs = []
         self.new_builddir()
@@ -1762,7 +1762,7 @@ class BasePlatformTests(unittest.TestCase):
     def _print_meson_log(self):
         log = os.path.join(self.logdir, 'meson-log.txt')
         if not os.path.isfile(log):
-            print("{!r} doesn't exist".format(log))
+            print(f"{log!r} doesn't exist")
             return
         with open(log, encoding='utf-8') as f:
             print(f.read())
@@ -1874,7 +1874,7 @@ class BasePlatformTests(unittest.TestCase):
 
     def install(self, *, use_destdir=True, override_envvars=None):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
+            raise unittest.SkipTest(f'{self.backend.name!r} backend can\'t install files')
         if use_destdir:
             destdir = {'DESTDIR': self.installdir}
             if override_envvars is None:
@@ -1909,7 +1909,7 @@ class BasePlatformTests(unittest.TestCase):
 
     def get_compdb(self):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Compiler db not available with {} backend'.format(self.backend.name))
+            raise unittest.SkipTest(f'Compiler db not available with {self.backend.name} backend')
         try:
             with open(os.path.join(self.builddir, 'compile_commands.json')) as ifile:
                 contents = json.load(ifile)
@@ -1988,7 +1988,7 @@ class BasePlatformTests(unittest.TestCase):
                 self.assertPathEqual(i[0], i[1])
 
     def assertPathBasenameEqual(self, path, basename):
-        msg = '{!r} does not end with {!r}'.format(path, basename)
+        msg = f'{path!r} does not end with {basename!r}'
         # We cannot use os.path.basename because it returns '' when the path
         # ends with '/' for some silly reason. This is not how the UNIX utility
         # `basename` works.
@@ -2016,7 +2016,7 @@ class BasePlatformTests(unittest.TestCase):
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
-            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+            raise RuntimeError(f'Invalid backend: {self.backend.name!r}')
 
     def assertBuildIsNoop(self):
         ret = self.build()
@@ -2035,12 +2035,12 @@ class BasePlatformTests(unittest.TestCase):
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
-            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+            raise RuntimeError(f'Invalid backend: {self.backend.name!r}')
 
     def assertRebuiltTarget(self, target):
         ret = self.build()
         if self.backend is Backend.ninja:
-            self.assertIn('Linking target {}'.format(target), ret)
+            self.assertIn(f'Linking target {target}', ret)
         elif self.backend is Backend.vs:
             # Ensure that this target was rebuilt
             linkre = re.compile('Link:\n [^\n]*link[^\n]*' + target, flags=re.IGNORECASE)
@@ -2048,7 +2048,7 @@ class BasePlatformTests(unittest.TestCase):
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
-            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+            raise RuntimeError(f'Invalid backend: {self.backend.name!r}')
 
     @staticmethod
     def get_target_from_filename(filename):
@@ -2075,14 +2075,14 @@ class BasePlatformTests(unittest.TestCase):
         elif self.backend is Backend.xcode:
             raise unittest.SkipTest('Please help us fix this test on the xcode backend')
         else:
-            raise RuntimeError('Invalid backend: {!r}'.format(self.backend.name))
+            raise RuntimeError(f'Invalid backend: {self.backend.name!r}')
 
     def assertPathExists(self, path):
-        m = 'Path {!r} should exist'.format(path)
+        m = f'Path {path!r} should exist'
         self.assertTrue(os.path.exists(path), msg=m)
 
     def assertPathDoesNotExist(self, path):
-        m = 'Path {!r} should not exist'.format(path)
+        m = f'Path {path!r} should not exist'
         self.assertFalse(os.path.exists(path), msg=m)
 
 
@@ -2391,7 +2391,7 @@ class AllPlatformTests(BasePlatformTests):
         https://github.com/mesonbuild/meson/issues/829
         '''
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
+            raise unittest.SkipTest(f'{self.backend.name!r} backend can\'t install files')
         testdir = os.path.join(self.common_test_dir, '8 install')
         self.init(testdir)
         intro = self.introspect('--targets')
@@ -2438,7 +2438,7 @@ class AllPlatformTests(BasePlatformTests):
         TODO Change the format to a list officially in a followup PR
         '''
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('{!r} backend can\'t install files'.format(self.backend.name))
+            raise unittest.SkipTest(f'{self.backend.name!r} backend can\'t install files')
         testdir = os.path.join(self.common_test_dir, '141 custom target multiple outputs')
         self.init(testdir)
         intro = self.introspect('--targets')
@@ -2471,12 +2471,12 @@ class AllPlatformTests(BasePlatformTests):
                                          f.readlines())))
         logged = read_logs()
         for name in logged:
-            self.assertTrue(name in expected, 'Log contains extra entry {}'.format(name))
+            self.assertTrue(name in expected, f'Log contains extra entry {name}')
             expected[name] += 1
 
         for name, count in expected.items():
-            self.assertGreater(count, 0, 'Log is missing entry for {}'.format(name))
-            self.assertLess(count, 2, 'Log has multiple entries for {}'.format(name))
+            self.assertGreater(count, 0, f'Log is missing entry for {name}')
+            self.assertLess(count, 2, f'Log has multiple entries for {name}')
 
         # Verify that with --dry-run we obtain the same logs but with nothing
         # actually installed
@@ -2788,7 +2788,7 @@ class AllPlatformTests(BasePlatformTests):
         for lang, evar in langs:
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
-                ecc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                ecc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
                 self.assertTrue(ecc.version)
                 elinker = env.detect_static_linker(ecc)
                 # Pop it so we don't use it for the next detection
@@ -2812,11 +2812,11 @@ class AllPlatformTests(BasePlatformTests):
                     self.assertIsInstance(ecc, msvc)
                     self.assertIsInstance(elinker, lib)
                 else:
-                    raise AssertionError('Unknown compiler {!r}'.format(evalue))
+                    raise AssertionError(f'Unknown compiler {evalue!r}')
                 # Check that we actually used the evalue correctly as the compiler
                 self.assertEqual(ecc.get_exelist(), split_args(evalue))
             # Do auto-detection of compiler based on platform, PATH, etc.
-            cc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            cc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
             self.assertTrue(cc.version)
             linker = env.detect_static_linker(cc)
             # Check compiler type
@@ -2876,7 +2876,7 @@ class AllPlatformTests(BasePlatformTests):
             # Need a new env to re-run environment loading
             env = get_fake_env(testdir, self.builddir, self.prefix)
 
-            wcc = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+            wcc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
             wlinker = env.detect_static_linker(wcc)
             # Pop it so we don't use it for the next detection
             evalue = os.environ.pop('AR')
@@ -2972,9 +2972,9 @@ class AllPlatformTests(BasePlatformTests):
         value = 'spaces and fun@$&()-=_+{}[]:;>?,./~`'
         for env_var in ['CPPFLAGS', 'CFLAGS']:
             env = {}
-            env[env_var] = '-D{}="{}"'.format(define, value)
+            env[env_var] = f'-D{define}="{value}"'
             env['LDFLAGS'] = '-DMESON_FAIL_VALUE=cflags-read'
-            self.init(testdir, extra_args=['-D{}={}'.format(define, value)], override_envvars=env)
+            self.init(testdir, extra_args=[f'-D{define}={value}'], override_envvars=env)
 
     def test_custom_target_exe_data_deterministic(self):
         testdir = os.path.join(self.common_test_dir, '110 custom target capture')
@@ -3190,7 +3190,7 @@ class AllPlatformTests(BasePlatformTests):
         path = os.path.join(project_dir, 'subprojects', name)
         os.makedirs(path)
         with open(os.path.join(path, 'meson.build'), 'w') as ofile:
-            ofile.write("project('{}', version: '1.0')".format(name))
+            ofile.write(f"project('{name}', version: '1.0')")
         return path
 
     def dist_impl(self, vcs_init, vcs_add_all=None, include_subprojects=True):
@@ -3292,7 +3292,7 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         for each in ('prog', 'subdir/liblib1.so', ):
             rpath = get_rpath(os.path.join(self.builddir, each))
-            self.assertTrue(rpath, 'Rpath could not be determined for {}.'.format(each))
+            self.assertTrue(rpath, f'Rpath could not be determined for {each}.')
             if is_dragonflybsd():
                 # DragonflyBSD will prepend /usr/lib/gccVERSION to the rpath,
                 # so ignore that.
@@ -3954,7 +3954,7 @@ class AllPlatformTests(BasePlatformTests):
             if item['name'] == arg:
                 self.assertEqual(item['value'], 'bar')
                 return
-        raise Exception('Missing {} value?'.format(arg))
+        raise Exception(f'Missing {arg} value?')
 
     def test_same_dash_option_twice(self):
         self._test_same_option_twice('bindir', ['--bindir=foo', '--bindir=bar'])
@@ -3974,7 +3974,7 @@ class AllPlatformTests(BasePlatformTests):
             if item['name'] == arg:
                 self.assertEqual(item['value'], 'bar')
                 return
-        raise Exception('Missing {} value?'.format(arg))
+        raise Exception(f'Missing {arg} value?')
 
     def test_same_dash_option_twice_configure(self):
         self._test_same_option_twice_configure(
@@ -4466,7 +4466,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clang-format')
     def test_clang_format(self):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Clang-format is for now only supported on Ninja, not {}'.format(self.backend.name))
+            raise unittest.SkipTest(f'Clang-format is for now only supported on Ninja, not {self.backend.name}')
         testdir = os.path.join(self.unit_test_dir, '54 clang-format')
         testfile = os.path.join(testdir, 'prog.c')
         badfile = os.path.join(testdir, 'prog_orig_c')
@@ -4494,7 +4494,7 @@ class AllPlatformTests(BasePlatformTests):
     @skipIfNoExecutable('clang-tidy')
     def test_clang_tidy(self):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Clang-tidy is for now only supported on Ninja, not {}'.format(self.backend.name))
+            raise unittest.SkipTest(f'Clang-tidy is for now only supported on Ninja, not {self.backend.name}')
         if shutil.which('c++') is None:
             raise unittest.SkipTest('Clang-tidy breaks when ccache is used and "c++" not in path.')
         if is_osx():
@@ -4572,7 +4572,7 @@ class AllPlatformTests(BasePlatformTests):
                         if k == i[0]:
                             found = True
                             break
-                    self.assertTrue(found, 'Key "{}" not in expected list'.format(k))
+                    self.assertTrue(found, f'Key "{k}" not in expected list')
 
         root_keylist = [
             ('benchmarks', list),
@@ -4759,7 +4759,7 @@ class AllPlatformTests(BasePlatformTests):
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
         for i in root_keylist:
-            curr = os.path.join(infodir, 'intro-{}.json'.format(i))
+            curr = os.path.join(infodir, f'intro-{i}.json')
             self.assertPathExists(curr)
             with open(curr) as fp:
                 res_file[i] = json.load(fp)
@@ -4980,7 +4980,7 @@ class AllPlatformTests(BasePlatformTests):
     def test_alias_target(self):
         if self.backend is Backend.vs:
             # FIXME: This unit test is broken with vs backend, needs investigation
-            raise unittest.SkipTest('Skipping alias_target test with {} backend'.format(self.backend.name))
+            raise unittest.SkipTest(f'Skipping alias_target test with {self.backend.name} backend')
         testdir = os.path.join(self.unit_test_dir, '66 alias target')
         self.init(testdir)
         self.build()
@@ -5050,24 +5050,24 @@ class AllPlatformTests(BasePlatformTests):
 
         def get_exe_name(basename: str) -> str:
             if is_windows():
-                return '{}.exe'.format(basename)
+                return f'{basename}.exe'
             else:
                 return basename
 
         def get_shared_lib_name(basename: str) -> str:
             if mesonbuild.environment.detect_msys2_arch():
-                return 'lib{}.dll'.format(basename)
+                return f'lib{basename}.dll'
             elif is_windows():
-                return '{}.dll'.format(basename)
+                return f'{basename}.dll'
             elif is_cygwin():
-                return 'cyg{}.dll'.format(basename)
+                return f'cyg{basename}.dll'
             elif is_osx():
-                return 'lib{}.dylib'.format(basename)
+                return f'lib{basename}.dylib'
             else:
-                return 'lib{}.so'.format(basename)
+                return f'lib{basename}.so'
 
         def get_static_lib_name(basename: str) -> str:
-            return 'lib{}.a'.format(basename)
+            return f'lib{basename}.a'
 
         # Base case (no targets or additional arguments)
 
@@ -5227,7 +5227,7 @@ class AllPlatformTests(BasePlatformTests):
         help_output = self._run(self.meson_command + ['--help'])
         help_commands = {c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(',')}
 
-        self.assertEqual(md_commands | {'help'}, help_commands, 'Doc file: `{}`'.format(doc_path))
+        self.assertEqual(md_commands | {'help'}, help_commands, f'Doc file: `{doc_path}`')
 
         ## Validate that each section has proper placeholders
 
@@ -5240,7 +5240,7 @@ class AllPlatformTests(BasePlatformTests):
 
         for command in md_commands:
             m = get_data_pattern(command).search(md, pos=md_command_sections[command][0], endpos=md_command_sections[command][1])
-            self.assertIsNotNone(m, 'Command `{}` is missing placeholders for dynamic data. Doc file: `{}`'.format(command, doc_path))
+            self.assertIsNotNone(m, f'Command `{command}` is missing placeholders for dynamic data. Doc file: `{doc_path}`')
 
     def _check_coverage_files(self, types=('text', 'xml', 'html')):
         covdir = Path(self.builddir) / 'meson-logs'
@@ -5252,7 +5252,7 @@ class AllPlatformTests(BasePlatformTests):
         if 'html' in types:
             files.append('coveragereport/index.html')
         for f in files:
-            self.assertTrue((covdir / f).is_file(), msg='{} is not a file'.format(f))
+            self.assertTrue((covdir / f).is_file(), msg=f'{f} is not a file')
 
     def test_coverage(self):
         if mesonbuild.environment.detect_msys2_arch():
@@ -5607,10 +5607,10 @@ class FailureTests(BasePlatformTests):
         with open(self.mbuild, 'w') as f:
             f.write("project('failure test', 'c', 'cpp'")
             if meson_version:
-                f.write(", meson_version: '{}'".format(meson_version))
+                f.write(f", meson_version: '{meson_version}'")
             f.write(")\n")
             for lang in langs:
-                f.write("add_languages('{}', required : false)\n".format(lang))
+                f.write(f"add_languages('{lang}', required : false)\n")
             f.write(contents)
         if options is not None:
             with open(self.moptions, 'w') as f:
@@ -5633,10 +5633,10 @@ class FailureTests(BasePlatformTests):
         with open(self.mbuild, 'w') as f:
             f.write("project('output test', 'c', 'cpp'")
             if meson_version:
-                f.write(", meson_version: '{}'".format(meson_version))
+                f.write(f", meson_version: '{meson_version}'")
             f.write(")\n")
             for lang in langs:
-                f.write("add_languages('{}', required : false)\n".format(lang))
+                f.write(f"add_languages('{lang}', required : false)\n")
             f.write(contents)
         # Run in-process for speed and consistency with assertMesonRaises
         return self.init(self.srcdir, extra_args=extra_args, inprocess=True)
@@ -5705,7 +5705,7 @@ class FailureTests(BasePlatformTests):
         if shutil.which('gnustep-config'):
             raise unittest.SkipTest('gnustep-config found')
         self.assertMesonRaises("dependency('gnustep')",
-                               "(requires a Objc compiler|{})".format(self.dnf),
+                               f"(requires a Objc compiler|{self.dnf})",
                                langs = ['objc'])
 
     def test_wx_notfound_dependency(self):
@@ -5724,19 +5724,19 @@ class FailureTests(BasePlatformTests):
 
     def test_llvm_dependency(self):
         self.assertMesonRaises("dependency('llvm', modules : 'fail')",
-                               "(required.*fail|{})".format(self.dnf))
+                               f"(required.*fail|{self.dnf})")
 
     def test_boost_notfound_dependency(self):
         # Can be run even if Boost is found or not
         self.assertMesonRaises("dependency('boost', modules : 1)",
                                "module.*not a string")
         self.assertMesonRaises("dependency('boost', modules : 'fail')",
-                               "(fail.*not found|{})".format(self.dnf))
+                               f"(fail.*not found|{self.dnf})")
 
     def test_boost_BOOST_ROOT_dependency(self):
         # Test BOOST_ROOT; can be run even if Boost is found or not
         self.assertMesonRaises("dependency('boost')",
-                               "(boost_root.*absolute|{})".format(self.dnf),
+                               f"(boost_root.*absolute|{self.dnf})",
                                override_envvars = {'BOOST_ROOT': 'relative/path'})
 
     def test_dependency_invalid_method(self):
@@ -5928,7 +5928,7 @@ class WindowsTests(BasePlatformTests):
         # Find cmd with an absolute path that's missing the extension
         cmd_path = prog2.get_path()[:-4]
         prog = ExternalProgram(cmd_path)
-        self.assertTrue(prog.found(), msg='{!r} not found'.format(cmd_path))
+        self.assertTrue(prog.found(), msg=f'{cmd_path!r} not found')
         # Finding a script with no extension inside a directory works
         prog = ExternalProgram(os.path.join(testdir, 'test-script'))
         self.assertTrue(prog.found(), msg='test-script not found')
@@ -5965,7 +5965,7 @@ class WindowsTests(BasePlatformTests):
         path = os.environ['PATH']
         if 'WindowsApps' not in path:
             username = os.environ['USERNAME']
-            appstore_dir = r'C:\Users\{}\AppData\Local\Microsoft\WindowsApps'.format(username)
+            appstore_dir = fr'C:\Users\{username}\AppData\Local\Microsoft\WindowsApps'
             path = os.pathsep + appstore_dir
         path = ExternalProgram._windows_sanitize_path(path)
         self.assertNotIn('WindowsApps', path)
@@ -6052,8 +6052,8 @@ class WindowsTests(BasePlatformTests):
 
     def _check_ld(self, name: str, lang: str, expected: str) -> None:
         if not shutil.which(name):
-            raise unittest.SkipTest('Could not find {}.'.format(name))
-        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
+            raise unittest.SkipTest(f'Could not find {name}.')
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld']]
 
         # Also test a deprecated variable if there is one.
         if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
@@ -6064,9 +6064,9 @@ class WindowsTests(BasePlatformTests):
             with mock.patch.dict(os.environ, {envvar: name}):
                 env = get_fake_env()
                 try:
-                    comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                    comp = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
                 except EnvironmentException:
-                    raise unittest.SkipTest('Could not find a compiler for {}'.format(lang))
+                    raise unittest.SkipTest(f'Could not find a compiler for {lang}')
                 self.assertEqual(comp.linker.id, expected)
 
     def test_link_environment_variable_lld_link(self):
@@ -6121,7 +6121,7 @@ class WindowsTests(BasePlatformTests):
         exe = os.path.join(self.builddir, 'cppprog.exe')
         for f in (dll, exe):
             pe = pefile.PE(f)
-            msg = 'PE file: {!r}, compiler: {!r}, linker: {!r}'.format(f, cc_id, ld_id)
+            msg = f'PE file: {f!r}, compiler: {cc_id!r}, linker: {ld_id!r}'
             if cc_id == 'clang-cl':
                 # Latest clang-cl tested (7.0) does not write checksums out
                 self.assertFalse(pe.verify_checksum(), msg=msg)
@@ -6202,7 +6202,7 @@ class WindowsTests(BasePlatformTests):
 
     def test_modules(self):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('C++ modules only work with the Ninja backend (not {}).'.format(self.backend.name))
+            raise unittest.SkipTest(f'C++ modules only work with the Ninja backend (not {self.backend.name}).')
         if 'VSCMD_VER' not in os.environ:
             raise unittest.SkipTest('C++ modules is only supported with Visual Studio.')
         if version_compare(os.environ['VSCMD_VER'], '<16.9.0'):
@@ -6722,7 +6722,7 @@ class LinuxlikeTests(BasePlatformTests):
                 ('intel', 'c++03'),
                 ('intel', 'gnu++03')])
             if v != 'none' and not (compiler.get_id(), v) in skiplist:
-                cmd_std = " -std={} ".format(v)
+                cmd_std = f" -std={v} "
                 self.assertIn(cmd_std, cmd)
             try:
                 self.build()
@@ -6738,7 +6738,7 @@ class LinuxlikeTests(BasePlatformTests):
         elif compiler.language == 'cpp':
             env_flag_name = 'CXXFLAGS'
         else:
-            raise NotImplementedError('Language {} not defined.'.format(compiler.language))
+            raise NotImplementedError(f'Language {compiler.language} not defined.')
         env = {}
         env[env_flag_name] = cmd_std
         with self.assertRaises((subprocess.CalledProcessError, mesonbuild.mesonlib.EnvironmentException),
@@ -7683,7 +7683,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Test that installed libraries works
         self.new_builddir()
         self.prefix = oldprefix
-        meson_args = ['-Dc_link_args=-L{}'.format(libdir),
+        meson_args = [f'-Dc_link_args=-L{libdir}',
                       '--fatal-meson-warnings']
         testdir = os.path.join(self.unit_test_dir, '68 static link')
         env = {'PKG_CONFIG_LIBDIR': os.path.join(libdir, 'pkgconfig')}
@@ -7695,8 +7695,8 @@ class LinuxlikeTests(BasePlatformTests):
         if is_sunos():
             raise unittest.SkipTest('Solaris currently cannot override the linker.')
         if not shutil.which(check):
-            raise unittest.SkipTest('Could not find {}.'.format(check))
-        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP['{}_ld'.format(lang)]]
+            raise unittest.SkipTest(f'Could not find {check}.')
+        envvars = [mesonbuild.envconfig.ENV_VAR_PROG_MAP[f'{lang}_ld']]
 
         # Also test a deprecated variable if there is one.
         if f'{lang}_ld' in mesonbuild.envconfig.DEPRECATED_ENV_PROG_MAP:
@@ -7706,7 +7706,7 @@ class LinuxlikeTests(BasePlatformTests):
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
                 env = get_fake_env()
-                comp = getattr(env, 'detect_{}_compiler'.format(lang))(MachineChoice.HOST)
+                comp = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
                 if isinstance(comp, (mesonbuild.compilers.AppleClangCCompiler,
                                      mesonbuild.compilers.AppleClangCPPCompiler,
                                      mesonbuild.compilers.AppleClangObjCCompiler,
@@ -7714,7 +7714,7 @@ class LinuxlikeTests(BasePlatformTests):
                     raise unittest.SkipTest('AppleClang is currently only supported with ld64')
                 if lang != 'rust' and comp.use_linker_args('bfd') == []:
                     raise unittest.SkipTest(
-                        'Compiler {} does not support using alternative linkers'.format(comp.id))
+                        f'Compiler {comp.id} does not support using alternative linkers')
                 self.assertEqual(comp.linker.id, expected)
 
     def test_ld_environment_variable_bfd(self):
@@ -8023,7 +8023,7 @@ class PythonTests(BasePlatformTests):
 
     def test_versions(self):
         if self.backend is not Backend.ninja:
-            raise unittest.SkipTest('Skipping python tests with {} backend'.format(self.backend.name))
+            raise unittest.SkipTest(f'Skipping python tests with {self.backend.name} backend')
 
         testdir = os.path.join(self.src_root, 'test cases', 'unit', '39 python extmodule')
 
@@ -8417,23 +8417,23 @@ class NativeFileTests(BasePlatformTests):
         values should be a nested dictionary structure of {section: {key:
         value}}
         """
-        filename = os.path.join(self.builddir, 'generated{}.config'.format(self.current_config))
+        filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
         with open(filename, 'wt') as f:
             for section, entries in values.items():
-                f.write('[{}]\n'.format(section))
+                f.write(f'[{section}]\n')
                 for k, v in entries.items():
                     if isinstance(v, (bool, int, float)):
-                        f.write("{}={}\n".format(k, v))
+                        f.write(f"{k}={v}\n")
                     elif isinstance(v, list):
-                        f.write("{}=[{}]\n".format(k, ', '.join(["'{}'".format(w) for w in v])))
+                        f.write("{}=[{}]\n".format(k, ', '.join([f"'{w}'" for w in v])))
                     else:
-                        f.write("{}='{}'\n".format(k, v))
+                        f.write(f"{k}='{v}'\n")
         return filename
 
     def helper_create_binary_wrapper(self, binary, dir_=None, extra_args=None, **kwargs):
         """Creates a wrapper around a binary that overrides specific values."""
-        filename = os.path.join(dir_ or self.builddir, 'binary_wrapper{}.py'.format(self.current_wrapper))
+        filename = os.path.join(dir_ or self.builddir, f'binary_wrapper{self.current_wrapper}.py')
         extra_args = extra_args or {}
         self.current_wrapper += 1
         if is_haiku():
@@ -8455,7 +8455,7 @@ class NativeFileTests(BasePlatformTests):
                 f.write('    parser.add_argument("-{0}", "--{0}", action="store_true")\n'.format(name))
             f.write('    args, extra_args = parser.parse_known_args()\n')
             for name, value in chain(extra_args.items(), kwargs.items()):
-                f.write('    if args.{}:\n'.format(name))
+                f.write(f'    if args.{name}:\n')
                 f.write('        print("{}", file=sys.{})\n'.format(value, kwargs.get('outfile', 'stdout')))
                 f.write('        sys.exit(0)\n')
             f.write(textwrap.dedent('''
@@ -8478,9 +8478,9 @@ class NativeFileTests(BasePlatformTests):
         # On windows we need yet another level of indirection, as cmd cannot
         # invoke python files itself, so instead we generate a .bat file, which
         # invokes our python wrapper
-        batfile = os.path.join(self.builddir, 'binary_wrapper{}.bat'.format(self.current_wrapper))
+        batfile = os.path.join(self.builddir, f'binary_wrapper{self.current_wrapper}.bat')
         with open(batfile, 'wt') as f:
-            f.write(r'@{} {} %*'.format(sys.executable, filename))
+            f.write(fr'@{sys.executable} {filename} %*')
         return batfile
 
     def helper_for_compiler(self, lang, cb, for_machine = MachineChoice.HOST):
@@ -8488,7 +8488,7 @@ class NativeFileTests(BasePlatformTests):
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
         env = get_fake_env()
-        getter = getattr(env, 'detect_{}_compiler'.format(lang))
+        getter = getattr(env, f'detect_{lang}_compiler')
         getter = functools.partial(getter, for_machine)
         cc = getter()
         binary, newid = cb(cc)
@@ -8516,7 +8516,7 @@ class NativeFileTests(BasePlatformTests):
             def filler():
                 with open(fifo, 'w') as f:
                     f.write('[binaries]\n')
-                    f.write("bash = '{}'\n".format(wrapper))
+                    f.write(f"bash = '{wrapper}'\n")
 
             thread = threading.Thread(target=filler)
             thread.start()
@@ -8540,7 +8540,7 @@ class NativeFileTests(BasePlatformTests):
     def _simple_test(self, case, binary, entry=None):
         wrapper = self.helper_create_binary_wrapper(binary, version='12345')
         config = self.helper_create_native_file({'binaries': {entry or binary: wrapper}})
-        self.init(self.testcase, extra_args=['--native-file', config, '-Dcase={}'.format(case)])
+        self.init(self.testcase, extra_args=['--native-file', config, f'-Dcase={case}'])
 
     def test_find_program(self):
         self._simple_test('find_program', 'bash')
@@ -8569,7 +8569,7 @@ class NativeFileTests(BasePlatformTests):
 
             # We not have python2, check for it
             for v in ['2', '2.7', '-2.7']:
-                rc = subprocess.call(['pkg-config', '--cflags', 'python{}'.format(v)],
+                rc = subprocess.call(['pkg-config', '--cflags', f'python{v}'],
                                      stdout=subprocess.DEVNULL,
                                      stderr=subprocess.DEVNULL)
                 if rc == 0:
@@ -8693,7 +8693,7 @@ class NativeFileTests(BasePlatformTests):
         """
         wrapper = self.helper_create_binary_wrapper(binary, version=version_str)
         env = get_fake_env()
-        getter = getattr(env, 'detect_{}_compiler'.format(lang))
+        getter = getattr(env, f'detect_{lang}_compiler')
         getter = functools.partial(getter, MachineChoice.HOST)
         env.binaries.host.binaries[lang] = [wrapper]
         compiler = getter()
@@ -9094,13 +9094,13 @@ class CrossFileTests(BasePlatformTests):
         values should be a nested dictionary structure of {section: {key:
         value}}
         """
-        filename = os.path.join(self.builddir, 'generated{}.config'.format(self.current_config))
+        filename = os.path.join(self.builddir, f'generated{self.current_config}.config')
         self.current_config += 1
         with open(filename, 'wt') as f:
             for section, entries in values.items():
-                f.write('[{}]\n'.format(section))
+                f.write(f'[{section}]\n')
                 for k, v in entries.items():
-                    f.write("{}='{}'\n".format(k, v))
+                    f.write(f"{k}='{v}'\n")
         return filename
 
     def test_cross_file_dirs(self):
@@ -9528,7 +9528,7 @@ class SubprojectsCommandTests(BasePlatformTests):
     def _create_project(self, path, project_name='dummy'):
         os.makedirs(str(path), exist_ok=True)
         with open(str(path / 'meson.build'), 'w') as f:
-            f.write("project('{}')".format(project_name))
+            f.write(f"project('{project_name}')")
 
     def _git(self, cmd, workdir):
         return git(cmd, str(workdir), check=True)[1].strip()
@@ -9577,14 +9577,14 @@ class SubprojectsCommandTests(BasePlatformTests):
 
     def _git_create_remote_commit(self, name, branch):
         self._git_remote(['checkout', branch], name)
-        self._git_remote(['commit', '--allow-empty', '-m', 'initial {} commit'.format(branch)], name)
+        self._git_remote(['commit', '--allow-empty', '-m', f'initial {branch} commit'], name)
 
     def _git_create_remote_branch(self, name, branch):
         self._git_remote(['checkout', '-b', branch], name)
-        self._git_remote(['commit', '--allow-empty', '-m', 'initial {} commit'.format(branch)], name)
+        self._git_remote(['commit', '--allow-empty', '-m', f'initial {branch} commit'], name)
 
     def _git_create_remote_tag(self, name, tag):
-        self._git_remote(['commit', '--allow-empty', '-m', 'tag {} commit'.format(tag)], name)
+        self._git_remote(['commit', '--allow-empty', '-m', f'tag {tag} commit'], name)
         self._git_remote(['tag', tag], name)
 
     def _wrap_create_git(self, name, revision='master'):

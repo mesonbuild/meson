@@ -143,7 +143,7 @@ class InstalledFile:
                     p = p.with_name('{}-{}'.format(p.name, self.version[0]))
                 return p.with_suffix('.dll')
 
-            p = p.with_name('lib{}'.format(p.name))
+            p = p.with_name(f'lib{p.name}')
             if env.machines.host.is_darwin():
                 # MacOS only has libfoo.dylib and libfoo.X.dylib
                 if len(self.version) > 1:
@@ -179,7 +179,7 @@ class InstalledFile:
         elif self.typ == 'expr':
             return Path(platform_fix_name(p.as_posix(), canonical_compiler, env))
         else:
-            raise RuntimeError('Invalid installed file type {}'.format(self.typ))
+            raise RuntimeError(f'Invalid installed file type {self.typ}')
 
         return p
 
@@ -190,9 +190,9 @@ class InstalledFile:
         if self.typ == 'dir':
             abs_p = installdir / p
             if not abs_p.exists():
-                raise RuntimeError('{} does not exist'.format(p))
+                raise RuntimeError(f'{p} does not exist')
             if not abs_p.is_dir():
-                raise RuntimeError('{} is not a directory'.format(p))
+                raise RuntimeError(f'{p} is not a directory')
             return [x.relative_to(installdir) for x in abs_p.rglob('*') if x.is_file() or x.is_symlink()]
         else:
             return [p]
@@ -214,7 +214,7 @@ class TestDef:
 
     def display_name(self) -> str:
         if self.name:
-            return '{}   ({})'.format(self.path.as_posix(), self.name)
+            return f'{self.path.as_posix()}   ({self.name})'
         return self.path.as_posix()
 
     def __lt__(self, other: object) -> bool:
@@ -300,24 +300,24 @@ def validate_install(test: TestDef, installdir: Path, compiler: str, env: enviro
         try:
             expected_raw += i.get_paths(compiler, env, installdir)
         except RuntimeError as err:
-            ret_msg += 'Expected path error: {}\n'.format(err)
+            ret_msg += f'Expected path error: {err}\n'
     expected = {x: False for x in expected_raw}
     found = [x.relative_to(installdir) for x in installdir.rglob('*') if x.is_file() or x.is_symlink()]
     # Mark all found files as found and detect unexpected files
     for fname in found:
         if fname not in expected:
-            ret_msg += 'Extra file {} found.\n'.format(fname)
+            ret_msg += f'Extra file {fname} found.\n'
             continue
         expected[fname] = True
     # Check if expected files were found
     for p, f in expected.items():
         if not f:
-            ret_msg += 'Expected file {} missing.\n'.format(p)
+            ret_msg += f'Expected file {p} missing.\n'
     # List dir content on error
     if ret_msg != '':
         ret_msg += '\nInstall dir contents:\n'
         for i in found:
-            ret_msg += '  - {}\n'.format(i)
+            ret_msg += f'  - {i}\n'
     return ret_msg
 
 def log_text_file(logfile, testdir, stdo, stde):
@@ -409,7 +409,7 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     how, expected = next_expected(i)
 
             # reached the end of output without finding expected
-            return 'expected "{}" not found in {}'.format(expected, desc)
+            return f'expected "{expected}" not found in {desc}'
         except StopIteration:
             # matched all expected lines
             pass
@@ -543,7 +543,7 @@ def _run_test(test: TestDef, test_build_dir: str, install_dir: str,
         if returncode == 1:
             return testresult
         elif returncode != 0:
-            testresult.fail('Test exited with unexpected status {}.'.format(returncode))
+            testresult.fail(f'Test exited with unexpected status {returncode}.')
             return testresult
         else:
             testresult.fail('Test that should have failed succeeded.')
@@ -653,7 +653,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     # Handle expected output
     stdout = test_def.get('stdout', [])
     if stdout_mandatory and not stdout:
-        raise RuntimeError("{} must contain a non-empty stdout key".format(test_def_file))
+        raise RuntimeError(f"{test_def_file} must contain a non-empty stdout key")
 
     # Handle the do_not_set_opts list
     do_not_set_opts = test_def.get('do_not_set_opts', [])  # type: T.List[str]
@@ -726,7 +726,7 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
             exclude = False
             opt_names = [x[0] for x in i]
             for j in matrix['exclude']:
-                ex_list = ['{}={}'.format(k, v) for k, v in j.items()]
+                ex_list = [f'{k}={v}' for k, v in j.items()]
                 if all([x in opt_names for x in ex_list]):
                     exclude = True
                     break
@@ -1056,7 +1056,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             (testnum, testbase) = t.path.name.split(' ', 1)
             testname = '%.3d %s' % (int(testnum), testbase)
             if t.name:
-                testname += ' ({})'.format(t.name)
+                testname += f' ({t.name})'
             should_fail = False
             suite_args = []
             if name.startswith('failing'):
@@ -1084,7 +1084,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
             else:
                 without_install = "" if len(install_commands) > 0 else " (without install)"
                 if result.msg != '':
-                    print(red('Failed test{} during {}: {!r}'.format(without_install, result.step.name, t.display_name())))
+                    print(red(f'Failed test{without_install} during {result.step.name}: {t.display_name()!r}'))
                     print('Reason:', result.msg)
                     failing_tests += 1
                     if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
@@ -1108,7 +1108,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                         for (_, _, res) in futures:
                             res.cancel()
                 else:
-                    print('Succeeded test%s: %s' % (without_install, t.display_name()))
+                    print(f'Succeeded test{without_install}: {t.display_name()}')
                     passing_tests += 1
                 conf_time += result.conftime
                 build_time += result.buildtime
@@ -1190,26 +1190,26 @@ def check_meson_commands_work(options):
         gen_cmd = meson_commands + [testdir, build_dir] + backend_flags + options.extra_args
         pc, o, e = Popen_safe(gen_cmd)
         if pc.returncode != 0:
-            raise RuntimeError('Failed to configure {!r}:\n{}\n{}'.format(testdir, e, o))
+            raise RuntimeError(f'Failed to configure {testdir!r}:\n{e}\n{o}')
         print('Checking that introspect works...')
         pc, o, e = Popen_safe(meson_commands + ['introspect', '--targets'], cwd=build_dir)
         json.loads(o)
         if pc.returncode != 0:
-            raise RuntimeError('Failed to introspect --targets {!r}:\n{}\n{}'.format(testdir, e, o))
+            raise RuntimeError(f'Failed to introspect --targets {testdir!r}:\n{e}\n{o}')
         print('Checking that building works...')
         dir_args = get_backend_args_for_dir(backend, build_dir)
         pc, o, e = Popen_safe(compile_commands + dir_args, cwd=build_dir)
         if pc.returncode != 0:
-            raise RuntimeError('Failed to build {!r}:\n{}\n{}'.format(testdir, e, o))
+            raise RuntimeError(f'Failed to build {testdir!r}:\n{e}\n{o}')
         print('Checking that testing works...')
         pc, o, e = Popen_safe(test_commands, cwd=build_dir)
         if pc.returncode != 0:
-            raise RuntimeError('Failed to test {!r}:\n{}\n{}'.format(testdir, e, o))
+            raise RuntimeError(f'Failed to test {testdir!r}:\n{e}\n{o}')
         if install_commands:
             print('Checking that installing works...')
             pc, o, e = Popen_safe(install_commands, cwd=build_dir)
             if pc.returncode != 0:
-                raise RuntimeError('Failed to install {!r}:\n{}\n{}'.format(testdir, e, o))
+                raise RuntimeError(f'Failed to install {testdir!r}:\n{e}\n{o}')
 
 
 def detect_system_compiler(options):
@@ -1246,7 +1246,7 @@ def detect_system_compiler(options):
 
 def print_compilers(env, machine):
     print()
-    print('{} machine compilers'.format(machine.get_lower_case_name()))
+    print(f'{machine.get_lower_case_name()} machine compilers')
     print()
     for lang in sorted(compilers.all_languages):
         try:
@@ -1254,7 +1254,7 @@ def print_compilers(env, machine):
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
         except mesonlib.MesonException:
             details = '[not found]'
-        print('%-7s: %s' % (lang, details))
+        print(f'{lang:<7}: {details}')
 
 
 def print_tool_versions():
@@ -1295,7 +1295,7 @@ def print_tool_versions():
                 tool_vers_map[t['tool']] = m.group(t['match_group'])
                 return '{} ({})'.format(exe, m.group(t['match_group']))
 
-        return '{} (unknown)'.format(exe)
+        return f'{exe} (unknown)'
 
     print()
     print('tools')
@@ -1356,5 +1356,5 @@ if __name__ == '__main__':
         for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
             tests = list(g)
             if len(tests) != 1:
-                print('WARNING: The %s suite contains duplicate "%s" tests: "%s"' % (name, k, '", "'.join(tests)))
+                print('WARNING: The {} suite contains duplicate "{}" tests: "{}"'.format(name, k, '", "'.join(tests)))
     raise SystemExit(failing_tests)

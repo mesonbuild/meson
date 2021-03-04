@@ -56,7 +56,7 @@ def print_tool_warning(tools: T.List[str], msg: str, stderr: T.Optional[str] = N
     global TOOL_WARNING_FILE
     if os.path.exists(TOOL_WARNING_FILE):
         return
-    m = '{!r} {}. {}'.format(tools, msg, RELINKING_WARNING)
+    m = f'{tools!r} {msg}. {RELINKING_WARNING}'
     if stderr:
         m += '\n' + stderr
     mlog.warning(m)

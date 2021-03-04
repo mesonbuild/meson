@@ -100,7 +100,7 @@ class ValaCompiler(Compiler):
             extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
         with self.cached_compile(code, environment.coredata, extra_args=extra_flags, mode='compile') as p:
             if p.returncode != 0:
-                msg = 'Vala compiler {!r} can not compile programs'.format(self.name_string())
+                msg = f'Vala compiler {self.name_string()!r} can not compile programs'
                 raise EnvironmentException(msg)
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
@@ -128,7 +128,7 @@ class ValaCompiler(Compiler):
             vapi = os.path.join(d, libname + '.vapi')
             if os.path.isfile(vapi):
                 return [vapi]
-        mlog.debug('Searched {!r} and {!r} wasn\'t found'.format(extra_dirs, libname))
+        mlog.debug(f'Searched {extra_dirs!r} and {libname!r} wasn\'t found')
         return None
 
     def thread_flags(self, env: 'Environment') -> T.List[str]:

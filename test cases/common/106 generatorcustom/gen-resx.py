@@ -6,4 +6,4 @@ ofile = sys.argv[1]
 num = sys.argv[2]
 
 with open(ofile, 'w') as f:
-    f.write('res{}\n'.format(num))
+    f.write(f'res{num}\n')

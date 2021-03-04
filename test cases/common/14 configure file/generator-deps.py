@@ -16,4 +16,4 @@ with outputf.open('w') as ofile:
 depf = Path(sys.argv[2])
 if not depf.exists():
     with depf.open('w') as ofile:
-        ofile.write("{}: depfile\n".format(outputf.name))
+        ofile.write(f"{outputf.name}: depfile\n")

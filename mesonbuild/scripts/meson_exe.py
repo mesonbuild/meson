@@ -67,7 +67,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
 
     if p.returncode != 0:
         if exe.pickled:
-            print('while executing {!r}'.format(cmd_args))
+            print(f'while executing {cmd_args!r}')
         if exe.verbose:
             return p.returncode
         if not exe.capture:

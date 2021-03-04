@@ -118,7 +118,7 @@ class CLikeCompilerArgs(arglist.CompilerArgs):
 
     def __repr__(self) -> str:
         self.flush_pre_post()
-        return 'CLikeCompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
+        return f'CLikeCompilerArgs({self.compiler!r}, {self._container!r})'
 
 
 class CLikeCompiler(Compiler):
@@ -321,7 +321,7 @@ class CLikeCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise mesonlib.EnvironmentException('Compiler {} can not compile programs.'.format(self.name_string()))
+            raise mesonlib.EnvironmentException(f'Compiler {self.name_string()} can not compile programs.')
         # Run sanity check
         if self.is_cross:
             if self.exe_wrapper is None:
@@ -337,7 +337,7 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not invoke sanity test executable: %s.' % str(e))
         pe.wait()
         if pe.returncode != 0:
-            raise mesonlib.EnvironmentException('Executables created by {} compiler {} are not runnable.'.format(self.language, self.name_string()))
+            raise mesonlib.EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'int main(void) { int class=0; return class; }\n'
@@ -485,7 +485,7 @@ class CLikeCompiler(Compiler):
             try:
                 pe, so, se = mesonlib.Popen_safe(cmdlist)
             except Exception as e:
-                mlog.debug('Could not run: %s (error: %s)\n' % (cmdlist, e))
+                mlog.debug(f'Could not run: {cmdlist} (error: {e})\n')
                 return compilers.RunResult(False)
 
         mlog.debug('Program stdout:\n')
@@ -692,7 +692,7 @@ class CLikeCompiler(Compiler):
         with func() as p:
             cached = p.cached
             if p.returncode != 0:
-                raise mesonlib.EnvironmentException('Could not get define {!r}'.format(dname))
+                raise mesonlib.EnvironmentException(f'Could not get define {dname!r}')
         # Get the preprocessed value after the delimiter,
         # minus the extra newline at the end and
         # merge string literals.
@@ -710,7 +710,7 @@ class CLikeCompiler(Compiler):
             fmt = '%lli'
             cast = '(long long int)'
         else:
-            raise AssertionError('BUG: Unknown return type {!r}'.format(rtype))
+            raise AssertionError(f'BUG: Unknown return type {rtype!r}')
         fargs = {'prefix': prefix, 'f': fname, 'cast': cast, 'fmt': fmt}
         code = '''{prefix}
         #include <stdio.h>
@@ -810,7 +810,7 @@ class CLikeCompiler(Compiler):
             if val is not None:
                 if isinstance(val, bool):
                     return val, False
-                raise mesonlib.EnvironmentException('Cross variable {} is not a boolean.'.format(varname))
+                raise mesonlib.EnvironmentException(f'Cross variable {varname} is not a boolean.')
 
         # TODO: we really need a protocol for this,
         #
@@ -951,7 +951,7 @@ class CLikeCompiler(Compiler):
                     elif symbol_name in line:
                         mlog.debug("Symbols have underscore prefix: NO")
                         return False
-        raise RuntimeError('BUG: {!r} check failed unexpectedly'.format(n))
+        raise RuntimeError(f'BUG: {n!r} check failed unexpectedly')
 
     def _get_patterns(self, env: 'Environment', prefixes: T.List[str], suffixes: T.List[str], shared: bool = False) -> T.List[str]:
         patterns = []  # type: T.List[str]

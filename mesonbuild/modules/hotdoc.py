@@ -100,7 +100,7 @@ class HotdocTargetBuilder:
             # When an option expects a single value, the unambiguous way
             # to specify it is with =
             if isinstance(value, str):
-                self.cmd.extend(['%s=%s' % (option, value)])
+                self.cmd.extend([f'{option}={value}'])
             else:
                 self.cmd.extend([option, value])
 
@@ -113,7 +113,7 @@ class HotdocTargetBuilder:
 
         valid_types = (str, bool, mesonlib.File, build.IncludeDirs, build.CustomTarget, build.BuildTarget)
         if not isinstance(value, valid_types):
-            raise InvalidArguments('Argument "%s=%s" should be of type: %s.' % (
+            raise InvalidArguments('Argument "{}={}" should be of type: {}.'.format(
                 arg, value, [t.__name__ for t in valid_types]))
 
     def process_extra_args(self):
@@ -403,7 +403,7 @@ class HotDocModule(ExtensionModule):
             from hotdoc.run_hotdoc import run  # noqa: F401
             self.hotdoc.run_hotdoc = run
         except Exception as e:
-            raise MesonException('hotdoc %s required but not found. (%s)' % (
+            raise MesonException('hotdoc {} required but not found. ({})'.format(
                 MIN_HOTDOC_VERSION, e))
 
     @noKwargs

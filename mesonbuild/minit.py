@@ -147,8 +147,8 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument("-b", "--build", action='store_true', help="build after generation")
     parser.add_argument("--builddir", default='build', help="directory for build")
     parser.add_argument("-f", "--force", action="store_true", help="force overwrite of existing files and directories.")
-    parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help="project type. default: {} based project".format(DEFAULT_PROJECT))
-    parser.add_argument('--version', default=DEFAULT_VERSION, help="project version. default: {}".format(DEFAULT_VERSION))
+    parser.add_argument('--type', default=DEFAULT_PROJECT, choices=('executable', 'library'), help=f"project type. default: {DEFAULT_PROJECT} based project")
+    parser.add_argument('--version', default=DEFAULT_VERSION, help=f"project version. default: {DEFAULT_VERSION}")
 
 def run(options: 'argparse.Namespace') -> int:
     '''

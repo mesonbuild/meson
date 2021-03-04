@@ -10,5 +10,5 @@ if not isinstance(result, int):
     sys.exit(1)
 
 if result != 1:
-    print('Returned result {} is not 1.'.format(result))
+    print(f'Returned result {result} is not 1.')
     sys.exit(1)

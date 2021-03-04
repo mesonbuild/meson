@@ -128,9 +128,9 @@ class MesonApp:
         if not os.path.exists(ndir2):
             os.makedirs(ndir2)
         if not stat.S_ISDIR(os.stat(ndir1).st_mode):
-            raise MesonException('{} is not a directory'.format(dir1))
+            raise MesonException(f'{dir1} is not a directory')
         if not stat.S_ISDIR(os.stat(ndir2).st_mode):
-            raise MesonException('{} is not a directory'.format(dir2))
+            raise MesonException(f'{dir2} is not a directory')
         if os.path.samefile(ndir1, ndir2):
             # Fallback to textual compare if undefined entries found
             has_undefined = any((s.st_ino == 0 and s.st_dev == 0) for s in (os.stat(ndir1), os.stat(ndir2)))
@@ -138,11 +138,11 @@ class MesonApp:
                 raise MesonException('Source and build directories must not be the same. Create a pristine build directory.')
         if self.has_build_file(ndir1):
             if self.has_build_file(ndir2):
-                raise MesonException('Both directories contain a build file {}.'.format(environment.build_filename))
+                raise MesonException(f'Both directories contain a build file {environment.build_filename}.')
             return ndir1, ndir2
         if self.has_build_file(ndir2):
             return ndir2, ndir1
-        raise MesonException('Neither directory contains a build file {}.'.format(environment.build_filename))
+        raise MesonException(f'Neither directory contains a build file {environment.build_filename}.')
 
     def add_vcs_ignore_files(self, build_dir: str) -> None:
         if os.listdir(build_dir):
@@ -169,7 +169,7 @@ class MesonApp:
         else:
             has_cmd_line_file = os.path.exists(coredata.get_cmd_line_file(build_dir))
             if (wipe and not has_cmd_line_file) or (not wipe and reconfigure):
-                raise SystemExit('Directory does not contain a valid build tree:\n{}'.format(build_dir))
+                raise SystemExit(f'Directory does not contain a valid build tree:\n{build_dir}')
         return src_dir, build_dir
 
     def generate(self) -> None:
@@ -238,7 +238,7 @@ class MesonApp:
             # possible, but before build files, and if any error occurs, delete it.
             cdf = env.dump_coredata()
             if self.options.profile:
-                fname = 'profile-{}-backend.log'.format(intr.backend.name)
+                fname = f'profile-{intr.backend.name}-backend.log'
                 fname = os.path.join(self.build_dir, 'meson-private', fname)
                 profile.runctx('intr.backend.generate()', globals(), locals(), filename=fname)
             else:

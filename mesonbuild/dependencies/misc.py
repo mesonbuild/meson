@@ -40,7 +40,7 @@ def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
     language = kwargs.get('language', 'c')
     if language not in ('c', 'cpp', 'fortran'):
-        raise DependencyException('Language {} is not supported with NetCDF.'.format(language))
+        raise DependencyException(f'Language {language} is not supported with NetCDF.')
 
     candidates = []  # type: T.List['DependencyType']
 
@@ -187,7 +187,7 @@ class Python3DependencySystem(ExternalDependency):
             return '32'
         elif pyplat in ('win64', 'win-amd64'):
             return '64'
-        mlog.log('Unknown Windows Python platform {!r}'.format(pyplat))
+        mlog.log(f'Unknown Windows Python platform {pyplat!r}')
         return None
 
     def get_windows_link_args(self):
@@ -195,13 +195,13 @@ class Python3DependencySystem(ExternalDependency):
         if pyplat.startswith('win'):
             vernum = sysconfig.get_config_var('py_version_nodot')
             if self.static:
-                libpath = Path('libs') / 'libpython{}.a'.format(vernum)
+                libpath = Path('libs') / f'libpython{vernum}.a'
             else:
                 comp = self.get_compiler()
                 if comp.id == "gcc":
-                    libpath = 'python{}.dll'.format(vernum)
+                    libpath = f'python{vernum}.dll'
                 else:
-                    libpath = Path('libs') / 'python{}.lib'.format(vernum)
+                    libpath = Path('libs') / f'python{vernum}.lib'
             lib = Path(sysconfig.get_config_var('base')) / libpath
         elif pyplat == 'mingw':
             if self.static:
@@ -230,7 +230,7 @@ class Python3DependencySystem(ExternalDependency):
             arch = '64'
         else:
             # We can't cross-compile Python 3 dependencies on Windows yet
-            mlog.log('Unknown architecture {!r} for'.format(arch),
+            mlog.log(f'Unknown architecture {arch!r} for',
                      mlog.bold(self.name))
             self.is_found = False
             return
@@ -452,12 +452,12 @@ class CursesSystemDependency(ExternalDependency):
                         # implementations. The one in illumos/OpenIndiana
                         # doesn't seem to have a version defined in the header.
                         if lib.startswith('ncurses'):
-                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', '#include <{}>'.format(header), env, [], [self])
+                            v, _ = self.clib_compiler.get_define('NCURSES_VERSION', f'#include <{header}>', env, [], [self])
                             self.version = v.strip('"')
                         if lib.startswith('pdcurses'):
-                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', '#include <{}>'.format(header), env, [], [self])
-                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', '#include <{}>'.format(header), env, [], [self])
-                            self.version = '{}.{}'.format(v_major, v_minor)
+                            v_major, _ = self.clib_compiler.get_define('PDC_VER_MAJOR', f'#include <{header}>', env, [], [self])
+                            v_minor, _ = self.clib_compiler.get_define('PDC_VER_MINOR', f'#include <{header}>', env, [], [self])
+                            self.version = f'{v_major}.{v_minor}'
 
                         # Check the version if possible, emit a wraning if we can't
                         req = kwargs.get('version')

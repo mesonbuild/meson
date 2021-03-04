@@ -22,7 +22,7 @@ introspect_arr = shlex.split(mesonintrospect)
 some_executable = introspect_arr[0]
 
 if not os.path.isfile(some_executable):
-    raise RuntimeError('{!r} does not exist'.format(mesonintrospect))
+    raise RuntimeError(f'{mesonintrospect!r} does not exist')
 
 if do_print:
     print(some_executable, end='')

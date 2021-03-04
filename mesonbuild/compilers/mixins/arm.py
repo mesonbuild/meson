@@ -142,7 +142,7 @@ class ArmclangCompiler(Compiler):
             raise mesonlib.EnvironmentException('armclang supports only cross-compilation.')
         # Check whether 'armlink' is available in path
         if not isinstance(self.linker, ArmClangDynamicLinker):
-            raise mesonlib.EnvironmentException('Unsupported Linker {}, must be armlink'.format(self.linker.exelist))
+            raise mesonlib.EnvironmentException(f'Unsupported Linker {self.linker.exelist}, must be armlink')
         if not mesonlib.version_compare(self.version, '==' + self.linker.version):
             raise mesonlib.EnvironmentException('armlink version does not match with compiler version')
         self.id = 'armclang'

@@ -41,7 +41,7 @@ def read_linguas(src_sub: str) -> T.List[str]:
                     langs += line.split()
         return langs
     except (FileNotFoundError, PermissionError):
-        print('Could not find file LINGUAS in {}'.format(src_sub))
+        print(f'Could not find file LINGUAS in {src_sub}')
         return []
 
 def run_potgen(src_sub: str, pkgname: str, datadirs: str, args: T.List[str]) -> int:
@@ -87,7 +87,7 @@ def do_install(src_sub: str, bld_sub: str, dest: str, pkgname: str, langs: T.Lis
         shutil.copy2(srcfile, tempfile)
         os.replace(tempfile, outfile)
         if not os.getenv('MESON_INSTALL_QUIET', False):
-            print('Installing %s to %s' % (srcfile, outfile))
+            print(f'Installing {srcfile} to {outfile}')
     return 0
 
 def run(args: T.List[str]) -> int:

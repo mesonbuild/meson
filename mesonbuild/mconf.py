@@ -73,7 +73,7 @@ class Conf:
             self.coredata = intr.coredata
             self.default_values_only = True
         else:
-            raise ConfException('Directory {} is neither a Meson build directory nor a project source directory.'.format(build_dir))
+            raise ConfException(f'Directory {build_dir} is neither a Meson build directory nor a project source directory.')
 
     def clear_cache(self):
         self.coredata.deps.host.clear()

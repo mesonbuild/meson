@@ -693,7 +693,7 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def find_library(self, libname: str, env: 'Environment', extra_dirs: T.List[str],
                      libtype: LibType = LibType.PREFER_SHARED) -> T.Optional[T.List[str]]:
-        raise EnvironmentException('Language {} does not support library finding.'.format(self.get_display_language()))
+        raise EnvironmentException(f'Language {self.get_display_language()} does not support library finding.')
 
     def get_library_naming(self, env: 'Environment', libtype: LibType,
                            strict: bool = False) -> T.Optional[T.Tuple[str, ...]]:
@@ -896,7 +896,7 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def has_func_attribute(self, name: str, env: 'Environment') -> T.Tuple[bool, bool]:
         raise EnvironmentException(
-            'Language {} does not support function attributes.'.format(self.get_display_language()))
+            f'Language {self.get_display_language()} does not support function attributes.')
 
     def get_pic_args(self) -> T.List[str]:
         m = 'Language {} does not support position-independent code'
@@ -971,7 +971,7 @@ class Compiler(metaclass=abc.ABCMeta):
         return self.linker.bitcode_args()
 
     def get_buildtype_args(self, buildtype: str) -> T.List[str]:
-        raise EnvironmentException('{} does not implement get_buildtype_args'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not implement get_buildtype_args')
 
     def get_buildtype_linker_args(self, buildtype: str) -> T.List[str]:
         return self.linker.get_buildtype_args(buildtype)
@@ -1047,22 +1047,22 @@ class Compiler(metaclass=abc.ABCMeta):
         return []
 
     def find_framework_paths(self, env: 'Environment') -> T.List[str]:
-        raise EnvironmentException('{} does not support find_framework_paths'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support find_framework_paths')
 
     def attribute_check_func(self, name: str) -> str:
-        raise EnvironmentException('{} does not support attribute checks'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support attribute checks')
 
     def get_pch_suffix(self) -> str:
-        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support pre compiled headers')
 
     def get_pch_name(self, name: str) -> str:
-        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support pre compiled headers')
 
     def get_pch_use_args(self, pch_dir: str, header: str) -> T.List[str]:
-        raise EnvironmentException('{} does not support pre compiled headers'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support pre compiled headers')
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:
-        raise EnvironmentException('{} does not support function attributes'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not support function attributes')
 
     def name_string(self) -> str:
         return ' '.join(self.exelist)
@@ -1095,7 +1095,7 @@ class Compiler(metaclass=abc.ABCMeta):
         return objfile + '.' + self.get_depfile_suffix()
 
     def get_depfile_suffix(self) -> str:
-        raise OSError('{} does not implement get_depfile_suffix'.format(self.id))
+        raise OSError(f'{self.id} does not implement get_depfile_suffix')
 
     def get_no_stdinc_args(self) -> T.List[str]:
         """Arguments to turn off default inclusion of standard libraries."""
@@ -1112,13 +1112,13 @@ class Compiler(metaclass=abc.ABCMeta):
         pass
 
     def get_module_incdir_args(self) -> T.Tuple[str, ...]:
-        raise OSError('{} does not implement get_module_incdir_args'.format(self.id))
+        raise OSError(f'{self.id} does not implement get_module_incdir_args')
 
     def get_module_outdir_args(self, path: str) -> T.List[str]:
-        raise OSError('{} does not implement get_module_outdir_args'.format(self.id))
+        raise OSError(f'{self.id} does not implement get_module_outdir_args')
 
     def module_name_to_filename(self, module_name: str) -> str:
-        raise OSError('{} does not implement module_name_to_filename'.format(self.id))
+        raise OSError(f'{self.id} does not implement module_name_to_filename')
 
     def get_compiler_check_args(self, mode: CompileCheckMode) -> T.List[str]:
         """Arguments to pass the compiler and/or linker for checks.
@@ -1212,10 +1212,10 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_feature_args(self, kwargs: T.Dict[str, T.Any], build_to_src: str) -> T.List[str]:
         """Used by D for extra language features."""
         # TODO: using a TypeDict here would improve this
-        raise OSError('{} does not implement get_feature_args'.format(self.id))
+        raise OSError(f'{self.id} does not implement get_feature_args')
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
-        raise EnvironmentException('{} does not know how to do prelinking.'.format(self.id))
+        raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
 
 
 def get_global_options(lang: str,
@@ -1223,7 +1223,7 @@ def get_global_options(lang: str,
                        for_machine: MachineChoice,
                        env: 'Environment') -> 'KeyedOptionDictType':
     """Retrieve options that apply to all compilers for a given language."""
-    description = 'Extra arguments passed to the {}'.format(lang)
+    description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey('args', lang=lang, machine=for_machine)
     largkey = argkey.evolve('link_args')
 

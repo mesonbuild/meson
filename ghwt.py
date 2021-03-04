@@ -43,7 +43,7 @@ def list_projects():
 def unpack(sproj, branch):
     tmpdir = os.path.join(spdir, sproj + '_ghwt')
     shutil.rmtree(tmpdir, ignore_errors=True)
-    subprocess.check_call(['git', 'clone', '-b', branch, 'https://github.com/mesonbuild/{}.git'.format(sproj), tmpdir])
+    subprocess.check_call(['git', 'clone', '-b', branch, f'https://github.com/mesonbuild/{sproj}.git', tmpdir])
     usfile = os.path.join(tmpdir, 'upstream.wrap')
     assert(os.path.isfile(usfile))
     config = configparser.ConfigParser(interpolation=None)
@@ -52,7 +52,7 @@ def unpack(sproj, branch):
     if 'directory' in config['wrap-file']:
         outdir = os.path.join(spdir, config['wrap-file']['directory'])
     if os.path.isdir(outdir):
-        print('Subproject is already there. To update, nuke the {} dir and reinstall.'.format(outdir))
+        print(f'Subproject is already there. To update, nuke the {outdir} dir and reinstall.')
         shutil.rmtree(tmpdir)
         return 1
     us_url = config['wrap-file']['source_url']
@@ -85,7 +85,7 @@ def install(sproj, requested_branch=None):
     if not os.path.isdir(spdir):
         print('Run this in your source root and make sure there is a subprojects directory in it.')
         return 1
-    blist = gh_get('https://api.github.com/repos/mesonbuild/{}/branches'.format(sproj))
+    blist = gh_get(f'https://api.github.com/repos/mesonbuild/{sproj}/branches')
     blist = [b['name'] for b in blist]
     blist = [b for b in blist if b != 'master']
     blist.sort()

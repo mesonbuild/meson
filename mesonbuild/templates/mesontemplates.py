@@ -46,12 +46,12 @@ def create_meson_build(options: argparse.Namespace) -> None:
         default_options += ['cpp_std=c++14']
     # If we get a meson.build autoformatter one day, this code could
     # be simplified quite a bit.
-    formatted_default_options = ', '.join("'{}'".format(x) for x in default_options)
-    sourcespec = ',\n           '.join("'{}'".format(x) for x in options.srcfiles)
+    formatted_default_options = ', '.join(f"'{x}'" for x in default_options)
+    sourcespec = ',\n           '.join(f"'{x}'" for x in options.srcfiles)
     depspec = ''
     if options.deps:
         depspec = '\n           dependencies : [\n              '
-        depspec += ',\n              '.join("dependency('{}')".format(x)
+        depspec += ',\n              '.join(f"dependency('{x}')"
                                             for x in options.deps.split(','))
         depspec += '],'
     if options.language != 'java':

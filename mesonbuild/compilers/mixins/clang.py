@@ -126,8 +126,8 @@ class ClangCompiler(GnuLikeCompiler):
         if shutil.which(linker):
             if not shutil.which(linker):
                 raise mesonlib.MesonException(
-                    'Cannot find linker {}.'.format(linker))
-            return ['-fuse-ld={}'.format(linker)]
+                    f'Cannot find linker {linker}.')
+            return [f'-fuse-ld={linker}']
         return super().use_linker_args(linker)
 
     def get_has_func_attribute_extra_args(self, name: str) -> T.List[str]:

@@ -43,7 +43,7 @@ class KeyvalModule(ExtensionModule):
                         continue
                     result[name.strip()] = val.strip()
         except OSError as e:
-            raise mesonlib.MesonException('Failed to load {}: {}'.format(path_to_config, e))
+            raise mesonlib.MesonException(f'Failed to load {path_to_config}: {e}')
 
         return result
 

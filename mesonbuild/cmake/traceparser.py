@@ -134,7 +134,7 @@ class CMakeTraceParser:
 
         base_args = ['--no-warn-unused-cli']
         if not self.requires_stderr():
-            base_args += ['--trace-redirect={}'.format(self.trace_file)]
+            base_args += [f'--trace-redirect={self.trace_file}']
 
         return arg_map[self.trace_format] + base_args
 
@@ -157,7 +157,7 @@ class CMakeTraceParser:
         elif self.trace_format == 'json-v1':
             lexer1 = self._lex_trace_json(trace)
         else:
-            raise CMakeException('CMake: Internal error: Invalid trace format {}. Expected [human, json-v1]'.format(self.trace_format))
+            raise CMakeException(f'CMake: Internal error: Invalid trace format {self.trace_format}. Expected [human, json-v1]')
 
         # Primary pass -- parse everything
         for l in lexer1:
@@ -213,9 +213,9 @@ class CMakeTraceParser:
         # Generate an exception if the parser is not in permissive mode
 
         if self.permissive:
-            mlog.debug('CMake trace warning: {}() {}\n{}'.format(function, error, tline))
+            mlog.debug(f'CMake trace warning: {function}() {error}\n{tline}')
             return None
-        raise CMakeException('CMake: {}() {}\n{}'.format(function, error, tline))
+        raise CMakeException(f'CMake: {function}() {error}\n{tline}')
 
     def _cmake_set(self, tline: CMakeTraceLine) -> None:
         """Handler for the CMake set() function in all variaties.
@@ -439,7 +439,7 @@ class CMakeTraceParser:
 
         def do_target(tgt: str) -> None:
             if i not in self.targets:
-                return self._gen_exception('set_property', 'TARGET {} not found'.format(i), tline)
+                return self._gen_exception('set_property', f'TARGET {i} not found', tline)
 
             if identifier not in self.targets[i].properties:
                 self.targets[i].properties[identifier] = []
@@ -525,7 +525,7 @@ class CMakeTraceParser:
         for name, value in arglist:
             for i in targets:
                 if i not in self.targets:
-                    return self._gen_exception('set_target_properties', 'TARGET {} not found'.format(i), tline)
+                    return self._gen_exception('set_target_properties', f'TARGET {i} not found', tline)
 
                 self.targets[i].properties[name] = value
 
@@ -574,7 +574,7 @@ class CMakeTraceParser:
 
         target = args[0]
         if target not in self.targets:
-            return self._gen_exception(func, 'TARGET {} not found'.format(target), tline)
+            return self._gen_exception(func, f'TARGET {target} not found', tline)
 
         interface = []
         private = []
@@ -706,13 +706,13 @@ class CMakeTraceParser:
                 path_found = False
             elif reg_end.match(i):
                 # File detected
-                curr_str = '{} {}'.format(curr_str, i)
+                curr_str = f'{curr_str} {i}'
                 fixed_list += [curr_str]
                 curr_str = None
                 path_found = False
-            elif Path('{} {}'.format(curr_str, i)).exists():
+            elif Path(f'{curr_str} {i}').exists():
                 # Path detected
-                curr_str = '{} {}'.format(curr_str, i)
+                curr_str = f'{curr_str} {i}'
                 path_found = True
             elif path_found:
                 # Add path to fixed_list after ensuring the whole path is in curr_str
@@ -720,7 +720,7 @@ class CMakeTraceParser:
                 curr_str = i
                 path_found = False
             else:
-                curr_str = '{} {}'.format(curr_str, i)
+                curr_str = f'{curr_str} {i}'
                 path_found = False
 
         if curr_str:

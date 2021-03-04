@@ -29,7 +29,7 @@ rel_ofiles = []
 
 for ifile in ifiles:
     if not ifile.startswith(options.searchdir):
-        sys.exit('Input file %s does not start with search dir %s.' % (ifile, searchdir))
+        sys.exit(f'Input file {ifile} does not start with search dir {searchdir}.')
     rel_ofile = ifile[len(searchdir):]
     if rel_ofile[0] == '/' or rel_ofile[0] == '\\':
         rel_ofile = rel_ofile[1:]

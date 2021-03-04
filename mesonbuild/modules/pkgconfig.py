@@ -356,10 +356,10 @@ class PkgConfigModule(ExtensionModule):
             ofile.write('Version: %s\n' % version)
             reqs_str = deps.format_reqs(deps.pub_reqs)
             if len(reqs_str) > 0:
-                ofile.write('Requires: {}\n'.format(reqs_str))
+                ofile.write(f'Requires: {reqs_str}\n')
             reqs_str = deps.format_reqs(deps.priv_reqs)
             if len(reqs_str) > 0:
-                ofile.write('Requires.private: {}\n'.format(reqs_str))
+                ofile.write(f'Requires.private: {reqs_str}\n')
             if len(conflicts) > 0:
                 ofile.write('Conflicts: {}\n'.format(' '.join(conflicts)))
 
@@ -380,7 +380,7 @@ class PkgConfigModule(ExtensionModule):
                             continue
                         if 'cs' in l.compilers:
                             if isinstance(install_dir, str):
-                                Lflag = '-r${prefix}/%s/%s' % (self._escape(self._make_relative(prefix, install_dir)), l.filename)
+                                Lflag = '-r${{prefix}}/{}/{}'.format(self._escape(self._make_relative(prefix, install_dir)), l.filename)
                             else:  # install_dir is True
                                 Lflag = '-r${libdir}/%s' % l.filename
                         else:
@@ -473,7 +473,7 @@ class PkgConfigModule(ExtensionModule):
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'require_private', 'extra_cflags', 'subdirs']
             if len(set(kwargs) & set(blocked_vars)) > 0:
-                raise mesonlib.MesonException('Cannot combine dataonly with any of {}'.format(blocked_vars))
+                raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
 
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', default_subdirs))
         version = kwargs.get('version', default_version)
@@ -520,7 +520,7 @@ class PkgConfigModule(ExtensionModule):
             variables = []
             for name, value in vardict.items():
                 if name in reserved:
-                    raise mesonlib.MesonException('Variable "{}" is reserved'.format(name))
+                    raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))
             return variables
 

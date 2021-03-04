@@ -79,7 +79,7 @@ class PackageGenerator:
         self.update_guid = '141527EE-E28A-4D14-97A4-92E6075D28B2'
         self.main_xml = 'meson.wxs'
         self.main_o = 'meson.wixobj'
-        self.final_output = 'meson-{}-64.msi'.format(self.version)
+        self.final_output = f'meson-{self.version}-64.msi'
         self.staging_dirs = ['dist', 'dist2']
         self.progfile_dir = 'ProgramFiles64Folder'
         redist_glob = 'C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Redist\\MSVC\\v*\\MergeModules\\Microsoft_VC142_CRT_x64.msm'
@@ -199,7 +199,7 @@ class PackageGenerator:
         package = ET.SubElement(product, 'Package', {
             'Id': '*',
             'Keywords': 'Installer',
-            'Description': 'Meson {} installer'.format(self.version),
+            'Description': f'Meson {self.version} installer',
             'Comments': 'Meson is a high performance build system',
             'Manufacturer': 'The Meson Development Team',
             'InstallerVersion': '500',
@@ -299,7 +299,7 @@ class PackageGenerator:
         '''
         cur_node = nodes[current_dir]
         if cur_node.files:
-            component_id = 'ApplicationFiles{}'.format(self.component_num)
+            component_id = f'ApplicationFiles{self.component_num}'
             comp_xml_node = ET.SubElement(parent_xml_node, 'Component', {
                 'Id': component_id,
                 'Guid': gen_guid(),

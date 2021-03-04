@@ -22,7 +22,7 @@ def rmtrees(build_dir: str, trees: T.List[str]) -> None:
     for t in trees:
         # Never delete trees outside of the builddir
         if os.path.isabs(t):
-            print('Cannot delete dir with absolute path {!r}'.format(t))
+            print(f'Cannot delete dir with absolute path {t!r}')
             continue
         bt = os.path.join(build_dir, t)
         # Skip if it doesn't exist, or if it is not a directory

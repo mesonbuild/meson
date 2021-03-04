@@ -35,7 +35,7 @@ class ExternalProject:
 
     def write_depfile(self) -> None:
         with open(self.depfile, 'w') as f:
-            f.write('{}: \\\n'.format(self.stampfile))
+            f.write(f'{self.stampfile}: \\\n')
             for dirpath, dirnames, filenames in os.walk(self.src_dir):
                 dirnames[:] = [d for d in dirnames if not d.startswith('.')]
                 for fname in filenames:
@@ -75,7 +75,7 @@ class ExternalProject:
 
     def _run(self, step: str, command: T.List[str]) -> int:
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
-        log_filename = Path(self.log_dir, '{}-{}.log'.format(self.name, step))
+        log_filename = Path(self.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
             output = open(log_filename, 'w')
@@ -86,7 +86,7 @@ class ExternalProject:
         p, o, e = Popen_safe(command, stderr=subprocess.STDOUT, stdout=output,
                              cwd=self.build_dir)
         if p.returncode != 0:
-            m = '{} step returned error code {}.'.format(step, p.returncode)
+            m = f'{step} step returned error code {p.returncode}.'
             if not self.verbose:
                 m += '\nSee logs: ' + str(log_filename)
             print(m)

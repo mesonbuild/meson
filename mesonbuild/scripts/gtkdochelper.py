@@ -72,7 +72,7 @@ def gtkdoc_run_check(cmd: T.List[str], cwd: str, library_paths: T.Optional[T.Lis
     # This preserves the order of messages.
     p, out = Popen_safe(cmd, cwd=cwd, env=env, stderr=subprocess.STDOUT)[0:2]
     if p.returncode != 0:
-        err_msg = ["{!r} failed with status {:d}".format(cmd, p.returncode)]
+        err_msg = [f"{cmd!r} failed with status {p.returncode:d}"]
         if out:
             err_msg.append(out)
         raise MesonException('\n'.join(err_msg))
@@ -215,8 +215,8 @@ def build_gtkdoc(source_root: str, build_root: str, doc_subdir: str, src_subdirs
     gtkdoc_run_check(fixref_cmd, abs_out)
 
     if module_version:
-        shutil.move(os.path.join(htmldir, '{}.devhelp2'.format(module)),
-                    os.path.join(htmldir, '{}-{}.devhelp2'.format(module, module_version)))
+        shutil.move(os.path.join(htmldir, f'{module}.devhelp2'),
+                    os.path.join(htmldir, f'{module}-{module_version}.devhelp2'))
 
 def install_gtkdoc(build_root: str, doc_subdir: str, install_prefix: str, datadir: str, module: str) -> None:
     source = os.path.join(build_root, doc_subdir, 'html')

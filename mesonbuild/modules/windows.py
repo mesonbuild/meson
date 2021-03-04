@@ -133,7 +133,7 @@ class WindowsModule(ExtensionModule):
                 name_formatted = 'windows_compile_resources_' + src.get_filename()
                 name = src.get_id()
             else:
-                raise MesonException('Unexpected source type {!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.'.format(src))
+                raise MesonException(f'Unexpected source type {src!r}. windows.compile_resources accepts only strings, files, custom targets, and lists thereof.')
 
             # Path separators are not allowed in target names
             name = name.replace('/', '_').replace('\\', '_')

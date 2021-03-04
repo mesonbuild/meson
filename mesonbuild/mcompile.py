@@ -57,7 +57,7 @@ def parse_introspect_data(builddir: Path) -> T.Dict[str, T.List[dict]]:
     """
     path_to_intro = builddir / 'meson-info' / 'intro-targets.json'
     if not path_to_intro.exists():
-        raise MesonException('`{}` is missing! Directory is not configured yet?'.format(path_to_intro.name))
+        raise MesonException(f'`{path_to_intro.name}` is missing! Directory is not configured yet?')
     with path_to_intro.open() as f:
         schema = json.load(f)
 
@@ -78,7 +78,7 @@ class ParsedTargetName:
         if len(split) > 1:
             self.type = split[1]
             if not self._is_valid_type(self.type):
-                raise MesonException('Can\'t invoke target `{}`: unknown target type: `{}`'.format(target, self.type))
+                raise MesonException(f'Can\'t invoke target `{target}`: unknown target type: `{self.type}`')
 
         split = split[0].rsplit('/', 1)
         if len(split) > 1:
@@ -103,7 +103,7 @@ class ParsedTargetName:
 
 def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introspect_data: T.Dict[str, T.Any]) -> T.Dict[str, T.Any]:
     if target.name not in introspect_data:
-        raise MesonException('Can\'t invoke target `{}`: target not found'.format(target.full_name))
+        raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
 
     intro_targets = introspect_data[target.name]
     found_targets = []  # type: T.List[T.Dict[str, T.Any]]
@@ -123,9 +123,9 @@ def get_target_from_intro_data(target: ParsedTargetName, builddir: Path, introsp
             found_targets += [intro_target]
 
     if not found_targets:
-        raise MesonException('Can\'t invoke target `{}`: target not found'.format(target.full_name))
+        raise MesonException(f'Can\'t invoke target `{target.full_name}`: target not found')
     elif len(found_targets) > 1:
-        raise MesonException('Can\'t invoke target `{}`: ambigious name. Add target type and/or path: `PATH/NAME:TYPE`'.format(target.full_name))
+        raise MesonException(f'Can\'t invoke target `{target.full_name}`: ambigious name. Add target type and/or path: `PATH/NAME:TYPE`')
 
     return found_targets[0]
 
@@ -219,7 +219,7 @@ def get_parsed_args_vs(options: 'argparse.Namespace', builddir: Path) -> T.Tuple
 
     # In msbuild `-maxCpuCount` with no number means "detect cpus", the default is `-maxCpuCount:1`
     if options.jobs > 0:
-        cmd.append('-maxCpuCount:{}'.format(options.jobs))
+        cmd.append(f'-maxCpuCount:{options.jobs}')
     else:
         cmd.append('-maxCpuCount')
 
@@ -351,7 +351,7 @@ def run(options: 'argparse.Namespace') -> int:
         cmd, env = get_parsed_args_xcode(options, bdir)
     else:
         raise MesonException(
-            'Backend `{}` is not yet supported by `compile`. Use generated project files directly instead.'.format(backend))
+            f'Backend `{backend}` is not yet supported by `compile`. Use generated project files directly instead.')
 
     p, *_ = mesonlib.Popen_safe(cmd, stdout=sys.stdout.buffer, stderr=sys.stderr.buffer, env=env)
 

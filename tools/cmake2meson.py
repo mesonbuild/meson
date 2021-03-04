@@ -81,7 +81,7 @@ class Lexer:
                     elif tid == 'varexp':
                         yield(Token('varexp', match_text[2:-1]))
                     else:
-                        raise ValueError('lex: unknown element {}'.format(tid))
+                        raise ValueError(f'lex: unknown element {tid}')
                     break
             if not matched:
                 raise ValueError('Lexer got confused line %d column %d' % (lineno, col))
@@ -106,7 +106,7 @@ class Parser:
     def expect(self, s: str) -> bool:
         if self.accept(s):
             return True
-        raise ValueError('Expecting %s got %s.' % (s, self.current.tid), self.current.lineno, self.current.colno)
+        raise ValueError(f'Expecting {s} got {self.current.tid}.', self.current.lineno, self.current.colno)
 
     def statement(self) -> Statement:
         cur = self.current
@@ -177,7 +177,7 @@ class Converter:
             elif i.tid == 'string':
                 res.append("'%s'" % i.value)
             else:
-                raise ValueError('Unknown arg type {}'.format(i.tid))
+                raise ValueError(f'Unknown arg type {i.tid}')
         if len(res) > 1:
             return start + ', '.join(res) + end
         if len(res) == 1:
@@ -197,15 +197,15 @@ class Converter:
             varname = t.args[0].value.lower()
             mods = ["dependency('%s')" % i.value for i in t.args[1:]]
             if len(mods) == 1:
-                line = '%s = %s' % (varname, mods[0])
+                line = '{} = {}'.format(varname, mods[0])
             else:
-                line = '%s = [%s]' % (varname, ', '.join(["'%s'" % i for i in mods]))
+                line = '{} = [{}]'.format(varname, ', '.join(["'%s'" % i for i in mods]))
         elif t.name == 'find_package':
-            line = "%s_dep = dependency('%s')" % (t.args[0].value, t.args[0].value)
+            line = "{}_dep = dependency('{}')".format(t.args[0].value, t.args[0].value)
         elif t.name == 'find_library':
-            line = "%s = find_library('%s')" % (t.args[0].value.lower(), t.args[0].value)
+            line = "{} = find_library('{}')".format(t.args[0].value.lower(), t.args[0].value)
         elif t.name == 'add_executable':
-            line = '%s_exe = executable(%s)' % (t.args[0].value, self.convert_args(t.args, False))
+            line = '{}_exe = executable({})'.format(t.args[0].value, self.convert_args(t.args, False))
         elif t.name == 'add_library':
             if t.args[1].value == 'SHARED':
                 libcmd = 'shared_library'
@@ -216,7 +216,7 @@ class Converter:
             else:
                 libcmd = 'library'
                 args = t.args
-            line = '%s_lib = %s(%s)' % (t.args[0].value, libcmd, self.convert_args(args, False))
+            line = '{}_lib = {}({})'.format(t.args[0].value, libcmd, self.convert_args(args, False))
         elif t.name == 'add_test':
             line = 'test(%s)' % self.convert_args(t.args, False)
         elif t.name == 'option':
@@ -240,7 +240,7 @@ class Converter:
             line = 'project(' + ', '.join(args) + ", default_options : ['default_library=static'])"
         elif t.name == 'set':
             varname = t.args[0].value.lower()
-            line = '%s = %s\n' % (varname, self.convert_args(t.args[1:]))
+            line = '{} = {}\n'.format(varname, self.convert_args(t.args[1:]))
         elif t.name == 'if':
             postincrement = 1
             try:
@@ -266,7 +266,7 @@ class Converter:
             preincrement = -1
             line = 'endif'
         else:
-            line = '''# %s(%s)''' % (t.name, self.convert_args(t.args))
+            line = '''# {}({})'''.format(t.name, self.convert_args(t.args))
         self.indent_level += preincrement
         indent = self.indent_level * self.indent_unit
         outfile.write(indent)
@@ -316,7 +316,7 @@ class Converter:
                     else:
                         typestr = ' type : \'string\','
                     defaultstr = ' value : %s,' % default
-                line = "option(%r,%s%s description : '%s')\n" % (optname,
+                line = "option({!r},{}{} description : '{}')\n".format(optname,
                                                                  typestr,
                                                                  defaultstr,
                                                                  description)

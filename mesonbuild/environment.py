@@ -160,10 +160,10 @@ def _get_env_var(for_machine: MachineChoice, is_cross: bool, var_name: str) -> T
         if value is not None:
             break
     else:
-        formatted = ', '.join(['{!r}'.format(var) for var in candidates])
-        mlog.debug('None of {} are defined in the environment, not changing global flags.'.format(formatted))
+        formatted = ', '.join([f'{var!r}' for var in candidates])
+        mlog.debug(f'None of {formatted} are defined in the environment, not changing global flags.')
         return None
-    mlog.debug('Using {!r} from environment with value: {!r}'.format(var, value))
+    mlog.debug(f'Using {var!r} from environment with value: {value!r}')
     return value
 
 
@@ -759,7 +759,7 @@ class Environment:
             deprecated_properties.add(lang + '_link_args')
         for k, v in properties.properties.copy().items():
             if k in deprecated_properties:
-                mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
+                mlog.deprecation(f'{k} in the [properties] section of the machine file is deprecated, use the [built-in options] section.')
                 self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
                 del properties.properties[k]
         for section, values in config.items():
@@ -1004,7 +1004,7 @@ class Environment:
             compilers = [compilers]
         else:
             if not self.machines.matches_build_machine(for_machine):
-                raise EnvironmentException('{!r} compiler binary not defined in cross or native file'.format(lang))
+                raise EnvironmentException(f'{lang!r} compiler binary not defined in cross or native file')
             compilers = getattr(self, 'default_' + lang)
             ccache = BinaryTable.detect_ccache()
 
@@ -1016,11 +1016,11 @@ class Environment:
         return compilers, ccache, exe_wrap
 
     def _handle_exceptions(self, exceptions, binaries, bintype='compiler'):
-        errmsg = 'Unknown {}(s): {}'.format(bintype, binaries)
+        errmsg = f'Unknown {bintype}(s): {binaries}'
         if exceptions:
             errmsg += '\nThe following exception(s) were encountered:'
             for (c, e) in exceptions.items():
-                errmsg += '\nRunning "{}" gave "{}"'.format(c, e)
+                errmsg += f'\nRunning "{c}" gave "{e}"'
         raise EnvironmentException(errmsg)
 
     @staticmethod
@@ -1809,7 +1809,7 @@ class Environment:
 
                         # Also ensure that we pass any extra arguments to the linker
                         for l in exelist:
-                            compiler.extend(['-C', 'link-arg={}'.format(l)])
+                            compiler.extend(['-C', f'link-arg={l}'])
 
                     # This trickery with type() gets us the class of the linker
                     # so we can initialize a new copy for the Rust Compiler

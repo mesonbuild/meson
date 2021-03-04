@@ -188,7 +188,7 @@ class Properties:
         assert isinstance(raw, str)
         cmake_toolchain_file = Path(raw)
         if not cmake_toolchain_file.is_absolute():
-            raise EnvironmentException('cmake_toolchain_file ({}) is not absolute'.format(raw))
+            raise EnvironmentException(f'cmake_toolchain_file ({raw}) is not absolute')
         return cmake_toolchain_file
 
     def get_cmake_skip_compiler_test(self) -> CMakeSkipCompilerTest:
@@ -250,23 +250,23 @@ class MachineInfo:
         return not self.__eq__(other)
 
     def __repr__(self) -> str:
-        return '<MachineInfo: {} {} ({})>'.format(self.system, self.cpu_family, self.cpu)
+        return f'<MachineInfo: {self.system} {self.cpu_family} ({self.cpu})>'
 
     @classmethod
     def from_literal(cls, literal: T.Dict[str, str]) -> 'MachineInfo':
         minimum_literal = {'cpu', 'cpu_family', 'endian', 'system'}
         if set(literal) < minimum_literal:
             raise EnvironmentException(
-                'Machine info is currently {}\n'.format(literal) +
+                f'Machine info is currently {literal}\n' +
                 'but is missing {}.'.format(minimum_literal - set(literal)))
 
         cpu_family = literal['cpu_family']
         if cpu_family not in known_cpu_families:
-            mlog.warning('Unknown CPU family {}, please report this at https://github.com/mesonbuild/meson/issues/new'.format(cpu_family))
+            mlog.warning(f'Unknown CPU family {cpu_family}, please report this at https://github.com/mesonbuild/meson/issues/new')
 
         endian = literal['endian']
         if endian not in ('little', 'big'):
-            mlog.warning('Unknown endian {}'.format(endian))
+            mlog.warning(f'Unknown endian {endian}')
 
         return cls(literal['system'], cpu_family, literal['cpu'], endian)
 

@@ -83,11 +83,11 @@ class BasicLinkerIsCompilerMixin(Compiler):
 
     def get_link_whole_for(self, args: T.List[str]) -> T.List[str]:
         raise mesonlib.EnvironmentException(
-            'Linker {} does not support link_whole'.format(self.id))
+            f'Linker {self.id} does not support link_whole')
 
     def get_allow_undefined_link_args(self) -> T.List[str]:
         raise mesonlib.EnvironmentException(
-            'Linker {} does not support allow undefined'.format(self.id))
+            f'Linker {self.id} does not support allow undefined')
 
     def get_pie_link_args(self) -> T.List[str]:
         m = 'Linker {} does not support position-independent executable'

@@ -305,7 +305,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
                 lib_ext = get_shared_library_suffix(environment, self.for_machine)
                 libdir = self.get_config_value(['--libdir'], 'link_args')[0]
                 # Sort for reproducibility
-                matches = sorted(glob.iglob(os.path.join(libdir, 'libLLVM*{}'.format(lib_ext))))
+                matches = sorted(glob.iglob(os.path.join(libdir, f'libLLVM*{lib_ext}')))
                 if not matches:
                     if self.required:
                         raise
@@ -314,7 +314,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
 
                 self.link_args = self.get_config_value(['--ldflags'], 'link_args')
                 libname = os.path.basename(matches[0]).rstrip(lib_ext).lstrip('lib')
-                self.link_args.append('-l{}'.format(libname))
+                self.link_args.append(f'-l{libname}')
                 return
         elif self.static and mode == 'shared':
             # If, however LLVM_BUILD_SHARED_LIBS is true # (*cough* gentoo *cough*)
@@ -353,12 +353,12 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
             # called libLLVM-<ver>.(so|dylib|dll)
             libdir = self.get_config_value(['--libdir'], 'link_args')[0]
 
-            expected_name = 'libLLVM-{}'.format(self.version)
-            re_name = re.compile(r'{}.(so|dll|dylib)$'.format(expected_name))
+            expected_name = f'libLLVM-{self.version}'
+            re_name = re.compile(fr'{expected_name}.(so|dll|dylib)$')
 
             for file_ in os.listdir(libdir):
                 if re_name.match(file_):
-                    self.link_args = ['-L{}'.format(libdir),
+                    self.link_args = [f'-L{libdir}',
                                       '-l{}'.format(os.path.splitext(file_.lstrip('lib'))[0])]
                     break
             else:
@@ -379,7 +379,7 @@ class LLVMDependencyConfigTool(ConfigToolDependency):
                     self.is_found = False
                     if self.required:
                         raise DependencyException(
-                            'Could not find required LLVM Component: {}'.format(mod))
+                            f'Could not find required LLVM Component: {mod}')
                     status = '(missing)'
                 else:
                     status = '(missing but optional)'
@@ -431,10 +431,10 @@ class LLVMDependencyCMake(CMakeDependency):
     def _map_module_list(self, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]]) -> T.List[T.Tuple[str, bool]]:
         res = []
         for mod, required in modules:
-            cm_targets = self.traceparser.get_cmake_var('MESON_LLVM_TARGETS_{}'.format(mod))
+            cm_targets = self.traceparser.get_cmake_var(f'MESON_LLVM_TARGETS_{mod}')
             if not cm_targets:
                 if required:
-                    raise self._gen_exception('LLVM module {} was not found'.format(mod))
+                    raise self._gen_exception(f'LLVM module {mod} was not found')
                 else:
                     mlog.warning('Optional LLVM module', mlog.bold(mod), 'was not found')
                     continue
@@ -443,7 +443,7 @@ class LLVMDependencyCMake(CMakeDependency):
         return res
 
     def _original_module_name(self, module: str) -> str:
-        orig_name = self.traceparser.get_cmake_var('MESON_TARGET_TO_LLVM_{}'.format(module))
+        orig_name = self.traceparser.get_cmake_var(f'MESON_TARGET_TO_LLVM_{module}')
         if orig_name:
             return orig_name[0]
         return module
@@ -493,7 +493,7 @@ class ZlibSystemDependency(ExternalDependency):
             else:
                 return
         else:
-            mlog.debug('Unsupported OS {}'.format(m.system))
+            mlog.debug(f'Unsupported OS {m.system}')
             return
 
         v, _ = self.clib_compiler.get_define('ZLIB_VERSION', '#include <zlib.h>', self.env, [], [self])

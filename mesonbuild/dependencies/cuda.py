@@ -33,7 +33,7 @@ class CudaDependency(ExternalDependency):
         compilers = environment.coredata.compilers[self.get_for_machine_from_kwargs(kwargs)]
         language = self._detect_language(compilers)
         if language not in self.supported_languages:
-            raise DependencyException('Language \'{}\' is not supported by the CUDA Toolkit. Supported languages are {}.'.format(language, self.supported_languages))
+            raise DependencyException(f'Language \'{language}\' is not supported by the CUDA Toolkit. Supported languages are {self.supported_languages}.')
 
         super().__init__('cuda', environment, kwargs, language=language)
         self.requested_modules = self.get_requested(kwargs)
@@ -45,13 +45,13 @@ class CudaDependency(ExternalDependency):
             return
 
         if not os.path.isabs(self.cuda_path):
-            raise DependencyException('CUDA Toolkit path must be absolute, got \'{}\'.'.format(self.cuda_path))
+            raise DependencyException(f'CUDA Toolkit path must be absolute, got \'{self.cuda_path}\'.')
 
         # nvcc already knows where to find the CUDA Toolkit, but if we're compiling
         # a mixed C/C++/CUDA project, we still need to make the include dir searchable
         if self.language != 'cuda' or len(compilers) > 1:
             self.incdir = os.path.join(self.cuda_path, 'include')
-            self.compile_args += ['-I{}'.format(self.incdir)]
+            self.compile_args += [f'-I{self.incdir}']
 
         if self.language != 'cuda':
             arch_libdir = self._detect_arch_libdir()
@@ -81,11 +81,11 @@ class CudaDependency(ExternalDependency):
                 # make sure nvcc version satisfies specified version requirements
                 (found_some, not_found, found) = mesonlib.version_compare_many(nvcc_version, version_reqs)
                 if not_found:
-                    msg = 'The current nvcc version {} does not satisfy the specified CUDA Toolkit version requirements {}.'.format(nvcc_version, version_reqs)
+                    msg = f'The current nvcc version {nvcc_version} does not satisfy the specified CUDA Toolkit version requirements {version_reqs}.'
                     return self._report_dependency_error(msg, (None, None, False))
 
             # use nvcc version to find a matching CUDA Toolkit
-            version_reqs = ['={}'.format(nvcc_version)]
+            version_reqs = [f'={nvcc_version}']
         else:
             nvcc_version = None
 
@@ -99,7 +99,7 @@ class CudaDependency(ExternalDependency):
 
         platform_msg = 'set the CUDA_PATH environment variable' if self._is_windows() \
             else 'set the CUDA_PATH environment variable/create the \'/usr/local/cuda\' symbolic link'
-        msg = 'Please specify the desired CUDA Toolkit version (e.g. dependency(\'cuda\', version : \'>=10.1\')) or {} to point to the location of your desired version.'.format(platform_msg)
+        msg = f'Please specify the desired CUDA Toolkit version (e.g. dependency(\'cuda\', version : \'>=10.1\')) or {platform_msg} to point to the location of your desired version.'
         return self._report_dependency_error(msg, (None, None, False))
 
     def _find_matching_toolkit(self, paths, version_reqs, nvcc_version):
@@ -108,10 +108,10 @@ class CudaDependency(ExternalDependency):
         defaults, rest = mesonlib.partition(lambda t: not t[2], paths)
         defaults = list(defaults)
         paths = defaults + sorted(rest, key=lambda t: mesonlib.Version(t[1]), reverse=True)
-        mlog.debug('Search paths: {}'.format(paths))
+        mlog.debug(f'Search paths: {paths}')
 
         if nvcc_version and defaults:
-            default_src = "the {} environment variable".format(self.env_var) if self.env_var else "the \'/usr/local/cuda\' symbolic link"
+            default_src = f"the {self.env_var} environment variable" if self.env_var else "the \'/usr/local/cuda\' symbolic link"
             nvcc_warning = 'The default CUDA Toolkit as designated by {} ({}) doesn\'t match the current nvcc version {} and will be ignored.'.format(default_src, os.path.realpath(defaults[0][0]), nvcc_version)
         else:
             nvcc_warning = None
@@ -168,7 +168,7 @@ class CudaDependency(ExternalDependency):
             if m:
                 return m.group(1)
             else:
-                mlog.warning('Could not detect CUDA Toolkit version for {}'.format(path))
+                mlog.warning(f'Could not detect CUDA Toolkit version for {path}')
         except Exception as e:
             mlog.warning('Could not detect CUDA Toolkit version for {}: {}'.format(path, str(e)))
 
@@ -188,7 +188,7 @@ class CudaDependency(ExternalDependency):
             # use // for floor instead of / which produces a float
             major = vers_int // 1000                  # type: int
             minor = (vers_int - major * 1000) // 10   # type: int
-            return '{}.{}'.format(major, minor)
+            return f'{major}.{minor}'
         return None
 
     def _read_toolkit_version_txt(self, path: str) -> T.Optional[str]:
@@ -238,10 +238,10 @@ class CudaDependency(ExternalDependency):
         for module in self.requested_modules:
             args = self.clib_compiler.find_library(module, self.env, [self.libdir] if self.libdir else [])
             if args is None:
-                self._report_dependency_error('Couldn\'t find requested CUDA module \'{}\''.format(module))
+                self._report_dependency_error(f'Couldn\'t find requested CUDA module \'{module}\'')
                 all_found = False
             else:
-                mlog.debug('Link args for CUDA module \'{}\' are {}'.format(module, args))
+                mlog.debug(f'Link args for CUDA module \'{module}\' are {args}')
                 self.lib_modules[module] = args
 
         return all_found

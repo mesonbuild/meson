@@ -79,7 +79,7 @@ class CommandTests(unittest.TestCase):
 
     def assertMesonCommandIs(self, line, cmd):
         self.assertTrue(line.startswith('meson_command '), msg=line)
-        self.assertEqual(line, 'meson_command is {!r}'.format(cmd))
+        self.assertEqual(line, f'meson_command is {cmd!r}')
 
     def test_meson_uninstalled(self):
         # This is what the meson command must be for all these cases

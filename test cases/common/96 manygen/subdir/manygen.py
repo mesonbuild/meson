@@ -41,18 +41,18 @@ tmpc = 'diibadaaba.c'
 tmpo = 'diibadaaba' + objsuffix
 
 with open(outc, 'w') as f:
-    f.write('''#include"%s.h"
-int %s_in_src(void) {
+    f.write('''#include"{}.h"
+int {}_in_src(void) {{
   return 0;
-}
-''' % (funcname, funcname))
+}}
+'''.format(funcname, funcname))
 
 with open(outh, 'w') as f:
     f.write('''#pragma once
-int %s_in_lib(void);
-int %s_in_obj(void);
-int %s_in_src(void);
-''' % (funcname, funcname, funcname))
+int {}_in_lib(void);
+int {}_in_obj(void);
+int {}_in_src(void);
+'''.format(funcname, funcname, funcname))
 
 with open(tmpc, 'w') as f:
     f.write('''int %s_in_obj(void) {

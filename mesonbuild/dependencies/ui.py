@@ -227,9 +227,9 @@ class QtBaseDependency(ExternalDependency):
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
         bins = ['moc', 'uic', 'rcc', 'lrelease']
-        found = {b: NonExistingExternalProgram(name='{}-{}'.format(b, self.name))
+        found = {b: NonExistingExternalProgram(name=f'{b}-{self.name}')
                  for b in bins}
-        wanted = '== {}'.format(self.version)
+        wanted = f'== {self.version}'
 
         def gen_bins():
             for b in bins:
@@ -237,7 +237,7 @@ class QtBaseDependency(ExternalDependency):
                     yield os.path.join(self.bindir, b), b
                 # prefer the <tool>-qt<version> of the tool to the plain one, as we
                 # don't know what the unsuffixed one points to without calling it.
-                yield '{}-{}'.format(b, self.name), b
+                yield f'{b}-{self.name}', b
                 yield b, b
 
         for b, name in gen_bins():
@@ -510,7 +510,7 @@ class QtBaseDependency(ExternalDependency):
         return 'modules: ' + module_str
 
     def log_info(self):
-        return '{}'.format(self.from_text)
+        return f'{self.from_text}'
 
     def log_tried(self):
         return self.from_text

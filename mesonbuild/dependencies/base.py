@@ -88,12 +88,12 @@ def find_external_program(env: Environment, for_machine: MachineChoice, name: st
         # We never fallback if the user-specified option is no good, so
         # stop returning options.
         return
-    mlog.debug('{} binary missing from cross or native file, or env var undefined.'.format(display_name))
+    mlog.debug(f'{display_name} binary missing from cross or native file, or env var undefined.')
     # Fallback on hard-coded defaults, if a default binary is allowed for use
     # with cross targets, or if this is not a cross target
     if allow_default_for_cross or not (for_machine is MachineChoice.HOST and env.is_cross_build(for_machine)):
         for potential_path in default_names:
-            mlog.debug('Trying a default {} fallback at'.format(display_name), potential_path)
+            mlog.debug(f'Trying a default {display_name} fallback at', potential_path)
             yield ExternalProgram(potential_path, silent=True)
     else:
         mlog.debug('Default target is not allowed for cross use')
@@ -193,10 +193,10 @@ class Dependency:
         return []
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
-        raise DependencyException('{!r} is not a pkgconfig dependency'.format(self.name))
+        raise DependencyException(f'{self.name!r} is not a pkgconfig dependency')
 
     def get_configtool_variable(self, variable_name):
-        raise DependencyException('{!r} is not a config-tool dependency'.format(self.name))
+        raise DependencyException(f'{self.name!r} is not a config-tool dependency')
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
@@ -238,7 +238,7 @@ class Dependency:
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if default_value is not None:
             return default_value
-        raise DependencyException('No default provided for dependency {!r}, which is not pkg-config, cmake, or config-tool based.'.format(self))
+        raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
 
     def generate_system_dependency(self, include_type: str) -> T.Type['Dependency']:
         new_dep = copy.deepcopy(self)
@@ -312,7 +312,7 @@ class InternalDependency(Dependency):
         val = self.variables.get(internal, default_value)
         if val is not None:
             return val
-        raise DependencyException('Could not get an internal variable and no default provided for {!r}'.format(self))
+        raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
     def generate_link_whole_dependency(self) -> T.Type['Dependency']:
         new_dep = copy.deepcopy(self)
@@ -399,10 +399,10 @@ class ExternalDependency(Dependency, HasNativeKwarg):
                     found_msg = ['Dependency', mlog.bold(self.name), 'found:']
                     found_msg += [mlog.red('NO'),
                                   'found', mlog.normal_cyan(self.version), 'but need:',
-                                  mlog.bold(', '.join(["'{}'".format(e) for e in not_found]))]
+                                  mlog.bold(', '.join([f"'{e}'" for e in not_found]))]
                     if found:
                         found_msg += ['; matched:',
-                                      ', '.join(["'{}'".format(e) for e in found])]
+                                      ', '.join([f"'{e}'" for e in found])]
                     mlog.log(*found_msg)
 
                     if self.required:
@@ -518,9 +518,9 @@ class ConfigToolDependency(ExternalDependency):
         if self.config is None:
             found_msg.append(mlog.red('NO'))
             if version is not None and req_version is not None:
-                found_msg.append('found {!r} but need {!r}'.format(version, req_version))
+                found_msg.append(f'found {version!r} but need {req_version!r}')
             elif req_version:
-                found_msg.append('need {!r}'.format(req_version))
+                found_msg.append(f'need {req_version!r}')
         else:
             found_msg += [mlog.green('YES'), '({})'.format(' '.join(self.config)), version]
 
@@ -543,14 +543,14 @@ class ConfigToolDependency(ExternalDependency):
         return [DependencyMethods.AUTO, DependencyMethods.CONFIG_TOOL]
 
     def get_configtool_variable(self, variable_name):
-        p, out, _ = Popen_safe(self.config + ['--{}'.format(variable_name)])
+        p, out, _ = Popen_safe(self.config + [f'--{variable_name}'])
         if p.returncode != 0:
             if self.required:
                 raise DependencyException(
                     'Could not get variable "{}" for dependency {}'.format(
                         variable_name, self.name))
         variable = out.strip()
-        mlog.debug('Got config-tool variable {} : {}'.format(variable_name, variable))
+        mlog.debug(f'Got config-tool variable {variable_name} : {variable}')
         return variable
 
     def log_tried(self):
@@ -575,7 +575,7 @@ class ConfigToolDependency(ExternalDependency):
                 self.required = restore
         if default_value is not None:
             return default_value
-        raise DependencyException('Could not get config-tool variable and no default provided for {!r}'.format(self))
+        raise DependencyException(f'Could not get config-tool variable and no default provided for {self!r}')
 
 
 class PkgConfigDependency(ExternalDependency):
@@ -644,7 +644,7 @@ class PkgConfigDependency(ExternalDependency):
             # Fetch the libraries and library paths needed for using this
             self._set_libs()
         except DependencyException as e:
-            mlog.debug("pkg-config error with '%s': %s" % (name, e))
+            mlog.debug(f"pkg-config error with '{name}': {e}")
             if self.required:
                 raise
             else:
@@ -663,7 +663,7 @@ class PkgConfigDependency(ExternalDependency):
         p, out, err = Popen_safe(cmd, env=env)
         rc, out, err = p.returncode, out.strip(), err.strip()
         call = ' '.join(cmd)
-        mlog.debug("Called `{}` -> {}\n{}".format(call, rc, out))
+        mlog.debug(f"Called `{call}` -> {rc}\n{out}")
         return rc, out, err
 
     @staticmethod
@@ -937,9 +937,9 @@ class PkgConfigDependency(ExternalDependency):
                     if 'default' in kwargs:
                         variable = kwargs['default']
                     else:
-                        mlog.warning("pkgconfig variable '%s' not defined for dependency %s." % (variable_name, self.name))
+                        mlog.warning(f"pkgconfig variable '{variable_name}' not defined for dependency {self.name}.")
 
-        mlog.debug('Got pkgconfig variable %s : %s' % (variable_name, variable))
+        mlog.debug(f'Got pkgconfig variable {variable_name} : {variable}')
         return variable
 
     @staticmethod
@@ -948,7 +948,7 @@ class PkgConfigDependency(ExternalDependency):
 
     def check_pkgconfig(self, pkgbin):
         if not pkgbin.found():
-            mlog.log('Did not find pkg-config by name {!r}'.format(pkgbin.name))
+            mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
         try:
             p, out = Popen_safe(pkgbin.get_command() + ['--version'])[0:2]
@@ -1022,7 +1022,7 @@ class PkgConfigDependency(ExternalDependency):
                 pass
         if default_value is not None:
             return default_value
-        raise DependencyException('Could not get pkg-config variable and no default provided for {!r}'.format(self))
+        raise DependencyException(f'Could not get pkg-config variable and no default provided for {self!r}')
 
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
@@ -1035,7 +1035,7 @@ class CMakeDependency(ExternalDependency):
     class_working_generator = None
 
     def _gen_exception(self, msg):
-        return DependencyException('Dependency {} not found: {}'.format(self.name, msg))
+        return DependencyException(f'Dependency {self.name} not found: {msg}')
 
     def _main_cmake_file(self) -> str:
         return 'CMakeLists.txt'
@@ -1109,7 +1109,7 @@ class CMakeDependency(ExternalDependency):
         self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
         if not self.cmakebin.found():
             self.cmakebin = None
-            msg = 'No CMake binary for machine {} not found. Giving up.'.format(self.for_machine)
+            msg = f'No CMake binary for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
@@ -1179,8 +1179,8 @@ class CMakeDependency(ExternalDependency):
                 CMakeDependency.class_working_generator = i
                 break
 
-            mlog.debug('CMake failed to gather system information for generator {} with error code {}'.format(i, ret1))
-            mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
+            mlog.debug(f'CMake failed to gather system information for generator {i} with error code {ret1}')
+            mlog.debug(f'OUT:\n{out1}\n\n\nERR:\n{err1}\n\n')
 
         # Check if any generator succeeded
         if ret1 != 0:
@@ -1333,7 +1333,7 @@ class CMakeDependency(ExternalDependency):
                             return True
 
         # Check the environment path
-        env_path = os.environ.get('{}_DIR'.format(name))
+        env_path = os.environ.get(f'{name}_DIR')
         if env_path and find_module(env_path):
             return True
 
@@ -1367,9 +1367,9 @@ class CMakeDependency(ExternalDependency):
 
             # Prepare options
             cmake_opts = []
-            cmake_opts += ['-DNAME={}'.format(name)]
+            cmake_opts += [f'-DNAME={name}']
             cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
-            cmake_opts += ['-DVERSION={}'.format(package_version)]
+            cmake_opts += [f'-DVERSION={package_version}']
             cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
             cmake_opts += args
             cmake_opts += self.traceparser.trace_args()
@@ -1387,8 +1387,8 @@ class CMakeDependency(ExternalDependency):
                 CMakeDependency.class_working_generator = i
                 break
 
-            mlog.debug('CMake failed for generator {} and package {} with error code {}'.format(i, name, ret1))
-            mlog.debug('OUT:\n{}\n\n\nERR:\n{}\n\n'.format(out1, err1))
+            mlog.debug(f'CMake failed for generator {i} and package {name} with error code {ret1}')
+            mlog.debug(f'OUT:\n{out1}\n\n\nERR:\n{err1}\n\n')
 
         # Check if any generator succeeded
         if ret1 != 0:
@@ -1429,8 +1429,8 @@ class CMakeDependency(ExternalDependency):
             for i in self.traceparser.targets:
                 tg = i.lower()
                 lname = name.lower()
-                if '{}::{}'.format(lname, lname) == tg or lname == tg.replace('::', ''):
-                    mlog.debug('Guessed CMake target \'{}\''.format(i))
+                if f'{lname}::{lname}' == tg or lname == tg.replace('::', ''):
+                    mlog.debug(f'Guessed CMake target \'{i}\'')
                     modules = [(i, True)]
                     autodetected_module_list = True
                     break
@@ -1443,12 +1443,12 @@ class CMakeDependency(ExternalDependency):
 
             # Try to use old style variables if no module is specified
             if len(libs) > 0:
-                self.compile_args = list(map(lambda x: '-I{}'.format(x), incDirs)) + defs
+                self.compile_args = list(map(lambda x: f'-I{x}', incDirs)) + defs
                 self.link_args = libs
-                mlog.debug('using old-style CMake variables for dependency {}'.format(name))
-                mlog.debug('Include Dirs:         {}'.format(incDirs))
-                mlog.debug('Compiler Definitions: {}'.format(defs))
-                mlog.debug('Libraries:            {}'.format(libs))
+                mlog.debug(f'using old-style CMake variables for dependency {name}')
+                mlog.debug(f'Include Dirs:         {incDirs}')
+                mlog.debug(f'Compiler Definitions: {defs}')
+                mlog.debug(f'Libraries:            {libs}')
                 return
 
             # Even the old-style approach failed. Nothing else we can do here
@@ -1520,20 +1520,20 @@ class CMakeDependency(ExternalDependency):
                     if 'RELEASE' in cfgs:
                         cfg = 'RELEASE'
 
-                if 'IMPORTED_IMPLIB_{}'.format(cfg) in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_IMPLIB_{}'.format(cfg)] if x]
+                if f'IMPORTED_IMPLIB_{cfg}' in tgt.properties:
+                    libraries += [x for x in tgt.properties[f'IMPORTED_IMPLIB_{cfg}'] if x]
                 elif 'IMPORTED_IMPLIB' in tgt.properties:
                     libraries += [x for x in tgt.properties['IMPORTED_IMPLIB'] if x]
-                elif 'IMPORTED_LOCATION_{}'.format(cfg) in tgt.properties:
-                    libraries += [x for x in tgt.properties['IMPORTED_LOCATION_{}'.format(cfg)] if x]
+                elif f'IMPORTED_LOCATION_{cfg}' in tgt.properties:
+                    libraries += [x for x in tgt.properties[f'IMPORTED_LOCATION_{cfg}'] if x]
                 elif 'IMPORTED_LOCATION' in tgt.properties:
                     libraries += [x for x in tgt.properties['IMPORTED_LOCATION'] if x]
 
                 if 'INTERFACE_LINK_LIBRARIES' in tgt.properties:
                     otherDeps += [x for x in tgt.properties['INTERFACE_LINK_LIBRARIES'] if x]
 
-                if 'IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg) in tgt.properties:
-                    otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES_{}'.format(cfg)] if x]
+                if f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}' in tgt.properties:
+                    otherDeps += [x for x in tgt.properties[f'IMPORTED_LINK_DEPENDENT_LIBRARIES_{cfg}'] if x]
                 elif 'IMPORTED_LINK_DEPENDENT_LIBRARIES' in tgt.properties:
                     otherDeps += [x for x in tgt.properties['IMPORTED_LINK_DEPENDENT_LIBRARIES'] if x]
 
@@ -1551,7 +1551,7 @@ class CMakeDependency(ExternalDependency):
                         # as we do not have a compiler environment available to us, we cannot do the
                         # same, but must assume any bare argument passed which is not also a CMake
                         # target must be a system library we should try to link against
-                        libraries += ["{}.lib".format(j)]
+                        libraries += [f"{j}.lib"]
                     else:
                         mlog.warning('CMake: Dependency', mlog.bold(j), 'for', mlog.bold(name), 'target', mlog.bold(self._original_module_name(curr)), 'was not found')
 
@@ -1563,16 +1563,16 @@ class CMakeDependency(ExternalDependency):
         compileOptions = sorted(set(compileOptions))
         libraries = sorted(set(libraries))
 
-        mlog.debug('Include Dirs:         {}'.format(incDirs))
-        mlog.debug('Compiler Definitions: {}'.format(compileDefinitions))
-        mlog.debug('Compiler Options:     {}'.format(compileOptions))
-        mlog.debug('Libraries:            {}'.format(libraries))
+        mlog.debug(f'Include Dirs:         {incDirs}')
+        mlog.debug(f'Compiler Definitions: {compileDefinitions}')
+        mlog.debug(f'Compiler Options:     {compileOptions}')
+        mlog.debug(f'Libraries:            {libraries}')
 
-        self.compile_args = compileOptions + compileDefinitions + ['-I{}'.format(x) for x in incDirs]
+        self.compile_args = compileOptions + compileDefinitions + [f'-I{x}' for x in incDirs]
         self.link_args = libraries
 
     def _get_build_dir(self) -> Path:
-        build_dir = Path(self.cmake_root_dir) / 'cmake_{}'.format(self.name)
+        build_dir = Path(self.cmake_root_dir) / f'cmake_{self.name}'
         build_dir.mkdir(parents=True, exist_ok=True)
         return build_dir
 
@@ -1647,7 +1647,7 @@ class CMakeDependency(ExternalDependency):
                     return v
         if default_value is not None:
             return default_value
-        raise DependencyException('Could not get cmake variable and no default provided for {!r}'.format(self))
+        raise DependencyException(f'Could not get cmake variable and no default provided for {self!r}')
 
 class DubDependency(ExternalDependency):
     class_dubbin = None
@@ -1759,7 +1759,7 @@ class DubDependency(ExternalDependency):
         for target in description['targets']:
             if target['rootPackage'] in packages:
                 add_lib_args('libs', target)
-                add_lib_args('libs-{}'.format(platform.machine()), target)
+                add_lib_args(f'libs-{platform.machine()}', target)
                 for file in target['buildSettings']['linkerFiles']:
                     lib_path = self._find_right_lib_path(file, comp, description)
                     if lib_path:
@@ -2007,7 +2007,7 @@ class ExternalProgram:
                 return commands + [script]
         except Exception as e:
             mlog.debug(e)
-        mlog.debug('Unusable script {!r}'.format(script))
+        mlog.debug(f'Unusable script {script!r}')
         return None
 
     def _is_executable(self, path):
@@ -2034,7 +2034,7 @@ class ExternalProgram:
         else:
             if mesonlib.is_windows():
                 for ext in self.windows_exts:
-                    trial_ext = '{}.{}'.format(trial, ext)
+                    trial_ext = f'{trial}.{ext}'
                     if os.path.exists(trial_ext):
                         return [trial_ext]
         return None
@@ -2069,7 +2069,7 @@ class ExternalProgram:
         # but many people do it because it works in the MinGW shell.
         if os.path.isabs(name):
             for ext in self.windows_exts:
-                command = '{}.{}'.format(name, ext)
+                command = f'{name}.{ext}'
                 if os.path.exists(command):
                     return [command]
         # On Windows, interpreted scripts must have an extension otherwise they
@@ -2217,7 +2217,7 @@ class ExtraFrameworkDependency(ExternalDependency):
         if not paths:
             paths = self.system_framework_paths
         for p in paths:
-            mlog.debug('Looking for framework {} in {}'.format(name, p))
+            mlog.debug(f'Looking for framework {name} in {p}')
             # We need to know the exact framework path because it's used by the
             # Qt5 dependency class, and for setting the include path. We also
             # want to avoid searching in an invalid framework path which wastes
@@ -2410,7 +2410,7 @@ def find_external_dependency(name, env, kwargs):
         raise DependencyException('Keyword "method" must be a string.')
     lname = name.lower()
     if lname not in _packages_accept_language and 'language' in kwargs:
-        raise DependencyException('%s dependency does not accept "language" keyword argument' % (name, ))
+        raise DependencyException(f'{name} dependency does not accept "language" keyword argument')
     if not isinstance(kwargs.get('version', ''), (str, list)):
         raise DependencyException('Keyword "Version" must be string or list.')
 
@@ -2468,7 +2468,7 @@ def find_external_dependency(name, env, kwargs):
         tried = ''
 
     mlog.log(type_text, mlog.bold(display_name), details + 'found:', mlog.red('NO'),
-             '(tried {})'.format(tried) if tried else '')
+             f'(tried {tried})' if tried else '')
 
     if required:
         # if an exception occurred with the first detection method, re-raise it
@@ -2572,7 +2572,7 @@ def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
     in the system path, and a different version not in the system path if they
     want to link against the non-system path version.
     """
-    exclude = {'-L{}'.format(p) for p in environment.get_compiler_system_dirs(for_machine)}
+    exclude = {f'-L{p}' for p in environment.get_compiler_system_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]
 
 
@@ -2582,7 +2582,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List
         return [method]
     # TODO: try/except?
     if method not in [e.value for e in DependencyMethods]:
-        raise DependencyException('method {!r} is invalid'.format(method))
+        raise DependencyException(f'method {method!r} is invalid')
     method = DependencyMethods(method)
 
     # This sets per-tool config methods which are deprecated to to the new

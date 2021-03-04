@@ -69,7 +69,7 @@ class RequestBase(MessageBase):
     @staticmethod
     def gen_cookie() -> str:
         RequestBase.cookie_counter += 1
-        return 'meson_{}'.format(RequestBase.cookie_counter)
+        return f'meson_{RequestBase.cookie_counter}'
 
 class ReplyBase(MessageBase):
     def __init__(self, cookie: str, in_reply_to: str) -> None:
@@ -214,7 +214,7 @@ class ReplyCodeModel(ReplyBase):
     def log(self) -> None:
         mlog.log('CMake code mode:')
         for idx, i in enumerate(self.configs):
-            mlog.log('Configuration {}:'.format(idx))
+            mlog.log(f'Configuration {idx}:')
             with mlog.nested():
                 i.log()
 
@@ -274,10 +274,10 @@ class CMakeClient:
         msg_type = raw_data['type']
         func = self.type_map.get(msg_type, None)
         if not func:
-            raise CMakeException('Recieved unknown message type "{}"'.format(msg_type))
+            raise CMakeException(f'Recieved unknown message type "{msg_type}"')
         for i in CMAKE_MESSAGE_TYPES[msg_type]:
             if i not in raw_data:
-                raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, msg_type))
+                raise CMakeException(f'Key "{i}" is missing from CMake server message type {msg_type}')
         return func(raw_data)
 
     def writeMessage(self, msg: MessageBase) -> None:
@@ -316,10 +316,10 @@ class CMakeClient:
         reply_type = data['inReplyTo']
         func = self.reply_map.get(reply_type, None)
         if not func:
-            raise CMakeException('Recieved unknown reply type "{}"'.format(reply_type))
+            raise CMakeException(f'Recieved unknown reply type "{reply_type}"')
         for i in ['cookie'] + CMAKE_REPLY_TYPES[reply_type]:
             if i not in data:
-                raise CMakeException('Key "{}" is missing from CMake server message type {}'.format(i, type))
+                raise CMakeException(f'Key "{i}" is missing from CMake server message type {type}')
         return func(data)
 
     def resolve_reply_cmakeInputs(self, data: T.Dict[str, T.Any]) -> ReplyCMakeInputs:

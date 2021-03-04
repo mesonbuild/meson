@@ -290,7 +290,7 @@ class CompilerArgs(collections.abc.MutableSequence):
         '''
         tmp_pre = collections.deque()  # type: T.Deque[str]
         if not isinstance(args, collections.abc.Iterable):
-            raise TypeError('can only concatenate Iterable[str] (not "{}") to CompilerArgs'.format(args))
+            raise TypeError(f'can only concatenate Iterable[str] (not "{args}") to CompilerArgs')
         for arg in args:
             # If the argument can be de-duped, do it either by removing the
             # previous occurrence of it and adding a new one, or not adding the
@@ -331,4 +331,4 @@ class CompilerArgs(collections.abc.MutableSequence):
 
     def __repr__(self) -> str:
         self.flush_pre_post()
-        return 'CompilerArgs({!r}, {!r})'.format(self.compiler, self._container)
+        return f'CompilerArgs({self.compiler!r}, {self._container!r})'

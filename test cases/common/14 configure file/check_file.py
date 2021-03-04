@@ -12,9 +12,9 @@ elif len(sys.argv) == 3:
     m2 = os.stat(f2).st_mtime_ns
     # Compare only os.stat()
     if m1 != m2:
-        raise RuntimeError('mtime of {!r} () != mtime of {!r} ()'.format(f1, m1, f2, m2))
+        raise RuntimeError(f'mtime of {f1!r} () != mtime of {m1!r} ()')
     import filecmp
     if not filecmp.cmp(f1, f2):
-        raise RuntimeError('{!r} != {!r}'.format(f1, f2))
+        raise RuntimeError(f'{f1!r} != {f2!r}')
 else:
     raise AssertionError

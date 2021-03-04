@@ -12,4 +12,4 @@ quoted_depfiles = [x.replace(' ', r'\ ') for x in depfiles]
 with open(output, 'w') as f:
     f.write('I am the result of globbing.')
 with open(depfile, 'w') as f:
-    f.write('%s: %s\n' % (output, ' '.join(quoted_depfiles)))
+    f.write('{}: {}\n'.format(output, ' '.join(quoted_depfiles)))

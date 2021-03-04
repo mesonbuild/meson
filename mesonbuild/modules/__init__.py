@@ -82,7 +82,7 @@ def get_include_args(include_dirs, prefix='-I'):
     dirs_str = []
     for dirs in unholder(include_dirs):
         if isinstance(dirs, str):
-            dirs_str += ['%s%s' % (prefix, dirs)]
+            dirs_str += [f'{prefix}{dirs}']
             continue
 
         # Should be build.IncludeDirs object.
@@ -91,10 +91,10 @@ def get_include_args(include_dirs, prefix='-I'):
             expdir = os.path.join(basedir, d)
             srctreedir = os.path.join('@SOURCE_ROOT@', expdir)
             buildtreedir = os.path.join('@BUILD_ROOT@', expdir)
-            dirs_str += ['%s%s' % (prefix, buildtreedir),
-                         '%s%s' % (prefix, srctreedir)]
+            dirs_str += [f'{prefix}{buildtreedir}',
+                         f'{prefix}{srctreedir}']
         for d in dirs.get_extra_build_dirs():
-            dirs_str += ['%s%s' % (prefix, d)]
+            dirs_str += [f'{prefix}{d}']
 
     return dirs_str
 

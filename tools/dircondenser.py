@@ -48,7 +48,7 @@ def get_entries() -> T.List[T.Tuple[int, str]]:
         try:
             numstr = int(number)
         except ValueError:
-            raise SystemExit('Dir name {} does not start with a number.'.format(e))
+            raise SystemExit(f'Dir name {e} does not start with a number.')
         entries.append((numstr, rest))
     entries.sort()
     return entries

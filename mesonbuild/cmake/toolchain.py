@@ -105,7 +105,7 @@ class CMakeToolchain:
         for key, value in self.variables.items():
             res += 'set(' + key
             for i in value:
-                res += ' "{}"'.format(i)
+                res += f' "{i}"'
 
             res += ')\n'
         res += '\n'

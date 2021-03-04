@@ -106,7 +106,7 @@ class UserBooleanOption(UserOption[bool]):
         if isinstance(value, bool):
             return value
         if not isinstance(value, str):
-            raise MesonException('Value {} cannot be converted to a boolean'.format(value))
+            raise MesonException(f'Value {value} cannot be converted to a boolean')
         if value.lower() == 'true':
             return True
         if value.lower() == 'false':
@@ -170,7 +170,7 @@ class UserUmaskOption(UserIntegerOption, UserOption[T.Union[str, OctalInt]]):
         try:
             return int(valuestring, 8)
         except ValueError as e:
-            raise MesonException('Invalid mode: {}'.format(e))
+            raise MesonException(f'Invalid mode: {e}')
 
 class UserComboOption(UserOption[str]):
     def __init__(self, description: str, choices: T.List[str], value: T.Any, yielding: T.Optional[bool] = None):
@@ -190,7 +190,7 @@ class UserComboOption(UserOption[str]):
                 _type = 'number'
             else:
                 _type = 'string'
-            optionsstring = ', '.join(['"%s"' % (item,) for item in self.choices])
+            optionsstring = ', '.join([f'"{item}"' for item in self.choices])
             raise MesonException('Value "{}" (of type "{}") for combo option "{}" is not one of the choices.'
                                  ' Possible choices are (as string): {}.'.format(
                                      value, _type, self.description, optionsstring))
@@ -216,7 +216,7 @@ class UserArrayOption(UserOption[T.List[str]]):
                 try:
                     newvalue = ast.literal_eval(value)
                 except ValueError:
-                    raise MesonException('malformed option {}'.format(value))
+                    raise MesonException(f'malformed option {value}')
             elif value == '':
                 newvalue = []
             else:
@@ -227,7 +227,7 @@ class UserArrayOption(UserOption[T.List[str]]):
         elif isinstance(value, list):
             newvalue = value
         else:
-            raise MesonException('"{}" should be a string array, but it is not'.format(newvalue))
+            raise MesonException(f'"{newvalue}" should be a string array, but it is not')
 
         if not self.allow_dups and len(set(newvalue)) != len(newvalue):
             msg = 'Duplicated values in array option is deprecated. ' \
@@ -433,7 +433,7 @@ class CoreData:
                     # in this case we've been passed some kind of pipe, copy
                     # the contents of that file into the meson private (scratch)
                     # directory so that it can be re-read when wiping/reconfiguring
-                    copy = os.path.join(scratch_dir, '{}.{}.ini'.format(uuid.uuid4(), ftype))
+                    copy = os.path.join(scratch_dir, f'{uuid.uuid4()}.{ftype}.ini')
                     with open(f) as rf:
                         with open(copy, 'w') as wf:
                             wf.write(rf.read())
@@ -461,7 +461,7 @@ class CoreData:
             if found_invalid:
                 mlog.log('Found invalid candidates for', ftype, 'file:', *found_invalid)
             mlog.log('Could not find any valid candidate for', ftype, 'files:', *missing)
-            raise MesonException('Cannot find specified {} file: {}'.format(ftype, f))
+            raise MesonException(f'Cannot find specified {ftype} file: {f}')
         return real
 
     def builtin_options_libdir_cross_fixup(self):
@@ -683,7 +683,7 @@ class CoreData:
                 try:
                     value.set_value(oldval.value)
                 except MesonException as e:
-                    mlog.warning('Old value(s) of {} are no longer valid, resetting to default ({}).'.format(key, value.value))
+                    mlog.warning(f'Old value(s) of {key} are no longer valid, resetting to default ({value.value}).')
 
     def is_cross_build(self, when_building_for: MachineChoice = MachineChoice.HOST) -> bool:
         if when_building_for == MachineChoice.BUILD:
@@ -726,8 +726,8 @@ class CoreData:
                 self.set_option(k, v)
         if unknown_options and warn_unknown:
             unknown_options_str = ', '.join(sorted(str(s) for s in unknown_options))
-            sub = 'In subproject {}: '.format(subproject) if subproject else ''
-            mlog.warning('{}Unknown options: "{}"'.format(sub, unknown_options_str))
+            sub = f'In subproject {subproject}: ' if subproject else ''
+            mlog.warning(f'{sub}Unknown options: "{unknown_options_str}"')
             mlog.log('The value of new options can be set with:')
             mlog.log(mlog.bold('meson setup <builddir> --reconfigure -Dnew_option=new_value ...'))
         if not self.is_cross_build():
@@ -833,14 +833,14 @@ class MachineFileParser():
         section = {}
         for entry, value in self.parser.items(s):
             if ' ' in entry or '\t' in entry or "'" in entry or '"' in entry:
-                raise EnvironmentException('Malformed variable name {!r} in machine file.'.format(entry))
+                raise EnvironmentException(f'Malformed variable name {entry!r} in machine file.')
             # Windows paths...
             value = value.replace('\\', '\\\\')
             try:
                 ast = mparser.Parser(value, 'machinefile').parse()
                 res = self._evaluate_statement(ast.lines[0])
             except MesonException:
-                raise EnvironmentException('Malformed value in machine file variable {!r}.'.format(entry))
+                raise EnvironmentException(f'Malformed value in machine file variable {entry!r}.')
             except KeyError as e:
                 raise EnvironmentException('Undefined constant {!r} in machine file variable {!r}.'.format(e.args[0], entry))
             section[entry] = res
@@ -927,9 +927,9 @@ def get_cmd_line_options(build_dir: str, options: argparse.Namespace) -> str:
     read_cmd_line_file(build_dir, copy)
     cmdline = ['-D{}={}'.format(str(k), v) for k, v in copy.cmd_line_options.items()]
     if options.cross_file:
-        cmdline += ['--cross-file {}'.format(f) for f in options.cross_file]
+        cmdline += [f'--cross-file {f}' for f in options.cross_file]
     if options.native_file:
-        cmdline += ['--native-file {}'.format(f) for f in options.native_file]
+        cmdline += [f'--native-file {f}' for f in options.native_file]
     return ' '.join([shlex.quote(x) for x in cmdline])
 
 def major_versions_differ(v1: str, v2: str) -> bool:
@@ -937,7 +937,7 @@ def major_versions_differ(v1: str, v2: str) -> bool:
 
 def load(build_dir: str) -> CoreData:
     filename = os.path.join(build_dir, 'meson-private', 'coredata.dat')
-    load_fail_msg = 'Coredata file {!r} is corrupted. Try with a fresh build tree.'.format(filename)
+    load_fail_msg = f'Coredata file {filename!r} is corrupted. Try with a fresh build tree.'
     try:
         with open(filename, 'rb') as f:
             obj = pickle.load(f)
@@ -986,7 +986,7 @@ def create_options_dict(options: T.List[str], subproject: str = '') -> T.Dict[Op
         try:
             (key, value) = o.split('=', 1)
         except ValueError:
-            raise MesonException('Option {!r} must have a value separated by equals sign.'.format(o))
+            raise MesonException(f'Option {o!r} must have a value separated by equals sign.')
         k = OptionKey.from_string(key)
         if subproject:
             k = k.evolve(subproject=subproject)

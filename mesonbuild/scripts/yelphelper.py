@@ -68,7 +68,7 @@ def install_help(srcdir: str, blddir: str, sources: T.List[str], media: T.List[s
         for source in sources:
             infile = os.path.join(srcdir if lang == 'C' else blddir, lang, source)
             outfile = os.path.join(indir, source)
-            mlog.log('Installing %s to %s' % (infile, outfile))
+            mlog.log(f'Installing {infile} to {outfile}')
             shutil.copy2(infile, outfile)
         for m in media:
             infile = os.path.join(srcdir, lang, m)
@@ -80,7 +80,7 @@ def install_help(srcdir: str, blddir: str, sources: T.List[str], media: T.List[s
                     continue
                 elif symlinks:
                     srcfile = os.path.join(c_install_dir, m)
-                    mlog.log('Symlinking %s to %s.' % (outfile, srcfile))
+                    mlog.log(f'Symlinking {outfile} to {srcfile}.')
                     if has_path_sep(m):
                         os.makedirs(os.path.dirname(outfile), exist_ok=True)
                     try:
@@ -96,7 +96,7 @@ def install_help(srcdir: str, blddir: str, sources: T.List[str], media: T.List[s
                 else:
                     # Lang doesn't have media file so copy it over 'C' one
                     infile = c_infile
-            mlog.log('Installing %s to %s' % (infile, outfile))
+            mlog.log(f'Installing {infile} to {outfile}')
             if has_path_sep(m):
                 os.makedirs(os.path.dirname(outfile), exist_ok=True)
             shutil.copyfile(infile, outfile)

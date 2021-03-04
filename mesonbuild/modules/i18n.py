@@ -83,7 +83,7 @@ class I18nModule(ExtensionModule):
         file_type = kwargs.pop('type', 'xml')
         VALID_TYPES = ('xml', 'desktop')
         if file_type not in VALID_TYPES:
-            raise MesonException('i18n: "{}" is not a valid type {}'.format(file_type, VALID_TYPES))
+            raise MesonException(f'i18n: "{file_type}" is not a valid type {VALID_TYPES}')
 
         datadirs = self._get_data_dirs(state, mesonlib.stringlistify(kwargs.pop('data_dirs', [])))
         datadirs = '--datadirs=' + ':'.join(datadirs) if datadirs else None

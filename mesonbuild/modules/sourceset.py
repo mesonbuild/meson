@@ -150,7 +150,7 @@ class SourceSetHolder(MutableInterpreterObject, ObjectHolder):
         if isinstance(config_data, dict):
             def _get_from_config_data(key):
                 if strict and key not in config_data:
-                    raise InterpreterException('Entry {} not in configuration dictionary.'.format(key))
+                    raise InterpreterException(f'Entry {key} not in configuration dictionary.')
                 return config_data.get(key, False)
         else:
             config_cache = dict()

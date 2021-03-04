@@ -80,7 +80,7 @@ def determine_worker_count() -> int:
         try:
             num_workers = int(os.environ[varname])
         except ValueError:
-            print('Invalid value in {}, using 1 thread.'.format(varname))
+            print(f'Invalid value in {varname}, using 1 thread.')
             num_workers = 1
     else:
         try:
@@ -178,17 +178,17 @@ def returncode_to_status(retcode: int) -> str:
             signame = signal.Signals(signum).name
         except ValueError:
             signame = 'SIGinvalid'
-        return 'killed by signal {} {}'.format(signum, signame)
+        return f'killed by signal {signum} {signame}'
 
     if retcode <= 128:
-        return 'exit status {}'.format(retcode)
+        return f'exit status {retcode}'
 
     signum = retcode - 128
     try:
         signame = signal.Signals(signum).name
     except ValueError:
         signame = 'SIGinvalid'
-    return '(exit status {} or signal {} {})'.format(retcode, signum, signame)
+    return f'(exit status {retcode} or signal {signum} {signame})'
 
 # TODO for Windows
 sh_quote: T.Callable[[str], str] = lambda x: x
@@ -285,7 +285,7 @@ class TAPParser:
         explanation: T.Optional[str]
 
         def __str__(self) -> str:
-            return '{} {}'.format(self.number, self.name).strip()
+            return f'{self.number} {self.name}'.strip()
 
     class Error(T.NamedTuple):
         message: str
@@ -329,7 +329,7 @@ class TAPParser:
                 yield self.Test(num, name, TestResult.UNEXPECTEDPASS if ok else TestResult.EXPECTEDFAIL, explanation)
                 return
             else:
-                yield self.Error('invalid directive "{}"'.format(directive,))
+                yield self.Error(f'invalid directive "{directive}"')
 
         yield self.Test(num, name, TestResult.OK if ok else TestResult.FAIL, explanation)
 
@@ -367,7 +367,7 @@ class TAPParser:
                     return
                 if line.startswith(self.yaml_indent):
                     return
-                yield self.Error('YAML block not terminated (started on line {})'.format(self.yaml_lineno))
+                yield self.Error(f'YAML block not terminated (started on line {self.yaml_lineno})')
                 self.state = self._MAIN
 
             assert self.state == self._MAIN
@@ -433,13 +433,13 @@ class TAPParser:
         else:
             # end of file
             if self.state == self._YAML:
-                yield self.Error('YAML block not terminated (started on line {})'.format(self.yaml_lineno))
+                yield self.Error(f'YAML block not terminated (started on line {self.yaml_lineno})')
 
             if not self.bailed_out and self.plan and self.num_tests != self.plan.num_tests:
                 if self.num_tests < self.plan.num_tests:
-                    yield self.Error('Too few tests run (expected {}, got {})'.format(self.plan.num_tests, self.num_tests))
+                    yield self.Error(f'Too few tests run (expected {self.plan.num_tests}, got {self.num_tests})')
                 else:
-                    yield self.Error('Too many tests run (expected {}, got {})'.format(self.plan.num_tests, self.num_tests))
+                    yield self.Error(f'Too many tests run (expected {self.plan.num_tests}, got {self.num_tests})')
 
 class TestLogger:
     def flush(self) -> None:
@@ -530,7 +530,7 @@ class ConsoleLogger(TestLogger):
             return
 
         if len(self.running_tests) == 1:
-            count = '{}/{}'.format(self.started_tests, self.test_count)
+            count = f'{self.started_tests}/{self.test_count}'
         else:
             count = '{}-{}/{}'.format(self.started_tests - len(self.running_tests) + 1,
                                       self.started_tests, self.test_count)
@@ -657,7 +657,7 @@ class ConsoleLogger(TestLogger):
         self.running_tests.remove(result)
         if result.res is TestResult.TIMEOUT and harness.options.verbose:
             self.flush()
-            print('{} time out (After {} seconds)'.format(result.name, result.timeout))
+            print(f'{result.name} time out (After {result.timeout} seconds)')
 
         if not harness.options.quiet or not result.res.is_ok():
             self.flush()
@@ -692,9 +692,9 @@ class ConsoleLogger(TestLogger):
 
 class TextLogfileBuilder(TestFileLogger):
     def start(self, harness: 'TestHarness') -> None:
-        self.file.write('Log of Meson test suite run on {}\n\n'.format(datetime.datetime.now().isoformat()))
+        self.file.write(f'Log of Meson test suite run on {datetime.datetime.now().isoformat()}\n\n')
         inherit_env = env_tuple_to_str(os.environ.items())
-        self.file.write('Inherited environment: {}\n\n'.format(inherit_env))
+        self.file.write(f'Inherited environment: {inherit_env}\n\n')
 
     def log(self, harness: 'TestHarness', result: 'TestRun') -> None:
         self.file.write(harness.format(result, False) + '\n')
@@ -713,7 +713,7 @@ class TextLogfileBuilder(TestFileLogger):
                 self.file.write(harness.format(result, False) + '\n')
         self.file.write(harness.summary())
 
-        print('Full log written to {}'.format(self.filename))
+        print(f'Full log written to {self.filename}')
 
 
 class JsonLogfileBuilder(TestFileLogger):
@@ -773,7 +773,7 @@ class JunitBuilder(TestLogger):
         # We want to record this so that each result is recorded
         # separately
         if test.results:
-            suitename = '{}.{}'.format(test.project, test.name)
+            suitename = f'{test.project}.{test.name}'
             assert suitename not in self.suites or harness.options.repeat > 1, 'duplicate suite'
 
             suite = self.suites[suitename] = et.Element(
@@ -905,9 +905,9 @@ class TestRun:
             passed = sum(x.result.is_ok() for x in self.results)
             ran = sum(x.result is not TestResult.SKIP for x in self.results)
             if passed == ran:
-                return '{} subtests passed'.format(passed)
+                return f'{passed} subtests passed'
             else:
-                return '{}/{} subtests passed'.format(passed, ran)
+                return f'{passed}/{ran} subtests passed'
         return ''
 
     def _complete(self, returncode: int, res: TestResult,
@@ -985,7 +985,7 @@ TestRun.PROTOCOL_TO_CLASS[TestProtocol.EXITCODE] = TestRunExitCode
 class TestRunGTest(TestRunExitCode):
     def complete(self, returncode: int, res: TestResult,
                  stdo: T.Optional[str], stde: T.Optional[str]) -> None:
-        filename = '{}.xml'.format(self.test.name)
+        filename = f'{self.test.name}.xml'
         if self.test.workdir:
             filename = os.path.join(self.test.workdir, filename)
 
@@ -1005,7 +1005,7 @@ class TestRunTAP(TestRun):
         if returncode != 0 and not res.was_killed():
             res = TestResult.ERROR
             stde = stde or ''
-            stde += '\n(test program exited with status code {})'.format(returncode,)
+            stde += f'\n(test program exited with status code {returncode})'
 
         super().complete(returncode, res, stdo, stde)
 
@@ -1048,7 +1048,7 @@ class TestRunRust(TestRun):
             elif result == 'FAILED':
                 return TAPParser.Test(n, name, TestResult.FAIL, None)
             return TAPParser.Test(n, name, TestResult.ERROR,
-                                  'Unsupported output from rust test: {}'.format(result))
+                                  f'Unsupported output from rust test: {result}')
 
         n = 1
         async for line in lines:
@@ -1399,7 +1399,7 @@ class SingleTestRunner:
             gtestname = self.test.name
             if self.test.workdir:
                 gtestname = os.path.join(self.test.workdir, self.test.name)
-            extra_cmd.append('--gtest_output=xml:{}.xml'.format(gtestname))
+            extra_cmd.append(f'--gtest_output=xml:{gtestname}.xml')
 
         p = await self._run_subprocess(cmd + extra_cmd,
                                        stdout=stdout,
@@ -1480,7 +1480,7 @@ class TestHarness:
     def load_tests(self, file_name: str) -> T.List[TestSerialisation]:
         datafile = Path('meson-private') / file_name
         if not datafile.is_file():
-            raise TestException('Directory {!r} does not seem to be a Meson build directory.'.format(self.options.wd))
+            raise TestException(f'Directory {self.options.wd!r} does not seem to be a Meson build directory.')
         with datafile.open('rb') as f:
             objs = check_testdata(pickle.load(f))
         return objs
@@ -1498,12 +1498,12 @@ class TestHarness:
     def get_test_setup(self, test: T.Optional[TestSerialisation]) -> build.TestSetup:
         if ':' in self.options.setup:
             if self.options.setup not in self.build_data.test_setups:
-                sys.exit("Unknown test setup '{}'.".format(self.options.setup))
+                sys.exit(f"Unknown test setup '{self.options.setup}'.")
             return self.build_data.test_setups[self.options.setup]
         else:
             full_name = test.project_name + ":" + self.options.setup
             if full_name not in self.build_data.test_setups:
-                sys.exit("Test setup '{}' not found from project '{}'.".format(self.options.setup, test.project_name))
+                sys.exit(f"Test setup '{self.options.setup}' not found from project '{test.project_name}'.")
             return self.build_data.test_setups[full_name]
 
     def merge_setup_options(self, options: argparse.Namespace, test: TestSerialisation) -> T.Dict[str, str]:
@@ -1550,7 +1550,7 @@ class TestHarness:
         elif result.res is TestResult.UNEXPECTEDPASS:
             self.unexpectedpass_count += 1
         else:
-            sys.exit('Unknown test result encountered: {}'.format(result.res))
+            sys.exit(f'Unknown test result encountered: {result.res}')
 
         if result.res.is_bad():
             self.collected_failures.append(result)
@@ -1922,7 +1922,7 @@ def rebuild_deps(wd: str, tests: T.List[TestSerialisation]) -> bool:
 
     ret = subprocess.run(ninja + ['-C', wd] + sorted(targets)).returncode
     if ret != 0:
-        print('Could not rebuild {}'.format(wd))
+        print(f'Could not rebuild {wd}')
         return False
 
     return True
@@ -1953,7 +1953,7 @@ def run(options: argparse.Namespace) -> int:
     if check_bin is not None:
         exe = ExternalProgram(check_bin, silent=True)
         if not exe.found():
-            print('Could not find requested program: {!r}'.format(check_bin))
+            print(f'Could not find requested program: {check_bin!r}')
             return 1
 
     with TestHarness(options) as th:

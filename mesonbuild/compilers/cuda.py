@@ -514,7 +514,7 @@ class CudaCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise EnvironmentException('Compiler {} can not compile programs.'.format(self.name_string()))
+            raise EnvironmentException(f'Compiler {self.name_string()} can not compile programs.')
 
         # Run sanity check (if possible)
         if self.is_cross:
@@ -533,7 +533,7 @@ class CudaCompiler(Compiler):
         mlog.debug('-----')
         pe.wait()
         if pe.returncode != 0:
-            raise EnvironmentException('Executables created by {} compiler {} are not runnable.'.format(self.language, self.name_string()))
+            raise EnvironmentException(f'Executables created by {self.language} compiler {self.name_string()} are not runnable.')
 
         # Interpret the result of the sanity test.
         # As mentioned above, it is not only a sanity test but also a GPU

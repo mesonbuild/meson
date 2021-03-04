@@ -80,7 +80,7 @@ class RustCompiler(Compiler):
         stdo = _stdo.decode('utf-8', errors='replace')
         stde = _stde.decode('utf-8', errors='replace')
         if pc.returncode != 0:
-            raise EnvironmentException('Rust compiler %s can not compile programs.\n%s\n%s' % (
+            raise EnvironmentException('Rust compiler {} can not compile programs.\n{}\n{}'.format(
                 self.name_string(),
                 stdo,
                 stde))
@@ -119,7 +119,7 @@ class RustCompiler(Compiler):
             if i[:2] == '-L':
                 for j in ['dependency', 'crate', 'native', 'framework', 'all']:
                     combined_len = len(j) + 3
-                    if i[:combined_len] == '-L{}='.format(j):
+                    if i[:combined_len] == f'-L{j}=':
                         parameter_list[idx] = i[:combined_len] + os.path.normpath(os.path.join(build_dir, i[combined_len:]))
                         break
 
@@ -130,7 +130,7 @@ class RustCompiler(Compiler):
 
     @classmethod
     def use_linker_args(cls, linker: str) -> T.List[str]:
-        return ['-C', 'linker={}'.format(linker)]
+        return ['-C', f'linker={linker}']
 
     # Rust does not have a use_linker_args because it dispatches to a gcc-like
     # C compiler for dynamic linking, as such we invoke the C compiler's

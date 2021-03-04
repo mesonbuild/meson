@@ -91,11 +91,11 @@ class BoostIncludeDir():
         major = int(self.version_int / 100000)
         minor = int((self.version_int / 100) % 1000)
         patch = int(self.version_int % 100)
-        self.version = '{}.{}.{}'.format(major, minor, patch)
-        self.version_lib = '{}_{}'.format(major, minor)
+        self.version = f'{major}.{minor}.{patch}'
+        self.version_lib = f'{major}_{minor}'
 
     def __repr__(self) -> str:
-        return '<BoostIncludeDir: {} -- {}>'.format(self.version, self.path)
+        return f'<BoostIncludeDir: {self.version} -- {self.path}>'
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostIncludeDir):
@@ -152,7 +152,7 @@ class BoostLibraryFile():
         elif self.nvsuffix in ['a', 'lib']:
             self.static = True
         else:
-            raise DependencyException('Unable to process library extension "{}" ({})'.format(self.nvsuffix, self.path))
+            raise DependencyException(f'Unable to process library extension "{self.nvsuffix}" ({self.path})')
 
         # boost_.lib is the dll import library
         if self.basename.startswith('boost_') and self.nvsuffix == 'lib':
@@ -187,7 +187,7 @@ class BoostLibraryFile():
                 self.toolset = i
 
     def __repr__(self) -> str:
-        return '<LIB: {} {:<32} {}>'.format(self.abitag, self.mod_name, self.path)
+        return f'<LIB: {self.abitag} {self.mod_name:<32} {self.path}>'
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, BoostLibraryFile):
@@ -320,7 +320,7 @@ class BoostLibraryFile():
         elif vscrt in ['/MTd', '-MTd']:
             return (self.runtime_static or not self.static) and self.runtime_debug
 
-        mlog.warning('Boost: unknow vscrt tag {}. This may cause the compilation to fail. Please consider reporting this as a bug.'.format(vscrt), once=True)
+        mlog.warning(f'Boost: unknow vscrt tag {vscrt}. This may cause the compilation to fail. Please consider reporting this as a bug.', once=True)
         return True
 
     def get_compiler_args(self) -> T.List[str]:
@@ -386,7 +386,7 @@ class BoostDependency(ExternalDependency):
         roots = list(mesonlib.OrderedSet(roots))
         for j in roots:
             #   1. Look for the boost headers (boost/version.hpp)
-            mlog.debug('Checking potential boost root {}'.format(j.as_posix()))
+            mlog.debug(f'Checking potential boost root {j.as_posix()}')
             inc_dirs = self.detect_inc_dirs(j)
             inc_dirs = sorted(inc_dirs, reverse=True)  # Prefer the newer versions
 
@@ -419,8 +419,8 @@ class BoostDependency(ExternalDependency):
                 raise DependencyException('Paths given for boost_includedir and boost_librarydir in machine file must be absolute')
 
             mlog.debug('Trying to find boost with:')
-            mlog.debug('  - boost_includedir = {}'.format(inc_dir))
-            mlog.debug('  - boost_librarydir = {}'.format(lib_dir))
+            mlog.debug(f'  - boost_includedir = {inc_dir}')
+            mlog.debug(f'  - boost_librarydir = {lib_dir}')
 
             return self.detect_split_root(inc_dir, lib_dir)
 
@@ -447,7 +447,7 @@ class BoostDependency(ExternalDependency):
         for i in lib_dirs:
             libs = self.detect_libraries(i)
             if libs:
-                mlog.debug('  - found boost library dir: {}'.format(i))
+                mlog.debug(f'  - found boost library dir: {i}')
                 # mlog.debug('  - raw library list:')
                 # for j in libs:
                 #     mlog.debug('    - {}'.format(j))
@@ -456,12 +456,12 @@ class BoostDependency(ExternalDependency):
 
         modules = ['boost_' + x for x in self.modules]
         for inc in inc_dirs:
-            mlog.debug('  - found boost {} include dir: {}'.format(inc.version, inc.path))
+            mlog.debug(f'  - found boost {inc.version} include dir: {inc.path}')
             f_libs = self.filter_libraries(libs, inc.version_lib)
 
             mlog.debug('  - filtered library list:')
             for j in f_libs:
-                mlog.debug('    - {}'.format(j))
+                mlog.debug(f'    - {j}')
 
             #   3. Select the libraries matching the requested modules
             not_found = []  # type: T.List[str]
@@ -505,14 +505,14 @@ class BoostDependency(ExternalDependency):
                 self.compile_args += self._extra_compile_args()
                 self.compile_args = list(mesonlib.OrderedSet(self.compile_args))
                 self.link_args = link_args
-                mlog.debug('  - final compile args: {}'.format(self.compile_args))
-                mlog.debug('  - final link args:    {}'.format(self.link_args))
+                mlog.debug(f'  - final compile args: {self.compile_args}')
+                mlog.debug(f'  - final link args:    {self.link_args}')
                 return True
 
             # in case we missed something log it and try again
             mlog.debug('  - NOT found:')
             for mod in not_found:
-                mlog.debug('    - {}'.format(mod))
+                mlog.debug(f'    - {mod}')
 
         return False
 
@@ -720,7 +720,7 @@ class BoostDependency(ExternalDependency):
         raw = hfile.read_text()
         m = re.search(r'#define\s+BOOST_VERSION\s+([0-9]+)', raw)
         if not m:
-            mlog.debug('Failed to extract version information from {}'.format(hfile))
+            mlog.debug(f'Failed to extract version information from {hfile}')
             return BoostIncludeDir(hfile.parents[1], 0)
         return BoostIncludeDir(hfile.parents[1], int(m.group(1)))
 

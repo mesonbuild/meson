@@ -233,7 +233,7 @@ class Vs2010Backend(backends.Backend):
                     target_arch = os.environ.get('Platform', 'x86')
                     host_arch = target_arch
                 arch = host_arch + '_' + target_arch if host_arch != target_arch else target_arch
-                return '"%s" %s' % (script_path, arch)
+                return f'"{script_path}" {arch}'
 
         # Otherwise try the VS2017 Developer Command Prompt.
         if 'VS150COMNTOOLS' in os.environ and has_arch_values:
@@ -405,10 +405,10 @@ class Vs2010Backend(backends.Backend):
                             'preSolution\n')
                 for p in projlist:
                     if p[1].parent != PurePath('.'):
-                        ofile.write("\t\t{%s} = {%s}\n" % (p[2], self.subdirs[p[1].parent][0]))
+                        ofile.write("\t\t{{{}}} = {{{}}}\n".format(p[2], self.subdirs[p[1].parent][0]))
                 for subdir in self.subdirs.values():
                     if subdir[1]:
-                        ofile.write("\t\t{%s} = {%s}\n" % (subdir[0], subdir[1]))
+                        ofile.write("\t\t{{{}}} = {{{}}}\n".format(subdir[0], subdir[1]))
                 ofile.write('\tEndGlobalSection\n')
             ofile.write('EndGlobal\n')
         replace_if_different(sln_filename, sln_filename_tmp)
@@ -690,7 +690,7 @@ class Vs2010Backend(backends.Backend):
         # kidding, this is how escaping works for process args on Windows.
         if option.endswith('\\'):
             option += '\\'
-        return '"{}"'.format(option)
+        return f'"{option}"'
 
     @staticmethod
     def split_link_args(args):

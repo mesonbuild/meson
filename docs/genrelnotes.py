@@ -50,7 +50,7 @@ def generate(from_version, to_version):
     '''
        Generate notes for Meson build next release.
     '''
-    ofilename = 'Release-notes-for-{}.md'.format(to_version)
+    ofilename = f'Release-notes-for-{to_version}.md'
     with open(ofilename, 'w') as ofile:
         ofile.write(RELNOTE_TEMPLATE.format(to_version, to_version))
         for snippetfile in glob('snippets/*.md'):

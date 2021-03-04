@@ -29,4 +29,4 @@ elif arch == 'x64':
     arch = 'x86_64'
 
 if arch != want_arch:
-    raise RuntimeError('Wanted arch {} but exe uses {}'.format(want_arch, arch))
+    raise RuntimeError(f'Wanted arch {want_arch} but exe uses {arch}')

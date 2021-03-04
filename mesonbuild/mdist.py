@@ -86,13 +86,13 @@ def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts):
     env['MESON_BUILD_ROOT'] = bld_root
     for d in dist_scripts:
         name = ' '.join(d.cmd_args)
-        print('Running custom dist script {!r}'.format(name))
+        print(f'Running custom dist script {name!r}')
         try:
             rc = run_exe(d, env)
             if rc != 0:
                 sys.exit('Dist script errored out')
         except OSError:
-            print('Failed to run dist script {!r}'.format(name))
+            print(f'Failed to run dist script {name!r}')
             sys.exit(1)
 
 def git_root(src_root):
@@ -222,7 +222,7 @@ def run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_
     return 0
 
 def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
-    print('Testing distribution package {}'.format(packagename))
+    print(f'Testing distribution package {packagename}')
     unpackdir = os.path.join(privdir, 'dist-unpack')
     builddir = os.path.join(privdir, 'dist-build')
     installdir = os.path.join(privdir, 'dist-install')
@@ -242,19 +242,19 @@ def check_dist(packagename, meson_command, extra_meson_args, bld_root, privdir):
 
     ret = run_dist_steps(meson_command, unpacked_src_dir, builddir, installdir, ninja_args)
     if ret > 0:
-        print('Dist check build directory was {}'.format(builddir))
+        print(f'Dist check build directory was {builddir}')
     else:
         windows_proof_rmtree(unpackdir)
         windows_proof_rmtree(builddir)
         windows_proof_rmtree(installdir)
-        print('Distribution package {} tested'.format(packagename))
+        print(f'Distribution package {packagename} tested')
     return ret
 
 def determine_archives_to_generate(options):
     result = []
     for i in options.formats.split(','):
         if i not in archive_choices:
-            sys.exit('Value "{}" not one of permitted values {}.'.format(i, archive_choices))
+            sys.exit(f'Value "{i}" not one of permitted values {archive_choices}.')
         result.append(i)
     if len(i) == 0:
         sys.exit('No archive types specified.')
@@ -264,7 +264,7 @@ def run(options):
     options.wd = os.path.abspath(options.wd)
     buildfile = Path(options.wd) / 'meson-private' / 'build.dat'
     if not buildfile.is_file():
-        raise MesonException('Directory {!r} does not seem to be a Meson build directory.'.format(options.wd))
+        raise MesonException(f'Directory {options.wd!r} does not seem to be a Meson build directory.')
     b = build.load(options.wd)
     # This import must be load delayed, otherwise it will get the default
     # value of None.

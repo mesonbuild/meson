@@ -16,7 +16,7 @@ def run(argsv: T.List[str]) -> int:
     parser.add_argument('-d', '--directory', type=str, metavar='D', required=True, help='Working directory to cwd to')
     parser.add_argument('-o', '--outputs', nargs='+', metavar='O', required=True, help='Expected output files')
     parser.add_argument('-O', '--original-outputs', nargs='*', metavar='O', default=[], help='Output files expected by CMake')
-    parser.add_argument('commands', nargs=argparse.REMAINDER, help='A "{}" separated list of commands'.format(SEPARATOR))
+    parser.add_argument('commands', nargs=argparse.REMAINDER, help=f'A "{SEPARATOR}" separated list of commands')
 
     # Parse
     args = parser.parse_args(argsv)

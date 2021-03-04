@@ -100,7 +100,7 @@ def install(options: 'argparse.Namespace') -> None:
     if os.path.exists(wrapfile):
         raise SystemExit('Wrap file already exists.')
     (branch, revision) = get_latest_version(name)
-    u = open_wrapdburl(API_ROOT + 'projects/{}/{}/{}/get_wrap'.format(name, branch, revision))
+    u = open_wrapdburl(API_ROOT + f'projects/{name}/{branch}/{revision}/get_wrap')
     data = u.read()
     with open(wrapfile, 'wb') as f:
         f.write(data)
@@ -119,7 +119,7 @@ def get_current_version(wrapfile: str) -> T.Tuple[str, int, str, str, str]:
     return branch, revision, wrap_data['directory'], wrap_data['source_filename'], wrap_data['patch_filename']
 
 def update_wrap_file(wrapfile: str, name: str, new_branch: str, new_revision: str) -> None:
-    u = open_wrapdburl(API_ROOT + 'projects/{}/{}/{}/get_wrap'.format(name, new_branch, new_revision))
+    u = open_wrapdburl(API_ROOT + f'projects/{name}/{new_branch}/{new_revision}/get_wrap')
     data = u.read()
     with open(wrapfile, 'wb') as f:
         f.write(data)
@@ -154,7 +154,7 @@ def info(options: 'argparse.Namespace') -> None:
     versions = jd['versions']
     if not versions:
         raise SystemExit('No available versions of' + name)
-    print('Available versions of {}:'.format(name))
+    print(f'Available versions of {name}:')
     for v in versions:
         print(' ', v['branch'], v['revision'])
 
@@ -166,7 +166,7 @@ def do_promotion(from_path: str, spdir_name: str) -> None:
         sproj_name = os.path.basename(from_path)
         outputdir = os.path.join(spdir_name, sproj_name)
         if os.path.exists(outputdir):
-            raise SystemExit('Output dir {} already exists. Will not overwrite.'.format(outputdir))
+            raise SystemExit(f'Output dir {outputdir} already exists. Will not overwrite.')
         shutil.copytree(from_path, outputdir, ignore=shutil.ignore_patterns('subprojects'))
 
 def promote(options: 'argparse.Namespace') -> None:
@@ -183,10 +183,10 @@ def promote(options: 'argparse.Namespace') -> None:
 
     # otherwise the argument is just a subproject basename which must be unambiguous
     if argument not in sprojs:
-        raise SystemExit('Subproject {} not found in directory tree.'.format(argument))
+        raise SystemExit(f'Subproject {argument} not found in directory tree.')
     matches = sprojs[argument]
     if len(matches) > 1:
-        print('There is more than one version of {} in tree. Please specify which one to promote:\n'.format(argument), file=sys.stderr)
+        print(f'There is more than one version of {argument} in tree. Please specify which one to promote:\n', file=sys.stderr)
         for s in matches:
             print(s, file=sys.stderr)
         raise SystemExit(1)
@@ -207,9 +207,9 @@ def status(options: 'argparse.Namespace') -> None:
             print('Wrap file not from wrapdb.', file=sys.stderr)
             continue
         if current_branch == latest_branch and current_revision == latest_revision:
-            print('', name, 'up to date. Branch {}, revision {}.'.format(current_branch, current_revision))
+            print('', name, f'up to date. Branch {current_branch}, revision {current_revision}.')
         else:
-            print('', name, 'not up to date. Have {} {}, but {} {} is available.'.format(current_branch, current_revision, latest_branch, latest_revision))
+            print('', name, f'not up to date. Have {current_branch} {current_revision}, but {latest_branch} {latest_revision} is available.')
 
 def run(options: 'argparse.Namespace') -> int:
     options.wrap_func(options)

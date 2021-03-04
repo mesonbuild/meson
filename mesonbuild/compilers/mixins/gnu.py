@@ -104,7 +104,7 @@ def gnulike_default_include_dirs(compiler: T.Tuple[str], lang: str) -> T.List[st
     lang = lang_map[lang]
     env = os.environ.copy()
     env["LC_ALL"] = 'C'
-    cmd = list(compiler) + ['-x{}'.format(lang), '-E', '-v', '-']
+    cmd = list(compiler) + [f'-x{lang}', '-E', '-v', '-']
     p = subprocess.Popen(
         cmd,
         stdin=subprocess.DEVNULL,
@@ -317,7 +317,7 @@ class GnuLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             raise mesonlib.MesonException(
                 'Unsupported linker, only bfd, gold, and lld are supported, '
                 'not {}.'.format(linker))
-        return ['-fuse-ld={}'.format(linker)]
+        return [f'-fuse-ld={linker}']
 
     def get_coverage_args(self) -> T.List[str]:
         return ['--coverage']

@@ -450,7 +450,7 @@ class Rewriter:
             'id': "/",
             'operation': 'remove_regex',
             'kwargs': {
-                'default_options': ['{}=.*'.format(x) for x in cmd['options'].keys()]
+                'default_options': [f'{x}=.*' for x in cmd['options'].keys()]
             }
         }
         self.process_kwargs(kwargs_cmd)
@@ -484,7 +484,7 @@ class Rewriter:
                 self.handle_error()
                 continue
 
-            kwargs_cmd['kwargs']['default_options'] += ['{}={}'.format(key, val)]
+            kwargs_cmd['kwargs']['default_options'] += [f'{key}={val}']
 
         self.process_kwargs(kwargs_cmd)
 
@@ -656,7 +656,7 @@ class Rewriter:
                     mlog.log('  -- Source', mlog.green(i), 'is already defined for the target --> skipping')
                     continue
                 mlog.log('  -- Adding source', mlog.green(i), 'at',
-                         mlog.yellow('{}:{}'.format(node.filename, node.lineno)))
+                         mlog.yellow(f'{node.filename}:{node.lineno}'))
                 token = Token('string', node.filename, 0, 0, 0, None, i)
                 to_append += [StringNode(token)]
 
@@ -700,7 +700,7 @@ class Rewriter:
                     arg_node = root
                 assert(arg_node is not None)
                 mlog.log('  -- Removing source', mlog.green(i), 'from',
-                         mlog.yellow('{}:{}'.format(string_node.filename, string_node.lineno)))
+                         mlog.yellow(f'{string_node.filename}:{string_node.lineno}'))
                 arg_node.arguments.remove(string_node)
 
                 # Mark the node as modified
@@ -747,7 +747,7 @@ class Rewriter:
                 to_remove = target['node']
             self.to_remove_nodes += [to_remove]
             mlog.log('  -- Removing target', mlog.green(cmd['target']), 'at',
-                     mlog.yellow('{}:{}'.format(to_remove.filename, to_remove.lineno)))
+                     mlog.yellow(f'{to_remove.filename}:{to_remove.lineno}'))
 
         elif cmd['operation'] == 'info':
             # T.List all sources in the target

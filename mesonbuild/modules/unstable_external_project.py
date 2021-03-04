@@ -140,7 +140,7 @@ class ExternalProject(InterpreterObject):
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
         for key, default, val in variables:
-            key_format = '@{}@'.format(key)
+            key_format = f'@{key}@'
             for option in self.configure_options:
                 if key_format in option:
                     break
@@ -160,13 +160,13 @@ class ExternalProject(InterpreterObject):
         if missing:
             var_list = ", ".join(map(repr, sorted(missing)))
             raise EnvironmentException(
-                "Variables {} in configure options are missing.".format(var_list))
+                f"Variables {var_list} in configure options are missing.")
         return out
 
     def _run(self, step: str, command: T.List[str]):
-        mlog.log('External project {}:'.format(self.name), mlog.bold(step))
+        mlog.log(f'External project {self.name}:', mlog.bold(step))
         m = 'Running command ' + str(command) + ' in directory ' + str(self.build_dir) + '\n'
-        log_filename = Path(mlog.log_dir, '{}-{}.log'.format(self.name, step))
+        log_filename = Path(mlog.log_dir, f'{self.name}-{step}.log')
         output = None
         if not self.verbose:
             output = open(log_filename, 'w')
@@ -178,7 +178,7 @@ class ExternalProject(InterpreterObject):
                                       stderr=subprocess.STDOUT,
                                       stdout=output)
         if p.returncode != 0:
-            m = '{} step returned error code {}.'.format(step, p.returncode)
+            m = f'{step} step returned error code {p.returncode}.'
             if not self.verbose:
                 m += '\nSee logs: ' + str(log_filename)
             raise MesonException(m)
@@ -196,8 +196,8 @@ class ExternalProject(InterpreterObject):
         if self.verbose:
             cmd.append('--verbose')
 
-        target_kwargs = {'output': '{}.stamp'.format(self.name),
-                         'depfile': '{}.d'.format(self.name),
+        target_kwargs = {'output': f'{self.name}.stamp',
+                         'depfile': f'{self.name}.d',
                          'command': cmd + ['@OUTPUT@', '@DEPFILE@'],
                          'console': True,
                          }
@@ -237,8 +237,8 @@ class ExternalProject(InterpreterObject):
 
         version = self.project_version['version']
         incdir = []
-        compile_args = ['-I{}'.format(abs_includedir)]
-        link_args = ['-L{}'.format(abs_libdir), '-l{}'.format(libname)]
+        compile_args = [f'-I{abs_includedir}']
+        link_args = [f'-L{abs_libdir}', f'-l{libname}']
         libs = []
         libs_whole = []
         sources = self.target

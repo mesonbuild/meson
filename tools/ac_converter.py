@@ -414,7 +414,7 @@ cdata = configuration_data()''')
 
 print('check_headers = [')
 for token, hname in headers:
-    print("  ['{}', '{}'],".format(token, hname))
+    print(f"  ['{token}', '{hname}'],")
 print(']\n')
 
 print('''foreach h : check_headers
@@ -430,7 +430,7 @@ print('check_functions = [')
 for tok in functions:
     if len(tok) == 3:
         tokstr, fdata0, fdata1 = tok
-        print("  ['{}', '{}', '#include<{}>'],".format(tokstr, fdata0, fdata1))
+        print(f"  ['{tokstr}', '{fdata0}', '#include<{fdata1}>'],")
     else:
         print('# check token', tok)
 print(']\n')
@@ -445,7 +445,7 @@ endforeach
 # Convert sizeof checks.
 
 for elem, typename in sizes:
-    print("cdata.set('{}', cc.sizeof('{}'))".format(elem, typename))
+    print(f"cdata.set('{elem}', cc.sizeof('{typename}'))")
 
 print('''
 configure_file(input : 'config.h.meson',

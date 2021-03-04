@@ -65,7 +65,7 @@ class TestProtocol(enum.Enum):
             return cls.GTEST
         elif string == 'rust':
             return cls.RUST
-        raise MesonException('unknown test format {}'.format(string))
+        raise MesonException(f'unknown test format {string}')
 
     def __str__(self) -> str:
         cls = type(self)
@@ -282,14 +282,14 @@ class Backend:
             return os.path.join(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, (build.CustomTarget, build.CustomTargetIndex)):
             if not target.is_linkable_target():
-                raise MesonException('Tried to link against custom target "{}", which is not linkable.'.format(target.name))
+                raise MesonException(f'Tried to link against custom target "{target.name}", which is not linkable.')
             return os.path.join(self.get_target_dir(target), target.get_filename())
         elif isinstance(target, build.Executable):
             if target.import_filename:
                 return os.path.join(self.get_target_dir(target), target.get_import_filename())
             else:
                 return None
-        raise AssertionError('BUG: Tried to link to {!r} which is not linkable'.format(target))
+        raise AssertionError(f'BUG: Tried to link to {target!r} which is not linkable')
 
     @lru_cache(maxsize=None)
     def get_target_dir(self, target):
@@ -335,7 +335,7 @@ class Backend:
     def get_unity_source_file(self, target, suffix, number):
         # There is a potential conflict here, but it is unlikely that
         # anyone both enables unity builds and has a file called foo-unity.cpp.
-        osrc = '{}-unity{}.{}'.format(target.name, number, suffix)
+        osrc = f'{target.name}-unity{number}.{suffix}'
         return mesonlib.File.from_built_file(self.get_target_private_dir(target), osrc)
 
     def generate_unity_files(self, target, unity_src):
@@ -368,7 +368,7 @@ class Backend:
                     ofile = init_language_file(comp.get_default_suffix(), unity_file_number)
                     unity_file_number += 1
                     files_in_current = 0
-                ofile.write('#include<{}>\n'.format(src))
+                ofile.write(f'#include<{src}>\n')
                 files_in_current += 1
             if ofile:
                 ofile.close()
@@ -505,7 +505,7 @@ class Backend:
         data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
-        scratch_file = 'meson_exe_{}_{}.dat'.format(basename, digest)
+        scratch_file = f'meson_exe_{basename}_{digest}.dat'
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             pickle.dump(es, f)
@@ -575,7 +575,7 @@ class Backend:
                 for dir in symbols_match.group(1).split(':'):
                     # Prevent usage of --just-symbols to specify rpath
                     if Path(dir).is_dir():
-                        raise MesonException('Invalid arg for --just-symbols, {} is a directory.'.format(dir))
+                        raise MesonException(f'Invalid arg for --just-symbols, {dir} is a directory.')
         return dirs
 
     def rpaths_for_bundled_shared_libraries(self, target, exclude_system=True):
@@ -601,7 +601,7 @@ class Backend:
                 continue
             if libdir.startswith(self.environment.get_source_dir()):
                 rel_to_src = libdir[len(self.environment.get_source_dir()) + 1:]
-                assert not os.path.isabs(rel_to_src), 'rel_to_src: {} is absolute'.format(rel_to_src)
+                assert not os.path.isabs(rel_to_src), f'rel_to_src: {rel_to_src} is absolute'
                 paths.append(os.path.join(self.build_to_src, rel_to_src))
             else:
                 paths.append(libdir)
@@ -717,7 +717,7 @@ class Backend:
     def create_msvc_pch_implementation(self, target, lang, pch_header):
         # We have to include the language in the file name, otherwise
         # pch.c and pch.cpp will both end up as pch.obj in VS backends.
-        impl_name = 'meson_pch-{}.{}'.format(lang, lang)
+        impl_name = f'meson_pch-{lang}.{lang}'
         pch_rel_to_build = os.path.join(self.get_target_private_dir(target), impl_name)
         # Make sure to prepend the build dir, since the working directory is
         # not defined. Otherwise, we might create the file in the wrong path.
@@ -833,7 +833,7 @@ class Backend:
         args = []
         for d in deps:
             if not (d.is_linkable_target()):
-                raise RuntimeError('Tried to link with a non-library target "{}".'.format(d.get_basename()))
+                raise RuntimeError(f'Tried to link with a non-library target "{d.get_basename()}".')
             arg = self.get_target_filename_for_linking(d)
             if not arg:
                 continue
@@ -1011,7 +1011,7 @@ class Backend:
             # to the future by a minuscule amount, less than
             # 0.001 seconds. I don't know why.
             if delta > 0.001:
-                raise MesonException('Clock skew detected. File {} has a time stamp {:.4f}s in the future.'.format(absf, delta))
+                raise MesonException(f'Clock skew detected. File {absf} has a time stamp {delta:.4f}s in the future.')
 
     def build_target_to_cmd_array(self, bt):
         if isinstance(bt, build.BuildTarget):
@@ -1036,7 +1036,7 @@ class Backend:
             m = regex.search(arg)
             while m is not None:
                 index = int(m.group(1))
-                src = '@OUTPUT{}@'.format(index)
+                src = f'@OUTPUT{index}@'
                 arg = arg.replace(src, os.path.join(private_dir, output_list[index]))
                 m = regex.search(arg)
             newargs.append(arg)
@@ -1239,7 +1239,7 @@ class Backend:
 
         for s in self.build.postconf_scripts:
             name = ' '.join(s.cmd_args)
-            mlog.log('Running postconf script {!r}'.format(name))
+            mlog.log(f'Running postconf script {name!r}')
             run_exe(s, env)
 
     def create_install_data(self) -> InstallData:
