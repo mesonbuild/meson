@@ -838,7 +838,7 @@ class CcrxDynamicLinker(DynamicLinker):
         return ['-output={}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
-        raise EnvironmentError('rlink.exe does not have a search dir argument')
+        raise OSError('rlink.exe does not have a search dir argument')
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -878,7 +878,7 @@ class Xc16DynamicLinker(DynamicLinker):
         return ['-o{}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
-        raise EnvironmentError('xc16-gcc.exe does not have a search dir argument')
+        raise OSError('xc16-gcc.exe does not have a search dir argument')
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []
@@ -966,7 +966,7 @@ class C2000DynamicLinker(DynamicLinker):
         return ['-z', '--output_file={}'.format(outputname)]
 
     def get_search_args(self, dirname: str) -> 'T.NoReturn':
-        raise EnvironmentError('cl2000.exe does not have a search dir argument')
+        raise OSError('cl2000.exe does not have a search dir argument')
 
     def get_allow_undefined_args(self) -> T.List[str]:
         return []

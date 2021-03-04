@@ -211,7 +211,7 @@ class FSModule(ExtensionModule):
         if path_is_in_root(Path(path), Path(build_dir), resolve=True):
             raise MesonException('path must not be in the build tree')
         try:
-            with open(path, 'r', encoding=encoding) as f:
+            with open(path, encoding=encoding) as f:
                 data = f.read()
         except UnicodeDecodeError:
             raise MesonException(f'decoding failed for {path}')

@@ -82,7 +82,7 @@ def run_exe(exe: ExecutableSerialisation, extra_env: T.Optional[dict] = None) ->
         try:
             with open(exe.capture, 'rb') as cur:
                 skip_write = cur.read() == stdout
-        except IOError:
+        except OSError:
             pass
         if not skip_write:
             with open(exe.capture, 'wb') as output:

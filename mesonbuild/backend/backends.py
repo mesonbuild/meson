@@ -505,7 +505,7 @@ class Backend:
         data = bytes(str(es.env) + str(es.cmd_args) + str(es.workdir) + str(capture),
                      encoding='utf-8')
         digest = hashlib.sha1(data).hexdigest()
-        scratch_file = 'meson_exe_{0}_{1}.dat'.format(basename, digest)
+        scratch_file = 'meson_exe_{}_{}.dat'.format(basename, digest)
         exe_data = os.path.join(self.environment.get_scratch_dir(), scratch_file)
         with open(exe_data, 'wb') as f:
             pickle.dump(es, f)

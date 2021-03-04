@@ -1352,7 +1352,7 @@ if __name__ == '__main__':
             except UnicodeError:
                 print(l.encode('ascii', errors='replace').decode(), '\n')
     for name, dirs, _ in all_tests:
-        dir_names = list(set(x.path.name for x in dirs))
+        dir_names = list({x.path.name for x in dirs})
         for k, g in itertools.groupby(dir_names, key=lambda x: x.split()[0]):
             tests = list(g)
             if len(tests) != 1:

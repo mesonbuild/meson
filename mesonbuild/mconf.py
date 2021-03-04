@@ -123,7 +123,7 @@ class Conf:
 
     def add_option(self, name, descr, value, choices):
         if isinstance(value, list):
-            value = '[{0}]'.format(', '.join(make_lower_case(value)))
+            value = '[{}]'.format(', '.join(make_lower_case(value)))
         else:
             value = make_lower_case(value)
 

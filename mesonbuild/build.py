@@ -43,9 +43,9 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileMode, FileOrString
     from .mesonlib.backend import Backend
 
-pch_kwargs = set(['c_pch', 'cpp_pch'])
+pch_kwargs = {'c_pch', 'cpp_pch'}
 
-lang_arg_kwargs = set([
+lang_arg_kwargs = {
     'c_args',
     'cpp_args',
     'cuda_args',
@@ -61,13 +61,13 @@ lang_arg_kwargs = set([
     'rust_args',
     'vala_args',
     'cs_args',
-])
+}
 
-vala_kwargs = set(['vala_header', 'vala_gir', 'vala_vapi'])
-rust_kwargs = set(['rust_crate_type'])
-cs_kwargs = set(['resources', 'cs_args'])
+vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
+rust_kwargs = {'rust_crate_type'}
+cs_kwargs = {'resources', 'cs_args'}
 
-buildtarget_kwargs = set([
+buildtarget_kwargs = {
     'build_by_default',
     'build_rpath',
     'dependencies',
@@ -92,7 +92,7 @@ buildtarget_kwargs = set([
     'gnu_symbol_visibility',
     'link_language',
     'win_subsystem',
-])
+}
 
 known_build_target_kwargs = (
     buildtarget_kwargs |
@@ -1723,8 +1723,8 @@ class Executable(BuildTarget):
             if not isinstance(kwargs.get('implib', False), bool):
                 implib_basename = kwargs['implib']
             if m.is_windows() or m.is_cygwin():
-                self.vs_import_filename = '{0}.lib'.format(implib_basename)
-                self.gcc_import_filename = 'lib{0}.a'.format(implib_basename)
+                self.vs_import_filename = '{}.lib'.format(implib_basename)
+                self.gcc_import_filename = 'lib{}.a'.format(implib_basename)
                 if self.get_using_msvc():
                     self.import_filename = self.vs_import_filename
                 else:
@@ -1787,7 +1787,7 @@ class StaticLibrary(BuildTarget):
                 self.rust_crate_type = 'rlib'
             # Don't let configuration proceed with a non-static crate type
             elif self.rust_crate_type not in ['rlib', 'staticlib']:
-                raise InvalidArguments('Crate type "{0}" invalid for static libraries; must be "rlib" or "staticlib"'.format(self.rust_crate_type))
+                raise InvalidArguments('Crate type "{}" invalid for static libraries; must be "rlib" or "staticlib"'.format(self.rust_crate_type))
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -1828,7 +1828,7 @@ class StaticLibrary(BuildTarget):
             if isinstance(rust_crate_type, str):
                 self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
+                raise InvalidArguments('Invalid rust_crate_type "{}": must be a string.'.format(rust_crate_type))
 
     def is_linkable_target(self):
         return True
@@ -1859,7 +1859,7 @@ class SharedLibrary(BuildTarget):
                 self.rust_crate_type = 'dylib'
             # Don't let configuration proceed with a non-dynamic crate type
             elif self.rust_crate_type not in ['dylib', 'cdylib']:
-                raise InvalidArguments('Crate type "{0}" invalid for dynamic libraries; must be "dylib" or "cdylib"'.format(self.rust_crate_type))
+                raise InvalidArguments('Crate type "{}" invalid for dynamic libraries; must be "dylib" or "cdylib"'.format(self.rust_crate_type))
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
@@ -1919,13 +1919,13 @@ class SharedLibrary(BuildTarget):
         # For all other targets/platforms import_filename stays None
         elif env.machines[self.for_machine].is_windows():
             suffix = 'dll'
-            self.vs_import_filename = '{0}{1}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
-            self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
+            self.vs_import_filename = '{}{}.lib'.format(self.prefix if self.prefix is not None else '', self.name)
+            self.gcc_import_filename = '{}{}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             if self.uses_rust():
                 # Shared library is of the form foo.dll
                 prefix = ''
                 # Import library is called foo.dll.lib
-                self.import_filename = '{0}.dll.lib'.format(self.name)
+                self.import_filename = '{}.dll.lib'.format(self.name)
                 create_debug_file = True
             elif self.get_using_msvc():
                 # Shared library is of the form foo.dll
@@ -1946,7 +1946,7 @@ class SharedLibrary(BuildTarget):
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         elif env.machines[self.for_machine].is_cygwin():
             suffix = 'dll'
-            self.gcc_import_filename = '{0}{1}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
+            self.gcc_import_filename = '{}{}.dll.a'.format(self.prefix if self.prefix is not None else 'lib', self.name)
             # Shared library is of the form cygfoo.dll
             # (ld --dll-search-prefix=cyg is the default)
             prefix = 'cyg'
@@ -2045,7 +2045,7 @@ class SharedLibrary(BuildTarget):
                 if not isinstance(self.ltversion, str):
                     raise InvalidArguments('Shared library version needs to be a string, not ' + type(self.ltversion).__name__)
                 if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', self.ltversion):
-                    raise InvalidArguments('Invalid Shared library version "{0}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.'.format(self.ltversion))
+                    raise InvalidArguments('Invalid Shared library version "{}". Must be of the form X.Y.Z where all three are numbers. Y and Z are optional.'.format(self.ltversion))
             # Try to extract/deduce the soversion
             if 'soversion' in kwargs:
                 self.soversion = kwargs['soversion']
@@ -2092,7 +2092,7 @@ class SharedLibrary(BuildTarget):
             if isinstance(rust_crate_type, str):
                 self.rust_crate_type = rust_crate_type
             else:
-                raise InvalidArguments('Invalid rust_crate_type "{0}": must be a string.'.format(rust_crate_type))
+                raise InvalidArguments('Invalid rust_crate_type "{}": must be a string.'.format(rust_crate_type))
 
     def get_import_filename(self):
         """
@@ -2199,7 +2199,7 @@ class CommandBase:
         return final_cmd
 
 class CustomTarget(Target, CommandBase):
-    known_kwargs = set([
+    known_kwargs = {
         'input',
         'output',
         'command',
@@ -2216,7 +2216,7 @@ class CustomTarget(Target, CommandBase):
         'override_options',
         'console',
         'env',
-    ])
+    }
 
     def __init__(self, name: str, subdir: str, subproject: str, kwargs: T.Dict[str, T.Any],
                  absolute_paths: bool = False, backend: T.Optional['Backend'] = None):

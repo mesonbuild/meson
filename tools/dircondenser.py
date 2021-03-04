@@ -54,7 +54,7 @@ def get_entries() -> T.List[T.Tuple[int, str]]:
     return entries
 
 def replace_source(sourcefile: str, replacements: T.List[T.Tuple[str, str]]) -> None:
-    with open(sourcefile, 'r') as f:
+    with open(sourcefile) as f:
         contents = f.read()
     for old_name, new_name in replacements:
         contents = contents.replace(old_name, new_name)

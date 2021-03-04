@@ -190,7 +190,7 @@ def find_vcxproj_with_target(builddir, target):
     for _, _, files in os.walk(builddir):
         for f in fnmatch.filter(files, '*.vcxproj'):
             f = os.path.join(builddir, f)
-            with open(f, 'r', encoding='utf-8') as o:
+            with open(f, encoding='utf-8') as o:
                 if re.search(p, o.read(), flags=re.MULTILINE):
                     return f
     raise RuntimeError('No vcxproj matching {!r} in {!r}'.format(p, builddir))

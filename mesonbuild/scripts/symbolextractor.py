@@ -43,7 +43,7 @@ def dummy_syms(outfilename: str) -> None:
 
 def write_if_changed(text: str, outfilename: str) -> None:
     try:
-        with open(outfilename, 'r') as f:
+        with open(outfilename) as f:
             oldtext = f.read()
         if text == oldtext:
             return

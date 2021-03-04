@@ -394,7 +394,7 @@ def get_info_file(infodir: str, kind: T.Optional[str] = None) -> str:
                         'meson-info.json' if not kind else 'intro-{}.json'.format(kind))
 
 def load_info_file(infodir: str, kind: T.Optional[str] = None) -> T.Any:
-    with open(get_info_file(infodir, kind), 'r') as fp:
+    with open(get_info_file(infodir, kind)) as fp:
         return json.load(fp)
 
 def run(options: argparse.Namespace) -> int:

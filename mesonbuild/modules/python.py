@@ -36,9 +36,9 @@ from ..dependencies.base import (
     NonExistingExternalProgram, NotFoundDependency
 )
 
-mod_kwargs = set(['subdir'])
+mod_kwargs = {'subdir'}
 mod_kwargs.update(known_shmod_kwargs)
-mod_kwargs -= set(['name_prefix', 'name_suffix'])
+mod_kwargs -= {'name_prefix', 'name_suffix'}
 
 class PythonDependency(ExternalDependency):
 
@@ -544,7 +544,7 @@ class PythonModule(ExtensionModule):
             for mod in want_modules:
                 p, out, err = mesonlib.Popen_safe(
                     python.command +
-                    ['-c', 'import {0}'.format(mod)])
+                    ['-c', 'import {}'.format(mod)])
                 if p.returncode != 0:
                     missing_modules.append(mod)
                 else:

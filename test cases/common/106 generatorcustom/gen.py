@@ -5,7 +5,7 @@ import sys
 ifile = sys.argv[1]
 ofile = sys.argv[2]
 
-with open(ifile, 'r') as f:
+with open(ifile) as f:
     resname = f.readline().strip()
 
 templ = 'const char %s[] = "%s";\n'

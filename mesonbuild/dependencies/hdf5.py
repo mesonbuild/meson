@@ -167,7 +167,7 @@ def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
                                     universal_newlines=True)
             if ret.returncode == 0:
                 for pkg in ret.stdout.split('\n'):
-                    if pkg.startswith(('hdf5')):
+                    if pkg.startswith('hdf5'):
                         pkgconfig_files.add(pkg.split(' ', 1)[0])
 
         for pkg in pkgconfig_files:

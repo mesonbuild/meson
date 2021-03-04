@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from __future__ import print_function
 
 # Generates a static library, object file, source
 # file and a header file.

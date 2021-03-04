@@ -820,7 +820,7 @@ class Rewriter:
             if not os.path.exists(fpath):
                 with open(fpath, 'w'):
                     pass
-            with open(fpath, 'r') as fp:
+            with open(fpath) as fp:
                 fdata = fp.read()
 
             # Generate line offsets numbers
@@ -923,7 +923,7 @@ def generate_def_opts(options) -> T.List[dict]:
 
 def generate_cmd(options) -> T.List[dict]:
     if os.path.exists(options.json):
-        with open(options.json, 'r') as fp:
+        with open(options.json) as fp:
             return json.load(fp)
     else:
         return json.loads(options.json)

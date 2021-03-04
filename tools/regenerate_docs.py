@@ -94,7 +94,7 @@ def get_commands_data(root_dir: Path) -> T.Dict[str, T.Any]:
         return out
 
     output = _get_meson_output(root_dir, ['--help'])
-    commands = set(c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', output, re.MULTILINE|re.DOTALL)[0].split(','))
+    commands = {c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', output, re.MULTILINE|re.DOTALL)[0].split(',')}
     commands.remove('help')
 
     cmd_data = dict()

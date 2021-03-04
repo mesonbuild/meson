@@ -1039,25 +1039,25 @@ class SubprojectHolder(InterpreterObject, ObjectHolder[T.Optional['Interpreter']
         if len(args) == 2:
             return args[1]
 
-        raise InvalidArguments('Requested variable "{0}" not found.'.format(varname))
+        raise InvalidArguments('Requested variable "{}" not found.'.format(varname))
 
-header_permitted_kwargs = set([
+header_permitted_kwargs = {
     'required',
     'prefix',
     'no_builtin_args',
     'include_directories',
     'args',
     'dependencies',
-])
+}
 
-find_library_permitted_kwargs = set([
+find_library_permitted_kwargs = {
     'has_headers',
     'required',
     'dirs',
     'static',
-])
+}
 
-find_library_permitted_kwargs |= set(['header_' + k for k in header_permitted_kwargs])
+find_library_permitted_kwargs |= {'header_' + k for k in header_permitted_kwargs}
 
 class CompilerHolder(InterpreterObject):
     def __init__(self, compiler: 'Compiler', env: 'Environment', subproject: str):
@@ -1585,7 +1585,7 @@ class CompilerHolder(InterpreterObject):
             raise InterpreterException('Prefix argument of has_header_symbol must be a string.')
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject, default=False)
         if disabled:
-            mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
+            mlog.log('Header <{}> has symbol'.format(hname), mlog.bold(symbol, True), 'skipped: feature', mlog.bold(feature), 'disabled')
             return False
         extra_args = functools.partial(self.determine_args, kwargs)
         deps, msg = self.determine_dependencies(kwargs)
@@ -1599,7 +1599,7 @@ class CompilerHolder(InterpreterObject):
         else:
             h = mlog.red('NO')
         cached = mlog.blue('(cached)') if cached else ''
-        mlog.log('Header <{0}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h, cached)
+        mlog.log('Header <{}> has symbol'.format(hname), mlog.bold(symbol, True), msg, h, cached)
         return haz
 
     def notfound_library(self, libname):
@@ -4346,7 +4346,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     def func_configure_file(self, node, args, kwargs):
         if 'output' not in kwargs:
             raise InterpreterException('Required keyword argument "output" not defined.')
-        actions = set(['configuration', 'command', 'copy']).intersection(kwargs.keys())
+        actions = {'configuration', 'command', 'copy'}.intersection(kwargs.keys())
         if len(actions) == 0:
             raise InterpreterException('Must specify an action with one of these '
                                        'keyword arguments: \'configuration\', '
@@ -4483,7 +4483,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 mesonlib.replace_if_different(ofile_abs, dst_tmp)
             if depfile:
                 mlog.log('Reading depfile:', mlog.bold(depfile))
-                with open(depfile, 'r') as f:
+                with open(depfile) as f:
                     df = DepFile(f.readlines())
                     deps = df.get_all_dependencies(ofile_fname)
                     for dep in deps:

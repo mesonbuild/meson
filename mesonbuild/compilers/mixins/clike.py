@@ -321,7 +321,7 @@ class CLikeCompiler(Compiler):
         mlog.debug(stde)
         mlog.debug('-----')
         if pc.returncode != 0:
-            raise mesonlib.EnvironmentException('Compiler {0} can not compile programs.'.format(self.name_string()))
+            raise mesonlib.EnvironmentException('Compiler {} can not compile programs.'.format(self.name_string()))
         # Run sanity check
         if self.is_cross:
             if self.exe_wrapper is None:
@@ -337,7 +337,7 @@ class CLikeCompiler(Compiler):
             raise mesonlib.EnvironmentException('Could not invoke sanity test executable: %s.' % str(e))
         pe.wait()
         if pe.returncode != 0:
-            raise mesonlib.EnvironmentException('Executables created by {0} compiler {1} are not runnable.'.format(self.language, self.name_string()))
+            raise mesonlib.EnvironmentException('Executables created by {} compiler {} are not runnable.'.format(self.language, self.name_string()))
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
         code = 'int main(void) { int class=0; return class; }\n'
@@ -810,7 +810,7 @@ class CLikeCompiler(Compiler):
             if val is not None:
                 if isinstance(val, bool):
                     return val, False
-                raise mesonlib.EnvironmentException('Cross variable {0} is not a boolean.'.format(varname))
+                raise mesonlib.EnvironmentException('Cross variable {} is not a boolean.'.format(varname))
 
         # TODO: we really need a protocol for this,
         #

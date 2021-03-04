@@ -902,8 +902,8 @@ class TestRun:
             return returncode_to_status(self.returncode)
         if self.results:
             # running or succeeded
-            passed = sum((x.result.is_ok() for x in self.results))
-            ran = sum((x.result is not TestResult.SKIP for x in self.results))
+            passed = sum(x.result.is_ok() for x in self.results)
+            ran = sum(x.result is not TestResult.SKIP for x in self.results)
             if passed == ran:
                 return '{} subtests passed'.format(passed)
             else:
@@ -928,7 +928,7 @@ class TestRun:
             return None
         test_only_env = set(self.env.items()) - set(os.environ.items())
         return env_tuple_to_str(test_only_env) + \
-            ' '.join((sh_quote(x) for x in self.cmd))
+            ' '.join(sh_quote(x) for x in self.cmd)
 
     def complete_skip(self, message: str) -> None:
         self.starttime = time.time()
@@ -1634,13 +1634,13 @@ class TestHarness:
                 os.chdir(self.options.wd)
             runners = []             # type: T.List[SingleTestRunner]
             for i in range(self.options.repeat):
-                runners.extend((self.get_test_runner(test) for test in tests))
+                runners.extend(self.get_test_runner(test) for test in tests)
                 if i == 0:
                     self.duration_max_len = max([len(str(int(runner.timeout or 99)))
                                                  for runner in runners])
                     # Disable the progress report if it gets in the way
-                    self.need_console = any((runner.console_mode is not ConsoleUser.LOGGER
-                                             for runner in runners))
+                    self.need_console = any(runner.console_mode is not ConsoleUser.LOGGER
+                                             for runner in runners)
 
             self.test_count = len(runners)
             self.run_tests(runners)

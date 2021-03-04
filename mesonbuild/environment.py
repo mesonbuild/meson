@@ -1020,7 +1020,7 @@ class Environment:
         if exceptions:
             errmsg += '\nThe following exception(s) were encountered:'
             for (c, e) in exceptions.items():
-                errmsg += '\nRunning "{0}" gave "{1}"'.format(c, e)
+                errmsg += '\nRunning "{}" gave "{}"'.format(c, e)
         raise EnvironmentException(errmsg)
 
     @staticmethod
@@ -1208,7 +1208,7 @@ class Environment:
                 compiler = [compiler]
             compiler_name = os.path.basename(compiler[0])
 
-            if not set(['cl', 'cl.exe', 'clang-cl', 'clang-cl.exe']).isdisjoint(compiler):
+            if not {'cl', 'cl.exe', 'clang-cl', 'clang-cl.exe'}.isdisjoint(compiler):
                 # Watcom C provides it's own cl.exe clone that mimics an older
                 # version of Microsoft's compiler. Since Watcom's cl.exe is
                 # just a wrapper, we skip using it if we detect its presence

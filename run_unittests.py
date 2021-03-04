@@ -1583,10 +1583,10 @@ class DataTests(unittest.TestCase):
             self.assertEqual(len(found_entries & options), 0)
             found_entries |= options
 
-        self.assertEqual(found_entries, set([
+        self.assertEqual(found_entries, {
             *[str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS],
             *[str(k) for k in mesonbuild.coredata.BUILTIN_OPTIONS_PER_MACHINE],
-        ]))
+        })
 
         # Check that `buildtype` table inside `Core options` matches how
         # setting of builtin options behaves
@@ -1682,7 +1682,7 @@ class DataTests(unittest.TestCase):
                 data_files += [(p.relative_to(mesonbuild_dir).as_posix(), hashlib.sha256(p.read_bytes()).hexdigest())]
 
         current_files = set(mesondata.keys())
-        scanned_files = set([x[0] for x in data_files])
+        scanned_files = {x[0] for x in data_files}
 
         self.assertSetEqual(current_files, scanned_files, err_msg + 'Data files were added or removed\n')
         errors = []
@@ -1764,7 +1764,7 @@ class BasePlatformTests(unittest.TestCase):
         if not os.path.isfile(log):
             print("{!r} doesn't exist".format(log))
             return
-        with open(log, 'r', encoding='utf-8') as f:
+        with open(log, encoding='utf-8') as f:
             print(f.read())
 
     def tearDown(self):
@@ -1925,7 +1925,7 @@ class BasePlatformTests(unittest.TestCase):
                 compiler, rsp = each['command'].split(' @')
                 rsp = os.path.join(self.builddir, rsp)
                 # Replace the command with its contents
-                with open(rsp, 'r', encoding='utf-8') as f:
+                with open(rsp, encoding='utf-8') as f:
                     each['command'] = compiler + ' ' + f.read()
         return contents
 
@@ -2952,7 +2952,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertNotEqual(commands['cpp-c-asm']['c'], commands['cpp-c-asm']['cpp'])
         # Check that the c-asm target is always linked with the C linker
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             contents = f.read()
             m = re.search('build c-asm.*: c_LINKER', contents)
         self.assertIsNotNone(m, msg=contents)
@@ -4245,7 +4245,7 @@ class AllPlatformTests(BasePlatformTests):
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as crossfile:
             crossfile.write(textwrap.dedent(
                 '''[binaries]
-                pkgconfig = '{0}'
+                pkgconfig = '{}'
 
                 [properties]
 
@@ -4275,7 +4275,7 @@ class AllPlatformTests(BasePlatformTests):
                 pkgconfig = 'pkg-config'
 
                 [properties]
-                pkg_config_libdir = ['{0}']
+                pkg_config_libdir = ['{}']
 
                 [host_machine]
                 system = 'linux'
@@ -4372,26 +4372,26 @@ class AllPlatformTests(BasePlatformTests):
     def test_introspect_projectinfo_without_configured_build(self):
         testfile = os.path.join(self.common_test_dir, '34 run program', 'meson.build')
         res = self.introspect_directory(testfile, '--projectinfo')
-        self.assertEqual(set(res['buildsystem_files']), set(['meson.build']))
+        self.assertEqual(set(res['buildsystem_files']), {'meson.build'})
         self.assertEqual(res['version'], 'undefined')
         self.assertEqual(res['descriptive_name'], 'run command')
         self.assertEqual(res['subprojects'], [])
 
         testfile = os.path.join(self.common_test_dir, '41 options', 'meson.build')
         res = self.introspect_directory(testfile, '--projectinfo')
-        self.assertEqual(set(res['buildsystem_files']), set(['meson_options.txt', 'meson.build']))
+        self.assertEqual(set(res['buildsystem_files']), {'meson_options.txt', 'meson.build'})
         self.assertEqual(res['version'], 'undefined')
         self.assertEqual(res['descriptive_name'], 'options')
         self.assertEqual(res['subprojects'], [])
 
         testfile = os.path.join(self.common_test_dir, '44 subproject options', 'meson.build')
         res = self.introspect_directory(testfile, '--projectinfo')
-        self.assertEqual(set(res['buildsystem_files']), set(['meson_options.txt', 'meson.build']))
+        self.assertEqual(set(res['buildsystem_files']), {'meson_options.txt', 'meson.build'})
         self.assertEqual(res['version'], 'undefined')
         self.assertEqual(res['descriptive_name'], 'suboptions')
         self.assertEqual(len(res['subprojects']), 1)
-        subproject_files = set(f.replace('\\', '/') for f in res['subprojects'][0]['buildsystem_files'])
-        self.assertEqual(subproject_files, set(['subprojects/subproject/meson_options.txt', 'subprojects/subproject/meson.build']))
+        subproject_files = {f.replace('\\', '/') for f in res['subprojects'][0]['buildsystem_files']}
+        self.assertEqual(subproject_files, {'subprojects/subproject/meson_options.txt', 'subprojects/subproject/meson.build'})
         self.assertEqual(res['subprojects'][0]['name'], 'subproject')
         self.assertEqual(res['subprojects'][0]['version'], 'undefined')
         self.assertEqual(res['subprojects'][0]['descriptive_name'], 'subproject')
@@ -4544,7 +4544,7 @@ class AllPlatformTests(BasePlatformTests):
         infodir = os.path.join(self.builddir, 'meson-info')
         self.assertPathExists(infodir)
 
-        with open(os.path.join(infodir, 'intro-targets.json'), 'r') as fp:
+        with open(os.path.join(infodir, 'intro-targets.json')) as fp:
             targets = json.load(fp)
 
         for i in targets:
@@ -4653,7 +4653,7 @@ class AllPlatformTests(BasePlatformTests):
         for i in root_keylist:
             curr = os.path.join(infodir, 'intro-{}.json'.format(i[0]))
             self.assertPathExists(curr)
-            with open(curr, 'r') as fp:
+            with open(curr) as fp:
                 res[i[0]] = json.load(fp)
 
         assertKeyTypes(root_keylist, res)
@@ -4761,7 +4761,7 @@ class AllPlatformTests(BasePlatformTests):
         for i in root_keylist:
             curr = os.path.join(infodir, 'intro-{}.json'.format(i))
             self.assertPathExists(curr)
-            with open(curr, 'r') as fp:
+            with open(curr) as fp:
                 res_file[i] = json.load(fp)
 
         self.assertEqual(res_all, res_file)
@@ -4771,7 +4771,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'meson-info.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile, 'r') as fp:
+        with open(introfile) as fp:
             res1 = json.load(fp)
 
         for i in ['meson_version', 'directories', 'introspection', 'build_files_updated', 'error']:
@@ -4785,7 +4785,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-buildoptions.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile, 'r') as fp:
+        with open(introfile) as fp:
             res1 = json.load(fp)
 
         for i in res1:
@@ -4803,7 +4803,7 @@ class AllPlatformTests(BasePlatformTests):
         self.setconf('-Dcpp_std=c++14')
         self.setconf('-Dbuildtype=release')
 
-        with open(introfile, 'r') as fp:
+        with open(introfile) as fp:
             res2 = json.load(fp)
 
         self.assertListEqual(res1, res2)
@@ -4814,7 +4814,7 @@ class AllPlatformTests(BasePlatformTests):
         introfile = os.path.join(self.builddir, 'meson-info', 'intro-targets.json')
         self.init(testdir)
         self.assertPathExists(introfile)
-        with open(introfile, 'r') as fp:
+        with open(introfile) as fp:
             res_wb = json.load(fp)
 
         res_nb = self.introspect_directory(testfile, ['--targets'] + self.meson_args)
@@ -5190,7 +5190,7 @@ class AllPlatformTests(BasePlatformTests):
         self.init(testdir)
 
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             contents = f.read()
 
         self.assertRegex(contents, r'build main(\.exe)?.*: c_LINKER')
@@ -5222,10 +5222,10 @@ class AllPlatformTests(BasePlatformTests):
 
         ## Validate commands
 
-        md_commands = set(k for k,v in md_command_sections.items())
+        md_commands = {k for k,v in md_command_sections.items()}
 
         help_output = self._run(self.meson_command + ['--help'])
-        help_commands = set(c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(','))
+        help_commands = {c.strip() for c in re.findall(r'usage:(?:.+)?{((?:[a-z]+,*)+?)}', help_output, re.MULTILINE|re.DOTALL)[0].split(',')}
 
         self.assertEqual(md_commands | {'help'}, help_commands, 'Doc file: `{}`'.format(doc_path))
 
@@ -6151,7 +6151,7 @@ class WindowsTests(BasePlatformTests):
         self.init(testdir, extra_args=['-Db_vscrt=mdd'])
         # Verify that we're linking to the debug versions of Qt DLLs
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             contents = f.read()
             m = re.search('build qt5core.exe: cpp_LINKER.*Qt5Cored.lib', contents)
         self.assertIsNotNone(m, msg=contents)
@@ -6245,7 +6245,7 @@ class DarwinTests(BasePlatformTests):
                 self.assertIn('-fembed-bitcode', compdb['command'])
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         # Linker options were added
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             contents = f.read()
             m = re.search('LINK_ARGS =.*-bitcode_bundle', contents)
         self.assertIsNotNone(m, msg=contents)
@@ -6256,7 +6256,7 @@ class DarwinTests(BasePlatformTests):
         for compdb in self.get_compdb():
             self.assertNotIn('-fembed-bitcode', compdb['command'])
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             contents = f.read()
             m = re.search('LINK_ARGS =.*-bitcode_bundle', contents)
         self.assertIsNone(m, msg=contents)
@@ -7601,7 +7601,7 @@ class LinuxlikeTests(BasePlatformTests):
         build_ninja = os.path.join(self.builddir, 'build.ninja')
         max_count = 0
         search_term = '-Wl,--export-dynamic'
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             for line in f:
                 max_count = max(max_count, line.count(search_term))
         self.assertEqual(max_count, 1, 'Export dynamic incorrectly deduplicated.')
@@ -7610,7 +7610,7 @@ class LinuxlikeTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '56 dedup compiler libs')
         self.init(testdir)
         build_ninja = os.path.join(self.builddir, 'build.ninja')
-        with open(build_ninja, 'r', encoding='utf-8') as f:
+        with open(build_ninja, encoding='utf-8') as f:
             lines = f.readlines()
         for lib in ('-ldl', '-lm', '-lc', '-lrt'):
             for line in lines:
@@ -7636,7 +7636,7 @@ class LinuxlikeTests(BasePlatformTests):
         nativefile = tempfile.NamedTemporaryFile(mode='w')
         nativefile.write(textwrap.dedent('''\
             [binaries]
-            c = ['{0}']
+            c = ['{}']
             '''.format(os.path.join(testdir, 'build_wrapper.py'))))
         nativefile.flush()
         self.meson_native_file = nativefile.name
@@ -7644,7 +7644,7 @@ class LinuxlikeTests(BasePlatformTests):
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         crossfile.write(textwrap.dedent('''\
             [binaries]
-            c = ['{0}']
+            c = ['{}']
             '''.format(os.path.join(testdir, 'host_wrapper.py'))))
         crossfile.flush()
         self.meson_cross_file = crossfile.name
@@ -7660,7 +7660,7 @@ class LinuxlikeTests(BasePlatformTests):
         crossfile = tempfile.NamedTemporaryFile(mode='w')
         crossfile.write(textwrap.dedent('''\
             [binaries]
-            c = ['{0}']
+            c = ['{}']
             '''.format(os.path.join(testdir, 'host_wrapper.py'))))
         crossfile.flush()
         self.meson_cross_file = crossfile.name

@@ -235,7 +235,7 @@ class UserArrayOption(UserOption[T.List[str]]):
             mlog.deprecation(msg)
         for i in newvalue:
             if not isinstance(i, str):
-                raise MesonException('String array element "{0}" is not a string.'.format(str(newvalue)))
+                raise MesonException('String array element "{}" is not a string.'.format(str(newvalue)))
         if self.choices:
             bad = [x for x in newvalue if x not in self.choices]
             if bad:
@@ -434,7 +434,7 @@ class CoreData:
                     # the contents of that file into the meson private (scratch)
                     # directory so that it can be re-read when wiping/reconfiguring
                     copy = os.path.join(scratch_dir, '{}.{}.ini'.format(uuid.uuid4(), ftype))
-                    with open(f, 'r') as rf:
+                    with open(f) as rf:
                         with open(copy, 'w') as wf:
                             wf.write(rf.read())
                     real.append(copy)

@@ -142,10 +142,10 @@ class AnsiText:
         self.args = args
 
     def __len__(self) -> int:
-        return sum((len(x) for x in self.args))
+        return sum(len(x) for x in self.args)
 
     def __str__(self) -> str:
-        return ''.join((str(x) for x in self.args))
+        return ''.join(str(x) for x in self.args)
 
 
 def bold(text: str, quoted: bool = False) -> AnsiDecorator:

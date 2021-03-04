@@ -235,7 +235,7 @@ class CmakeModule(ExtensionModule):
         cmakebin = dependencies.ExternalProgram('cmake', silent=False)
         p, stdout, stderr = mesonlib.Popen_safe(cmakebin.get_command() + ['--system-information', '-G', 'Ninja'])[0:3]
         if p.returncode != 0:
-            mlog.log('error retrieving cmake information: returnCode={0} stdout={1} stderr={2}'.format(p.returncode, stdout, stderr))
+            mlog.log('error retrieving cmake information: returnCode={} stdout={} stderr={}'.format(p.returncode, stdout, stderr))
             return False
 
         match = re.search('\nCMAKE_ROOT \\"([^"]+)"\n', stdout.strip())
@@ -295,7 +295,7 @@ class CmakeModule(ExtensionModule):
         package_init += PACKAGE_INIT_SET_AND_CHECK
 
         try:
-            with open(infile, "r") as fin:
+            with open(infile) as fin:
                 data = fin.readlines()
         except Exception as e:
             raise mesonlib.MesonException('Could not read input file %s: %s' % (infile, str(e)))
