@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import sys
 import tachyon
@@ -10,5 +10,5 @@ if not isinstance(result, int):
     sys.exit(1)
 
 if result != 1:
-    print(f'Returned result {result} is not 1.')
+    print('Returned result {} is not 1.'.format(result))
     sys.exit(1)
