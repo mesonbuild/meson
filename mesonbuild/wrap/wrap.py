@@ -294,10 +294,10 @@ class Resolver:
                 # Write a dummy wrap file in main project that redirect to the
                 # wrap we picked.
                 with open(main_fname, 'w') as f:
-                    f.write(textwrap.dedent('''\
+                    f.write(textwrap.dedent(f'''\
                         [wrap-redirect]
-                        filename = {}
-                        '''.format(os.path.relpath(self.wrap.filename, self.subdir_root))))
+                        filename = {os.path.relpath(self.wrap.filename, self.subdir_root)}
+                        '''))
         else:
             # No wrap file, it's a dummy package definition for an existing
             # directory. Use the source code in place.
