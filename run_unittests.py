@@ -4537,6 +4537,19 @@ class AllPlatformTests(BasePlatformTests):
         self.assertIn('c_args', optnames)
         self.assertNotIn('build.c_args', optnames)
 
+    def test_introspect_json_flat(self):
+        testdir = os.path.join(self.unit_test_dir, '57 introspection')
+        out = self.init(testdir, extra_args=['-Dlayout=flat'])
+        infodir = os.path.join(self.builddir, 'meson-info')
+        self.assertPathExists(infodir)
+
+        with open(os.path.join(infodir, 'intro-targets.json'), 'r') as fp:
+            targets = json.load(fp)
+
+        for i in targets:
+            for out in i['filename']:
+                assert(os.path.relpath(out, self.builddir).startswith('meson-out'))
+
     def test_introspect_json_dump(self):
         testdir = os.path.join(self.unit_test_dir, '57 introspection')
         self.init(testdir)

@@ -119,6 +119,12 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
             res[path] = os.path.join(installdata.prefix, installpath)
     return res
 
+def get_target_dir(coredata: cdata.CoreData, subdir: str) -> str:
+    if coredata.get_option(OptionKey('layout')) == 'flat':
+        return 'meson-out'
+    else:
+        return subdir
+
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
     tlist = []  # type: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]
     root_dir = Path(intr.source_root)
@@ -148,13 +154,14 @@ def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[st
     for i in intr.targets:
         sources = nodes_to_paths(i['sources'])
         extra_f = nodes_to_paths(i['extra_files'])
+        outdir = get_target_dir(intr.coredata, i['subdir'])
 
         tlist += [{
             'name': i['name'],
             'id': i['id'],
             'type': i['type'],
             'defined_in': i['defined_in'],
-            'filename': [os.path.join(i['subdir'], x) for x in i['outputs']],
+            'filename': [os.path.join(outdir, x) for x in i['outputs']],
             'build_by_default': i['build_by_default'],
             'target_sources': [{
                 'language': 'unknown',
@@ -186,12 +193,13 @@ def list_targets(builddata: build.Build, installdata: backends.InstallData, back
         if not isinstance(target, build.Target):
             raise RuntimeError('The target object in `builddata.get_targets()` is not of type `build.Target`. Please file a bug with this error message.')
 
+        outdir = get_target_dir(builddata.environment.coredata, target.subdir)
         t = {
             'name': target.get_basename(),
             'id': idname,
             'type': target.get_typename(),
             'defined_in': os.path.normpath(os.path.join(src_dir, target.subdir, 'meson.build')),
-            'filename': [os.path.join(build_dir, target.subdir, x) for x in target.get_outputs()],
+            'filename': [os.path.join(build_dir, outdir, x) for x in target.get_outputs()],
             'build_by_default': target.build_by_default,
             'target_sources': backend.get_introspection_data(idname, target),
             'extra_files': [os.path.normpath(os.path.join(src_dir, x.subdir, x.fname)) for x in target.extra_files],
