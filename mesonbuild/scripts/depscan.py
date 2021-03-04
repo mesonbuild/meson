@@ -22,8 +22,8 @@ import typing as T
 from ..backend.ninjabackend import TargetDependencyScannerInfo, ninja_quote
 from ..compilers.compilers import lang_suffixes
 
-CPP_IMPORT_RE = re.compile('\w*import ([a-zA-Z0-9]+);')
-CPP_EXPORT_RE = re.compile('\w*export module ([a-zA-Z0-9]+);')
+CPP_IMPORT_RE = re.compile(r'\w*import ([a-zA-Z0-9]+);')
+CPP_EXPORT_RE = re.compile(r'\w*export module ([a-zA-Z0-9]+);')
 
 FORTRAN_INCLUDE_PAT = r"^\s*include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"

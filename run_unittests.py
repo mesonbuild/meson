@@ -5893,7 +5893,7 @@ class FailureTests(BasePlatformTests):
 
     def test_error_func(self):
         self.assertMesonRaises("error('a', 'b', ['c', ['d', {'e': 'f'}]], 'g')",
-                               "Problem encountered: a b \['c', \['d', {'e' : 'f'}\]\] g")
+                               r"Problem encountered: a b \['c', \['d', {'e' : 'f'}\]\] g")
 
 
 @unittest.skipUnless(is_windows() or is_cygwin(), "requires Windows (or Windows via Cygwin)")

@@ -186,7 +186,7 @@ class CudaCompiler(Compiler):
 
     @classmethod
     def _shield_nvcc_list_arg(cls, arg: str, listmode: bool=True) -> str:
-        """
+        r"""
         Shield an argument against both splitting by NVCC's list-argument
         parse logic, and interpretation by any shell.
 
@@ -256,7 +256,7 @@ class CudaCompiler(Compiler):
             # Shield individual strings, without listmode, then return them with
             # escaped commas between them.
             l = [cls._shield_nvcc_list_arg(s, listmode=False) for s in l]
-            return '\,'.join(l)
+            return r'\,'.join(l)
 
     @classmethod
     def _to_host_flags(cls, flags: T.List[str], phase: _Phase = _Phase.COMPILER) -> T.List[str]:
