@@ -898,17 +898,18 @@ class TestRun:
     def detail(self) -> str:
         if self.res is TestResult.PENDING:
             return ''
-        if self.returncode:
-            return returncode_to_status(self.returncode)
+        statuses = []
         if self.results:
             # running or succeeded
             passed = sum((x.result.is_ok() for x in self.results))
             ran = sum((x.result is not TestResult.SKIP for x in self.results))
             if passed == ran:
-                return '{} subtests passed'.format(passed)
+                statuses.append(f'{passed} subtests passed')
             else:
-                return '{}/{} subtests passed'.format(passed, ran)
-        return ''
+                statuses.append(f'{passed}/{ran} subtests passed')
+        if self.returncode:
+            statuses.append(returncode_to_status(self.returncode))
+        return '; '.join(statuses)
 
     def _complete(self, returncode: int, res: TestResult,
                   stdo: T.Optional[str], stde: T.Optional[str]) -> None:
