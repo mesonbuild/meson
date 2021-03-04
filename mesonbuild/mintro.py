@@ -21,7 +21,6 @@ project files and don't need this info."""
 
 import collections
 import json
-from mesonbuild.compilers import d
 from . import build, coredata as cdata
 from . import mesonlib
 from .ast import IntrospectionInterpreter, build_target_functions, AstConditionLevel, AstIDGenerator, AstIndentationGenerator, AstJSONPrinter
@@ -123,6 +122,7 @@ def list_installed(installdata: backends.InstallData) -> T.Dict[str, str]:
 def list_targets_from_source(intr: IntrospectionInterpreter) -> T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]:
     tlist = []  # type: T.List[T.Dict[str, T.Union[bool, str, T.List[T.Union[str, T.Dict[str, T.Union[str, T.List[str], bool]]]]]]]
     root_dir = Path(intr.source_root)
+
     def nodes_to_paths(node_list: T.List[BaseNode]) -> T.List[Path]:
         res = []  # type: T.List[Path]
         for n in node_list:
