@@ -379,7 +379,7 @@ class ConverterTarget:
                     cfgs += [x for x in tgt.properties['CONFIGURATIONS'] if x]
                     cfg = cfgs[0]
 
-                is_debug = self.env.coredata.get_option(OptionKey('debug'));
+                is_debug = self.env.coredata.get_option(OptionKey('debug'))
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
