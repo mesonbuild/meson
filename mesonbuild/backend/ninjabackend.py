@@ -2537,7 +2537,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not self.should_use_dyndeps_for_target(target):
             return
         extension = os.path.splitext(src.fname)[1][1:]
-        if not (extension in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
+        if not (extension.lower() in compilers.lang_suffixes['fortran'] or extension in compilers.lang_suffixes['cpp']):
             return
         dep_scan_file = self.get_dep_scan_file_for(target)
         element.add_item('dyndep', dep_scan_file)
