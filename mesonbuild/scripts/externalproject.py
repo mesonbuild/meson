@@ -45,7 +45,7 @@ class ExternalProject:
                     f.write('  {} \\\n'.format(path.as_posix().replace(' ', '\\ ')))
 
     def write_stampfile(self) -> None:
-        with open(self.stampfile, 'w', encoding='utf-8') as f:
+        with open(self.stampfile, 'w', encoding='utf-8'):
             pass
 
     def gnu_make(self) -> bool:
