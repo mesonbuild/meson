@@ -18,7 +18,7 @@ import typing as T
 
 from . import ExtensionModule, ModuleReturnValue, ModuleState, NewExtensionModule
 from .. import mlog, build
-from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
+from ..mesonlib import (EnvironmentException, MesonException, Popen_safe, MachineChoice,
                        get_variable_regex, do_replacement, extract_as_list, join_args)
 from ..interpreterbase import InterpreterException, FeatureNew
 from ..interpreterbase import permittedKwargs, typed_pos_args
