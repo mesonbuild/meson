@@ -934,11 +934,15 @@ The result of this is undefined and will become a hard error in a future Meson r
         def replace(match: T.Match[str]) -> str:
             var = str(match.group(1))
             try:
-                return str(self.variables[var])
+                val = self.variables[var]
+                if not isinstance(val, (str, int, float, bool)):
+                    raise mesonlib.MesonException(f'Identifier {var} does not name a formattable variable.')
+
+                return str(val)
             except KeyError:
                 raise mesonlib.MesonException(f'Identifier "{var}" does not name a variable.')
 
-        return re.sub(r'{([_a-zA-Z][_0-9a-zA-Z]*)}', replace, node.value)
+        return re.sub(r'@([_a-zA-Z][_0-9a-zA-Z]*)@', replace, node.value)
 
     def evaluate_foreach(self, node: mparser.ForeachClauseNode) -> None:
         assert(isinstance(node, mparser.ForeachClauseNode))
