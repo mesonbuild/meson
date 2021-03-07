@@ -936,7 +936,7 @@ The result of this is undefined and will become a hard error in a future Meson r
             try:
                 val = self.variables[var]
                 if not isinstance(val, (str, int, float, bool)):
-                    raise InvalidCode(f'Identifier {var} does not name a formattable variable.')
+                    raise InvalidCode(f'Identifier "{var}" does not name a formattable variable.')
 
                 return str(val)
             except KeyError:
