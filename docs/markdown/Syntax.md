@@ -181,6 +181,22 @@ res = template.format('text', 1, true)
 As can be seen, the formatting works by replacing placeholders of type
 `@number@` with the corresponding argument.
 
+*(Added 0.58)*
+
+Format strings can be used as a non-positional alternative to the
+string formatting functionality described above.
+
+```meson
+n = 10
+m = 'hi'
+
+s = f'int: @n@, string: @m@'
+# s now has the value 'int: 10, string: hi'
+```
+
+Currently only identity-expressions are supported inside of format
+strings.
+
 ### String methods
 
 Strings also support a number of other methods that return transformed
