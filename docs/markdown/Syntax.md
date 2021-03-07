@@ -170,6 +170,8 @@ functionality described below.
 
 ### String formatting
 
+#### .format()
+
 Strings can be built using the string formatting functionality.
 
 ```meson
@@ -181,6 +183,7 @@ res = template.format('text', 1, true)
 As can be seen, the formatting works by replacing placeholders of type
 `@number@` with the corresponding argument.
 
+#### Format strings
 *(Added 0.58)*
 
 Format strings can be used as a non-positional alternative to the
