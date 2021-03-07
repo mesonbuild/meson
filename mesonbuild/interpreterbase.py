@@ -928,6 +928,7 @@ The result of this is undefined and will become a hard error in a future Meson r
         else:
             return self.evaluate_statement(node.falseblock)
 
+    @FeatureNew('format strings', '0.58.0')
     def evaluate_fstring(self, node: mparser.FormatStringNode) -> TYPE_var:
         assert(isinstance(node, mparser.FormatStringNode))
 
