@@ -708,6 +708,8 @@ class InterpreterBase:
             return self.evaluate_indexing(cur)
         elif isinstance(cur, mparser.TernaryNode):
             return self.evaluate_ternary(cur)
+        elif isinstance(cur, mparser.FormatStringNode):
+            return self.evaluate_fstring(cur)
         elif isinstance(cur, mparser.ContinueNode):
             raise ContinueRequest()
         elif isinstance(cur, mparser.BreakNode):
@@ -925,6 +927,18 @@ The result of this is undefined and will become a hard error in a future Meson r
             return self.evaluate_statement(node.trueblock)
         else:
             return self.evaluate_statement(node.falseblock)
+
+    def evaluate_fstring(self, node: mparser.FormatStringNode) -> TYPE_var:
+        assert(isinstance(node, mparser.FormatStringNode))
+
+        def replace(match: T.Match[str]) -> str:
+            var = str(match.group(1))
+            try:
+                return str(self.variables[var])
+            except KeyError:
+                raise mesonlib.MesonException(f'Identifier "{var}" does not name a variable.')
+
+        return re.sub(r'{([_a-zA-Z][_0-9a-zA-Z]*)}', replace, node.value)
 
     def evaluate_foreach(self, node: mparser.ForeachClauseNode) -> None:
         assert(isinstance(node, mparser.ForeachClauseNode))

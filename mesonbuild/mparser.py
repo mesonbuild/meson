@@ -114,6 +114,7 @@ class Lexer:
         self.token_specification = [
             # Need to be sorted longest to shortest.
             ('ignore', re.compile(r'[ \t]')),
+            ('fstring', re.compile(r"f'([^'\\]|(\\.))*'")),
             ('id', re.compile('[_a-zA-Z][_0-9a-zA-Z]*')),
             ('number', re.compile(r'0[bB][01]+|0[oO][0-7]+|0[xX][0-9a-fA-F]+|0|[1-9]\d*')),
             ('eol_cont', re.compile(r'\\\n')),
@@ -189,7 +190,7 @@ class Lexer:
                         curl_count -= 1
                     elif tid == 'dblquote':
                         raise ParseException('Double quotes are not supported. Use single quotes.', self.getline(line_start), lineno, col)
-                    elif tid == 'string':
+                    elif tid in {'string', 'fstring'}:
                         # Handle here and not on the regexp to give a better error message.
                         if match_text.find("\n") != -1:
                             mlog.warning(textwrap.dedent("""\
@@ -200,7 +201,7 @@ class Lexer:
                                 str(lineno),
                                 str(col)
                             )
-                        value = match_text[1:-1]
+                        value = match_text[2 if tid == 'fstring' else 1:-1]
                         try:
                             value = ESCAPE_SEQUENCE_SINGLE_RE.sub(decode_match, value)
                         except MesonUnicodeDecodeError as err:
@@ -287,6 +288,14 @@ class StringNode(ElementaryNode[str]):
 
     def __str__(self) -> str:
         return "String node: '%s' (%d, %d)." % (self.value, self.lineno, self.colno)
+
+class FormatStringNode(ElementaryNode[str]):
+    def __init__(self, token: Token[str]):
+        super().__init__(token)
+        assert isinstance(self.value, str)
+
+    def __str__(self) -> str:
+        return "Format string node: '{self.value}' ({self.lineno}, {self.colno})."
 
 class ContinueNode(ElementaryNode):
     pass
@@ -671,6 +680,8 @@ class Parser:
             return NumberNode(t)
         if self.accept('string'):
             return StringNode(t)
+        if self.accept('fstring'):
+            return FormatStringNode(t)
         return EmptyNode(self.current.lineno, self.current.colno, self.current.filename)
 
     def key_values(self) -> ArgumentNode:
