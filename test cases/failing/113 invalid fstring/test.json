@@ -2,6 +2,6 @@
     "stdout": [
         {
             "line": "test cases/failing/113 invalid fstring/meson.build:4:0: ERROR: Identifier \"dict\" does not name a formattable variable."
-	}
+        }
     ]
 }
