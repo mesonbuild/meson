@@ -198,7 +198,15 @@ s = f'int: @n@, string: @m@'
 ```
 
 Currently only identity-expressions are supported inside of format
-strings.
+strings, meaning you cannot use arbitrary Meson expressions inside of them.
+
+```meson
+n = 10
+m = 5
+
+# The following is not a valid format string
+s = f'result: @n + m@'
+```
 
 ### String methods
 
