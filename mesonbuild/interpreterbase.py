@@ -936,11 +936,11 @@ The result of this is undefined and will become a hard error in a future Meson r
             try:
                 val = self.variables[var]
                 if not isinstance(val, (str, int, float, bool)):
-                    raise mesonlib.MesonException(f'Identifier {var} does not name a formattable variable.')
+                    raise InvalidCode(f'Identifier {var} does not name a formattable variable.')
 
                 return str(val)
             except KeyError:
-                raise mesonlib.MesonException(f'Identifier "{var}" does not name a variable.')
+                raise InvalidCode(f'Identifier "{var}" does not name a variable.')
 
         return re.sub(r'@([_a-zA-Z][_0-9a-zA-Z]*)@', replace, node.value)
 
