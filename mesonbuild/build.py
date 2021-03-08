@@ -402,41 +402,36 @@ class EnvironmentVariables:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.envvars)
 
-    def add_var(self, method, name, args, kwargs):
-        self.varnames.add(name)
-        self.envvars.append((method, name, args, kwargs))
-
-    def has_name(self, name):
+    def has_name(self, name: str) -> bool:
         return name in self.varnames
 
-    def get_value(self, values, kwargs):
-        separator = kwargs.get('separator', os.pathsep)
+    def set(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+        self.varnames.add(name)
+        self.envvars.append((self._set, name, values, separator))
 
-        value = ''
-        for var in values:
-            value += separator + var
-        return separator, value.strip(separator)
+    def append(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+        self.varnames.add(name)
+        self.envvars.append((self._append, name, values, separator))
 
-    def set(self, env, name, values, kwargs):
-        return self.get_value(values, kwargs)[1]
+    def prepend(self, name: str, values: T.List[str], separator: str = os.pathsep) -> None:
+        self.varnames.add(name)
+        self.envvars.append((self._prepend, name, values, separator))
 
-    def append(self, env, name, values, kwargs):
-        sep, value = self.get_value(values, kwargs)
-        if name in env:
-            return env[name] + sep + value
-        return value
+    def _set(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+        return separator.join(values)
 
-    def prepend(self, env, name, values, kwargs):
-        sep, value = self.get_value(values, kwargs)
-        if name in env:
-            return value + sep + env[name]
+    def _append(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+        curr = env.get(name)
+        return separator.join(values if curr is None else [curr] + values)
 
-        return value
+    def _prepend(self, env: T.Dict[str, str], name: str, values: T.List[str], separator: str) -> str:
+        curr = env.get(name)
+        return separator.join(values if curr is None else values + [curr])
 
     def get_env(self, full_env: T.Dict[str, str]) -> T.Dict[str, str]:
         env = full_env.copy()
-        for method, name, values, kwargs in self.envvars:
-            env[name] = method(full_env, name, values, kwargs)
+        for method, name, values, separator in self.envvars:
+            env[name] = method(full_env, name, values, separator)
         return env
 
 class Target:
