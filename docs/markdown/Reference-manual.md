@@ -860,6 +860,8 @@ Then you can use it in `bar2` like this:
 
 Meson will then do the right thing.
 
+The returned object is a array of [`file objects`](#File-object).
+
 ### generator()
 
 ``` meson
@@ -2713,6 +2715,15 @@ library. This object has the following methods:
   type name, and methods as the object that called it. This new
   object will only inherit other attributes from its parent as
   controlled by keyword arguments.
+
+### File object
+
+*(since 0.58.0)*
+
+This object is an entry in the file array returned by [`files()`](#files). This
+object contains the following methods:
+
+- `full_path()`: returns a string of the full path to the file
 
 ### Feature option object
 

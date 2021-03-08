@@ -2341,6 +2341,23 @@ permitted_kwargs = {'add_global_arguments': {'language', 'native'},
                     }
 
 
+class FileHolder(InterpreterObject, ObjectHolder[mesonlib.File]):
+    def __init__(self, file: mesonlib.File, source_dir: str, build_dir: str):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, file)
+        self.source_dir = source_dir
+        self.build_dir = build_dir
+        self.methods.update({
+            'full_path': self.full_path_method,
+        })
+
+    @FeatureNew('file.full_path', '0.58.0')
+    @noPosargs
+    @noKwargs
+    def full_path_method(self, args, kwargs):
+        return self.held_object.absolute_path(self.source_dir, self.build_dir)
+
+
 class Interpreter(InterpreterBase):
 
     def __init__(
@@ -2645,7 +2662,7 @@ class Interpreter(InterpreterBase):
     @stringArgs
     @noKwargs
     def func_files(self, node, args, kwargs):
-        return [mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname) for fname in args]
+        return [FileHolder(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, fname), self.environment.source_dir, self.environment.build_dir) for fname in args]
 
     # Used by declare_dependency() and pkgconfig.generate()
     def extract_variables(self, kwargs, argname='variables', list_new=False, dict_new=False):
@@ -4790,7 +4807,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             sources = [sources]
         results: T.List[mesonlib.File] = []
         for s in sources:
-            if isinstance(s, (mesonlib.File, GeneratedListHolder,
+            if isinstance(s, (mesonlib.File, FileHolder, GeneratedListHolder,
                               TargetHolder, CustomTargetIndexHolder,
                               GeneratedObjectsHolder)):
                 pass
