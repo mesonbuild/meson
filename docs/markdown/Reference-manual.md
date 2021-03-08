@@ -2134,6 +2134,9 @@ are immutable, all operations return their results as a new string.
 - `join(list_of_strings)`: the opposite of split, for example
   `'.'.join(['a', 'b', 'c']` yields `'a.b.c'`.
 
+- `replace('old_substr', 'new_str')`: replaces instances of `old_substr` in the
+  string with `new_str` and returns a new string
+
 - `split(split_character)`: splits the string at the specified
   character (or whitespace if not set) and returns the parts in an
   array.

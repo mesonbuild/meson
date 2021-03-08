@@ -1192,6 +1192,13 @@ The result of this is undefined and will become a hard error in a future Meson r
                     raise InterpreterException('substring() argument must be an int')
                 end = posargs[1]
             return obj[start:end]
+        elif method_name == 'replace':
+            FeatureNew.single_use('str.replace', '0.58.0', self.subproject)
+            if len(posargs) != 2:
+                raise InterpreterException('replace() takes exactly two arguments.')
+            if not isinstance(posargs[0], str) or not isinstance(posargs[1], str):
+                raise InterpreterException('replace() requires that both arguments be strings')
+            return obj.replace(posargs[0], posargs[1])
         raise InterpreterException('Unknown method "%s" for a string.' % method_name)
 
     def format_string(self, templ: str, args: T.List[TYPE_nvar]) -> str:
