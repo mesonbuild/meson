@@ -186,6 +186,17 @@ As can be seen, the formatting works by replacing placeholders of type
 Strings also support a number of other methods that return transformed
 copies.
 
+#### .replace()
+
+Since 0.58.0, you can replace a substring from a string.
+
+```meson
+# Replaces all instances of one substring with another
+s = 'semicolons;as;separators'
+s = s.replace('as', 'are')
+# 's' now has the value of 'semicolons;are;separators'
+```
+
 #### .strip()
 
 ```meson
