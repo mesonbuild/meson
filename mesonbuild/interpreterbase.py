@@ -286,8 +286,8 @@ def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
 
             # These are implementation programming errors, end users should never see them.
             assert isinstance(args, list), args
-            assert max_varargs >= 0, 'max_varrags cannot be negative'
-            assert min_varargs >= 0, 'min_varrags cannot be negative'
+            assert max_varargs >= 0, 'max_varags cannot be negative'
+            assert min_varargs >= 0, 'min_varags cannot be negative'
             assert optargs is None or varargs is None, \
                 'varargs and optargs not supported together as this would be ambiguous'
 
