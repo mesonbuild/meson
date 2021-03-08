@@ -269,40 +269,50 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
         elif initial_values:
             raise AssertionError('Unsupported EnvironmentVariablesHolder initial_values')
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.held_object.envvars)
 
-    def add_var(self, method, args, kwargs):
-        if not isinstance(kwargs.get("separator", ""), str):
+    def unpack_separator(self, kwargs: T.Dict[str, T.Any]) -> str:
+        separator = kwargs.get('separator', os.pathsep)
+        if not isinstance(separator, str):
             raise InterpreterException("EnvironmentVariablesHolder methods 'separator'"
                                        " argument needs to be a string.")
-        if len(args) < 2:
-            raise InterpreterException("EnvironmentVariablesHolder methods require at least"
-                                       "2 arguments, first is the name of the variable and"
-                                       " following one are values")
+        return separator
+
+    def warn_if_has_name(self, name: str) -> None:
         # Warn when someone tries to use append() or prepend() on an env var
         # which already has an operation set on it. People seem to think that
         # multiple append/prepend operations stack, but they don't.
-        if method != self.held_object.set and self.held_object.has_name(args[0]):
-            mlog.warning('Overriding previous value of environment variable {!r} with a new one'
-                         .format(args[0]), location=self.current_node)
-        self.held_object.add_var(method, args[0], args[1:], kwargs)
+        if self.held_object.has_name(name):
+            mlog.warning(f'Overriding previous value of environment variable {name!r} with a new one',
+                         location=self.current_node)
 
     @stringArgs
     @permittedKwargs({'separator'})
-    def set_method(self, args, kwargs):
-        self.add_var(self.held_object.set, args, kwargs)
+    @typed_pos_args('environment.set', str, varargs=str, min_varargs=1)
+    def set_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+        name, values = args
+        separator = self.unpack_separator(kwargs)
+        self.held_object.set(name, values, separator)
 
     @stringArgs
     @permittedKwargs({'separator'})
-    def append_method(self, args, kwargs):
-        self.add_var(self.held_object.append, args, kwargs)
+    @typed_pos_args('environment.append', str, varargs=str, min_varargs=1)
+    def append_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+        name, values = args
+        separator = self.unpack_separator(kwargs)
+        self.warn_if_has_name(name)
+        self.held_object.append(name, values, separator)
 
     @stringArgs
     @permittedKwargs({'separator'})
-    def prepend_method(self, args, kwargs):
-        self.add_var(self.held_object.prepend, args, kwargs)
+    @typed_pos_args('environment.prepend', str, varargs=str, min_varargs=1)
+    def prepend_method(self, args: T.Tuple[str, T.List[str]], kwargs: T.Dict[str, T.Any]) -> None:
+        name, values = args
+        separator = self.unpack_separator(kwargs)
+        self.warn_if_has_name(name)
+        self.held_object.prepend(name, values, separator)
 
 
 class ConfigurationDataHolder(MutableInterpreterObject, ObjectHolder[build.ConfigurationData]):
