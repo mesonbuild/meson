@@ -901,7 +901,6 @@ class Vs2010Backend(backends.Backend):
         # Incremental linking increases code size
         if '/INCREMENTAL:NO' in buildtype_link_args:
             ET.SubElement(type_config, 'LinkIncremental').text = 'false'
-
         # Build information
         compiles = ET.SubElement(root, 'ItemDefinitionGroup')
         clconf = ET.SubElement(compiles, 'ClCompile')
@@ -937,13 +936,15 @@ class Vs2010Backend(backends.Backend):
         # Sanitizers
         if '/fsanitize=address' in build_args:
             ET.SubElement(type_config, 'EnableASAN').text = 'true'
-        # Debug format
-        if '/ZI' in build_args:
+        # Debug format. Allow debug information format to be overridden by user using project or global args.
+        project_args = self.build.get_project_args(compiler, target.subproject, target.for_machine)
+        global_args = self.build.get_global_args(compiler, target.for_machine)
+        if '/ZI' in build_args + project_args + global_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
-        elif '/Zi' in build_args:
-            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
-        elif '/Z7' in build_args:
+        elif '/Z7' in build_args + project_args + global_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'OldStyle'
+        elif '/Zi' in build_args + project_args + global_args:
+            ET.SubElement(clconf, 'DebugInformationFormat').text = 'ProgramDatabase'
         else:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'None'
         # Runtime checks

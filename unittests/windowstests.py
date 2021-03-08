@@ -373,3 +373,13 @@ class WindowsTests(BasePlatformTests):
             raise SkipTest('Not using MSVC')
         self.init(testdir, extra_args=['-Dtest-failure=true'])
         self.assertRaises(subprocess.CalledProcessError, self.build)
+
+    def test_debug_info_format(self):
+        testdir = os.path.join(self.unit_test_dir, '102 debug info')
+        env = get_fake_env(testdir, self.builddir, self.prefix)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        if cc.get_argument_syntax() != 'msvc':
+            raise SkipTest('Not using MSVC')
+        self.init(testdir)
+        out = self.build()
+        self.assertNotRegex(out, r'warning D9025') #: overriding \'/Zi\' with \'/Z7\'')
