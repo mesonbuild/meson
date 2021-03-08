@@ -1796,7 +1796,7 @@ class StaticLibrary(BuildTarget):
         # the import library. Using libfoo.a is ok because people using MSVC
         # always pass the library filename while linking anyway.
         if not hasattr(self, 'prefix'):
-            self.prefix = 'lib'
+            self.prefix = 'lib' if not self.name.startswith('lib') else ''
         if not hasattr(self, 'suffix'):
             if 'rust' in self.compilers:
                 if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
@@ -1984,7 +1984,7 @@ class SharedLibrary(BuildTarget):
                 # No versioning, libfoo.so
                 self.filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         if self.prefix is None:
-            self.prefix = prefix
+            self.prefix = prefix if not self.name.startswith(prefix) else ''
         if self.suffix is None:
             self.suffix = suffix
         self.filename = self.filename_tpl.format(self)
