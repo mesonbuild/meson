@@ -5591,6 +5591,22 @@ class AllPlatformTests(BasePlatformTests):
         self._run(cmd + python_command + [script])
         self.assertEqual('This is text.', self._run(cmd + [app]).strip())
 
+    def test_clang_format(self):
+        if self.backend is not Backend.ninja:
+            raise unittest.SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')
+        if not shutil.which('clang-format'):
+            raise unittest.SkipTest('clang-format not found')
+
+        testdir = os.path.join(self.unit_test_dir, '93 clangformat')
+        newdir = os.path.join(self.builddir, 'testdir')
+        shutil.copytree(testdir, newdir)
+        self.new_builddir()
+        self.init(newdir)
+        output = self.build('clang-format')
+        self.assertEqual(1, output.count('File reformatted:'))
+        output = self.build('clang-format')
+        self.assertEqual(0, output.count('File reformatted:'))
+
 
 class FailureTests(BasePlatformTests):
     '''
