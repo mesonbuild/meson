@@ -33,7 +33,9 @@ from ..arglist import CompilerArgs
 from ..compilers import (
     Compiler, CCompiler,
     DmdDCompiler,
-    FortranCompiler, PGICCompiler,
+    FortranCompiler,
+    LLVMDCompiler,
+    PGICCompiler,
     VisualStudioCsCompiler,
     VisualStudioLikeCompiler,
 )
@@ -88,6 +90,13 @@ else:
     quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
+
+
+def dlang_cl_rsp(compiler: Compiler) -> bool:
+    '''Return whether the D compiler accepts cl style RSP quote'''
+    return (isinstance(compiler, DmdDCompiler) or
+        mesonlib.is_windows() and isinstance(compiler, LLVMDCompiler))
+
 
 def get_rsp_threshold():
     '''Return a conservative estimate of the commandline size in bytes
@@ -1887,7 +1896,7 @@ int dummy;
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
                                         rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                                     isinstance(compiler, DmdDCompiler)) else 'gcc',
+                                                                     dlang_cl_rsp(compiler)) else 'gcc',
                                         extra=pool))
 
         args = self.environment.get_build_command() + \
@@ -2011,7 +2020,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp(),
                                 rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                             isinstance(compiler, DmdDCompiler)) else 'gcc',
+                                                             dlang_cl_rsp(compiler)) else 'gcc',
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
