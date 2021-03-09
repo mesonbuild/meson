@@ -18,7 +18,7 @@ import subprocess
 import typing as T
 
 from ..mesonlib import (
-    EnvironmentException, MachineChoice, version_compare, OptionKey,
+    EnvironmentException, MachineChoice, version_compare, OptionKey, is_windows
 )
 
 from ..arglist import CompilerArgs
@@ -36,7 +36,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency, ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker
+    from ..linkers import DynamicLinker, RSPFileSyntax
 else:
     CompilerMixinBase = object
 
@@ -780,6 +780,12 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_disable_assert_args(self) -> T.List[str]:
         return ['--release']
 
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        # We use `mesonlib.is_windows` here because we want to konw what the
+        # build machine is, not the host machine. This really means whe whould
+        # have the Environment not the MachineInfo in the compiler.
+        return RSPFileSyntax.MSVC if is_windows() else RSPFileSyntax.GCC
+
 
 class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
@@ -860,3 +866,6 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
 
     def get_disable_assert_args(self) -> T.List[str]:
         return ['-release']
+
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        return RSPFileSyntax.MSVC

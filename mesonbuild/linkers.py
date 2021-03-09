@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import abc
+import enum
 import os
 import typing as T
 
@@ -25,7 +26,18 @@ if T.TYPE_CHECKING:
     from .mesonlib import MachineChoice
 
 
+@enum.unique
+class RSPFileSyntax(enum.Enum):
+
+    """Which RSP file syntax the compiler supports."""
+
+    MSVC = enum.auto()
+    GCC = enum.auto()
+
+
 class StaticLinker:
+
+    id: str
 
     def __init__(self, exelist: T.List[str]):
         self.exelist = exelist
@@ -93,6 +105,15 @@ class StaticLinker:
     def get_linker_always_args(self) -> T.List[str]:
         return []
 
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        """The format of the RSP file that this compiler supports.
+
+        If `self.can_linker_accept_rsp()` returns True, then this needs to
+        be implemented
+        """
+        assert not self.can_linker_accept_rsp(), f'{self.id} linker accepts RSP, but doesn\' provide a supported format, this is a bug'
+        raise mesonlib.EnvironmentException(f'{self.id} does no implemnt rsp format, this shouldn\'t be called')
+
 
 class VisualStudioLikeLinker:
     always_args = ['/NOLOGO']
@@ -122,6 +143,9 @@ class VisualStudioLikeLinker:
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
         from .compilers import VisualStudioCCompiler
         return VisualStudioCCompiler.native_args_to_unix(args)
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.MSVC
 
 
 class VisualStudioLinker(VisualStudioLikeLinker, StaticLinker):
@@ -164,6 +188,9 @@ class ArLinker(StaticLinker):
     def get_output_args(self, target: str) -> T.List[str]:
         return [target]
 
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.GCC
+
 
 class ArmarLinker(ArLinker):  # lgtm [py/missing-call-to-init]
 
@@ -178,10 +205,11 @@ class ArmarLinker(ArLinker):  # lgtm [py/missing-call-to-init]
 
 
 class DLinker(StaticLinker):
-    def __init__(self, exelist: T.List[str], arch: str):
+    def __init__(self, exelist: T.List[str], arch: str, *, rsp_syntax: RSPFileSyntax = RSPFileSyntax.GCC):
         super().__init__(exelist)
         self.id = exelist[0]
         self.arch = arch
+        self.__rsp_syntax = rsp_syntax
 
     def get_std_link_args(self) -> T.List[str]:
         return ['-lib']
@@ -197,6 +225,9 @@ class DLinker(StaticLinker):
                 return ['-m32mscoff']
             return ['-m32']
         return []
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return self.__rsp_syntax
 
 
 class CcrxLinker(StaticLinker):
@@ -354,6 +385,14 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # rsp files are only used when building on Windows because we want to
         # avoid issues with quoting and max argument length
         return mesonlib.is_windows()
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        """The format of the RSP file that this compiler supports.
+
+        If `self.can_linker_accept_rsp()` returns True, then this needs to
+        be implemented
+        """
+        return RSPFileSyntax.GCC
 
     def get_always_args(self) -> T.List[str]:
         return self.always_args.copy()
@@ -1136,6 +1175,9 @@ class VisualStudioLikeLinkerMixin:
     def import_library_args(self, implibname: str) -> T.List[str]:
         """The command to generate the import library."""
         return self._apply_prefix(['/IMPLIB:' + implibname])
+
+    def rsp_file_syntax(self) -> RSPFileSyntax:
+        return RSPFileSyntax.MSVC
 
 
 class MSVCDynamicLinker(VisualStudioLikeLinkerMixin, DynamicLinker):

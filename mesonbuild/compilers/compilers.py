@@ -34,7 +34,7 @@ if T.TYPE_CHECKING:
     from ..coredata import OptionDictType, KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker  # noqa: F401
+    from ..linkers import DynamicLinker, RSPFileSyntax
     from ..dependencies import Dependency
 
     CompilerType = T.TypeVar('CompilerType', bound=Compiler)
@@ -1216,6 +1216,14 @@ class Compiler(metaclass=abc.ABCMeta):
 
     def get_prelink_args(self, prelink_name: str, obj_list: T.List[str]) -> T.List[str]:
         raise EnvironmentException(f'{self.id} does not know how to do prelinking.')
+
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        """The format of the RSP file that this compiler supports.
+
+        If `self.can_linker_accept_rsp()` returns True, then this needs to
+        be implemented
+        """
+        return self.linker.rsp_file_syntax()
 
 
 def get_global_options(lang: str,
