@@ -32,6 +32,7 @@ index.md
 		Build-options.md
 		Subprojects.md
 		Disabler.md
+		Code-formatting.md
 		Modules.md
 			CMake-module.md
 			Cuda-module.md
