@@ -32,14 +32,11 @@ from .. import compilers
 from ..arglist import CompilerArgs
 from ..compilers import (
     Compiler, CCompiler,
-    DmdDCompiler,
     FortranCompiler,
-    LLVMDCompiler,
     PGICCompiler,
-    VisualStudioCsCompiler,
     VisualStudioLikeCompiler,
 )
-from ..linkers import ArLinker, VisualStudioLinker
+from ..linkers import ArLinker, RSPFileSyntax
 from ..mesonlib import (
     File, LibType, MachineChoice, MesonException, OrderedSet, PerMachine,
     ProgressBar, quote_arg, unholder,
@@ -51,6 +48,8 @@ from ..interpreter import Interpreter
 
 if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
+    from ..compilers.cs import CsCompiler
+
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
 FORTRAN_MODULE_PAT = r"^\s*\bmodule\b\s+(\w+)\s*(?:!+.*)*$"
@@ -90,12 +89,6 @@ else:
     quote_func = quote_arg
     execute_wrapper = []
     rmfile_prefix = ['rm', '-f', '{}', '&&']
-
-
-def dlang_cl_rsp(compiler: Compiler) -> bool:
-    '''Return whether the D compiler accepts cl style RSP quote'''
-    return (isinstance(compiler, DmdDCompiler) or
-        mesonlib.is_windows() and isinstance(compiler, LLVMDCompiler))
 
 
 def get_rsp_threshold():
@@ -183,7 +176,7 @@ class NinjaComment:
 class NinjaRule:
     def __init__(self, rule, command, args, description,
                  rspable = False, deps = None, depfile = None, extra = None,
-                 rspfile_quote_style = 'gcc'):
+                 rspfile_quote_style: RSPFileSyntax = RSPFileSyntax.GCC):
 
         def strToCommandArg(c):
             if isinstance(c, NinjaCommandArg):
@@ -217,7 +210,7 @@ class NinjaRule:
         self.rspable = rspable  # if a rspfile can be used
         self.refcount = 0
         self.rsprefcount = 0
-        self.rspfile_quote_style = rspfile_quote_style  # rspfile quoting style is 'gcc' or 'cl'
+        self.rspfile_quote_style = rspfile_quote_style
 
         if self.depfile == '$DEPFILE':
             self.depfile += '_UNQUOTED'
@@ -235,7 +228,7 @@ class NinjaRule:
         return ninja_quote(qf(str(x)))
 
     def write(self, outfile):
-        if self.rspfile_quote_style == 'cl':
+        if self.rspfile_quote_style is RSPFileSyntax.MSVC:
             rspfile_quote_func = cmd_quote
         else:
             rspfile_quote_func = gcc_rsp_quote
@@ -395,7 +388,7 @@ class NinjaBuildElement:
         outfile.write(line)
 
         if use_rspfile:
-            if self.rule.rspfile_quote_style == 'cl':
+            if self.rule.rspfile_quote_style is RSPFileSyntax.MSVC:
                 qf = cmd_quote
             else:
                 qf = gcc_rsp_quote
@@ -1872,7 +1865,7 @@ int dummy;
                 pool = None
             self.add_rule(NinjaRule(rule, cmdlist, args, description,
                                     rspable=static_linker.can_linker_accept_rsp(),
-                                    rspfile_quote_style='cl' if isinstance(static_linker, VisualStudioLinker) else 'gcc',
+                                    rspfile_quote_style=static_linker.rsp_file_syntax(),
                                     extra=pool))
 
     def generate_dynamic_link_rules(self):
@@ -1895,8 +1888,7 @@ int dummy;
                     pool = None
                 self.add_rule(NinjaRule(rule, command, args, description,
                                         rspable=compiler.can_linker_accept_rsp(),
-                                        rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                                     dlang_cl_rsp(compiler)) else 'gcc',
+                                        rspfile_quote_style=compiler.rsp_file_syntax(),
                                         extra=pool))
 
         args = self.environment.get_build_command() + \
@@ -1918,14 +1910,14 @@ int dummy;
         description = 'Compiling Java object $in'
         self.add_rule(NinjaRule(rule, command, [], description))
 
-    def generate_cs_compile_rule(self, compiler):
+    def generate_cs_compile_rule(self, compiler: 'CsCompiler') -> None:
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist()
         args = ['$ARGS', '$in']
         description = 'Compiling C Sharp target $out'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=mesonlib.is_windows(),
-                                rspfile_quote_style='cl' if isinstance(compiler, VisualStudioCsCompiler) else 'gcc'))
+                                rspfile_quote_style=compiler.rsp_file_syntax()))
 
     def generate_vala_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
@@ -2019,8 +2011,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             depfile = '$DEPFILE'
         self.add_rule(NinjaRule(rule, command, args, description,
                                 rspable=compiler.can_linker_accept_rsp(),
-                                rspfile_quote_style='cl' if (compiler.get_argument_syntax() == 'msvc' or
-                                                             dlang_cl_rsp(compiler)) else 'gcc',
+                                rspfile_quote_style=compiler.rsp_file_syntax(),
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):

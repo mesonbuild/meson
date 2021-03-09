@@ -22,6 +22,7 @@ from ..mesonlib import (
 )
 
 from ..arglist import CompilerArgs
+from ..linkers import RSPFileSyntax
 from .compilers import (
     d_dmd_buildtype_args,
     d_gdc_buildtype_args,
@@ -36,7 +37,7 @@ if T.TYPE_CHECKING:
     from ..dependencies import Dependency, ExternalProgram
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..linkers import DynamicLinker, RSPFileSyntax
+    from ..linkers import DynamicLinker
 else:
     CompilerMixinBase = object
 
@@ -780,7 +781,7 @@ class LLVMDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_disable_assert_args(self) -> T.List[str]:
         return ['--release']
 
-    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+    def rsp_file_syntax(self) -> RSPFileSyntax:
         # We use `mesonlib.is_windows` here because we want to konw what the
         # build machine is, not the host machine. This really means whe whould
         # have the Environment not the MachineInfo in the compiler.
@@ -867,5 +868,5 @@ class DmdDCompiler(DmdLikeCompilerMixin, DCompiler):
     def get_disable_assert_args(self) -> T.List[str]:
         return ['-release']
 
-    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+    def rsp_file_syntax(self) -> RSPFileSyntax:
         return RSPFileSyntax.MSVC
