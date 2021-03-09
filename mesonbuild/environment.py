@@ -888,10 +888,6 @@ class Environment:
     def dump_coredata(self) -> str:
         return coredata.save(self.coredata, self.get_build_dir())
 
-    def get_script_dir(self) -> str:
-        import mesonbuild.scripts
-        return os.path.dirname(mesonbuild.scripts.__file__)
-
     def get_log_dir(self) -> str:
         return self.log_dir
 
