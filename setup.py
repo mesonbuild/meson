@@ -32,12 +32,11 @@ if sys.platform != 'win32':
     data_files = [('share/man/man1', ['man/meson.1']),
                   ('share/polkit-1/actions', ['data/com.mesonbuild.install.policy'])]
 
-if __name__ == '__main__':
-    setup(name='meson',
-          version=version,
-          packages=find_packages(
-              include=['mesonbuild', 'mesonbuild.*'],
-              exclude=['*.data']
-          ),
-          entry_points=entries,
-          data_files=data_files,)
+setup(name='meson',
+      version=version,
+      packages=find_packages(
+          include=['mesonbuild', 'mesonbuild.*'],
+          exclude=['*.data']
+      ),
+      entry_points=entries,
+      data_files=data_files,)
