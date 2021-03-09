@@ -2061,7 +2061,7 @@ class Environment:
             if 'DMD32 D Compiler' in out or 'DMD64 D Compiler' in out:
                 return DLinker(linker, compiler.arch)
             if 'LDC - the LLVM D compiler' in out:
-                return DLinker(linker, compiler.arch)
+                return DLinker(linker, compiler.arch, rsp_syntax=compiler.rsp_file_syntax())
             if 'GDC' in out and ' based on D ' in out:
                 return DLinker(linker, compiler.arch)
             if err.startswith('Renesas') and ('rlink' in linker or 'rlink.exe' in linker):
