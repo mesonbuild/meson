@@ -17,6 +17,7 @@ import textwrap
 import typing as T
 
 from ..mesonlib import EnvironmentException
+from ..linkers import RSPFileSyntax
 
 from .compilers import Compiler, MachineChoice, mono_buildtype_args
 from .mixins.islinker import BasicLinkerIsCompilerMixin
@@ -125,6 +126,9 @@ class MonoCompiler(CsCompiler):
         super().__init__(exelist, version, for_machine, info, 'mono',
                          runner='mono')
 
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        return RSPFileSyntax.GCC
+
 
 class VisualStudioCsCompiler(CsCompiler):
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
@@ -141,3 +145,6 @@ class VisualStudioCsCompiler(CsCompiler):
                 tmp.append(flag)
             res = tmp
         return res
+
+    def rsp_file_syntax(self) -> 'RSPFileSyntax':
+        return RSPFileSyntax.MSVC
