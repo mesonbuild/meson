@@ -21,23 +21,11 @@ if sys.version_info < (3, 6):
                      '\nMeson requires Python 3.6.0 or greater'.format(sys.version))
 
 from mesonbuild.coredata import version
-from setuptools import setup
+from setuptools import setup, find_packages
 
 # On windows, will create Scripts/meson.exe and Scripts/meson-script.py
 # Other platforms will create bin/meson
 entries = {'console_scripts': ['meson=mesonbuild.mesonmain:main']}
-packages = ['mesonbuild',
-            'mesonbuild.ast',
-            'mesonbuild.backend',
-            'mesonbuild.cmake',
-            'mesonbuild.compilers',
-            'mesonbuild.compilers.mixins',
-            'mesonbuild.dependencies',
-            'mesonbuild.mesonlib',
-            'mesonbuild.modules',
-            'mesonbuild.scripts',
-            'mesonbuild.templates',
-            'mesonbuild.wrap']
 data_files = []
 if sys.platform != 'win32':
     # Only useful on UNIX-like systems
@@ -47,6 +35,9 @@ if sys.platform != 'win32':
 if __name__ == '__main__':
     setup(name='meson',
           version=version,
-          packages=packages,
+          packages=find_packages(
+              include=['mesonbuild', 'mesonbuild.*'],
+              exclude=['*.data']
+          ),
           entry_points=entries,
           data_files=data_files,)
