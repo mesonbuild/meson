@@ -4667,9 +4667,6 @@ different subdirectory.
             elif arg == '-g':
                 mlog.warning(f'Consider using the built-in debug option instead of using "{arg}".',
                              location=self.current_node)
-            elif arg == '-pipe':
-                mlog.warning("You don't need to add -pipe, Meson will use it automatically when it is available.",
-                             location=self.current_node)
             elif arg.startswith('-fsanitize'):
                 mlog.warning(f'Consider using the built-in option for sanitizers instead of using "{arg}".',
                              location=self.current_node)

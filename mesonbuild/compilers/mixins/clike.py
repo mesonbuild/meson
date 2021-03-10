@@ -154,7 +154,7 @@ class CLikeCompiler(Compiler):
         '''
         Args that are always-on for all C compilers other than MSVC
         '''
-        return ['-pipe'] + self.get_largefile_args()
+        return self.get_largefile_args()
 
     def get_no_stdinc_args(self) -> T.List[str]:
         return ['-nostdinc']
