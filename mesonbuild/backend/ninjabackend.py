@@ -3042,8 +3042,12 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         # Alias that runs the target defined above
         self.create_target_alias('meson-scan-build')
 
-    def generate_clangtool(self, name):
+    def generate_clangtool(self, name, extra_arg=None):
         target_name = 'clang-' + name
+        extra_args = []
+        if extra_arg:
+            target_name += f'-{extra_arg}'
+            extra_args.append(f'--{extra_arg}')
         if not os.path.exists(os.path.join(self.environment.source_dir, '.clang-' + name)) and \
                 not os.path.exists(os.path.join(self.environment.source_dir, '_clang-' + name)):
             return
@@ -3052,7 +3056,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if ('', target_name) in self.build.run_target_names:
             return
         cmd = self.environment.get_build_command() + \
-            ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir]
+            ['--internal', 'clang' + name, self.environment.source_dir, self.environment.build_dir] + \
+            extra_args
         elem = NinjaBuildElement(self.all_outputs, 'meson-' + target_name, 'CUSTOM_COMMAND', 'PHONY')
         elem.add_item('COMMAND', cmd)
         elem.add_item('pool', 'console')
@@ -3063,6 +3068,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if not environment.detect_clangformat():
             return
         self.generate_clangtool('format')
+        self.generate_clangtool('format', 'check')
 
     def generate_clangtidy(self):
         import shutil

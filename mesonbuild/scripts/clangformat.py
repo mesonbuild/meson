@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import subprocess
 import itertools
 import fnmatch
@@ -34,15 +35,17 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
         pass
     return patterns
 
-def run_clang_format(exelist: T.List[str], fname: Path) -> subprocess.CompletedProcess:
+def run_clang_format(exelist: T.List[str], fname: Path, check: bool) -> subprocess.CompletedProcess:
     before = fname.stat().st_mtime
     ret = subprocess.run(exelist + ['-style=file', '-i', str(fname)])
     after = fname.stat().st_mtime
     if before != after:
         print('File reformatted: ', fname)
+        if check:
+            ret.returncode = 1
     return ret
 
-def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path) -> int:
+def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool) -> int:
     patterns = parse_pattern_file(srcdir / '.clang-format-include')
     if not patterns:
         patterns = ['**/*']
@@ -61,17 +64,23 @@ def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path) -> int:
             if f.is_dir() or f.suffix not in suffixes or \
                 any(fnmatch.fnmatch(strf, i) for i in ignore):
                 continue
-            futures.append(e.submit(run_clang_format, exelist, f))
+            futures.append(e.submit(run_clang_format, exelist, f, check))
         returncode = max([x.result().returncode for x in futures])
     return returncode
 
 def run(args: T.List[str]) -> int:
-    srcdir = Path(args[0])
-    builddir = Path(args[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--check', action='store_true')
+    parser.add_argument('sourcedir')
+    parser.add_argument('builddir')
+    options = parser.parse_args(args)
+
+    srcdir = Path(options.sourcedir)
+    builddir = Path(options.builddir)
 
     exelist = detect_clangformat()
     if not exelist:
         print('Could not execute clang-format "%s"' % ' '.join(exelist))
         return 1
 
-    return clangformat(exelist, srcdir, builddir)
+    return clangformat(exelist, srcdir, builddir, options.check)

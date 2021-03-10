@@ -39,5 +39,5 @@ Example of `.clang-format-ignore` file:
 src/*.cpp
 ```
 
-Modified files will be printed on the console which can be used for example by
-CI to ensure all files are correctly formatted.
+A new target `clang-format-check` has been added. It returns an error code if
+any file needs to be reformatted. This is intended to be used by CI.
