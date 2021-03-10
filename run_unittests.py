@@ -5602,10 +5602,23 @@ class AllPlatformTests(BasePlatformTests):
         shutil.copytree(testdir, newdir)
         self.new_builddir()
         self.init(newdir)
+
+        # Should reformat 1 file but not return error
         output = self.build('clang-format')
         self.assertEqual(1, output.count('File reformatted:'))
+
+        # Reset source tree then try again with clang-format-check, it should
+        # return an error code this time.
+        windows_proof_rmtree(newdir)
+        shutil.copytree(testdir, newdir)
+        with self.assertRaises(subprocess.CalledProcessError):
+            output = self.build('clang-format-check')
+            self.assertEqual(1, output.count('File reformatted:'))
+
+        # All code has been reformatted already, so it should be no-op now.
         output = self.build('clang-format')
         self.assertEqual(0, output.count('File reformatted:'))
+        self.build('clang-format-check')
 
 
 class FailureTests(BasePlatformTests):
