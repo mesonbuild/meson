@@ -4180,12 +4180,12 @@ class AllPlatformTests(BasePlatformTests):
         # Parent project warns correctly
         self.assertRegex(out, "WARNING: Project targeting '>=0.45'.*'0.47.0': dict")
         # Subprojects warn correctly
-        self.assertRegex(out, r"\|WARNING: Project targeting '>=0.40'.*'0.44.0': disabler")
-        self.assertRegex(out, r"\|WARNING: Project targeting '!=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\| WARNING: Project targeting '>=0.40'.*'0.44.0': disabler")
+        self.assertRegex(out, r"\| WARNING: Project targeting '!=0.40'.*'0.44.0': disabler")
         # Subproject has a new-enough meson_version, no warning
         self.assertNotRegex(out, "WARNING: Project targeting.*Python")
         # Ensure a summary is printed in the subproject and the outer project
-        self.assertRegex(out, r"\|WARNING: Project specifies a minimum meson_version '>=0.40'")
+        self.assertRegex(out, r"\| WARNING: Project specifies a minimum meson_version '>=0.40'")
         self.assertRegex(out, r"\| \* 0.44.0: {'disabler'}")
         self.assertRegex(out, "WARNING: Project specifies a minimum meson_version '>=0.45'")
         self.assertRegex(out, " * 0.47.0: {'dict'}")

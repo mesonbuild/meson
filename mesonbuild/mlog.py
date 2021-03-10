@@ -210,7 +210,7 @@ def force_print(*args: str, **kwargs: T.Any) -> None:
 
     raw = iostr.getvalue()
     if log_depth:
-        prepend = log_depth[-1] + '|'
+        prepend = log_depth[-1] + '| '
         raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
 
     # _Something_ is going to get printed.
