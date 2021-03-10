@@ -2911,13 +2911,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         os.makedirs(os.path.join(self.build.environment.get_build_dir(), subdir), exist_ok=True)
         self.global_args_frozen = True
 
-        mlog.log()
-        with mlog.nested(subp_name):
-            stack = ':'.join(self.subproject_stack + [subp_name])
-            m = ['Executing subproject', mlog.bold(stack)]
-            if method != 'meson':
-                m += ['method', mlog.bold(method)]
-            mlog.log(*m,'\n')
+        stack = ':'.join(self.subproject_stack + [subp_name])
+        m = ['\nExecuting subproject', mlog.bold(stack)]
+        if method != 'meson':
+            m += ['method', mlog.bold(method)]
+        mlog.log(*m,'\n', nested=False)
 
         try:
             if method == 'meson':

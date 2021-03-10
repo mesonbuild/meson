@@ -201,7 +201,7 @@ def process_markup(args: T.Sequence[T.Union[AnsiDecorator, str]], keep: bool) ->
             arr.append(str(arg))
     return arr
 
-def force_print(*args: str, **kwargs: T.Any) -> None:
+def force_print(*args: str, nested: str, **kwargs: T.Any) -> None:
     if log_disable_stdout:
         return
     iostr = io.StringIO()
@@ -210,7 +210,7 @@ def force_print(*args: str, **kwargs: T.Any) -> None:
 
     raw = iostr.getvalue()
     if log_depth:
-        prepend = log_depth[-1] + '| '
+        prepend = log_depth[-1] + '| ' if nested else ''
         lines = []
         for l in raw.split('\n'):
             l = l.strip()
@@ -250,6 +250,7 @@ def log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
 
 def _log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
         **kwargs: T.Any) -> None:
+    nested = kwargs.pop('nested', True)
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
@@ -257,7 +258,7 @@ def _log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
     if colorize_console():
         arr = process_markup(args, True)
     if not log_errors_only or is_error:
-        force_print(*arr, **kwargs)
+        force_print(*arr, nested=nested, **kwargs)
 
 def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
              **kwargs: T.Any) -> None:
