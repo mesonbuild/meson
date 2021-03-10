@@ -211,7 +211,11 @@ def force_print(*args: str, **kwargs: T.Any) -> None:
     raw = iostr.getvalue()
     if log_depth:
         prepend = log_depth[-1] + '| '
-        raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
+        lines = []
+        for l in raw.split('\n'):
+            l = l.strip()
+            lines.append(prepend + l if l else '')
+        raw = '\n'.join(lines)
 
     # _Something_ is going to get printed.
     try:
