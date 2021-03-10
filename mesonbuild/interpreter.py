@@ -2914,7 +2914,11 @@ external dependencies (including libraries) must go to "dependencies".''')
         mlog.log()
         with mlog.nested(subp_name):
             stack = ':'.join(self.subproject_stack + [subp_name])
-            mlog.log('Executing subproject', mlog.bold(stack), 'method', mlog.bold(method), '\n')
+            m = ['Executing subproject', mlog.bold(stack)]
+            if method != 'meson':
+                m += ['method', mlog.bold(method)]
+            mlog.log(*m,'\n')
+
         try:
             if method == 'meson':
                 return self._do_subproject_meson(subp_name, subdir, default_options, kwargs)
