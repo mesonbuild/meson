@@ -336,12 +336,6 @@ class IntelFortranCompiler(IntelGnuLikeCompiler, FortranCompiler):
     def get_preprocess_only_args(self) -> T.List[str]:
         return ['-cpp', '-EP']
 
-    def get_always_args(self) -> T.List[str]:
-        """Ifort doesn't have -pipe."""
-        val = super().get_always_args()
-        val.remove('-pipe')
-        return val
-
     def language_stdlib_only_link_flags(self) -> T.List[str]:
         return ['-lifcore', '-limf']
 
