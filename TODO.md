@@ -7,6 +7,7 @@ Cargo to meson.build:
         - target cfg() paring
 
     - TODO:
+        - links
         - targets
             - no support for the triple style
         - tests being triggered when they shouldn't?
@@ -40,4 +41,3 @@ Overall:
     - Figure out what to do about multiple versions of the same crate
     - Add a mechanism to test.json to verify that the correct tests are being run
     - Come up with a better solution for subprojects affecting each-others options
-    - how to handle recursive subprojects
