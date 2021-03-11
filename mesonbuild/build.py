@@ -1536,8 +1536,11 @@ class Generator:
             depfile = kwargs['depfile']
             if not isinstance(depfile, str):
                 raise InvalidArguments('Depfile must be a string.')
-            if os.path.basename(depfile) != depfile:
-                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
+            deppath = pathlib.PurePath(depfile)
+            if deppath.is_absolute():
+                raise InvalidArguments('Depfile must not be an absolute path')
+            if '..' in deppath.parts:
+                raise InvalidArguments('Depfile must not contain ".."')
             self.depfile = depfile
         if 'capture' in kwargs:
             capture = kwargs['capture']
@@ -2286,8 +2289,11 @@ class CustomTarget(Target, CommandBase):
                 raise InvalidArguments('Output must not be empty.')
             if i.strip() == '':
                 raise InvalidArguments('Output must not consist only of whitespace.')
-            if has_path_sep(i):
-                raise InvalidArguments(f'Output {i!r} must not contain a path segment.')
+            ipath = pathlib.PurePath(i)
+            if ipath.is_absolute():
+                raise InvalidArguments('Output must not be an absolute path')
+            if '..' in ipath.parts:
+                raise InvalidArguments('Output path must not contain ".."')
             if '@INPUT@' in i or '@INPUT0@' in i:
                 m = 'Output cannot contain @INPUT@ or @INPUT0@, did you ' \
                     'mean @PLAINNAME@ or @BASENAME@?'
