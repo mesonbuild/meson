@@ -1,0 +1,8 @@
+[package]
+name = "zstdrs"
+version = "1.0.0"
+links = "libzstd"
+autobenches = false
+autobins = false
+autoexamples = false
+autotests = false
