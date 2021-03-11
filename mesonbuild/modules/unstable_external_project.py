@@ -92,7 +92,7 @@ class ExternalProject(InterpreterObject):
 
         d = [('PREFIX', '--prefix=@PREFIX@', self.prefix.as_posix()),
              ('LIBDIR', '--libdir=@PREFIX@/@LIBDIR@', self.libdir.as_posix()),
-             ('INCLUDEDIR', '--includedir=@PREFIX@/@INCLUDEDIR@', self.includedir.as_posix()),
+             ('INCLUDEDIR', None, self.includedir.as_posix()),
              ]
         self._validate_configure_options(d)
 
@@ -140,6 +140,8 @@ class ExternalProject(InterpreterObject):
         # Ensure the user at least try to pass basic info to the build system,
         # like the prefix, libdir, etc.
         for key, default, val in variables:
+            if default is None:
+                continue
             key_format = f'@{key}@'
             for option in self.configure_options:
                 if key_format in option:
