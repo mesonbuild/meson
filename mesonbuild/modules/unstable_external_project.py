@@ -59,13 +59,13 @@ class ExternalProject(InterpreterObject):
         self.verbose = verbose
         self.user_env = env
 
-        self.name = self.subdir.name
         self.src_dir = Path(self.env.get_source_dir(), self.subdir)
         self.build_dir = Path(self.env.get_build_dir(), self.subdir, 'build')
         self.install_dir = Path(self.env.get_build_dir(), self.subdir, 'dist')
         self.prefix = Path(self.env.coredata.get_option(OptionKey('prefix')))
         self.libdir = Path(self.env.coredata.get_option(OptionKey('libdir')))
         self.includedir = Path(self.env.coredata.get_option(OptionKey('includedir')))
+        self.name = self.src_dir.name
 
         # On Windows if the prefix is "c:/foo" and DESTDIR is "c:/bar", `make`
         # will install files into "c:/bar/c:/foo" which is an invalid path.
