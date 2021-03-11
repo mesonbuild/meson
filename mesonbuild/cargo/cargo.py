@@ -361,7 +361,7 @@ class ManifestInterpreter:
                     # We always call the list of dependencies "dependencies",
                     # if there are dependencies we can add them. There could
                     # be an empty dependencies section, so account for that
-                    if self.manifest.get('dependencies') or self.manifest.get('target'):
+                    if self.manifest.get('dependencies') or self.manifest.get('target') or self.manifest['package'].get('links'):
                         fbuilder.keyword('dependencies', builder.id('dependencies'))
 
                     # Always mark everything as build by default false, that way meson will
@@ -586,6 +586,18 @@ class ManifestInterpreter:
                     if isinstance(dep, str) or not dep.get('optional', False):
                         arbuilder.positional(self.__get_dependency(builder, name))
 
+        # If we need to link with a system library, we'll first try a
+        # dependency
+        #
+        # TODO: if that doesn't work, we need to fall back to adding a C
+        # compiler and running c.find_library()
+        if self.manifest['package'].get('links'):
+            with builder.assignment_builder('link_library') as abuilder:
+                with abuilder.function_builder('dependency') as argbuilder:
+                    argbuilder.positional(self.manifest['package']['links'])
+            with builder.plus_assignment_builder('dependencies') as pabuilder:
+                pabuilder.reference('link_library')
+
         # If it's optional, then we need to check that the feature that
         # it depends on is available, then add it to the dependency array.
         for name, requires in self.features_to_deps.items():
@@ -691,7 +703,7 @@ class ManifestInterpreter:
 
         # Create a list of dependencies which will be added to the library (if
         # there is one).
-        if self.manifest.get('dependencies') or self.manifest.get('target'):
+        if self.manifest.get('dependencies') or self.manifest.get('target') or self.manifest['package'].get('links'):
             self.__emit_dependencies(builder)
         if self.manifest.get('dev-dependencies'):
             self.__emit_dev_dependencies(builder)

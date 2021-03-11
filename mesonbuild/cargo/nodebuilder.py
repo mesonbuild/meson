@@ -215,6 +215,9 @@ class PlusAssignmentBuilder:
         array = mparser.ArrayNode(b.finalize(), 0, 0, 0, 0) # _builder.array expects raw arguments
         self._node = self._builder.plus_assign(self.name, array)
 
+    def reference(self, name: str) -> None:
+        self._node = self._builder.plus_assign(self.name, self._builder.id(name))
+
     def finalize(self) -> mparser.PlusAssignmentNode:
         assert self._node is not None, 'You need to build an assignment before finalizing'
         return self._node
