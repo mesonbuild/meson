@@ -1,0 +1,8 @@
+[package]
+name = "sub1"
+version = "1.0.0"
+
+[lib]
+name = "sub1"
+proc-macro = true
+test = false
