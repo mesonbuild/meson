@@ -16,12 +16,12 @@ import os, subprocess, shlex
 from pathlib import Path
 import typing as T
 
-from . import ExtensionModule, ModuleReturnValue
+from . import ExtensionModule, ModuleReturnValue, ModuleState
 from .. import mlog, build
 from ..mesonlib import (MesonException, Popen_safe, MachineChoice,
-                       get_variable_regex, do_replacement)
+                       get_variable_regex, do_replacement, extract_as_list)
 from ..interpreterbase import InterpreterObject, InterpreterException, FeatureNew
-from ..interpreterbase import stringArgs, permittedKwargs
+from ..interpreterbase import stringArgs, permittedKwargs, typed_pos_args
 from ..interpreter import Interpreter, DependencyHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
 from ..dependencies.base import InternalDependency, PkgConfigDependency
@@ -255,15 +255,18 @@ class ExternalProjectModule(ExtensionModule):
     @FeatureNew('External build system Module', '0.56.0')
     def __init__(self, interpreter):
         super().__init__(interpreter)
+        self.methods.update({'add_project': self.add_project,
+                             })
 
     @stringArgs
     @permittedKwargs({'configure_options', 'cross_configure_options', 'verbose', 'env'})
-    def add_project(self, state, args, kwargs):
-        if len(args) != 1:
-            raise InterpreterException('add_project takes exactly one positional argument')
+    @typed_pos_args('add_project', str)
+    def add_project(self, state: ModuleState, args: T.Tuple[str], kwargs: T.Dict[str, T.Any]):
         configure_command = args[0]
-        configure_options = kwargs.get('configure_options', [])
-        cross_configure_options = kwargs.get('cross_configure_options', ['--host=@HOST@'])
+        configure_options = extract_as_list(kwargs, 'configure_options')
+        cross_configure_options = extract_as_list(kwargs, 'cross_configure_options')
+        if not cross_configure_options:
+            cross_configure_options = ['--host=@HOST@']
         verbose = kwargs.get('verbose', False)
         env = self.interpreter.unpack_env_kwarg(kwargs)
         project = ExternalProject(self.interpreter,
