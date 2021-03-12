@@ -9675,6 +9675,8 @@ class SubprojectsCommandTests(BasePlatformTests):
 
         self.subprojects_dir = self.project_dir / 'subprojects'
         os.makedirs(str(self.subprojects_dir))
+        self.packagecache_dir = self.subprojects_dir / 'packagecache'
+        os.makedirs(str(self.packagecache_dir))
 
     def _create_project(self, path, project_name='dummy'):
         os.makedirs(str(path), exist_ok=True)
@@ -9752,10 +9754,12 @@ class SubprojectsCommandTests(BasePlatformTests):
         path = self.root_dir / tarball
         with open(str((self.subprojects_dir / name).with_suffix('.wrap')), 'w') as f:
             f.write(textwrap.dedent(
-                '''
+                f'''
                 [wrap-file]
-                source_url={}
-                '''.format(os.path.abspath(str(path)))))
+                source_url={os.path.abspath(str(path))}
+                source_filename={tarball}
+                '''))
+        Path(self.packagecache_dir / tarball).touch()
 
     def _subprojects_cmd(self, args):
         return self._run(self.meson_command + ['subprojects'] + args, workdir=str(self.project_dir))
@@ -9863,6 +9867,27 @@ class SubprojectsCommandTests(BasePlatformTests):
         self.assertEqual(ran_in(out), ['subprojects/sub_file'])
         out = self._subprojects_cmd(['foreach', '--types', 'git'] + dummy_cmd)
         self.assertEqual(ran_in(out), ['subprojects/sub_git'])
+
+    def test_purge(self):
+        self._create_project(self.subprojects_dir / 'sub_file')
+        self._wrap_create_file('sub_file')
+
+        def deleting(s) -> T.List[str]:
+            ret = []
+            prefix = 'Deleting '
+            for l in s.splitlines():
+                if l.startswith(prefix):
+                    ret.append(l[len(prefix):])
+            return sorted(ret)
+
+        out = self._subprojects_cmd(['purge'])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'sub_file')])
+        out = self._subprojects_cmd(['purge', '--include-cache'])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file')])
+        out = self._subprojects_cmd(['purge', '--include-cache', '--confirm'])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file')])
+        self.assertFalse(Path(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz').exists())
+        self.assertFalse(Path(self.subprojects_dir / 'sub_file').exists())
 
 def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
     """
