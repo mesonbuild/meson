@@ -4,7 +4,7 @@ from pathlib import Path
 
 from . import mlog
 from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import API_ROOT, Resolver, WrapException, ALL_TYPES
+from .wrap.wrap import API_ROOT, PackageDefinition, Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
@@ -312,6 +312,61 @@ def foreach(r, wrap, repo_dir, options):
     mlog.log(out, end='')
     return True
 
+def purge(r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse.Namespace) -> bool:
+    # if subproject is not wrap-based, then don't remove it
+    if not wrap.type:
+        return True
+
+    if wrap.type == 'redirect':
+        redirect_file = Path(wrap.filename).resolve()
+        if options.confirm:
+            redirect_file.unlink()
+        mlog.log(f'Deleting {redirect_file}')
+
+    if options.include_cache:
+        packagecache = Path(r.cachedir).resolve()
+        subproject_cache_file = packagecache / wrap.get("source_filename")
+        if subproject_cache_file.is_file():
+            if options.confirm:
+                subproject_cache_file.unlink()
+            mlog.log(f'Deleting {subproject_cache_file}')
+
+        try:
+            subproject_patch_file = packagecache / wrap.get("patch_filename")
+            if subproject_patch_file.is_file():
+                if options.confirm:
+                    subproject_patch_file.unlink()
+                mlog.log(f'Deleting {subproject_patch_file}')
+        except WrapException:
+            pass
+
+        # Don't log that we will remove an empty directory
+        if packagecache.exists() and not any(packagecache.iterdir()):
+            packagecache.rmdir()
+
+    subproject_source_dir = Path(repo_dir).resolve()
+
+    # Don't follow symlink. This is covered by the next if statement, but why
+    # not be doubly sure.
+    if subproject_source_dir.is_symlink():
+        if options.confirm:
+            subproject_source_dir.unlink()
+        mlog.log(f'Deleting {subproject_source_dir}')
+        return True
+
+    if not subproject_source_dir.is_dir():
+        return True
+
+    try:
+        if options.confirm:
+            windows_proof_rmtree(str(subproject_source_dir))
+        mlog.log(f'Deleting {subproject_source_dir}')
+    except OSError as e:
+        mlog.error(f'Unable to remove: {subproject_source_dir}: {e}')
+        return False
+
+    return True
+
 def add_common_arguments(p):
     p.add_argument('--sourcedir', default='.',
                    help='Path to source directory')
@@ -360,6 +415,13 @@ def add_arguments(parser):
     add_common_arguments(p)
     p.set_defaults(subprojects=[])
     p.set_defaults(subprojects_func=foreach)
+
+    p = subparsers.add_parser('purge', help='Remove all wrap-based subproject artifacts')
+    add_common_arguments(p)
+    add_subprojects_argument(p)
+    p.add_argument('--include-cache', action='store_true', default=False, help='Remove the package cache as well')
+    p.add_argument('--confirm', action='store_true', default=False, help='Confirm the removal of subproject artifacts')
+    p.set_defaults(subprojects_func=purge)
 
 def run(options):
     src_dir = os.path.relpath(os.path.realpath(options.sourcedir))
