@@ -4079,6 +4079,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             if isinstance(i, dependencies.ExternalProgram) and not i.found():
                 raise InterpreterException('Tried to use non-existing executable {!r}'.format(i.name))
             cleaned_args.append(i)
+        if isinstance(cleaned_args[0], str):
+            cleaned_args[0] = self.func_find_program(node, cleaned_args[0], {})
         name = args[0]
         if not isinstance(name, str):
             raise InterpreterException('First argument must be a string.')
