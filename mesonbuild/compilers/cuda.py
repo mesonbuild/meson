@@ -217,21 +217,6 @@ class CudaCompiler(Compiler):
                 # strings between them.
                 l = [cls._shield_nvcc_list_arg(s) for s in arg.split(SQ)]
                 l = sum([[s, DQSQ] for s in l][:-1], [])  # Interleave l with DQSQs
-
-                # The list l now has the structure of shielded strings interleaved
-                # with double-quoted single-quotes.
-                #
-                # Plain concatenation would result in the tripling of the length of
-                # a string made up only of single quotes. See if we can merge some
-                # DQSQs together first.
-                def isdqsq(x:str) -> bool:
-                    return x.startswith(SQ) and x.endswith(SQ) and x[1:-1].strip(SQ) == ''
-                for i in range(1, len(l)-2, 2):
-                    if isdqsq(l[i]) and l[i+1] == '' and isdqsq(l[i+2]):
-                        l[i+2] = l[i][:-1]+l[i+2][1:]
-                        l[i]   = ''
-
-                # With DQSQs merged, simply concatenate everything together and return.
                 return ''.join(l)
         else:
             # A comma is present, and list mode was active.
