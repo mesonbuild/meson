@@ -2385,6 +2385,15 @@ class AllPlatformTests(BasePlatformTests):
         self.run_target('check-env')
         self.run_target('check-env-ct')
 
+    def test_run_target_subdir(self):
+        '''
+        Test that run_targets are run from the correct directory
+        https://github.com/mesonbuild/meson/issues/957
+        '''
+        testdir = os.path.join(self.common_test_dir, '52 run target')
+        self.init(testdir)
+        self.run_target('textprinter')
+
     def test_install_introspection(self):
         '''
         Tests that the Meson introspection API exposes install filenames correctly
