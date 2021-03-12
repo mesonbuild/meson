@@ -103,3 +103,5 @@ custom_target('check-env-ct',
         'MY_ENV': '1'},
   output: 'check-env-ct',
 )
+
+run_target('textprinter', command: ['subdir/textprinter.py'])
