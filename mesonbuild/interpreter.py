@@ -3775,13 +3775,6 @@ external dependencies (including libraries) must go to "dependencies".''')
         if not d.found() and not_found_message:
             self.message_impl([not_found_message])
             self.message_impl([not_found_message])
-        # Ensure the correct include type
-        if 'include_type' in kwargs:
-            wanted = kwargs['include_type']
-            actual = d.include_type_method([], {})
-            if wanted != actual:
-                mlog.debug('Current include type of {} is {}. Converting to requested {}'.format(name, actual, wanted))
-                d = d.as_system_method([wanted], {})
         # Override this dependency to have consistent results in subsequent
         # dependency lookups.
         if name and d.found():
@@ -3790,6 +3783,13 @@ external dependencies (including libraries) must go to "dependencies".''')
             if identifier not in self.build.dependency_overrides[for_machine]:
                 self.build.dependency_overrides[for_machine][identifier] = \
                     build.DependencyOverride(d.held_object, node, explicit=False)
+        # Ensure the correct include type
+        if 'include_type' in kwargs:
+            wanted = kwargs['include_type']
+            actual = d.include_type_method([], {})
+            if wanted != actual:
+                mlog.debug('Current include type of {} is {}. Converting to requested {}.format(name, actual, wanted)')
+                d = d.as_system_method([wanted], {})
         return d
 
     def dependency_impl(self, name, display_name, kwargs, force_fallback=False):
