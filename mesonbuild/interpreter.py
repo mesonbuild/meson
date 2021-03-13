@@ -4010,6 +4010,9 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.warning('''Custom target input \'%s\' can\'t be converted to File object(s).
 This will become a hard error in the future.''' % kwargs['input'], location=self.current_node)
         kwargs['env'] = self.unpack_env_kwarg(kwargs)
+        if 'command' in kwargs and isinstance(kwargs['command'], list) and kwargs['command']:
+            if isinstance(kwargs['command'][0], str):
+                kwargs['command'][0] = self.func_find_program(node, kwargs['command'][0], {})
         tg = CustomTargetHolder(build.CustomTarget(name, self.subdir, self.subproject, kwargs, backend=self.backend), self)
         self.add_target(name, tg.held_object)
         return tg
