@@ -1884,7 +1884,6 @@ class MesonMain(InterpreterObject):
         InterpreterObject.__init__(self)
         self.build = build
         self.interpreter = interpreter
-        self._found_source_scripts = {}
         self.methods.update({'get_compiler': self.get_compiler_method,
                              'is_cross_build': self.is_cross_build_method,
                              'has_exe_wrapper': self.has_exe_wrapper_method,
@@ -1915,25 +1914,10 @@ class MesonMain(InterpreterObject):
                              })
 
     def _find_source_script(self, prog: T.Union[str, mesonlib.File, ExecutableHolder], args):
+        
         if isinstance(prog, (ExecutableHolder, ExternalProgramHolder)):
             return self.interpreter.backend.get_executable_serialisation([unholder(prog)] + args)
-        # Prefer scripts in the current source directory
-        search_dir = os.path.join(self.interpreter.environment.source_dir,
-                                  self.interpreter.subdir)
-        key = (prog, search_dir)
-        if key in self._found_source_scripts:
-            found = self._found_source_scripts[key]
-        elif isinstance(prog, mesonlib.File):
-            prog = prog.rel_to_builddir(self.interpreter.environment.source_dir)
-            found = ExternalProgram(prog, search_dir=self.interpreter.environment.build_dir)
-        else:
-            found = ExternalProgram(prog, search_dir=search_dir)
-
-        if found.found():
-            self._found_source_scripts[key] = found
-        else:
-            m = 'Script or command {!r} not found or not executable'
-            raise InterpreterException(m.format(prog))
+        found = self.interpreter.func_find_program({}, prog, {}).held_object
         es = self.interpreter.backend.get_executable_serialisation([found] + args)
         es.subproject = self.interpreter.subproject
         return es
