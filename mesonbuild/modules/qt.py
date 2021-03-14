@@ -189,9 +189,22 @@ class QtBaseModule(ExtensionModule):
         compile_args = []
         for dep in unholder(dependencies):
             if isinstance(dep, Dependency):
+
+                if hasattr(dep, 'include_directories'):
+                    inc += get_include_args(include_dirs=dep.include_directories)
+
+                include_type_orig = dep.include_type
+
+                if dep.include_type == 'system':
+                    dep.include_type = 'non-system'
+
                 for arg in dep.get_compile_args():
-                    if arg.startswith('-I') or arg.startswith('-D'):
+                    if arg.startswith('-I'):
+                        inc.append(arg)
+                    if arg.startswith('-D'):
                         compile_args.append(arg)
+
+                dep.include_type = include_type_orig
             else:
                 raise MesonException('Argument is of an unacceptable type {!r}.\nMust be '
                                      'either an external dependency (returned by find_library() or '
