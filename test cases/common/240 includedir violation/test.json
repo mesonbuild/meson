@@ -1,0 +1,7 @@
+{
+  "stdout": [
+    {
+      "line": "WARNING: include_directories sandbox violation!"
+    }
+  ]
+}
