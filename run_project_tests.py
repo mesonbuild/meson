@@ -1338,6 +1338,8 @@ if __name__ == '__main__':
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0])
+    if 'VSCMD_VER' in os.environ:
+        print('VSCMD version', os.environ['VSCMD_VER'])
     setup_commands(options.backend)
     detect_system_compiler(options)
     print_tool_versions()
