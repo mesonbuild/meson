@@ -6184,7 +6184,7 @@ class WindowsTests(BasePlatformTests):
             raise unittest.SkipTest('C++ modules only work with the Ninja backend (not {}).'.format(self.backend.name))
         if 'VSCMD_VER' not in os.environ:
             raise unittest.SkipTest('C++ modules is only supported with Visual Studio.')
-        if version_compare(os.environ['VSCMD_VER'], '<16.9.0'):
+        if version_compare(os.environ['VSCMD_VER'], '<16.10.0'):
             raise unittest.SkipTest('C++ modules are only supported with VS 2019 Preview or newer.')
         self.init(os.path.join(self.unit_test_dir, '87 cpp modules'))
         self.build()

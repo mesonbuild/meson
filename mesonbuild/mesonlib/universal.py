@@ -685,6 +685,12 @@ def detect_vcs(source_dir: T.Union[str, Path]) -> T.Optional[T.Dict[str, str]]:
 
 def current_vs_supports_modules() -> bool:
     vsver = os.environ.get('VSCMD_VER', '')
+    nums = vsver.split('.', 2)
+    major = int(nums[0])
+    if major >= 17:
+        return True
+    if major == 16 and int(nums[1]) >= 10:
+        return True
     return vsver.startswith('16.9.0') and '-pre.' in vsver
 
 # a helper class which implements the same version ordering as RPM
