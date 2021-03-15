@@ -4595,6 +4595,28 @@ put in the include directories by default so you only need to do
 include_directories('.') if you intend to use the result in a
 different subdirectory.
 ''')
+            else:
+                try:
+                    self.validate_within_subproject(a, '')
+                except InterpreterException:
+                    mlog.warning('include_directories sandbox violation!')
+                    print(f'''The project is trying to access the directory {a} which belongs to a different
+subproject. This is a problem as it hardcodes the relative paths of these two projeccts.
+This makes it impossible to compile the project in any other directory layout and also
+prevents the subproject from changing its own directory layout.
+
+Instead of poking directly at the internals the subproject should be executed and 
+it should set a variable that the caller can then use. Something like:
+
+# In subproject
+some_dep = declare_depencency(include_directories: include_directories('include'))
+
+# In parent project
+some_dep = depencency('some')
+executable(..., dependencies: [some_dep])
+
+This warning will become a hard error in a future Meson release. 
+''')
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)
             if not os.path.isdir(absdir_src) and not os.path.isdir(absdir_build):
@@ -4796,6 +4818,10 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
     def validate_within_subproject(self, subdir, fname):
         srcdir = Path(self.environment.source_dir)
         norm = Path(srcdir, subdir, fname).resolve()
+        if os.path.isdir(norm):
+            inputtype = 'directory'
+        else:
+            inputtype = 'file'
         if srcdir not in norm.parents:
             # Grabbing files outside the source tree is ok.
             # This is for vendor stuff like:
@@ -4804,9 +4830,9 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             return
         project_root = Path(srcdir, self.root_subdir)
         if project_root not in norm.parents:
-            raise InterpreterException(f'Sandbox violation: Tried to grab file {norm.name} outside current (sub)project.')
+            raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} outside current (sub)project.')
         if project_root / self.subproject_dir in norm.parents:
-            raise InterpreterException(f'Sandbox violation: Tried to grab file {norm.name} from a nested subproject.')
+            raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
     def source_strings_to_files(self, sources: T.List[str]) -> T.List[mesonlib.File]:
         mesonlib.check_direntry_issues(sources)
