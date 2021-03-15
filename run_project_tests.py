@@ -1306,6 +1306,14 @@ def print_tool_versions():
         print('{0:<{2}}: {1}'.format(tool['tool'], get_version(tool), max_width))
     print()
 
+def clear_transitive_files():
+    a = Path('test cases/common')
+    for d in a.glob('*subproject subdir/subprojects/subsubsub*'):
+        if d.is_dir():
+            mesonlib.windows_proof_rmtree(d)
+        else:
+            mesonlib.windows_proof_rm(str(d))
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
@@ -1325,6 +1333,8 @@ if __name__ == '__main__':
         options.extra_args += ['--cross-file', options.cross_file]
     if options.native_file:
         options.extra_args += ['--native-file', options.native_file]
+
+    clear_transitive_files()
 
     print('Meson build system', meson_version, 'Project Tests')
     print('Using python', sys.version.split('\n')[0])
@@ -1357,4 +1367,5 @@ if __name__ == '__main__':
             tests = list(g)
             if len(tests) != 1:
                 print('WARNING: The {} suite contains duplicate "{}" tests: "{}"'.format(name, k, '", "'.join(tests)))
+    clear_transitive_files()
     raise SystemExit(failing_tests)
