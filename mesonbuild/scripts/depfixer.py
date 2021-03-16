@@ -13,8 +13,12 @@
 # limitations under the License.
 
 
-import sys, struct
-import shutil, subprocess
+import sys
+import os
+import stat
+import struct
+import shutil
+import subprocess
 import typing as T
 
 from ..mesonlib import OrderedSet
@@ -120,9 +124,9 @@ class Elf(DataSizes):
     def __init__(self, bfile: str, verbose: bool = True) -> None:
         self.bfile = bfile
         self.verbose = verbose
-        self.bf = open(bfile, 'r+b')
         self.sections = []  # type: T.List[SectionHeader]
         self.dynamic = []   # type: T.List[DynamicEntry]
+        self.open_bf(bfile)
         try:
             (self.ptrsize, self.is_le) = self.detect_elf_type()
             super().__init__(self.ptrsize, self.is_le)
@@ -130,19 +134,40 @@ class Elf(DataSizes):
             self.parse_sections()
             self.parse_dynamic()
         except (struct.error, RuntimeError):
-            self.bf.close()
+            self.close_bf()
             raise
+
+    def open_bf(self, bfile: str) -> None:
+        self.bf = None
+        self.bf_perms = None
+        try:
+            self.bf = open(bfile, 'r+b')
+        except PermissionError as e:
+            self.bf_perms = stat.S_IMODE(os.lstat(bfile).st_mode)
+            os.chmod(bfile, stat.S_IREAD | stat.S_IWRITE | stat.S_IEXEC)
+            try:
+                self.bf = open(bfile, 'r+b')
+            except Exception:
+                os.chmod(bfile, self.bf_perms)
+                self.bf_perms = None
+                raise e
+
+    def close_bf(self) -> None:
+        if self.bf is not None:
+            if self.bf_perms is not None:
+                os.fchmod(self.bf.fileno(), self.bf_perms)
+                self.bf_perms = None
+            self.bf.close()
+            self.bf = None
 
     def __enter__(self) -> 'Elf':
         return self
 
     def __del__(self) -> None:
-        if self.bf:
-            self.bf.close()
+        self.close_bf()
 
     def __exit__(self, exc_type: T.Any, exc_value: T.Any, traceback: T.Any) -> None:
-        self.bf.close()
-        self.bf = None
+        self.close_bf()
 
     def detect_elf_type(self) -> T.Tuple[int, bool]:
         data = self.bf.read(6)
