@@ -9,40 +9,44 @@ from .wrap import wraptool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
 
-def update_wrapdb_file(wrap, repo_dir, options):
+def update_wrapdb_file(wrap):
     patch_url = wrap.get('patch_url')
     branch, revision = wraptool.parse_patch_url(patch_url)
     new_branch, new_revision = wraptool.get_latest_version(wrap.name)
-    if new_branch == branch and new_revision == revision:
-        mlog.log('  -> Up to date.')
-        return True
-    wraptool.update_wrap_file(wrap.filename, wrap.name, new_branch, new_revision)
-    msg = ['  -> New wrap file downloaded.']
-    # Meson reconfigure won't use the new wrap file as long as the source
-    # directory exists. We don't delete it ourself to avoid data loss in case
-    # user has changes in their copy.
-    if os.path.isdir(repo_dir):
-        msg += ['To use it, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure')]
-    mlog.log(*msg)
-    return True
+    if new_branch != branch or new_revision != revision:
+        wraptool.update_wrap_file(wrap.filename, wrap.name, new_branch, new_revision)
+        mlog.log('  -> New wrap file downloaded.')
 
 def update_file(r, wrap, repo_dir, options):
     patch_url = wrap.values.get('patch_url', '')
     if patch_url.startswith(API_ROOT):
-        return update_wrapdb_file(wrap, repo_dir, options)
-    elif not os.path.isdir(repo_dir):
+        update_wrapdb_file(wrap)
+    if not os.path.isdir(repo_dir):
         # The subproject is not needed, or it is a tarball extracted in
         # 'libfoo-1.0' directory and the version has been bumped and the new
         # directory is 'libfoo-2.0'. In that case forcing a meson
         # reconfigure will download and use the new tarball.
-        mlog.log('  -> Subproject has not been checked out. Run', mlog.bold('meson --reconfigure'), 'to fetch it if needed.')
+        mlog.log('  -> Not used.')
+        return True
+    elif options.reset:
+        # Delete existing directory and redownload. It is possible that nothing
+        # changed but we have no way to know. Hopefully tarballs are still
+        # cached.
+        windows_proof_rmtree(repo_dir)
+        try:
+            r.resolve(wrap.name, 'meson')
+            mlog.log('  -> New version extracted')
+            return True
+        except WrapException as e:
+            mlog.log('  ->', mlog.red(str(e)))
+            return False
     else:
         # The subproject has not changed, or the new source and/or patch
         # tarballs should be extracted in the same directory than previous
         # version.
-        mlog.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.\n' +
-                 '     In that case, delete', mlog.bold(repo_dir), 'and run', mlog.bold('meson --reconfigure'))
-    return True
+        mlog.log('  -> Subproject has not changed, or the new source/patch needs to be extracted on the same location.')
+        mlog.log('     Pass --reset option to delete directory and redownload.')
+        return False
 
 def git_output(cmd, workingdir):
     return quiet_git(cmd, workingdir, check=True)[1]
@@ -260,6 +264,8 @@ def update(r, wrap, repo_dir, options):
         return update_hg(r, wrap, repo_dir, options)
     elif wrap.type == 'svn':
         return update_svn(r, wrap, repo_dir, options)
+    elif wrap.type is None:
+        mlog.log('  -> Cannot update subproject with no wrap file')
     else:
         mlog.log('  -> Cannot update', wrap.type, 'subproject')
     return True
