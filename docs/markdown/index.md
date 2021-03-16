@@ -29,12 +29,6 @@ code.
 Are you an absolute beginner when it comes to programming? No worries,
 read [this beginner guide](SimpleStart.md) to get started.
 
-## A full manual
-
-The documentation on this site is freely available for all. However
-there is also a full separate manual available for purchase [on this
-web page](https://meson-manual.com/).
-
 ## Community
 
 There are two main methods of connecting with other Meson
