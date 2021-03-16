@@ -4001,7 +4001,8 @@ class AllPlatformTests(BasePlatformTests):
 
         # Verify default values when passing no args that affect the
         # configuration, and as a bonus, test that --profile-self works.
-        self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
+        out = self.init(testdir, extra_args=['--profile-self', '--fatal-meson-warnings'])
+        self.assertNotIn('[default: true]', out)
         obj = mesonbuild.coredata.load(self.builddir)
         self.assertEqual(obj.options[OptionKey('default_library')].value, 'static')
         self.assertEqual(obj.options[OptionKey('warning_level')].value, '1')
