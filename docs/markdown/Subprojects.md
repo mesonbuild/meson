@@ -310,7 +310,8 @@ To pull latest version of all your subprojects at once, just run the command:
 - If the wrap file comes from wrapdb, the latest version of the wrap file will
   be pulled and used next time meson reconfigure the project. This can be
   triggered using `meson --reconfigure`. Previous source tree is not deleted, to
-  prevent from any loss of local changes.
+  prevent from any loss of local changes. *Since 0.58.0* If `--reset` is
+  specified, the source tree is deleted and new source is extracted.
 - If subproject is currently in detached mode, a checkout of the revision from
   wrap file is performed. *Since 0.56.0* a rebase is also performed in case the
   revision already existed locally but was outdated. If `--reset` is specified,
