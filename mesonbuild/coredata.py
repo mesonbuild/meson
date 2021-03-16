@@ -1036,7 +1036,7 @@ def load(build_dir: str) -> CoreData:
             obj = pickle.load(f)
     except (pickle.UnpicklingError, EOFError):
         raise MesonException(load_fail_msg)
-    except (ModuleNotFoundError, AttributeError):
+    except (TypeError, ModuleNotFoundError, AttributeError):
         raise MesonException(
             f"Coredata file {filename!r} references functions or classes that don't "
             "exist. This probably means that it was generated with an old "
