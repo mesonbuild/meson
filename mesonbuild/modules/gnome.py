@@ -50,11 +50,13 @@ gresource_dep_needed_version = '>= 2.51.1'
 native_glib_version = None
 
 class GnomeModule(ExtensionModule):
-    gir_dep = None
-
-    install_glib_compile_schemas = False
-    install_gio_querymodules = []
-    install_gtk_update_icon_cache = False
+    def __init__(self, interpreter: 'Interpreter') -> None:
+        super().__init__(interpreter)
+        self.gir_dep = None
+        self.install_glib_compile_schemas = False
+        self.install_gio_querymodules = []
+        self.install_gtk_update_icon_cache = False
+        self.devenv = None
 
     @staticmethod
     def _get_native_glib_version(state):
@@ -480,6 +482,12 @@ class GnomeModule(ExtensionModule):
 
         return girtarget
 
+    def _devenv_append(self, varname: str, value: str) -> None:
+        if self.devenv is None:
+            self.devenv = build.EnvironmentVariables()
+            self.interpreter.build.devenv.append(self.devenv)
+        self.devenv.append(varname, [value])
+
     def _get_gir_dep(self, state):
         if not self.gir_dep:
             self.gir_dep = self._get_native_dep(state, 'gobject-introspection-1.0')
@@ -884,6 +892,7 @@ class GnomeModule(ExtensionModule):
             typelib_cmd += ["--includedir=" + incdir]
 
         typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, kwargs)
+        self._devenv_append('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
 
         rv = [scan_target, typelib_target]
 
