@@ -577,7 +577,7 @@ class Environment:
             self.exe_wrapper = None
 
         self.default_cmake = ['cmake']
-        self.default_pkgconfig = ['pkg-config']
+        self.default_pkgconfig = ['pkgconf', 'pkg-config']
         self.wrap_resolver: T.Optional['Resolver'] = None
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
