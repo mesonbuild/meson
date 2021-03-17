@@ -1129,11 +1129,9 @@ def check_testdata(objs: T.List[TestSerialisation]) -> T.List[TestSerialisation]
 # Custom waiting primitives for asyncio
 
 async def try_wait_one(*awaitables: T.Any, timeout: T.Optional[T.Union[int, float]]) -> None:
-    try:
-        await asyncio.wait(awaitables,
-                           timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
-    except asyncio.TimeoutError:
-        pass
+    """Wait for completion of one of the given futures, ignoring timeouts."""
+    await asyncio.wait(awaitables,
+                       timeout=timeout, return_when=asyncio.FIRST_COMPLETED)
 
 async def queue_iter(q: 'asyncio.Queue[T.Optional[str]]') -> T.AsyncIterator[str]:
     while True:
