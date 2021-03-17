@@ -295,5 +295,12 @@ These variables are set in environment in addition to those set using `meson.add
 - `PATH` includes every directory where there is an executable that would be
   installed into `bindir`. On windows it also includes every directory where there
   is a DLL needed to run those executables.
+- `LD_LIBRARY_PATH` includes every directory where there is a shared library that
+  would be installed into `libdir`. This allows to run system application using
+  custom build of some libraries. For example running system GEdit when building
+  GTK from git. On OSX the environment variable is `DYLD_LIBRARY_PATH` and
+  `PATH` on Windows.
+- `GI_TYPELIB_PATH` includes every directory where a GObject Introspection
+  typelib is built. This is automatically set when using `gnome.generate_gir()`.
 
 {{ devenv_arguments.inc }}
