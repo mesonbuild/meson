@@ -512,10 +512,15 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
         return DependencyHolder(pdep, self.subproject)
 
     @FeatureNew('dep.get_variable', '0.51.0')
-    @noPosargs
+    @typed_pos_args('dep.get_variable', optargs=[str])
     @permittedKwargs({'cmake', 'pkgconfig', 'configtool', 'internal', 'default_value', 'pkgconfig_define'})
     @FeatureNewKwargs('dep.get_variable', '0.54.0', ['internal'])
-    def variable_method(self, args, kwargs):
+    def variable_method(self, args: T.Tuple[T.Optional[str]], kwargs: T.Dict[str, T.Any]) -> str:
+        default_varname = args[0]
+        if default_varname is not None:
+            FeatureNew('0.58.0', 'Positional argument to dep.get_variable()').use(self.subproject)
+            for k in ['cmake', 'pkgconfig', 'configtool', 'internal']:
+                kwargs.setdefault(k, default_varname)
         return self.held_object.get_variable(**kwargs)
 
     @FeatureNew('dep.include_type', '0.52.0')

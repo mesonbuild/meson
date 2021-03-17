@@ -62,3 +62,5 @@ assert(idep.get_variable(pkgconfig : 'foo', cmake : 'foo', configtool : 'foo',
 
 idep = declare_dependency(variables : ['foo=value'])
 assert(idep.get_variable(internal: 'foo') == 'value')
+assert(idep.get_variable('foo') == 'value')
+assert(idep.get_variable('invalid', internal: 'foo') == 'value')
