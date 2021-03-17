@@ -2678,7 +2678,7 @@ an external dependency with the following methods:
    - includes: any include_directories
    - sources: any compiled or static sources the dependency has
 
- - `get_variable(cmake : str, pkgconfig : str, configtool : str,
+ - `get_variable(varname, cmake : str, pkgconfig : str, configtool : str,
    internal: str, default_value : str, pkgconfig_define : [str, str])`
    *(since 0.51.0)*: a generic variable getter method, which replaces the
    get_*type*_variable methods. This allows one to get the variable
@@ -2686,8 +2686,12 @@ an external dependency with the following methods:
    was found. If default_value is set and the value cannot be gotten
    from the object then default_value is returned, if it is not set
    then an error is raised.
-
    *(since 0.54.0)* added `internal` keyword.
+   *(since 0.58.0)* added `varname` as first positional argument. It is used as
+   default value for `cmake`, `pkgconfig`, `configtool` and `internal` keyword
+   arguments. It is useful in the common case where `pkgconfig` and `internal`
+   use the same variable name, in which case it's easier to write `dep.get_variable('foo')`
+   instead of `dep.get_variable(pkgconfig: 'foo', internal: 'foo')`.
 
 ### `disabler` object
 
