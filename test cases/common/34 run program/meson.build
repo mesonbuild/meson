@@ -77,3 +77,9 @@ if dd.found()
   assert(ret.returncode() == 0, 'failed to run dd: ' + ret.stderr())
   assert(ret.stdout() == '', 'stdout is "@0@" instead of empty'.format(ret.stdout()))
 endif
+
+env = environment()
+env.append('MY_PATH', '1')
+env.append('MY_PATH', '2')
+env.prepend('MY_PATH', '0')
+run_command('check-env.py', env: env, check: true)

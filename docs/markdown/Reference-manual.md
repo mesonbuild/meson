@@ -2739,8 +2739,19 @@ tests and other functions. It has the following methods.
   joined by the separator, e.g.  `env.set('FOO', 'BAR'),` sets envvar
   `FOO` to value `BAR`. See `append()` above for how separators work.
 
-**Note:** All these methods overwrite the previously-defined value(s)
-if called twice with the same `varname`.
+*Since 0.58.0* `append()` and `prepend()` methods can be called multiple times
+on the same `varname`. Earlier Meson versions would warn and only the last
+opperation was taking effect.
+
+```meson
+env = environment()
+
+# MY_PATH will be '0:1:2:3'
+env.set('MY_PATH', '1')
+env.append('MY_PATH', '2')
+env.append('MY_PATH', '3')
+env.prepend('MY_PATH', '0')
+```
 
 ### `external library` object
 
