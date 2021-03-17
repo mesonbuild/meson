@@ -1496,18 +1496,33 @@ class Backend:
     def get_devenv(self) -> build.EnvironmentVariables:
         env = build.EnvironmentVariables()
         extra_paths = set()
+        library_paths = set()
         for t in self.build.get_targets().values():
             cross_built = not self.environment.machines.matches_build_machine(t.for_machine)
             can_run = not cross_built or not self.environment.need_exe_wrapper()
-            in_bindir = t.should_install() and not t.get_install_dir(self.environment)[1]
-            if isinstance(t, build.Executable) and can_run and in_bindir:
+            in_default_dir = t.should_install() and not t.get_install_dir(self.environment)[1]
+            if not can_run or not in_default_dir:
+                continue
+            tdir = os.path.join(self.environment.get_build_dir(), self.get_target_dir(t))
+            if isinstance(t, build.Executable):
                 # Add binaries that are going to be installed in bindir into PATH
                 # so they get used by default instead of searching on system when
                 # in developer environment.
-                extra_paths.add(os.path.join(self.environment.get_build_dir(), self.get_target_dir(t)))
+                extra_paths.add(tdir)
                 if mesonlib.is_windows() or mesonlib.is_cygwin():
                     # On windows we cannot rely on rpath to run executables from build
                     # directory. We have to add in PATH the location of every DLL needed.
                     extra_paths.update(self.determine_windows_extra_paths(t, []))
+            elif isinstance(t, build.SharedLibrary):
+                # Add libraries that are going to be installed in libdir into
+                # LD_LIBRARY_PATH. This allows running system applications using
+                # that library.
+                library_paths.add(tdir)
+        if mesonlib.is_windows() or mesonlib.is_cygwin():
+            extra_paths.update(library_paths)
+        elif mesonlib.is_osx():
+            env.prepend('DYLD_LIBRARY_PATH', list(library_paths))
+        else:
+            env.prepend('LD_LIBRARY_PATH', list(library_paths))
         env.prepend('PATH', list(extra_paths))
         return env
