@@ -7915,6 +7915,18 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(len(obj_files), 1)
         self.assertTrue(obj_files[0].endswith('-prelink.o'))
 
+    @skipIfNoPkgconfig
+    def test_override_options_cpp_std(self):
+        '''
+        Tests that a cpp_std passed through override_options takes
+        precedence over a different -std retrieved from a pkg-config
+        dependency
+        '''
+        testdir = os.path.join(self.unit_test_dir, '94 override_options cpp_std')
+        self.init(testdir, override_envvars={'PKG_CONFIG_PATH': testdir})
+        self.build()
+
+
 class BaseLinuxCrossTests(BasePlatformTests):
     # Don't pass --libdir when cross-compiling. We have tests that
     # check whether meson auto-detects it correctly.
