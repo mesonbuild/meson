@@ -23,6 +23,7 @@ import json
 import os
 import pickle
 import re
+import shutil
 import typing as T
 import hashlib
 
@@ -584,15 +585,31 @@ class Backend:
         if any('\n' in c for c in es.cmd_args):
             reasons.append('because command contains newlines')
 
-        if es.env and es.env.varnames:
+        if env and env.varnames:
             reasons.append('to set env')
 
+        # force_serialize passed to this function means that the VS backend has
+        # decided it absolutely cannot use real commands. This is "always",
+        # because it's not clear what will work (other than compilers) and so
+        # we don't bother to handle a variety of common cases that probably do
+        # work.
+        #
+        # It's also overridden for a few conditions that can't be handled
+        # inside a command line
+
+        can_use_env = not force_serialize
         force_serialize = force_serialize or bool(reasons)
 
         if capture:
             reasons.append('to capture output')
         if feed:
             reasons.append('to feed input')
+
+        if can_use_env and reasons == ['to set env'] and shutil.which('env'):
+            envlist = []
+            for k, v in env.get_env({}).items():
+                envlist.append(f'{k}={v}')
+            return ['env'] + envlist + es.cmd_args, ', '.join(reasons)
 
         if not force_serialize:
             if not capture and not feed:
