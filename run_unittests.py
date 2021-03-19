@@ -2496,6 +2496,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_uninstall(self):
         exename = os.path.join(self.installdir, 'usr/bin/prog' + exe_suffix)
+        dirname = os.path.join(self.installdir, 'usr/share/dir')
         testdir = os.path.join(self.common_test_dir, '8 install')
         self.init(testdir)
         self.assertPathDoesNotExist(exename)
@@ -2503,6 +2504,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertPathExists(exename)
         self.uninstall()
         self.assertPathDoesNotExist(exename)
+        self.assertPathDoesNotExist(dirname)
 
     def test_forcefallback(self):
         testdir = os.path.join(self.unit_test_dir, '31 forcefallback')
