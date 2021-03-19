@@ -1598,7 +1598,7 @@ int dummy;
         args += ['--emit', f'dep-info={depfile}', '--emit', 'link']
         args += target.get_extra_args('rust')
         args += rustc.get_output_args(os.path.join(target.subdir, target.get_filename()))
-        args += self.environment.coredata.get_external_args(target.for_machine, rustc.language)
+        args += rustc.get_external_compile_args(self.environment.coredata)
         linkdirs = mesonlib.OrderedSet()
         external_deps = target.external_deps.copy()
         for d in target.link_targets:
@@ -2870,7 +2870,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             commands += self.build.get_global_link_args(linker, target.for_machine)
             # Link args added from the env: LDFLAGS. We want these to override
             # all the defaults but not the per-target link args.
-            commands += self.environment.coredata.get_external_link_args(target.for_machine, linker.get_language())
+            commands += linker.get_external_link_args(self.environment.coredata)
 
         # Now we will add libraries and library paths from various sources
 

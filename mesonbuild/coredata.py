@@ -658,12 +658,6 @@ class CoreData:
             raise type(e)(('Validation failed for option %s: ' % option_name) + str(e)) \
                 .with_traceback(sys.exc_info()[2])
 
-    def get_external_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
-        return self.options[OptionKey('args', machine=for_machine, lang=lang)].value
-
-    def get_external_link_args(self, for_machine: MachineChoice, lang: str) -> T.Union[str, T.List[str]]:
-        return self.options[OptionKey('link_args', machine=for_machine, lang=lang)].value
-
     def update_project_options(self, options: 'KeyedOptionDictType') -> None:
         for key, value in options.items():
             if not key.is_project():

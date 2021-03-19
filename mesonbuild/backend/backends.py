@@ -540,14 +540,11 @@ class Backend:
                 return True
         return False
 
-    def get_external_rpath_dirs(self, target):
+    def get_external_rpath_dirs(self, target: build.BuildTarget):
         dirs = set()
         args = []
-        for lang in LANGUAGES_USING_LDFLAGS:
-            try:
-                args.extend(self.environment.coredata.get_external_link_args(target.for_machine, lang))
-            except Exception:
-                pass
+        for comp in (comp for lang, comp in target.compilers.items() if lang in LANGUAGES_USING_LDFLAGS):
+            args.extend(comp.get_external_link_args(self.environment.coredata))
         # Match rpath formats:
         # -Wl,-rpath=
         # -Wl,-rpath,
@@ -788,7 +785,7 @@ class Backend:
         # Compile args added from the env: CFLAGS/CXXFLAGS, etc, or the cross
         # file. We want these to override all the defaults, but not the
         # per-target compile args.
-        commands += self.environment.coredata.get_external_args(target.for_machine, compiler.get_language())
+        commands += compiler.get_external_compile_args(self.environment.coredata)
         # Always set -fPIC for shared libraries
         if isinstance(target, build.SharedLibrary):
             commands += compiler.get_pic_args()

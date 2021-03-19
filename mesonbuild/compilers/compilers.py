@@ -31,7 +31,7 @@ from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
     from ..build import BuildTarget
-    from ..coredata import OptionDictType, KeyedOptionDictType
+    from ..coredata import KeyedOptionDictType
     from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..linkers import DynamicLinker, RSPFileSyntax
@@ -1164,10 +1164,10 @@ class Compiler(metaclass=abc.ABCMeta):
 
         if mode is CompileCheckMode.COMPILE:
             # Add DFLAGS from the env
-            args += env.coredata.get_external_args(self.for_machine, self.language)
+            args += self.get_external_compile_args(env.coredata)
         elif mode is CompileCheckMode.LINK:
             # Add LDFLAGS from the env
-            args += env.coredata.get_external_link_args(self.for_machine, self.language)
+            args += self.get_external_link_args(env.coredata)
         # extra_args must override all other arguments, so we add them last
         args += extra_args
         return args
@@ -1224,6 +1224,21 @@ class Compiler(metaclass=abc.ABCMeta):
         be implemented
         """
         return self.linker.rsp_file_syntax()
+
+    def get_external_compile_args(self, cdata: coredata.CoreData) -> T.List[str]:
+        """Compiler arguments for this compiler, as set by "${LANG}FLAGS" and
+        "-D${LANG}_args"."""
+        # The cast is required because mypy can't figure out what the type the
+        # option is
+        return T.cast(T.List[str], cdata.options[OptionKey('args', machine=self.for_machine, lang=self.language)].value)
+
+    def get_external_link_args(self, cdata: coredata.CoreData) -> T.List[str]:
+        """Linker arguments for this compiler, as set by "$LDFLAGS" and
+        "-D${LANG}_link_args".
+        """
+        # The cast is required because mypy can't figure out what the type the
+        # option is
+        return T.cast(T.List[str], cdata.options[OptionKey('link_args', machine=self.for_machine, lang=self.language)].value)
 
 
 def get_global_options(lang: str, for_machine: MachineChoice, env: 'Environment') -> 'KeyedOptionDictType':

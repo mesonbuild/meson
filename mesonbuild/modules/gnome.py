@@ -25,7 +25,7 @@ from .. import build
 from .. import mlog
 from .. import mesonlib
 from .. import interpreter
-from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
+from . import GResourceTarget, GResourceHeaderTarget, GirTarget, ModuleState, TypelibTarget, VapiTarget
 from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
@@ -588,12 +588,13 @@ class GnomeModule(ExtensionModule):
                     'Gir include dirs should be include_directories().')
         return ret
 
-    def _scan_langs(self, state, langs):
-        ret = []
+    @staticmethod
+    def _scan_langs(state: ModuleState, langs: T.Iterable[str]) -> T.List[str]:
+        ret: T.List[str] = []
 
         for lang in langs:
-            link_args = state.environment.coredata.get_external_link_args(MachineChoice.HOST, lang)
-            for link_arg in link_args:
+            comp = state.environment.coredata.compilers.host[lang]
+            for link_arg in comp.get_external_link_args(state.environment.coredata):
                 if link_arg.startswith('-L'):
                     ret.append(link_arg)
 
@@ -768,10 +769,11 @@ class GnomeModule(ExtensionModule):
                     typelib_includes.append(girdir)
         return typelib_includes
 
-    def _get_external_args_for_langs(self, state, langs):
+    def _get_external_args_for_langs(self, state: ModuleState, langs: T.Iterable[str]) -> T.List[str]:
         ret = []
         for lang in langs:
-            ret += state.environment.coredata.get_external_args(MachineChoice.HOST, lang)
+            compiler = state.environment.coredata.compilers.host[lang]
+            ret += compiler.get_external_compile_args(state.environment.coredata)
         return ret
 
     @staticmethod
@@ -1104,7 +1106,7 @@ class GnomeModule(ExtensionModule):
             res.append(state.backend.get_executable_serialisation(command + args))
         return ModuleReturnValue(custom_target, res)
 
-    def _get_build_args(self, kwargs, state, depends):
+    def _get_build_args(self, kwargs, state: ModuleState, depends):
         args = []
         deps = mesonlib.unholder(extract_as_list(kwargs, 'dependencies'))
         cflags = []
@@ -1123,9 +1125,9 @@ class GnomeModule(ExtensionModule):
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)
 
-        cflags.extend(state.environment.coredata.get_external_args(MachineChoice.HOST, 'c'))
-        ldflags.extend(state.environment.coredata.get_external_link_args(MachineChoice.HOST, 'c'))
         compiler = state.environment.coredata.compilers[MachineChoice.HOST]['c']
+        cflags.extend(compiler.get_external_compile_args(state.environment.coredata))
+        ldflags.extend(compiler.get_external_link_args(state.environment.coredata))
 
         compiler_flags = self._get_langs_compilers_flags(state, [('c', compiler)])
         cflags.extend(compiler_flags[0])
