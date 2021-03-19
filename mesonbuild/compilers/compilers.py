@@ -1235,10 +1235,16 @@ class Compiler(metaclass=abc.ABCMeta):
     def get_external_link_args(self, cdata: coredata.CoreData) -> T.List[str]:
         """Linker arguments for this compiler, as set by "$LDFLAGS" and
         "-D${LANG}_link_args".
+
+        If this is a compiler being called as a linker driver we also need to
+        add the compiler arguments here.
         """
         # The cast is required because mypy can't figure out what the type the
         # option is
-        return T.cast(T.List[str], cdata.options[OptionKey('link_args', machine=self.for_machine, lang=self.language)].value)
+        v = T.cast(T.List[str], cdata.options[OptionKey('link_args', machine=self.for_machine, lang=self.language)].value)
+        if self.INVOKES_LINKER:
+            return self.get_external_compile_args(cdata) + v
+        return v
 
 
 def get_global_options(lang: str, for_machine: MachineChoice, env: 'Environment') -> 'KeyedOptionDictType':

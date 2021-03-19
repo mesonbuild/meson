@@ -118,6 +118,9 @@ class FakeCompilerOptions:
     def __init__(self):
         self.value = []
 
+    def set_value(self, v):
+        self.value = v
+
 # TODO: use a typing.Protocol here
 def get_fake_options(prefix: str = '') -> argparse.Namespace:
     opts = argparse.Namespace()

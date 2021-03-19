@@ -5627,6 +5627,22 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(0, output.count('File reformatted:'))
         self.build('clang-format-check')
 
+    def test_compiler_args_added_to_linker_args(self) -> None:
+        # If the linker is invoked by the compiler then we need to add compiler
+        # arguments to the linker arguments, otherwise we should not. This is
+        # all meant to be transparent to the user, they should never see that
+        # this is happening from the Meosn DSL
+        env = get_fake_env()
+        comp = env.detect_compiler_for('c', MachineChoice.HOST)
+        env.coredata.options[OptionKey('args', machine=MachineChoice.HOST, lang='c')].set_value(['compile'])
+        env.coredata.options[OptionKey('link_args', machine=MachineChoice.HOST, lang='c')].set_value(['link'])
+        with mock.patch.object(comp, 'INVOKES_LINKER', True):
+            self.assertListEqual(comp.get_external_compile_args(env.coredata), ['compile'])
+            self.assertListEqual(comp.get_external_link_args(env.coredata), ['compile', 'link'])
+        with mock.patch.object(comp, 'INVOKES_LINKER', False):
+            self.assertListEqual(comp.get_external_compile_args(env.coredata), ['compile'])
+            self.assertListEqual(comp.get_external_link_args(env.coredata), ['link'])
+
 
 class FailureTests(BasePlatformTests):
     '''
