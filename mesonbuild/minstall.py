@@ -292,10 +292,6 @@ class Installer:
         # ['sub1', ...] means skip only those.
         self.skip_subprojects = [i.strip() for i in options.skip_subprojects.split(',')]
 
-    def mkdir(self, *args: T.Any, **kwargs: T.Any) -> None:
-        if not self.dry_run:
-            os.mkdir(*args, **kwargs)
-
     def remove(self, *args: T.Any, **kwargs: T.Any) -> None:
         if not self.dry_run:
             os.remove(*args, **kwargs)
@@ -479,7 +475,7 @@ class Installer:
                     sys.exit(1)
                 parent_dir = os.path.dirname(abs_dst)
                 if not os.path.isdir(parent_dir):
-                    self.mkdir(parent_dir)
+                    dm.makedirs(parent_dir)
                     self.copystat(os.path.dirname(abs_src), parent_dir)
                 # FIXME: what about symlinks?
                 self.do_copyfile(abs_src, abs_dst)
