@@ -1226,10 +1226,7 @@ class Compiler(metaclass=abc.ABCMeta):
         return self.linker.rsp_file_syntax()
 
 
-def get_global_options(lang: str,
-                       comp: T.Type[Compiler],
-                       for_machine: MachineChoice,
-                       env: 'Environment') -> 'KeyedOptionDictType':
+def get_global_options(lang: str, for_machine: MachineChoice, env: 'Environment') -> 'KeyedOptionDictType':
     """Retrieve options that apply to all compilers for a given language."""
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey('args', lang=lang, machine=for_machine)
@@ -1241,11 +1238,6 @@ def get_global_options(lang: str,
     largs = coredata.UserArrayOption(
         description + ' linker',
         env.options.get(largkey, []), split_args=True, user_input=True, allow_dups=True)
-
-    # This needs to be done here, so that if we have string values in the env
-    # options that we can safely combine them *after* they've been split
-    if comp.INVOKES_LINKER:
-        largs.set_value(largs.value + cargs.value)
 
     opts: 'KeyedOptionDictType' = {argkey: cargs, largkey: largs}
 
