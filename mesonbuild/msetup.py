@@ -245,6 +245,10 @@ class MesonApp:
                 intr.backend.generate()
             build.save(b, dumpfile)
             if env.first_invocation:
+                # Use path resolved by coredata because they could have been
+                # read from a pipe and wrote into a private file.
+                self.options.cross_file = env.coredata.cross_files
+                self.options.native_file = env.coredata.config_files
                 coredata.write_cmd_line_file(self.build_dir, self.options)
             else:
                 coredata.update_cmd_line_file(self.build_dir, self.options)
