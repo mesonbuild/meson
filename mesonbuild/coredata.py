@@ -905,9 +905,9 @@ def write_cmd_line_file(build_dir: str, options: argparse.Namespace) -> None:
 
     properties = OrderedDict()
     if options.cross_file:
-        properties['cross_file'] = [os.path.abspath(f) for f in options.cross_file]
+        properties['cross_file'] = options.cross_file
     if options.native_file:
-        properties['native_file'] = [os.path.abspath(f) for f in options.native_file]
+        properties['native_file'] = options.native_file
 
     config['options'] = {str(k): str(v) for k, v in options.cmd_line_options.items()}
     config['properties'] = properties
