@@ -2741,7 +2741,7 @@ tests and other functions. It has the following methods.
 
 *Since 0.58.0* `append()` and `prepend()` methods can be called multiple times
 on the same `varname`. Earlier Meson versions would warn and only the last
-opperation was taking effect.
+operation took effect.
 
 ```meson
 env = environment()
