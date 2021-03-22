@@ -39,7 +39,7 @@ from ..mesondata import mesondata
 from ..programs import ExternalProgram, find_external_program
 
 if T.TYPE_CHECKING:
-    from ..compilers.compilers import CompilerType  # noqa: F401
+    from ..compilers.compilers import Compiler
     DependencyType = T.TypeVar('DependencyType', bound='Dependency')
 
 # These must be defined in this file to avoid cyclical references.
@@ -2313,7 +2313,7 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryTy
 
 
 def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
-                    language: T.Optional[str]) -> T.Optional['CompilerType']:
+                    language: T.Optional[str]) -> T.Optional['Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 
