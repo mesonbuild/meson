@@ -31,7 +31,8 @@ from .misc import (
     shaderc_factory, threads_factory,
 )
 from .platform import AppleFrameworks
-from .ui import GnuStepDependency, Qt4Dependency, Qt5Dependency, Qt6Dependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+from .qt import Qt4Dependency, Qt5Dependency, Qt6Dependency
+from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
 """Dependency representations and discovery logic.
 
