@@ -57,7 +57,6 @@ class DependencyMethods(Enum):
     # Auto means to use whatever dependency checking mechanisms in whatever order meson thinks is best.
     AUTO = 'auto'
     PKGCONFIG = 'pkg-config'
-    QMAKE = 'qmake'
     CMAKE = 'cmake'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
@@ -72,6 +71,7 @@ class DependencyMethods(Enum):
     CUPSCONFIG = 'cups-config'
     PCAPCONFIG = 'pcap-config'
     LIBWMFCONFIG = 'libwmf-config'
+    QMAKE = 'qmake'
     # Misc
     DUB = 'dub'
 
@@ -2280,6 +2280,9 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List
     if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                   DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
         FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
+        method = DependencyMethods.CONFIG_TOOL
+    if method is DependencyMethods.QMAKE:
+        FeatureDeprecated.single_use(f'Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
 
     # Set the detection method. If the method is set to auto, use any available method.
