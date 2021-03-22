@@ -17,25 +17,22 @@
 """Dependency finders for the Qt framework."""
 
 import abc
-import collections
 import re
 import os
 import typing as T
 
 from . import (
-    ExtraFrameworkDependency, ExternalDependency, DependencyException, DependencyMethods,
-    PkgConfigDependency
+    ExtraFrameworkDependency, DependencyException, DependencyMethods,
+    PkgConfigDependency,
 )
-from .base import ConfigToolDependency
+from .base import ConfigToolDependency, DependencyFactory
 from .. import mlog
 from .. import mesonlib
-from ..programs import find_external_program
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..programs import ExternalProgram
 
 
 def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) -> T.List[str]:
@@ -114,70 +111,78 @@ class QtExtraFrameworkDependency(ExtraFrameworkDependency):
         return []
 
 
-class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
+class _QtBase:
 
-    version: T.Optional[str]
+    """Mixin class for shared componenets between PkgConfig and Qmake."""
 
-    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
-        super().__init__(name, env, kwargs, language='cpp')
+    link_args: T.List[str]
+    clib_compiler: 'Compiler'
+    env: 'Environment'
+
+    def __init__(self, name: str, kwargs: T.Dict[str, T.Any]):
         self.qtname = name.capitalize()
         self.qtver = name[-1]
         if self.qtver == "4":
             self.qtpkgname = 'Qt'
         else:
             self.qtpkgname = self.qtname
-        self.root = '/usr'
-        self.bindir: T.Optional[str] = None
+
         self.private_headers = T.cast(bool, kwargs.get('private_headers', False))
-        mods = mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules'))
-        self.requested_modules = mods
-        if not mods:
+
+        self.requested_modules = mesonlib.stringlistify(mesonlib.extract_as_list(kwargs, 'modules'))
+        if not self.requested_modules:
             raise DependencyException('No ' + self.qtname + '  modules specified.')
-        self.from_text = 'pkg-config'
 
         self.qtmain = T.cast(bool, kwargs.get('main', False))
         if not isinstance(self.qtmain, bool):
             raise DependencyException('"main" argument must be a boolean')
 
-        # Keep track of the detection methods used, for logging purposes.
-        methods: T.List[str] = []
-        # Prefer pkg-config, then fallback to `qmake -query`
-        if DependencyMethods.PKGCONFIG in self.methods:
-            mlog.debug('Trying to find qt with pkg-config')
-            self._pkgconfig_detect(mods, kwargs)
-            methods.append('pkgconfig')
-        if not self.is_found and DependencyMethods.QMAKE in self.methods:
-            mlog.debug('Trying to find qt with qmake')
-            self.from_text = self._qmake_detect(mods, kwargs)
-            methods.append('qmake-' + self.name)
-            methods.append('qmake')
-        if not self.is_found:
-            # Reset compile args and link args
+    def _link_with_qtmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
+        libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
+        base_name = 'qtmaind' if is_debug else 'qtmain'
+        qtmain = self.clib_compiler.find_library(base_name, self.env, libdir)
+        if qtmain:
+            self.link_args.append(qtmain[0])
+            return True
+        return False
+
+    def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
+        # Originally this was -fPIE but nowadays the default
+        # for upstream and distros seems to be -reduce-relocations
+        # which requires -fPIC. This may cause a performance
+        # penalty when using self-built Qt or on platforms
+        # where -fPIC is not required. If this is an issue
+        # for you, patches are welcome.
+        return compiler.get_pic_args()
+
+    def log_details(self) -> str:
+        return f'modules: {", ".join(sorted(self.requested_modules))}'
+
+
+class QtPkgConfigDependency(_QtBase, PkgConfigDependency, metaclass=abc.ABCMeta):
+
+    """Specialization of the PkgConfigDependency for Qt."""
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        _QtBase.__init__(self, name, kwargs)
+
+        # Always use QtCore as the "main" dependency, since it has the extra
+        # pkg-config variables that a user would expect to get. If "Core" is
+        # not a requested module, delete the compile and link arguments to
+        # avoid linking with something they didn't ask for
+        PkgConfigDependency.__init__(self, self.qtpkgname + 'Core', env, kwargs)
+        if 'Core' not in self.requested_modules:
             self.compile_args = []
             self.link_args = []
-            self.from_text = mlog.format_list(methods)
-            self.version = None
 
-    @abc.abstractmethod
-    def get_pkgconfig_host_bins(self, core: PkgConfigDependency) -> T.Optional[str]:
-        pass
-
-    def _pkgconfig_detect(self, mods: T.List[str], kwargs: T.Dict[str, T.Any]) -> None:
-        # We set the value of required to False so that we can try the
-        # qmake-based fallback if pkg-config fails.
-        kwargs['required'] = False
-        modules: T.MutableMapping[str, PkgConfigDependency] = collections.OrderedDict()
-        for module in mods:
-            modules[module] = PkgConfigDependency(self.qtpkgname + module, self.env,
-                                                  kwargs, language=self.language)
-        for m_name, m in modules.items():
-            if not m.found():
+        for m in self.requested_modules:
+            mod = PkgConfigDependency(self.qtpkgname + m, self.env, kwargs, language=self.language)
+            if not mod.found():
                 self.is_found = False
                 return
-            self.compile_args += m.get_compile_args()
             if self.private_headers:
-                qt_inc_dir = m.get_pkgconfig_variable('includedir', dict())
-                mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m_name)
+                qt_inc_dir = mod.get_pkgconfig_variable('includedir', {})
+                mod_private_dir = os.path.join(qt_inc_dir, 'Qt' + m)
                 if not os.path.isdir(mod_private_dir):
                     # At least some versions of homebrew don't seem to set this
                     # up correctly. /usr/local/opt/qt/include/Qt + m_name is a
@@ -185,94 +190,93 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
                     # file points to /usr/local/Cellar/qt/x.y.z/Headers/, and
                     # the Qt + m_name there is not a symlink, it's a file
                     mod_private_dir = qt_inc_dir
-                mod_private_inc = _qt_get_private_includes(mod_private_dir, m_name, m.version)
+                mod_private_inc = _qt_get_private_includes(mod_private_dir, m, mod.version)
                 for directory in mod_private_inc:
-                    self.compile_args.append('-I' + directory)
-            self.link_args += m.get_link_args()
-
-        if 'Core' in modules:
-            core = modules['Core']
-        else:
-            corekwargs = {'required': 'false', 'silent': 'true'}
-            core = PkgConfigDependency(self.qtpkgname + 'Core', self.env, corekwargs,
-                                       language=self.language)
-            modules['Core'] = core
+                    mod.compile_args.append('-I' + directory)
+            self._add_sub_dependency([lambda: mod])
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             # Check if we link with debug binaries
             debug_lib_name = self.qtpkgname + 'Core' + _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], True)
             is_debug = False
-            for arg in core.get_link_args():
-                if arg == '-l%s' % debug_lib_name or arg.endswith('%s.lib' % debug_lib_name) or arg.endswith('%s.a' % debug_lib_name):
+            for arg in self.get_link_args():
+                if arg == f'-l{debug_lib_name}' or arg.endswith(f'{debug_lib_name}.lib') or arg.endswith(f'{debug_lib_name}.a'):
                     is_debug = True
                     break
-            libdir = core.get_pkgconfig_variable('libdir', {})
+            libdir = self.get_pkgconfig_variable('libdir', {})
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
                 return
 
-        self.is_found = True
-        self.version = m.version
-        self.pcdep = list(modules.values())
-        # Try to detect moc, uic, rcc
-        # Used by self.compilers_detect()
-        self.bindir = self.get_pkgconfig_host_bins(core)
+        self.bindir = self.get_pkgconfig_host_bins(self)
         if not self.bindir:
             # If exec_prefix is not defined, the pkg-config file is broken
-            prefix = core.get_pkgconfig_variable('exec_prefix', {})
+            prefix = self.get_pkgconfig_variable('exec_prefix', {})
             if prefix:
                 self.bindir = os.path.join(prefix, 'bin')
 
-    def search_qmake(self) -> T.Generator['ExternalProgram', None, None]:
-        for qmake in ('qmake-' + self.name, 'qmake'):
-            yield from find_external_program(self.env, self.for_machine, qmake, 'QMake', [qmake])
+    @staticmethod
+    @abc.abstractmethod
+    def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
+        pass
 
-    def _qmake_detect(self, mods: T.List[str], kwargs: T.Dict[str, T.Any]) -> T.Optional[str]:
-        for qmake in self.search_qmake():
-            if not qmake.found():
-                continue
-            # Check that the qmake is for qt5
-            pc, stdo = mesonlib.Popen_safe(qmake.get_command() + ['-v'])[0:2]
-            if pc.returncode != 0:
-                continue
-            if not 'Qt version ' + self.qtver in stdo:
-                mlog.log('QMake is not for ' + self.qtname)
-                continue
-            # Found qmake for Qt5!
-            self.qmake = qmake
-            break
-        else:
-            # Didn't find qmake :(
-            self.is_found = False
-            return None
-        self.version = re.search(self.qtver + r'(\.\d+)+', stdo).group(0)
+    @abc.abstractmethod
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+        pass
+
+    def log_info(self) -> str:
+        return 'pkg-config'
+
+
+class QmakeQtDependency(_QtBase, ConfigToolDependency, metaclass=abc.ABCMeta):
+
+    """Find Qt using Qmake as a config-tool."""
+
+    tool_name = 'qmake'
+    version_arg = '-v'
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any]):
+        _QtBase.__init__(self, name, kwargs)
+        self.tools = [f'qmake-{self.qtname}', 'qmake']
+
+        # Add additional constraits that the Qt version is met, but preserve
+        # any version requrements the user has set as well. For exmaple, if Qt5
+        # is requested, add "">= 5, < 6", but if the user has ">= 5.6", don't
+        # lose that.
+        kwargs = kwargs.copy()
+        _vers = mesonlib.listify(kwargs.get('version', []))
+        _vers.extend([f'>= {self.qtver}', f'< {int(self.qtver) + 1}'])
+        kwargs['version'] = _vers
+
+        ConfigToolDependency.__init__(self, name, env, kwargs)
+        if not self.found():
+            return
+
         # Query library path, header path, and binary path
-        mlog.log("Found qmake:", mlog.bold(self.qmake.get_path()), '(%s)' % self.version)
-        stdo = mesonlib.Popen_safe(self.qmake.get_command() + ['-query'])[1]
-        qvars = {}
-        for line in stdo.split('\n'):
+        stdo = self.get_config_value(['-query'], 'args')
+        qvars: T.Dict[str, str] = {}
+        for line in stdo:
             line = line.strip()
             if line == '':
                 continue
-            (k, v) = tuple(line.split(':', 1))
+            k, v = line.split(':', 1)
             qvars[k] = v
         # Qt on macOS uses a framework, but Qt for iOS/tvOS does not
         xspec = qvars.get('QMAKE_XSPEC', '')
         if self.env.machines.host.is_darwin() and not any(s in xspec for s in ['ios', 'tvos']):
             mlog.debug("Building for macOS, looking for framework")
-            self._framework_detect(qvars, mods, kwargs)
+            self._framework_detect(qvars, self.requested_modules, kwargs)
             # Sometimes Qt is built not as a framework (for instance, when using conan pkg manager)
             # skip and fall back to normal procedure then
             if self.is_found:
-                return self.qmake.name
+                return
             else:
                 mlog.debug("Building for macOS, couldn't find framework, falling back to library search")
         incdir = qvars['QT_INSTALL_HEADERS']
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
-        # Used by self.compilers_detect()
+        # Used by qt.compilers_detect()
         self.bindir = get_qmake_host_bins(qvars)
-        self.is_found = True
 
         # Use the buildtype by default, but look at the b_vscrt option if the
         # compiler supports it.
@@ -282,7 +286,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
                 is_debug = True
         modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 
-        for module in mods:
+        for module in self.requested_modules:
             mincdir = os.path.join(incdir, 'Qt' + module)
             self.compile_args.append('-I' + mincdir)
 
@@ -292,7 +296,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
                 define_base = 'TESTLIB'
             else:
                 define_base = module.upper()
-            self.compile_args.append('-DQT_%s_LIB' % define_base)
+            self.compile_args.append(f'-DQT_{define_base}_LIB')
 
             if self.private_headers:
                 priv_inc = self.get_private_includes(mincdir, module)
@@ -315,16 +319,15 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
             if not self._link_with_qtmain(is_debug, libdir):
                 self.is_found = False
 
-        return self.qmake.name
+    def _sanitize_version(self, version: str) -> str:
+        m = re.search(rf'({self.qtver}(\.\d+)+)', version)
+        if m:
+            return m.group(0).rstrip('.')
+        return version
 
-    def _link_with_qtmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
-        libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
-        base_name = 'qtmaind' if is_debug else 'qtmain'
-        qtmain = self.clib_compiler.find_library(base_name, self.env, libdir)
-        if qtmain:
-            self.link_args.append(qtmain[0])
-            return True
-        return False
+    @abc.abstractmethod
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+        pass
 
     def _framework_detect(self, qvars: T.Dict[str, str], modules: T.List[str], kwargs: T.Dict[str, T.Any]) -> None:
         libdir = qvars['QT_INSTALL_LIBS']
@@ -344,43 +347,36 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
                                                             qt_version=self.version)
                 self.link_args += fwdep.get_link_args()
             else:
+                self.is_found = False
                 break
         else:
             self.is_found = True
             # Used by self.compilers_detect()
             self.bindir = get_qmake_host_bins(qvars)
 
-    @staticmethod
-    def get_methods() -> T.List[DependencyMethods]:
-        return [DependencyMethods.PKGCONFIG, DependencyMethods.QMAKE]
+    def log_info(self) -> str:
+        return 'qmake'
 
-    @staticmethod
-    def get_exe_args(compiler: 'Compiler') -> T.List[str]:
-        # Originally this was -fPIE but nowadays the default
-        # for upstream and distros seems to be -reduce-relocations
-        # which requires -fPIC. This may cause a performance
-        # penalty when using self-built Qt or on platforms
-        # where -fPIC is not required. If this is an issue
-        # for you, patches are welcome.
-        return compiler.get_pic_args()
+
+class Qt4ConfigToolDependency(QmakeQtDependency):
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return []
 
-    def log_details(self) -> str:
-        module_str = ', '.join(self.requested_modules)
-        return 'modules: ' + module_str
 
-    def log_info(self) -> str:
-        return f'{self.from_text}'
+class Qt5ConfigToolDependency(QmakeQtDependency):
 
-    def log_tried(self) -> str:
-        return self.from_text
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+        return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-class Qt4Dependency(QtBaseDependency):
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]):
-        QtBaseDependency.__init__(self, 'qt4', env, kwargs)
+class Qt6ConfigToolDependency(QmakeQtDependency):
+
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+        return _qt_get_private_includes(mod_inc_dir, module, self.version)
+
+
+class Qt4PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> T.Optional[str]:
@@ -396,10 +392,11 @@ class Qt4Dependency(QtBaseDependency):
                 pass
         return None
 
+    def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
+        return []
 
-class Qt5Dependency(QtBaseDependency):
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]):
-        QtBaseDependency.__init__(self, 'qt5', env, kwargs)
+
+class Qt5PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
@@ -409,9 +406,7 @@ class Qt5Dependency(QtBaseDependency):
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
 
 
-class Qt6Dependency(QtBaseDependency):
-    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]):
-        QtBaseDependency.__init__(self, 'qt6', env, kwargs)
+class Qt6PkgConfigDependency(QtPkgConfigDependency):
 
     @staticmethod
     def get_pkgconfig_host_bins(core: PkgConfigDependency) -> str:
@@ -419,3 +414,25 @@ class Qt6Dependency(QtBaseDependency):
 
     def get_private_includes(self, mod_inc_dir: str, module: str) -> T.List[str]:
         return _qt_get_private_includes(mod_inc_dir, module, self.version)
+
+
+qt4_factory = DependencyFactory(
+    'qt4',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    pkgconfig_class=Qt4PkgConfigDependency,
+    configtool_class=Qt4ConfigToolDependency,
+)
+
+qt5_factory = DependencyFactory(
+    'qt5',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    pkgconfig_class=Qt5PkgConfigDependency,
+    configtool_class=Qt5ConfigToolDependency,
+)
+
+qt6_factory = DependencyFactory(
+    'qt6',
+    [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL],
+    pkgconfig_class=Qt6PkgConfigDependency,
+    configtool_class=Qt6ConfigToolDependency,
+)

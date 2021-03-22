@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild.dependencies.base import find_external_dependency
 import os
 import shutil
 import typing as T
@@ -20,7 +21,7 @@ from .. import mlog
 from .. import build
 from .. import mesonlib
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, Qt6Dependency
+from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
@@ -28,15 +29,10 @@ from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
-    from .. import Interpreter
+    from ..interpreter import Interpreter
     from ..dependencies.qt import QtBaseDependency
+    from ..environment import Environment
     from ..programs import ExternalProgram
-
-_QT_DEPS_LUT = {
-    4: Qt4Dependency,
-    5: Qt5Dependency,
-    6: Qt6Dependency,
-}
 
 
 class QtBaseModule(ExtensionModule):
@@ -57,7 +53,7 @@ class QtBaseModule(ExtensionModule):
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
         bins = ['moc', 'uic', 'rcc', 'lrelease']
-        found = {b: NonExistingExternalProgram(name=f'{b}-{qt_dep.name}')
+        found = {b: NonExistingExternalProgram(name=f'{b}-qt{qt_dep.qtver}')
                  for b in bins}
         wanted = f'== {qt_dep.version}'
 
@@ -67,7 +63,7 @@ class QtBaseModule(ExtensionModule):
                     yield os.path.join(qt_dep.bindir, b), b
                 # prefer the <tool>-qt<version> of the tool to the plain one, as we
                 # don't know what the unsuffixed one points to without calling it.
-                yield f'{b}-{qt_dep.name}', b
+                yield f'{b}-qt{qt_dep.qtver}', b
                 yield b, b
 
         for b, name in gen_bins():
@@ -97,13 +93,13 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 setattr(self, name, p)
 
-    def _detect_tools(self, env, method, required=True):
+    def _detect_tools(self, env: 'Environment', method, required=True):
         if self.tools_detected:
             return
         self.tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
-        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
+        qt = find_external_dependency(f'qt{self.qt_version}', env, kwargs)
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(qt)
@@ -247,7 +243,7 @@ class QtBaseModule(ExtensionModule):
         compile_args = []
         for dep in unholder(dependencies):
             if isinstance(dep, Dependency):
-                for arg in dep.get_compile_args():
+                for arg in dep.get_all_compile_args():
                     if arg.startswith('-I') or arg.startswith('-D'):
                         compile_args.append(arg)
             else:

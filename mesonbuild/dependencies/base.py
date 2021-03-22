@@ -18,6 +18,7 @@ import copy
 import functools
 import os
 import re
+import itertools
 import json
 import shlex
 import shutil
@@ -136,10 +137,20 @@ class Dependency:
             return converted
         return self.compile_args
 
+    def get_all_compile_args(self) -> T.List[str]:
+        """Get the compile arguments from this dependency and it's sub dependencies."""
+        return list(itertools.chain(self.get_compile_args(),
+                                    *[d.get_all_compile_args() for d in self.ext_deps]))
+
     def get_link_args(self, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
+
+    def get_all_link_args(self) -> T.List[str]:
+        """Get the link arguments from this dependency and it's sub dependencies."""
+        return list(itertools.chain(self.get_link_args(),
+                                    *[d.get_all_link_args() for d in self.ext_deps]))
 
     def found(self) -> bool:
         return self.is_found

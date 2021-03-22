@@ -31,7 +31,7 @@ from .misc import (
     shaderc_factory, threads_factory,
 )
 from .platform import AppleFrameworks
-from .qt import Qt4Dependency, Qt5Dependency, Qt6Dependency
+from .qt import qt4_factory, qt5_factory, qt6_factory
 from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
 
 """Dependency representations and discovery logic.
@@ -226,9 +226,9 @@ packages.update({
     # From ui:
     'gl': gl_factory,
     'gnustep': GnuStepDependency,
-    'qt4': Qt4Dependency,
-    'qt5': Qt5Dependency,
-    'qt6': Qt6Dependency,
+    'qt4': qt4_factory,
+    'qt5': qt5_factory,
+    'qt6': qt6_factory,
     'sdl2': sdl2_factory,
     'wxwidgets': WxDependency,
     'vulkan': vulkan_factory,

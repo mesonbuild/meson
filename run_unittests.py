@@ -6604,10 +6604,10 @@ class LinuxlikeTests(BasePlatformTests):
         mesonlog = self.get_meson_log()
         if qt4 == 0:
             self.assertRegex('\n'.join(mesonlog),
-                             r'Run-time dependency qt4 \(modules: Core\) found: YES 4.* \(pkg-config\)\n')
+                             r'Run-time dependency qt4 \(modules: Core\) found: YES 4.* \(pkg-config\)')
         if qt5 == 0:
             self.assertRegex('\n'.join(mesonlog),
-                             r'Run-time dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)\n')
+                             r'Run-time dependency qt5 \(modules: Core\) found: YES 5.* \(pkg-config\)')
 
     @skip_if_not_base_option('b_sanitize')
     def test_generate_gir_with_address_sanitizer(self):
@@ -6638,7 +6638,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log()
         self.assertRegex('\n'.join(mesonlog),
-                         r'Run-time dependency qt5 \(modules: Core\) found: YES .* \((qmake|qmake-qt5)\)\n')
+                         r'Run-time dependency qt5 \(modules: Core\) found: YES .* \(qmake\)\n')
 
     def test_qt6dependency_qmake_detection(self):
         '''
@@ -6658,7 +6658,7 @@ class LinuxlikeTests(BasePlatformTests):
         # Confirm that the dependency was found with qmake
         mesonlog = self.get_meson_log()
         self.assertRegex('\n'.join(mesonlog),
-                         r'Run-time dependency qt6 \(modules: Core\) found: YES .* \((qmake|qmake-qt6)\)\n')
+                         r'Run-time dependency qt6 \(modules: Core\) found: YES .* \(qmake\)\n')
 
     def glob_sofiles_without_privdir(self, g):
         files = glob(g)
