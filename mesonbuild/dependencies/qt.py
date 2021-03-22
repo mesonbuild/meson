@@ -29,13 +29,12 @@ from . import (
 from .base import ConfigToolDependency
 from .. import mlog
 from .. import mesonlib
-from ..programs import NonExistingExternalProgram, find_external_program
+from ..programs import find_external_program
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..interpreter import Interpreter
     from ..programs import ExternalProgram
 
 
@@ -162,57 +161,6 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_pkgconfig_host_bins(self, core: PkgConfigDependency) -> T.Optional[str]:
         pass
-
-    def compilers_detect(self, interp_obj: 'Interpreter') -> T.Tuple['ExternalProgram', 'ExternalProgram', 'ExternalProgram', 'ExternalProgram']:
-        """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
-        # It is important that this list does not change order as the order of
-        # the returned ExternalPrograms will change as well
-        bins = ['moc', 'uic', 'rcc', 'lrelease']
-        found = {b: NonExistingExternalProgram(name=f'{b}-{self.name}')
-                 for b in bins}
-        wanted = f'== {self.version}'
-
-        def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
-            for b in bins:
-                if self.bindir:
-                    yield os.path.join(self.bindir, b), b
-                # prefer the <tool>-qt<version> of the tool to the plain one, as we
-                # don't know what the unsuffixed one points to without calling it.
-                yield f'{b}-{self.name}', b
-                yield b, b
-
-        for b, name in gen_bins():
-            if found[name].found():
-                continue
-
-            if name == 'lrelease':
-                arg = ['-version']
-            elif mesonlib.version_compare(self.version, '>= 5'):
-                arg = ['--version']
-            else:
-                arg = ['-v']
-
-            # Ensure that the version of qt and each tool are the same
-            def get_version(p: 'ExternalProgram') -> str:
-                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
-                if b.startswith('lrelease') or not self.version.startswith('4'):
-                    care = out
-                else:
-                    care = err
-                return care.split(' ')[-1].replace(')', '').strip()
-
-            p = interp_obj.find_program_impl([b], required=False,
-                                             version_func=get_version,
-                                             wanted=wanted).held_object
-            if p.found():
-                found[name] = p
-
-        # Since we're converting from a list (no size constraints) to a tuple
-        # (size constrained), we have to cast. We can impsect the code to see
-        # that obviously this is correct since `len(bins) == 4`, but static
-        # type checkers can't
-        return T.cast(T.Tuple['ExternalProgram', 'ExternalProgram', 'ExternalProgram', 'ExternalProgram'],
-                      tuple([found[b] for b in bins]))
 
     def _pkgconfig_detect(self, mods: T.List[str], kwargs: T.Dict[str, T.Any]) -> None:
         # We set the value of required to False so that we can try the
