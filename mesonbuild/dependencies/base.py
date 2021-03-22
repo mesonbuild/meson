@@ -37,6 +37,7 @@ from ..mesonlib import Popen_safe, version_compare_many, version_compare, listif
 from ..mesonlib import Version, LibType, OptionKey
 from ..mesondata import mesondata
 from ..programs import ExternalProgram, find_external_program
+from ..interpreterbase import FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
@@ -2267,10 +2268,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List
     # generic CONFIG_TOOL value.
     if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                   DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-        mlog.warning(textwrap.dedent("""\
-            Configuration method {} has been deprecated in favor of
-            'config-tool'. This will be removed in a future version of
-            meson.""".format(method)))
+        FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
 
     # Set the detection method. If the method is set to auto, use any available method.
