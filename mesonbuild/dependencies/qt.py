@@ -62,6 +62,15 @@ def _qt_get_private_includes(mod_inc_dir: str, module: str, mod_version: str) ->
                 break
     return [private_dir, os.path.join(private_dir, 'Qt' + module)]
 
+
+def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
+    # Prefer QT_HOST_BINS (qt5, correct for cross and native compiling)
+    # but fall back to QT_INSTALL_BINS (qt4)
+    if 'QT_HOST_BINS' in qvars:
+        return qvars['QT_HOST_BINS']
+    return qvars['QT_INSTALL_BINS']
+
+
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
     def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         super().__init__(name, env, kwargs, language=language)
@@ -285,7 +294,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
         self.compile_args.append('-I' + incdir)
         libdir = qvars['QT_INSTALL_LIBS']
         # Used by self.compilers_detect()
-        self.bindir = self.get_qmake_host_bins(qvars)
+        self.bindir = get_qmake_host_bins(qvars)
         self.is_found = True
 
         # Use the buildtype by default, but look at the b_vscrt option if the
@@ -388,15 +397,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
         else:
             self.is_found = True
             # Used by self.compilers_detect()
-            self.bindir = self.get_qmake_host_bins(qvars)
-
-    @staticmethod
-    def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
-        # Prefer QT_HOST_BINS (qt5, correct for cross and native compiling)
-        # but fall back to QT_INSTALL_BINS (qt4)
-        if 'QT_HOST_BINS' in qvars:
-            return qvars['QT_HOST_BINS']
-        return qvars['QT_INSTALL_BINS']
+            self.bindir = get_qmake_host_bins(qvars)
 
     @staticmethod
     def get_methods() -> T.List[DependencyMethods]:
