@@ -24,14 +24,16 @@ import typing as T
 
 from . import (
     ExtraFrameworkDependency, ExternalDependency, DependencyException, DependencyMethods,
-    PkgConfigDependency,
+    PkgConfigDependency
 )
+from .base import ConfigToolDependency
 from .. import mlog
 from .. import mesonlib
 from ..programs import NonExistingExternalProgram, find_external_program
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
+    from ..envconfig import MachineInfo
     from ..environment import Environment
     from ..interpreter import Interpreter
     from ..programs import ExternalProgram
@@ -69,6 +71,33 @@ def get_qmake_host_bins(qvars: T.Dict[str, str]) -> str:
     if 'QT_HOST_BINS' in qvars:
         return qvars['QT_HOST_BINS']
     return qvars['QT_INSTALL_BINS']
+
+
+def _get_modules_lib_suffix(version: str, info: 'MachineInfo', is_debug: bool) -> str:
+    """Get the module suffix based on platform and debug type."""
+    suffix = ''
+    if info.is_windows():
+        if is_debug:
+            suffix += 'd'
+        if version.startswith('4'):
+            suffix += '4'
+    if info.is_darwin():
+        if is_debug:
+            suffix += '_debug'
+    if mesonlib.version_compare(version, '>= 5.14.0'):
+        if info.is_android():
+            if info.cpu_family == 'x86':
+                suffix += '_x86'
+            elif info.cpu_family == 'x86_64':
+                suffix += '_x86_64'
+            elif info.cpu_family == 'arm':
+                suffix += '_armeabi-v7a'
+            elif info.cpu_family == 'aarch64':
+                suffix += '_arm64-v8a'
+            else:
+                mlog.warning(f'Android target arch "{info.cpu_family}"" for Qt5 is unknown, '
+                             'module detection may not work')
+    return suffix
 
 
 class QtExtraFrameworkDependency(ExtraFrameworkDependency):
@@ -223,7 +252,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
 
         if self.env.machines[self.for_machine].is_windows() and self.qtmain:
             # Check if we link with debug binaries
-            debug_lib_name = self.qtpkgname + 'Core' + self._get_modules_lib_suffix(True)
+            debug_lib_name = self.qtpkgname + 'Core' + _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], True)
             is_debug = False
             for arg in core.get_link_args():
                 if arg == '-l%s' % debug_lib_name or arg.endswith('%s.lib' % debug_lib_name) or arg.endswith('%s.a' % debug_lib_name):
@@ -303,7 +332,7 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
         if mesonlib.OptionKey('b_vscrt') in self.env.coredata.options:
             if self.env.coredata.options[mesonlib.OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
                 is_debug = True
-        modules_lib_suffix = self._get_modules_lib_suffix(is_debug)
+        modules_lib_suffix = _get_modules_lib_suffix(self.version, self.env.machines[self.for_machine], is_debug)
 
         for module in mods:
             mincdir = os.path.join(incdir, 'Qt' + module)
@@ -339,32 +368,6 @@ class QtBaseDependency(ExternalDependency, metaclass=abc.ABCMeta):
                 self.is_found = False
 
         return self.qmake.name
-
-    def _get_modules_lib_suffix(self, is_debug: bool) -> str:
-        suffix = ''
-        if self.env.machines[self.for_machine].is_windows():
-            if is_debug:
-                suffix += 'd'
-            if self.qtver == '4':
-                suffix += '4'
-        if self.env.machines[self.for_machine].is_darwin():
-            if is_debug:
-                suffix += '_debug'
-        if mesonlib.version_compare(self.version, '>= 5.14.0'):
-            if self.env.machines[self.for_machine].is_android():
-                cpu_family = self.env.machines[self.for_machine].cpu_family
-                if cpu_family == 'x86':
-                    suffix += '_x86'
-                elif cpu_family == 'x86_64':
-                    suffix += '_x86_64'
-                elif cpu_family == 'arm':
-                    suffix += '_armeabi-v7a'
-                elif cpu_family == 'aarch64':
-                    suffix += '_arm64-v8a'
-                else:
-                    mlog.warning('Android target arch {!r} for Qt5 is unknown, '
-                                 'module detection may not work'.format(cpu_family))
-        return suffix
 
     def _link_with_qtmain(self, is_debug: bool, libdir: T.Union[str, T.List[str]]) -> bool:
         libdir = mesonlib.listify(libdir)  # TODO: shouldn't be necessary
