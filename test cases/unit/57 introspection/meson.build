@@ -27,12 +27,17 @@ var1 = '1'
 var2 = 2.to_string()
 var3 = 'test3'
 
-cus = custom_target('custom target test', output: 'file2', input: 'cp.py',
-                    command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
+cus1 = custom_target('custom target test 1', output: 'file2', input: 'cp.py',
+                     command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
+cus2 = custom_target('custom target test 2', output: 'file3', input: cus1,
+                     command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
 
 t1 = executable('test' + var1, ['t1.cpp'], link_with: [sharedlib], install: not false, build_by_default: get_option('test_opt2'))
 t2 = executable('test@0@'.format('@0@'.format(var2)), sources: ['t2.cpp'], link_with: [staticlib])
 t3 = executable(var3, 't3.cpp', link_with: [sharedlib, staticlib], dependencies: [dep1])
+
+cus3 = custom_target('custom target test 3', output: 'file4', input: t3,
+                     command: [find_program('cp.py'), '@INPUT@', '@OUTPUT@'])
 
 ### BEGIN: Test inspired by taisei: https://github.com/taisei-project/taisei/blob/master/meson.build#L293
 systype = '@0@'.format(host_machine.system())
@@ -49,7 +54,7 @@ message(osmesa_lib_name) # Infinite recursion gets triggered here when the param
 
 test('test case 1', t1)
 test('test case 2', t2, depends: t3)
-benchmark('benchmark 1', t3, args: cus)
+benchmark('benchmark 1', t3, args: [cus1, cus2, cus3])
 
 ### Stuff to test the AST JSON printer
 foreach x : ['a', 'b', 'c']

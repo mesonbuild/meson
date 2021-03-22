@@ -4678,10 +4678,12 @@ class AllPlatformTests(BasePlatformTests):
         # Match target ids to input and output files for ease of reference
         src_to_id = {}
         out_to_id = {}
+        name_to_out = {}
         for i in res['targets']:
             print(json.dump(i, sys.stdout))
             out_to_id.update({os.path.relpath(out, self.builddir): i['id']
                               for out in i['filename']})
+            name_to_out.update({i['name']: i['filename']})
             for group in i['target_sources']:
                 src_to_id.update({os.path.relpath(src, testdir): i['id']
                                   for src in group['sources']})
@@ -4690,7 +4692,7 @@ class AllPlatformTests(BasePlatformTests):
         tests_to_find = ['test case 1', 'test case 2', 'benchmark 1']
         deps_to_find = {'test case 1': [src_to_id['t1.cpp']],
                         'test case 2': [src_to_id['t2.cpp'], src_to_id['t3.cpp']],
-                        'benchmark 1': [out_to_id['file2'], src_to_id['t3.cpp']]}
+                        'benchmark 1': [out_to_id['file2'], out_to_id['file3'], out_to_id['file4'], src_to_id['t3.cpp']]}
         for i in res['benchmarks'] + res['tests']:
             assertKeyTypes(test_keylist, i)
             if i['name'] in tests_to_find:
@@ -4737,11 +4739,22 @@ class AllPlatformTests(BasePlatformTests):
 
         # Check targets
         targets_to_find = {
-            'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build'),
-            'staticTestLib': ('static library', True, False, 'staticlib/meson.build'),
-            'test1': ('executable', True, True, 'meson.build'),
-            'test2': ('executable', True, False, 'meson.build'),
-            'test3': ('executable', True, False, 'meson.build'),
+            'sharedTestLib': ('shared library', True, False, 'sharedlib/meson.build',
+                              [os.path.join(testdir, 'sharedlib', 'shared.cpp')]),
+            'staticTestLib': ('static library', True, False, 'staticlib/meson.build',
+                              [os.path.join(testdir, 'staticlib', 'static.c')]),
+            'custom target test 1': ('custom', False, False, 'meson.build',
+                                     [os.path.join(testdir, 'cp.py')]),
+            'custom target test 2': ('custom', False, False, 'meson.build',
+                                     name_to_out['custom target test 1']),
+            'test1': ('executable', True, True, 'meson.build',
+                      [os.path.join(testdir, 't1.cpp')]),
+            'test2': ('executable', True, False, 'meson.build',
+                      [os.path.join(testdir, 't2.cpp')]),
+            'test3': ('executable', True, False, 'meson.build',
+                      [os.path.join(testdir, 't3.cpp')]),
+            'custom target test 3': ('custom', False, False, 'meson.build',
+                                     name_to_out['test3']),
         }
         for i in res['targets']:
             assertKeyTypes(targets_typelist, i)
@@ -4754,6 +4767,7 @@ class AllPlatformTests(BasePlatformTests):
                 targets_to_find.pop(i['name'], None)
             for j in i['target_sources']:
                 assertKeyTypes(targets_sources_typelist, j)
+                self.assertEqual(j['sources'], [os.path.normpath(f) for f in tgt[4]])
         self.assertDictEqual(targets_to_find, {})
 
     def test_introspect_file_dump_equals_all(self):
