@@ -397,7 +397,7 @@ class CoreData:
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
         build_cache = DependencyCache(self.options, MachineChoice.BUILD)
-        host_cache = DependencyCache(self.options, MachineChoice.BUILD)
+        host_cache = DependencyCache(self.options, MachineChoice.HOST)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
