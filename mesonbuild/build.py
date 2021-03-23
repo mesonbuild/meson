@@ -433,7 +433,7 @@ class EnvironmentVariables:
     def get_env(self, full_env: T.Dict[str, str]) -> T.Dict[str, str]:
         env = full_env.copy()
         for method, name, values, separator in self.envvars:
-            env[name] = method(full_env, name, values, separator)
+            env[name] = method(env, name, values, separator)
         return env
 
 class Target:

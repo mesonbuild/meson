@@ -241,9 +241,9 @@ class ConfigureFileHolder(InterpreterObject, ObjectHolder[build.ConfigureFile]):
 
 
 class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.EnvironmentVariables]):
-    def __init__(self, initial_values=None):
+    def __init__(self, initial_values=None, subproject: str = ''):
         MutableInterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.EnvironmentVariables())
+        ObjectHolder.__init__(self, build.EnvironmentVariables(), subproject)
         self.methods.update({'set': self.set_method,
                              'append': self.append_method,
                              'prepend': self.prepend_method,
@@ -274,12 +274,10 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
         return separator
 
     def warn_if_has_name(self, name: str) -> None:
-        # Warn when someone tries to use append() or prepend() on an env var
-        # which already has an operation set on it. People seem to think that
-        # multiple append/prepend operations stack, but they don't.
+        # Multiple append/prepend operations was not supported until 0.58.0.
         if self.held_object.has_name(name):
-            mlog.warning(f'Overriding previous value of environment variable {name!r} with a new one',
-                         location=self.current_node)
+            m = f'Overriding previous value of environment variable {name!r} with a new one'
+            FeatureNew('0.58.0', m).use(self.subproject)
 
     @stringArgs
     @permittedKwargs({'separator'})
@@ -4772,7 +4770,7 @@ This warning will become a hard error in a future Meson release.
                 raise InterpreterException('environment first argument must be a dictionary or a list')
         else:
             initial_values = {}
-        return EnvironmentVariablesHolder(initial_values)
+        return EnvironmentVariablesHolder(initial_values, self.subproject)
 
     @stringArgs
     @noKwargs
