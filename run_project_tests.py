@@ -865,11 +865,6 @@ def skippable(suite, test):
     if test.endswith('34 gir static lib'):
         return True
 
-    # No frameworks test should be skipped on linux CI, as we expect all
-    # prerequisites to be installed
-    if mesonlib.is_linux():
-        return False
-
     # Boost test should only be skipped for windows CI build matrix entries
     # which don't define BOOST_ROOT
     if test.endswith('1 boost'):
@@ -877,12 +872,20 @@ def skippable(suite, test):
             return 'BOOST_ROOT' not in os.environ
         return False
 
-    # Qt is provided on macOS by Homebrew
-    if test.endswith('4 qt') and mesonlib.is_osx():
-        return False
+    # Not all OSes have all of the methods for qt (qmake and pkg-config), don't
+    # fail if that happens.
+    #
+    # On macOS we should have all of the requirements at all times.
+    if test.endswith('4 qt'):
+        return not mesonlib.is_osx()
 
     # Bindgen isn't available in all distros
     if test.endswith('12 bindgen'):
+        return False
+
+    # No frameworks test should be skipped on linux CI, as we expect all
+    # prerequisites to be installed
+    if mesonlib.is_linux():
         return False
 
     # Other framework tests are allowed to be skipped on other platforms
