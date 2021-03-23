@@ -69,7 +69,7 @@ def setup_console() -> None:
 log_dir = None               # type: T.Optional[str]
 log_file = None              # type: T.Optional[T.TextIO]
 log_fname = 'meson-log.txt'  # type: str
-log_depth = 0                # type: int
+log_depth = []               # type: T.List[str]
 log_timestamp_start = None   # type: T.Optional[float]
 log_fatal_warnings = False   # type: bool
 log_disable_stdout = False   # type: bool
@@ -201,7 +201,7 @@ def process_markup(args: T.Sequence[T.Union[AnsiDecorator, str]], keep: bool) ->
             arr.append(str(arg))
     return arr
 
-def force_print(*args: str, **kwargs: T.Any) -> None:
+def force_print(*args: str, nested: str, **kwargs: T.Any) -> None:
     if log_disable_stdout:
         return
     iostr = io.StringIO()
@@ -209,9 +209,13 @@ def force_print(*args: str, **kwargs: T.Any) -> None:
     print(*args, **kwargs)
 
     raw = iostr.getvalue()
-    if log_depth > 0:
-        prepend = '|' * log_depth
-        raw = prepend + raw.replace('\n', '\n' + prepend, raw.count('\n') - 1)
+    if log_depth:
+        prepend = log_depth[-1] + '| ' if nested else ''
+        lines = []
+        for l in raw.split('\n'):
+            l = l.strip()
+            lines.append(prepend + l if l else '')
+        raw = '\n'.join(lines)
 
     # _Something_ is going to get printed.
     try:
@@ -246,6 +250,7 @@ def log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
 
 def _log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
         **kwargs: T.Any) -> None:
+    nested = kwargs.pop('nested', True)
     arr = process_markup(args, False)
     if log_file is not None:
         print(*arr, file=log_file, **kwargs)
@@ -253,7 +258,7 @@ def _log(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
     if colorize_console():
         arr = process_markup(args, True)
     if not log_errors_only or is_error:
-        force_print(*arr, **kwargs)
+        force_print(*arr, nested=nested, **kwargs)
 
 def log_once(*args: T.Union[str, AnsiDecorator], is_error: bool = False,
              **kwargs: T.Any) -> None:
@@ -370,10 +375,10 @@ def format_list(input_list: T.List[str]) -> str:
         return ''
 
 @contextmanager
-def nested() -> T.Generator[None, None, None]:
+def nested(name: str = '') -> T.Generator[None, None, None]:
     global log_depth
-    log_depth += 1
+    log_depth.append(name)
     try:
         yield
     finally:
-        log_depth -= 1
+        log_depth.pop()
