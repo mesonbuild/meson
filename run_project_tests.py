@@ -371,15 +371,25 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
     return res
 
+class OutputMatch:
+    def __init__(self, how: str, expected: str, count: int) -> None:
+        self.how = how
+        self.expected = expected
+        self.count = count
+
+    def match(self, actual: str) -> bool:
+        if self.how == "re":
+            return bool(re.match(self.expected, actual))
+        return self.expected == actual
+
 def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) -> str:
     if expected:
-        i = iter(expected)
-
-        def next_expected(i):
-            # Get the next expected line
-            item = next(i)
+        matches = []
+        nomatches = []
+        for item in expected:
             how = item.get('match', 'literal')
             expected = item.get('line')
+            count = int(item.get('count', -1))
 
             # Simple heuristic to automatically convert path separators for
             # Windows:
@@ -397,23 +407,46 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     sub = r'\\\\'
                 expected = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected)
 
-            return how, expected
+            m = OutputMatch(how, expected, count)
+            if count == 0:
+                nomatches.append(m)
+            else:
+                matches.append(m)
 
-        try:
-            how, expected = next_expected(i)
-            for actual in output.splitlines():
-                if how == "re":
-                    match = bool(re.match(expected, actual))
+
+        i = 0
+        for actual in output.splitlines():
+            # Verify this line does not match any unexpected lines (item.count == 0)
+            for item in nomatches:
+                if item.match(actual):
+                    return f'unexpected "{item.expected}" found in {desc}'
+            # If we matched all expected lines, continue to verify there are
+            # no unexpected line. If nomatches is empty then we are done already.
+            if i >= len(matches):
+                if not nomatches:
+                    break
+                continue
+            # Check if this line match current expected line
+            item = matches[i]
+            if item.match(actual):
+                if item.count < 0:
+                    # count was not specified, continue with next expected line,
+                    # it does not matter if this line will be matched again or
+                    # not.
+                    i += 1
                 else:
-                    match = (expected == actual)
-                if match:
-                    how, expected = next_expected(i)
+                    # count was specified (must be >0), continue expecting this
+                    # same line. If count reached 0 we continue with next
+                    # expected line but remember that this one must not match
+                    # anymore.
+                    item.count -= 1
+                    if item.count == 0:
+                        nomatches.append(item)
+                        i += 1
 
+        if i < len(matches):
             # reached the end of output without finding expected
-            return f'expected "{expected}" not found in {desc}'
-        except StopIteration:
-            # matched all expected lines
-            pass
+            return f'expected "{matches[i].expected}" not found in {desc}'
 
     return ''
 
