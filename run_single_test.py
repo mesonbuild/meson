@@ -16,7 +16,7 @@ import typing as T
 from mesonbuild import environment
 from mesonbuild import mlog
 from mesonbuild import mesonlib
-from run_project_tests import TestDef, load_test_json, run_test, BuildStep
+from run_project_tests import TestDef, load_test_json, run_test, BuildStep, skippable
 from run_tests import get_backend_commands, guess_backend, get_fake_options
 
 if T.TYPE_CHECKING:
@@ -62,7 +62,7 @@ def main() -> None:
     results = [run_test(t, t.args, comp, backend, backend_args, commands, False, True) for t in tests]
     failed = False
     for test, result in zip(tests, results):
-        if result is None:
+        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(str(args.case.parent), test.path.as_posix()))):
             msg = mlog.yellow('SKIP:')
         elif result.msg:
             msg = mlog.red('FAIL:')
@@ -70,7 +70,7 @@ def main() -> None:
         else:
             msg = mlog.green('PASS:')
         mlog.log(msg, test.display_name())
-        if result.msg:
+        if result.msg and 'MESON_SKIP_TEST' not in result.stdo:
             mlog.log('reason:', result.msg)
             if result.step is BuildStep.configure:
                 # For configure failures, instead of printing stdout,
