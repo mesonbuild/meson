@@ -817,7 +817,7 @@ def have_java():
         return True
     return False
 
-def skippable(suite, test):
+def skippable(suite: str, test: str) -> bool:
     # Everything is optional when not running on CI
     if not under_ci:
         return True
