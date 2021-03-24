@@ -510,6 +510,10 @@ class DynamicLinker(metaclass=abc.ABCMeta):
         # only when targeting Windows
         return []
 
+    def get_link_script_args(self, value: str) -> T.List[str]:
+        """Arguments to pass a linker script to the linker."""
+        return []
+
     def bitcode_args(self) -> T.List[str]:
         raise mesonlib.MesonException('This linker does not support bitcode bundles')
 
@@ -703,6 +707,9 @@ class GnuLikeDynamicLinkerMixin:
             args[-1] = args[-1] + ':' + value.split(',')[1]
 
         return self._apply_prefix(args)
+
+    def get_link_script_args(self, value: str) -> T.List[str]:
+        return self._apply_prefix(f"-T,{value}")
 
 
 class AppleDynamicLinker(PosixDynamicLinkerMixin, DynamicLinker):
