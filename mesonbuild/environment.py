@@ -834,6 +834,23 @@ class Environment:
                             env_opts[key].extend(p_list)
                     else:
                         key = OptionKey.from_string(keyname).evolve(machine=for_machine)
+                        if evar in compilers.compilers.CFLAGS_MAPPING.values():
+                            # If this is an environment variable, we have to
+                            # store it separately until the compielr is
+                            # instantiated, as we don't know whether the
+                            # compiler will want to use these arguments at link
+                            # time and compile time (instead of just at compile
+                            # time) until we're instantiating that `Compiler`
+                            # object. This is required so that passing
+                            # `-Dc_args=` on the command line and `$CFLAGS`
+                            # have subtely differen behavior. `$CFLAGS` will be
+                            # added to the linker command line if the compiler
+                            # acts as a linker driver, `-Dc_args` will not.
+                            #
+                            # We stil use the original key as the base here, as
+                            # we want to inhert the machine and the compiler
+                            # language
+                            key = key.evolve('env_args')
                         env_opts[key].extend(p_list)
 
         # Only store options that are not already in self.options,
