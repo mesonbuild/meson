@@ -243,6 +243,11 @@ class UserArrayOption(UserOption[T.List[str]]):
                     ', '.join(bad), ', '.join(self.choices)))
         return newvalue
 
+    def extend_value(self, value: T.Union[str, T.List[str]]) -> None:
+        """Extend the value with an additional value."""
+        new = self.validate_value(value)
+        self.set_value(self.value + new)
+
 
 class UserFeatureOption(UserComboOption):
     static_choices = ['enabled', 'disabled', 'auto']
@@ -776,8 +781,10 @@ class CoreData:
                       for_machine: MachineChoice, env: 'Environment') -> None:
         """Add global language arguments that are needed before compiler/linker detection."""
         from .compilers import compilers
-        options = compilers.get_global_options(lang, comp, for_machine, env)
-        self.add_compiler_options(options, lang, for_machine, env)
+        # These options are all new at this point, because the compiler is
+        # responsible for adding its own options, thus calling
+        # `self.options.update()`` is perfectly safe.
+        self.options.update(compilers.get_global_options(lang, comp, for_machine, env))
 
     def process_new_compiler(self, lang: str, comp: 'Compiler', env: 'Environment') -> None:
         from . import compilers

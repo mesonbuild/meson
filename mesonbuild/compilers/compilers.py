@@ -1234,18 +1234,21 @@ def get_global_options(lang: str,
     description = f'Extra arguments passed to the {lang}'
     argkey = OptionKey('args', lang=lang, machine=for_machine)
     largkey = argkey.evolve('link_args')
+    envkey = argkey.evolve('env_args')
 
     cargs = coredata.UserArrayOption(
         description + ' compiler',
         env.options.get(argkey, []), split_args=True, user_input=True, allow_dups=True)
+    # the compiler args always gets the environemtn variable arguments
+    cargs.extend_value(env.options.get(envkey, []))
+
     largs = coredata.UserArrayOption(
         description + ' linker',
         env.options.get(largkey, []), split_args=True, user_input=True, allow_dups=True)
-
-    # This needs to be done here, so that if we have string values in the env
-    # options that we can safely combine them *after* they've been split
+    # The linker gets the compiler environment variable only if the comiler
+    # acts as the linker
     if comp.INVOKES_LINKER:
-        largs.set_value(largs.value + cargs.value)
+        largs.extend_value(env.options.get(envkey, []))
 
     opts: 'KeyedOptionDictType' = {argkey: cargs, largkey: largs}
 
