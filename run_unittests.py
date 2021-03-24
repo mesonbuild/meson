@@ -5616,6 +5616,23 @@ class AllPlatformTests(BasePlatformTests):
         self.assertEqual(0, output.count('File reformatted:'))
         self.build('clang-format-check')
 
+    def test_custom_target_implicit_include(self):
+        testdir = os.path.join(self.unit_test_dir, '94 custominc')
+        self.init(testdir)
+        self.build()
+        compdb = self.get_compdb()
+        matches = 0
+        for c in compdb:
+            if 'prog.c' in c['file']:
+                self.assertNotIn('easytogrepfor', c['command'])
+                matches += 1
+        self.assertEqual(matches, 1)
+        matches = 0
+        for c in compdb:
+            if 'prog2.c' in c['file']:
+                self.assertIn('easytogrepfor', c['command'])
+                matches += 1
+        self.assertEqual(matches, 1)
 
 class FailureTests(BasePlatformTests):
     '''

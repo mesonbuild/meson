@@ -2377,10 +2377,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         commands += self.generate_basic_compiler_args(target, compiler, no_warn_args)
         # Add custom target dirs as includes automatically, but before
         # target-specific include directories.
-        # XXX: Not sure if anyone actually uses this? It can cause problems in
-        # situations which increase the likelihood for a header name collision,
-        # such as in subprojects.
-        commands += self.get_custom_target_dir_include_args(target, compiler)
+        if target.implicit_include_directories:
+            commands += self.get_custom_target_dir_include_args(target, compiler)
         # Add include dirs from the `include_directories:` kwarg on the target
         # and from `include_directories:` of internal deps of the target.
         #
