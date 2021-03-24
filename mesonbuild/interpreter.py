@@ -4601,7 +4601,7 @@ different subdirectory.
 ''')
             else:
                 try:
-                    self.validate_within_subproject(a, '')
+                    self.validate_within_subproject(self.subdir, a)
                 except InterpreterException:
                     mlog.warning('include_directories sandbox violation!')
                     print(f'''The project is trying to access the directory {a} which belongs to a different
@@ -4830,6 +4830,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             # /opt/vendorsdk/src/file_with_license_restrictions.c
             return
         project_root = Path(srcdir, self.root_subdir)
+        if norm == project_root:
+            return
         if project_root not in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} outside current (sub)project.')
         if project_root / self.subproject_dir in norm.parents:

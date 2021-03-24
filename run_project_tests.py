@@ -34,6 +34,7 @@ import tempfile
 import time
 import typing as T
 import xml.etree.ElementTree as ET
+import collections
 
 from mesonbuild import build
 from mesonbuild import environment
@@ -370,15 +371,25 @@ def run_ci_commands(raw_log: str) -> T.List[str]:
         res += ['CI COMMAND {}:\n{}\n'.format(cmd[0], ci_commands[cmd[0]](cmd[1:]))]
     return res
 
+class OutputMatch:
+    def __init__(self, how: str, expected: str, count: int) -> None:
+        self.how = how
+        self.expected = expected
+        self.count = count
+
+    def match(self, actual: str) -> bool:
+        if self.how == "re":
+            return bool(re.match(self.expected, actual))
+        return self.expected == actual
+
 def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) -> str:
     if expected:
-        i = iter(expected)
-
-        def next_expected(i):
-            # Get the next expected line
-            item = next(i)
+        matches = []
+        nomatches = []
+        for item in expected:
             how = item.get('match', 'literal')
             expected = item.get('line')
+            count = int(item.get('count', -1))
 
             # Simple heuristic to automatically convert path separators for
             # Windows:
@@ -396,23 +407,46 @@ def _compare_output(expected: T.List[T.Dict[str, str]], output: str, desc: str) 
                     sub = r'\\\\'
                 expected = re.sub(r'/(?=.*(WARNING|ERROR))', sub, expected)
 
-            return how, expected
+            m = OutputMatch(how, expected, count)
+            if count == 0:
+                nomatches.append(m)
+            else:
+                matches.append(m)
 
-        try:
-            how, expected = next_expected(i)
-            for actual in output.splitlines():
-                if how == "re":
-                    match = bool(re.match(expected, actual))
+
+        i = 0
+        for actual in output.splitlines():
+            # Verify this line does not match any unexpected lines (item.count == 0)
+            for item in nomatches:
+                if item.match(actual):
+                    return f'unexpected "{item.expected}" found in {desc}'
+            # If we matched all expected lines, continue to verify there are
+            # no unexpected line. If nomatches is empty then we are done already.
+            if i >= len(matches):
+                if not nomatches:
+                    break
+                continue
+            # Check if this line match current expected line
+            item = matches[i]
+            if item.match(actual):
+                if item.count < 0:
+                    # count was not specified, continue with next expected line,
+                    # it does not matter if this line will be matched again or
+                    # not.
+                    i += 1
                 else:
-                    match = (expected == actual)
-                if match:
-                    how, expected = next_expected(i)
+                    # count was specified (must be >0), continue expecting this
+                    # same line. If count reached 0 we continue with next
+                    # expected line but remember that this one must not match
+                    # anymore.
+                    item.count -= 1
+                    if item.count == 0:
+                        nomatches.append(item)
+                        i += 1
 
+        if i < len(matches):
             # reached the end of output without finding expected
-            return f'expected "{expected}" not found in {desc}'
-        except StopIteration:
-            # matched all expected lines
-            pass
+            return f'expected "{matches[i].expected}" not found in {desc}'
 
     return ''
 
@@ -750,14 +784,16 @@ def load_test_json(t: TestDef, stdout_mandatory: bool) -> T.List[TestDef]:
     return all_tests
 
 
-def gather_tests(testdir: Path, stdout_mandatory: bool) -> T.List[TestDef]:
-    tests = [t.name for t in testdir.iterdir() if t.is_dir()]
-    tests = [t for t in tests if not t.startswith('.')]  # Filter non-tests files (dot files, etc)
-    test_defs = [TestDef(testdir / t, None, []) for t in tests]
+def gather_tests(testdir: Path, stdout_mandatory: bool, only: T.List[str]) -> T.List[TestDef]:
     all_tests: T.List[TestDef] = []
-    for t in test_defs:
-        all_tests.extend(load_test_json(t, stdout_mandatory))
-
+    for t in testdir.iterdir():
+        # Filter non-tests files (dot files, etc)
+        if not t.is_dir() or t.name.startswith('.'):
+            continue
+        if only and not any(t.name.startswith(prefix) for prefix in only):
+            continue
+        test_def = TestDef(t, None, [])
+        all_tests.extend(load_test_json(test_def, stdout_mandatory))
     return sorted(all_tests)
 
 
@@ -937,11 +973,11 @@ def should_skip_rust(backend: Backend) -> bool:
         return True
     return False
 
-def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
+def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List[T.Tuple[str, T.List[TestDef], bool]]:
     """
     Parameters
     ----------
-    only: list of str, optional
+    only: dict of categories and list of test cases, optional
         specify names of tests to run
 
     Returns
@@ -997,9 +1033,9 @@ def detect_tests_to_run(only: T.List[str], use_tmp: bool) -> T.List[T.Tuple[str,
     assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
-        all_tests = [t for t in all_tests if t.category in only]
+        all_tests = [t for t in all_tests if t.category in only.keys()]
 
-    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory), t.skip) for t in all_tests]
+    gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category]), t.skip) for t in all_tests]
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
@@ -1323,7 +1359,8 @@ if __name__ == '__main__':
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
                         help='Not used, only here to simplify run_tests.py')
-    parser.add_argument('--only', help='name of test(s) to run', nargs='+', choices=ALL_TESTS)
+    parser.add_argument('--only', default=[],
+                        help='name of test(s) to run, in format "category[/name]" where category is one of: ' + ', '.join(ALL_TESTS), nargs='+')
     parser.add_argument('--cross-file', action='store', help='File describing cross compilation environment.')
     parser.add_argument('--native-file', action='store', help='File describing native compilation environment.')
     parser.add_argument('--use-tmpdir', action='store_true', help='Use tmp directory for temporary files.')
@@ -1348,8 +1385,15 @@ if __name__ == '__main__':
         os.chdir(script_dir)
     check_format()
     check_meson_commands_work(options)
+    only = collections.defaultdict(list)
+    for i in options.only:
+        try:
+            cat, case = i.split('/')
+            only[cat].append(case)
+        except ValueError:
+            only[i].append('')
     try:
-        all_tests = detect_tests_to_run(options.only, options.use_tmpdir)
+        all_tests = detect_tests_to_run(only, options.use_tmpdir)
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
     except StopException:
         pass
