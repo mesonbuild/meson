@@ -18,6 +18,7 @@ import copy
 import functools
 import os
 import re
+import itertools
 import json
 import shlex
 import shutil
@@ -37,9 +38,10 @@ from ..mesonlib import Popen_safe, version_compare_many, version_compare, listif
 from ..mesonlib import Version, LibType, OptionKey
 from ..mesondata import mesondata
 from ..programs import ExternalProgram, find_external_program
+from ..interpreterbase import FeatureDeprecated
 
 if T.TYPE_CHECKING:
-    from ..compilers.compilers import CompilerType  # noqa: F401
+    from ..compilers.compilers import Compiler
     DependencyType = T.TypeVar('DependencyType', bound='Dependency')
 
 # These must be defined in this file to avoid cyclical references.
@@ -55,7 +57,6 @@ class DependencyMethods(Enum):
     # Auto means to use whatever dependency checking mechanisms in whatever order meson thinks is best.
     AUTO = 'auto'
     PKGCONFIG = 'pkg-config'
-    QMAKE = 'qmake'
     CMAKE = 'cmake'
     # Just specify the standard link arguments, assuming the operating system provides the library.
     SYSTEM = 'system'
@@ -70,6 +71,7 @@ class DependencyMethods(Enum):
     CUPSCONFIG = 'cups-config'
     PCAPCONFIG = 'pcap-config'
     LIBWMFCONFIG = 'libwmf-config'
+    QMAKE = 'qmake'
     # Misc
     DUB = 'dub'
 
@@ -135,10 +137,20 @@ class Dependency:
             return converted
         return self.compile_args
 
+    def get_all_compile_args(self) -> T.List[str]:
+        """Get the compile arguments from this dependency and it's sub dependencies."""
+        return list(itertools.chain(self.get_compile_args(),
+                                    *[d.get_all_compile_args() for d in self.ext_deps]))
+
     def get_link_args(self, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
+
+    def get_all_link_args(self) -> T.List[str]:
+        """Get the link arguments from this dependency and it's sub dependencies."""
+        return list(itertools.chain(self.get_link_args(),
+                                    *[d.get_all_link_args() for d in self.ext_deps]))
 
     def found(self) -> bool:
         return self.is_found
@@ -2267,10 +2279,10 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List
     # generic CONFIG_TOOL value.
     if method in [DependencyMethods.SDLCONFIG, DependencyMethods.CUPSCONFIG,
                   DependencyMethods.PCAPCONFIG, DependencyMethods.LIBWMFCONFIG]:
-        mlog.warning(textwrap.dedent("""\
-            Configuration method {} has been deprecated in favor of
-            'config-tool'. This will be removed in a future version of
-            meson.""".format(method)))
+        FeatureDeprecated.single_use(f'Configuration method {method.value}', '0.44', 'Use "config-tool" instead.')
+        method = DependencyMethods.CONFIG_TOOL
+    if method is DependencyMethods.QMAKE:
+        FeatureDeprecated.single_use(f'Configuration method "qmake"', '0.58', 'Use "config-tool" instead.')
         method = DependencyMethods.CONFIG_TOOL
 
     # Set the detection method. If the method is set to auto, use any available method.
@@ -2313,7 +2325,7 @@ def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryTy
 
 
 def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
-                    language: T.Optional[str]) -> T.Optional['CompilerType']:
+                    language: T.Optional[str]) -> T.Optional['Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
 

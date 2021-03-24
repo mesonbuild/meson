@@ -12,44 +12,97 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from mesonbuild.dependencies.base import find_external_dependency
 import os
 import shutil
+import typing as T
+
 from .. import mlog
 from .. import build
+from .. import mesonlib
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency, Qt4Dependency, Qt5Dependency, Qt6Dependency
+from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, get_include_args, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
 
-_QT_DEPS_LUT = {
-    4: Qt4Dependency,
-    5: Qt5Dependency,
-    6: Qt6Dependency,
-}
+if T.TYPE_CHECKING:
+    from ..interpreter import Interpreter
+    from ..dependencies.qt import QtBaseDependency
+    from ..environment import Environment
+    from ..programs import ExternalProgram
 
 
 class QtBaseModule(ExtensionModule):
     tools_detected = False
     rcc_supports_depfiles = False
 
-    def __init__(self, interpreter, qt_version=5):
+    def __init__(self, interpreter: 'Interpreter', qt_version=5):
         ExtensionModule.__init__(self, interpreter)
         self.snippets.add('has_tools')
         self.qt_version = qt_version
+        self.moc: 'ExternalProgram' = NonExistingExternalProgram('moc')
+        self.uic: 'ExternalProgram' = NonExistingExternalProgram('uic')
+        self.rcc: 'ExternalProgram' = NonExistingExternalProgram('rcc')
+        self.lrelease: 'ExternalProgram' = NonExistingExternalProgram('lrelease')
 
-    def _detect_tools(self, env, method, required=True):
+    def compilers_detect(self, qt_dep: 'QtBaseDependency') -> None:
+        """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
+        # It is important that this list does not change order as the order of
+        # the returned ExternalPrograms will change as well
+        bins = ['moc', 'uic', 'rcc', 'lrelease']
+        found = {b: NonExistingExternalProgram(name=f'{b}-qt{qt_dep.qtver}')
+                 for b in bins}
+        wanted = f'== {qt_dep.version}'
+
+        def gen_bins() -> T.Generator[T.Tuple[str, str], None, None]:
+            for b in bins:
+                if qt_dep.bindir:
+                    yield os.path.join(qt_dep.bindir, b), b
+                # prefer the <tool>-qt<version> of the tool to the plain one, as we
+                # don't know what the unsuffixed one points to without calling it.
+                yield f'{b}-qt{qt_dep.qtver}', b
+                yield b, b
+
+        for b, name in gen_bins():
+            if found[name].found():
+                continue
+
+            if name == 'lrelease':
+                arg = ['-version']
+            elif mesonlib.version_compare(qt_dep.version, '>= 5'):
+                arg = ['--version']
+            else:
+                arg = ['-v']
+
+            # Ensure that the version of qt and each tool are the same
+            def get_version(p: 'ExternalProgram') -> str:
+                _, out, err = mesonlib.Popen_safe(p.get_command() + arg)
+                if b.startswith('lrelease') or not qt_dep.version.startswith('4'):
+                    care = out
+                else:
+                    care = err
+                return care.split(' ')[-1].replace(')', '').strip()
+
+            p = self.interpreter.find_program_impl(
+                [b], required=False,
+                version_func=get_version,
+                wanted=wanted).held_object
+            if p.found():
+                setattr(self, name, p)
+
+    def _detect_tools(self, env: 'Environment', method, required=True):
         if self.tools_detected:
             return
         self.tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
-        qt = _QT_DEPS_LUT[self.qt_version](env, kwargs)
+        qt = find_external_dependency(f'qt{self.qt_version}', env, kwargs)
         if qt.found():
             # Get all tools and then make sure that they are the right version
-            self.moc, self.uic, self.rcc, self.lrelease = qt.compilers_detect(self.interpreter)
+            self.compilers_detect(qt)
             if version_compare(qt.version, '>=5.14.0'):
                 self.rcc_supports_depfiles = True
             else:
@@ -190,7 +243,7 @@ class QtBaseModule(ExtensionModule):
         compile_args = []
         for dep in unholder(dependencies):
             if isinstance(dep, Dependency):
-                for arg in dep.get_compile_args():
+                for arg in dep.get_all_compile_args():
                     if arg.startswith('-I') or arg.startswith('-D'):
                         compile_args.append(arg)
             else:

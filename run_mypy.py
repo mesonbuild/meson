@@ -21,6 +21,7 @@ modules = [
     'mesonbuild/dependencies/boost.py',
     'mesonbuild/dependencies/hdf5.py',
     'mesonbuild/dependencies/mpi.py',
+    'mesonbuild/dependencies/qt.py',
     'mesonbuild/envconfig.py',
     'mesonbuild/interpreterbase.py',
     'mesonbuild/linkers.py',
