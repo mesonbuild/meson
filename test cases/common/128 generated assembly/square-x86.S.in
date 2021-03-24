@@ -1,6 +1,6 @@
 #include "symbol-underscore.h"
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__clang__)
 
 .386
 .MODEL FLAT, C

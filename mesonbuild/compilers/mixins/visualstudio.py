@@ -412,6 +412,9 @@ class ClangClCompiler(VisualStudioLikeCompiler):
         super().__init__(target)
         self.id = 'clang-cl'
 
+        # Assembly
+        self.can_compile_suffixes.add('s')
+
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':
             args = args + ['-Werror=unknown-argument']
