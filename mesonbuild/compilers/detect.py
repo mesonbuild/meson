@@ -82,6 +82,7 @@ defaults['gcc_static_linker'] = ['gcc-ar']
 defaults['clang_static_linker'] = ['llvm-ar']
 defaults['emxomf_static_linker'] = ['emxomfar']
 defaults['nasm'] = ['nasm', 'yasm']
+defaults['zig'] = ['zig']
 
 
 def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineChoice) -> T.Optional[Compiler]:
@@ -102,6 +103,7 @@ def compiler_from_language(env: 'Environment', lang: str, for_machine: MachineCh
         'nasm': detect_nasm_compiler,
         'masm': detect_masm_compiler,
         'linearasm': detect_linearasm_compiler,
+        'zig': detect_zig_compiler,
     }
     return lang_map[lang](env, for_machine) if lang in lang_map else None
 
@@ -1422,6 +1424,28 @@ def detect_linearasm_compiler(env: Environment, for_machine: MachineChoice) -> C
         popen_exceptions[' '.join(comp + [arg])] = e
     _handle_exceptions(popen_exceptions, [comp])
     raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
+def detect_zig_compiler(env: Environment, for_machine: MachineChoice) -> Compiler:
+    from .zig import ZigCompiler
+    from ..linkers.linkers import ZigDynamicLinker
+    exelist = env.lookup_binary_entry(for_machine, 'zig')
+    if exelist is None:
+        exelist = defaults['zig']
+
+    popen_exceptions: T.Dict[str, Exception] = {}
+    try:
+        _, ver, _ = Popen_safe([exelist[0], 'version'])
+        comp_class = ZigCompiler
+        version = search_version(ver)
+        linker = ZigDynamicLinker(exelist, env, for_machine, '', [], version=version)
+        env.add_lang_args(comp_class.language, comp_class, for_machine)
+        comp = comp_class(exelist, version, for_machine, env, linker)
+        return comp
+    except OSError as e:
+        popen_exceptions[' '.join(exelist + ['version'])] = e
+    _handle_exceptions(popen_exceptions, [exelist])
+    raise EnvironmentException('Unreachable code (exception to make mypy happy)')
+
 
 # GNU/Clang defines and version
 # =============================

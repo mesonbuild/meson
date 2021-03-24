@@ -942,10 +942,9 @@ class NinjaBackend(backends.Backend):
         outname = self.get_target_filename(target)
         obj_list = []
         is_unity = self.is_unity(target)
-        header_deps = []
+        header_deps = self.get_generated_headers(target)
         unity_src = []
         unity_deps = [] # Generated sources that must be built before compiling a Unity target.
-        header_deps += self.get_generated_headers(target)
 
         if is_unity:
             # Warn about incompatible sources if a unity build is enabled
@@ -1081,6 +1080,8 @@ class NinjaBackend(backends.Backend):
         if is_compile_target:
             # Skip the link stage for this special type of target
             return
+        if target.uses_zig():
+            pass
         linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
 
         if not isinstance(target, build.StaticLibrary):
@@ -1430,7 +1431,7 @@ class NinjaBackend(backends.Backend):
             if build.rulename in self.ruledict:
                 build.rule = self.ruledict[build.rulename]
             else:
-                mlog.warning(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
+                raise MesonBugException(f"build statement for {build.outfilenames} references nonexistent rule {build.rulename}")
 
     def write_rules(self, outfile: T.TextIO) -> None:
         for b in self.build_elements:
@@ -2468,7 +2469,11 @@ class NinjaBackend(backends.Backend):
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
-                args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
+                args: T.List[str] = []
+                if langname == 'zig':
+                    args.append('$MODE')
+                args += ['$ARGS']
+                args += NinjaCommandArg.list(compiler.get_linker_output_args('$out'), Quoting.none) + ['$in', '$LINK_ARGS']
                 description = 'Linking target $out'
                 if num_pools > 0:
                     pool = 'pool = link_pool'
@@ -2559,6 +2564,14 @@ class NinjaBackend(backends.Backend):
         depstyle = 'gcc'
         self.add_rule(NinjaRule(rule, command, [], description, deps=depstyle,
                                 depfile=depfile))
+
+    def generate_zig_compile_rules(self, compiler: Compiler) -> None:
+        rule = self.compiler_to_rule_name(compiler)
+        # Compile only args adds the verb `build-obj`, which must be the first argument
+        command = compiler.get_exelist() + compiler.get_compile_only_args() + ['$ARGS', '$in']
+        command += NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none)
+        description = 'Compiling Zig source $in'
+        self.add_rule(NinjaRule(rule, command, [], description))
 
     def generate_swift_compile_rules(self, compiler) -> None:
         rule = self.compiler_to_rule_name(compiler)
@@ -2660,6 +2673,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return
         if langname == 'rust':
             self.generate_rust_compile_rules(compiler)
+            return
+        if langname == 'zig':
+            self.generate_zig_compile_rules(compiler)
             return
         if langname == 'swift':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
@@ -3134,14 +3150,14 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             src_type_to_args[src_type_str] = commands.to_native()
         return src_type_to_args
 
-    def generate_single_compile(self, target: build.BuildTarget, src,
+    def generate_single_compile(self, target: build.BuildTarget, src: mesonlib.FileOrString,
                                 is_generated: bool = False, header_deps=None,
                                 order_deps: T.Optional[T.List[FileOrString]] = None,
                                 extra_args: T.Optional[T.List[str]] = None,
                                 unity_sources: T.Optional[T.List[FileOrString]] = None,
                                 ) -> T.Tuple[str, str]:
         """
-        Compiles C/C++, ObjC/ObjC++, Fortran, and D sources
+        Compiles C/C++, ObjC/ObjC++, Fortran, D, and Zig sources
         """
         header_deps = header_deps if header_deps is not None else []
         order_deps = order_deps if order_deps is not None else []
@@ -3788,6 +3804,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             elem.add_item('ARGS', compile_args)
 
         elem.add_item('LINK_ARGS', commands)
+        if linker.id == 'zig':
+            elem.add_item('MODE', 'build-exe' if isinstance(target, build.Executable) else 'build-lib')
         self.create_target_linker_introspection(target, linker, commands)
         return elem
 

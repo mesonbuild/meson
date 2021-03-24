@@ -51,6 +51,7 @@ These are return values of the `get_id` (Compiler family) and
 | mwasmarm        | Metrowerks Assembler for Embedded ARM | |
 | mwasmeppc       | Metrowerks Assembler for Embedded PowerPC | |
 | tasking         | TASKING VX-toolset     | |
+| zig           | Zig compiler                 |                 |
 
 ## Linker ids
 
@@ -84,21 +85,21 @@ These are return values of the `get_linker_id` method in a compiler object.
 | ccomp      | CompCert used as the linker driver          |
 | mwldarm    | The Metrowerks Linker with the ARM interface, used with mwccarm only |
 | mwldeppc   | The Metrowerks Linker with the PowerPC interface, used with mwcceppc only |
-| tasking    | TASKING VX-toolset                          |
+| tasking    | TASKING VX-toolset                                                        |
 
 For languages that don't have separate dynamic linkers such as C# and Java, the
 `get_linker_id` will return the compiler name.
 
 ## Script environment variables
 
-| Value               | Comment                         |
-| -----               | -------                         |
-| MESONINTROSPECT     | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
-| MESONREWRITE        | Command to run to run the rewriting command, only set when running `dist` scripts |
-| MESON_BUILD_ROOT    | Absolute path to the build dir  |
-| MESON_DIST_ROOT     | Points to the root of the staging directory, only set when running `dist` scripts |
-| MESON_SOURCE_ROOT   | Absolute path to the source dir |
-| MESON_SUBDIR        | Current subdirectory, only set for `run_command` |
+| Value             | Comment                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MESONINTROSPECT   | Command to run to run the introspection command, may be of the form `python /path/to/meson introspect`, user is responsible for splitting the path if necessary. |
+| MESONREWRITE      | Command to run to run the rewriting command, only set when running `dist` scripts                                                                                |
+| MESON_BUILD_ROOT  | Absolute path to the build dir                                                                                                                                   |
+| MESON_DIST_ROOT   | Points to the root of the staging directory, only set when running `dist` scripts                                                                                |
+| MESON_SOURCE_ROOT | Absolute path to the source dir                                                                                                                                  |
+| MESON_SUBDIR      | Current subdirectory, only set for `run_command`                                                                                                                 |
 
 ## CPU families
 
@@ -184,20 +185,20 @@ future releases.
 
 Native names as returned by the `.kernel()` method.
 
-| Value               | Comment                         |
-| -----               | -------                         |
-| linux   | |
-| freebsd | |
-| openbsd | |
-| netbsd  | |
-| gnu     | GNU Hurd |
-| nt      | |
-| xnu                 | Kernel of various Apple OSes    |
-| illumos             | Kernel derived from OpenSolaris by community efforts |
-| solaris             | Kernel derived from OpenSolaris by Oracle |
-| dragonfly | |
-| haiku| |
-| none                 | For e.g. bare metal embedded    |
+| Value     | Comment                                              |
+| --------- | ---------------------------------------------------- |
+| linux     |                                                      |
+| freebsd   |                                                      |
+| openbsd   |                                                      |
+| netbsd    |                                                      |
+| gnu       | GNU Hurd                                             |
+| nt        |                                                      |
+| xnu       | Kernel of various Apple OSes                         |
+| illumos   | Kernel derived from OpenSolaris by community efforts |
+| solaris   | Kernel derived from OpenSolaris by Oracle            |
+| dragonfly |                                                      |
+| haiku     |                                                      |
+| none      | For e.g. bare metal embedded                         |
 
 
 ## Subsystem names (since 1.2.0)
@@ -240,6 +241,7 @@ to your build target.
 | NASM          | nasm_args      | N/A               |
 | MASM          | masm_args      | N/A               |
 | Linear ASM    | linearasm_args | N/A               |
+| Zig           | zig_args       | zig_link_args     |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per
@@ -258,7 +260,7 @@ It is **highly** recommended that you use [the command line
 arguments](#language-arguments-parameter-names) instead.
 
 | Name        | Comment                                  |
-| -----       | -------                                  |
+| ----------- | ---------------------------------------- |
 | CFLAGS      | Flags for the C compiler                 |
 | CXXFLAGS    | Flags for the C++ compiler               |
 | CUFLAGS     | Flags for the CUDA compiler              |
@@ -287,7 +289,7 @@ which are supported by GCC, Clang, and other compilers.
 
 
 | Name                        |
-|-----------------------------|
+| --------------------------- |
 | alias                       |
 | aligned                     |
 | alloc_size                  |
@@ -357,10 +359,10 @@ which are supported by GCC, Clang, and other compilers.
 These values are supported using the MSVC style `__declspec` annotation,
 which are supported by MSVC, GCC, Clang, and other compilers.
 
-| Name                 |
-|----------------------|
-| dllexport            |
-| dllimport            |
+| Name      |
+| --------- |
+| dllexport |
+| dllimport |
 
 
 ## Dependency lookup methods
@@ -368,14 +370,14 @@ which are supported by MSVC, GCC, Clang, and other compilers.
 These are the values that can be passed to `dependency` function's
 `method` keyword argument.
 
-| Name              | Comment                                      |
-| -----             | -------                                      |
-| auto              | Automatic method selection                   |
-| pkg-config        | Use Pkg-Config                               |
-| cmake             | Look up as a CMake module                    |
-| config-tool       | Use a custom dep tool such as `cups-config`  |
-| system            | System provided (e.g. OpenGL)                |
-| extraframework    | A macOS/iOS framework                        |
+| Name           | Comment                                     |
+| -------------- | ------------------------------------------- |
+| auto           | Automatic method selection                  |
+| pkg-config     | Use Pkg-Config                              |
+| cmake          | Look up as a CMake module                   |
+| config-tool    | Use a custom dep tool such as `cups-config` |
+| system         | System provided (e.g. OpenGL)               |
+| extraframework | A macOS/iOS framework                       |
 
 
 ## Compiler and Linker selection variables
@@ -384,20 +386,20 @@ N.B. these settings are specified per machine, and so the environment
 variables actually come in pairs. See the [environment variables per
 machine](#Environment-variables-per-machine) section for details.
 
-| Language      | Compiler | Linker    | Note                                        |
-|---------------|----------|-----------|---------------------------------------------|
-| C             | CC       | CC_LD     |                                             |
-| C++           | CXX      | CXX_LD    |                                             |
-| D             | DC       | DC_LD     | Before 0.54 D_LD*                           |
-| Fortran       | FC       | FC_LD     | Before 0.54 F_LD*                           |
-| Objective-C   | OBJC     | OBJC_LD   |                                             |
-| Objective-C++ | OBJCXX   | OBJCXX_LD | Before 0.54 OBJCPP_LD*                      |
-| Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*                        |
-| Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C             |
-| C#            | CSC      | CSC       | The linker is the compiler                  |
-| Cython        | CYTHON   |           |                                             |
-| nasm          | NASM     |           | Uses the C linker                           |
-| archiver      |          | AR        |                                             |
+| Language      | Compiler | Linker    | Note                            |
+| ------------- | -------- | --------- | ------------------------------- |
+| C             | CC       | CC_LD     |                                 |
+| C++           | CXX      | CXX_LD    |                                 |
+| D             | DC       | DC_LD     | Before 0.54 D_LD*               |
+| Fortran       | FC       | FC_LD     | Before 0.54 F_LD*               |
+| Objective-C   | OBJC     | OBJC_LD   |                                 |
+| Objective-C++ | OBJCXX   | OBJCXX_LD | Before 0.54 OBJCPP_LD*          |
+| Rust          | RUSTC    | RUSTC_LD  | Before 0.54 RUST_LD*            |
+| Vala          | VALAC    |           | Use CC_LD. Vala transpiles to C |
+| C#            | CSC      | CSC       | The linker is the compiler      |
+| Cython        | CYTHON   |           |                                 |
+| nasm          | NASM     |           | Uses the C linker               |
+| archiver      |          | AR        |                                 |
 
 *The old environment variables are still supported, but are deprecated
 and will be removed in a future version of Meson.

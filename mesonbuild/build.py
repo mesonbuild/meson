@@ -1716,6 +1716,9 @@ class BuildTarget(Target):
     def uses_rust(self) -> bool:
         return 'rust' in self.compilers
 
+    def uses_zig(self) -> bool:
+        return 'zig' in self.compilers
+
     def uses_rust_abi(self) -> bool:
         return self.uses_rust() and self.rust_crate_type in {'dylib', 'rlib', 'proc-macro'}
 
