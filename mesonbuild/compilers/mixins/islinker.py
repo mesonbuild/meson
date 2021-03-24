@@ -118,3 +118,7 @@ class BasicLinkerIsCompilerMixin(Compiler):
 
     def thread_link_flags(self, env: 'Environment') -> T.List[str]:
         return []
+
+    def headerpad_args(self) -> T.List[str]:
+        # Only used by the Apple linker
+        return []

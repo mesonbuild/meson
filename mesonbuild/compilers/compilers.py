@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # Copyright 2012-2022 The Meson development team
-# Copyright © 2023-2024 Intel Corporation
+# Copyright © 2023-2025 Intel Corporation
 
 from __future__ import annotations
 
@@ -70,6 +70,7 @@ lang_suffixes: T.Mapping[str, T.Tuple[str, ...]] = {
     'nasm': ('asm', 'nasm',),
     'masm': ('masm',),
     'linearasm': ('sa',),
+    'zig': ('zig',),
 }
 all_languages = lang_suffixes.keys()
 c_cpp_suffixes = {'h'}
@@ -86,7 +87,7 @@ clib_langs = ('objcpp', 'cpp', 'objc', 'c', 'nasm', 'fortran')
 # List of languages that can be linked with C code directly by the linker
 # used in build.py:process_compilers() and build.py:get_dynamic_linker()
 # This must be sorted, see sort_clink().
-clink_langs = ('d', 'cuda') + clib_langs
+clink_langs = ('zig', 'd', 'cuda') + clib_langs
 
 SUFFIX_TO_LANG = dict(itertools.chain(*(
     [(suffix, lang) for suffix in v] for lang, v in lang_suffixes.items())))
@@ -110,6 +111,7 @@ CFLAGS_MAPPING: T.Mapping[str, str] = {
     'rust': 'RUSTFLAGS',
     'cython': 'CYTHONFLAGS',
     'cs': 'CSFLAGS', # This one might not be standard.
+    'zig': 'ZIGFLAGS',  # This is not standard
 }
 
 # All these are only for C-linkable languages; see `clink_langs` above.
