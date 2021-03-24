@@ -1706,12 +1706,12 @@ int dummy;
         # Zig uses different subcommands for executables and libraries,
         # shared libraries are selected via the -dynamic flag
         if isinstance(target, build.Executable):
-            args.append('build-exe')
+            args += ['build-exe']
             args += zig.get_win_subsystem_args(target.win_subsystem)
             if has_shared_deps:
                 args += zig.get_pic_args()
         elif isinstance(target, build.StaticLibrary):
-            args.append('build-lib')
+            args += ['build-lib']
         elif isinstance(target, build.SharedLibrary):
             args += ['build-lib']
             args += zig.get_std_shared_lib_link_args()
@@ -1759,7 +1759,6 @@ int dummy;
                 args += [f'-l{ldir.join([d.get_filename()])}']
                 if d.should_install():
                     idir, _ = d.get_install_dir(self.environment)
-                    raise MesonException(f'{idir}')
                     args += ['-rpath', idir[0]]
                 else:
                     args += ['-rpath', ldir]
