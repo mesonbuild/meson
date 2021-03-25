@@ -25,7 +25,7 @@ from ..mesonlib import MachineChoice, EnvironmentException, MesonException
 if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
-    from ..dependencies import ExternalProgram
+    from ..programs import ExternalProgram
 
 
 zig_optimization_args = {
