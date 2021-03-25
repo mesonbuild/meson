@@ -30,7 +30,7 @@ from .mesonlib import (
     File, MesonException, MachineChoice, PerMachine, OrderedSet, listify,
     extract_as_list, typeslistify, stringlistify, classify_unity_sources,
     get_filenames_templates_dict, substitute_values, has_path_sep, unholder,
-    OptionKey
+    OptionKey, PerMachineDefaultable,
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
@@ -229,7 +229,13 @@ class Build:
         self.test_setup_default_name = None
         self.find_overrides = {}
         self.searched_programs = set() # The list of all programs that have been searched for.
-        self.dependency_overrides = PerMachine({}, {})
+
+        # If we are doing a cross build we need two caches, if we're doing a
+        # build == host compilation the both caches should point to the same place.
+        dependency_overrides: PerMachineDefaultable[T.Dict[T.Tuple, DependencyOverride]] = PerMachineDefaultable({})
+        if environment.is_cross_build():
+            dependency_overrides.host = {}
+        self.dependency_overrides = dependency_overrides.default_missing()
         self.devenv: T.List[EnvironmentVariables] = []
 
     def get_build_targets(self):
