@@ -20,8 +20,8 @@ from pathlib import PurePath
 from collections import OrderedDict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
-    default_libdir, default_libexecdir, default_prefix, split_args,
-    OptionKey, OptionType,
+    PerMachineDefaultable, default_libdir, default_libexecdir,
+    default_prefix, split_args, OptionKey, OptionType,
 )
 from .wrap import WrapMode
 import ast
@@ -406,9 +406,13 @@ class CoreData:
         # want to overwrite options for such subprojects.
         self.initialized_subprojects: T.Set[str] = set()
 
-        build_cache = DependencyCache(self.options, MachineChoice.BUILD)
-        host_cache = DependencyCache(self.options, MachineChoice.HOST)
-        self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]
+        # For host == build configuraitons these caches should be the same.
+        deps: PerMachineDefaultable[DependencyCache] = PerMachineDefaultable(
+            DependencyCache(self.options, MachineChoice.BUILD))
+        if self.is_cross_build():
+            deps.host = DependencyCache(self.options, MachineChoice.HOST)
+        self.deps = deps.default_missing()
+
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
         # Only to print a warning if it changes between Meson invocations.
