@@ -547,6 +547,21 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     def __repr__(self) -> str:
         return f'PerMachineDefaultable({self.build!r}, {self.host!r})'
 
+    @classmethod
+    def default(cls, is_cross: bool, build: _T, host: _T) -> PerMachine[_T]:
+        """Easy way to get a defaulted value
+
+        This allows simplifying the case where you can control whether host and
+        build are separate or not with a boolean. If the is_cross value is set
+        to true then the optional host value will be used, otherwise the host
+        will be set to the build value.
+        """
+        m = cls(build)
+        if is_cross:
+            m.host = host
+        return m.default_missing()
+
+
 
 class PerThreeMachineDefaultable(PerMachineDefaultable, PerThreeMachine[T.Optional[_T]]):
     """Extends `PerThreeMachine` with the ability to default from `None`s.

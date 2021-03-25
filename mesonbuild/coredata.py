@@ -407,11 +407,10 @@ class CoreData:
         self.initialized_subprojects: T.Set[str] = set()
 
         # For host == build configuraitons these caches should be the same.
-        deps: PerMachineDefaultable[DependencyCache] = PerMachineDefaultable(
-            DependencyCache(self.options, MachineChoice.BUILD))
-        if self.is_cross_build():
-            deps.host = DependencyCache(self.options, MachineChoice.HOST)
-        self.deps = deps.default_missing()
+        self.deps: PerMachine[DependencyCache] = PerMachineDefaultable.default(
+            self.is_cross_build(),
+            DependencyCache(self.options, MachineChoice.BUILD),
+            DependencyCache(self.options, MachineChoice.HOST))
 
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
 
