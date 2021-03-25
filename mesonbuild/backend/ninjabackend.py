@@ -1679,6 +1679,8 @@ int dummy;
         self.create_target_source_introspection(target, rustc, args, [main_rust_file], [])
 
     def generate_zig_target(self, target: build.BuildTarget):
+        assert(self.environment);
+
         zig = target.compilers['zig']
         args = zig.compiler_args()
 
@@ -1698,10 +1700,7 @@ int dummy;
         if root_src_file is None:
             raise MesonException('A Zig target has no Zig sources. This is weird. Also a bug. Please report')
 
-        has_shared_deps = False
-        for dep in target.get_dependencies():
-            if isinstance(dep, build.SharedLibrary):
-                has_shared_deps = True
+        has_shared_deps = any([isinstance(d, build.SharedLibrary) for d in target.get_dependencies()])
 
         # Zig uses different subcommands for executables and libraries,
         # shared libraries are selected via the -dynamic flag
@@ -1716,7 +1715,8 @@ int dummy;
             args += ['build-lib']
             args += zig.get_std_shared_lib_link_args()
             args += zig.get_pic_args()
-            args += ['--version', target.ltversion]
+            if target.ltversion:
+                args += ['--version', target.ltversion]
         else:
             raise InvalidArguments('Unknown target type for zig.')
 
@@ -1759,7 +1759,7 @@ int dummy;
                 args += [f'-l{ldir.join([d.get_filename()])}']
                 if d.should_install():
                     idir, _ = d.get_install_dir(self.environment)
-                    args += ['-rpath', idir[0]]
+                    args += ['-rpath', os.path.join(self.environment.get_prefix(), idir[0])]
                 else:
                     args += ['-rpath', ldir]
             else:
