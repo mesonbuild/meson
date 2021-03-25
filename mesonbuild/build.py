@@ -206,10 +206,21 @@ class Build:
         self.projects = {}
         self.targets: T.MutableMapping[str, 'Target'] = OrderedDict()
         self.run_target_names: T.Set[T.Tuple[str, str]] = set()
-        self.global_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.projects_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.global_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
-        self.projects_link_args: PerMachine[T.Dict[str, T.List[str]]] = PerMachine({}, {})
+
+        global_args: PerMachineDefaultable[T.Dict[str, T.List[str]]] = PerMachineDefaultable({})
+        global_link_args: PerMachineDefaultable[T.Dict[str, T.List[str]]] = PerMachineDefaultable({})
+        project_args: PerMachineDefaultable[T.Dict[str, T.List[str]]] = PerMachineDefaultable({})
+        project_link_args: PerMachineDefaultable[T.Dict[str, T.List[str]]] = PerMachineDefaultable({})
+        if environment.is_cross_build():
+            global_args.host = {}
+            global_link_args.host = {}
+            project_args.host = {}
+            project_link_args.host = {}
+        self.global_args = global_args.default_missing()
+        self.projects_args = project_args.default_missing()
+        self.global_link_args = global_link_args.default_missing()
+        self.projects_link_args = project_link_args.default_missing()
+
         self.tests: T.List['Test'] = []
         self.benchmarks: T.List['Test'] = []
         self.headers: T.List[Headers] = []
