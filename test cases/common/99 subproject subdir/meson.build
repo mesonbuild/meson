@@ -30,6 +30,11 @@ assert(not d.found(), 'Dependency should be not-found')
 d = dependency('sub_implicit')
 assert(d.found(), 'Should implicitly fallback')
 
+# `native: true` should not make a difference when doing a native build.
+if not meson.is_cross_build()
+  dependency('sub_implicit', native: true)
+endif
+
 # Verify that implicit fallback works because sub_implicit.wrap has
 # `dependency_names=sub_implicit_provide1` and the subproject overrides sub_implicit_provide1.
 d = dependency('sub_implicit_provide1')

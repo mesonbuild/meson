@@ -2099,7 +2099,7 @@ class MesonMain(InterpreterObject):
         if len(args) != 1:
             raise InterpreterException('get_compiler_method must have one and only one argument.')
         cname = args[0]
-        for_machine = Interpreter.machine_from_native_kwarg(kwargs)
+        for_machine = self.interpreter.machine_from_native_kwarg(kwargs)
         clist = self.interpreter.coredata.compilers[for_machine]
         if cname in clist:
             return CompilerHolder(clist[cname], self.build.environment, self.interpreter.subproject)
@@ -5035,11 +5035,15 @@ This will become a hard error in the future.''', location=self.current_node)
         varname = args[0]
         return varname in self.variables
 
-    @staticmethod
-    def machine_from_native_kwarg(kwargs: T.Dict[str, T.Any]) -> MachineChoice:
+    def machine_from_native_kwarg(self, kwargs: T.Dict[str, T.Any]) -> MachineChoice:
         native = kwargs.get('native', False)
         if not isinstance(native, bool):
             raise InvalidArguments('Argument to "native" must be a boolean.')
+        # Ignore native kwarg when doing a native build. Note that it is
+        # important that dependency('foo') and dependency('foo', native: true)
+        # both lookup cached/overridden dependencies for the same machine.
+        if not self.build.environment.is_cross_build():
+            return MachineChoice.HOST
         return MachineChoice.BUILD if native else MachineChoice.HOST
 
     @FeatureNew('is_disabler', '0.52.0')
