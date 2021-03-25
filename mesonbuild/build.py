@@ -42,7 +42,7 @@ from .interpreterbase import FeatureNew
 if T.TYPE_CHECKING:
     from .interpreter.interpreter import Test, SourceOutputs
     from .mesonlib import FileMode, FileOrString
-    from .mesonlib.backend import Backend
+    from .backend.backends import Backend
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
