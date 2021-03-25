@@ -533,7 +533,7 @@ class PerMachineDefaultable(PerMachine[T.Optional[_T]]):
     def __init__(self) -> None:
         super().__init__(None, None)
 
-    def default_missing(self) -> "PerMachine[T.Optional[_T]]":
+    def default_missing(self) -> "PerMachine[_T]":
         """Default host to build
 
         This allows just specifying nothing in the native case, and just host in the
