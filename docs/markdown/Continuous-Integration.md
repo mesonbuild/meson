@@ -238,7 +238,7 @@ jobs:
       if: failure()
       with:
         name: Linux_Meson_Testlog
-        path: build/meson-logs/testlog.txt
+        path: builddir/meson-logs/testlog.txt
 
   macos:
     runs-on: macos-latest
@@ -257,7 +257,7 @@ jobs:
       if: failure()
       with:
         name: MacOS_Meson_Testlog
-        path: build/meson-logs/testlog.txt
+        path: builddir/meson-logs/testlog.txt
 
   windows:
     runs-on: windows-latest
@@ -275,5 +275,5 @@ jobs:
       if: failure()
       with:
         name: Windows_Meson_Testlog
-        path: build/meson-logs/testlog.txt
+        path: builddir/meson-logs/testlog.txt
 ```
