@@ -1213,7 +1213,7 @@ class TestSubprocess:
 
         return self.stdo_task, self.stde_task
 
-    async def _kill(self) -> T.Optional[str]:
+    async def _kill(self, result: TestResult) -> T.Optional[str]:
         # Python does not provide multiplatform support for
         # killing a process and all its children so we need
         # to roll our own.
@@ -1224,7 +1224,7 @@ class TestSubprocess:
             else:
                 # Send a termination signal to the process group that setsid()
                 # created - giving it a chance to perform any cleanup.
-                os.killpg(p.pid, signal.SIGTERM)
+                os.killpg(p.pid, signal.SIGQUIT if result is TestResult.TIMEOUT else signal.SIGTERM)
 
                 # Make sure the termination signal actually kills the process
                 # group, otherwise retry with a SIGKILL.
@@ -1267,12 +1267,12 @@ class TestSubprocess:
         try:
             await complete_all(self.all_futures, timeout=timeout)
         except asyncio.TimeoutError:
-            additional_error = await self._kill()
             result = TestResult.TIMEOUT
+            additional_error = await self._kill(result)
         except asyncio.CancelledError:
             # The main loop must have seen Ctrl-C.
-            additional_error = await self._kill()
             result = TestResult.INTERRUPT
+            additional_error = await self._kill(result)
         finally:
             if self.postwait_fn:
                 self.postwait_fn()
