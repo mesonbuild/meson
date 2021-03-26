@@ -6444,6 +6444,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_link_args(), [])
         self.assertEqual(libhello_nolib.get_compile_args(), [])
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', {}), 'bar')
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', {}), self.prefix)
 
     def test_pkgconfig_gen_deps(self):
         '''

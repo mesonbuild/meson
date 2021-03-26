@@ -469,10 +469,12 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('Too many positional arguments passed to Pkgconfig_gen.')
 
         dataonly = kwargs.get('dataonly', False)
+        if not isinstance(dataonly, bool):
+            raise mesonlib.MesonException('dataonly must be boolean.')
         if dataonly:
             default_subdirs = []
             blocked_vars = ['libraries', 'libraries_private', 'require_private', 'extra_cflags', 'subdirs']
-            if len(set(kwargs) & set(blocked_vars)) > 0:
+            if any(k in kwargs for k in blocked_vars):
                 raise mesonlib.MesonException(f'Cannot combine dataonly with any of {blocked_vars}')
 
         subdirs = mesonlib.stringlistify(kwargs.get('subdirs', default_subdirs))
@@ -519,7 +521,7 @@ class PkgConfigModule(ExtensionModule):
             reserved = ['prefix', 'libdir', 'includedir']
             variables = []
             for name, value in vardict.items():
-                if name in reserved:
+                if not dataonly and name in reserved:
                     raise mesonlib.MesonException(f'Variable "{name}" is reserved')
                 variables.append((name, value))
             return variables

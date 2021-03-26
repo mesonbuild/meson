@@ -65,7 +65,12 @@ pkgg.generate(
   description : 'A minimalistic pkgconfig file.',
   version : libver,
   dataonly: true,
-  variables : {'foo': 'bar'},
+  variables : {
+    'foo': 'bar',
+    # prefix is not set by default for dataonly pc files, but it is allowed to
+    # define it manually.
+    'prefix': get_option('prefix'),
+  },
 )
 
 # Regression test for 2 cases:
