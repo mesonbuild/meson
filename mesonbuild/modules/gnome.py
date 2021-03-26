@@ -87,8 +87,8 @@ class GnomeModule(ExtensionModule):
                      mlog.bold('https://github.com/mesonbuild/meson/issues/1387'),
                      once=True)
 
-    def _get_native_dep(self, state, depname, required=True):
-        kwargs = {'native': True, 'required': required}
+    def _get_dep(self, state, depname, native=False, required=True):
+        kwargs = {'native': native, 'required': required}
         holder = self.interpreter.func_dependency(state.current_node, [depname], kwargs)
         return holder.held_object
 
@@ -104,7 +104,7 @@ class GnomeModule(ExtensionModule):
             return ExternalProgram.from_entry(name, prog)
 
         # Check if pkgconfig has a variable
-        dep = self._get_native_dep(state, depname, required=False)
+        dep = self._get_dep(state, depname, native=True, required=False)
         if dep.found() and dep.type_name == 'pkgconfig':
             value = dep.get_pkgconfig_variable(varname, {})
             if value:
@@ -490,7 +490,7 @@ class GnomeModule(ExtensionModule):
 
     def _get_gir_dep(self, state):
         if not self.gir_dep:
-            self.gir_dep = self._get_native_dep(state, 'gobject-introspection-1.0')
+            self.gir_dep = self._get_dep(state, 'gobject-introspection-1.0')
             self.giscanner = self._get_native_binary(state, 'g-ir-scanner', 'gobject-introspection-1.0', 'g_ir_scanner')
             self.gicompiler = self._get_native_binary(state, 'g-ir-compiler', 'gobject-introspection-1.0', 'g_ir_compiler')
         return self.gir_dep, self.giscanner, self.gicompiler
