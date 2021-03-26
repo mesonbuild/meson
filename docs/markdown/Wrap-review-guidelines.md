@@ -26,6 +26,32 @@ $ cat ~/.config/mesonwrap.ini
 github_token = <github token>
 ```
 
+## Setting up the review tooling
+
+The [Mesonwrap](https://github.com/mesonbuild/mesonwrap/) repository
+contains review tooling. It is used to do the actual review, but
+submitters can also use it to check their MRs. All issues reported by
+the tool must be fixed, so using the tool can speed up the review
+process considerably.
+
+The tool has some dependencies that are not available in all Linux
+distributions. Thus using a Python
+[Virtualenv](https://virtualenv.pypa.io/en/stable/). The tool can be
+installed with the following commands.
+
+```
+git clone https://github.com/mesonbuild/mesonwrap.git
+cd mesonwrap
+python3 -m venv venv
+bash
+source venv/bin/activate
+pip install -r requirements.txt
+# You may need to install Meson and Ninja here as well depending on your setup
+python3 setup.py install
+mesonwrap review <see arguments below>
+exit             <when you are finished>
+```
+
 ## Reviewing code
 
 ```

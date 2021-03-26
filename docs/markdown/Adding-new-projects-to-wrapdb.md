@@ -201,6 +201,14 @@ git commit -a --amend
 git push --force
 ```
 
+### Request a new release version to an existing repository
+
+Adding new releases to an existing repo is straightforward. All you
+need to do is to follow the rules discussed above but when you create
+the merge request, file it against the master branch. The repository
+reviewer will create the necessary branch and retarget your merge
+request accordingly.
+
 ## What is done by WrapDB maintainers
 
 [mesonwrap tools](Wrap-maintainer-tools.md) must be used for the tasks
@@ -246,4 +254,8 @@ system has native support for Git subprojects.
 
 ## Reviewing wraps
 
-See [Wrap review guidelines](Wrap-review-guidelines.md).
+See [Wrap review guidelines](Wrap-review-guidelines.md), especially
+the part about tooling that you can use to check for the most common
+problems yourself. Fixing all issues reported by the tool is a
+mandatory requirement for getting your MR accepted, so doing this
+proactively makes the review process smoother.
