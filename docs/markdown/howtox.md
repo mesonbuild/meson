@@ -211,19 +211,33 @@ test failures.
 
 ## Use Clang static analyzer
 
-Install scan-build and configure your project. Then do this:
+Install scan-build program, then do this:
 
 ```console
-$ meson compile scan-build
+$ meson setup builddir
+$ ninja -C builddir scan-build
 ```
 
 You can use the `SCANBUILD` environment variable to choose the
 scan-build executable.
 
 ```console
-$ SCANBUILD=<your exe> meson compile scan-build
+$ SCANBUILD=<your exe> ninja -C builddir scan-build
 ```
 
+You can use it for passing arguments to scan-build program by
+creating a script, for example:
+
+```sh
+#!/bin/sh
+scan-build -v --status-bugs "$@"
+```
+
+And then pass it through the variable (remember to use absolute path):
+
+```console
+$ SCANBUILD=$(pwd)/my-scan-build.sh ninja -C builddir scan-build
+```
 
 ## Use profile guided optimization
 
