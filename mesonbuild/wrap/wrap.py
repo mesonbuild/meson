@@ -136,7 +136,7 @@ class PackageDefinition:
                 raise WrapException('wrap-redirect filename must be a .wrap file')
             fname = dirname / fname
             if not fname.is_file():
-                raise WrapException('wrap-redirect filename does not exist')
+                raise WrapException(f'wrap-redirect {fname} filename does not exist')
             self.filename = str(fname)
             self.parse_wrap()
             return
