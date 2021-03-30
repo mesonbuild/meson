@@ -9348,6 +9348,26 @@ class CrossFileTests(BasePlatformTests):
                 break
         self.assertEqual(found, expected, 'Did not find all sections.')
 
+    def test_for_build_env_vars(self) -> None:
+        testcase = os.path.join(self.common_test_dir, '2 cpp')
+        config = self.helper_create_cross_file({'built-in options': {}})
+        cross = self.helper_create_cross_file({'built-in options': {}})
+
+        self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross],
+                  override_envvars={'PKG_CONFIG_PATH': '/bar', 'PKG_CONFIG_PATH_FOR_BUILD': '/dir'})
+        configuration = self.introspect('--buildoptions')
+        found = 0
+        for each in configuration:
+            if each['name'] == 'pkg_config_path':
+                self.assertEqual(each['value'], ['/bar'])
+                found += 1
+            elif each['name'] == 'build.pkg_config_path':
+                self.assertEqual(each['value'], ['/dir'])
+                found += 1
+            if found == 2:
+                break
+        self.assertEqual(found, 2, 'Did not find all sections.')
+
 
 class TAPParserTests(unittest.TestCase):
     def assert_test(self, events, **kwargs):
