@@ -797,11 +797,7 @@ class Environment:
 
         env_opts: T.DefaultDict[OptionKey, T.List[str]] = collections.defaultdict(list)
 
-        if self.is_cross_build():
-            for_machine = MachineChoice.BUILD
-        else:
-            for_machine = MachineChoice.HOST
-        for evar, keyname in opts:
+        for (evar, keyname), for_machine in itertools.product(opts, MachineChoice):
             p_env = _get_env_var(for_machine, self.is_cross_build(), evar)
             if p_env is not None:
                 # these may contain duplicates, which must be removed, else
@@ -831,7 +827,7 @@ class Environment:
                             key = key.evolve(lang=lang)
                             env_opts[key].extend(p_list)
                     elif keyname == 'cppflags':
-                        key = OptionKey('args', machine=for_machine, lang='c')
+                        key = OptionKey('env_args', machine=for_machine, lang='c')
                         for lang in compilers.compilers.LANGUAGES_USING_CPPFLAGS:
                             key = key.evolve(lang=lang)
                             env_opts[key].extend(p_list)
