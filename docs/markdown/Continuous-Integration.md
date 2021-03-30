@@ -217,7 +217,7 @@ on:
       - "**.h"
   pull_request:
     paths:
-      - "**.h"
+      - "**.c"
       - "**.h"
 
 jobs:
