@@ -29,6 +29,7 @@ import typing as T
 import textwrap
 
 from pathlib import Path
+from pathlib import PurePath
 from . import WrapMode
 from .. import coredata
 from ..mesonlib import quiet_git, GIT, ProgressBar, MesonException
@@ -294,10 +295,11 @@ class Resolver:
                 # Write a dummy wrap file in main project that redirect to the
                 # wrap we picked.
                 with open(main_fname, 'w') as f:
+                    filename = PurePath(os.path.relpath(self.wrap.filename, self.subdir_root)).as_posix()
                     f.write(textwrap.dedent('''\
                         [wrap-redirect]
                         filename = {}
-                        '''.format(os.path.relpath(self.wrap.filename, self.subdir_root))))
+                        '''.format(filename)))
         else:
             # No wrap file, it's a dummy package definition for an existing
             # directory. Use the source code in place.
