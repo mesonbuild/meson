@@ -16,8 +16,7 @@ from . import ExtensionModule
 
 from .. import mesonlib
 from ..mesonlib import typeslistify
-from ..interpreterbase import FeatureNew, noKwargs
-from ..interpreter import InvalidCode
+from ..interpreterbase import FeatureNew, noKwargs, InvalidCode
 
 import os
 
