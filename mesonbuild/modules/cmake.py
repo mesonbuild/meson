@@ -20,8 +20,9 @@ from . import ExtensionModule, ModuleReturnValue
 
 from .. import build, mesonlib, mlog
 from ..cmake import SingleTargetOptions, TargetOptions, cmake_defines_to_args
-from ..interpreter import ConfigurationDataHolder, InterpreterException, SubprojectHolder, DependencyHolder
+from ..interpreter import ConfigurationDataHolder, SubprojectHolder, DependencyHolder
 from ..interpreterbase import (
+    InterpreterException,
     InterpreterObject,
     ObjectHolder,
 

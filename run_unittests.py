@@ -50,8 +50,8 @@ import mesonbuild.environment
 import mesonbuild.mesonlib
 import mesonbuild.coredata
 import mesonbuild.modules.gnome
-from mesonbuild.interpreter import Interpreter, ObjectHolder
-from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments
+from mesonbuild.interpreter import Interpreter
+from mesonbuild.interpreterbase import typed_pos_args, InvalidArguments, ObjectHolder
 from mesonbuild.ast import AstInterpreter
 from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,

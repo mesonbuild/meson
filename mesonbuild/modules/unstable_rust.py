@@ -19,8 +19,8 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter import ExecutableHolder, BuildTargetHolder, CustomTargetHolder, permitted_kwargs, noPosargs
-from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args
+from ..interpreter import ExecutableHolder, BuildTargetHolder, CustomTargetHolder, permitted_kwargs
+from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args, noPosargs
 from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 
 if T.TYPE_CHECKING:
