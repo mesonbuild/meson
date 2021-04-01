@@ -113,9 +113,11 @@ class ThreadDependency(ExternalDependency):
         if self.clib_compiler is None:
             self.compile_args = []
             self.link_args = []
-        else:
+        elif self.clib_compiler.has_header('pthread.h', '', environment, disable_cache=True)[0]:
             self.compile_args = self.clib_compiler.thread_flags(environment)
             self.link_args = self.clib_compiler.thread_link_flags(environment)
+        else:
+            self.is_found = False
 
     @staticmethod
     def get_methods():
