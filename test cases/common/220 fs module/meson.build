@@ -4,6 +4,8 @@ is_windows = build_machine.system() == 'windows'
 
 fs = import('fs')
 
+f = files('meson.build')
+
 assert(fs.exists('meson.build'), 'Existing file reported as missing.')
 assert(not fs.exists('nonexisting'), 'Nonexisting file was found.')
 
@@ -16,6 +18,7 @@ if not is_windows and build_machine.system() != 'cygwin'
   run_command('ln', '-s', meson.current_source_dir() / 'meson.build', symlink)
   assert(fs.is_symlink(symlink), 'Symlink not detected.')
   assert(not fs.is_symlink('meson.build'), 'Regular file detected as symlink.')
+  assert(not fs.is_symlink(f[0]), 'Regular file detected as symlink.')
 endif
 
 assert(fs.is_file('meson.build'), 'File not detected as a file.')
@@ -54,10 +57,14 @@ endif
 
 original = 'foo'
 assert(fs.replace_suffix(original, '') == original, 'replace_suffix idempotent')
+assert(fs.replace_suffix(f[0], '') == 'meson', 'replace_suffix trim')
 
 original = 'foo.txt'
 new = fs.replace_suffix(original, '.ini')
 assert(new == 'foo.ini', 'replace_suffix failed')
+
+new = fs.replace_suffix(f[0], '.ini')
+assert(new == 'meson.ini', 'replace_suffix failed')
 
 original = 'foo'
 new = fs.replace_suffix(original, '.ini')
@@ -86,15 +93,24 @@ sha256 = fs.hash('subdir/subdirfile.txt', 'sha256')
 assert(md5 == 'd0795db41614d25affdd548314b30b3b', 'md5sum did not match')
 assert(sha256 == 'be2170b0dae535b73f6775694fffa3fd726a43b5fabea11b7342f0605917a42a', 'sha256sum did not match')
 
+f = files('subdir/subdirfile.txt')
+md5 = fs.hash(f[0], 'md5')
+assert(md5 == 'd0795db41614d25affdd548314b30b3b', 'md5sum did not match')
+sha256 = fs.hash(f[0], 'sha256')
+assert(sha256 == 'be2170b0dae535b73f6775694fffa3fd726a43b5fabea11b7342f0605917a42a', 'sha256sum did not match')
+
 # -- size
 
 size = fs.size('subdir/subdirfile.txt')
 assert(size == 19, 'file size not found correctly')
 
+size = fs.size(f[0])
+assert(size == 19, 'file size not found correctly')
+
 # -- are filenames referring to the same file?
 f1 = 'meson.build'
 f2 = 'subdir/../meson.build'
-assert(fs.is_samepath(f1, f2), 'is_samepath not detercting same files')
+assert(fs.is_samepath(f1, f2), 'is_samepath not detecting same files')
 assert(fs.is_samepath(meson.source_root(), 'subdir/..'), 'is_samepath not detecting same directory')
 assert(fs.is_samepath(meson.project_source_root(), 'subdir/..'), 'is_samepath not detecting same directory')
 assert(fs.is_samepath(meson.project_build_root(), meson.current_build_dir() / 'subdir/..'), 'is_samepath not detecting same directory')
@@ -103,13 +119,22 @@ assert(fs.is_samepath(meson.global_build_root(), meson.current_build_dir()), 'is
 assert(not fs.is_samepath(f1, 'subdir/subdirfile.txt'), 'is_samepath known bad comparison')
 assert(not fs.is_samepath('not-a-path', f2), 'is_samepath should not error if path(s) do not exist')
 
+f = files('meson.build', 'subdir/../meson.build')
+assert(fs.is_samepath(f[0], f[1]), 'is_samepath not detercting same files')
+
 if not is_windows and build_machine.system() != 'cygwin'
   assert(fs.is_samepath(symlink, 'meson.build'), 'symlink is_samepath fail')
 endif
 
 # parts of path
 assert(fs.parent('foo/bar') == 'foo', 'failed to get dirname')
+if not is_windows
+assert(fs.parent(f[1]) == 'subdir/..', 'failed to get dirname')
+else
+assert(fs.parent(f[1]) == 'subdir\..', 'failed to get dirname')
+endif
 assert(fs.name('foo/bar') == 'bar', 'failed to get basename')
+assert(fs.name(f[1]) == 'meson.build', 'failed to get basename')
 assert(fs.name('foo/bar/baz.dll.a') == 'baz.dll.a', 'failed to get basename with compound suffix')
 assert(fs.stem('foo/bar/baz.dll') == 'baz', 'failed to get stem with suffix')
 assert(fs.stem('foo/bar/baz.dll.a') == 'baz.dll', 'failed to get stem with compound suffix')
