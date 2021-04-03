@@ -1,4 +1,4 @@
-# Copyright 2014-2016 The Meson development team
+# Copyright 2014-2021 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,78 @@ import typing as T
 
 from ..mesonlib import MesonException
 from ..interpreter import Interpreter
+
+INDENT = '\t'
+
+class PbxItem:
+    def __init__(self, value, comment = ''):
+        self.value = value
+        self.comment = comment
+
+class PbxArray:
+    def __init__(self):
+        self.items = []
+
+class PbxComment:
+    def __init__(self, text):
+        assert('/*' not in text)
+        self.text = f'/* {text} */'
+
+    def write(self, ofile, indent_level):
+        ofile.write(f'\n{self.text}\n')
+
+class PbxDictItem:
+    def __init__(self, key, value, comment = ''):
+        self.key = key
+        self.value = value
+        if comment:
+            if '/*' in comment:
+                self.comment = comment
+            else:
+                self.comment = f'/* {comment} */'
+        else:
+            self.comment = comment
+
+class PbxDict:
+    def __init__(self):
+        # This class is a bit weird, becaucse we want to write PBX dicts in
+        # defined order _and_ we want to write intermediate comments also in order.
+        self.keys = set()
+        self.items = []
+
+    def add_item(self, item):
+        key = item.key
+        assert(key not in self.keys)
+        self.keys.add(key)
+        self.items.append(item)
+
+    def add_comment(self, comment):
+        self.items.append(comment)
+
+    def write(self, ofile, indent_level):
+        ofile.write('{\n')
+        indent_level += 1
+        for i in self.items:
+            if isinstance(i, PbxComment):
+                i.write(indent_level)
+            elif isinstance(i, PbxDictItem):
+                if isinstance(i.value, (str, int)):
+                    ofile.write(indent_level*INDENT + f'{i.key} = {i.value} {i.comment};\n')
+                elif isinstance(i.value, PbxDict):
+                    ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    i.value.write(ofile, indent_level)
+                else:
+                    raise RuntimeError('missing code')
+            else:
+                print(i)
+                raise RuntimeError('missing code2')
+
+        indent_level -= 1
+        ofile.write(indent_level*INDENT + '}')
+        if indent_level == 0:
+            ofile.write('\n')
+        else:
+            ofile.write(';\n')
 
 class XCodeBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
@@ -56,6 +128,13 @@ class XCodeBackend(backends.Backend):
         self.test_id = self.gen_id()
         self.test_command_id = self.gen_id()
         self.test_buildconf_id = self.gen_id()
+        self.top_level_dict = PbxDict()
+
+    def write_pbxfile(self, top_level_dict, ofilename):
+         with open(ofilename, 'w') as ofile:
+             ofile.write('// !$*UTF8*$!\n')
+             top_level_dict.write(ofile, 0)
+             assert(self.indent_level == 0)
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -97,7 +176,7 @@ class XCodeBackend(backends.Backend):
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
         with open(self.proj_file, 'w') as self.ofile:
-            self.generate_prefix()
+            self.generate_prefix(self.top_level_dict)
             self.generate_pbx_aggregate_target()
             self.generate_pbx_build_file()
             self.generate_pbx_build_style()
@@ -112,7 +191,8 @@ class XCodeBackend(backends.Backend):
             self.generate_pbx_target_dependency()
             self.generate_xc_build_configuration()
             self.generate_xc_configurationList()
-            self.generate_suffix()
+            self.generate_suffix(self.top_level_dict)
+        self.write_pbxfile(self.top_level_dict, "temporary.pbxproj")
 
     def get_xcodetype(self, fname):
         xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
@@ -908,19 +988,26 @@ class XCodeBackend(backends.Backend):
             if explicit:
                 self.write_line('%s = "";' % flag_name)
 
-    def generate_prefix(self):
+    def generate_prefix(self, pbxdict):
         self.ofile.write('// !$*UTF8*$!\n{\n')
         self.indent_level += 1
         self.write_line('archiveVersion = 1;\n')
+        pbxdict.add_item(PbxDictItem('archiveVersion', '1'))
         self.write_line('classes = {\n')
         self.write_line('};\n')
+        pbxdict.add_item(PbxDictItem('classes', PbxDict()))
         self.write_line('objectVersion = 46;\n')
+        pbxdict.add_item(PbxDictItem('objectVersion', '46'))
         self.write_line('objects = {\n')
+        objects_dict = PbxDictItem('objects', PbxDict())
+        pbxdict.add_item(objects_dict)
         self.indent_level += 1
+        return objects_dict
 
-    def generate_suffix(self):
+    def generate_suffix(self, pbxdict):
         self.indent_level -= 1
         self.write_line('};\n')
         self.write_line('rootObject = ' + self.project_uid + ' /* Project object */;')
+        pbxdict.add_item(PbxDictItem('rootObject', self.project_uid, 'Project object'))
         self.indent_level -= 1
         self.write_line('}\n')
