@@ -213,16 +213,16 @@ class XCodeBackend(backends.Backend):
             self.generate_pbx_aggregate_target(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXAggregateTarget section'))
             objects_dict.add_comment(PbxComment('Begin PBXBuildFile section'))
-            self.generate_pbx_build_file()
+            self.generate_pbx_build_file(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXBuildFile section'))
             objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
-            self.generate_pbx_build_style()
+            self.generate_pbx_build_style(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
             objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
-            self.generate_pbx_container_item_proxy()
+            self.generate_pbx_container_item_proxy(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXContainerItemProxy section'))
             objects_dict.add_comment(PbxComment('Begin PBXFileReference section'))
-            self.generate_pbx_file_reference()
+            self.generate_pbx_file_reference(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXFileReference section'))
             objects_dict.add_comment(PbxComment('Begin PBXFrameworksBuildPhase section'))
             self.generate_pbx_frameworks_buildphase()
@@ -402,31 +402,42 @@ class XCodeBackend(backends.Backend):
             objects_dict.add_item(t[0], agt_dict, name)
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
-    def generate_pbx_build_file(self):
+    def generate_pbx_build_file(self, objects_dict):
         self.ofile.write('\n/* Begin PBXBuildFile section */\n')
         templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
         otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
+        ftempl = '{} /* {}.framework in Frameworks */ = {{isa = PBXBuildFile; fileRef = {} /* {}.framework */; }};\n'
 
         for t in self.build.get_build_targets().values():
-
             for dep in t.get_external_deps():
+                # FIXME not ported
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('{} /* {}.framework in Frameworks */ = {{isa = PBXBuildFile; fileRef = {} /* {}.framework */; }};\n'.format(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+                        self.write_line(ftempl.format(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
 
             for s in t.sources:
+                sdict = PbxDict()
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
 
                 if isinstance(s, str):
                     s = os.path.join(t.subdir, s)
+                    sdict = PbxDict()
                     idval = self.buildmap[s]
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
                     compiler_args = ''
                     self.write_line(templ % (idval, fullpath, fileref, fullpath2, compiler_args))
+                    sdict.add_item('isa', 'PBXBuildFile')
+                    sdict.add_item('fileRef', fileref, fullpath2)
+                    settingdict = PbxDict()
+                    settingdict.add_item('COMPILER_FLAGS', '"' + compiler_args + '"')
+                    sdict.add_item('settings', settingdict)
+                    objects_dict.add_item(idval, sdict)
+
             for o in t.objects:
+                # FIXME, not ported
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
                 fileref = self.filemap[o]
@@ -435,53 +446,78 @@ class XCodeBackend(backends.Backend):
                 self.write_line(otempl % (idval, fullpath, fileref, fullpath2))
         self.ofile.write('/* End PBXBuildFile section */\n')
 
-    def generate_pbx_build_style(self):
+    def generate_pbx_build_style(self, objects_dict):
         # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
         self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
         for name, idval in self.buildstylemap.items():
+            styledict = PbxDict()
             self.write_line(f'{idval} /* {name} */ = {{\n')
+            objects_dict.add_item(idval, styledict, name)
             self.indent_level += 1
             self.write_line('isa = PBXBuildStyle;\n')
+            styledict.add_item('isa', 'PBXBuildStyle')
+            settings_dict = PbxDict()
             self.write_line('buildSettings = {\n')
+            styledict.add_item('buildSettings', settings_dict)
             self.indent_level += 1
             self.write_line('COPY_PHASE_STRIP = NO;\n')
+            settings_dict.add_item('COPY_PHASE_STRIP', 'NO')
             self.indent_level -= 1
             self.write_line('};\n')
             self.write_line('name = "%s";\n' % name)
+            styledict.add_item('name', name)
             self.indent_level -= 1
             self.write_line('};\n')
         self.ofile.write('/* End PBXBuildStyle section */\n')
 
-    def generate_pbx_container_item_proxy(self):
+    def generate_pbx_container_item_proxy(self, objects_dict):
         self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
         for t in self.build.get_build_targets():
+            proxy_dict = PbxDict()
             self.write_line('%s /* PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
+            objects_dict.add_item(self.containerproxy_map[t], proxy_dict, 'PBXContainerItemProxy')
             self.indent_level += 1
             self.write_line('isa = PBXContainerItemProxy;')
+            proxy_dict.add_item('isa', 'PBXContainerItemProxy')
             self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
+            proxy_dict.add_item('containerPortal', self.project_uid, 'Project object')
             self.write_line('proxyType = 1;')
+            proxy_dict.add_item('proxyType', '1')
             self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
+            proxy_dict.add_item('remoteGlobalIDString', self.native_targets[t])
             self.write_line('remoteInfo = "%s";' % t)
+            proxy_dict.add_item('remoteInfo', '"' + t + '"')
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXContainerItemProxy section */\n')
 
-    def generate_pbx_file_reference(self):
+    def generate_pbx_file_reference(self, objects_dict):
         self.ofile.write('\n/* Begin PBXFileReference section */\n')
         for t in self.build.get_build_targets().values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
+                        # FIXME not ported
                         self.write_line('{} /* {}.framework */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = {}.framework; path = System/Library/Frameworks/{}.framework; sourceTree = SDKROOT; }};\n'.format(self.native_frameworks_fileref[f], f, f, f))
         src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
+            src_dict = PbxDict()
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
             name = os.path.basename(fname)
             path = fname
+            objects_dict.add_item(idval, src_dict, fullpath)
             self.write_line(src_templ % (idval, fullpath, xcodetype, name, path))
+            src_dict.add_item('isa', 'PBXFileReference')
+            src_dict.add_item('explicitFileType', '"' + xcodetype + '"')
+            src_dict.add_item('fileEncoding', '4')
+            src_dict.add_item('name', '"' + name + '"')
+            src_dict.add_item('path', '"' + path + '"')
+            src_dict.add_item('sourceTree', 'SOURCE_ROOT')
         target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
         for tname, idval in self.target_filemap.items():
+            target_dict = PbxDict()
+            objects_dict.add_item(idval, target_dict, tname)
             t = self.build.get_build_targets()[tname]
             fname = t.get_filename()
             reftype = 0
@@ -495,6 +531,11 @@ class XCodeBackend(backends.Backend):
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
             self.write_line(target_templ % (idval, tname, typestr, path, reftype))
+            target_dict.add_item('isa', 'PBXFileReference')
+            target_dict.add_item('explicitFileType', '"' + typestr + '"')
+            target_dict.add_item('path', path)
+            target_dict.add_item('refType', reftype)
+            target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
         self.ofile.write('/* End PBXFileReference section */\n')
 
     def generate_pbx_frameworks_buildphase(self):
