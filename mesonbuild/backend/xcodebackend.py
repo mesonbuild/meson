@@ -34,9 +34,11 @@ class PbxArray:
     def __init__(self):
         self.items = []
 
-    def add_item(self, item):
-        assert(isinstance(item, PbxArrayItem))
-        self.items.append(item)
+    def add_item(self, item, comment=''):
+        if isinstance(item, PbxArrayItem):
+            self.items.append(item)
+        else:
+            self.items.append(PbxArrayItem(item, comment))
 
     def write(self, ofile, indent_level):
         ofile.write('(\n')
@@ -79,19 +81,23 @@ class PbxDictItem:
 
 class PbxDict:
     def __init__(self):
-        # This class is a bit weird, becaucse we want to write PBX dicts in
+        # This class is a bit weird, because we want to write PBX dicts in
         # defined order _and_ we want to write intermediate comments also in order.
         self.keys = set()
         self.items = []
 
-    def add_item(self, item):
-        key = item.key
+    def add_item(self, key, value, comment=''):
+        item = PbxDictItem(key, value, comment)
         assert(key not in self.keys)
         self.keys.add(key)
         self.items.append(item)
 
     def add_comment(self, comment):
-        self.items.append(comment)
+        if isinstance(comment, str):
+            self.items.append(PbxComment(str))
+        else:
+            assert(isinstance(comment, PbxComment))
+            self.items.append(comment)
 
     def write(self, ofile, indent_level):
         ofile.write('{\n')
@@ -366,34 +372,34 @@ class XCodeBackend(backends.Backend):
             self.write_line('{} /* {} */ = {{'.format(t[0], name))
             self.indent_level += 1
             self.write_line('isa = PBXAggregateTarget;')
-            agt_dict.add_item(PbxDictItem('isa', 'PBXAggregateTarget'))
+            agt_dict.add_item('isa', 'PBXAggregateTarget')
             self.write_line(f'buildConfigurationList = {buildconf_id} /* Build configuration list for PBXAggregateTarget "{name}" */;')
-            agt_dict.add_item(PbxDictItem('buildConfigurationList', buildconf_id))
+            agt_dict.add_item('buildConfigurationList', buildconf_id)
             self.write_line('buildPhases = (')
             bp_arr = PbxArray()
-            agt_dict.add_item(PbxDictItem('buildPhases', bp_arr))
+            agt_dict.add_item('buildPhases', bp_arr)
             self.indent_level += 1
             for bp in build_phases:
                 self.write_line('%s /* ShellScript */,' % bp)
-                bp_arr.add_item(PbxArrayItem(bp, 'ShellScript'))
+                bp_arr.add_item(bp, 'ShellScript')
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('dependencies = (')
             dep_arr = PbxArray()
-            agt_dict.add_item(PbxDictItem('dependencies', dep_arr))
+            agt_dict.add_item('dependencies', dep_arr)
             self.indent_level += 1
             for td in dependencies:
                 self.write_line('%s /* PBXTargetDependency */,' % td)
-                dep_arr.add_item(PbxArrayItem(td, 'PBXTargetDependency'))
+                dep_arr.add_item(td, 'PBXTargetDependency')
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = %s;' % name)
-            agt_dict.add_item(PbxDictItem('name', name))
+            agt_dict.add_item('name', name)
             self.write_line('productName = %s;' % name)
-            agt_dict.add_item(PbxDictItem('productname', name))
+            agt_dict.add_item('productname', name)
             self.indent_level -= 1
             self.write_line('};')
-            objects_dict.add_item(PbxDictItem(t[0], agt_dict, name))
+            objects_dict.add_item(t[0], agt_dict, name)
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
@@ -1058,15 +1064,15 @@ class XCodeBackend(backends.Backend):
         self.ofile.write('// !$*UTF8*$!\n{\n')
         self.indent_level += 1
         self.write_line('archiveVersion = 1;\n')
-        pbxdict.add_item(PbxDictItem('archiveVersion', '1'))
+        pbxdict.add_item('archiveVersion', '1')
         self.write_line('classes = {\n')
         self.write_line('};\n')
-        pbxdict.add_item(PbxDictItem('classes', PbxDict()))
+        pbxdict.add_item('classes', PbxDict())
         self.write_line('objectVersion = 46;\n')
-        pbxdict.add_item(PbxDictItem('objectVersion', '46'))
+        pbxdict.add_item('objectVersion', '46')
         self.write_line('objects = {\n')
         objects_dict = PbxDict()
-        pbxdict.add_item(PbxDictItem('objects', objects_dict))
+        pbxdict.add_item('objects', objects_dict)
         
         self.indent_level += 1
         return objects_dict
@@ -1075,6 +1081,6 @@ class XCodeBackend(backends.Backend):
         self.indent_level -= 1
         self.write_line('};\n')
         self.write_line('rootObject = ' + self.project_uid + ' /* Project object */;')
-        pbxdict.add_item(PbxDictItem('rootObject', self.project_uid, 'Project object'))
+        pbxdict.add_item('rootObject', self.project_uid, 'Project object')
         self.indent_level -= 1
         self.write_line('}\n')
