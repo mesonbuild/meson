@@ -34,6 +34,29 @@ class PbxArray:
     def __init__(self):
         self.items = []
 
+    def add_item(self, item):
+        assert(isinstance(item, PbxArrayItem))
+        self.items.append(item)
+
+    def write(self, ofile, indent_level):
+        ofile.write('(\n')
+        indent_level += 1
+        for i in self.items:
+            ofile.write(indent_level*INDENT + f'{i.value} {i.comment} ,\n')
+        indent_level -= 1
+        ofile.write(indent_level*INDENT + ');\n')
+
+class PbxArrayItem:
+    def __init__(self, value, comment = ''):
+        self.value = value
+        if comment:
+            if '/*' in comment:
+                self.comment = comment
+            else:
+                self.comment = f'/* {comment} */'
+        else:
+            self.comment = comment
+
 class PbxComment:
     def __init__(self, text):
         assert('/*' not in text)
@@ -75,11 +98,14 @@ class PbxDict:
         indent_level += 1
         for i in self.items:
             if isinstance(i, PbxComment):
-                i.write(indent_level)
+                i.write(ofile, indent_level)
             elif isinstance(i, PbxDictItem):
                 if isinstance(i.value, (str, int)):
                     ofile.write(indent_level*INDENT + f'{i.key} = {i.value} {i.comment};\n')
                 elif isinstance(i.value, PbxDict):
+                    ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    i.value.write(ofile, indent_level)
+                elif isinstance(i.value, PbxArray):
                     ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
                     i.value.write(ofile, indent_level)
                 else:
@@ -176,21 +202,49 @@ class XCodeBackend(backends.Backend):
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
         with open(self.proj_file, 'w') as self.ofile:
-            self.generate_prefix(self.top_level_dict)
-            self.generate_pbx_aggregate_target()
+            objects_dict = self.generate_prefix(self.top_level_dict)
+            objects_dict.add_comment(PbxComment('Begin PBXAggregateTarget section'))
+            self.generate_pbx_aggregate_target(objects_dict)
+            objects_dict.add_comment(PbxComment('End PBXAggregateTarget section'))
+            objects_dict.add_comment(PbxComment('Begin PBXBuildFile section'))
             self.generate_pbx_build_file()
+            objects_dict.add_comment(PbxComment('End PBXBuildFile section'))
+            objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
             self.generate_pbx_build_style()
+            objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
+            objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
             self.generate_pbx_container_item_proxy()
+            objects_dict.add_comment(PbxComment('End PBXContainerItemProxy section'))
+            objects_dict.add_comment(PbxComment('Begin PBXFileReference section'))
             self.generate_pbx_file_reference()
+            objects_dict.add_comment(PbxComment('End PBXFileReference section'))
+            objects_dict.add_comment(PbxComment('Begin PBXFrameworksBuildPhase section'))
             self.generate_pbx_frameworks_buildphase()
+            objects_dict.add_comment(PbxComment('End PBXFrameworksBuildPhase section'))
+            objects_dict.add_comment(PbxComment('Begin PBXGroup section'))
             self.generate_pbx_group()
+            objects_dict.add_comment(PbxComment('End PBXGroup section'))
+            objects_dict.add_comment(PbxComment('Begin PBXNativeTarget section'))
             self.generate_pbx_native_target()
+            objects_dict.add_comment(PbxComment('End PBXNativeTarget section'))
+            objects_dict.add_comment(PbxComment('Begin PBXProject section'))
             self.generate_pbx_project()
+            objects_dict.add_comment(PbxComment('End PBXProject section'))
+            objects_dict.add_comment(PbxComment('Begin PBXShellScriptBuildPhase section'))
             self.generate_pbx_shell_build_phase(test_data)
+            objects_dict.add_comment(PbxComment('End PBXShellScriptBuildPhase section'))
+            objects_dict.add_comment(PbxComment('Begin PBXSourcesBuildPhase section'))
             self.generate_pbx_sources_build_phase()
+            objects_dict.add_comment(PbxComment('End PBXSourcesBuildPhase section'))
+            objects_dict.add_comment(PbxComment('Begin PBXTargetDependency section'))
             self.generate_pbx_target_dependency()
+            objects_dict.add_comment(PbxComment('End PBXTargetDependency section'))
+            objects_dict.add_comment(PbxComment('Begin XCBuildPConfiguration section'))
             self.generate_xc_build_configuration()
+            objects_dict.add_comment(PbxComment('End XCBuildPConfiguration section'))
+            objects_dict.add_comment(PbxComment('Begin XCConfigurationList section'))
             self.generate_xc_configurationList()
+            objects_dict.add_comment(PbxComment('End XCConfigurationList section'))
             self.generate_suffix(self.top_level_dict)
         self.write_pbxfile(self.top_level_dict, "temporary.pbxproj")
 
@@ -295,7 +349,7 @@ class XCodeBackend(backends.Backend):
         for t in self.build.get_build_targets():
             self.source_phase[t] = self.gen_id()
 
-    def generate_pbx_aggregate_target(self):
+    def generate_pbx_aggregate_target(self, objects_dict):
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build.get_build_targets()))
         aggregated_targets = []
         aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies))
@@ -304,6 +358,7 @@ class XCodeBackend(backends.Backend):
         sorted_aggregated_targets = sorted(aggregated_targets, key=operator.itemgetter(0))
         self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         for t in sorted_aggregated_targets:
+            agt_dict = PbxDict()
             name = t[1]
             buildconf_id = t[2]
             build_phases = t[3]
@@ -311,23 +366,34 @@ class XCodeBackend(backends.Backend):
             self.write_line('{} /* {} */ = {{'.format(t[0], name))
             self.indent_level += 1
             self.write_line('isa = PBXAggregateTarget;')
+            agt_dict.add_item(PbxDictItem('isa', 'PBXAggregateTarget'))
             self.write_line(f'buildConfigurationList = {buildconf_id} /* Build configuration list for PBXAggregateTarget "{name}" */;')
+            agt_dict.add_item(PbxDictItem('buildConfigurationList', buildconf_id))
             self.write_line('buildPhases = (')
+            bp_arr = PbxArray()
+            agt_dict.add_item(PbxDictItem('buildPhases', bp_arr))
             self.indent_level += 1
             for bp in build_phases:
                 self.write_line('%s /* ShellScript */,' % bp)
+                bp_arr.add_item(PbxArrayItem(bp, 'ShellScript'))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('dependencies = (')
+            dep_arr = PbxArray()
+            agt_dict.add_item(PbxDictItem('dependencies', dep_arr))
             self.indent_level += 1
             for td in dependencies:
                 self.write_line('%s /* PBXTargetDependency */,' % td)
+                dep_arr.add_item(PbxArrayItem(td, 'PBXTargetDependency'))
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = %s;' % name)
+            agt_dict.add_item(PbxDictItem('name', name))
             self.write_line('productName = %s;' % name)
+            agt_dict.add_item(PbxDictItem('productname', name))
             self.indent_level -= 1
             self.write_line('};')
+            objects_dict.add_item(PbxDictItem(t[0], agt_dict, name))
         self.ofile.write('/* End PBXAggregateTarget section */\n')
 
     def generate_pbx_build_file(self):
@@ -999,8 +1065,9 @@ class XCodeBackend(backends.Backend):
         self.write_line('objectVersion = 46;\n')
         pbxdict.add_item(PbxDictItem('objectVersion', '46'))
         self.write_line('objects = {\n')
-        objects_dict = PbxDictItem('objects', PbxDict())
-        pbxdict.add_item(objects_dict)
+        objects_dict = PbxDict()
+        pbxdict.add_item(PbxDictItem('objects', objects_dict))
+        
         self.indent_level += 1
         return objects_dict
 
