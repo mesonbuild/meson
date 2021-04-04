@@ -422,10 +422,13 @@ class XCodeBackend(backends.Backend):
 
         for t in self.build.get_build_targets().values():
             for dep in t.get_external_deps():
-                # FIXME not ported
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
+                        fw_dict = PbxDict()
+                        objects_dict.add:item(self.native_frameworks[f], fw_dict, f'{f}.framework in Frameworks')
                         self.write_line(ftempl.format(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+                        fw_dict.add_item('isa', 'PBXBuildFile')
+                        fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
                 sdict = PbxDict()
@@ -449,13 +452,16 @@ class XCodeBackend(backends.Backend):
                     objects_dict.add_item(idval, sdict)
 
             for o in t.objects:
-                # FIXME, not ported
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
                 fileref = self.filemap[o]
                 fullpath = os.path.join(self.environment.get_source_dir(), o)
                 fullpath2 = fullpath
+                o_dict = PbxDict()
+                objects_dict.add_item(idval, o_dict, fullpath)
                 self.write_line(otempl % (idval, fullpath, fileref, fullpath2))
+                o_dict.add_item('isa', 'PBXBuildFile')
+                o_dict.add_item('fileRef', fileref, fullpath2)
         self.ofile.write('/* End PBXBuildFile section */\n')
 
     def generate_pbx_build_style(self, objects_dict):
@@ -510,7 +516,14 @@ class XCodeBackend(backends.Backend):
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
                         # FIXME not ported
+                        fw_dict = PbxDict()
+                        objects_dict.add_item(self.native_frameworks_fileref[f], fw_dict, f)
                         self.write_line('{} /* {}.framework */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = {}.framework; path = System/Library/Frameworks/{}.framework; sourceTree = SDKROOT; }};\n'.format(self.native_frameworks_fileref[f], f, f, f))
+                        fw_dict.add_item('isa', 'PBXFileReference')
+                        fw_dict.add_item('lastKnownFileType', 'wrapper.framework')
+                        fw_dict.add_item('name', f'{f}.framework')
+                        fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
+                        fw_dict.add_item('sourceTree', 'SDKROOT')
         src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             src_dict = PbxDict()
