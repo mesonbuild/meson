@@ -44,7 +44,10 @@ class PbxArray:
         ofile.write('(\n')
         indent_level += 1
         for i in self.items:
-            ofile.write(indent_level*INDENT + f'{i.value} {i.comment} ,\n')
+            if i.comment:
+                ofile.write(indent_level*INDENT + f'{i.value} {i.comment},\n')
+            else:
+                ofile.write(indent_level*INDENT + f'{i.value},\n')
         indent_level -= 1
         ofile.write(indent_level*INDENT + ');\n')
 
@@ -107,12 +110,21 @@ class PbxDict:
                 i.write(ofile, indent_level)
             elif isinstance(i, PbxDictItem):
                 if isinstance(i.value, (str, int)):
-                    ofile.write(indent_level*INDENT + f'{i.key} = {i.value} {i.comment};\n')
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} = {i.value} {i.comment};\n')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = {i.value};\n')
                 elif isinstance(i.value, PbxDict):
-                    ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = ')
                     i.value.write(ofile, indent_level)
                 elif isinstance(i.value, PbxArray):
-                    ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = ')
                     i.value.write(ofile, indent_level)
                 else:
                     raise RuntimeError('missing code')
@@ -245,9 +257,9 @@ class XCodeBackend(backends.Backend):
             objects_dict.add_comment(PbxComment('Begin PBXTargetDependency section'))
             self.generate_pbx_target_dependency(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXTargetDependency section'))
-            objects_dict.add_comment(PbxComment('Begin XCBuildPConfiguration section'))
+            objects_dict.add_comment(PbxComment('Begin XCBuildConfiguration section'))
             self.generate_xc_build_configuration(objects_dict)
-            objects_dict.add_comment(PbxComment('End XCBuildPConfiguration section'))
+            objects_dict.add_comment(PbxComment('End XCBuildConfiguration section'))
             objects_dict.add_comment(PbxComment('Begin XCConfigurationList section'))
             self.generate_xc_configurationList(objects_dict)
             objects_dict.add_comment(PbxComment('End XCConfigurationList section'))
@@ -374,7 +386,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('isa = PBXAggregateTarget;')
             agt_dict.add_item('isa', 'PBXAggregateTarget')
             self.write_line(f'buildConfigurationList = {buildconf_id} /* Build configuration list for PBXAggregateTarget "{name}" */;')
-            agt_dict.add_item('buildConfigurationList', buildconf_id)
+            agt_dict.add_item('buildConfigurationList', buildconf_id, f'Build configuration list for PBXAggregateTarget "{name}"')
             self.write_line('buildPhases = (')
             bp_arr = PbxArray()
             agt_dict.add_item('buildPhases', bp_arr)
@@ -396,7 +408,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('name = %s;' % name)
             agt_dict.add_item('name', name)
             self.write_line('productName = %s;' % name)
-            agt_dict.add_item('productname', name)
+            agt_dict.add_item('productName', name)
             self.indent_level -= 1
             self.write_line('};')
             objects_dict.add_item(t[0], agt_dict, name)
@@ -465,7 +477,7 @@ class XCodeBackend(backends.Backend):
             self.indent_level -= 1
             self.write_line('};\n')
             self.write_line('name = "%s";\n' % name)
-            styledict.add_item('name', name)
+            styledict.add_item('name', f'"{name}"')
             self.indent_level -= 1
             self.write_line('};\n')
         self.ofile.write('/* End PBXBuildStyle section */\n')
@@ -592,7 +604,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('%s /* Resources */,' % resources_id)
         main_children.add_item(resources_id, 'Resources')
         self.write_line('%s /* Products */,' % products_id)
-        main_children.add_item('products_id', 'Products')
+        main_children.add_item(products_id, 'Products')
         self.write_line('%s /* Frameworks */,' % frameworks_id)
         main_children.add_item(frameworks_id, 'Frameworks')
         self.indent_level -= 1
@@ -820,7 +832,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('};')
         conftempl = 'buildConfigurationList = %s /* Build configuration list for PBXProject "%s" */;'
         self.write_line(conftempl % (self.project_conflist, self.build.project_name))
-        project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}')
+        project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}"')
         self.write_line('buildSettings = {')
         self.write_line('};')
         project_dict.add_item('buildSettings', PbxDict())
@@ -836,9 +848,9 @@ class XCodeBackend(backends.Backend):
         self.write_line('compatibilityVersion = "Xcode 3.2";')
         project_dict.add_item('compatibilityVersion', '"Xcode 3.2"')
         self.write_line('hasScannedForEncodings = 0;')
-        project_dict.add_item('hasScannedforEncodings', 0)
+        project_dict.add_item('hasScannedForEncodings', 0)
         self.write_line('mainGroup = %s;' % self.maingroup_id)
-        project_dict.add_item('mainGrouå', self.maingroup_id)
+        project_dict.add_item('mainGroup', self.maingroup_id)
         self.write_line('projectDirPath = "%s";' % self.build_to_src)
         project_dict.add_item('projectDirPath', f'"{self.build_to_src}"')
         self.write_line('projectRoot = "";')
@@ -869,7 +881,7 @@ class XCodeBackend(backends.Backend):
         self.write_line('isa = PBXShellScriptBuildPhase;')
         shell_dict.add_item('isa', 'PBXShellScriptBuildPhase')
         self.write_line('buildActionMask = 2147483647;')
-        shell_dict.add_item('buildActinMask', 2147483647)
+        shell_dict.add_item('buildActionMask', 2147483647)
         self.write_line('files = (')
         self.write_line(');')
         shell_dict.add_item('files', PbxArray())
@@ -883,12 +895,12 @@ class XCodeBackend(backends.Backend):
         shell_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
         self.write_line('shellPath = /bin/sh;')
         shell_dict.add_item('shellPath', '/bin/sh')
-        cmd = mesonlib.get_meson_command() + ['test', '-C', self.environment.get_build_dir()]
+        cmd = mesonlib.get_meson_command() + ['test', '--no-rebuild', '-C', self.environment.get_build_dir()]
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         self.write_line('shellScript = "%s";' % cmdstr)
         shell_dict.add_item('shellScript', f'"{cmdstr}"')
         self.write_line('showEnvVarsInLog = 0;')
-        shell_dict.add_item('showEvnVarsInLog', 0)
+        shell_dict.add_item('showEnvVarsInLog', 0)
         self.indent_level -= 1
         self.write_line('};')
         self.ofile.write('/* End PBXShellScriptBuildPhase section */\n')
@@ -941,7 +953,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('target = {} /* {} */;'.format(t[1], t[2]))
             t_dict.add_item('target', t[1], t[2])
             self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % t[3])
-            t_dict.add_item('targetProx', t[3], 'PBXContainerItemProxy')
+            t_dict.add_item('targetProxy', t[3], 'PBXContainerItemProxy')
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
@@ -960,14 +972,14 @@ class XCodeBackend(backends.Backend):
             self.write_line('buildSettings = {')
             bt_dict.add_item('buildSettings', settings_dict)
             self.indent_level += 1
-            self.write_line('ARCHS = "$(ARCHS_STANDARD_64_BIT)";')
-            bt_dict.add_item('ARCHS', '"$(ARCHS_STANDARD_64_BIT)"')
+            self.write_line('ARCHS = "$(NATIVE_ARCH_ACTUAL)";')
+            settings_dict.add_item('ARCHS', '"$(NATIVE_ARCH_ACTUAL)"')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
-            bt_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
+            settings_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
             self.write_line('SDKROOT = "macosx";')
-            bt_dict.add_item('SDKROOT', '"macosx"')
+            settings_dict.add_item('SDKROOT', '"macosx"')
             self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
-            bt_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
+            settings_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
             self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
@@ -1001,7 +1013,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             self.write_line('INSTALL_PATH = "";')
             settings_dict.add_item('INSTALL_PATH', '""')
-            self.write_line('OTHER_CFLAGS = "  ";')
+            self.write_line('OTHER_CFLAGS = " ";')
             settings_dict.add_item('OTHER_CFLAGS', '" "')
             self.write_line('OTHER_LDFLAGS = " ";')
             settings_dict.add_item('OTHER_LDFLAGS', '" "')
@@ -1050,12 +1062,12 @@ class XCodeBackend(backends.Backend):
             self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
             settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
             self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
-            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', "")
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             self.write_line('INSTALL_PATH = "";')
             settings_dict.add_item('INSTALL_PATH', '""')
-            self.write_line('OTHER_CFLAGS = "  ";')
+            self.write_line('OTHER_CFLAGS = " ";')
             settings_dict.add_item('OTHER_CFLAGS', '" "')
             self.write_line('OTHER_LDFLAGS = " ";')
             settings_dict.add_item('OTHER_LDFLAGS', '" "')
@@ -1066,7 +1078,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('SECTORDER_FLAGS = "";')
             settings_dict.add_item('SECTORDER_FLAGS', '""')
             self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
-            settings_dict.add_item('SYMROOt', '"%s"' % self.environment.get_build_dir())
+            settings_dict.add_item('SYMROOT', '"%s"' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
             settings_dict.add_item('USE_HEADERMAP', 'NO')
             self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
@@ -1146,7 +1158,7 @@ class XCodeBackend(backends.Backend):
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
                 bt_dict = PbxDict()
                 self.write_line(f'{valid} /* {buildtype} */ = {{')
-                objects_dict.add_item('valid', bt_dict, buildtype)
+                objects_dict.add_item(valid, bt_dict, buildtype)
                 self.indent_level += 1
                 self.write_line('isa = XCBuildConfiguration;')
                 bt_dict.add_item('isa', 'XCBuildConfiguration')
@@ -1170,9 +1182,9 @@ class XCodeBackend(backends.Backend):
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
                 settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
-                settings_dict.add_item('GCCL_INLINES_ARE_PRIVATE_EXTERN', 'NO')
+                settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
-                settings_dict.add_item('GCC_OPIMIZATION_LEVEL', 0)
+                settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
                 if target.has_pch:
                     # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                     # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
@@ -1197,7 +1209,7 @@ class XCodeBackend(backends.Backend):
                     self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
                     settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
                 self.write_line('INSTALL_PATH = "%s";' % install_path)
-                settings_dict.add_item('INSTALL_PATH', f'"{install_path}”')
+                settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
                 settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
                 if isinstance(target, build.SharedLibrary):
@@ -1217,8 +1229,9 @@ class XCodeBackend(backends.Backend):
                 self.write_line('SYMROOT = "%s";' % symroot)
                 settings_dict.add_item('SYMROOT', f'"{symroot}"')
                 self.write_build_setting_line('SYSTEM_HEADER_SEARCH_PATHS', [self.environment.get_build_dir()])
-                settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"%s"'.format(self.environment.get_build_dir()))
-                self.write_line('USE_HEADERMAP = NO;'), 
+                settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"{}"'.format(self.environment.get_build_dir()))
+                self.write_line('USE_HEADERMAP = NO;')
+                settings_dict.add_item('USE_HEADERMAP', 'NO')
                 self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
                 warn_array = PbxArray()
                 settings_dict.add_item('WARNING_CFLAGS', warn_array)
@@ -1228,7 +1241,7 @@ class XCodeBackend(backends.Backend):
                 self.indent_level -= 1
                 self.write_line('};')
                 self.write_line('name = %s;' % buildtype)
-                bt_dict.add_item('name', f'"{buildtype}"')
+                bt_dict.add_item('name', buildtype)
                 self.indent_level -= 1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
@@ -1241,7 +1254,7 @@ class XCodeBackend(backends.Backend):
         objects_dict.add_item(self.project_conflist, conf_dict, f'Build configuration list for PBXProject "{self.build.project_name}"')
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
-        conf_dict.add_item('isa', 'CXConfigurationList')
+        conf_dict.add_item('isa', 'XCConfigurationList')
         confs_arr = PbxArray()
         self.write_line('buildConfigurations = (')
         conf_dict.add_item('buildConfigurations', confs_arr)
@@ -1325,7 +1338,7 @@ class XCodeBackend(backends.Backend):
             self.write_line('defaultConfigurationIsVisible = 0;')
             t_dict.add_item('defaultConfigurationIsVisible', 0)
             self.write_line('defaultConfigurationName = %s;' % typestr)
-            t_dict.add_item('defaultConfiguratoinName', typestr)
+            t_dict.add_item('defaultConfigurationName', typestr)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
