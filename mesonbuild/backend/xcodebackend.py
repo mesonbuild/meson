@@ -249,7 +249,7 @@ class XCodeBackend(backends.Backend):
             self.generate_xc_build_configuration(objects_dict)
             objects_dict.add_comment(PbxComment('End XCBuildPConfiguration section'))
             objects_dict.add_comment(PbxComment('Begin XCConfigurationList section'))
-            self.generate_xc_configurationList()
+            self.generate_xc_configurationList(objects_dict)
             objects_dict.add_comment(PbxComment('End XCConfigurationList section'))
             self.generate_suffix(self.top_level_dict)
         self.write_pbxfile(self.top_level_dict, "temporary.pbxproj")
@@ -1233,67 +1233,99 @@ class XCodeBackend(backends.Backend):
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
 
-    def generate_xc_configurationList(self):
+    def generate_xc_configurationList(self, objects_dict):
         # FIXME: sort items
         self.ofile.write('\n/* Begin XCConfigurationList section */\n')
+        conf_dict = PbxDict()
         self.write_line(f'{self.project_conflist} /* Build configuration list for PBXProject "{self.build.project_name}" */ = {{')
+        objects_dict.add_item(self.project_conflist, conf_dict, f'Build configuration list for PBXProject "{self.build.project_name}"')
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
+        conf_dict.add_item('isa', 'CXConfigurationList')
+        confs_arr = PbxArray()
         self.write_line('buildConfigurations = (')
+        conf_dict.add_item('buildConfigurations', confs_arr)
         self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('{} /* {} */,'.format(self.project_configurations[buildtype], buildtype))
+            confs_arr.add_item(self.project_configurations[buildtype], buildtype)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
+        conf_dict.add_item('defaultConfigurationIsVisible', 0)
         self.write_line('defaultConfigurationName = debug;')
+        conf_dict.add_item('defaultConfigurationName', 'debug')
         self.indent_level -= 1
         self.write_line('};')
 
         # Now the all target
+        all_dict = PbxDict()
         self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
+        objects_dict.add_item(self.all_buildconf_id, all_dict, 'Build configuration list for PBXAggregateTarget "ALL_BUILD"')
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
+        all_dict.add_item('isa', 'XCConfigurationList')
+        conf_arr = PbxArray()
         self.write_line('buildConfigurations = (')
+        all_dict.add_item('buildConfigurations', conf_arr)
         self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('{} /* {} */,'.format(self.buildall_configurations[buildtype], buildtype))
+            conf_arr.add_item(self.buildall_configurations[buildtype], buildtype)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
+        all_dict.add_item('defaultConfigurationIsVisible', 0)
         self.write_line('defaultConfigurationName = debug;')
+        all_dict.add_item('defaultConfigurationName', 'debug')
         self.indent_level -= 1
         self.write_line('};')
 
         # Test target
-        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.test_buildconf_id)
+        test_dict = PbxDict()
+        self.write_line('%s /* Build configuration list for PBXAggregateTarget "RUN_TEST" */ = {' % self.test_buildconf_id)
+        objects_dict.add_item(self.test_buildconf_id, test_dict, 'Build configuration list for PBXAggregateTarget "RUN_TEST"')
         self.indent_level += 1
         self.write_line('isa = XCConfigurationList;')
+        test_dict.add_item('isa', 'XCConfigurationList')
+        conf_arr = PbxArray()
         self.write_line('buildConfigurations = (')
+        test_dict.add_item('buildConfigurations', conf_arr)
         self.indent_level += 1
         for buildtype in self.buildtypes:
             self.write_line('{} /* {} */,'.format(self.test_configurations[buildtype], buildtype))
+            conf_arr.add_item(self.test_configurations[buildtype], buildtype)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('defaultConfigurationIsVisible = 0;')
+        test_dict.add_item('defaultConfigurationIsVisible', 0)
         self.write_line('defaultConfigurationName = debug;')
+        test_dict.add_item('defaultConfigurationName', 'debug')
         self.indent_level -= 1
         self.write_line('};')
 
         for target_name in self.build.get_build_targets():
+            t_dict = PbxDict()
             listid = self.buildconflistmap[target_name]
             self.write_line(f'{listid} /* Build configuration list for PBXNativeTarget "{target_name}" */ = {{')
+            objects_dict.add_item(listid, t_dict, f'Build configuration list for PBXNativeTarget "{target_name}"')
             self.indent_level += 1
             self.write_line('isa = XCConfigurationList;')
+            t_dict.add_item('isa', 'XCConfigurationList')
+            conf_arr = PbxArray()
             self.write_line('buildConfigurations = (')
+            t_dict.add_item('buildConfigurations', conf_arr)
             self.indent_level += 1
             typestr = 'debug'
             idval = self.buildconfmap[target_name][typestr]
             self.write_line(f'{idval} /* {typestr} */,')
+            conf_arr.add_item(idval, typestr)
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('defaultConfigurationIsVisible = 0;')
+            t_dict.add_item('defaultConfigurationIsVisible', 0)
             self.write_line('defaultConfigurationName = %s;' % typestr)
+            t_dict.add_item('defaultConfiguratoinName', typestr)
             self.indent_level -= 1
             self.write_line('};')
         self.ofile.write('/* End XCConfigurationList section */\n')
