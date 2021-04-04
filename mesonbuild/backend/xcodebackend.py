@@ -24,6 +24,24 @@ from ..mesonlib import MesonException
 from ..interpreter import Interpreter
 
 INDENT = '\t'
+XCODETYPEMAP = {'c': 'sourcecode.c.c',
+                'a': 'archive.ar',
+                'cc': 'sourcecode.cpp.cpp',
+                'cxx': 'sourcecode.cpp.cpp',
+                'cpp': 'sourcecode.cpp.cpp',
+                'c++': 'sourcecode.cpp.cpp',
+                'm': 'sourcecode.c.objc',
+                'mm': 'sourcecode.cpp.objcpp',
+                'h': 'sourcecode.c.h',
+                'hpp': 'sourcecode.cpp.h',
+                'hxx': 'sourcecode.cpp.h',
+                'hh': 'sourcecode.cpp.hh',
+                'inc': 'sourcecode.c.h',
+                'dylib': 'compiled.mach-o.dylib',
+                'o': 'compiled.mach-o.objfile',
+                's': 'sourcecode.asm',
+                'asm': 'sourcecode.asm',
+                }
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -145,24 +163,6 @@ class XCodeBackend(backends.Backend):
         self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.project_conflist = self.gen_id()
-        self.xcodetypemap = {'c': 'sourcecode.c.c',
-                             'a': 'archive.ar',
-                             'cc': 'sourcecode.cpp.cpp',
-                             'cxx': 'sourcecode.cpp.cpp',
-                             'cpp': 'sourcecode.cpp.cpp',
-                             'c++': 'sourcecode.cpp.cpp',
-                             'm': 'sourcecode.c.objc',
-                             'mm': 'sourcecode.cpp.objcpp',
-                             'h': 'sourcecode.c.h',
-                             'hpp': 'sourcecode.cpp.h',
-                             'hxx': 'sourcecode.cpp.h',
-                             'hh': 'sourcecode.cpp.hh',
-                             'inc': 'sourcecode.c.h',
-                             'dylib': 'compiled.mach-o.dylib',
-                             'o': 'compiled.mach-o.objfile',
-                             's': 'sourcecode.asm',
-                             'asm': 'sourcecode.asm',
-                             }
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
@@ -258,7 +258,7 @@ class XCodeBackend(backends.Backend):
         self.write_pbxfile(self.top_level_dict, self.proj_file)
 
     def get_xcodetype(self, fname):
-        xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
+        xcodetype = XCODETYPEMAP.get(fname.split('.')[-1].lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
             mlog.warning(f'Unknown file type "{fname}" fallbacking to "{xcodetype}". Xcode project might be malformed.')
