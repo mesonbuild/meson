@@ -82,6 +82,7 @@ class PbxArrayItem:
 
 class PbxComment:
     def __init__(self, text):
+        assert(isinstance(text, str))
         assert('/*' not in text)
         self.text = f'/* {text} */'
 
@@ -173,10 +174,10 @@ class XCodeBackend(backends.Backend):
         self.top_level_dict = PbxDict()
 
     def write_pbxfile(self, top_level_dict, ofilename):
-         with open(ofilename, 'w') as ofile:
-             ofile.write('// !$*UTF8*$!\n')
-             top_level_dict.write(ofile, 0)
- 
+        with open(ofilename, 'w') as ofile:
+            ofile.write('// !$*UTF8*$!\n')
+            top_level_dict.write(ofile, 0)
+
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
@@ -396,7 +397,6 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
-                sdict = PbxDict()
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
 
@@ -460,7 +460,6 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('name', f'{f}.framework')
                         fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
                         fw_dict.add_item('sourceTree', 'SDKROOT')
-        src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
         for fname, idval in self.filemap.items():
             src_dict = PbxDict()
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
@@ -474,7 +473,6 @@ class XCodeBackend(backends.Backend):
             src_dict.add_item('name', '"' + name + '"')
             src_dict.add_item('path', '"' + path + '"')
             src_dict.add_item('sourceTree', 'SOURCE_ROOT')
-        target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
         for tname, idval in self.target_filemap.items():
             target_dict = PbxDict()
             objects_dict.add_item(idval, target_dict, tname)
@@ -642,7 +640,6 @@ class XCodeBackend(backends.Backend):
         attr_dict = PbxDict()
         project_dict.add_item('attributes', attr_dict)
         attr_dict.add_item('BuildIndependentTargetsInParallel', 'YES')
-        conftempl = 'buildConfigurationList = %s /* Build configuration list for PBXProject "%s" */;'
         project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}"')
         project_dict.add_item('buildSettings', PbxDict())
         style_arr = PbxArray()
