@@ -225,10 +225,10 @@ class XCodeBackend(backends.Backend):
             self.generate_pbx_file_reference(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXFileReference section'))
             objects_dict.add_comment(PbxComment('Begin PBXFrameworksBuildPhase section'))
-            self.generate_pbx_frameworks_buildphase()
+            self.generate_pbx_frameworks_buildphase(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXFrameworksBuildPhase section'))
             objects_dict.add_comment(PbxComment('Begin PBXGroup section'))
-            self.generate_pbx_group()
+            self.generate_pbx_group(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXGroup section'))
             objects_dict.add_comment(PbxComment('Begin PBXNativeTarget section'))
             self.generate_pbx_native_target()
@@ -538,27 +538,35 @@ class XCodeBackend(backends.Backend):
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
         self.ofile.write('/* End PBXFileReference section */\n')
 
-    def generate_pbx_frameworks_buildphase(self):
+    def generate_pbx_frameworks_buildphase(self, objects_dict):
         for t in self.build.get_build_targets().values():
+            bt_dict = PbxDict()
             self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
             self.write_line('{} /* {} */ = {{\n'.format(t.buildphasemap['Frameworks'], 'Frameworks'))
+            objects_dict.add_item(t.buildphasemap['Frameworks'], bt_dict, 'Frameworks')
             self.indent_level += 1
             self.write_line('isa = PBXFrameworksBuildPhase;\n')
+            bt_dict.add_item('isa', 'PBXFrameworksBuildPhase')
             self.write_line('buildActionMask = %s;\n' % (2147483647))
+            bt_dict.add_item('buildActionMask', 2147483647)
             self.write_line('files = (\n')
+            file_list = PbxArray()
+            bt_dict.add_item('files', file_list)
             self.indent_level += 1
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
                         self.write_line('{} /* {}.framework in Frameworks */,\n'.format(self.native_frameworks[f], f))
+                        file_list.add_item(self.native_frameworks[f], f'{f}.framework in Frameworks')
             self.indent_level -= 1
             self.write_line(');\n')
             self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
+            bt_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
             self.indent_level -= 1
             self.write_line('};\n')
         self.ofile.write('/* End PBXFrameworksBuildPhase section */\n')
 
-    def generate_pbx_group(self):
+    def generate_pbx_group(self, objects_dict):
         groupmap = {}
         target_src_map = {}
         for t in self.build.get_build_targets():
@@ -568,50 +576,81 @@ class XCodeBackend(backends.Backend):
         sources_id = self.gen_id()
         resources_id = self.gen_id()
         products_id = self.gen_id()
-        frameworks_id = self.gen_id()
+        frameworks_id = self.gen_id()        
         self.write_line('%s = {' % self.maingroup_id)
+        main_dict = PbxDict()
+        objects_dict.add_item(self.maingroup_id, main_dict)
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
+        main_dict.add_item('isa', 'PBXGroup')
+        main_children = PbxArray()
         self.write_line('children = (')
+        main_dict.add_item('children', main_children)
         self.indent_level += 1
         self.write_line('%s /* Sources */,' % sources_id)
+        main_children.add_item(sources_id, 'Sources')
         self.write_line('%s /* Resources */,' % resources_id)
+        main_children.add_item(resources_id, 'Resources')
         self.write_line('%s /* Products */,' % products_id)
+        main_children.add_item('products_id', 'Products')
         self.write_line('%s /* Frameworks */,' % frameworks_id)
+        main_children.add_item(frameworks_id, 'Frameworks')
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('sourceTree = "<group>";')
+        main_dict.add_item('sourceTree', '"<group>"')
         self.indent_level -= 1
         self.write_line('};')
 
         # Sources
+        source_dict = PbxDict()
         self.write_line('%s /* Sources */ = {' % sources_id)
+        objects_dict.add_item(sources_id, source_dict, 'Sources')
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
+        source_dict.add_item('isa', 'PBXGroup')
+        source_children = PbxArray()
         self.write_line('children = (')
+        source_dict.add_item('children', source_children)
         self.indent_level += 1
         for t in self.build.get_build_targets():
             self.write_line('{} /* {} */,'.format(groupmap[t], t))
+            source_children.add_item(groupmap[t], t)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Sources;')
+        source_dict.add_item('name', 'Sources')
         self.write_line('sourceTree = "<group>";')
+        source_dict.add_item('sourceTree', '"<group>"')
         self.indent_level -= 1
         self.write_line('};')
 
+
+        resource_dict = PbxDict()
         self.write_line('%s /* Resources */ = {' % resources_id)
+        objects_dict.add_item(resources_id, resource_dict, 'Resources')
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
+        resource_dict.add_item('isa', 'PBXGroup')
+        resource_children = PbxArray()
         self.write_line('children = (')
+        resource_dict.add_item('children', resource_children)
         self.write_line(');')
         self.write_line('name = Resources;')
+        resource_dict.add_item('name', 'Resources')
         self.write_line('sourceTree = "<group>";')
+        resource_dict.add_item('sourceTree', '"<group>"')
         self.indent_level -= 1
         self.write_line('};')
 
+        frameworks_dict = PbxDict()
         self.write_line('%s /* Frameworks */ = {' % frameworks_id)
+        objects_dict.add_item(frameworks_id, frameworks_dict, 'Frameworks')
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
+        frameworks_dict.add_item('isa', 'PBXGroup')
+        frameworks_children = PbxArray()
+        frameworks_dict.add_item('children', frameworks_children)
         self.write_line('children = (')
         # write frameworks
         self.indent_level += 1
@@ -621,59 +660,87 @@ class XCodeBackend(backends.Backend):
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
                         self.write_line('{} /* {}.framework */,\n'.format(self.native_frameworks_fileref[f], f))
+                        frameworks_children.add_item(self.native_frameworks_fileref[f], f)
 
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Frameworks;')
+        frameworks_dict.add_item('name', 'Frameworks')
         self.write_line('sourceTree = "<group>";')
+        frameworks_dict.add_item('sourceTree', '"<group>"')
         self.indent_level -= 1
         self.write_line('};')
 
         # Targets
         for t in self.build.get_build_targets():
+            target_dict = PbxDict()
             self.write_line('{} /* {} */ = {{'.format(groupmap[t], t))
+            objects_dict.add_item(groupmap[t], target_dict, t)
             self.indent_level += 1
             self.write_line('isa = PBXGroup;')
+            target_dict.add_item('isa', 'PBXGroup')
+            target_children = PbxArray()
+            target_dict.add_item('children', target_children)
             self.write_line('children = (')
             self.indent_level += 1
             self.write_line('%s /* Source files */,' % target_src_map[t])
+            target_children.add_item(target_src_map[t], 'Source files')
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = "%s";' % t)
+            target_dict.add_item('name', f'"{t}"')
             self.write_line('sourceTree = "<group>";')
+            target_dict.add_item('sourceTree', '"<group>"')
             self.indent_level -= 1
             self.write_line('};')
+            source_files_dict = PbxDict()
             self.write_line('%s /* Source files */ = {' % target_src_map[t])
+            objects_dict.add_item(target_src_map[t], source_files_dict, 'Source files')
             self.indent_level += 1
             self.write_line('isa = PBXGroup;')
+            source_files_dict.add_item('isa', 'PBXGroup')
+            source_file_children = PbxArray()
             self.write_line('children = (')
+            source_files_dict.add_item('children', source_file_children)
             self.indent_level += 1
             for s in self.build.get_build_targets()[t].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if isinstance(s, str):
                     self.write_line('{} /* {} */,'.format(self.filemap[s], s))
+                    source_file_children.add_item(self.filemap[s], s)
             for o in self.build.get_build_targets()[t].objects:
                 o = os.path.join(self.build.get_build_targets()[t].subdir, o)
                 self.write_line('{} /* {} */,'.format(self.filemap[o], o))
+                source_file_children.add_item(self.filemap[o], o)
             self.indent_level -= 1
             self.write_line(');')
             self.write_line('name = "Source files";')
+            source_files_dict.add_item('name', '"Source files"')
             self.write_line('sourceTree = "<group>";')
+            source_files_dict.add_item('sourceTree', '"<group>"')
             self.indent_level -= 1
             self.write_line('};')
 
         # And finally products
+        product_dict = PbxDict()
         self.write_line('%s /* Products */ = {' % products_id)
+        objects_dict.add_item(products_id, product_dict, 'Products')
         self.indent_level += 1
         self.write_line('isa = PBXGroup;')
+        product_dict.add_item('isa', 'PBXGroup')
         self.write_line('children = (')
+        product_children = PbxArray()
+        product_dict.add_item('children', product_children)
         self.indent_level += 1
         for t in self.build.get_build_targets():
             self.write_line('{} /* {} */,'.format(self.target_filemap[t], t))
+            product_children.add_item(self.target_filemap[t], t)
         self.indent_level -= 1
         self.write_line(');')
         self.write_line('name = Products;')
+        product_dict.add_item('name', 'Products')
         self.write_line('sourceTree = "<group>";')
+        product_dict.add_item('sourceTree', '"<group>"')
         self.indent_level -= 1
         self.write_line('};')
         self.ofile.write('/* End PBXGroup section */\n')
