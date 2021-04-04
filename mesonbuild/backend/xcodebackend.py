@@ -246,7 +246,7 @@ class XCodeBackend(backends.Backend):
             self.generate_pbx_target_dependency(objects_dict)
             objects_dict.add_comment(PbxComment('End PBXTargetDependency section'))
             objects_dict.add_comment(PbxComment('Begin XCBuildPConfiguration section'))
-            self.generate_xc_build_configuration()
+            self.generate_xc_build_configuration(objects_dict)
             objects_dict.add_comment(PbxComment('End XCBuildPConfiguration section'))
             objects_dict.add_comment(PbxComment('Begin XCConfigurationList section'))
             self.generate_xc_configurationList()
@@ -946,78 +946,139 @@ class XCodeBackend(backends.Backend):
             self.write_line('};')
         self.ofile.write('/* End PBXTargetDependency section */\n')
 
-    def generate_xc_build_configuration(self):
+    def generate_xc_build_configuration(self, objects_dict):
         self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
         # First the setup for the toplevel project.
         for buildtype in self.buildtypes:
+            bt_dict = PbxDict()
             self.write_line('{} /* {} */ = {{'.format(self.project_configurations[buildtype], buildtype))
+            objects_dict.add_item(self.project_configurations[buildtype], bt_dict, buildtype)
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
             self.write_line('buildSettings = {')
+            bt_dict.add_item('buildSettings', settings_dict)
             self.indent_level += 1
             self.write_line('ARCHS = "$(ARCHS_STANDARD_64_BIT)";')
+            bt_dict.add_item('ARCHS', '"$(ARCHS_STANDARD_64_BIT)"')
             self.write_line('ONLY_ACTIVE_ARCH = YES;')
+            bt_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
             self.write_line('SDKROOT = "macosx";')
+            bt_dict.add_item('SDKROOT', '"macosx"')
             self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
+            bt_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
             self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
+            bt_dict.add_item('name', f'"{buildtype}"')
             self.indent_level -= 1
             self.write_line('};')
 
         # Then the all target.
         for buildtype in self.buildtypes:
+            bt_dict = PbxDict()
             self.write_line('{} /* {} */ = {{'.format(self.buildall_configurations[buildtype], buildtype))
+            objects_dict.add_item(self.buildall_configurations[buildtype], bt_dict, buildtype)
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
             self.write_line('buildSettings = {')
+            settings_dict = PbxDict()
+            bt_dict.add_item('buildSettings', settings_dict)
             self.indent_level += 1
             self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+            settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
             self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
+            settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
             self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+            settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             self.write_line('INSTALL_PATH = "";')
+            settings_dict.add_item('INSTALL_PATH', '""')
             self.write_line('OTHER_CFLAGS = "  ";')
+            settings_dict.add_item('OTHER_CFLAGS', '" "')
             self.write_line('OTHER_LDFLAGS = " ";')
+            settings_dict.add_item('OTHER_LDFLAGS', '" "')
             self.write_line('OTHER_REZFLAGS = "";')
+            settings_dict.add_item('OTHER_REZFLAGS', '""')
             self.write_line('PRODUCT_NAME = ALL_BUILD;')
+            settings_dict.add_item('PRODUCT_NAME', 'ALL_BUILD')
             self.write_line('SECTORDER_FLAGS = "";')
+            settings_dict.add_item('SECTORDER_FLAGS', '""')
             self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+            settings_dict.add_item('SYMROOT', '"%s"' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
+            settings_dict.add_item('USE_HEADERMAP', 'NO')
             self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
+            warn_array = PbxArray()
+            settings_dict.add_item('WARNING_CFLAGS', warn_array)
+            warn_array.add_item('"-Wmost"')
+            warn_array.add_item('"-Wno-four-char-constants"')
+            warn_array.add_item('"-Wno-unknown-pragmas"')
+        
             self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
+            bt_dict.add_item('name', f'"{buildtype}"')
             self.indent_level -= 1
             self.write_line('};')
 
         # Then the test target.
         for buildtype in self.buildtypes:
+            bt_dict = PbxDict()
             self.write_line('{} /* {} */ = {{'.format(self.test_configurations[buildtype], buildtype))
+            objects_dict.add_item(self.test_configurations[buildtype], bt_dict, buildtype)
             self.indent_level += 1
             self.write_line('isa = XCBuildConfiguration;')
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
             self.write_line('buildSettings = {')
+            bt_dict.add_item('buildSettings', settings_dict)
             self.indent_level += 1
             self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+            settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
             self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
+            settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
             self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', "")
             self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+            settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             self.write_line('INSTALL_PATH = "";')
+            settings_dict.add_item('INSTALL_PATH', '""')
             self.write_line('OTHER_CFLAGS = "  ";')
+            settings_dict.add_item('OTHER_CFLAGS', '" "')
             self.write_line('OTHER_LDFLAGS = " ";')
+            settings_dict.add_item('OTHER_LDFLAGS', '" "')
             self.write_line('OTHER_REZFLAGS = "";')
+            settings_dict.add_item('OTHER_REZFLAGS', '""')
             self.write_line('PRODUCT_NAME = RUN_TESTS;')
+            settings_dict.add_item('PRODUCT_NAME', 'RUN_TESTS')
             self.write_line('SECTORDER_FLAGS = "";')
+            settings_dict.add_item('SECTORDER_FLAGS', '""')
             self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
+            settings_dict.add_item('SYMROOt', '"%s"' % self.environment.get_build_dir())
             self.write_line('USE_HEADERMAP = NO;')
+            settings_dict.add_item('USE_HEADERMAP', 'NO')
             self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
+            warn_array = PbxArray()
+            settings_dict.add_item('WARNING_CFLAGS', warn_array)
+            warn_array.add_item('"-Wmost"')
+            warn_array.add_item('"-Wno-four-char-constants"')
+            warn_array.add_item('"-Wno-unknown-pragmas"')
             self.indent_level -= 1
             self.write_line('};')
             self.write_line('name = "%s";' % buildtype)
+            bt_dict.add_item('name', f'"{buildtype}"')
             self.indent_level -= 1
             self.write_line('};')
 
@@ -1083,23 +1144,35 @@ class XCodeBackend(backends.Backend):
                         langargs[langname] = args
                         langargs[langname] += lang_cargs
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
+                bt_dict = PbxDict()
                 self.write_line(f'{valid} /* {buildtype} */ = {{')
+                objects_dict.add_item('valid', bt_dict, buildtype)
                 self.indent_level += 1
                 self.write_line('isa = XCBuildConfiguration;')
+                bt_dict.add_item('isa', 'XCBuildConfiguration')
+                settings_dict = PbxDict()
                 self.write_line('buildSettings = {')
+                bt_dict.add_item('buildSettings', settings_dict)
                 self.indent_level += 1
                 self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+                settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
                 if dylib_version is not None:
                     self.write_line('DYLIB_CURRENT_VERSION = "%s";' % dylib_version)
+                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
                 self.write_line('EXECUTABLE_PREFIX = "%s";' % target.prefix)
+                settings_dict.add_item('EXECUTABLE_PREFIX', f'"{target.prefix}"')
                 if target.suffix == '':
                     suffix = ''
                 else:
                     suffix = '.' + target.suffix
                 self.write_line('EXECUTABLE_SUFFIX = "%s";' % suffix)
+                settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
                 self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
+                settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
                 self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
+                settings_dict.add_item('GCCL_INLINES_ARE_PRIVATE_EXTERN', 'NO')
                 self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+                settings_dict.add_item('GCC_OPIMIZATION_LEVEL', 0)
                 if target.has_pch:
                     # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                     # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
@@ -1112,29 +1185,50 @@ class XCodeBackend(backends.Backend):
                             mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
                         relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
                         self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
+                        settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
                         self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
+                        settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
                 self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
+                settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
                 self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+                settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
                 if headerdirs:
                     quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
                     self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
+                    settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
                 self.write_line('INSTALL_PATH = "%s";' % install_path)
+                settings_dict.add_item('INSTALL_PATH', f'"{install_path}”')
                 self.write_line('LIBRARY_SEARCH_PATHS = "";')
+                settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
                 if isinstance(target, build.SharedLibrary):
                     self.write_line('LIBRARY_STYLE = DYNAMIC;')
+                    settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
                 for langname, args in langargs.items():
                     self.write_build_setting_line('OTHER_%sFLAGS' % langname, args)
+                    settings_dict.add_item(f'OTHER_{langname}FLAGS', args)
                 self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
+                settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
                 self.write_line('OTHER_REZFLAGS = "";')
+                settings_dict.add_item('OTHER_REZFLAGS', '""')
                 self.write_line('PRODUCT_NAME = %s;' % product_name)
+                settings_dict.add_item('PRODUCT_NAME', product_name)
                 self.write_line('SECTORDER_FLAGS = "";')
+                settings_dict.add_item('SECTORDER_FLAGS', '""')
                 self.write_line('SYMROOT = "%s";' % symroot)
+                settings_dict.add_item('SYMROOT', f'"{symroot}"')
                 self.write_build_setting_line('SYSTEM_HEADER_SEARCH_PATHS', [self.environment.get_build_dir()])
-                self.write_line('USE_HEADERMAP = NO;')
+                settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"%s"'.format(self.environment.get_build_dir()))
+                self.write_line('USE_HEADERMAP = NO;'), 
                 self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
+                warn_array = PbxArray()
+                settings_dict.add_item('WARNING_CFLAGS', warn_array)
+                warn_array.add_item('"-Wmost"')
+                warn_array.add_item('"-Wno-four-char-constants"')
+                warn_array.add_item('"-Wno-unknown-pragmas"')
                 self.indent_level -= 1
                 self.write_line('};')
                 self.write_line('name = %s;' % buildtype)
+                bt_dict.add_item('name', f'"{buildtype}"')
                 self.indent_level -= 1
                 self.write_line('};')
         self.ofile.write('/* End XCBuildConfiguration section */\n')
