@@ -2094,6 +2094,11 @@ the following methods.
   returns the "cross" compiler if we're currently cross-compiling and
   the "native" compiler if we're not.
 
+- `get_command()`:
+  *(since 0.60.0)*: returns an array which allows to run meson using run_command.
+  The first element is an executable. The following elements are possible
+  arguments to the executable. The result is platform specific.
+
 - `get_cross_property(propname, fallback_value)`:
   *Deprecated since 0.58.0, use `get_external_property()` instead*.
   Returns the given property from a cross file, the optional fallback_value
