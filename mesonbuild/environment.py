@@ -748,12 +748,20 @@ class Environment:
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
+
+        # Look for any options in the deprecated paths section, warn about
+        # those, then assign them. They will be overwritten by the ones in the
+        # "built-in options" section if they're in both sections.
         paths = config.get('paths')
         if paths:
             mlog.deprecation('The [paths] section is deprecated, use the [built-in options] section instead.')
             for k, v in paths.items():
                 self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
-        deprecated_properties = set()
+
+        # Next look for compiler options in the "properties" section, this is
+        # also deprecated, and these will also be overwritten by the "built-in
+        # options" section. We need to remove these from this section, as well.
+        deprecated_properties: T.Set[str] = set()
         for lang in compilers.all_languages:
             deprecated_properties.add(lang + '_args')
             deprecated_properties.add(lang + '_link_args')
@@ -762,6 +770,7 @@ class Environment:
                 mlog.deprecation('{} in the [properties] section of the machine file is deprecated, use the [built-in options] section.'.format(k))
                 self.options[OptionKey.from_string(k).evolve(machine=machine)] = v
                 del properties.properties[k]
+
         for section, values in config.items():
             if ':' in section:
                 subproject, section = section.split(':')
@@ -778,7 +787,7 @@ class Environment:
                     self.options[key.evolve(subproject=subproject, machine=machine)] = v
             elif section == 'project options':
                 for k, v in values.items():
-                    # Project options are always for the machine machine
+                    # Project options are always for the host machine
                     key = OptionKey.from_string(k)
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
