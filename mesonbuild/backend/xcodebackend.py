@@ -916,7 +916,7 @@ class XCodeBackend(backends.Backend):
         confs_arr = PbxArray()
         conf_dict.add_item('buildConfigurations', confs_arr)
         for buildtype in self.buildtypes:
-            confs_arr.add_item(self.project_configurations[self.buildtype], self.buildtype)
+            confs_arr.add_item(self.project_configurations[buildtype], buildtype)
         conf_dict.add_item('defaultConfigurationIsVisible', 0)
         conf_dict.add_item('defaultConfigurationName', self.buildtype)
 
