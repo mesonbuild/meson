@@ -1,4 +1,4 @@
-# Getting meson
+# Getting Meson
 
 Meson is implemented in Python 3, and requires 3.6 or newer. If your
 operating system provides a package manager, you should install it

@@ -1,6 +1,7 @@
 index.md
 	SimpleStart.md
 	Getting-meson.md
+		Getting_Meson_zh.md
 	Quick-guide.md
 	Tutorial.md
 	Manual.md
