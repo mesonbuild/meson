@@ -662,7 +662,7 @@ class Environment:
                     self.options[key.as_build()] = value
             self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
         else:
-            # IF we aren't cross compiling, but we hav ea native file, the
+            # If we aren't cross compiling, but we have a native file, the
             # native file is for the host. This is due to an mismatch between
             # meson internals which talk about build an host, and external
             # interfaces which talk about native and cross.
