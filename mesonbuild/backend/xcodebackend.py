@@ -54,7 +54,7 @@ OPT2XCODEOPT = {'0': '0',
                 '3': '3',
                 's': 's',
                 }
-
+BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -738,7 +738,6 @@ class XCodeBackend(backends.Backend):
             settings_dict = PbxDict()
             bt_dict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
@@ -766,7 +765,6 @@ class XCodeBackend(backends.Backend):
             settings_dict = PbxDict()
             bt_dict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
@@ -864,7 +862,7 @@ class XCodeBackend(backends.Backend):
             else:
                 suffix = '.' + target.suffix
             settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
-            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_option_for_target(OptionKey('debug'), target)])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[self.get_option_for_target(OptionKey('optimization'), target)])
             if target.has_pch:
