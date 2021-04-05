@@ -42,6 +42,11 @@ XCODETYPEMAP = {'c': 'sourcecode.c.c',
                 's': 'sourcecode.asm',
                 'asm': 'sourcecode.asm',
                 }
+LANGNAMEMAP = {'c': 'C',
+               'cpp': 'CPLUSPLUS',
+               'objc': 'OBJC',
+               'objcpp': 'OBJCPLUSPLUS',
+               }
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -727,7 +732,6 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
             settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('INSTALL_PATH', '""')
@@ -756,7 +760,6 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
             settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('INSTALL_PATH', '""')
@@ -775,121 +778,124 @@ class XCodeBackend(backends.Backend):
             bt_dict.add_item('name', f'"{buildtype}"')
 
         # Now finally targets.
-        langnamemap = {'c': 'C', 'cpp': 'CPLUSPLUS', 'objc': 'OBJC', 'objcpp': 'OBJCPLUSPLUS'}
         for target_name, target in self.build.get_build_targets().items():
-            for buildtype in self.buildtypes:
-                dep_libs = []
-                links_dylib = False
-                headerdirs = []
-                for d in target.include_dirs:
-                    for sd in d.incdirs:
-                        cd = os.path.join(d.curdir, sd)
-                        headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
-                        headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
-                for l in target.link_targets:
-                    abs_path = os.path.join(self.environment.get_build_dir(),
-                                            l.subdir, buildtype, l.get_filename())
-                    dep_libs.append("'%s'" % abs_path)
-                    if isinstance(l, build.SharedLibrary):
-                        links_dylib = True
-                if links_dylib:
-                    dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
-                dylib_version = None
-                if isinstance(target, build.SharedLibrary):
-                    ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
-                    install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
-                    dylib_version = target.soversion
-                else:
-                    ldargs = dep_libs
-                    install_path = ''
-                if dylib_version is not None:
-                    product_name = target.get_basename() + '.' + dylib_version
-                else:
-                    product_name = target.get_basename()
-                ldargs += target.link_args
-                linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-                ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
-                ldargs += self.build.get_global_link_args(linker, target.for_machine)
-                cargs = []
-                for dep in target.get_external_deps():
-                    cargs += dep.get_compile_args()
-                    ldargs += dep.get_link_args()
-                ldstr = ' '.join(ldargs)
-                valid = self.buildconfmap[target_name][buildtype]
-                langargs = {}
-                for lang in self.environment.coredata.compilers[target.for_machine]:
-                    if lang not in langnamemap:
-                        continue
-                    # Add compile args added using add_project_arguments()
-                    pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
-                    # Add compile args added using add_global_arguments()
-                    # These override per-project arguments
-                    gargs = self.build.global_args[target.for_machine].get(lang, [])
-                    targs = target.get_extra_args(lang)
-                    args = pargs + gargs + targs
-                    if args:
-                        langname = langnamemap[lang]
-                        compiler = target.compilers.get(lang)
-                        lang_cargs = cargs
-                        if compiler and target.implicit_include_directories:
-                            lang_cargs += self.get_build_dir_include_args(target, compiler)
-                        langargs[langname] = args
-                        langargs[langname] += lang_cargs
-                symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
-                bt_dict = PbxDict()
-                objects_dict.add_item(valid, bt_dict, buildtype)
-                bt_dict.add_item('isa', 'XCBuildConfiguration')
-                settings_dict = PbxDict()
-                bt_dict.add_item('buildSettings', settings_dict)
-                settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
-                if dylib_version is not None:
-                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
-                settings_dict.add_item('EXECUTABLE_PREFIX', f'"{target.prefix}"')
-                if target.suffix == '':
-                    suffix = ''
-                else:
-                    suffix = '.' + target.suffix
-                settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
-                settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
-                settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-                settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
-                if target.has_pch:
-                    # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
-                    # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
-                    # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
-                    pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
-                    # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
-                    pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
-                    if pchs:
-                        if len(pchs) > 1:
-                            mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
-                        relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
-                        settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
-                        settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
-                settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
-                settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
-                if headerdirs:
-                    quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
-                    settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
-                settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
-                settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
-                if isinstance(target, build.SharedLibrary):
-                    settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
-                for langname, args in langargs.items():
-                    settings_dict.add_item(f'OTHER_{langname}FLAGS', args)
-                settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
-                settings_dict.add_item('OTHER_REZFLAGS', '""')
-                settings_dict.add_item('PRODUCT_NAME', product_name)
-                settings_dict.add_item('SECTORDER_FLAGS', '""')
-                settings_dict.add_item('SYMROOT', f'"{symroot}"')
-                settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"{}"'.format(self.environment.get_build_dir()))
-                settings_dict.add_item('USE_HEADERMAP', 'NO')
-                warn_array = PbxArray()
-                settings_dict.add_item('WARNING_CFLAGS', warn_array)
-                warn_array.add_item('"-Wmost"')
-                warn_array.add_item('"-Wno-four-char-constants"')
-                warn_array.add_item('"-Wno-unknown-pragmas"')
-                bt_dict.add_item('name', buildtype)
+            self.generate_single_build_target(objects_dict, target_name, target)
+
+        
+    def generate_single_build_target(self, objects_dict, target_name, target):
+        for buildtype in self.buildtypes:
+            dep_libs = []
+            links_dylib = False
+            headerdirs = []
+            for d in target.include_dirs:
+                for sd in d.incdirs:
+                    cd = os.path.join(d.curdir, sd)
+                    headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
+                    headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
+            for l in target.link_targets:
+                abs_path = os.path.join(self.environment.get_build_dir(),
+                                        l.subdir, buildtype, l.get_filename())
+                dep_libs.append("'%s'" % abs_path)
+                if isinstance(l, build.SharedLibrary):
+                    links_dylib = True
+            if links_dylib:
+                dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
+            dylib_version = None
+            if isinstance(target, build.SharedLibrary):
+                ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
+                install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
+                dylib_version = target.soversion
+            else:
+                ldargs = dep_libs
+                install_path = ''
+            if dylib_version is not None:
+                product_name = target.get_basename() + '.' + dylib_version
+            else:
+                product_name = target.get_basename()
+            ldargs += target.link_args
+            linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
+            ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
+            ldargs += self.build.get_global_link_args(linker, target.for_machine)
+            cargs = []
+            for dep in target.get_external_deps():
+                cargs += dep.get_compile_args()
+                ldargs += dep.get_link_args()
+            ldstr = ' '.join(ldargs)
+            valid = self.buildconfmap[target_name][buildtype]
+            langargs = {}
+            for lang in self.environment.coredata.compilers[target.for_machine]:
+                if lang not in LANGNAMEMAP:
+                    continue
+                # Add compile args added using add_project_arguments()
+                pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
+                # Add compile args added using add_global_arguments()
+                # These override per-project arguments
+                gargs = self.build.global_args[target.for_machine].get(lang, [])
+                targs = target.get_extra_args(lang)
+                args = pargs + gargs + targs
+                if args:
+                    langname = langnamemap[lang]
+                    compiler = target.compilers.get(lang)
+                    lang_cargs = cargs
+                    if compiler and target.implicit_include_directories:
+                        lang_cargs += self.get_build_dir_include_args(target, compiler)
+                    langargs[langname] = args
+                    langargs[langname] += lang_cargs
+            symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
+            bt_dict = PbxDict()
+            objects_dict.add_item(valid, bt_dict, buildtype)
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
+            bt_dict.add_item('buildSettings', settings_dict)
+            settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
+            if dylib_version is not None:
+                settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
+            settings_dict.add_item('EXECUTABLE_PREFIX', f'"{target.prefix}"')
+            if target.suffix == '':
+                suffix = ''
+            else:
+                suffix = '.' + target.suffix
+            settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
+            settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
+            if target.has_pch:
+                # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
+                # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
+                # file. Since Xcode itself already discourages precompiled headers in favor of modules we don't try much harder here.
+                pchs = target.get_pch('c') + target.get_pch('cpp') + target.get_pch('objc') + target.get_pch('objcpp')
+                # Make sure to use headers (other backends require implementation files like *.c *.cpp, etc; these should not be used here)
+                pchs = [pch for pch in pchs if pch.endswith('.h') or pch.endswith('.hh') or pch.endswith('hpp')]
+                if pchs:
+                    if len(pchs) > 1:
+                        mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
+                    relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
+                    settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
+                    settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
+            settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
+            if headerdirs:
+                quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
+                settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
+            settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
+            settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
+            if isinstance(target, build.SharedLibrary):
+                settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
+            for langname, args in langargs.items():
+                settings_dict.add_item(f'OTHER_{langname}FLAGS', args)
+            settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
+            settings_dict.add_item('OTHER_REZFLAGS', '""')
+            settings_dict.add_item('PRODUCT_NAME', product_name)
+            settings_dict.add_item('SECTORDER_FLAGS', '""')
+            settings_dict.add_item('SYMROOT', f'"{symroot}"')
+            settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"{}"'.format(self.environment.get_build_dir()))
+            settings_dict.add_item('USE_HEADERMAP', 'NO')
+            warn_array = PbxArray()
+            settings_dict.add_item('WARNING_CFLAGS', warn_array)
+            warn_array.add_item('"-Wmost"')
+            warn_array.add_item('"-Wno-four-char-constants"')
+            warn_array.add_item('"-Wno-unknown-pragmas"')
+            bt_dict.add_item('name', buildtype)
 
     def generate_xc_configurationList(self, objects_dict):
         # FIXME: sort items
