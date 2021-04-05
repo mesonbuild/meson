@@ -1,4 +1,4 @@
-# Copyright 2014-2016 The Meson development team
+# Copyright 2014-2021 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,32 +23,147 @@ import typing as T
 from ..mesonlib import MesonException
 from ..interpreter import Interpreter
 
+INDENT = '\t'
+XCODETYPEMAP = {'c': 'sourcecode.c.c',
+                'a': 'archive.ar',
+                'cc': 'sourcecode.cpp.cpp',
+                'cxx': 'sourcecode.cpp.cpp',
+                'cpp': 'sourcecode.cpp.cpp',
+                'c++': 'sourcecode.cpp.cpp',
+                'm': 'sourcecode.c.objc',
+                'mm': 'sourcecode.cpp.objcpp',
+                'h': 'sourcecode.c.h',
+                'hpp': 'sourcecode.cpp.h',
+                'hxx': 'sourcecode.cpp.h',
+                'hh': 'sourcecode.cpp.hh',
+                'inc': 'sourcecode.c.h',
+                'dylib': 'compiled.mach-o.dylib',
+                'o': 'compiled.mach-o.objfile',
+                's': 'sourcecode.asm',
+                'asm': 'sourcecode.asm',
+                }
+
+class PbxItem:
+    def __init__(self, value, comment = ''):
+        self.value = value
+        self.comment = comment
+
+class PbxArray:
+    def __init__(self):
+        self.items = []
+
+    def add_item(self, item, comment=''):
+        if isinstance(item, PbxArrayItem):
+            self.items.append(item)
+        else:
+            self.items.append(PbxArrayItem(item, comment))
+
+    def write(self, ofile, indent_level):
+        ofile.write('(\n')
+        indent_level += 1
+        for i in self.items:
+            if i.comment:
+                ofile.write(indent_level*INDENT + f'{i.value} {i.comment},\n')
+            else:
+                ofile.write(indent_level*INDENT + f'{i.value},\n')
+        indent_level -= 1
+        ofile.write(indent_level*INDENT + ');\n')
+
+class PbxArrayItem:
+    def __init__(self, value, comment = ''):
+        self.value = value
+        if comment:
+            if '/*' in comment:
+                self.comment = comment
+            else:
+                self.comment = f'/* {comment} */'
+        else:
+            self.comment = comment
+
+class PbxComment:
+    def __init__(self, text):
+        assert(isinstance(text, str))
+        assert('/*' not in text)
+        self.text = f'/* {text} */'
+
+    def write(self, ofile, indent_level):
+        ofile.write(f'\n{self.text}\n')
+
+class PbxDictItem:
+    def __init__(self, key, value, comment = ''):
+        self.key = key
+        self.value = value
+        if comment:
+            if '/*' in comment:
+                self.comment = comment
+            else:
+                self.comment = f'/* {comment} */'
+        else:
+            self.comment = comment
+
+class PbxDict:
+    def __init__(self):
+        # This class is a bit weird, because we want to write PBX dicts in
+        # defined order _and_ we want to write intermediate comments also in order.
+        self.keys = set()
+        self.items = []
+
+    def add_item(self, key, value, comment=''):
+        item = PbxDictItem(key, value, comment)
+        assert(key not in self.keys)
+        self.keys.add(key)
+        self.items.append(item)
+
+    def add_comment(self, comment):
+        if isinstance(comment, str):
+            self.items.append(PbxComment(str))
+        else:
+            assert(isinstance(comment, PbxComment))
+            self.items.append(comment)
+
+    def write(self, ofile, indent_level):
+        ofile.write('{\n')
+        indent_level += 1
+        for i in self.items:
+            if isinstance(i, PbxComment):
+                i.write(ofile, indent_level)
+            elif isinstance(i, PbxDictItem):
+                if isinstance(i.value, (str, int)):
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} = {i.value} {i.comment};\n')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = {i.value};\n')
+                elif isinstance(i.value, PbxDict):
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = ')
+                    i.value.write(ofile, indent_level)
+                elif isinstance(i.value, PbxArray):
+                    if i.comment:
+                        ofile.write(indent_level*INDENT + f'{i.key} {i.comment} = ')
+                    else:
+                        ofile.write(indent_level*INDENT + f'{i.key} = ')
+                    i.value.write(ofile, indent_level)
+                else:
+                    raise RuntimeError('missing code')
+            else:
+                print(i)
+                raise RuntimeError('missing code2')
+
+        indent_level -= 1
+        ofile.write(indent_level*INDENT + '}')
+        if indent_level == 0:
+            ofile.write('\n')
+        else:
+            ofile.write(';\n')
+
 class XCodeBackend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
         super().__init__(build, interpreter)
         self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
         self.project_conflist = self.gen_id()
-        self.indent = '\t' # Recent versions of Xcode uses tabs
-        self.indent_level = 0
-        self.xcodetypemap = {'c': 'sourcecode.c.c',
-                             'a': 'archive.ar',
-                             'cc': 'sourcecode.cpp.cpp',
-                             'cxx': 'sourcecode.cpp.cpp',
-                             'cpp': 'sourcecode.cpp.cpp',
-                             'c++': 'sourcecode.cpp.cpp',
-                             'm': 'sourcecode.c.objc',
-                             'mm': 'sourcecode.cpp.objcpp',
-                             'h': 'sourcecode.c.h',
-                             'hpp': 'sourcecode.cpp.h',
-                             'hxx': 'sourcecode.cpp.h',
-                             'hh': 'sourcecode.cpp.hh',
-                             'inc': 'sourcecode.c.h',
-                             'dylib': 'compiled.mach-o.dylib',
-                             'o': 'compiled.mach-o.objfile',
-                             's': 'sourcecode.asm',
-                             'asm': 'sourcecode.asm',
-                             }
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
@@ -56,6 +171,12 @@ class XCodeBackend(backends.Backend):
         self.test_id = self.gen_id()
         self.test_command_id = self.gen_id()
         self.test_buildconf_id = self.gen_id()
+        self.top_level_dict = PbxDict()
+
+    def write_pbxfile(self, top_level_dict, ofilename):
+        with open(ofilename, 'w') as ofile:
+            ofile.write('// !$*UTF8*$!\n')
+            top_level_dict.write(ofile, 0)
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -70,11 +191,6 @@ class XCodeBackend(backends.Backend):
             return ''
         directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
-
-    def write_line(self, text):
-        self.ofile.write(self.indent * self.indent_level + text)
-        if not text.endswith('\n'):
-            self.ofile.write('\n')
 
     def generate(self):
         test_data = self.serialize_tests()[0]
@@ -96,26 +212,54 @@ class XCodeBackend(backends.Backend):
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
-        with open(self.proj_file, 'w') as self.ofile:
-            self.generate_prefix()
-            self.generate_pbx_aggregate_target()
-            self.generate_pbx_build_file()
-            self.generate_pbx_build_style()
-            self.generate_pbx_container_item_proxy()
-            self.generate_pbx_file_reference()
-            self.generate_pbx_frameworks_buildphase()
-            self.generate_pbx_group()
-            self.generate_pbx_native_target()
-            self.generate_pbx_project()
-            self.generate_pbx_shell_build_phase(test_data)
-            self.generate_pbx_sources_build_phase()
-            self.generate_pbx_target_dependency()
-            self.generate_xc_build_configuration()
-            self.generate_xc_configurationList()
-            self.generate_suffix()
+        objects_dict = self.generate_prefix(self.top_level_dict)
+        objects_dict.add_comment(PbxComment('Begin PBXAggregateTarget section'))
+        self.generate_pbx_aggregate_target(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXAggregateTarget section'))
+        objects_dict.add_comment(PbxComment('Begin PBXBuildFile section'))
+        self.generate_pbx_build_file(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXBuildFile section'))
+        objects_dict.add_comment(PbxComment('Begin PBXBuildStyle section'))
+        self.generate_pbx_build_style(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXBuildStyle section'))
+        objects_dict.add_comment(PbxComment('Begin PBXContainerItemProxy section'))
+        self.generate_pbx_container_item_proxy(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXContainerItemProxy section'))
+        objects_dict.add_comment(PbxComment('Begin PBXFileReference section'))
+        self.generate_pbx_file_reference(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXFileReference section'))
+        objects_dict.add_comment(PbxComment('Begin PBXFrameworksBuildPhase section'))
+        self.generate_pbx_frameworks_buildphase(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXFrameworksBuildPhase section'))
+        objects_dict.add_comment(PbxComment('Begin PBXGroup section'))
+        self.generate_pbx_group(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXGroup section'))
+        objects_dict.add_comment(PbxComment('Begin PBXNativeTarget section'))
+        self.generate_pbx_native_target(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXNativeTarget section'))
+        objects_dict.add_comment(PbxComment('Begin PBXProject section'))
+        self.generate_pbx_project(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXProject section'))
+        objects_dict.add_comment(PbxComment('Begin PBXShellScriptBuildPhase section'))
+        self.generate_pbx_shell_build_phase(objects_dict, test_data)
+        objects_dict.add_comment(PbxComment('End PBXShellScriptBuildPhase section'))
+        objects_dict.add_comment(PbxComment('Begin PBXSourcesBuildPhase section'))
+        self.generate_pbx_sources_build_phase(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXSourcesBuildPhase section'))
+        objects_dict.add_comment(PbxComment('Begin PBXTargetDependency section'))
+        self.generate_pbx_target_dependency(objects_dict)
+        objects_dict.add_comment(PbxComment('End PBXTargetDependency section'))
+        objects_dict.add_comment(PbxComment('Begin XCBuildConfiguration section'))
+        self.generate_xc_build_configuration(objects_dict)
+        objects_dict.add_comment(PbxComment('End XCBuildConfiguration section'))
+        objects_dict.add_comment(PbxComment('Begin XCConfigurationList section'))
+        self.generate_xc_configurationList(objects_dict)
+        objects_dict.add_comment(PbxComment('End XCConfigurationList section'))
+        self.generate_suffix(self.top_level_dict)
+        self.write_pbxfile(self.top_level_dict, self.proj_file)
 
     def get_xcodetype(self, fname):
-        xcodetype = self.xcodetypemap.get(fname.split('.')[-1].lower())
+        xcodetype = XCODETYPEMAP.get(fname.split('.')[-1].lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
             mlog.warning(f'Unknown file type "{fname}" fallbacking to "{xcodetype}". Xcode project might be malformed.')
@@ -215,52 +359,42 @@ class XCodeBackend(backends.Backend):
         for t in self.build.get_build_targets():
             self.source_phase[t] = self.gen_id()
 
-    def generate_pbx_aggregate_target(self):
+    def generate_pbx_aggregate_target(self, objects_dict):
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build.get_build_targets()))
         aggregated_targets = []
         aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies))
         aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], []))
         # Sort objects by ID before writing
         sorted_aggregated_targets = sorted(aggregated_targets, key=operator.itemgetter(0))
-        self.ofile.write('\n/* Begin PBXAggregateTarget section */\n')
         for t in sorted_aggregated_targets:
+            agt_dict = PbxDict()
             name = t[1]
             buildconf_id = t[2]
             build_phases = t[3]
             dependencies = t[4]
-            self.write_line('{} /* {} */ = {{'.format(t[0], name))
-            self.indent_level += 1
-            self.write_line('isa = PBXAggregateTarget;')
-            self.write_line(f'buildConfigurationList = {buildconf_id} /* Build configuration list for PBXAggregateTarget "{name}" */;')
-            self.write_line('buildPhases = (')
-            self.indent_level += 1
+            agt_dict.add_item('isa', 'PBXAggregateTarget')
+            agt_dict.add_item('buildConfigurationList', buildconf_id, f'Build configuration list for PBXAggregateTarget "{name}"')
+            bp_arr = PbxArray()
+            agt_dict.add_item('buildPhases', bp_arr)
             for bp in build_phases:
-                self.write_line('%s /* ShellScript */,' % bp)
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('dependencies = (')
-            self.indent_level += 1
+                bp_arr.add_item(bp, 'ShellScript')
+            dep_arr = PbxArray()
+            agt_dict.add_item('dependencies', dep_arr)
             for td in dependencies:
-                self.write_line('%s /* PBXTargetDependency */,' % td)
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('name = %s;' % name)
-            self.write_line('productName = %s;' % name)
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End PBXAggregateTarget section */\n')
+                dep_arr.add_item(td, 'PBXTargetDependency')
+            agt_dict.add_item('name', name)
+            agt_dict.add_item('productName', name)
+            objects_dict.add_item(t[0], agt_dict, name)
 
-    def generate_pbx_build_file(self):
-        self.ofile.write('\n/* Begin PBXBuildFile section */\n')
-        templ = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */; settings = { COMPILER_FLAGS = "%s"; }; };\n'
-        otempl = '%s /* %s */ = { isa = PBXBuildFile; fileRef = %s /* %s */;};\n'
-
+    def generate_pbx_build_file(self, objects_dict):
         for t in self.build.get_build_targets().values():
-
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('{} /* {}.framework in Frameworks */ = {{isa = PBXBuildFile; fileRef = {} /* {}.framework */; }};\n'.format(self.native_frameworks[f], f, self.native_frameworks_fileref[f], f))
+                        fw_dict = PbxDict()
+                        objects_dict.add:item(self.native_frameworks[f], fw_dict, f'{f}.framework in Frameworks')
+                        fw_dict.add_item('isa', 'PBXBuildFile')
+                        fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
@@ -268,68 +402,80 @@ class XCodeBackend(backends.Backend):
 
                 if isinstance(s, str):
                     s = os.path.join(t.subdir, s)
+                    sdict = PbxDict()
                     idval = self.buildmap[s]
                     fullpath = os.path.join(self.environment.get_source_dir(), s)
                     fileref = self.filemap[s]
                     fullpath2 = fullpath
                     compiler_args = ''
-                    self.write_line(templ % (idval, fullpath, fileref, fullpath2, compiler_args))
+                    sdict.add_item('isa', 'PBXBuildFile')
+                    sdict.add_item('fileRef', fileref, fullpath2)
+                    settingdict = PbxDict()
+                    settingdict.add_item('COMPILER_FLAGS', '"' + compiler_args + '"')
+                    sdict.add_item('settings', settingdict)
+                    objects_dict.add_item(idval, sdict)
+
             for o in t.objects:
                 o = os.path.join(t.subdir, o)
                 idval = self.buildmap[o]
                 fileref = self.filemap[o]
                 fullpath = os.path.join(self.environment.get_source_dir(), o)
                 fullpath2 = fullpath
-                self.write_line(otempl % (idval, fullpath, fileref, fullpath2))
-        self.ofile.write('/* End PBXBuildFile section */\n')
+                o_dict = PbxDict()
+                objects_dict.add_item(idval, o_dict, fullpath)
+                o_dict.add_item('isa', 'PBXBuildFile')
+                o_dict.add_item('fileRef', fileref, fullpath2)
 
-    def generate_pbx_build_style(self):
+    def generate_pbx_build_style(self, objects_dict):
         # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
-        self.ofile.write('\n/* Begin PBXBuildStyle section */\n')
         for name, idval in self.buildstylemap.items():
-            self.write_line(f'{idval} /* {name} */ = {{\n')
-            self.indent_level += 1
-            self.write_line('isa = PBXBuildStyle;\n')
-            self.write_line('buildSettings = {\n')
-            self.indent_level += 1
-            self.write_line('COPY_PHASE_STRIP = NO;\n')
-            self.indent_level -= 1
-            self.write_line('};\n')
-            self.write_line('name = "%s";\n' % name)
-            self.indent_level -= 1
-            self.write_line('};\n')
-        self.ofile.write('/* End PBXBuildStyle section */\n')
+            styledict = PbxDict()
+            objects_dict.add_item(idval, styledict, name)
+            styledict.add_item('isa', 'PBXBuildStyle')
+            settings_dict = PbxDict()
+            styledict.add_item('buildSettings', settings_dict)
+            settings_dict.add_item('COPY_PHASE_STRIP', 'NO')
+            styledict.add_item('name', f'"{name}"')
 
-    def generate_pbx_container_item_proxy(self):
-        self.ofile.write('\n/* Begin PBXContainerItemProxy section */\n')
+    def generate_pbx_container_item_proxy(self, objects_dict):
         for t in self.build.get_build_targets():
-            self.write_line('%s /* PBXContainerItemProxy */ = {' % self.containerproxy_map[t])
-            self.indent_level += 1
-            self.write_line('isa = PBXContainerItemProxy;')
-            self.write_line('containerPortal = %s /* Project object */;' % self.project_uid)
-            self.write_line('proxyType = 1;')
-            self.write_line('remoteGlobalIDString = %s;' % self.native_targets[t])
-            self.write_line('remoteInfo = "%s";' % t)
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End PBXContainerItemProxy section */\n')
+            proxy_dict = PbxDict()
+            objects_dict.add_item(self.containerproxy_map[t], proxy_dict, 'PBXContainerItemProxy')
+            proxy_dict.add_item('isa', 'PBXContainerItemProxy')
+            proxy_dict.add_item('containerPortal', self.project_uid, 'Project object')
+            proxy_dict.add_item('proxyType', '1')
+            proxy_dict.add_item('remoteGlobalIDString', self.native_targets[t])
+            proxy_dict.add_item('remoteInfo', '"' + t + '"')
 
-    def generate_pbx_file_reference(self):
-        self.ofile.write('\n/* Begin PBXFileReference section */\n')
+    def generate_pbx_file_reference(self, objects_dict):
         for t in self.build.get_build_targets().values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('{} /* {}.framework */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = {}.framework; path = System/Library/Frameworks/{}.framework; sourceTree = SDKROOT; }};\n'.format(self.native_frameworks_fileref[f], f, f, f))
-        src_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; fileEncoding = 4; name = "%s"; path = "%s"; sourceTree = SOURCE_ROOT; };\n'
+                        # FIXME not ported
+                        fw_dict = PbxDict()
+                        objects_dict.add_item(self.native_frameworks_fileref[f], fw_dict, f)
+                        fw_dict.add_item('isa', 'PBXFileReference')
+                        fw_dict.add_item('lastKnownFileType', 'wrapper.framework')
+                        fw_dict.add_item('name', f'{f}.framework')
+                        fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
+                        fw_dict.add_item('sourceTree', 'SDKROOT')
         for fname, idval in self.filemap.items():
+            src_dict = PbxDict()
             fullpath = os.path.join(self.environment.get_source_dir(), fname)
             xcodetype = self.get_xcodetype(fname)
             name = os.path.basename(fname)
             path = fname
-            self.write_line(src_templ % (idval, fullpath, xcodetype, name, path))
-        target_templ = '%s /* %s */ = { isa = PBXFileReference; explicitFileType = "%s"; path = %s; refType = %d; sourceTree = BUILT_PRODUCTS_DIR; };\n'
+            objects_dict.add_item(idval, src_dict, fullpath)
+            src_dict.add_item('isa', 'PBXFileReference')
+            src_dict.add_item('explicitFileType', '"' + xcodetype + '"')
+            src_dict.add_item('fileEncoding', '4')
+            src_dict.add_item('name', '"' + name + '"')
+            src_dict.add_item('path', '"' + path + '"')
+            src_dict.add_item('sourceTree', 'SOURCE_ROOT')
         for tname, idval in self.target_filemap.items():
+            target_dict = PbxDict()
+            objects_dict.add_item(idval, target_dict, tname)
             t = self.build.get_build_targets()[tname]
             fname = t.get_filename()
             reftype = 0
@@ -342,178 +488,141 @@ class XCodeBackend(backends.Backend):
             else:
                 typestr = self.get_xcodetype(fname)
                 path = '"%s"' % t.get_filename()
-            self.write_line(target_templ % (idval, tname, typestr, path, reftype))
-        self.ofile.write('/* End PBXFileReference section */\n')
+            target_dict.add_item('isa', 'PBXFileReference')
+            target_dict.add_item('explicitFileType', '"' + typestr + '"')
+            target_dict.add_item('path', path)
+            target_dict.add_item('refType', reftype)
+            target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
 
-    def generate_pbx_frameworks_buildphase(self):
+    def generate_pbx_frameworks_buildphase(self, objects_dict):
         for t in self.build.get_build_targets().values():
-            self.ofile.write('\n/* Begin PBXFrameworksBuildPhase section */\n')
-            self.write_line('{} /* {} */ = {{\n'.format(t.buildphasemap['Frameworks'], 'Frameworks'))
-            self.indent_level += 1
-            self.write_line('isa = PBXFrameworksBuildPhase;\n')
-            self.write_line('buildActionMask = %s;\n' % (2147483647))
-            self.write_line('files = (\n')
-            self.indent_level += 1
+            bt_dict = PbxDict()
+            objects_dict.add_item(t.buildphasemap['Frameworks'], bt_dict, 'Frameworks')
+            bt_dict.add_item('isa', 'PBXFrameworksBuildPhase')
+            bt_dict.add_item('buildActionMask', 2147483647)
+            file_list = PbxArray()
+            bt_dict.add_item('files', file_list)
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('{} /* {}.framework in Frameworks */,\n'.format(self.native_frameworks[f], f))
-            self.indent_level -= 1
-            self.write_line(');\n')
-            self.write_line('runOnlyForDeploymentPostprocessing = 0;\n')
-            self.indent_level -= 1
-            self.write_line('};\n')
-        self.ofile.write('/* End PBXFrameworksBuildPhase section */\n')
+                        file_list.add_item(self.native_frameworks[f], f'{f}.framework in Frameworks')
+            bt_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
-    def generate_pbx_group(self):
+    def generate_pbx_group(self, objects_dict):
         groupmap = {}
         target_src_map = {}
         for t in self.build.get_build_targets():
             groupmap[t] = self.gen_id()
             target_src_map[t] = self.gen_id()
-        self.ofile.write('\n/* Begin PBXGroup section */\n')
         sources_id = self.gen_id()
         resources_id = self.gen_id()
         products_id = self.gen_id()
-        frameworks_id = self.gen_id()
-        self.write_line('%s = {' % self.maingroup_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXGroup;')
-        self.write_line('children = (')
-        self.indent_level += 1
-        self.write_line('%s /* Sources */,' % sources_id)
-        self.write_line('%s /* Resources */,' % resources_id)
-        self.write_line('%s /* Products */,' % products_id)
-        self.write_line('%s /* Frameworks */,' % frameworks_id)
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('sourceTree = "<group>";')
-        self.indent_level -= 1
-        self.write_line('};')
+        frameworks_id = self.gen_id()        
+        main_dict = PbxDict()
+        objects_dict.add_item(self.maingroup_id, main_dict)
+        main_dict.add_item('isa', 'PBXGroup')
+        main_children = PbxArray()
+        main_dict.add_item('children', main_children)
+        main_children.add_item(sources_id, 'Sources')
+        main_children.add_item(resources_id, 'Resources')
+        main_children.add_item(products_id, 'Products')
+        main_children.add_item(frameworks_id, 'Frameworks')
+        main_dict.add_item('sourceTree', '"<group>"')
 
         # Sources
-        self.write_line('%s /* Sources */ = {' % sources_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXGroup;')
-        self.write_line('children = (')
-        self.indent_level += 1
+        source_dict = PbxDict()
+        objects_dict.add_item(sources_id, source_dict, 'Sources')
+        source_dict.add_item('isa', 'PBXGroup')
+        source_children = PbxArray()
+        source_dict.add_item('children', source_children)
         for t in self.build.get_build_targets():
-            self.write_line('{} /* {} */,'.format(groupmap[t], t))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('name = Sources;')
-        self.write_line('sourceTree = "<group>";')
-        self.indent_level -= 1
-        self.write_line('};')
+            source_children.add_item(groupmap[t], t)
+        source_dict.add_item('name', 'Sources')
+        source_dict.add_item('sourceTree', '"<group>"')
 
-        self.write_line('%s /* Resources */ = {' % resources_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXGroup;')
-        self.write_line('children = (')
-        self.write_line(');')
-        self.write_line('name = Resources;')
-        self.write_line('sourceTree = "<group>";')
-        self.indent_level -= 1
-        self.write_line('};')
 
-        self.write_line('%s /* Frameworks */ = {' % frameworks_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXGroup;')
-        self.write_line('children = (')
+        resource_dict = PbxDict()
+        objects_dict.add_item(resources_id, resource_dict, 'Resources')
+        resource_dict.add_item('isa', 'PBXGroup')
+        resource_children = PbxArray()
+        resource_dict.add_item('children', resource_children)
+        resource_dict.add_item('name', 'Resources')
+        resource_dict.add_item('sourceTree', '"<group>"')
+
+        frameworks_dict = PbxDict()
+        objects_dict.add_item(frameworks_id, frameworks_dict, 'Frameworks')
+        frameworks_dict.add_item('isa', 'PBXGroup')
+        frameworks_children = PbxArray()
+        frameworks_dict.add_item('children', frameworks_children)
         # write frameworks
-        self.indent_level += 1
 
         for t in self.build.get_build_targets().values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
-                        self.write_line('{} /* {}.framework */,\n'.format(self.native_frameworks_fileref[f], f))
+                        frameworks_children.add_item(self.native_frameworks_fileref[f], f)
 
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('name = Frameworks;')
-        self.write_line('sourceTree = "<group>";')
-        self.indent_level -= 1
-        self.write_line('};')
+        frameworks_dict.add_item('name', 'Frameworks')
+        frameworks_dict.add_item('sourceTree', '"<group>"')
 
         # Targets
         for t in self.build.get_build_targets():
-            self.write_line('{} /* {} */ = {{'.format(groupmap[t], t))
-            self.indent_level += 1
-            self.write_line('isa = PBXGroup;')
-            self.write_line('children = (')
-            self.indent_level += 1
-            self.write_line('%s /* Source files */,' % target_src_map[t])
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('name = "%s";' % t)
-            self.write_line('sourceTree = "<group>";')
-            self.indent_level -= 1
-            self.write_line('};')
-            self.write_line('%s /* Source files */ = {' % target_src_map[t])
-            self.indent_level += 1
-            self.write_line('isa = PBXGroup;')
-            self.write_line('children = (')
-            self.indent_level += 1
+            target_dict = PbxDict()
+            objects_dict.add_item(groupmap[t], target_dict, t)
+            target_dict.add_item('isa', 'PBXGroup')
+            target_children = PbxArray()
+            target_dict.add_item('children', target_children)
+            target_children.add_item(target_src_map[t], 'Source files')
+            target_dict.add_item('name', f'"{t}"')
+            target_dict.add_item('sourceTree', '"<group>"')
+            source_files_dict = PbxDict()
+            objects_dict.add_item(target_src_map[t], source_files_dict, 'Source files')
+            source_files_dict.add_item('isa', 'PBXGroup')
+            source_file_children = PbxArray()
+            source_files_dict.add_item('children', source_file_children)
             for s in self.build.get_build_targets()[t].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if isinstance(s, str):
-                    self.write_line('{} /* {} */,'.format(self.filemap[s], s))
+                    source_file_children.add_item(self.filemap[s], s)
             for o in self.build.get_build_targets()[t].objects:
                 o = os.path.join(self.build.get_build_targets()[t].subdir, o)
-                self.write_line('{} /* {} */,'.format(self.filemap[o], o))
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('name = "Source files";')
-            self.write_line('sourceTree = "<group>";')
-            self.indent_level -= 1
-            self.write_line('};')
+                source_file_children.add_item(self.filemap[o], o)
+            source_files_dict.add_item('name', '"Source files"')
+            source_files_dict.add_item('sourceTree', '"<group>"')
 
         # And finally products
-        self.write_line('%s /* Products */ = {' % products_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXGroup;')
-        self.write_line('children = (')
-        self.indent_level += 1
+        product_dict = PbxDict()
+        objects_dict.add_item(products_id, product_dict, 'Products')
+        product_dict.add_item('isa', 'PBXGroup')
+        product_children = PbxArray()
+        product_dict.add_item('children', product_children)
         for t in self.build.get_build_targets():
-            self.write_line('{} /* {} */,'.format(self.target_filemap[t], t))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('name = Products;')
-        self.write_line('sourceTree = "<group>";')
-        self.indent_level -= 1
-        self.write_line('};')
-        self.ofile.write('/* End PBXGroup section */\n')
+            product_children.add_item(self.target_filemap[t], t)
+        product_dict.add_item('name', 'Products')
+        product_dict.add_item('sourceTree', '"<group>"')
 
-    def generate_pbx_native_target(self):
-        self.ofile.write('\n/* Begin PBXNativeTarget section */\n')
+    def generate_pbx_native_target(self, objects_dict):
         for tname, idval in self.native_targets.items():
+            ntarget_dict = PbxDict()
             t = self.build.get_build_targets()[tname]
-            self.write_line(f'{idval} /* {tname} */ = {{')
-            self.indent_level += 1
-            self.write_line('isa = PBXNativeTarget;')
-            self.write_line('buildConfigurationList = %s /* Build configuration list for PBXNativeTarget "%s" */;'
-                            % (self.buildconflistmap[tname], tname))
-            self.write_line('buildPhases = (')
-            self.indent_level += 1
+            objects_dict.add_item(idval, ntarget_dict, tname)
+            ntarget_dict.add_item('isa', 'PBXNativeTarget')
+            ntarget_dict.add_item('buildConfigurationList', self.buildconflistmap[tname], f'Build configuration list for PBXNativeTarget "{tname}"')
+            buildphases_array = PbxArray()
+            ntarget_dict.add_item('buildPhases', buildphases_array)
             for bpname, bpval in t.buildphasemap.items():
-                self.write_line(f'{bpval} /* {bpname} yyy */,')
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('buildRules = (')
-            self.write_line(');')
-            self.write_line('dependencies = (')
-            self.indent_level += 1
+                buildphases_array.add_item(bpval, f'{bpname} yyy')
+            ntarget_dict.add_item('buildRules', PbxArray())
+            dep_array = PbxArray()
+            ntarget_dict.add_item('dependencies', dep_array)
             for lt in self.build.get_build_targets()[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
                 idval = self.pbx_dep_map[lt.get_id()]
-                self.write_line('%s /* PBXTargetDependency */,' % idval)
-            self.indent_level -= 1
-            self.write_line(");")
-            self.write_line('name = "%s";' % tname)
-            self.write_line('productName = "%s";' % tname)
-            self.write_line('productReference = {} /* {} */;'.format(self.target_filemap[tname], tname))
+                dep_array.add_item(idval, 'PBXTargetDependency')
+            ntarget_dict.add_item('name', f'"{tname}"')
+            ntarget_dict.add_item('productName', f'"{tname}"')
+            ntarget_dict.add_item('productReference', self.target_filemap[tname], tname)
             if isinstance(t, build.Executable):
                 typestr = 'com.apple.product-type.tool'
             elif isinstance(t, build.StaticLibrary):
@@ -522,92 +631,64 @@ class XCodeBackend(backends.Backend):
                 typestr = 'com.apple.product-type.library.dynamic'
             else:
                 raise MesonException('Unknown target type for %s' % tname)
-            self.write_line('productType = "%s";' % typestr)
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End PBXNativeTarget section */\n')
+            ntarget_dict.add_item('productType', f'"{typestr}"')
 
-    def generate_pbx_project(self):
-        self.ofile.write('\n/* Begin PBXProject section */\n')
-        self.write_line('%s /* Project object */ = {' % self.project_uid)
-        self.indent_level += 1
-        self.write_line('isa = PBXProject;')
-        self.write_line('attributes = {')
-        self.indent_level += 1
-        self.write_line('BuildIndependentTargetsInParallel = YES;')
-        self.indent_level -= 1
-        self.write_line('};')
-        conftempl = 'buildConfigurationList = %s /* Build configuration list for PBXProject "%s" */;'
-        self.write_line(conftempl % (self.project_conflist, self.build.project_name))
-        self.write_line('buildSettings = {')
-        self.write_line('};')
-        self.write_line('buildStyles = (')
-        self.indent_level += 1
+    def generate_pbx_project(self, objects_dict):
+        project_dict = PbxDict()
+        objects_dict.add_item(self.project_uid, project_dict, 'Project object')
+        project_dict.add_item('isa', 'PBXProject')
+        attr_dict = PbxDict()
+        project_dict.add_item('attributes', attr_dict)
+        attr_dict.add_item('BuildIndependentTargetsInParallel', 'YES')
+        project_dict.add_item('buildConfigurationList', self.project_conflist, f'Build configuration list for PBXProject "{self.build.project_name}"')
+        project_dict.add_item('buildSettings', PbxDict())
+        style_arr = PbxArray()
+        project_dict.add_item('buildStyles', style_arr)
         for name, idval in self.buildstylemap.items():
-            self.write_line(f'{idval} /* {name} */,')
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('compatibilityVersion = "Xcode 3.2";')
-        self.write_line('hasScannedForEncodings = 0;')
-        self.write_line('mainGroup = %s;' % self.maingroup_id)
-        self.write_line('projectDirPath = "%s";' % self.build_to_src)
-        self.write_line('projectRoot = "";')
-        self.write_line('targets = (')
-        self.indent_level += 1
-        self.write_line('%s /* ALL_BUILD */,' % self.all_id)
-        self.write_line('%s /* RUN_TESTS */,' % self.test_id)
+            style_arr.add_item(idval, name)
+        project_dict.add_item('compatibilityVersion', '"Xcode 3.2"')
+        project_dict.add_item('hasScannedForEncodings', 0)
+        project_dict.add_item('mainGroup', self.maingroup_id)
+        project_dict.add_item('projectDirPath', f'"{self.build_to_src}"')
+        project_dict.add_item('projectRoot', '""')
+        targets_arr = PbxArray()
+        project_dict.add_item('targets', targets_arr)
+        targets_arr.add_item(self.all_id, 'ALL_BUILD')
+        targets_arr.add_item(self.test_id, 'RUN_TESTS')
         for t in self.build.get_build_targets():
-            self.write_line('{} /* {} */,'.format(self.native_targets[t], t))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.indent_level -= 1
-        self.write_line('};')
-        self.ofile.write('/* End PBXProject section */\n')
+            targets_arr.add_item(self.native_targets[t], t)
 
-    def generate_pbx_shell_build_phase(self, test_data):
-        self.ofile.write('\n/* Begin PBXShellScriptBuildPhase section */\n')
-        self.write_line('%s /* ShellScript */ = {' % self.test_command_id)
-        self.indent_level += 1
-        self.write_line('isa = PBXShellScriptBuildPhase;')
-        self.write_line('buildActionMask = 2147483647;')
-        self.write_line('files = (')
-        self.write_line(');')
-        self.write_line('inputPaths = (')
-        self.write_line(');')
-        self.write_line('outputPaths = (')
-        self.write_line(');')
-        self.write_line('runOnlyForDeploymentPostprocessing = 0;')
-        self.write_line('shellPath = /bin/sh;')
-        cmd = mesonlib.get_meson_command() + ['test', test_data, '-C', self.environment.get_build_dir()]
+    def generate_pbx_shell_build_phase(self, objects_dict, test_data):
+        shell_dict = PbxDict()
+        objects_dict.add_item(self.test_command_id, shell_dict, 'ShellScript')
+        shell_dict.add_item('isa', 'PBXShellScriptBuildPhase')
+        shell_dict.add_item('buildActionMask', 2147483647)
+        shell_dict.add_item('files', PbxArray())
+        shell_dict.add_item('inputPaths', PbxArray())
+        shell_dict.add_item('outputPaths', PbxArray())
+        shell_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
+        shell_dict.add_item('shellPath', '/bin/sh')
+        cmd = mesonlib.get_meson_command() + ['test', '--no-rebuild', '-C', self.environment.get_build_dir()]
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
-        self.write_line('shellScript = "%s";' % cmdstr)
-        self.write_line('showEnvVarsInLog = 0;')
-        self.indent_level -= 1
-        self.write_line('};')
-        self.ofile.write('/* End PBXShellScriptBuildPhase section */\n')
+        shell_dict.add_item('shellScript', f'"{cmdstr}"')
+        shell_dict.add_item('showEnvVarsInLog', 0)
 
-    def generate_pbx_sources_build_phase(self):
-        self.ofile.write('\n/* Begin PBXSourcesBuildPhase section */\n')
+    def generate_pbx_sources_build_phase(self, objects_dict):
         for name in self.source_phase.keys():
+            phase_dict = PbxDict()
             t = self.build.get_build_targets()[name]
-            self.write_line('%s /* Sources */ = {' % (t.buildphasemap[name]))
-            self.indent_level += 1
-            self.write_line('isa = PBXSourcesBuildPhase;')
-            self.write_line('buildActionMask = 2147483647;')
-            self.write_line('files = (')
-            self.indent_level += 1
+            objects_dict.add_item(t.buildphasemap[name], phase_dict, 'Sources')
+            phase_dict.add_item('isa', 'PBXSourcesBuildPhase')
+            phase_dict.add_item('buildActionMask', 2147483647)
+            file_arr = PbxArray()
+            phase_dict.add_item('files', file_arr)
             for s in self.build.get_build_targets()[name].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
-                    self.write_line('{} /* {} */,'.format(self.buildmap[s], os.path.join(self.environment.get_source_dir(), s)))
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('runOnlyForDeploymentPostprocessing = 0;')
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End PBXSourcesBuildPhase section */\n')
+                    file_arr.add_item(self.buildmap[s], os.path.join(self.environment.get_source_dir(), s))
+            phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
-    def generate_pbx_target_dependency(self):
+    def generate_pbx_target_dependency(self, objects_dict):
         targets = []
         for t in self.build.get_build_targets():
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
@@ -615,91 +696,83 @@ class XCodeBackend(backends.Backend):
 
         # Sort object by ID
         sorted_targets = sorted(targets, key=operator.itemgetter(0))
-        self.ofile.write('\n/* Begin PBXTargetDependency section */\n')
         for t in sorted_targets:
-            self.write_line('%s /* PBXTargetDependency */ = {' % t[0])
-            self.indent_level += 1
-            self.write_line('isa = PBXTargetDependency;')
-            self.write_line('target = {} /* {} */;'.format(t[1], t[2]))
-            self.write_line('targetProxy = %s /* PBXContainerItemProxy */;' % t[3])
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End PBXTargetDependency section */\n')
+            t_dict = PbxDict()
+            objects_dict.add_item(t[0], t_dict, 'PBXTargetDependency')
+            t_dict.add_item('isa', 'PBXTargetDependency')
+            t_dict.add_item('target', t[1], t[2])
+            t_dict.add_item('targetProxy', t[3], 'PBXContainerItemProxy')
 
-    def generate_xc_build_configuration(self):
-        self.ofile.write('\n/* Begin XCBuildConfiguration section */\n')
+    def generate_xc_build_configuration(self, objects_dict):
         # First the setup for the toplevel project.
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */ = {{'.format(self.project_configurations[buildtype], buildtype))
-            self.indent_level += 1
-            self.write_line('isa = XCBuildConfiguration;')
-            self.write_line('buildSettings = {')
-            self.indent_level += 1
-            self.write_line('ARCHS = "$(ARCHS_STANDARD_64_BIT)";')
-            self.write_line('ONLY_ACTIVE_ARCH = YES;')
-            self.write_line('SDKROOT = "macosx";')
-            self.write_line('SYMROOT = "%s/build";' % self.environment.get_build_dir())
-            self.indent_level -= 1
-            self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
-            self.indent_level -= 1
-            self.write_line('};')
+            bt_dict = PbxDict()
+            objects_dict.add_item(self.project_configurations[buildtype], bt_dict, buildtype)
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
+            bt_dict.add_item('buildSettings', settings_dict)
+            settings_dict.add_item('ARCHS', '"$(NATIVE_ARCH_ACTUAL)"')
+            settings_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
+            settings_dict.add_item('SDKROOT', '"macosx"')
+            settings_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
+            bt_dict.add_item('name', f'"{buildtype}"')
 
         # Then the all target.
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */ = {{'.format(self.buildall_configurations[buildtype], buildtype))
-            self.indent_level += 1
-            self.write_line('isa = XCBuildConfiguration;')
-            self.write_line('buildSettings = {')
-            self.indent_level += 1
-            self.write_line('COMBINE_HIDPI_IMAGES = YES;')
-            self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
-            self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
-            self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
-            self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
-            self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
-            self.write_line('INSTALL_PATH = "";')
-            self.write_line('OTHER_CFLAGS = "  ";')
-            self.write_line('OTHER_LDFLAGS = " ";')
-            self.write_line('OTHER_REZFLAGS = "";')
-            self.write_line('PRODUCT_NAME = ALL_BUILD;')
-            self.write_line('SECTORDER_FLAGS = "";')
-            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
-            self.write_line('USE_HEADERMAP = NO;')
-            self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
-            self.indent_level -= 1
-            self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
-            self.indent_level -= 1
-            self.write_line('};')
+            bt_dict = PbxDict()
+            objects_dict.add_item(self.buildall_configurations[buildtype], bt_dict, buildtype)
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
+            bt_dict.add_item('buildSettings', settings_dict)
+            settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
+            settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
+            settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
+            settings_dict.add_item('INSTALL_PATH', '""')
+            settings_dict.add_item('OTHER_CFLAGS', '" "')
+            settings_dict.add_item('OTHER_LDFLAGS', '" "')
+            settings_dict.add_item('OTHER_REZFLAGS', '""')
+            settings_dict.add_item('PRODUCT_NAME', 'ALL_BUILD')
+            settings_dict.add_item('SECTORDER_FLAGS', '""')
+            settings_dict.add_item('SYMROOT', '"%s"' % self.environment.get_build_dir())
+            settings_dict.add_item('USE_HEADERMAP', 'NO')
+            warn_array = PbxArray()
+            settings_dict.add_item('WARNING_CFLAGS', warn_array)
+            warn_array.add_item('"-Wmost"')
+            warn_array.add_item('"-Wno-four-char-constants"')
+            warn_array.add_item('"-Wno-unknown-pragmas"')
+        
+            bt_dict.add_item('name', f'"{buildtype}"')
 
         # Then the test target.
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */ = {{'.format(self.test_configurations[buildtype], buildtype))
-            self.indent_level += 1
-            self.write_line('isa = XCBuildConfiguration;')
-            self.write_line('buildSettings = {')
-            self.indent_level += 1
-            self.write_line('COMBINE_HIDPI_IMAGES = YES;')
-            self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = NO;')
-            self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
-            self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
-            self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
-            self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
-            self.write_line('INSTALL_PATH = "";')
-            self.write_line('OTHER_CFLAGS = "  ";')
-            self.write_line('OTHER_LDFLAGS = " ";')
-            self.write_line('OTHER_REZFLAGS = "";')
-            self.write_line('PRODUCT_NAME = RUN_TESTS;')
-            self.write_line('SECTORDER_FLAGS = "";')
-            self.write_line('SYMROOT = "%s";' % self.environment.get_build_dir())
-            self.write_line('USE_HEADERMAP = NO;')
-            self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
-            self.indent_level -= 1
-            self.write_line('};')
-            self.write_line('name = "%s";' % buildtype)
-            self.indent_level -= 1
-            self.write_line('};')
+            bt_dict = PbxDict()
+            objects_dict.add_item(self.test_configurations[buildtype], bt_dict, buildtype)
+            bt_dict.add_item('isa', 'XCBuildConfiguration')
+            settings_dict = PbxDict()
+            bt_dict.add_item('buildSettings', settings_dict)
+            settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
+            settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'NO')
+            settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
+            settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
+            settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
+            settings_dict.add_item('INSTALL_PATH', '""')
+            settings_dict.add_item('OTHER_CFLAGS', '" "')
+            settings_dict.add_item('OTHER_LDFLAGS', '" "')
+            settings_dict.add_item('OTHER_REZFLAGS', '""')
+            settings_dict.add_item('PRODUCT_NAME', 'RUN_TESTS')
+            settings_dict.add_item('SECTORDER_FLAGS', '""')
+            settings_dict.add_item('SYMROOT', '"%s"' % self.environment.get_build_dir())
+            settings_dict.add_item('USE_HEADERMAP', 'NO')
+            warn_array = PbxArray()
+            settings_dict.add_item('WARNING_CFLAGS', warn_array)
+            warn_array.add_item('"-Wmost"')
+            warn_array.add_item('"-Wno-four-char-constants"')
+            warn_array.add_item('"-Wno-unknown-pragmas"')
+            bt_dict.add_item('name', f'"{buildtype}"')
 
         # Now finally targets.
         langnamemap = {'c': 'C', 'cpp': 'CPLUSPLUS', 'objc': 'OBJC', 'objcpp': 'OBJCPLUSPLUS'}
@@ -763,23 +836,23 @@ class XCodeBackend(backends.Backend):
                         langargs[langname] = args
                         langargs[langname] += lang_cargs
                 symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
-                self.write_line(f'{valid} /* {buildtype} */ = {{')
-                self.indent_level += 1
-                self.write_line('isa = XCBuildConfiguration;')
-                self.write_line('buildSettings = {')
-                self.indent_level += 1
-                self.write_line('COMBINE_HIDPI_IMAGES = YES;')
+                bt_dict = PbxDict()
+                objects_dict.add_item(valid, bt_dict, buildtype)
+                bt_dict.add_item('isa', 'XCBuildConfiguration')
+                settings_dict = PbxDict()
+                bt_dict.add_item('buildSettings', settings_dict)
+                settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
                 if dylib_version is not None:
-                    self.write_line('DYLIB_CURRENT_VERSION = "%s";' % dylib_version)
-                self.write_line('EXECUTABLE_PREFIX = "%s";' % target.prefix)
+                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
+                settings_dict.add_item('EXECUTABLE_PREFIX', f'"{target.prefix}"')
                 if target.suffix == '':
                     suffix = ''
                 else:
                     suffix = '.' + target.suffix
-                self.write_line('EXECUTABLE_SUFFIX = "%s";' % suffix)
-                self.write_line('GCC_GENERATE_DEBUGGING_SYMBOLS = YES;')
-                self.write_line('GCC_INLINES_ARE_PRIVATE_EXTERN = NO;')
-                self.write_line('GCC_OPTIMIZATION_LEVEL = 0;')
+                settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
+                settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
+                settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
+                settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
                 if target.has_pch:
                     # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                     # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
@@ -791,136 +864,89 @@ class XCodeBackend(backends.Backend):
                         if len(pchs) > 1:
                             mlog.warning('Unsupported Xcode configuration: More than 1 precompiled header found "{}". Target "{}" might not compile correctly.'.format(str(pchs), target.name))
                         relative_pch_path = os.path.join(target.get_subdir(), pchs[0]) # Path relative to target so it can be used with "$(PROJECT_DIR)"
-                        self.write_line('GCC_PRECOMPILE_PREFIX_HEADER = YES;')
-                        self.write_line('GCC_PREFIX_HEADER = "$(PROJECT_DIR)/%s";' % relative_pch_path)
-                self.write_line('GCC_PREPROCESSOR_DEFINITIONS = "";')
-                self.write_line('GCC_SYMBOLS_PRIVATE_EXTERN = NO;')
+                        settings_dict.add_item('GCC_PRECOMPILE_PREFIX_HEADER', 'YES')
+                        settings_dict.add_item('GCC_PREFIX_HEADER', f'"$(PROJECT_DIR)/{relative_pch_path}"')
+                settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
+                settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
                 if headerdirs:
                     quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
-                    self.write_line('HEADER_SEARCH_PATHS=(%s);' % quotedh)
-                self.write_line('INSTALL_PATH = "%s";' % install_path)
-                self.write_line('LIBRARY_SEARCH_PATHS = "";')
+                    settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
+                settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
+                settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
                 if isinstance(target, build.SharedLibrary):
-                    self.write_line('LIBRARY_STYLE = DYNAMIC;')
+                    settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
                 for langname, args in langargs.items():
-                    self.write_build_setting_line('OTHER_%sFLAGS' % langname, args)
-                self.write_line('OTHER_LDFLAGS = "%s";' % ldstr)
-                self.write_line('OTHER_REZFLAGS = "";')
-                self.write_line('PRODUCT_NAME = %s;' % product_name)
-                self.write_line('SECTORDER_FLAGS = "";')
-                self.write_line('SYMROOT = "%s";' % symroot)
-                self.write_build_setting_line('SYSTEM_HEADER_SEARCH_PATHS', [self.environment.get_build_dir()])
-                self.write_line('USE_HEADERMAP = NO;')
-                self.write_build_setting_line('WARNING_CFLAGS', ['-Wmost', '-Wno-four-char-constants', '-Wno-unknown-pragmas'])
-                self.indent_level -= 1
-                self.write_line('};')
-                self.write_line('name = %s;' % buildtype)
-                self.indent_level -= 1
-                self.write_line('};')
-        self.ofile.write('/* End XCBuildConfiguration section */\n')
+                    settings_dict.add_item(f'OTHER_{langname}FLAGS', args)
+                settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
+                settings_dict.add_item('OTHER_REZFLAGS', '""')
+                settings_dict.add_item('PRODUCT_NAME', product_name)
+                settings_dict.add_item('SECTORDER_FLAGS', '""')
+                settings_dict.add_item('SYMROOT', f'"{symroot}"')
+                settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"{}"'.format(self.environment.get_build_dir()))
+                settings_dict.add_item('USE_HEADERMAP', 'NO')
+                warn_array = PbxArray()
+                settings_dict.add_item('WARNING_CFLAGS', warn_array)
+                warn_array.add_item('"-Wmost"')
+                warn_array.add_item('"-Wno-four-char-constants"')
+                warn_array.add_item('"-Wno-unknown-pragmas"')
+                bt_dict.add_item('name', buildtype)
 
-    def generate_xc_configurationList(self):
+    def generate_xc_configurationList(self, objects_dict):
         # FIXME: sort items
-        self.ofile.write('\n/* Begin XCConfigurationList section */\n')
-        self.write_line(f'{self.project_conflist} /* Build configuration list for PBXProject "{self.build.project_name}" */ = {{')
-        self.indent_level += 1
-        self.write_line('isa = XCConfigurationList;')
-        self.write_line('buildConfigurations = (')
-        self.indent_level += 1
+        conf_dict = PbxDict()
+        objects_dict.add_item(self.project_conflist, conf_dict, f'Build configuration list for PBXProject "{self.build.project_name}"')
+        conf_dict.add_item('isa', 'XCConfigurationList')
+        confs_arr = PbxArray()
+        conf_dict.add_item('buildConfigurations', confs_arr)
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */,'.format(self.project_configurations[buildtype], buildtype))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('defaultConfigurationIsVisible = 0;')
-        self.write_line('defaultConfigurationName = debug;')
-        self.indent_level -= 1
-        self.write_line('};')
+            confs_arr.add_item(self.project_configurations[buildtype], buildtype)
+        conf_dict.add_item('defaultConfigurationIsVisible', 0)
+        conf_dict.add_item('defaultConfigurationName', 'debug')
 
         # Now the all target
-        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.all_buildconf_id)
-        self.indent_level += 1
-        self.write_line('isa = XCConfigurationList;')
-        self.write_line('buildConfigurations = (')
-        self.indent_level += 1
+        all_dict = PbxDict()
+        objects_dict.add_item(self.all_buildconf_id, all_dict, 'Build configuration list for PBXAggregateTarget "ALL_BUILD"')
+        all_dict.add_item('isa', 'XCConfigurationList')
+        conf_arr = PbxArray()
+        all_dict.add_item('buildConfigurations', conf_arr)
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */,'.format(self.buildall_configurations[buildtype], buildtype))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('defaultConfigurationIsVisible = 0;')
-        self.write_line('defaultConfigurationName = debug;')
-        self.indent_level -= 1
-        self.write_line('};')
+            conf_arr.add_item(self.buildall_configurations[buildtype], buildtype)
+        all_dict.add_item('defaultConfigurationIsVisible', 0)
+        all_dict.add_item('defaultConfigurationName', 'debug')
 
         # Test target
-        self.write_line('%s /* Build configuration list for PBXAggregateTarget "ALL_BUILD" */ = {' % self.test_buildconf_id)
-        self.indent_level += 1
-        self.write_line('isa = XCConfigurationList;')
-        self.write_line('buildConfigurations = (')
-        self.indent_level += 1
+        test_dict = PbxDict()
+        objects_dict.add_item(self.test_buildconf_id, test_dict, 'Build configuration list for PBXAggregateTarget "RUN_TEST"')
+        test_dict.add_item('isa', 'XCConfigurationList')
+        conf_arr = PbxArray()
+        test_dict.add_item('buildConfigurations', conf_arr)
         for buildtype in self.buildtypes:
-            self.write_line('{} /* {} */,'.format(self.test_configurations[buildtype], buildtype))
-        self.indent_level -= 1
-        self.write_line(');')
-        self.write_line('defaultConfigurationIsVisible = 0;')
-        self.write_line('defaultConfigurationName = debug;')
-        self.indent_level -= 1
-        self.write_line('};')
+            conf_arr.add_item(self.test_configurations[buildtype], buildtype)
+        test_dict.add_item('defaultConfigurationIsVisible', 0)
+        test_dict.add_item('defaultConfigurationName', 'debug')
 
         for target_name in self.build.get_build_targets():
+            t_dict = PbxDict()
             listid = self.buildconflistmap[target_name]
-            self.write_line(f'{listid} /* Build configuration list for PBXNativeTarget "{target_name}" */ = {{')
-            self.indent_level += 1
-            self.write_line('isa = XCConfigurationList;')
-            self.write_line('buildConfigurations = (')
-            self.indent_level += 1
+            objects_dict.add_item(listid, t_dict, f'Build configuration list for PBXNativeTarget "{target_name}"')
+            t_dict.add_item('isa', 'XCConfigurationList')
+            conf_arr = PbxArray()
+            t_dict.add_item('buildConfigurations', conf_arr)
             typestr = 'debug'
             idval = self.buildconfmap[target_name][typestr]
-            self.write_line(f'{idval} /* {typestr} */,')
-            self.indent_level -= 1
-            self.write_line(');')
-            self.write_line('defaultConfigurationIsVisible = 0;')
-            self.write_line('defaultConfigurationName = %s;' % typestr)
-            self.indent_level -= 1
-            self.write_line('};')
-        self.ofile.write('/* End XCConfigurationList section */\n')
+            conf_arr.add_item(idval, typestr)
+            t_dict.add_item('defaultConfigurationIsVisible', 0)
+            t_dict.add_item('defaultConfigurationName', typestr)
 
-    def write_build_setting_line(self, flag_name, flag_values, explicit=False):
-        if flag_values:
-            if len(flag_values) == 1:
-                value = flag_values[0]
-                if (' ' in value):
-                    # If path contains spaces surround it with double colon
-                    self.write_line(f'{flag_name} = "\\"{value}\\"";')
-                else:
-                    self.write_line(f'{flag_name} = "{value}";')
-            else:
-                self.write_line('%s = (' % flag_name)
-                self.indent_level += 1
-                for value in flag_values:
-                    if (' ' in value):
-                        # If path contains spaces surround it with double colon
-                        self.write_line('"\\"%s\\"",' % value)
-                    else:
-                        self.write_line('"%s",' % value)
-                self.indent_level -= 1
-                self.write_line(');')
-        else:
-            if explicit:
-                self.write_line('%s = "";' % flag_name)
 
-    def generate_prefix(self):
-        self.ofile.write('// !$*UTF8*$!\n{\n')
-        self.indent_level += 1
-        self.write_line('archiveVersion = 1;\n')
-        self.write_line('classes = {\n')
-        self.write_line('};\n')
-        self.write_line('objectVersion = 46;\n')
-        self.write_line('objects = {\n')
-        self.indent_level += 1
+    def generate_prefix(self, pbxdict):
+        pbxdict.add_item('archiveVersion', '1')
+        pbxdict.add_item('classes', PbxDict())
+        pbxdict.add_item('objectVersion', '46')
+        objects_dict = PbxDict()
+        pbxdict.add_item('objects', objects_dict)
+        
+        return objects_dict
 
-    def generate_suffix(self):
-        self.indent_level -= 1
-        self.write_line('};\n')
-        self.write_line('rootObject = ' + self.project_uid + ' /* Project object */;')
-        self.indent_level -= 1
-        self.write_line('}\n')
+    def generate_suffix(self, pbxdict):
+        pbxdict.add_item('rootObject', self.project_uid, 'Project object')
