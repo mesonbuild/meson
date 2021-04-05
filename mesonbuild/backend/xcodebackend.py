@@ -176,11 +176,12 @@ class XCodeBackend(backends.Backend):
         super().__init__(build, interpreter)
         self.name = 'xcode'
         self.project_uid = self.environment.coredata.lang_guids['default'].replace('-', '')[:24]
+        self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
         self.project_conflist = self.gen_id()
         self.maingroup_id = self.gen_id()
         self.all_id = self.gen_id()
         self.all_buildconf_id = self.gen_id()
-        self.buildtypes = ['debug']
+        self.buildtypes = [self.buildtype]
         self.test_id = self.gen_id()
         self.test_command_id = self.gen_id()
         self.test_buildconf_id = self.gen_id()
@@ -304,7 +305,7 @@ class XCodeBackend(backends.Backend):
                     self.buildmap[o] = self.gen_id()
 
     def generate_buildstylemap(self):
-        self.buildstylemap = {'debug': self.gen_id()}
+        self.buildstylemap = {self.buildtype: self.gen_id()}
 
     def generate_build_phase_map(self):
         for tname, t in self.build.get_build_targets().items():
@@ -319,17 +320,17 @@ class XCodeBackend(backends.Backend):
     def generate_build_configuration_map(self):
         self.buildconfmap = {}
         for t in self.build.get_build_targets():
-            bconfs = {'debug': self.gen_id()}
+            bconfs = {self.buildtype: self.gen_id()}
             self.buildconfmap[t] = bconfs
 
     def generate_project_configurations_map(self):
-        self.project_configurations = {'debug': self.gen_id()}
+        self.project_configurations = {self.buildtype: self.gen_id()}
 
     def generate_buildall_configurations_map(self):
-        self.buildall_configurations = {'debug': self.gen_id()}
+        self.buildall_configurations = {self.buildtype: self.gen_id()}
 
     def generate_test_configurations_map(self):
-        self.test_configurations = {'debug': self.gen_id()}
+        self.test_configurations = {self.buildtype: self.gen_id()}
 
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
@@ -911,9 +912,9 @@ class XCodeBackend(backends.Backend):
         confs_arr = PbxArray()
         conf_dict.add_item('buildConfigurations', confs_arr)
         for buildtype in self.buildtypes:
-            confs_arr.add_item(self.project_configurations[buildtype], buildtype)
+            confs_arr.add_item(self.project_configurations[self.buildtype], self.buildtype)
         conf_dict.add_item('defaultConfigurationIsVisible', 0)
-        conf_dict.add_item('defaultConfigurationName', 'debug')
+        conf_dict.add_item('defaultConfigurationName', self.buildtype)
 
         # Now the all target
         all_dict = PbxDict()
@@ -924,7 +925,7 @@ class XCodeBackend(backends.Backend):
         for buildtype in self.buildtypes:
             conf_arr.add_item(self.buildall_configurations[buildtype], buildtype)
         all_dict.add_item('defaultConfigurationIsVisible', 0)
-        all_dict.add_item('defaultConfigurationName', 'debug')
+        all_dict.add_item('defaultConfigurationName', self.buildtype)
 
         # Test target
         test_dict = PbxDict()
@@ -935,7 +936,7 @@ class XCodeBackend(backends.Backend):
         for buildtype in self.buildtypes:
             conf_arr.add_item(self.test_configurations[buildtype], buildtype)
         test_dict.add_item('defaultConfigurationIsVisible', 0)
-        test_dict.add_item('defaultConfigurationName', 'debug')
+        test_dict.add_item('defaultConfigurationName', self.buildtype)
 
         for target_name in self.build.get_build_targets():
             t_dict = PbxDict()
@@ -944,11 +945,10 @@ class XCodeBackend(backends.Backend):
             t_dict.add_item('isa', 'XCConfigurationList')
             conf_arr = PbxArray()
             t_dict.add_item('buildConfigurations', conf_arr)
-            typestr = 'debug'
-            idval = self.buildconfmap[target_name][typestr]
-            conf_arr.add_item(idval, typestr)
+            idval = self.buildconfmap[target_name][self.buildtype]
+            conf_arr.add_item(idval, self.buildtype)
             t_dict.add_item('defaultConfigurationIsVisible', 0)
-            t_dict.add_item('defaultConfigurationName', typestr)
+            t_dict.add_item('defaultConfigurationName', self.buildtype)
 
 
     def generate_prefix(self, pbxdict):
