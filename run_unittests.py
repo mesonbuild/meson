@@ -9091,7 +9091,7 @@ class CrossFileTests(BasePlatformTests):
             for section, entries in values.items():
                 f.write('[{}]\n'.format(section))
                 for k, v in entries.items():
-                    f.write("{}='{}'\n".format(k, v))
+                    f.write("{}={!r}\n".format(k, v))
         return filename
 
     def test_cross_file_dirs(self):
@@ -9256,6 +9256,22 @@ class CrossFileTests(BasePlatformTests):
             if found == 2:
                 break
         self.assertEqual(found, 2, 'Did not find all sections.')
+
+    def test_project_options_native_only(self) -> None:
+        # Do not load project options from a native file when doing a cross
+        # build
+        testcase = os.path.join(self.unit_test_dir, '19 array option')
+        config = self.helper_create_cross_file({'project options': {'list': ['bar', 'foo']}})
+        cross = self.helper_create_cross_file({'binaries': {}})
+
+        self.init(testcase, extra_args=['--native-file', config, '--cross-file', cross])
+        configuration = self.introspect('--buildoptions')
+        for each in configuration:
+            if each['name'] == 'list':
+                self.assertEqual(each['value'], ['foo', 'bar'])
+                break
+        else:
+            self.fail('Did not find expected option.')
 
 
 class TAPParserTests(unittest.TestCase):

@@ -785,7 +785,9 @@ class Environment:
                     if key.subproject:
                         raise MesonException('Do not set subproject options in [built-in options] section, use [subproject:built-in options] instead.')
                     self.options[key.evolve(subproject=subproject, machine=machine)] = v
-            elif section == 'project options':
+            elif section == 'project options' and machine is MachineChoice.HOST:
+                # Project options are only for the host machine, we don't want
+                # to read these from the native file
                 for k, v in values.items():
                     # Project options are always for the host machine
                     key = OptionKey.from_string(k)
