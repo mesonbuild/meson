@@ -759,7 +759,11 @@ class CoreData:
             if k.subproject and k.subproject != subproject:
                 continue
             # If the option is a builtin and is yielding then it's not allowed per subproject.
-            if subproject and k.is_builtin() and self.options[k.as_root()].yielding:
+            #
+            # Always test this using the HOST machine, as many builtin options
+            # are not valid for the BUILD machine, but the yielding value does
+            # not differ between them even when they are valid for both.
+            if subproject and k.is_builtin() and self.options[k.evolve(subproject='', machine=MachineChoice.HOST)].yielding:
                 continue
             # Skip base, compiler, and backend options, they are handled when
             # adding languages and setting backend.
