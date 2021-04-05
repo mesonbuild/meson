@@ -642,7 +642,9 @@ class Environment:
             binaries.build = BinaryTable(config.get('binaries', {}))
             properties.build = Properties(config.get('properties', {}))
             cmakevars.build = CMakeVariables(config.get('cmake', {}))
-            self._load_machine_file_options(config, properties.build, MachineChoice.BUILD)
+            self._load_machine_file_options(
+                config, properties.build,
+                MachineChoice.BUILD if self.coredata.cross_files else MachineChoice.HOST)
 
         ## Read in cross file(s) to override host machine configuration
 
@@ -661,12 +663,6 @@ class Environment:
                 if self.coredata.is_per_machine_option(key):
                     self.options[key.as_build()] = value
             self._load_machine_file_options(config, properties.host, MachineChoice.HOST)
-        else:
-            # If we aren't cross compiling, but we have a native file, the
-            # native file is for the host. This is due to an mismatch between
-            # meson internals which talk about build an host, and external
-            # interfaces which talk about native and cross.
-            self.options = {k.as_host(): v for k, v in self.options.items()}
 
 
         ## "freeze" now initialized configuration, and "save" to the class.
