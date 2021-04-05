@@ -159,6 +159,9 @@ class PbxDict:
                         ofile.write(indent_level*INDENT + f'{i.key} = ')
                     i.value.write(ofile, indent_level)
                 else:
+                    print(i)
+                    print(i.key)
+                    print(i.value)
                     raise RuntimeError('missing code')
             else:
                 print(i)
@@ -751,10 +754,8 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('SYMROOT', '"%s"' % self.environment.get_build_dir())
             settings_dict.add_item('USE_HEADERMAP', 'NO')
             warn_array = PbxArray()
+            warn_array.add_item('"$(inherited)"')
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
-            warn_array.add_item('"-Wmost"')
-            warn_array.add_item('"-Wno-four-char-constants"')
-            warn_array.add_item('"-Wno-unknown-pragmas"')
         
             bt_dict.add_item('name', f'"{buildtype}"')
 
@@ -779,9 +780,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('USE_HEADERMAP', 'NO')
             warn_array = PbxArray()
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
-            warn_array.add_item('"-Wmost"')
-            warn_array.add_item('"-Wno-four-char-constants"')
-            warn_array.add_item('"-Wno-unknown-pragmas"')
+            warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', f'"{buildtype}"')
 
         # Now finally targets.
@@ -833,16 +832,18 @@ class XCodeBackend(backends.Backend):
             for lang in self.environment.coredata.compilers[target.for_machine]:
                 if lang not in LANGNAMEMAP:
                     continue
+                compiler = target.compilers.get(lang)
+                # Start with warning args
+                warn_args = compiler.get_warn_args(self.get_option_for_target(OptionKey('warning_level'), target))
                 # Add compile args added using add_project_arguments()
                 pargs = self.build.projects_args[target.for_machine].get(target.subproject, {}).get(lang, [])
                 # Add compile args added using add_global_arguments()
                 # These override per-project arguments
                 gargs = self.build.global_args[target.for_machine].get(lang, [])
                 targs = target.get_extra_args(lang)
-                args = pargs + gargs + targs
+                args = warn_args + pargs + gargs + targs
                 if args:
-                    langname = langnamemap[lang]
-                    compiler = target.compilers.get(lang)
+                    langname = LANGNAMEMAP[lang]
                     lang_cargs = cargs
                     if compiler and target.implicit_include_directories:
                         lang_cargs += self.get_build_dir_include_args(target, compiler)
@@ -888,8 +889,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
             if isinstance(target, build.SharedLibrary):
                 settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
-            for langname, args in langargs.items():
-                settings_dict.add_item(f'OTHER_{langname}FLAGS', args)
+            self.add_otterargs(settings_dict, langargs)
             settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
             settings_dict.add_item('OTHER_REZFLAGS', '""')
             settings_dict.add_item('PRODUCT_NAME', product_name)
@@ -899,10 +899,14 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('USE_HEADERMAP', 'NO')
             warn_array = PbxArray()
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
-            warn_array.add_item('"-Wmost"')
-            warn_array.add_item('"-Wno-four-char-constants"')
-            warn_array.add_item('"-Wno-unknown-pragmas"')
+            warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
+
+    def add_otterargs(self, settings_dict, langargs):
+        for langname, args in langargs.items():
+            if args:
+                # FIXME, proper quoting
+                settings_dict.add_item(f'OTHER_{langname}FLAGS', '"' + ' '.join(args) + '"')
 
     def generate_xc_configurationList(self, objects_dict):
         # FIXME: sort items
