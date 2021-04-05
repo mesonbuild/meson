@@ -20,7 +20,7 @@ from .. import mlog
 import uuid, os, operator
 import typing as T
 
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, OptionKey
 from ..interpreter import Interpreter
 
 INDENT = '\t'
@@ -47,6 +47,14 @@ LANGNAMEMAP = {'c': 'C',
                'objc': 'OBJC',
                'objcpp': 'OBJCPLUSPLUS',
                }
+OPT2XCODEOPT = {'0': '0',
+                'g': '0',
+                '1': '1',
+                '2': '2',
+                '3': '3',
+                's': 's',
+                }
+
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -187,7 +195,7 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def get_target_dir(self, target):
-        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_option(mesonlib.OptionKey('buildtype')))
+        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_option(OptionKey('buildtype')))
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -858,7 +866,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
             settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', 'YES')
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
-            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', 0)
+            settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[self.get_option_for_target(OptionKey('optimization'), target)])
             if target.has_pch:
                 # Xcode uses GCC_PREFIX_HEADER which only allows one file per target/executable. Precompiling various header files and
                 # applying a particular pch to each source file will require custom scripts (as a build phase) and build flags per each
