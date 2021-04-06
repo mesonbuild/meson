@@ -93,6 +93,14 @@ A boolean is either `true` or `false`.
 truth = true
 ```
 
+Booleans can be converted to a string or to a number:
+
+```meson
+bool_var = true
+string_var = bool_var.to_string()
+int_var = bool_var.to_int()
+```
+
 ## Strings
 
 Strings in Meson are declared with single quotes. To enter a literal
