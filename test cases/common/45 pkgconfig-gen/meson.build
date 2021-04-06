@@ -101,3 +101,22 @@ stat2 = static_library('stat2', 'simple.c', install: true)
 simple4 = library('simple4', 'simple.c', link_with: stat2)
 simple5 = library('simple5', 'simple5.c', link_with: simple4, link_whole: stat2)
 pkgg.generate(simple5)
+
+# Test passing a linkable CustomTarget and CustomTargetIndex to generator.
+# Do this only with gcc/clang to not have to deal with other compiler command
+# line specificities.
+if cc.get_id() in ['gcc', 'clang']
+  ct = custom_target('ct',
+    input: 'simple.c',
+    output: 'libct.so',
+    command: [cc.cmd_array(), '@INPUT@', '-shared', '-o', '@OUTPUT@'],
+  )
+  pkgg.generate(libraries: ct,
+    name: 'ct',
+    description: 'custom target'
+  )
+  pkgg.generate(libraries: ct[0],
+    name: 'ct0',
+    description: 'custom target index'
+  )
+endif
