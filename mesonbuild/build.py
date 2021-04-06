@@ -2595,6 +2595,9 @@ class CustomTargetIndex:
     def extract_all_objects_recurse(self):
         return self.target.extract_all_objects_recurse()
 
+    def get_custom_install_dir(self):
+        return self.target.get_custom_install_dir()
+
 class ConfigurationData:
     def __init__(self) -> None:
         super().__init__()

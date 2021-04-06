@@ -6485,6 +6485,13 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', {}), 'bar')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', {}), self.prefix)
 
+        cc = env.detect_c_compiler(MachineChoice.HOST)
+        if cc.get_id() in {'gcc', 'clang'}:
+            for name in {'ct', 'ct0'}:
+                ct_dep = PkgConfigDependency(name, env, kwargs)
+                self.assertTrue(ct_dep.found())
+                self.assertIn('-lct', ct_dep.get_link_args())
+
     def test_pkgconfig_gen_deps(self):
         '''
         Test that generated pkg-config files correctly handle dependencies

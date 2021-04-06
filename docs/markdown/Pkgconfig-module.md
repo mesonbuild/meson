@@ -30,11 +30,14 @@ keyword arguments.
   also be provided and they will be added into the `Libs` field. Since 0.45.0
   dependencies of built libraries will be automatically added, see the
   [Implicit dependencies](#implicit-dependencies) section below for the exact
-  rules.
+  rules. Since 0.58.0 custom_target() objects are supported as long as they are
+  linkable (has known extension such as `.a`, `.so`, etc).
 - `libraries_private` list of built libraries or strings to put in the
   `Libs.private` field. Since 0.45.0 dependencies of built libraries will be
   automatically added, see the [Implicit dependencies](#implicit-dependencies)
-  section below for the exact rules.
+  section below for the exact rules. Since 0.58.0 custom_target() objects are
+  supported as long as they are linkable (has known extension such as `.a`,
+  `.so`, etc).
 - `name` the name of this library, used to set the `Name:` field
 - `subdirs` which subdirs of `include` should be added to the header
   search path, for example if you install headers into
