@@ -70,7 +70,11 @@ pkgg.generate(
     # prefix is not set by default for dataonly pc files, but it is allowed to
     # define it manually.
     'prefix': get_option('prefix'),
+    'escaped_var': 'hello world',
   },
+  unescaped_variables: {
+    'unescaped_var': 'hello world',
+  }
 )
 
 # Regression test for 2 cases:
