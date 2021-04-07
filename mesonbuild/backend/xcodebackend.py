@@ -220,7 +220,7 @@ class XCodeBackend(backends.Backend):
         return os.sep.join(['..'] * len(directories))
 
     def generate(self):
-        test_data = self.serialize_tests()[0]
+        self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
         self.build_targets = self.build.get_build_targets()
         self.generate_filemap()
@@ -270,7 +270,7 @@ class XCodeBackend(backends.Backend):
         self.generate_pbx_project(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXProject section'))
         objects_dict.add_comment(PbxComment('Begin PBXShellScriptBuildPhase section'))
-        self.generate_pbx_shell_build_phase(objects_dict, test_data)
+        self.generate_pbx_shell_build_phase(objects_dict)
         objects_dict.add_comment(PbxComment('End PBXShellScriptBuildPhase section'))
         objects_dict.add_comment(PbxComment('Begin PBXSourcesBuildPhase section'))
         self.generate_pbx_sources_build_phase(objects_dict)
@@ -709,7 +709,7 @@ class XCodeBackend(backends.Backend):
         for t in self.build_targets:
             targets_arr.add_item(self.native_targets[t], t)
 
-    def generate_pbx_shell_build_phase(self, objects_dict, test_data):
+    def generate_pbx_shell_build_phase(self, objects_dict):
         shell_dict = PbxDict()
         objects_dict.add_item(self.test_command_id, shell_dict, 'ShellScript')
         shell_dict.add_item('isa', 'PBXShellScriptBuildPhase')
