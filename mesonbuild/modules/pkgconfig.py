@@ -327,7 +327,7 @@ class PkgConfigModule(ExtensionModule):
 
     def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
                                 url, version, pcfile, conflicts, variables,
-                                uninstalled=False, dataonly=False):
+                                unescaped_variables, uninstalled=False, dataonly=False):
         coredata = state.environment.get_coredata()
         if uninstalled:
             outdir = os.path.join(state.environment.build_dir, 'meson-uninstalled')
@@ -349,10 +349,12 @@ class PkgConfigModule(ExtensionModule):
                     ofile.write('srcdir={}\n'.format(self._escape(srcdir)))
                 ofile.write('libdir={}\n'.format(self._escape('${prefix}' / libdir)))
                 ofile.write('includedir={}\n'.format(self._escape('${prefix}' / incdir)))
-            if variables:
+            if variables or unescaped_variables:
                 ofile.write('\n')
             for k, v in variables:
                 ofile.write('{}={}\n'.format(k, self._escape(v)))
+            for k, v in unescaped_variables:
+                ofile.write(f'{k}={v}\n')
             ofile.write('\n')
             ofile.write('Name: %s\n' % name)
             if len(description) > 0:
@@ -445,6 +447,7 @@ class PkgConfigModule(ExtensionModule):
             if cflags and not dataonly:
                 ofile.write('Cflags: {}\n'.format(' '.join(cflags)))
 
+    @FeatureNewKwargs('pkgconfig.generate', '0.59.0', ['unescaped_variables', 'unescaped_uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.54.0', ['uninstalled_variables'])
     @FeatureNewKwargs('pkgconfig.generate', '0.42.0', ['extra_cflags'])
     @FeatureNewKwargs('pkgconfig.generate', '0.41.0', ['variables'])
@@ -452,7 +455,8 @@ class PkgConfigModule(ExtensionModule):
     @permittedKwargs({'libraries', 'version', 'name', 'description', 'filebase',
                       'subdirs', 'requires', 'requires_private', 'libraries_private',
                       'install_dir', 'extra_cflags', 'variables', 'url', 'd_module_versions',
-                      'dataonly', 'conflicts', 'uninstalled_variables'})
+                      'dataonly', 'conflicts', 'uninstalled_variables',
+                      'unescaped_variables', 'unescaped_uninstalled_variables'})
     def generate(self, state, args, kwargs):
         default_version = state.project_version['version']
         default_install_dir = None
@@ -535,6 +539,8 @@ class PkgConfigModule(ExtensionModule):
 
         variables = self.interpreter.extract_variables(kwargs, dict_new=True)
         variables = parse_variable_list(variables)
+        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_variables')
+        unescaped_variables = parse_variable_list(unescaped_variables)
 
         pcfile = filebase + '.pc'
         pkgroot = kwargs.get('install_dir', default_install_dir)
@@ -547,15 +553,17 @@ class PkgConfigModule(ExtensionModule):
             raise mesonlib.MesonException('Install_dir must be a string.')
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,
-                                     False, dataonly)
+                                     unescaped_variables, False, dataonly)
         res = build.Data([mesonlib.File(True, state.environment.get_scratch_dir(), pcfile)], pkgroot, None, state.subproject)
         variables = self.interpreter.extract_variables(kwargs, argname='uninstalled_variables', dict_new=True)
         variables = parse_variable_list(variables)
+        unescaped_variables = self.interpreter.extract_variables(kwargs, argname='unescaped_uninstalled_variables')
+        unescaped_variables = parse_variable_list(unescaped_variables)
 
         pcfile = filebase + '-uninstalled.pc'
         self.generate_pkgconfig_file(state, deps, subdirs, name, description, url,
                                      version, pcfile, conflicts, variables,
-                                     uninstalled=True, dataonly=dataonly)
+                                     unescaped_variables, uninstalled=True, dataonly=dataonly)
         # Associate the main library with this generated pc file. If the library
         # is used in any subsequent call to the generated, it will generate a
         # 'Requires:' or 'Requires.private:'.
