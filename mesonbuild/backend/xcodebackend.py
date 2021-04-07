@@ -221,6 +221,8 @@ class XCodeBackend(backends.Backend):
 
     def generate(self):
         test_data = self.serialize_tests()[0]
+        # Cache the result as the method rebuilds the array every time it is called.
+        self.build_targets = self.build.get_build_targets()
         self.generate_filemap()
         self.generate_buildstylemap()
         self.generate_build_phase_map()
@@ -295,7 +297,7 @@ class XCodeBackend(backends.Backend):
     def generate_filemap(self):
         self.filemap = {} # Key is source file relative to src root.
         self.target_filemap = {}
-        for name, t in self.build.get_build_targets().items():
+        for name, t in self.build_targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
@@ -310,7 +312,7 @@ class XCodeBackend(backends.Backend):
         self.buildstylemap = {self.buildtype: self.gen_id()}
 
     def generate_build_phase_map(self):
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             # generate id for our own target-name
             t.buildphasemap = {}
             t.buildphasemap[tname] = self.gen_id()
@@ -321,7 +323,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_build_configuration_map(self):
         self.buildconfmap = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             bconfs = {self.buildtype: self.gen_id()}
             self.buildconfmap[t] = bconfs
 
@@ -336,18 +338,18 @@ class XCodeBackend(backends.Backend):
 
     def generate_build_configurationlist_map(self):
         self.buildconflistmap = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             self.buildconflistmap[t] = self.gen_id()
 
     def generate_native_target_map(self):
         self.native_targets = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             self.native_targets[t] = self.gen_id()
 
     def generate_native_frameworks_map(self):
         self.native_frameworks = {}
         self.native_frameworks_fileref = {}
-        for t in self.build.get_build_targets().values():
+        for t in self.build_targets.values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
@@ -356,22 +358,22 @@ class XCodeBackend(backends.Backend):
 
     def generate_target_dependency_map(self):
         self.target_dependency_map = {}
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             for target in t.link_targets:
                 self.target_dependency_map[(tname, target.get_basename())] = self.gen_id()
 
     def generate_pbxdep_map(self):
         self.pbx_dep_map = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             self.pbx_dep_map[t] = self.gen_id()
 
     def generate_containerproxy_map(self):
         self.containerproxy_map = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             self.containerproxy_map[t] = self.gen_id()
 
     def generate_target_file_maps(self):
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
@@ -386,11 +388,11 @@ class XCodeBackend(backends.Backend):
 
     def generate_source_phase_map(self):
         self.source_phase = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             self.source_phase[t] = self.gen_id()
 
     def generate_pbx_aggregate_target(self, objects_dict):
-        target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build.get_build_targets()))
+        target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build_targets))
         aggregated_targets = []
         aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies))
         aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], []))
@@ -417,7 +419,7 @@ class XCodeBackend(backends.Backend):
             objects_dict.add_item(t[0], agt_dict, name)
 
     def generate_pbx_build_file(self, objects_dict):
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
@@ -469,7 +471,7 @@ class XCodeBackend(backends.Backend):
             styledict.add_item('name', f'"{name}"')
 
     def generate_pbx_container_item_proxy(self, objects_dict):
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             proxy_dict = PbxDict()
             objects_dict.add_item(self.containerproxy_map[t], proxy_dict, 'PBXContainerItemProxy')
             proxy_dict.add_item('isa', 'PBXContainerItemProxy')
@@ -479,7 +481,7 @@ class XCodeBackend(backends.Backend):
             proxy_dict.add_item('remoteInfo', '"' + t + '"')
 
     def generate_pbx_file_reference(self, objects_dict):
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
@@ -524,7 +526,7 @@ class XCodeBackend(backends.Backend):
         for tname, idval in self.target_filemap.items():
             target_dict = PbxDict()
             objects_dict.add_item(idval, target_dict, tname)
-            t = self.build.get_build_targets()[tname]
+            t = self.build_targets[tname]
             fname = t.get_filename()
             reftype = 0
             if isinstance(t, build.Executable):
@@ -543,7 +545,7 @@ class XCodeBackend(backends.Backend):
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
 
     def generate_pbx_frameworks_buildphase(self, objects_dict):
-        for t in self.build.get_build_targets().values():
+        for t in self.build_targets.values():
             bt_dict = PbxDict()
             objects_dict.add_item(t.buildphasemap['Frameworks'], bt_dict, 'Frameworks')
             bt_dict.add_item('isa', 'PBXFrameworksBuildPhase')
@@ -559,7 +561,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_group(self, objects_dict):
         groupmap = {}
         target_src_map = {}
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             groupmap[t] = self.gen_id()
             target_src_map[t] = self.gen_id()
         sources_id = self.gen_id()
@@ -583,7 +585,7 @@ class XCodeBackend(backends.Backend):
         source_dict.add_item('isa', 'PBXGroup')
         source_children = PbxArray()
         source_dict.add_item('children', source_children)
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             source_children.add_item(groupmap[t], t)
         source_dict.add_item('name', 'Sources')
         source_dict.add_item('sourceTree', '"<group>"')
@@ -603,7 +605,7 @@ class XCodeBackend(backends.Backend):
         frameworks_dict.add_item('children', frameworks_children)
         # write frameworks
 
-        for t in self.build.get_build_targets().values():
+        for t in self.build_targets.values():
             for dep in t.get_external_deps():
                 if isinstance(dep, dependencies.AppleFrameworks):
                     for f in dep.frameworks:
@@ -613,7 +615,7 @@ class XCodeBackend(backends.Backend):
         frameworks_dict.add_item('sourceTree', '"<group>"')
 
         # Targets
-        for tname, t in self.build.get_build_targets().items():
+        for tname, t in self.build_targets.items():
             target_dict = PbxDict()
             objects_dict.add_item(groupmap[tname], target_dict, tname)
             target_dict.add_item('isa', 'PBXGroup')
@@ -645,7 +647,7 @@ class XCodeBackend(backends.Backend):
         product_dict.add_item('isa', 'PBXGroup')
         product_children = PbxArray()
         product_dict.add_item('children', product_children)
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             product_children.add_item(self.target_filemap[t], t)
         product_dict.add_item('name', 'Products')
         product_dict.add_item('sourceTree', '"<group>"')
@@ -653,7 +655,7 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_native_target(self, objects_dict):
         for tname, idval in self.native_targets.items():
             ntarget_dict = PbxDict()
-            t = self.build.get_build_targets()[tname]
+            t = self.build_targets[tname]
             objects_dict.add_item(idval, ntarget_dict, tname)
             ntarget_dict.add_item('isa', 'PBXNativeTarget')
             ntarget_dict.add_item('buildConfigurationList', self.buildconflistmap[tname], f'Build configuration list for PBXNativeTarget "{tname}"')
@@ -664,7 +666,7 @@ class XCodeBackend(backends.Backend):
             ntarget_dict.add_item('buildRules', PbxArray())
             dep_array = PbxArray()
             ntarget_dict.add_item('dependencies', dep_array)
-            for lt in self.build.get_build_targets()[tname].link_targets:
+            for lt in self.build_targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
                 idval = self.pbx_dep_map[lt.get_id()]
@@ -704,7 +706,7 @@ class XCodeBackend(backends.Backend):
         project_dict.add_item('targets', targets_arr)
         targets_arr.add_item(self.all_id, 'ALL_BUILD')
         targets_arr.add_item(self.test_id, 'RUN_TESTS')
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             targets_arr.add_item(self.native_targets[t], t)
 
     def generate_pbx_shell_build_phase(self, objects_dict, test_data):
@@ -725,13 +727,13 @@ class XCodeBackend(backends.Backend):
     def generate_pbx_sources_build_phase(self, objects_dict):
         for name in self.source_phase.keys():
             phase_dict = PbxDict()
-            t = self.build.get_build_targets()[name]
+            t = self.build_targets[name]
             objects_dict.add_item(t.buildphasemap[name], phase_dict, 'Sources')
             phase_dict.add_item('isa', 'PBXSourcesBuildPhase')
             phase_dict.add_item('buildActionMask', 2147483647)
             file_arr = PbxArray()
             phase_dict.add_item('files', file_arr)
-            for s in self.build.get_build_targets()[name].sources:
+            for s in self.build_targets[name].sources:
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
@@ -739,7 +741,7 @@ class XCodeBackend(backends.Backend):
 
     def generate_pbx_target_dependency(self, objects_dict):
         targets = []
-        for t in self.build.get_build_targets():
+        for t in self.build_targets:
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
             targets.append((idval, self.native_targets[t], t, self.containerproxy_map[t]))
 
@@ -816,7 +818,7 @@ class XCodeBackend(backends.Backend):
             bt_dict.add_item('name', f'"{buildtype}"')
 
         # Now finally targets.
-        for target_name, target in self.build.get_build_targets().items():
+        for target_name, target in self.build_targets.items():
             self.generate_single_build_target(objects_dict, target_name, target)
 
         
@@ -977,7 +979,7 @@ class XCodeBackend(backends.Backend):
         test_dict.add_item('defaultConfigurationIsVisible', 0)
         test_dict.add_item('defaultConfigurationName', self.buildtype)
 
-        for target_name in self.build.get_build_targets():
+        for target_name in self.build_targets:
             t_dict = PbxDict()
             listid = self.buildconflistmap[target_name]
             objects_dict.add_item(listid, t_dict, f'Build configuration list for PBXNativeTarget "{target_name}"')
