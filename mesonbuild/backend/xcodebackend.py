@@ -431,10 +431,8 @@ class XCodeBackend(backends.Backend):
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
-
                 if not isinstance(s, str):
                     continue
-                s = os.path.join(t.subdir, s)
                 sdict = PbxDict()
                 idval = self.buildfile_ids[(tname, s)]
                 fileref = self.fileref_ids[(tname, s)]
@@ -495,10 +493,8 @@ class XCodeBackend(backends.Backend):
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(s.subdir, s.fname)
-
                 if not isinstance(s, str):
                     continue
-                s = os.path.join(t.subdir, s)
                 idval = self.fileref_ids[(tname, s)]
                 fullpath = os.path.join(self.environment.get_source_dir(), s)
                 src_dict = PbxDict()
