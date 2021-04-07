@@ -866,6 +866,8 @@ class XCodeBackend(backends.Backend):
                 if lang not in LANGNAMEMAP:
                     continue
                 compiler = target.compilers.get(lang)
+                if compiler is None:
+                    continue
                 # Start with warning args
                 warn_args = compiler.get_warn_args(self.get_option_for_target(OptionKey('warning_level'), target))
                 # Add compile args added using add_project_arguments()
