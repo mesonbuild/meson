@@ -919,8 +919,11 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             if headerdirs:
-                quotedh = ','.join(['"\\"%s\\""' % i for i in headerdirs])
-                settings_dict.add_item('HEADER_SEARCH_PATHS', f'({quotedh}')
+                header_arr = PbxArray()
+                for i in headerdirs:
+                    i = os.path.normpath(i)
+                    header_arr.add_item(f'"\\"{i}\\""')
+                settings_dict.add_item('HEADER_SEARCH_PATHS', header_arr)
             settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
             if isinstance(target, build.SharedLibrary):
