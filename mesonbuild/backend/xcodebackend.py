@@ -879,7 +879,10 @@ class XCodeBackend(backends.Backend):
                     langname = LANGNAMEMAP[lang]
                     lang_cargs = cargs
                     if compiler and target.implicit_include_directories:
-                        lang_cargs += self.get_build_dir_include_args(target, compiler)
+                        # It is unclear what is the cwd when xcode runs. -I. does not seem to
+                        # add the root build dir to the search path. So add an absolute path instead.
+                        # This may break reproducible builds, in which case patches are welcome.
+                        lang_cargs += self.get_build_dir_include_args(target, compiler, absolute_path=True)
                     langargs[langname] = args
                     langargs[langname] += lang_cargs
             symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
@@ -922,7 +925,7 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
             if isinstance(target, build.SharedLibrary):
                 settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
-            self.add_otterargs(settings_dict, langargs)
+            self.add_otherargs(settings_dict, langargs)
             settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
             settings_dict.add_item('OTHER_REZFLAGS', '""')
             settings_dict.add_item('PRODUCT_NAME', product_name)
@@ -935,7 +938,7 @@ class XCodeBackend(backends.Backend):
             warn_array.add_item('"$(inherited)"')
             bt_dict.add_item('name', buildtype)
 
-    def add_otterargs(self, settings_dict, langargs):
+    def add_otherargs(self, settings_dict, langargs):
         for langname, args in langargs.items():
             if args:
                 # FIXME, proper quoting

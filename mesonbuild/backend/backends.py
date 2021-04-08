@@ -265,10 +265,13 @@ class Backend:
         tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
         return compiler.get_include_args(tmppath, False)
 
-    def get_build_dir_include_args(self, target, compiler):
-        curdir = target.get_subdir()
-        if curdir == '':
-            curdir = '.'
+    def get_build_dir_include_args(self, target, compiler, *, absolute_path=False):
+        if absolute_path:
+            curdir = os.path.join(self.build_dir, target.get_subdir())
+        else:
+            curdir = target.get_subdir()
+            if curdir == '':
+                curdir = '.'
         return compiler.get_include_args(curdir, False)
 
     def get_target_filename_for_linking(self, target):
