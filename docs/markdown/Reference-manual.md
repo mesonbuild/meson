@@ -1986,17 +1986,17 @@ the following methods.
   or `xcode`.
 
 - `build_root()`: returns a string with the absolute path to the build
-  root directory. *(deprecated since 0.56.0)*: this function will return the
-  build root of the parent project if called from a subproject, which is usually
-  not what you want. Try using `current_build_dir()` or `project_build_root()`.
+  root directory. This function will return the build root of the parent
+  project if called from a subproject, which is usually not what you want. Try
+  using `current_build_dir()` or `project_build_root()`.
 
 - `source_root()`: returns a string with the absolute path to the
   source root directory. Note: you should use the `files()` function
   to refer to files in the root source directory instead of
   constructing paths manually with `meson.source_root()`.
-  *(deprecated since 0.56.0)*: This function will return the source root of the
-  parent project if called from a subproject, which is usually not what you want.
-  Try using `current_source_dir()` or `project_source_root()`.
+  This function will return the source root of the parent project if called
+  from a subproject, which is usually not what you want. Try using
+  `current_source_dir()` or `project_source_root()`.
 
 - `project_build_root()` *(since 0.56.0)*: returns a string with the absolute path
   to the build root directory of the current (sub)project.
