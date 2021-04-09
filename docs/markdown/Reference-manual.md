@@ -1632,8 +1632,7 @@ platforms, notably OSX.  Consider using a
 ```
 
 Builds a static library with the given sources. Positional and keyword
-arguments are otherwise the same as for [`library`](#library), but it
-has one argument the others don't have:
+arguments are as for [`library`](#library), as well as:
 
  - `pic` *(since 0.36.0)*: builds the library as positional
    independent code (so it can be linked into a shared library). This
