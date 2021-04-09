@@ -35,6 +35,8 @@ class MesonMain(InterpreterObject):
                              'build_root': self.build_root_method,
                              'project_source_root': self.project_source_root_method,
                              'project_build_root': self.project_build_root_method,
+                             'global_source_root': self.global_source_root_method,
+                             'global_build_root': self.global_build_root_method,
                              'add_install_script': self.add_install_script_method,
                              'add_postconf_script': self.add_postconf_script_method,
                              'add_dist_script': self.add_dist_script_method,
@@ -173,13 +175,13 @@ class MesonMain(InterpreterObject):
 
     @noPosargs
     @permittedKwargs({})
-    @FeatureDeprecated('meson.source_root', '0.56.0', 'use meson.current_source_dir instead.')
+    @FeatureDeprecated('meson.source_root', '0.56.0', 'use meson.project_source_root() or meson.global_source_root() instead.')
     def source_root_method(self, args, kwargs):
         return self.interpreter.environment.source_dir
 
     @noPosargs
     @permittedKwargs({})
-    @FeatureDeprecated('meson.build_root', '0.56.0', 'use meson.current_build_dir instead.')
+    @FeatureDeprecated('meson.build_root', '0.56.0', 'use meson.project_build_root() or meson.global_build_root() instead.')
     def build_root_method(self, args, kwargs):
         return self.interpreter.environment.build_dir
 
@@ -202,6 +204,18 @@ class MesonMain(InterpreterObject):
         if sub == '':
             return src
         return os.path.join(src, sub)
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('meson.global_source_root', '0.58.0')
+    def global_source_root_method(self, args, kwargs):
+        return self.interpreter.environment.source_dir
+
+    @noPosargs
+    @noKwargs
+    @FeatureNew('meson.global_build_root', '0.58.0')
+    def global_build_root_method(self, args, kwargs):
+        return self.interpreter.environment.build_dir
 
     @noPosargs
     @permittedKwargs({})
