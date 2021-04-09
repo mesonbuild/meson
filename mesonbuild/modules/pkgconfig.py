@@ -280,6 +280,11 @@ class DependenciesHelper:
         self.cflags = _fn(self.cflags)
 
 class PkgConfigModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'generate': self.generate,
+        })
 
     def _get_lname(self, l, msg, pcfile, is_custom_target):
         if is_custom_target:

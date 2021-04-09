@@ -35,6 +35,9 @@ class SimdModule(ExtensionModule):
                       'avx2',
                       'neon',
                       )
+        self.methods.update({
+            'check': self.check,
+        })
 
     def check(self, state, args, kwargs):
         result = []

@@ -36,6 +36,23 @@ class FSModule(ExtensionModule):
 
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
+        self.methods.update({
+            'expanduser': self.expanduser,
+            'is_absolute': self.is_absolute,
+            'as_posix': self.as_posix,
+            'exists': self.exists,
+            'is_symlink': self.is_symlink,
+            'is_file': self.is_file,
+            'is_dir': self.is_dir,
+            'hash': self.hash,
+            'size': self.size,
+            'is_samepath': self.is_samepath,
+            'replace_suffix': self.replace_suffix,
+            'parent': self.parent,
+            'name': self.name,
+            'stem': self.stem,
+            'read': self.read,
+        })
 
     def _absolute_dir(self, state: 'ModuleState', arg: 'FileOrString') -> Path:
         """

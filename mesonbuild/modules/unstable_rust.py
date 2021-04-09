@@ -38,6 +38,10 @@ class RustModule(ExtensionModule):
     def __init__(self, interpreter: 'Interpreter') -> None:
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional['ExternalProgram'] = None
+        self.methods.update({
+            'test': self.test,
+            'bindgen': self.bindgen,
+        })
 
     @permittedKwargs(permitted_test_kwargs | {'dependencies'} ^ {'protocol'})
     @typed_pos_args('rust.test', str, BuildTargetHolder)

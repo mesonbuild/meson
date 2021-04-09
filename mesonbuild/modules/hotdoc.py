@@ -405,6 +405,10 @@ class HotDocModule(ExtensionModule):
         except Exception as e:
             raise MesonException('hotdoc {} required but not found. ({})'.format(
                 MIN_HOTDOC_VERSION, e))
+        self.methods.update({
+            'has_extensions': self.has_extensions,
+            'generate_doc': self.generate_doc,
+        })
 
     @noKwargs
     def has_extensions(self, state, args, kwargs):

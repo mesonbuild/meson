@@ -16,6 +16,11 @@ from . import ExtensionModule
 from ..interpreterbase import noKwargs
 
 class TestModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'print_hello': self.print_hello,
+        })
 
     @noKwargs
     def print_hello(self, state, args, kwargs):

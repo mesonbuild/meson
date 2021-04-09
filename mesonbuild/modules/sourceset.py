@@ -189,6 +189,9 @@ class SourceSetModule(ExtensionModule):
     @FeatureNew('SourceSet module', '0.51.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.methods.update({
+            'source_set': self.source_set,
+        })
 
     @noKwargs
     @noPosargs

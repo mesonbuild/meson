@@ -212,6 +212,12 @@ class CmakeModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
+        self.methods.update({
+            'write_basic_package_version_file': self.write_basic_package_version_file,
+            'configure_package_config_file': self.configure_package_config_file,
+            'subproject': self.subproject,
+            'subproject_options': self.subproject_options,
+        })
 
     def detect_voidp_size(self, env):
         compilers = env.coredata.compilers.host

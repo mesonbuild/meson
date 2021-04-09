@@ -57,6 +57,20 @@ class GnomeModule(ExtensionModule):
         self.install_gio_querymodules = []
         self.install_gtk_update_icon_cache = False
         self.devenv = None
+        self.methods.update({
+            'post_install': self.post_install,
+            'compile_resources': self.compile_resources,
+            'generate_gir': self.generate_gir,
+            'compile_schemas': self.compile_schemas,
+            'yelp': self.yelp,
+            'gtkdoc': self.gtkdoc,
+            'gtkdoc_html_dir': self.gtkdoc_html_dir,
+            'gdbus_codegen': self.gdbus_codegen,
+            'mkenums': self.mkenums,
+            'mkenums_simple': self.mkenums_simple,
+            'genmarshal': self.genmarshal,
+            'generate_vapi': self.generate_vapi,
+        })
 
     @staticmethod
     def _get_native_glib_version(state):

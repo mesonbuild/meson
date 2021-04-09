@@ -87,7 +87,7 @@ class ModuleObject:
     """Base class for all objects returned by modules
     """
     def __init__(self) -> None:
-        self.methods = {}  # type: T.Dict[str, T.Callable[[T.List[TYPE_nvar], TYPE_nkwargs], TYPE_var]]
+        self.methods = {}  # type: T.Dict[str, T.Callable[[ModuleState, T.List[TYPE_nvar], TYPE_nkwargs], T.Union[ModuleReturnValue, TYPE_var]]]
 
 class MutableModuleObject(ModuleObject):
     pass
@@ -112,7 +112,7 @@ def is_module_library(fname):
 
 
 class ModuleReturnValue:
-    def __init__(self, return_value: 'TYPE_var', new_objects: T.List['TYPE_var']) -> None:
+    def __init__(self, return_value: T.Optional['TYPE_var'], new_objects: T.List['TYPE_var']) -> None:
         self.return_value = return_value
         assert(isinstance(new_objects, list))
         self.new_objects = new_objects
