@@ -445,14 +445,21 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('fileRef', self.native_frameworks_fileref[f], f)
 
             for s in t.sources:
+                in_build_dir = False
                 if isinstance(s, mesonlib.File):
+                    if s.is_built:
+                        in_build_dir = True
                     s = os.path.join(s.subdir, s.fname)
+                    
                 if not isinstance(s, str):
                     continue
                 sdict = PbxDict()
                 idval = self.buildfile_ids[(tname, s)]
                 fileref = self.fileref_ids[(tname, s)]
-                fullpath = os.path.join(self.environment.get_source_dir(), s)
+                if in_build_dir:
+                    fullpath = os.path.join(self.environment.get_build_dir(), s)    
+                else:
+                    fullpath = os.path.join(self.environment.get_source_dir(), s)
                 compiler_args = ''
                 sdict.add_item('isa', 'PBXBuildFile')
                 sdict.add_item('fileRef', fileref, fullpath)
@@ -512,7 +519,10 @@ class XCodeBackend(backends.Backend):
                         fw_dict.add_item('path', f'System/Library/Frameworks/{f}.framework')
                         fw_dict.add_item('sourceTree', 'SDKROOT')
             for s in t.sources:
+                in_build_dir = False
                 if isinstance(s, mesonlib.File):
+                    if s.is_built:
+                        in_build_dir = True
                     s = os.path.join(s.subdir, s.fname)
                 if not isinstance(s, str):
                     continue
@@ -526,9 +536,17 @@ class XCodeBackend(backends.Backend):
                 src_dict.add_item('isa', 'PBXFileReference')
                 src_dict.add_item('explicitFileType', '"' + xcodetype + '"')
                 src_dict.add_item('fileEncoding', '4')
-                src_dict.add_item('name', '"' + name + '"')
-                src_dict.add_item('path', '"' + path + '"')
-                src_dict.add_item('sourceTree', 'SOURCE_ROOT')
+                if in_build_dir:
+                    src_dict.add_item('name', '"' + name + '"')
+                    # This makes no sense. This should say path instead of name
+                    # but then the path gets added twice.
+                    src_dict.add_item('path', '"' + name + '"')
+                    src_dict.add_item('sourceTree', 'BUILD_ROOT')
+                else:
+                    src_dict.add_item('name', '"' + name + '"')
+                    src_dict.add_item('path', '"' + path + '"')
+                    src_dict.add_item('sourceTree', 'SOURCE_ROOT')
+
 
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
@@ -936,12 +954,11 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
             if dylib_version is not None:
                 settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
-            settings_dict.add_item('EXECUTABLE_PREFIX', f'"{target.prefix}"')
-            if target.suffix == '':
-                suffix = ''
-            else:
+            if target.prefix:
+                settings_dict.add_item('EXECUTABLE_PREFIX', target.prefix)
+            if target.suffix:
                 suffix = '.' + target.suffix
-            settings_dict.add_item('EXECUTABLE_SUFFIX', f'"{suffix}"')
+                settings_dict.add_item('EXECUTABLE_SUFFIX', suffix)
             settings_dict.add_item('GCC_GENERATE_DEBUGGING_SYMBOLS', BOOL2XCODEBOOL[self.get_option_for_target(OptionKey('debug'), target)])
             settings_dict.add_item('GCC_INLINES_ARE_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('GCC_OPTIMIZATION_LEVEL', OPT2XCODEOPT[self.get_option_for_target(OptionKey('optimization'), target)])
