@@ -19,7 +19,7 @@ from . import ExtensionModule, ModuleReturnValue
 from .. import mlog
 from ..build import BuildTarget, CustomTargetIndex, Executable, GeneratedList, InvalidArguments, IncludeDirs, CustomTarget
 from ..dependencies import Dependency, ExternalLibrary
-from ..interpreter import ExecutableHolder, BuildTargetHolder, CustomTargetHolder, permitted_kwargs
+from ..interpreter import ExecutableHolder, BuildTargetHolder, CustomTargetHolder, permitted_test_kwargs
 from ..interpreterbase import InterpreterException, permittedKwargs, FeatureNew, typed_pos_args, noPosargs
 from ..mesonlib import stringlistify, unholder, listify, typeslistify, File
 
@@ -38,7 +38,7 @@ class RustModule(ExtensionModule):
         super().__init__(interpreter)
         self._bindgen_bin: T.Optional['ExternalProgram'] = None
 
-    @permittedKwargs(permitted_kwargs['test'] | {'dependencies'} ^ {'protocol'})
+    @permittedKwargs(permitted_test_kwargs | {'dependencies'} ^ {'protocol'})
     @typed_pos_args('rust.test', str, BuildTargetHolder)
     def test(self, state: 'ModuleState', args: T.Tuple[str, BuildTargetHolder], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         """Generate a rust test target from a given rust target.

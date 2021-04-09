@@ -26,7 +26,7 @@ from ..interpreterbase import (
     InvalidArguments,
     FeatureNew, FeatureNewKwargs, disablerIfNotFound
 )
-from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_kwargs
+from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
@@ -347,7 +347,7 @@ class PythonInstallation(ExternalProgramHolder):
 
         return self.interpreter.func_shared_module(None, args, kwargs)
 
-    @permittedKwargs(permitted_kwargs['dependency'])
+    @permittedKwargs(permitted_dependency_kwargs)
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     def dependency_method(self, args, kwargs):
         if args:
