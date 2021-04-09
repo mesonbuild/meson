@@ -24,6 +24,9 @@ class IceStormModule(ExtensionModule):
     def __init__(self, interpreter):
         super().__init__(interpreter)
         self.yosys_bin = None
+        self.methods.update({
+            'project': self.project,
+        })
 
     def detect_binaries(self, interpreter):
         self.yosys_bin = interpreter.find_program_impl(['yosys'])

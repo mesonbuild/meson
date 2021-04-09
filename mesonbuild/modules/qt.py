@@ -46,6 +46,11 @@ class QtBaseModule(ExtensionModule):
         self.uic: 'ExternalProgram' = NonExistingExternalProgram('uic')
         self.rcc: 'ExternalProgram' = NonExistingExternalProgram('rcc')
         self.lrelease: 'ExternalProgram' = NonExistingExternalProgram('lrelease')
+        self.methods.update({
+            'has_tools': self.has_tools,
+            'preprocess': self.preprocess,
+            'compile_translations': self.compile_translations,
+        })
 
     def compilers_detect(self, qt_dep: 'QtBaseDependency') -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""

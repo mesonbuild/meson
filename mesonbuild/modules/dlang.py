@@ -36,6 +36,9 @@ class DlangModule(ExtensionModule):
 
     def __init__(self, interpreter):
         super().__init__(interpreter)
+        self.methods.update({
+            'generate_dub_file': self.generate_dub_file,
+        })
 
     def _init_dub(self):
         if DlangModule.class_dubbin is None:

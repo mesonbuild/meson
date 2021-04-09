@@ -473,6 +473,9 @@ class PythonModule(ExtensionModule):
     @FeatureNew('Python Module', '0.46.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.methods.update({
+            'find_installation': self.find_installation,
+        })
 
     # https://www.python.org/dev/peps/pep-0397/
     def _get_win_pythonpath(self, name_or_path):

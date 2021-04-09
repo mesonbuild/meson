@@ -789,13 +789,8 @@ class ModuleObjectHolder(InterpreterObject, ObjectHolder['ModuleObject']):
     def method_call(self, method_name, args, kwargs):
         modobj = self.held_object
         method = modobj.methods.get(method_name)
-        if not method and not modobj.methods:
-            # FIXME: Port all modules to use the methods dict.
-            method = getattr(modobj, method_name, None)
-            if method_name.startswith('_'):
-                raise InvalidArguments(f'Method {method_name!r} is private.')
         if not method:
-            raise InvalidCode('Unknown method "%s" in object.' % method_name)
+            raise InvalidCode(f'Unknown method {method_name!r} in object.')
         if not getattr(method, 'no-args-flattening', False):
             args = flatten(args)
         state = ModuleState(self.interpreter)

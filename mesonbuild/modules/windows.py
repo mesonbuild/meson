@@ -30,6 +30,11 @@ class ResourceCompilerType(enum.Enum):
     rc = 2
 
 class WindowsModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'compile_resources': self.compile_resources,
+        })
 
     def detect_compiler(self, compilers):
         for l in ('c', 'cpp'):

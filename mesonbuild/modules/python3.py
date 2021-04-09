@@ -25,6 +25,12 @@ class Python3Module(ExtensionModule):
     @FeatureDeprecated('python3 module', '0.48.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.methods.update({
+            'extension_module': self.extension_module,
+            'find_python': self.find_python,
+            'language_version': self.language_version,
+            'sysconfig_path': self.sysconfig_path,
+        })
 
     @permittedKwargs(known_shmod_kwargs)
     def extension_module(self, state, args, kwargs):

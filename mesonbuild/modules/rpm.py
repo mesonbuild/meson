@@ -26,18 +26,22 @@ from ..interpreterbase import noKwargs
 import os
 
 class RPMModule(ExtensionModule):
+    def __init__(self, interpreter):
+        super().__init__(interpreter)
+        self.methods.update({
+            'generate_spec_template': self.generate_spec_template,
+        })
 
     @noKwargs
-    def generate_spec_template(self, coredata, args, kwargs):
-        self.coredata = coredata
-        required_compilers = self.__get_required_compilers()
-        proj = coredata.project_name.replace(' ', '_').replace('\t', '_')
+    def generate_spec_template(self, state, args, kwargs):
+        required_compilers = self.__get_required_compilers(state)
+        proj = state.project_name.replace(' ', '_').replace('\t', '_')
         so_installed = False
         devel_subpkg = False
         files = set()
         files_devel = set()
         to_delete = set()
-        for target in coredata.targets.values():
+        for target in state.targets.values():
             if isinstance(target, build.Executable) and target.need_install:
                 files.add('%%{_bindir}/%s' % target.get_filename())
             elif isinstance(target, build.SharedLibrary) and target.need_install:
@@ -56,13 +60,13 @@ class RPMModule(ExtensionModule):
                 files_devel.add('%%{_datadir}/gir-1.0/%s' % target.get_filename()[0])
             elif isinstance(target, TypelibTarget) and target.should_install():
                 files.add('%%{_libdir}/girepository-1.0/%s' % target.get_filename()[0])
-        for header in coredata.headers:
+        for header in state.headers:
             if header.get_install_subdir():
                 files_devel.add('%%{_includedir}/%s/' % header.get_install_subdir())
             else:
                 for hdr_src in header.get_sources():
                     files_devel.add('%%{_includedir}/%s' % hdr_src)
-        for man in coredata.man:
+        for man in state.man:
             for man_file in man.get_sources():
                 if man.locale:
                     files.add('%%{_mandir}/%s/man%u/%s.*' % (man.locale, int(man_file.split('.')[-1]), man_file))
@@ -71,7 +75,7 @@ class RPMModule(ExtensionModule):
         if files_devel:
             devel_subpkg = True
 
-        filename = os.path.join(coredata.environment.get_build_dir(),
+        filename = os.path.join(state.environment.get_build_dir(),
                                 '%s.spec' % proj)
         with open(filename, 'w+') as fn:
             fn.write('Name: %s\n' % proj)
@@ -85,7 +89,7 @@ class RPMModule(ExtensionModule):
             fn.write('BuildRequires: meson\n')
             for compiler in required_compilers:
                 fn.write('BuildRequires: %s\n' % compiler)
-            for dep in coredata.environment.coredata.deps.host:
+            for dep in state.environment.coredata.deps.host:
                 fn.write('BuildRequires: pkgconfig(%s)\n' % dep[0])
 #   ext_libs and ext_progs have been removed from coredata so the following code
 #   no longer works. It is kept as a reminder of the idea should anyone wish
@@ -150,9 +154,9 @@ class RPMModule(ExtensionModule):
             fn.write('\n')
         mlog.log('RPM spec template written to %s.spec.\n' % proj)
 
-    def __get_required_compilers(self):
+    def __get_required_compilers(self, state):
         required_compilers = set()
-        for compiler in self.coredata.environment.coredata.compilers.host.values():
+        for compiler in state.environment.coredata.compilers.host.values():
             # Elbrus has one 'lcc' package for every compiler
             if isinstance(compiler, compilers.GnuCCompiler):
                 required_compilers.add('gcc')

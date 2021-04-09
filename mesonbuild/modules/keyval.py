@@ -25,6 +25,9 @@ class KeyvalModule(ExtensionModule):
     @FeatureNew('Keyval Module', '0.55.0')
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.methods.update({
+            'load': self.load,
+        })
 
     def _load_file(self, path_to_config):
         result = dict()
