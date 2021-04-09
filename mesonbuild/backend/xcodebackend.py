@@ -219,6 +219,18 @@ class XCodeBackend(backends.Backend):
         directories = os.path.normpath(self.get_target_dir(target)).split(os.sep)
         return os.sep.join(['..'] * len(directories))
 
+    def object_filename_from_source(self, target, source):
+        # Xcode has the following naming scheme:
+        # projectname.build/debug/prog@exe.build/Objects-normal/x86_64/func.o
+        project = self.build.project_name
+        buildtype = self.buildtype
+        tname = target.get_id()
+        arch = 'x86_64'
+        if isinstance(source, mesonlib.File):
+            source = source.fname
+        stem = os.path.splitext(os.path.basename(source))[0]
+        return f'{project}.build/{buildtype}/{tname}.build/Objects-normal/{arch}/{stem}.o'
+
     def generate(self):
         self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
@@ -382,9 +394,13 @@ class XCodeBackend(backends.Backend):
                 self.buildfile_ids[(tname, s)] = self.gen_id()
                 self.fileref_ids[(tname, s)] = self.gen_id()
             for o in t.objects:
-                o = os.path.join(t.subdir, o)
-                self.buildfile_ids[(tname, o)] = self.gen_id()
-                self.fileref_ids[(tname, o)] = self.gen_id()
+                if isinstance(o, build.ExtractedObjects):
+                    # Extracted objects do not live in "the Xcode world".
+                    continue
+                else:
+                    o = os.path.join(t.subdir, o)
+                    self.buildfile_ids[(tname, o)] = self.gen_id()
+                    self.fileref_ids[(tname, o)] = self.gen_id()
 
     def generate_source_phase_map(self):
         self.source_phase = {}
@@ -446,6 +462,11 @@ class XCodeBackend(backends.Backend):
                 objects_dict.add_item(idval, sdict)
 
             for o in t.objects:
+                if isinstance(o, build.ExtractedObjects):
+                    # Object files are not source files as such. We add them
+                    # by hand in linker flags. It is also not particularly
+                    # clear how to define build files in Xcode's file format.
+                    continue
                 o = os.path.join(t.subdir, o)
                 idval = self.buildfile_ids[(tname, o)]
                 fileref = self.fileref_ids[(tname, s)]
@@ -510,6 +531,9 @@ class XCodeBackend(backends.Backend):
                 src_dict.add_item('sourceTree', 'SOURCE_ROOT')
 
             for o in t.objects:
+                if isinstance(o, build.ExtractedObjects):
+                    # Same as with pbxbuildfile.
+                    continue
                 o = os.path.join(t.subdir, o)
                 idval = self.fileref_ids[(tname, o)]
                 fileref = self.filemap[o]
@@ -629,9 +653,12 @@ class XCodeBackend(backends.Backend):
                 if isinstance(s, mesonlib.File):
                     s = os.path.join(t.subdir, s.fname)
                 if not isinstance(s, str):
-                    continue                
+                    clontinue                
                 source_file_children.add_item(self.fileref_ids[(tname, s)], s)
             for o in t.objects:
+                if isinstance(o, build.ExtractedObjects):
+                    # Do not show built object files in the project tree.   
+                    continue
                 o = os.path.join(t.subdir, o)
                 source_file_children.add_item(self.fileref_ids[(tname, o)], o)
             source_files_dict.add_item('name', '"Source files"')
@@ -667,6 +694,12 @@ class XCodeBackend(backends.Backend):
                 # to same target have different targetdependency item.
                 idval = self.pbx_dep_map[lt.get_id()]
                 dep_array.add_item(idval, 'PBXTargetDependency')
+            for o in t.objects:
+                if isinstance(o, build.ExtractedObjects):
+                    source_target_id = o.target.get_id()
+                    idval = self.pbx_dep_map[source_target_id]
+                    dep_array.add_item(idval, 'PBXTargetDependency')
+
             ntarget_dict.add_item('name', f'"{tname}"')
             ntarget_dict.add_item('productName', f'"{tname}"')
             ntarget_dict.add_item('productReference', self.target_filemap[tname], tname)
@@ -776,8 +809,8 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('INSTALL_PATH', '""')
-            settings_dict.add_item('OTHER_CFLAGS', '" "')
-            settings_dict.add_item('OTHER_LDFLAGS', '" "')
+            settings_dict.add_item('OTHER_CFLAGS', '""')
+            settings_dict.add_item('OTHER_LDFLAGS', '""')
             settings_dict.add_item('OTHER_REZFLAGS', '""')
             settings_dict.add_item('PRODUCT_NAME', 'ALL_BUILD')
             settings_dict.add_item('SECTORDER_FLAGS', '""')
@@ -801,8 +834,8 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('GCC_PREPROCESSOR_DEFINITIONS', '""')
             settings_dict.add_item('GCC_SYMBOLS_PRIVATE_EXTERN', 'NO')
             settings_dict.add_item('INSTALL_PATH', '""')
-            settings_dict.add_item('OTHER_CFLAGS', '" "')
-            settings_dict.add_item('OTHER_LDFLAGS', '" "')
+            settings_dict.add_item('OTHER_CFLAGS', '""')
+            settings_dict.add_item('OTHER_LDFLAGS', '""')
             settings_dict.add_item('OTHER_REZFLAGS', '""')
             settings_dict.add_item('PRODUCT_NAME', 'RUN_TESTS')
             settings_dict.add_item('SECTORDER_FLAGS', '""')
@@ -857,6 +890,15 @@ class XCodeBackend(backends.Backend):
             for dep in target.get_external_deps():
                 cargs += dep.get_compile_args()
                 ldargs += dep.get_link_args()
+            for o in target.objects:
+                # Add extracted objects to the link line by hand.
+                if isinstance(o, build.ExtractedObjects):
+                    added_objs = set()
+                    for objname_rel in o.get_outputs(self):
+                        objname_abs = os.path.join(self.environment.get_build_dir(), objname_rel)
+                        if objname_abs not in added_objs:
+                            added_objs.add(objname_abs)
+                            ldargs += [r'\"' + objname_abs + r'\"']
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
             langargs = {}
