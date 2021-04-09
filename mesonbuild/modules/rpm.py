@@ -20,7 +20,6 @@ from .. import compilers
 import datetime
 from .. import mlog
 from . import GirTarget, TypelibTarget
-from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import noKwargs
 
@@ -150,7 +149,6 @@ class RPMModule(ExtensionModule):
             fn.write('- \n')
             fn.write('\n')
         mlog.log('RPM spec template written to %s.spec.\n' % proj)
-        return ModuleReturnValue(None, [])
 
     def __get_required_compilers(self):
         required_compilers = set()

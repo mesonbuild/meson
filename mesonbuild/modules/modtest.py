@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreterbase import noKwargs
 
@@ -21,8 +20,6 @@ class TestModule(ExtensionModule):
     @noKwargs
     def print_hello(self, state, args, kwargs):
         print('Hello from a Meson module')
-        rv = ModuleReturnValue(None, [])
-        return rv
 
 def initialize(*args, **kwargs):
     return TestModule(*args, **kwargs)

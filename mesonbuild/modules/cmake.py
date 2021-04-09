@@ -390,9 +390,8 @@ class CmakeModule(ExtensionModule):
     @FeatureNew('subproject_options', '0.55.0')
     @noKwargs
     @noPosargs
-    def subproject_options(self, state, args, kwargs) -> ModuleReturnValue:
-        opts = CMakeSubprojectOptions()
-        return ModuleReturnValue(opts, [])
+    def subproject_options(self, state, args, kwargs) -> CMakeSubprojectOptions:
+        return CMakeSubprojectOptions()
 
 def initialize(*args, **kwargs):
     return CmakeModule(*args, **kwargs)

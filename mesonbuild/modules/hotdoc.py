@@ -408,8 +408,7 @@ class HotDocModule(ExtensionModule):
 
     @noKwargs
     def has_extensions(self, state, args, kwargs):
-        res = self.hotdoc.run_hotdoc(['--has-extension=%s' % extension for extension in args]) == 0
-        return ModuleReturnValue(res, [res])
+        return self.hotdoc.run_hotdoc(['--has-extension=%s' % extension for extension in args]) == 0
 
     def generate_doc(self, state, args, kwargs):
         if len(args) != 1:
