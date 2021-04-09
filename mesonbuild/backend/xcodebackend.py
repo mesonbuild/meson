@@ -213,6 +213,11 @@ class XCodeBackend(backends.Backend):
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
+    def get_custom_target_output_dir(self, target):
+        dirname = target.get_subdir()
+        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
+        return dirname
+
     def target_to_build_root(self, target):
         if self.get_target_dir(target) == '':
             return ''
@@ -235,6 +240,7 @@ class XCodeBackend(backends.Backend):
         self.serialize_tests()
         # Cache the result as the method rebuilds the array every time it is called.
         self.build_targets = self.build.get_build_targets()
+        self.custom_targets = self.build.get_custom_targets()
         self.generate_filemap()
         self.generate_buildstylemap()
         self.generate_build_phase_map()
@@ -245,6 +251,7 @@ class XCodeBackend(backends.Backend):
         self.generate_test_configurations_map()
         self.generate_native_target_map()
         self.generate_native_frameworks_map()
+        self.generate_custom_target_map()
         self.generate_source_phase_map()
         self.generate_target_dependency_map()
         self.generate_pbxdep_map()
@@ -358,6 +365,19 @@ class XCodeBackend(backends.Backend):
         for t in self.build_targets:
             self.native_targets[t] = self.gen_id()
 
+    def generate_custom_target_map(self):
+        self.shell_targets = {}
+        self.custom_target_output_buildfile = {}
+        self.custom_target_output_fileref = {}
+        for tname, t in self.custom_targets.items():
+            self.shell_targets[tname] = self.gen_id()
+            if not isinstance(t, build.CustomTarget):
+                continue
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            for o in ofilenames:
+                self.custom_target_output_buildfile[o] = self.gen_id()
+                self.custom_target_output_fileref[o] = self.gen_id()
+
     def generate_native_frameworks_map(self):
         self.native_frameworks = {}
         self.native_frameworks_fileref = {}
@@ -463,9 +483,6 @@ class XCodeBackend(backends.Backend):
                 compiler_args = ''
                 sdict.add_item('isa', 'PBXBuildFile')
                 sdict.add_item('fileRef', fileref, fullpath)
-                settingdict = PbxDict()
-                settingdict.add_item('COMPILER_FLAGS', '"' + compiler_args + '"')
-                sdict.add_item('settings', settingdict)
                 objects_dict.add_item(idval, sdict)
 
             for o in t.objects:
@@ -484,6 +501,17 @@ class XCodeBackend(backends.Backend):
                 objects_dict.add_item(idval, o_dict, fullpath)
                 o_dict.add_item('isa', 'PBXBuildFile')
                 o_dict.add_item('fileRef', fileref, fullpath2)
+
+        # Custom targets are shell build phases in Xcode terminology.
+        for tname, t in self.custom_targets.items():
+            if not isinstance(t, build.CustomTarget):
+                continue
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            for o in ofilenames:
+                custom_dict = PbxDict()
+                objects_dict.add_item(self.custom_target_output_buildfile[o], custom_dict, f'/* {o} */')
+                custom_dict.add_item('isa', 'PBXBuildFile')
+                custom_dict.add_item('fileRef', self.custom_target_output_fileref[o])
 
     def generate_pbx_build_style(self, objects_dict):
         # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
@@ -581,6 +609,21 @@ class XCodeBackend(backends.Backend):
             target_dict.add_item('path', path)
             target_dict.add_item('refType', reftype)
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
+
+        for tname, t in self.custom_targets.items():
+            if not isinstance(t, build.CustomTarget):
+                continue
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            for o in ofilenames:
+                custom_dict = PbxDict()
+                typestr = self.get_xcodetype(o)
+                custom_dict.add_item('isa', 'PBXFileReference')
+                custom_dict.add_item('explicitFileType', '"' + typestr + '"')
+                custom_dict.add_item('name', o)
+                custom_dict.add_item('path', os.path.join(self.src_to_build, o))
+                custom_dict.add_item('refType', 0)
+                custom_dict.add_item('sourceTree', 'SOURCE_ROOT')
+                objects_dict.add_item(self.custom_target_output_fileref[o], custom_dict)
 
     def generate_pbx_frameworks_buildphase(self, objects_dict):
         for t in self.build_targets.values():
@@ -702,6 +745,9 @@ class XCodeBackend(backends.Backend):
             ntarget_dict.add_item('buildConfigurationList', self.buildconflistmap[tname], f'Build configuration list for PBXNativeTarget "{tname}"')
             buildphases_array = PbxArray()
             ntarget_dict.add_item('buildPhases', buildphases_array)
+            for g in t.generated:
+                if isinstance(g, build.CustomTarget):
+                    buildphases_array.add_item(self.shell_targets[g.get_id()], f'/* {g.name} */')
             for bpname, bpval in t.buildphasemap.items():
                 buildphases_array.add_item(bpval, f'{bpname} yyy')
             ntarget_dict.add_item('buildRules', PbxArray())
@@ -770,6 +816,28 @@ class XCodeBackend(backends.Backend):
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         shell_dict.add_item('shellScript', f'"{cmdstr}"')
         shell_dict.add_item('showEnvVarsInLog', 0)
+        # Custom targets are shell build phases in Xcode terminology.
+        for tname, t in self.custom_targets.items():
+            if not isinstance(t, build.CustomTarget):
+                continue
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            custom_dict = PbxDict()
+            objects_dict.add_item(self.shell_targets[tname], custom_dict, f'/* Custom target {tname} */')
+            custom_dict.add_item('isa', 'PBXShellScriptBuildPhase')
+            custom_dict.add_item('buildActionMask', 2147483647)
+            custom_dict.add_item('files', PbxArray())
+            custom_dict.add_item('inputPaths', PbxArray())
+            outarray = PbxArray()
+            custom_dict.add_item('name', '"Generate {}."'.format(ofilenames[0]))
+            custom_dict.add_item('outputPaths', outarray)
+            for o in ofilenames:
+                outarray.add_item(os.path.join(self.environment.get_build_dir(), o))
+            custom_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
+            custom_dict.add_item('shellPath', '/bin/sh')
+            workdir = self.environment.get_build_dir()
+            cmdstr = ' '.join([f'\\"{x}\\"' for x in cmd])
+            custom_dict.add_item('shellScript', f'"cd {workdir}; {cmdstr}"')
+            custom_dict.add_item('showEnvVarsInLog', 0)
 
     def generate_pbx_sources_build_phase(self, objects_dict):
         for name in self.source_phase.keys():
@@ -784,6 +852,11 @@ class XCodeBackend(backends.Backend):
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
+            for tname, t in self.custom_targets.items():
+                (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+                for o in ofilenames:
+                    file_arr.add_item(self.custom_target_output_buildfile[o],
+                                      os.path.join(self.environment.get_build_dir(), o))
             phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
     def generate_pbx_target_dependency(self, objects_dict):
