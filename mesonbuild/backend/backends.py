@@ -224,6 +224,8 @@ class Backend:
         self.source_dir = self.environment.get_source_dir()
         self.build_to_src = mesonlib.relpath(self.environment.get_source_dir(),
                                              self.environment.get_build_dir())
+        self.src_to_build = mesonlib.relpath(self.environment.get_build_dir(),
+                                             self.environment.get_source_dir())
 
     def generate(self) -> None:
         raise RuntimeError('generate is not implemented in {}'.format(type(self).__name__))
@@ -1133,12 +1135,22 @@ class Backend:
                     deps.append(os.path.join(self.build_to_src, target.subdir, i))
         return deps
 
+    def get_custom_target_output_dir(self, target):
+        # The XCode backend is special. A target foo/bar does
+        # not go to ${BUILDDIR}/foo/bar but instead to
+        # ${BUILDDIR}/${BUILDTYPE}/foo/bar.
+        # Currently we set the include dir to be the former,
+        # and not the latter. Thus we need this extra customisation
+        # point. If in the future we make include dirs et al match
+        # ${BUILDDIR}/${BUILDTYPE} instead, this becomes unnecessary.
+        return self.get_target_dir(target)
+
     def eval_custom_target_command(self, target, absolute_outputs=False):
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?
         source_root = self.build_to_src
         build_root = '.'
-        outdir = self.get_target_dir(target)
+        outdir = self.get_custom_target_output_dir(target)
         if absolute_outputs:
             source_root = self.environment.get_source_dir()
             build_root = self.environment.get_build_dir()

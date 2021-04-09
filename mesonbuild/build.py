@@ -239,6 +239,13 @@ class Build:
                 build_targets[name] = t
         return build_targets
 
+    def get_custom_targets(self):
+        custom_targets = OrderedDict()
+        for name, t in self.targets.items():
+            if isinstance(t, CustomTarget):
+                custom_targets[name] = t
+        return custom_targets
+
     def copy(self):
         other = Build(self.environment)
         for k, v in self.__dict__.items():
