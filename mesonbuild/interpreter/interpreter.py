@@ -157,103 +157,39 @@ known_build_target_kwargs = (
     {'target_type'}
 )
 
-_base_test_args = {'args', 'depends', 'env', 'should_fail', 'timeout', 'workdir', 'suite', 'priority', 'protocol'}
+permitted_test_kwargs = {
+    'args',
+    'depends',
+    'env',
+    'priority',
+    'protocol',
+    'should_fail',
+    'suite',
+    'timeout',
+    'workdir',
+}
 
-permitted_kwargs = {'add_global_arguments': {'language', 'native'},
-                    'add_global_link_arguments': {'language', 'native'},
-                    'add_languages': {'required', 'native'},
-                    'add_project_link_arguments': {'language', 'native'},
-                    'add_project_arguments': {'language', 'native'},
-                    'add_test_setup': {'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
-                                       'exclude_suites'},
-                    'benchmark': _base_test_args,
-                    'build_target': known_build_target_kwargs,
-                    'configure_file': {'input',
-                                       'output',
-                                       'configuration',
-                                       'command',
-                                       'copy',
-                                       'depfile',
-                                       'install_dir',
-                                       'install_mode',
-                                       'capture',
-                                       'install',
-                                       'format',
-                                       'output_format',
-                                       'encoding'},
-                    'custom_target': {'input',
-                                      'output',
-                                      'command',
-                                      'install',
-                                      'install_dir',
-                                      'install_mode',
-                                      'build_always',
-                                      'capture',
-                                      'depends',
-                                      'depend_files',
-                                      'depfile',
-                                      'build_by_default',
-                                      'build_always_stale',
-                                      'console',
-                                      'env'},
-                    'dependency': {'default_options',
-                                   'embed',
-                                   'fallback',
-                                   'language',
-                                   'main',
-                                   'method',
-                                   'modules',
-                                   'components',
-                                   'cmake_module_path',
-                                   'optional_modules',
-                                   'native',
-                                   'not_found_message',
-                                   'required',
-                                   'static',
-                                   'version',
-                                   'private_headers',
-                                   'cmake_args',
-                                   'cmake_package_version',
-                                   'include_type',
-                                   },
-                    'declare_dependency': {'include_directories',
-                                           'link_with',
-                                           'sources',
-                                           'dependencies',
-                                           'compile_args',
-                                           'link_args',
-                                           'link_whole',
-                                           'version',
-                                           'variables',
-                                           },
-                    'executable': build.known_exe_kwargs,
-                    'find_program': {'required', 'native', 'version', 'dirs'},
-                    'generator': {'arguments',
-                                  'output',
-                                  'depends',
-                                  'depfile',
-                                  'capture',
-                                  'preserve_path_from'},
-                    'include_directories': {'is_system'},
-                    'install_data': {'install_dir', 'install_mode', 'rename', 'sources'},
-                    'install_headers': {'install_dir', 'install_mode', 'subdir'},
-                    'install_man': {'install_dir', 'install_mode', 'locale'},
-                    'install_subdir': {'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'},
-                    'jar': build.known_jar_kwargs,
-                    'project': {'version', 'meson_version', 'default_options', 'license', 'subproject_dir'},
-                    'run_command': {'check', 'capture', 'env'},
-                    'run_target': {'command', 'depends', 'env'},
-                    'shared_library': build.known_shlib_kwargs,
-                    'shared_module': build.known_shmod_kwargs,
-                    'static_library': build.known_stlib_kwargs,
-                    'both_libraries': known_library_kwargs,
-                    'library': known_library_kwargs,
-                    'subdir': {'if_found'},
-                    'subproject': {'version', 'default_options', 'required'},
-                    'test': set.union(_base_test_args, {'is_parallel'}),
-                    'vcs_tag': {'input', 'output', 'fallback', 'command', 'replace_string'},
-                    }
-
+permitted_dependency_kwargs = {
+    'cmake_args',
+    'cmake_module_path',
+    'cmake_package_version',
+    'components',
+    'default_options',
+    'embed',
+    'fallback',
+    'include_type',
+    'language',
+    'main',
+    'method',
+    'modules',
+    'native',
+    'not_found_message',
+    'optional_modules',
+    'private_headers',
+    'required',
+    'static',
+    'version',
+}
 
 class Interpreter(InterpreterBase):
 
@@ -595,7 +531,9 @@ class Interpreter(InterpreterBase):
 
     @FeatureNewKwargs('declare_dependency', '0.46.0', ['link_whole'])
     @FeatureNewKwargs('declare_dependency', '0.54.0', ['variables'])
-    @permittedKwargs(permitted_kwargs['declare_dependency'])
+    @permittedKwargs({'include_directories', 'link_with', 'sources', 'dependencies',
+                      'compile_args', 'link_args', 'link_whole', 'version',
+                      'variables' })
     @noPosargs
     def func_declare_dependency(self, node, args, kwargs):
         version = kwargs.get('version', self.project_version)
@@ -662,7 +600,7 @@ external dependencies (including libraries) must go to "dependencies".''')
 
     @FeatureNewKwargs('run_command', '0.50.0', ['env'])
     @FeatureNewKwargs('run_command', '0.47.0', ['check', 'capture'])
-    @permittedKwargs(permitted_kwargs['run_command'])
+    @permittedKwargs({'check', 'capture', 'env'})
     def func_run_command(self, node, args, kwargs):
         return self.run_command_impl(node, args, kwargs)
 
@@ -741,7 +679,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         raise InterpreterException('Tried to call option() in build description file. All options must be in the option file.')
 
     @FeatureNewKwargs('subproject', '0.38.0', ['default_options'])
-    @permittedKwargs(permitted_kwargs['subproject'])
+    @permittedKwargs({'version', 'default_options', 'required'})
     @stringArgs
     def func_subproject(self, nodes, args, kwargs):
         if len(args) != 1:
@@ -1003,7 +941,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.coredata.set_options(options)
 
     @stringArgs
-    @permittedKwargs(permitted_kwargs['project'])
+    @permittedKwargs({'version', 'meson_version', 'default_options', 'license', 'subproject_dir'})
     def func_project(self, node, args, kwargs):
         if len(args) < 1:
             raise InvalidArguments('Not enough arguments to project(). Needs at least the project name.')
@@ -1118,7 +1056,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             self.check_stdlibs()
 
     @FeatureNewKwargs('add_languages', '0.54.0', ['native'])
-    @permittedKwargs(permitted_kwargs['add_languages'])
+    @permittedKwargs({'required', 'native'})
     @stringArgs
     def func_add_languages(self, node, args, kwargs):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
@@ -1426,7 +1364,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('find_program', '0.52.0', ['version'])
     @FeatureNewKwargs('find_program', '0.49.0', ['disabler'])
     @disablerIfNotFound
-    @permittedKwargs(permitted_kwargs['find_program'])
+    @permittedKwargs({'required', 'native', 'version', 'dirs'})
     def func_find_program(self, node, args, kwargs):
         if not args:
             raise InterpreterException('No program name specified.')
@@ -1606,7 +1544,7 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('dependency', '0.40.0', ['method'])
     @FeatureNewKwargs('dependency', '0.38.0', ['default_options'])
     @disablerIfNotFound
-    @permittedKwargs(permitted_kwargs['dependency'])
+    @permittedKwargs(permitted_dependency_kwargs)
     def func_dependency(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         name = args[0]
@@ -1777,39 +1715,39 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('executable', '0.42.0', ['implib'])
     @FeatureNewKwargs('executable', '0.56.0', ['win_subsystem'])
     @FeatureDeprecatedKwargs('executable', '0.56.0', ['gui_app'], extra_message="Use 'win_subsystem' instead.")
-    @permittedKwargs(permitted_kwargs['executable'])
+    @permittedKwargs(build.known_exe_kwargs)
     def func_executable(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, ExecutableHolder)
 
-    @permittedKwargs(permitted_kwargs['static_library'])
+    @permittedKwargs(build.known_stlib_kwargs)
     def func_static_lib(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, StaticLibraryHolder)
 
-    @permittedKwargs(permitted_kwargs['shared_library'])
+    @permittedKwargs(build.known_shlib_kwargs)
     def func_shared_lib(self, node, args, kwargs):
         holder = self.build_target(node, args, kwargs, SharedLibraryHolder)
         holder.held_object.shared_library_only = True
         return holder
 
-    @permittedKwargs(permitted_kwargs['both_libraries'])
+    @permittedKwargs(known_library_kwargs)
     def func_both_lib(self, node, args, kwargs):
         return self.build_both_libraries(node, args, kwargs)
 
     @FeatureNew('shared_module', '0.37.0')
-    @permittedKwargs(permitted_kwargs['shared_module'])
+    @permittedKwargs(build.known_shmod_kwargs)
     def func_shared_module(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, SharedModuleHolder)
 
-    @permittedKwargs(permitted_kwargs['library'])
+    @permittedKwargs(known_library_kwargs)
     def func_library(self, node, args, kwargs):
         return self.build_library(node, args, kwargs)
 
-    @permittedKwargs(permitted_kwargs['jar'])
+    @permittedKwargs(build.known_jar_kwargs)
     def func_jar(self, node, args, kwargs):
         return self.build_target(node, args, kwargs, JarHolder)
 
     @FeatureNewKwargs('build_target', '0.40.0', ['link_whole', 'override_options'])
-    @permittedKwargs(permitted_kwargs['build_target'])
+    @permittedKwargs(known_build_target_kwargs)
     def func_build_target(self, node, args, kwargs):
         if 'target_type' not in kwargs:
             raise InterpreterException('Missing target_type keyword argument')
@@ -1833,7 +1771,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         else:
             raise InterpreterException('Unknown target_type.')
 
-    @permittedKwargs(permitted_kwargs['vcs_tag'])
+    @permittedKwargs({'input', 'output', 'fallback', 'command', 'replace_string'})
     @FeatureDeprecatedKwargs('custom_target', '0.47.0', ['build_always'],
                              'combine build_by_default and build_always_stale instead.')
     @noPosargs
@@ -1887,7 +1825,9 @@ external dependencies (including libraries) must go to "dependencies".''')
     @FeatureNewKwargs('custom_target', '0.48.0', ['console'])
     @FeatureNewKwargs('custom_target', '0.47.0', ['install_mode', 'build_always_stale'])
     @FeatureNewKwargs('custom_target', '0.40.0', ['build_by_default'])
-    @permittedKwargs(permitted_kwargs['custom_target'])
+    @permittedKwargs({'input', 'output', 'command', 'install', 'install_dir', 'install_mode',
+                      'build_always', 'capture', 'depends', 'depend_files', 'depfile',
+                      'build_by_default', 'build_always_stale', 'console', 'env'})
     def func_custom_target(self, node, args, kwargs):
         if len(args) != 1:
             raise InterpreterException('custom_target: Only one positional argument is allowed, and it must be a string name')
@@ -1914,7 +1854,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return tg
 
     @FeatureNewKwargs('run_target', '0.57.0', ['env'])
-    @permittedKwargs(permitted_kwargs['run_target'])
+    @permittedKwargs({'command', 'depends', 'env'})
     def func_run_target(self, node, args, kwargs):
         if len(args) > 1:
             raise InvalidCode('Run_target takes only one positional argument: the target name.')
@@ -1968,7 +1908,8 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         self.add_target(name, tg.held_object)
         return tg
 
-    @permittedKwargs(permitted_kwargs['generator'])
+    @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
+                      'preserve_path_from'})
     def func_generator(self, node, args, kwargs):
         gen = GeneratorHolder(self, args, kwargs)
         self.generators.append(gen)
@@ -1976,7 +1917,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('benchmark', '0.46.0', ['depends'])
     @FeatureNewKwargs('benchmark', '0.52.0', ['priority'])
-    @permittedKwargs(permitted_kwargs['benchmark'])
+    @permittedKwargs(permitted_test_kwargs)
     def func_benchmark(self, node, args, kwargs):
         # is_parallel isn't valid here, so make sure it isn't passed
         if 'is_parallel' in kwargs:
@@ -1985,7 +1926,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('test', '0.46.0', ['depends'])
     @FeatureNewKwargs('test', '0.52.0', ['priority'])
-    @permittedKwargs(permitted_kwargs['test'])
+    @permittedKwargs(permitted_test_kwargs | {'is_parallel'})
     def func_test(self, node, args, kwargs):
         if kwargs.get('protocol') == 'gtest':
             FeatureNew.single_use('"gtest" protocol for tests', '0.55.0', self.subproject)
@@ -2074,7 +2015,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
             mlog.debug('Adding benchmark', mlog.bold(t.name, True))
 
     @FeatureNewKwargs('install_headers', '0.47.0', ['install_mode'])
-    @permittedKwargs(permitted_kwargs['install_headers'])
+    @permittedKwargs({'install_dir', 'install_mode', 'subdir'})
     def func_install_headers(self, node, args, kwargs):
         source_files = self.source_strings_to_files(args)
         install_mode = self._get_kwarg_install_mode(kwargs)
@@ -2096,7 +2037,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('install_man', '0.47.0', ['install_mode'])
     @FeatureNewKwargs('install_man', '0.58.0', ['locale'])
-    @permittedKwargs(permitted_kwargs['install_man'])
+    @permittedKwargs({'install_dir', 'install_mode', 'locale'})
     def func_install_man(self, node, args, kwargs):
         sources = self.source_strings_to_files(args)
         for s in sources:
@@ -2118,7 +2059,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         return ManHolder(m)
 
     @FeatureNewKwargs('subdir', '0.44.0', ['if_found'])
-    @permittedKwargs(permitted_kwargs['subdir'])
+    @permittedKwargs({'if_found'})
     def func_subdir(self, node, args, kwargs):
         self.validate_arguments(args, 1, [str])
         mesonlib.check_direntry_issues(args)
@@ -2187,7 +2128,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('install_data', '0.46.0', ['rename'])
     @FeatureNewKwargs('install_data', '0.38.0', ['install_mode'])
-    @permittedKwargs(permitted_kwargs['install_data'])
+    @permittedKwargs({'install_dir', 'install_mode', 'rename', 'sources'})
     def func_install_data(self, node, args: T.List, kwargs: T.Dict[str, T.Any]):
         kwsource = mesonlib.stringlistify(kwargs.get('sources', []))
         raw_sources = args + kwsource
@@ -2219,7 +2160,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @FeatureNewKwargs('install_subdir', '0.42.0', ['exclude_files', 'exclude_directories'])
     @FeatureNewKwargs('install_subdir', '0.38.0', ['install_mode'])
-    @permittedKwargs(permitted_kwargs['install_subdir'])
+    @permittedKwargs({'exclude_files', 'exclude_directories', 'install_dir', 'install_mode', 'strip_directory'})
     @stringArgs
     def func_install_subdir(self, node, args, kwargs):
         if len(args) != 1:
@@ -2269,7 +2210,9 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @FeatureNewKwargs('configure_file', '0.41.0', ['capture'])
     @FeatureNewKwargs('configure_file', '0.50.0', ['install'])
     @FeatureNewKwargs('configure_file', '0.52.0', ['depfile'])
-    @permittedKwargs(permitted_kwargs['configure_file'])
+    @permittedKwargs({'input', 'output', 'configuration', 'command', 'copy', 'depfile',
+                      'install_dir', 'install_mode', 'capture', 'install', 'format',
+                      'output_format', 'encoding'})
     @noPosargs
     def func_configure_file(self, node, args, kwargs):
         if 'output' not in kwargs:
@@ -2465,7 +2408,7 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
                 raise InterpreterException('Include directory objects can only be created from strings or include directories.')
         return result
 
-    @permittedKwargs(permitted_kwargs['include_directories'])
+    @permittedKwargs({'is_system'})
     @stringArgs
     def func_include_directories(self, node, args, kwargs):
         return self.build_incdir_object(args, kwargs.get('is_system', False))
@@ -2527,7 +2470,8 @@ This warning will become a hard error in a future Meson release.
         i = IncludeDirsHolder(build.IncludeDirs(self.subdir, incdir_strings, is_system))
         return i
 
-    @permittedKwargs(permitted_kwargs['add_test_setup'])
+    @permittedKwargs({'exe_wrapper', 'gdb', 'timeout_multiplier', 'env', 'is_default',
+                      'exclude_suites'})
     @stringArgs
     def func_add_test_setup(self, node, args, kwargs):
         if len(args) != 1:
@@ -2572,25 +2516,25 @@ This warning will become a hard error in a future Meson release.
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
                                                              exclude_suites)
 
-    @permittedKwargs(permitted_kwargs['add_global_arguments'])
+    @permittedKwargs({'language', 'native'})
     @stringArgs
     def func_add_global_arguments(self, node, args, kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
         self.add_global_arguments(node, self.build.global_args[for_machine], args, kwargs)
 
-    @permittedKwargs(permitted_kwargs['add_global_link_arguments'])
+    @permittedKwargs({'language', 'native'})
     @stringArgs
     def func_add_global_link_arguments(self, node, args, kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
         self.add_global_arguments(node, self.build.global_link_args[for_machine], args, kwargs)
 
-    @permittedKwargs(permitted_kwargs['add_project_arguments'])
+    @permittedKwargs({'language', 'native'})
     @stringArgs
     def func_add_project_arguments(self, node, args, kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
         self.add_project_arguments(node, self.build.projects_args[for_machine], args, kwargs)
 
-    @permittedKwargs(permitted_kwargs['add_project_link_arguments'])
+    @permittedKwargs({'language', 'native'})
     @stringArgs
     def func_add_project_link_arguments(self, node, args, kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
