@@ -16,7 +16,6 @@ import sysconfig
 from .. import mesonlib
 
 from . import ExtensionModule
-from mesonbuild.modules import ModuleReturnValue
 from ..interpreterbase import noKwargs, permittedKwargs, FeatureDeprecated
 from ..build import known_shmod_kwargs
 from ..programs import ExternalProgram
@@ -53,11 +52,11 @@ class Python3Module(ExtensionModule):
             py3 = ExternalProgram.from_entry('python3', command)
         else:
             py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
-        return ModuleReturnValue(py3, [py3])
+        return py3
 
     @noKwargs
     def language_version(self, state, args, kwargs):
-        return ModuleReturnValue(sysconfig.get_python_version(), [])
+        return sysconfig.get_python_version()
 
     @noKwargs
     def sysconfig_path(self, state, args, kwargs):
@@ -69,8 +68,7 @@ class Python3Module(ExtensionModule):
             raise mesonlib.MesonException(f'{path_name} is not a valid path name {valid_names}.')
 
         # Get a relative path without a prefix, e.g. lib/python3.6/site-packages
-        path = sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''})[1:]
-        return ModuleReturnValue(path, [])
+        return sysconfig.get_path(path_name, vars={'base': '', 'platbase': '', 'installed_base': ''})[1:]
 
 
 def initialize(*args, **kwargs):

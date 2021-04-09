@@ -130,7 +130,7 @@ class RustModule(ExtensionModule):
         test = self.interpreter.make_test(
             self.interpreter.current_node, [name, e], kwargs)
 
-        return ModuleReturnValue([], [e, test])
+        return ModuleReturnValue(None, [e, test])
 
     @noPosargs
     @permittedKwargs({'input', 'output', 'include_directories', 'c_args', 'args'})
