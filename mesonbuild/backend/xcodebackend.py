@@ -753,6 +753,9 @@ class XCodeBackend(backends.Backend):
             ntarget_dict.add_item('buildRules', PbxArray())
             dep_array = PbxArray()
             ntarget_dict.add_item('dependencies', dep_array)
+            # These dependencies only tell Xcode that the deps must be built
+            # before this one. They don't set up linkage or anything
+            # like that. Those are set up in the XCBuildConfiguration.
             for lt in self.build_targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
@@ -941,6 +944,20 @@ class XCodeBackend(backends.Backend):
         for target_name, target in self.build_targets.items():
             self.generate_single_build_target(objects_dict, target_name, target)
 
+    def determine_internal_dep_link_args(self, target, buildtype):
+        links_dylib = False
+        dep_libs = []
+        for l in target.link_targets:
+            abs_path = os.path.join(self.environment.get_build_dir(),
+                                    l.subdir, buildtype, l.get_filename())
+            dep_libs.append("'%s'" % abs_path)
+            if isinstance(l, build.SharedLibrary):
+                links_dylib = True
+            if isinstance(l, build.StaticLibrary):
+                (sub_libs, sub_links_dylib) = self.determine_internal_dep_link_args(l, buildtype)
+                dep_libs += sub_libs
+                links_dylib = links_dylib or sub_links_dylib
+        return (dep_libs, links_dylib)
         
     def generate_single_build_target(self, objects_dict, target_name, target):
         for buildtype in self.buildtypes:
@@ -952,12 +969,7 @@ class XCodeBackend(backends.Backend):
                     cd = os.path.join(d.curdir, sd)
                     headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
                     headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
-            for l in target.link_targets:
-                abs_path = os.path.join(self.environment.get_build_dir(),
-                                        l.subdir, buildtype, l.get_filename())
-                dep_libs.append("'%s'" % abs_path)
-                if isinstance(l, build.SharedLibrary):
-                    links_dylib = True
+            (dep_libs, links_dylib) = self.determine_internal_dep_link_args(target, buildtype)
             if links_dylib:
                 dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
             dylib_version = None
