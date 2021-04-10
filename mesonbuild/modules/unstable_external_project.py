@@ -30,13 +30,7 @@ from ..mesonlib import OptionKey
 
 class ExternalProject(ModuleObject):
     def __init__(self,
-                 interpreter: Interpreter,
-                 subdir: str,
-                 project_version: T.Dict[str, str],
-                 subproject: str,
-                 environment: Environment,
-                 build_machine: str,
-                 host_machine: str,
+                 state: ModuleState,
                  configure_command: str,
                  configure_options: T.List[str],
                  cross_configure_options: T.List[str],
@@ -46,13 +40,12 @@ class ExternalProject(ModuleObject):
         self.methods.update({'dependency': self.dependency_method,
                              })
 
-        self.interpreter = interpreter
-        self.subdir = Path(subdir)
-        self.project_version = project_version
-        self.subproject = subproject
-        self.env = environment
-        self.build_machine = build_machine
-        self.host_machine = host_machine
+        self.subdir = Path(state.subdir)
+        self.project_version = state.project_version
+        self.subproject = state.subproject
+        self.env = state.environment
+        self.build_machine = state.build_machine
+        self.host_machine = state.host_machine
         self.configure_command = configure_command
         self.configure_options = configure_options
         self.cross_configure_options = cross_configure_options
@@ -76,18 +69,18 @@ class ExternalProject(ModuleObject):
         # self.prefix is an absolute path, so we cannot append it to another path.
         self.rel_prefix = self.prefix.relative_to(self.prefix.root)
 
-        self.make = self.interpreter.find_program_impl('make')
+        self.make = state.find_program('make')
         self.make = self.make.get_command()[0]
 
-        self._configure()
+        self._configure(state)
 
         self.targets = self._create_targets()
 
-    def _configure(self):
+    def _configure(self, state: ModuleState):
         # Assume it's the name of a script in source dir, like 'configure',
         # 'autogen.sh', etc).
         configure_path = Path(self.src_dir, self.configure_command)
-        configure_prog = self.interpreter.find_program_impl(configure_path.as_posix())
+        configure_prog = state.find_program(configure_path.as_posix())
         configure_cmd = configure_prog.get_command()
 
         d = [('PREFIX', '--prefix=@PREFIX@', self.prefix.as_posix()),
@@ -265,13 +258,7 @@ class ExternalProjectModule(ExtensionModule):
             cross_configure_options = ['--host=@HOST@']
         verbose = kwargs.get('verbose', False)
         env = self.interpreter.unpack_env_kwarg(kwargs)
-        project = ExternalProject(self.interpreter,
-                                  state.subdir,
-                                  state.project_version,
-                                  state.subproject,
-                                  state.environment,
-                                  state.build_machine,
-                                  state.host_machine,
+        project = ExternalProject(state,
                                   configure_command,
                                   configure_options,
                                   cross_configure_options,

@@ -125,7 +125,7 @@ class GnomeModule(ExtensionModule):
                 return ExternalProgram(name, value)
 
         # Normal program lookup
-        return unholder(self.interpreter.find_program_impl(name, required=required))
+        return unholder(state.find_program(name, required=required))
 
     @permittedKwargs({'glib_compile_schemas', 'gio_querymodules', 'gtk_update_icon_cache'})
     @noPosargs
@@ -167,7 +167,7 @@ class GnomeModule(ExtensionModule):
         self.__print_gresources_warning(state)
         glib_version = self._get_native_glib_version(state)
 
-        glib_compile_resources = self.interpreter.find_program_impl('glib-compile-resources')
+        glib_compile_resources = state.find_program('glib-compile-resources')
         cmd = [glib_compile_resources, '@INPUT@']
 
         source_dirs, dependencies = [mesonlib.extract_as_list(kwargs, c, pop=True) for c in  ['source_dir', 'dependencies']]
@@ -925,7 +925,7 @@ class GnomeModule(ExtensionModule):
         srcdir = os.path.join(state.build_to_src, state.subdir)
         outdir = state.subdir
 
-        cmd = [self.interpreter.find_program_impl('glib-compile-schemas')]
+        cmd = [state.find_program('glib-compile-schemas')]
         cmd += ['--targetdir', outdir, srcdir]
         kwargs['command'] = cmd
         kwargs['input'] = []
@@ -1067,7 +1067,7 @@ class GnomeModule(ExtensionModule):
                 '--mode=' + mode]
         for tool in ['scan', 'scangobj', 'mkdb', 'mkhtml', 'fixxref']:
             program_name = 'gtkdoc-' + tool
-            program = self.interpreter.find_program_impl(program_name)
+            program = state.find_program(program_name)
             path = program.held_object.get_path()
             args.append(f'--{program_name}={path}')
         if namespace:
@@ -1119,7 +1119,7 @@ class GnomeModule(ExtensionModule):
         custom_target = build.CustomTarget(targetname, state.subdir, state.subproject, custom_kwargs)
         alias_target = build.AliasTarget(targetname, [custom_target], state.subdir, state.subproject)
         if kwargs.get('check', False):
-            check_cmd = self.interpreter.find_program_impl('gtkdoc-check')
+            check_cmd = state.find_program('gtkdoc-check')
             check_env = ['DOC_MODULE=' + modulename,
                          'DOC_MAIN_SGML_FILE=' + main_file]
             check_args = [targetname + '-check', check_cmd]
@@ -1223,7 +1223,7 @@ class GnomeModule(ExtensionModule):
             raise MesonException('gdbus_codegen takes at most two arguments, name and xml file.')
         namebase = args[0]
         xml_files = args[1:]
-        cmd = [self.interpreter.find_program_impl('gdbus-codegen')]
+        cmd = [state.find_program('gdbus-codegen')]
         extra_args = mesonlib.stringlistify(kwargs.pop('extra_args', []))
         cmd += extra_args
         # Autocleanup supported?
@@ -1393,7 +1393,7 @@ class GnomeModule(ExtensionModule):
             elif arg not in known_custom_target_kwargs:
                 raise MesonException(
                     f'Mkenums does not take a {arg} keyword argument.')
-        cmd = [self.interpreter.find_program_impl(['glib-mkenums', 'mkenums'])] + cmd
+        cmd = [state.find_program(['glib-mkenums', 'mkenums'])] + cmd
         custom_kwargs = {}
         for arg in known_custom_target_kwargs:
             if arg in kwargs:
@@ -1590,7 +1590,7 @@ G_END_DECLS'''
 
         new_genmarshal = mesonlib.version_compare(self._get_native_glib_version(state), '>= 2.53.3')
 
-        cmd = [self.interpreter.find_program_impl('glib-genmarshal')]
+        cmd = [state.find_program('glib-genmarshal')]
         known_kwargs = ['internal', 'nostdinc', 'skip_source', 'stdinc',
                         'valist_marshallers', 'extra_args']
         known_custom_target_kwargs = ['build_always', 'depends',
@@ -1733,9 +1733,9 @@ G_END_DECLS'''
         source_dir = os.path.join(state.environment.get_source_dir(), state.subdir)
         pkg_cmd, vapi_depends, vapi_packages, vapi_includes = self._extract_vapi_packages(state, kwargs)
         if 'VAPIGEN' in os.environ:
-            cmd = [self.interpreter.find_program_impl(os.environ['VAPIGEN'])]
+            cmd = [state.find_program(os.environ['VAPIGEN'])]
         else:
-            cmd = [self.interpreter.find_program_impl('vapigen')]
+            cmd = [state.find_program('vapigen')]
         cmd += ['--quiet', '--library=' + library, '--directory=' + build_dir]
         cmd += self._vapi_args_to_command('--vapidir=', 'vapi_dirs', kwargs)
         cmd += self._vapi_args_to_command('--metadatadir=', 'metadata_dirs', kwargs)

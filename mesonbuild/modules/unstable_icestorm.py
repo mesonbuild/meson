@@ -28,16 +28,16 @@ class IceStormModule(ExtensionModule):
             'project': self.project,
         })
 
-    def detect_binaries(self, interpreter):
-        self.yosys_bin = interpreter.find_program_impl(['yosys'])
-        self.arachne_bin = interpreter.find_program_impl(['arachne-pnr'])
-        self.icepack_bin = interpreter.find_program_impl(['icepack'])
-        self.iceprog_bin = interpreter.find_program_impl(['iceprog'])
-        self.icetime_bin = interpreter.find_program_impl(['icetime'])
+    def detect_binaries(self, state):
+        self.yosys_bin = state.find_program('yosys')
+        self.arachne_bin = state.find_program('arachne-pnr')
+        self.icepack_bin = state.find_program('icepack')
+        self.iceprog_bin = state.find_program('iceprog')
+        self.icetime_bin = state.find_program('icetime')
 
     def project(self, state, args, kwargs):
         if not self.yosys_bin:
-            self.detect_binaries(self.interpreter)
+            self.detect_binaries(state)
         if not args:
             raise mesonlib.MesonException('Project requires at least one argument, which is the project name.')
         proj_name = args[0]
