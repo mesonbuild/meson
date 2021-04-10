@@ -1030,6 +1030,7 @@ class XCodeBackend(backends.Backend):
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
                         lang_cargs += self.get_build_dir_include_args(target, compiler, absolute_path=True)
+                        lang_cargs += self.get_source_dir_include_args(target, compiler, absolute_path=True)
                     langargs[langname] = args
                     langargs[langname] += lang_cargs
             symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
@@ -1080,7 +1081,11 @@ class XCodeBackend(backends.Backend):
             settings_dict.add_item('PRODUCT_NAME', product_name)
             settings_dict.add_item('SECTORDER_FLAGS', '""')
             settings_dict.add_item('SYMROOT', f'"{symroot}"')
-            settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', '"{}"'.format(self.environment.get_build_dir()))
+            sysheader_arr = PbxArray()
+            # XCode will change every -I flag that points inside these directories
+            # to an -isystem. Thus set nothing in it since we control our own
+            # include flags.
+            settings_dict.add_item('SYSTEM_HEADER_SEARCH_PATHS', sysheader_arr)
             settings_dict.add_item('USE_HEADERMAP', 'NO')
             warn_array = PbxArray()
             settings_dict.add_item('WARNING_CFLAGS', warn_array)
@@ -1090,8 +1095,12 @@ class XCodeBackend(backends.Backend):
     def add_otherargs(self, settings_dict, langargs):
         for langname, args in langargs.items():
             if args:
-                # FIXME, proper quoting
-                settings_dict.add_item(f'OTHER_{langname}FLAGS', '"' + ' '.join(args) + '"')
+                quoted_args = []
+                for a in args:
+                    if ' ' in a:
+                        a = r'\"' + a + r'\"'
+                    quoted_args.append(a)
+                settings_dict.add_item(f'OTHER_{langname}FLAGS', '"' + ' '.join(quoted_args) + '"')
 
     def generate_xc_configurationList(self, objects_dict):
         # FIXME: sort items
