@@ -577,7 +577,8 @@ class Vs2010Backend(backends.Backend):
             ofilenames += [self.nonexistent_file(os.path.join(self.environment.get_scratch_dir(),
                                                  'outofdate.file'))]
         self.add_custom_build(root, 'custom_target', ' '.join(self.quote_arguments(wrapper_cmd)),
-                              deps=wrapper_cmd[-1:] + srcs + depend_files, outputs=ofilenames)
+                              deps=wrapper_cmd[-1:] + srcs + depend_files, outputs=ofilenames,
+                              verify_files=not target.build_always_stale)
         ET.SubElement(root, 'Import', Project=r'$(VCTargetsPath)\Microsoft.Cpp.targets')
         self.generate_custom_generator_commands(target, root)
         self.add_regen_dependency(root)
@@ -1490,7 +1491,7 @@ class Vs2010Backend(backends.Backend):
         self.add_regen_dependency(root)
         self._prettyprint_vcxproj_xml(ET.ElementTree(root), ofname)
 
-    def add_custom_build(self, node, rulename, command, deps=None, outputs=None, msg=None):
+    def add_custom_build(self, node, rulename, command, deps=None, outputs=None, msg=None, verify_files=True):
         igroup = ET.SubElement(node, 'ItemGroup')
         rulefile = os.path.join(self.environment.get_scratch_dir(), rulename + '.rule')
         if not os.path.exists(rulefile):
@@ -1500,6 +1501,8 @@ class Vs2010Backend(backends.Backend):
         if msg:
             message = ET.SubElement(custombuild, 'Message')
             message.text = msg
+        if not verify_files:
+            ET.SubElement(custombuild, 'VerifyInputsAndOutputsExist').text = 'false'
         cmd_templ = '''setlocal
 %s
 if %%errorlevel%% neq 0 goto :cmEnd
