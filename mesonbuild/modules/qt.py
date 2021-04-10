@@ -52,7 +52,7 @@ class QtBaseModule(ExtensionModule):
             'compile_translations': self.compile_translations,
         })
 
-    def compilers_detect(self, qt_dep: 'QtBaseDependency') -> None:
+    def compilers_detect(self, state, qt_dep: 'QtBaseDependency') -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
@@ -90,23 +90,22 @@ class QtBaseModule(ExtensionModule):
                     care = err
                 return care.split(' ')[-1].replace(')', '').strip()
 
-            p = self.interpreter.find_program_impl(
-                [b], required=False,
-                version_func=get_version,
-                wanted=wanted).held_object
+            p = state.find_program(b, required=False,
+                                   version_func=get_version,
+                                   wanted=wanted).held_object
             if p.found():
                 setattr(self, name, p)
 
-    def _detect_tools(self, env: 'Environment', method, required=True):
+    def _detect_tools(self, state, method, required=True):
         if self.tools_detected:
             return
         self.tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
-        qt = find_external_dependency(f'qt{self.qt_version}', env, kwargs)
+        qt = find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs)
         if qt.found():
             # Get all tools and then make sure that they are the right version
-            self.compilers_detect(qt)
+            self.compilers_detect(state, qt)
             if version_compare(qt.version, '>=5.14.0'):
                 self.rcc_supports_depfiles = True
             else:
@@ -180,7 +179,7 @@ class QtBaseModule(ExtensionModule):
         if disabled:
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
             return False
-        self._detect_tools(state.environment, method, required=False)
+        self._detect_tools(state, method, required=False)
         for tool in (self.moc, self.uic, self.rcc, self.lrelease):
             if not tool.found():
                 if required:
@@ -197,7 +196,7 @@ class QtBaseModule(ExtensionModule):
             = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
         sources += args[1:]
         method = kwargs.get('method', 'auto')
-        self._detect_tools(state.environment, method)
+        self._detect_tools(state, method)
         err_msg = "{0} sources specified and couldn't find {1}, " \
                   "please check your qt{2} installation"
         if (moc_headers or moc_sources) and not self.moc.found():
@@ -297,7 +296,7 @@ class QtBaseModule(ExtensionModule):
                 else:
                     raise MesonException(f'qt.compile_translations: qresource can only contain qm files, found {c}')
             results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs.get('rcc_extra_arguments', [])})
-        self._detect_tools(state.environment, kwargs.get('method', 'auto'))
+        self._detect_tools(state, kwargs.get('method', 'auto'))
         translations = []
         for ts in ts_files:
             if not self.lrelease.found():

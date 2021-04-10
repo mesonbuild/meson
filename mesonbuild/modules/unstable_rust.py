@@ -178,7 +178,7 @@ class RustModule(ExtensionModule):
 
         if self._bindgen_bin is None:
             # there's some bugs in the interpreter typeing.
-            self._bindgen_bin = T.cast('ExternalProgram', self.interpreter.find_program_impl(['bindgen']).held_object)
+            self._bindgen_bin = T.cast('ExternalProgram', state.find_program('bindgen').held_object)
 
         name: str
         if isinstance(header, File):

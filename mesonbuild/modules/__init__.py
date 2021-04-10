@@ -33,6 +33,9 @@ class ModuleState:
     """
 
     def __init__(self, interpreter: 'Interpreter') -> None:
+        # Keep it private, it should be accessed only through methods.
+        self._interpreter = interpreter
+
         self.source_root = interpreter.environment.get_source_dir()
         self.build_to_src = relpath(interpreter.environment.get_source_dir(),
                                     interpreter.environment.get_build_dir())
@@ -82,6 +85,10 @@ class ModuleState:
 
         return dirs_str
 
+    def find_program(self, prog: T.Union[str, T.List[str]], required: bool = True,
+                     version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
+                     wanted: T.Optional[str] = None) -> 'ExternalProgramHolder':
+        return self._interpreter.find_program_impl(prog, required=required)
 
 class ModuleObject:
     """Base class for all objects returned by modules
