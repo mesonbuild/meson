@@ -262,9 +262,13 @@ class Backend:
             return self.environment.coredata.validate_option_value(option_name, override)
         return self.environment.coredata.get_option(option_name.evolve(subproject=target.subproject))
 
-    def get_source_dir_include_args(self, target, compiler):
+    def get_source_dir_include_args(self, target, compiler, *, absolute_path=False):
         curdir = target.get_subdir()
-        tmppath = os.path.normpath(os.path.join(self.build_to_src, curdir))
+        if absolute_path:
+            lead = self.source_dir
+        else:
+            lead = self.build_to_src
+        tmppath = os.path.normpath(os.path.join(lead, curdir))
         return compiler.get_include_args(tmppath, False)
 
     def get_build_dir_include_args(self, target, compiler, *, absolute_path=False):
