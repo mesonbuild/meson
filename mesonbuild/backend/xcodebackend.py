@@ -725,9 +725,11 @@ class XCodeBackend(backends.Backend):
             source_files_dict.add_item('children', source_file_children)
             for s in t.sources:
                 if isinstance(s, mesonlib.File):
-                    s = os.path.join(t.subdir, s.fname)
-                if not isinstance(s, str):
-                    clontinue                
+                    s = os.path.join(s.subdir, s.fname)
+                elif isinstance(s, str):
+                    s = os.path.joni(t.subdir, s)
+                else:
+                    continue
                 source_file_children.add_item(self.fileref_ids[(tname, s)], s)
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
