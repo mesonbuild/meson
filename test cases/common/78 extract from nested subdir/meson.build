@@ -1,4 +1,4 @@
-project('Extract objects from subdirs.', 'c')
+project('Extract objects from subdirs', 'c')
 
 if meson.is_unity()
   message('Unity build: skipping incompatible test')

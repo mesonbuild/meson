@@ -1077,7 +1077,7 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, build.ExtractedObjects):
                     added_objs = set()
                     for objname_rel in o.get_outputs(self):
-                        objname_abs = os.path.join(self.environment.get_build_dir(), objname_rel)
+                        objname_abs = os.path.join(self.environment.get_build_dir(), o.target.subdir, objname_rel)
                         if objname_abs not in added_objs:
                             added_objs.add(objname_abs)
                             ldargs += [r'\"' + objname_abs + r'\"']
