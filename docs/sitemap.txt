@@ -2,6 +2,7 @@ index.md
 	SimpleStart.md
 	Getting-meson.md
 		Getting-meson_zh.md
+		Getting-meson_ptbr.md
 	Quick-guide.md
 	Tutorial.md
 	Manual.md
