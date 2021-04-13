@@ -729,7 +729,10 @@ class XCodeBackend(backends.Backend):
             target_children = PbxArray()
             target_dict.add_item('children', target_children)
             target_children.add_item(target_src_map[tname], 'Source files')
-            target_dict.add_item('name', f'"{t}"')
+            if t.subproject:
+                target_dict.add_item('name', f'"{t.subproject} • {t}"')
+            else:
+                target_dict.add_item('name', f'"{t}"')
             target_dict.add_item('sourceTree', '"<group>"')
             source_files_dict = PbxDict()
             objects_dict.add_item(target_src_map[tname], source_files_dict, 'Source files')
@@ -948,11 +951,12 @@ class XCodeBackend(backends.Backend):
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
-            for tname, t in self.custom_targets.items():
-                (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
-                for o in ofilenames:
-                    file_arr.add_item(self.custom_target_output_buildfile[o],
-                                      os.path.join(self.environment.get_build_dir(), o))
+            for gt in t.generated:
+                if isinstance(gt, build.CustomTarget):
+                    (srcs, ofilenames, cmd) = self.eval_custom_target_command(gt)
+                    for o in ofilenames:
+                        file_arr.add_item(self.custom_target_output_buildfile[o],
+                                          os.path.join(self.environment.get_build_dir(), o))
             phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
     def generate_pbx_target_dependency(self, objects_dict):
