@@ -18,6 +18,7 @@ from pathlib import Path
 import functools
 import re
 import sysconfig
+import textwrap
 import typing as T
 
 from .. import mlog
@@ -72,25 +73,24 @@ class OpenMPDependency(ExternalDependency):
         '199810': '1.0',
     }
 
-    def __init__(self, environment, kwargs):
-        language = kwargs.get('language')
+    def __init__(self, environment: 'Environment', kwargs):
+        language: T.Optional[str] = kwargs.get('language')
         super().__init__('openmp', environment, kwargs, language=language)
-        self.is_found = False
+
+        header = 'omp.h'
         if self.clib_compiler.get_id() == 'pgi':
             # through at least PGI 19.4, there is no macro defined for OpenMP, but OpenMP 3.1 is supported.
             self.version = '3.1'
-            self.is_found = True
             self.compile_args = self.link_args = self.clib_compiler.openmp_flags()
-            return
-        try:
-            openmp_date = self.clib_compiler.get_define(
-                '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
-        except mesonlib.EnvironmentException as e:
-            mlog.debug('OpenMP support not available in the compiler')
-            mlog.debug(e)
-            openmp_date = None
+        else:
+            try:
+                openmp_date = self.clib_compiler.get_define(
+                    '_OPENMP', '', self.env, self.clib_compiler.openmp_flags(), [self], disable_cache=True)[0]
+            except mesonlib.EnvironmentException as e:
+                mlog.debug('OpenMP support not available in the compiler')
+                mlog.debug(e)
+                return
 
-        if openmp_date:
             try:
                 self.version = self.VERSIONS[openmp_date]
             except KeyError:
@@ -100,14 +100,38 @@ class OpenMPDependency(ExternalDependency):
                 return
             # Flang has omp_lib.h
             header_names = ('omp.h', 'omp_lib.h')
-            for name in header_names:
-                if self.clib_compiler.has_header(name, '', self.env, dependencies=[self], disable_cache=True)[0]:
-                    self.is_found = True
+            for header in header_names:
+                if self.clib_compiler.has_header(header, '', self.env, dependencies=[self], disable_cache=True)[0]:
                     self.compile_args = self.clib_compiler.openmp_flags()
                     self.link_args = self.clib_compiler.openmp_link_flags()
                     break
-            if not self.is_found:
+            else:
                 mlog.log(mlog.yellow('WARNING:'), 'OpenMP found but omp.h missing.')
+                return
+
+        if language in {None, 'cpp'}:  # C is None
+            code = textwrap.dedent(f'''\
+                #include <stdio.h>
+                #include <{header}>
+
+                void func(void) {{
+                    #pragma omp parallel
+                    {{
+                        printf("Hello World... from thread = %d\\n",
+                            omp_get_thread_num());
+                    }}
+                }}
+                ''')
+        else:
+            code = textwrap.dedent(f'''\
+                PROGRAM Parallel_Hello_World
+                USE OMP_LIB
+
+                PRINT *, "Hello from process: ", OMP_GET_THREAD_NUM()
+
+                END
+                ''')
+        self.is_found, _ = self.clib_compiler.compiles(code, environment, dependencies=[self])
 
 
 class ThreadDependency(ExternalDependency):
