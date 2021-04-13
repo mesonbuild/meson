@@ -387,7 +387,9 @@ class XCodeBackend(backends.Backend):
             generator_id = 0
             for s in t.generated:
                 if isinstance(s, build.GeneratedList):
-                    self.shell_targets[(tname, generator_id)] = self.gen_id()
+                    k = (tname, generator_id)
+                    assert(k not in self.shell_targets)
+                    self.shell_targets[k] = self.gen_id()
                     generator_id += 1
         # FIXME add outputs.
 
@@ -405,7 +407,9 @@ class XCodeBackend(backends.Backend):
         self.target_dependency_map = {}
         for tname, t in self.build_targets.items():
             for target in t.link_targets:
-                self.target_dependency_map[(tname, target.get_basename())] = self.gen_id()
+                k = (tname, target.get_basename())
+                assert(k not in self.target_dependency_map)
+                self.target_dependency_map[k] = self.gen_id()
 
     def generate_pbxdep_map(self):
         self.pbx_dep_map = {}
@@ -424,16 +428,22 @@ class XCodeBackend(backends.Backend):
                     s = os.path.join(s.subdir, s.fname)
                 if not isinstance(s, str):
                     continue
-                self.buildfile_ids[(tname, s)] = self.gen_id()
-                self.fileref_ids[(tname, s)] = self.gen_id()
+                k = (tname, s)
+                assert(k not in self.buildfile_ids)
+                self.buildfile_ids[k] = self.gen_id()
+                assert(k not in self.fileref_ids)
+                self.fileref_ids[k] = self.gen_id()
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
                     # Extracted objects do not live in "the Xcode world".
                     continue
                 else:
                     o = os.path.join(t.subdir, o)
-                    self.buildfile_ids[(tname, o)] = self.gen_id()
-                    self.fileref_ids[(tname, o)] = self.gen_id()
+                    k = (tname, o)
+                    assert(k not in sel.buildfile_ids)
+                    self.buildfile_ids[k] = self.gen_id()
+                    assert(k not in self.fileref_ids)
+                    self.fileref_ids[k] = self.gen_id()
 
     def generate_source_phase_map(self):
         self.source_phase = {}
@@ -487,8 +497,9 @@ class XCodeBackend(backends.Backend):
                 if not isinstance(s, str):
                     continue
                 sdict = PbxDict()
-                idval = self.buildfile_ids[(tname, s)]
-                fileref = self.fileref_ids[(tname, s)]
+                k = (tname, s)
+                idval = self.buildfile_ids[k]
+                fileref = self.fileref_ids[k]
                 if in_build_dir:
                     fullpath = os.path.join(self.environment.get_build_dir(), s)    
                 else:
@@ -506,8 +517,10 @@ class XCodeBackend(backends.Backend):
                     continue
                 o = os.path.join(t.subdir, o)
                 idval = self.buildfile_ids[(tname, o)]
-                fileref = self.fileref_ids[(tname, s)]
-                self.targetfile_ids[(tname, s)] = idval
+                k = (tname, s)
+                fileref = self.fileref_ids[k]
+                assert(k not in self.targetfile_ids)
+                self.targetfile_ids[k] = idval
                 fullpath = os.path.join(self.environment.get_source_dir(), o)
                 fullpath2 = fullpath
                 o_dict = PbxDict()
@@ -873,7 +886,6 @@ class XCodeBackend(backends.Backend):
                     generator = genlist.get_generator()
                     exe = generator.get_exe()
                     exe_arr = self.build_target_to_cmd_array(exe)
-                    self.shell_targets[(tname, id)] = self.gen_id()
                     workdir = self.environment.get_build_dir()
                     gen_dict = PbxDict()
                     objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, '"Generator {}/{}"'.format(generator_id, tname))
@@ -903,7 +915,9 @@ class XCodeBackend(backends.Backend):
                             commands.append(exe_arr + args)
                     for of in ofile_abs:
                         outarray.add_item(of)
-                    self.generator_outputs[(tname, generator_id)] = ofile_abs
+                    k = (tname, generator_id)
+                    assert(k not in self.generator_outputs)
+                    self.generator_outputs[k] = ofile_abs
                     gen_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
                     gen_dict.add_item('shellPath', '/bin/sh')
                     quoted_cmds = []
