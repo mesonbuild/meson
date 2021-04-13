@@ -91,7 +91,13 @@ class OpenMPDependency(ExternalDependency):
             openmp_date = None
 
         if openmp_date:
-            self.version = self.VERSIONS[openmp_date]
+            try:
+                self.version = self.VERSIONS[openmp_date]
+            except KeyError:
+                mlog.debug(f'Could not find an OpenMP version matching {openmp_date}')
+                if openmp_date == '_OPENMP':
+                    mlog.debug('This can be caused by flags such as gcc\'s `-fdirectives-only`, which affect preprocessor behavior.')
+                return
             # Flang has omp_lib.h
             header_names = ('omp.h', 'omp_lib.h')
             for name in header_names:
