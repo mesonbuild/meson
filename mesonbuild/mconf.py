@@ -36,6 +36,9 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     parser.add_argument('builddir', nargs='?', default='.')
     parser.add_argument('--clearcache', action='store_true', default=False,
                         help='Clear cached state (e.g. found dependencies)')
+    parser.add_argument('--allow-unknown-options', action='store_false',
+                        dest='error_unknown',
+                        help='Do *not* fail if unknown build options are encountered')
 
 def make_lower_case(val: T.Any) -> T.Union[str, T.List[T.Any]]:  # T.Any because of recursion...
     if isinstance(val, bool):
@@ -88,8 +91,8 @@ class Conf:
         self.coredata.deps.host.clear()
         self.coredata.deps.build.clear()
 
-    def set_options(self, options):
-        self.coredata.set_options(options)
+    def set_options(self, options, error_unknown: bool = True):
+        self.coredata.set_options(options, error_unknown=error_unknown)
 
     def save(self):
         # Do nothing when using introspection
@@ -315,7 +318,7 @@ def run(options):
 
         save = False
         if options.cmd_line_options:
-            c.set_options(options.cmd_line_options)
+            c.set_options(options.cmd_line_options, options.error_unknown)
             coredata.update_cmd_line_file(builddir, options)
             save = True
         elif options.clearcache:
