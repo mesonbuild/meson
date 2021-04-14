@@ -175,7 +175,7 @@ class MesonApp:
 
     def generate(self) -> None:
         env = environment.Environment(self.source_dir, self.build_dir, self.options)
-        mlog.initialize(env.get_log_dir(), self.options.fatal_warnings)
+        mlog.initialize(env.get_log_dir())
         if self.options.profile:
             mlog.set_timestamp_start(time.monotonic())
         if env.coredata.options[mesonlib.OptionKey('backend')].value == 'xcode':

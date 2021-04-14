@@ -97,11 +97,10 @@ def set_verbose() -> None:
     global log_errors_only
     log_errors_only = False
 
-def initialize(logdir: str, fatal_warnings: bool = False) -> None:
+def initialize(logdir: str) -> None:
     global log_dir, log_file, log_fatal_warnings
     log_dir = logdir
     log_file = open(os.path.join(logdir, log_fname), 'w', encoding='utf-8')
-    log_fatal_warnings = fatal_warnings
 
 def set_timestamp_start(start: float) -> None:
     global log_timestamp_start
