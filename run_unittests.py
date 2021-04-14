@@ -3222,6 +3222,8 @@ class AllPlatformTests(BasePlatformTests):
                     '''))
             xz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.xz')
             xz_checksumfile = xz_distfile + '.sha256sum'
+            gz_distfile = os.path.join(self.distdir, 'disttest-1.4.3.tar.gz')
+            gz_checksumfile = gz_distfile + '.sha256sum'
             zip_distfile = os.path.join(self.distdir, 'disttest-1.4.3.zip')
             zip_checksumfile = zip_distfile + '.sha256sum'
             vcs_init(project_dir)
@@ -3235,12 +3237,20 @@ class AllPlatformTests(BasePlatformTests):
             self.build('dist')
             self.assertPathExists(xz_distfile)
             self.assertPathExists(xz_checksumfile)
+            self.assertPathDoesNotExist(gz_distfile)
+            self.assertPathDoesNotExist(gz_checksumfile)
             self.assertPathDoesNotExist(zip_distfile)
             self.assertPathDoesNotExist(zip_checksumfile)
+            self._run(self.meson_command + ['dist', '--formats', 'gztar'],
+                      workdir=self.builddir)
+            self.assertPathExists(gz_distfile)
+            self.assertPathExists(gz_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'zip'],
                       workdir=self.builddir)
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
+            self._run(self.meson_command + ['dist', '--formats', 'xztar,gztar,zip'],
+                      workdir=self.builddir)
 
             if include_subprojects:
                 # Verify that without --include-subprojects we have files from
