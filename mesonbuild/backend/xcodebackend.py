@@ -383,14 +383,31 @@ class XCodeBackend(backends.Backend):
     def generate_generator_target_map(self):
         # Generator objects do not have natural unique ids
         # so use a counter.
+        self.generator_fileref_ids = {}
+        self.generator_buildfile_ids = {}
         for tname, t in self.build_targets.items():
             generator_id = 0
-            for s in t.generated:
-                if isinstance(s, build.GeneratedList):
-                    k = (tname, generator_id)
-                    assert(k not in self.shell_targets)
-                    self.shell_targets[k] = self.gen_id()
-                    generator_id += 1
+            for genlist in t.generated:
+                if not isinstance(genlist, build.GeneratedList):
+                    continue
+                k = (tname, generator_id)
+                assert(k not in self.shell_targets)
+                self.shell_targets[k] = self.gen_id()
+                ofile_abs = []
+                for i in genlist.get_inputs():
+                    for o_base in genlist.get_outputs_for(i):
+                        o = os.path.join(self.get_target_private_dir(t), o_base)
+                        ofile_abs.append(os.path.join(self.environment.get_build_dir(), o))
+                assert(k not in self.generator_outputs)
+                self.generator_outputs[k] = ofile_abs
+                buildfile_ids = []
+                fileref_ids = []
+                for i in range(len(ofile_abs)):
+                    buildfile_ids.append(self.gen_id())
+                    fileref_ids.append(self.gen_id())
+                self.generator_buildfile_ids[k] = buildfile_ids
+                self.generator_fileref_ids[k] = fileref_ids
+                generator_id += 1
         # FIXME add outputs.
 
     def generate_native_frameworks_map(self):
@@ -528,6 +545,23 @@ class XCodeBackend(backends.Backend):
                 o_dict.add_item('isa', 'PBXBuildFile')
                 o_dict.add_item('fileRef', fileref, fullpath2)
 
+            generator_id = 0
+            for g in t.generated:
+                if not isinstance(g, build.GeneratedList):
+                    continue
+                file_ids = self.generator_buildfile_ids[(tname, generator_id)]
+                ref_ids = self.generator_fileref_ids[tname, generator_id]
+                assert(len(ref_ids) == len(file_ids))
+                for i in range(len(file_ids)):
+                    file_o = file_ids[i]
+                    ref_id = ref_ids[i]
+                    odict = PbxDict()
+                    objects_dict.add_item(file_o, odict)
+                    odict.add_item('isa', 'PBXBuildFile')
+                    odict.add_item('fileRef', ref_id)
+
+                generator_id += 1
+
         # Custom targets are shell build phases in Xcode terminology.
         for tname, t in self.custom_targets.items():
             if not isinstance(t, build.CustomTarget):
@@ -601,6 +635,29 @@ class XCodeBackend(backends.Backend):
                     src_dict.add_item('path', '"' + path + '"')
                     src_dict.add_item('sourceTree', 'SOURCE_ROOT')
 
+            generator_id = 0
+            for g in t.generated:
+                if not isinstance(g, build.GeneratedList):
+                    continue
+                outputs = self.generator_outputs[(tname, generator_id)]
+                ref_ids = self.generator_fileref_ids[tname, generator_id]
+                assert(len(ref_ids) == len(outputs))
+                for i in range(len(outputs)):
+                    o = outputs[i]
+                    ref_id = ref_ids[i]
+                    odict = PbxDict()
+                    name = os.path.basename(o)
+                    objects_dict.add_item(ref_id, odict, o)
+                    xcodetype = self.get_xcodetype(o)
+                    rel_name = mesonlib.relpath(o, self.environment.get_source_dir())   
+                    odict.add_item('isa', 'PBXFileReference')
+                    odict.add_item('explicitFileType', '"' + xcodetype + '"')
+                    odict.add_item('fileEncoding', '4')
+                    odict.add_item('name', f'"{name}"')
+                    odict.add_item('path', f'"{rel_name}"')
+                    odict.add_item('sourceTree', 'SOURCE_ROOT')
+
+                generator_id += 1
 
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
@@ -801,6 +858,13 @@ class XCodeBackend(backends.Backend):
                     source_target_id = o.target.get_id()
                     idval = self.pbx_dep_map[source_target_id]
                     dep_array.add_item(idval, 'PBXTargetDependency')
+            generator_id = 0
+            for o in t.generated:
+                if not isinstance(o, build.GeneratedList):
+                    continue
+                
+                generator_id += 1
+
 
             ntarget_dict.add_item('name', f'"{tname}"')
             ntarget_dict.add_item('productName', f'"{tname}"')
@@ -898,11 +962,14 @@ class XCodeBackend(backends.Backend):
                     gen_dict.add_item('buildActionMask', 2147483647)
                     gen_dict.add_item('files', PbxArray())
                     gen_dict.add_item('inputPaths', PbxArray())
-                    outarray = PbxArray()
                     gen_dict.add_item('name', '"Generator {}/{}"'.format(generator_id, tname))    
-                    gen_dict.add_item('outputPaths', outarray)
                     commands = [["cd", workdir]] # Array of arrays, each one a single command, will get concatenated below.
-                    ofile_abs = []
+                    k = (tname, generator_id)
+                    ofile_abs = self.generator_outputs[k]
+                    outarray = PbxArray()
+                    gen_dict.add_item('outputPaths', outarray)
+                    for of in ofile_abs:
+                        outarray.add_item(of)
                     for i in infilelist:
                         # This might be needed to be added to inputPaths. It's not done yet as it is
                         # unclear whether it is necessary, what actually happens when it is defined
@@ -912,15 +979,9 @@ class XCodeBackend(backends.Backend):
                         base_args = generator.get_arglist(infilename)
                         for o_base in genlist.get_outputs_for(i):
                             o = os.path.join(self.get_target_private_dir(t), o_base)
-                            ofile_abs.append(os.path.join(self.environment.get_build_dir(), o))
-                            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o) for x in base_args]
+                            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t)) for x in base_args]
                             args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
                             commands.append(exe_arr + args)
-                    for of in ofile_abs:
-                        outarray.add_item(of)
-                    k = (tname, generator_id)
-                    assert(k not in self.generator_outputs)
-                    self.generator_outputs[k] = ofile_abs
                     gen_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
                     gen_dict.add_item('shellPath', '/bin/sh')
                     quoted_cmds = []
@@ -951,12 +1012,18 @@ class XCodeBackend(backends.Backend):
                 s = os.path.join(s.subdir, s.fname)
                 if not self.environment.is_header(s):
                     file_arr.add_item(self.buildfile_ids[(name, s)], os.path.join(self.environment.get_source_dir(), s))
+            generator_id = 0
             for gt in t.generated:
                 if isinstance(gt, build.CustomTarget):
                     (srcs, ofilenames, cmd) = self.eval_custom_target_command(gt)
                     for o in ofilenames:
                         file_arr.add_item(self.custom_target_output_buildfile[o],
                                           os.path.join(self.environment.get_build_dir(), o))
+                elif isinstance(gt, build.GeneratedList):
+                    genfiles = self.generator_buildfile_ids[(name, generator_id)]
+                    generator_id += 1
+                    for o in genfiles:
+                        file_arr.add_item(o)
             phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
     def generate_pbx_target_dependency(self, objects_dict):
@@ -1066,6 +1133,8 @@ class XCodeBackend(backends.Backend):
                     cd = os.path.join(d.curdir, sd)
                     headerdirs.append(os.path.join(self.environment.get_source_dir(), cd))
                     headerdirs.append(os.path.join(self.environment.get_build_dir(), cd))
+                for extra in d.extra_build_dirs:
+                    headerdirs.append(os.path.join(self.environment.get_build_dir(), extra))
             (dep_libs, links_dylib) = self.determine_internal_dep_link_args(target, buildtype)
             if links_dylib:
                 dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
