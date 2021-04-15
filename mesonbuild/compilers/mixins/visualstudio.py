@@ -125,7 +125,7 @@ class VisualStudioLikeCompiler(Compiler, metaclass=abc.ABCMeta):
             self.machine = 'arm'
         else:
             self.machine = target
-        if mesonlib.version_compare(self.version, '>=19.29.29917'):
+        if mesonlib.version_compare(self.version, '>=19.28.29910'): # VS 16.9.0 includes cl 19.28.29910
             self.base_options.add(mesonlib.OptionKey('b_sanitize'))
         assert self.linker is not None
         self.linker.machine = self.machine
