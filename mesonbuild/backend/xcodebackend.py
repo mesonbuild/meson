@@ -469,10 +469,11 @@ class XCodeBackend(backends.Backend):
             self.source_phase[t] = self.gen_id()
 
     def generate_pbx_aggregate_target(self, objects_dict):
+        self.build_all_tdep_id = self.gen_id()
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build_targets))
         aggregated_targets = []
         aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies))
-        aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], []))
+        aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], [self.build_all_tdep_id]))
         # Sort objects by ID before writing
         sorted_aggregated_targets = sorted(aggregated_targets, key=operator.itemgetter(0))
         for t in sorted_aggregated_targets:
@@ -1034,6 +1035,10 @@ class XCodeBackend(backends.Backend):
             phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
     def generate_pbx_target_dependency(self, objects_dict):
+        all_dict = PbxDict()
+        objects_dict.add_item(self.build_all_tdep_id, all_dict, 'ALL_BUILD')
+        all_dict.add_item('isa', 'PBXTargetDependency')
+        all_dict.add_item('target', self.all_id)
         targets = []
         for t in self.build_targets:
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
