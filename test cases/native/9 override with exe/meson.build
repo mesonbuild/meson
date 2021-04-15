@@ -5,6 +5,15 @@ prog = find_program('foobar', version : '>= 2.0', required : false, native : tru
 assert(not prog.found())
 
 prog = find_program('foobar', version : '>= 1.0', native : true)
+
+if meson.is_cross_build()
+  prog_for_host = find_program('foobar', version : '>= 1.0', native : false, required : false)
+  assert(not prog_for_host.found(), 'got build machine binary for host machine!')
+else
+  prog_for_host = find_program('foobar', version : '>= 1.0', native : false, required : false)
+  assert(prog_for_host.found(), 'host and build are the same, should have been found')
+endif
+
 custom1 = custom_target('custom1',
                         build_by_default : true,
                         input : [],

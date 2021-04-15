@@ -128,7 +128,7 @@ methods:
           to install only a subset of the files.
           By default the script has no install tag which means it is not being run when
           `meson install --tags` argument is specified.
-      
+
       dry_run:
         type: bool
         since: 1.1.0
@@ -371,6 +371,10 @@ methods:
       *(since 0.55.0)* If a version
       check is passed to [[find_program]] for a program that has been overridden with
       an executable, the current project version is used.
+
+      *(since 1.2.0)* the machine that the override is for is correctly tracked,
+      Which allows host and build binaries to be overridden separately in a
+      cross build
 
     posargs:
       progname:
