@@ -1149,6 +1149,30 @@ class Backend:
         # ${BUILDDIR}/${BUILDTYPE} instead, this becomes unnecessary.
         return self.get_target_dir(target)
 
+    @lru_cache(maxsize=None)
+    def get_normpath_target(self, source) -> str:
+        return os.path.normpath(source)
+
+    def get_custom_target_dir_include_args(self, target, compiler, *, absolute_path=False):
+        custom_target_include_dirs = []
+        for i in target.get_generated_sources():
+            # Generator output goes into the target private dir which is
+            # already in the include paths list. Only custom targets have their
+            # own target build dir.
+            if not isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
+                continue
+            idir = self.get_normpath_target(self.get_custom_target_output_dir(i))
+            if not idir:
+                idir = '.'
+            if absolute_path:
+                idir = os.path.join(self.environment.get_build_dir(), idir)
+            if idir not in custom_target_include_dirs:
+                custom_target_include_dirs.append(idir)
+        incs = []
+        for i in custom_target_include_dirs:
+            incs += compiler.get_include_args(i, False)
+        return incs
+
     def eval_custom_target_command(self, target, absolute_outputs=False):
         # We want the outputs to be absolute only when using the VS backend
         # XXX: Maybe allow the vs backend to use relative paths too?

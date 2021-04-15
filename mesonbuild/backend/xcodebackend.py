@@ -55,6 +55,7 @@ OPT2XCODEOPT = {'0': '0',
                 's': 's',
                 }
 BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
+LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -210,7 +211,7 @@ class XCodeBackend(backends.Backend):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
 
     def get_target_dir(self, target):
-        dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_option(OptionKey('buildtype')))
+        dirname = os.path.join(self.environment.coredata.get_option(OptionKey('buildtype')), target.get_subdir())
         os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
@@ -1160,6 +1161,11 @@ class XCodeBackend(backends.Backend):
                     for o_abs in outputs:
                         if o_abs.endswith('.o') or o_abs.endswith('.obj'):
                             ldargs += [r'\"' + o_abs + r'\"']
+                else:
+                    (srcs, ofilenames, cmd) = self.eval_custom_target_command(o)
+                    for ofname in ofilenames:
+                        if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
+                            ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
             langargs = {}
@@ -1189,6 +1195,7 @@ class XCodeBackend(backends.Backend):
                         # This may break reproducible builds, in which case patches are welcome.
                         lang_cargs += self.get_build_dir_include_args(target, compiler, absolute_path=True)
                         lang_cargs += self.get_source_dir_include_args(target, compiler, absolute_path=True)
+                        lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
                     langargs[langname] = args
                     langargs[langname] += lang_cargs
             symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
