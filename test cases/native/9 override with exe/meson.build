@@ -9,6 +9,9 @@ prog = find_program('foobar', version : '>= 1.0', native : true)
 if meson.is_cross_build()
   prog_for_host = find_program('foobar', version : '>= 1.0', native : false, required : false)
   assert(not prog_for_host.found(), 'got build machine binary for host machine!')
+
+  prog_forced = find_program('foobar2', native : false)
+  assert(prog_forced.found())
 else
   prog_for_host = find_program('foobar', version : '>= 1.0', native : false, required : false)
   assert(prog_for_host.found(), 'host and build are the same, should have been found')

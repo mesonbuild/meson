@@ -1596,14 +1596,15 @@ class Interpreter(InterpreterBase, HoldableObject):
             if isinstance(name, str):
                 self.build.searched_programs[for_machine].add(name)
 
-    def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram']) -> None:
-        if name in self.build.searched_programs[exe.for_machine]:
+    def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram'],
+                                  for_machine: MachineChoice) -> None:
+        if name in self.build.searched_programs[for_machine]:
             raise InterpreterException(f'Tried to override finding of executable "{name}" for the '
-                                       f'{exe.for_machine.get_lower_case_name()} machine which has already been found.')
-        if name in self.build.find_overrides[exe.for_machine]:
-            raise InterpreterException(f'Tried to override executable "{name}" for the {exe.for_machine.get_lower_case_name()} machine '
+                                       f'{for_machine.get_lower_case_name()} machine which has already been found.')
+        if name in self.build.find_overrides[for_machine]:
+            raise InterpreterException(f'Tried to override executable "{name}" for the {for_machine.get_lower_case_name()} machine '
                                        'which has already been overridden.')
-        self.build.find_overrides[exe.for_machine][name] = exe
+        self.build.find_overrides[for_machine][name] = exe
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(

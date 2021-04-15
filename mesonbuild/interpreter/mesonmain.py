@@ -48,6 +48,10 @@ if T.TYPE_CHECKING:
         method: Literal['set', 'prepend', 'append']
         separator: str
 
+    class OverrideProgramKw(TypedDict):
+
+        native: T.Optional[MachineChoice]
+
 
 class MesonMain(MesonInterpreterObject):
     def __init__(self, build: 'build.Build', interpreter: 'Interpreter'):
@@ -324,16 +328,34 @@ class MesonMain(MesonInterpreterObject):
 
     @FeatureNew('meson.override_find_program', '0.46.0')
     @typed_pos_args('meson.override_find_program', str, (mesonlib.File, ExternalProgram, build.Executable))
-    @noKwargs
-    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: 'TYPE_kwargs') -> None:
+    @typed_kwargs(
+        'meson.override_find_program',
+        KwargInfo(
+            'native',
+            (bool, NoneType),
+            since='1.2.0',
+            convertor=lambda x: None if x is None else MachineChoice.BUILD if x else MachineChoice.HOST,
+        )
+    )
+    def override_find_program_method(self, args: T.Tuple[str, T.Union[mesonlib.File, ExternalProgram, build.Executable]], kwargs: OverrideProgramKw) -> None:
         name, exe = args
+
+        # We need native when using a file, and someone might want to override
+        # something for a specific machine, otherwise use the for_machien from
+        # the program itself.
+        if isinstance(exe, mesonlib.File) or kwargs['native'] is not None:
+            for_machine = kwargs['native'] or MachineChoice.HOST
+        else:
+            for_machine = exe.for_machine
+
         if isinstance(exe, mesonlib.File):
             abspath = exe.absolute_path(self.interpreter.environment.source_dir,
                                         self.interpreter.environment.build_dir)
             if not os.path.exists(abspath):
-                raise InterpreterException(f'Tried to override {name} with a file that does not exist.')
-            exe = OverrideProgram(name, [abspath])
-        self.interpreter.add_find_program_override(name, exe)
+                raise InterpreterException(f'Tried to override {name} for {for_machine.get_lower_case_name()} '
+                                           'machine with a file that does not exist.')
+            exe = OverrideProgram(name, [abspath], for_machine=for_machine)
+        self.interpreter.add_find_program_override(name, exe, for_machine)
 
     @typed_kwargs(
         'meson.override_dependency',

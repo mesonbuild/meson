@@ -385,6 +385,16 @@ methods:
         type: exe | file | external_program
         description: The program to set as the override for `progname`.
 
+    kwargs:
+      native:
+        type: bool
+        since: 1.2.0
+        default: false
+        description: |
+          If set to `true`, the dependency is always overwritten for the build machine.
+          Otherwise, the dependency is overwritten for the host machine, which
+          differs from the build machine when cross-compiling.
+
   - name: override_dependency
     returns: void
     since: 0.54.0
