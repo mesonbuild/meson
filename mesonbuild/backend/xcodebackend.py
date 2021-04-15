@@ -981,7 +981,13 @@ class XCodeBackend(backends.Backend):
                             o = os.path.join(self.get_target_private_dir(t), o_base)
                             args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t)) for x in base_args]
                             args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
-                            commands.append(exe_arr + args)
+                            args = self.replace_extra_args(args, genlist)
+                            if generator.capture:
+                                # When capturing, stdout is the output. Forward it with the shell.
+                                full_command = ['('] + exe_arr + args + ['>', o, ')']
+                            else:
+                                full_command = exe_arr + args
+                            commands.append(full_command)
                     gen_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
                     gen_dict.add_item('shellPath', '/bin/sh')
                     quoted_cmds = []
