@@ -135,8 +135,8 @@ class ExternalProgram(mesonlib.HoldableObject):
         # is what we are specifying here.
         command = env.lookup_binary_entry(for_machine, name)
         if command is None:
-            return NonExistingExternalProgram()
-        return cls.from_entry(name, command)
+            return NonExistingExternalProgram(for_machine=for_machine)
+        return cls.from_entry(name, command, for_machine)
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -163,7 +163,7 @@ class ExternalProgram(mesonlib.HoldableObject):
         return os.pathsep.join(paths)
 
     @staticmethod
-    def from_entry(name: str, command: T.Union[str, T.List[str]]) -> 'ExternalProgram':
+    def from_entry(name: str, command: T.Union[str, T.List[str]], for_machine: MachineChoice) -> 'ExternalProgram':
         if isinstance(command, list):
             if len(command) == 1:
                 command = command[0]
@@ -172,10 +172,10 @@ class ExternalProgram(mesonlib.HoldableObject):
         if isinstance(command, list) or os.path.isabs(command):
             if isinstance(command, str):
                 command = [command]
-            return ExternalProgram(name, command=command, silent=True)
+            return ExternalProgram(name, command=command, silent=True, for_machine=for_machine)
         assert isinstance(command, str)
         # Search for the command using the specified string!
-        return ExternalProgram(command, silent=True)
+        return ExternalProgram(command, silent=True, for_machine=for_machine)
 
     @staticmethod
     def _shebang_to_cmd(script: str) -> T.Optional[T.List[str]]:
@@ -365,7 +365,7 @@ def find_external_program(env: 'Environment', for_machine: MachineChoice, name: 
         if potential_cmd is not None:
             mlog.debug(f'{display_name} binary for {for_machine} specified from cross file, native file, '
                        f'or env var as {potential_cmd}')
-            yield ExternalProgram.from_entry(potential_name, potential_cmd)
+            yield ExternalProgram.from_entry(potential_name, potential_cmd, MachineChoice.HOST)
             # We never fallback if the user-specified option is no good, so
             # stop returning options.
             return
@@ -375,6 +375,6 @@ def find_external_program(env: 'Environment', for_machine: MachineChoice, name: 
     if allow_default_for_cross or not (for_machine is MachineChoice.HOST and env.is_cross_build(for_machine)):
         for potential_path in default_names:
             mlog.debug(f'Trying a default {display_name} fallback at', potential_path)
-            yield ExternalProgram(potential_path, silent=True)
+            yield ExternalProgram(potential_path, silent=True, for_machine=for_machine)
     else:
         mlog.debug('Default target is not allowed for cross use')

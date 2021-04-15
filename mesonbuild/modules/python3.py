@@ -13,6 +13,7 @@
 # limitations under the License.
 from __future__ import annotations
 
+from mesonbuild.mesonlib.universal import MachineChoice
 import sysconfig
 from .. import mesonlib
 
@@ -57,9 +58,9 @@ class Python3Module(ExtensionModule):
     @noPosargs
     @noKwargs
     def find_python(self, state, args, kwargs):
-        command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.HOST, 'python3')
+        command = state.environment.lookup_binary_entry(mesonlib.MachineChoice.BUILD, 'python3')
         if command is not None:
-            py3 = ExternalProgram.from_entry('python3', command)
+            py3 = ExternalProgram.from_entry('python3', command, MachineChoice.BUILD)
         else:
             py3 = ExternalProgram('python3', mesonlib.python_command, silent=True)
         return py3

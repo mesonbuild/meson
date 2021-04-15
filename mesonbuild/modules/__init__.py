@@ -106,7 +106,7 @@ class ModuleState:
         # Look in machine file
         prog_list = self.environment.lookup_binary_entry(MachineChoice.HOST, name)
         if prog_list is not None:
-            return ExternalProgram.from_entry(name, prog_list)
+            return ExternalProgram.from_entry(name, prog_list, MachineChoice.HOST)
 
         # Check if pkgconfig has a variable
         dep = self.dependency(depname, native=True, required=False, wanted=wanted)

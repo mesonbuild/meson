@@ -376,7 +376,7 @@ class PythonModule(ExtensionModule):
         if not name_or_path:
             python = PythonExternalProgram('python3', mesonlib.python_command)
         else:
-            tmp_python = ExternalProgram.from_entry(display_name, name_or_path)
+            tmp_python = ExternalProgram.from_entry(display_name, name_or_path, MachineChoice.BUILD)
             python = PythonExternalProgram(display_name, ext_prog=tmp_python)
 
             if not python.found() and mesonlib.is_windows():
@@ -390,7 +390,7 @@ class PythonModule(ExtensionModule):
             # named python is available and has a compatible version, let's use
             # it
             if not python.found() and name_or_path in {'python2', 'python3'}:
-                tmp_python = ExternalProgram.from_entry(display_name, 'python')
+                tmp_python = ExternalProgram.from_entry(display_name, 'python', MachineChoice.BUILD)
                 python = PythonExternalProgram(name_or_path, ext_prog=tmp_python)
 
         if python.found():

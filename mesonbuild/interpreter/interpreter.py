@@ -811,10 +811,10 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InterpreterException(f'command {cmd.get_name()!r} not found or not executable')
         elif isinstance(cmd, compilers.Compiler):
             exelist = cmd.get_exelist()
-            cmd = exelist[0]
-            prog = ExternalProgram(cmd, silent=True)
+            cmd_ = exelist[0]
+            prog = ExternalProgram(cmd_, silent=True, for_machine=cmd.for_machine)
             if not prog.found():
-                raise InterpreterException(f'Program {cmd!r} not found or not executable')
+                raise InterpreterException(f'Program {prog.name!r} for {prog.for_machine} not found or not executable')
             cmd = prog
             expanded_args = exelist[1:]
         else:
@@ -1549,7 +1549,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         return None
 
     def program_from_system(self, args: T.List[mesonlib.FileOrString], search_dirs: T.List[str],
-                            extra_info: T.List[mlog.TV_Loggable]) -> T.Optional[ExternalProgram]:
+                            extra_info: T.List[mlog.TV_Loggable],
+                            for_machine: MachineChoice) -> T.Optional[ExternalProgram]:
         # Search for scripts relative to current subdir.
         # Do not cache found programs because find_program('foobar')
         # might give different results when run from different source dirs.
@@ -1571,7 +1572,7 @@ class Interpreter(InterpreterBase, HoldableObject):
                 raise InvalidArguments(f'find_program only accepts strings and files, not {exename!r}')
             extprog = ExternalProgram(exename, search_dir=search_dir,
                                       extra_search_dirs=extra_search_dirs,
-                                      silent=True)
+                                      silent=True, for_machine=for_machine)
             if extprog.found():
                 extra_info.append(f"({' '.join(extprog.get_command())})")
                 return extprog
@@ -1678,7 +1679,7 @@ class Interpreter(InterpreterBase, HoldableObject):
 
         progobj = self.program_from_file_for(for_machine, args)
         if progobj is None:
-            progobj = self.program_from_system(args, search_dirs, extra_info)
+            progobj = self.program_from_system(args, search_dirs, extra_info, for_machine)
         if progobj is None and args[0].endswith('python3'):
             prog = ExternalProgram('python3', mesonlib.python_command, silent=True)
             progobj = prog if prog.found() else None

@@ -97,7 +97,7 @@ class CMakeExecutor:
                     mlog.log('Found CMake:', mlog.red('NO'))
                 # Set to False instead of None to signify that we've already
                 # searched for it and not found it
-                CMakeExecutor.class_cmakebin[self.for_machine] = NonExistingExternalProgram()
+                CMakeExecutor.class_cmakebin[self.for_machine] = NonExistingExternalProgram(for_machine=self.for_machine)
                 CMakeExecutor.class_cmakevers[self.for_machine] = None
                 return None, None
 
