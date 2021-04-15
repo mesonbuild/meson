@@ -38,11 +38,12 @@ class ExternalProgram(mesonlib.HoldableObject):
     """A program that is found on the system."""
 
     windows_exts = ('exe', 'msc', 'com', 'bat', 'cmd')
-    for_machine = MachineChoice.BUILD
 
     def __init__(self, name: str, command: T.Optional[T.List[str]] = None,
                  silent: bool = False, search_dir: T.Optional[str] = None,
-                 extra_search_dirs: T.Optional[T.List[str]] = None):
+                 extra_search_dirs: T.Optional[T.List[str]] = None,
+                 for_machine: MachineChoice = MachineChoice.BUILD):
+        self.for_machine = for_machine
         self.name = name
         self.path: T.Optional[str] = None
         self.cached_version: T.Optional[str] = None
@@ -333,10 +334,11 @@ class ExternalProgram(mesonlib.HoldableObject):
 class NonExistingExternalProgram(ExternalProgram):  # lgtm [py/missing-call-to-init]
     "A program that will never exist"
 
-    def __init__(self, name: str = 'nonexistingprogram') -> None:
+    def __init__(self, name: str = 'nonexistingprogram', for_machine: MachineChoice = MachineChoice.BUILD) -> None:
         self.name = name
         self.command = [None]
         self.path = None
+        self.for_machine = for_machine
 
     def __repr__(self) -> str:
         r = '<{} {!r} -> {!r}>'
