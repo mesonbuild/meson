@@ -443,7 +443,8 @@ keyword arguments:
 - `link_whole` *(since 0.46.0)*: libraries to link fully, same as [`executable`](#executable).
 - `sources`: sources to add to targets (or generated header files
   that should be built before sources including them are built)
-- `version`: the version of this dependency, such as `1.2.3`
+- `version`: the version of this dependency, such as `1.2.3`. Defaults to the
+  project version.
 - `variables` *(since 0.54.0)*: a dictionary of arbitrary strings, this is meant to be used
   in subprojects where special variables would be provided via cmake or
   pkg-config. *since 0.56.0* it can also be a list of `'key=value'` strings.
