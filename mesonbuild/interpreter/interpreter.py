@@ -1618,14 +1618,14 @@ class Interpreter(InterpreterBase, HoldableObject):
                           ) -> T.Union['ExternalProgram', 'build.Executable', 'OverrideProgram']:
         args = mesonlib.listify(args)
 
-        extra_info: T.List[mlog.TV_Loggable] = []
+        extra_info: T.List[mlog.TV_Loggable] = [mlog.cyan(f'(for {for_machine.get_lower_case_name()})')]
         progobj = self.program_lookup(args, for_machine, required, search_dirs, extra_info)
         if progobj is None:
             progobj = self.notfound_program(args)
 
-        if isinstance(progobj, ExternalProgram) and not progobj.found():
+        if not progobj.found():
             if not silent:
-                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'))
+                mlog.log('Program', mlog.bold(progobj.get_name()), 'found:', mlog.red('NO'), *extra_info)
             if required:
                 m = 'Program {!r} not found or not executable'
                 raise InterpreterException(m.format(progobj.get_name()))
