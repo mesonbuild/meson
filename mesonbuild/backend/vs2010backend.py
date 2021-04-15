@@ -181,6 +181,10 @@ class Vs2010Backend(backends.Backend):
         self.buildtype = self.environment.coredata.get_option(OptionKey('buildtype'))
         self.optimization = self.environment.coredata.get_option(OptionKey('optimization'))
         self.debug = self.environment.coredata.get_option(OptionKey('debug'))
+        try:
+            self.sanitize = self.environment.coredata.get_option(OptionKey('b_sanitize'))
+        except MesonException:
+            self.sanitize = 'none'
         sln_filename = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.sln')
         projlist = self.generate_projects()
         self.gen_testproj('RUN_TESTS', os.path.join(self.environment.get_build_dir(), 'RUN_TESTS.vcxproj'))
@@ -613,6 +617,8 @@ class Vs2010Backend(backends.Backend):
         # Remove arguments that have a top level XML entry so
         # they are not used twice.
         # FIXME add args as needed.
+        if entry[1:].startswith('fsanitize'):
+            return True
         return entry[1:].startswith('M')
 
     def add_additional_options(self, lang, parent_node, file_args):
@@ -767,6 +773,7 @@ class Vs2010Backend(backends.Backend):
         build_args = compiler.get_buildtype_args(self.buildtype)
         build_args += compiler.get_optimization_args(self.optimization)
         build_args += compiler.get_debug_args(self.debug)
+        build_args += compiler.sanitizer_compile_args(self.sanitize)
         buildtype_link_args = compiler.get_buildtype_linker_args(self.buildtype)
         vscrt_type = self.environment.coredata.options[OptionKey('b_vscrt')]
         project_name = target.name
@@ -842,6 +849,9 @@ class Vs2010Backend(backends.Backend):
         else:
             ET.SubElement(type_config, 'UseDebugLibraries').text = 'false'
             ET.SubElement(clconf, 'RuntimeLibrary').text = 'MultiThreadedDLL'
+        # Sanitizers
+        if '/fsanitize=address' in build_args:
+            ET.SubElement(type_config, 'EnableASAN').text = 'true'
         # Debug format
         if '/ZI' in build_args:
             ET.SubElement(clconf, 'DebugInformationFormat').text = 'EditAndContinue'
