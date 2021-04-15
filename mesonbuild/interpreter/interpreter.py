@@ -1589,14 +1589,15 @@ class Interpreter(InterpreterBase, HoldableObject):
                 return exe
         return None
 
-    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString]) -> None:
+    def store_name_lookups(self, command_names: T.List[mesonlib.FileOrString], for_machine: MachineChoice) -> None:
         for name in command_names:
             if isinstance(name, str):
-                self.build.searched_programs.add(name)
+                self.build.searched_programs[for_machine].add(name)
 
     def add_find_program_override(self, name: str, exe: T.Union[build.Executable, ExternalProgram, 'OverrideProgram']) -> None:
-        if name in self.build.searched_programs:
-            raise InterpreterException(f'Tried to override finding of executable "{name}" which has already been found.')
+        if name in self.build.searched_programs.host:
+            raise InterpreterException('Tried to override finding of executable "%s" which has already been found.'
+                                       % name)
         if name in self.build.find_overrides:
             raise InterpreterException(f'Tried to override executable "{name}" which has already been overridden.')
         self.build.find_overrides[name] = exe
@@ -1654,7 +1655,7 @@ class Interpreter(InterpreterBase, HoldableObject):
             extra_info.insert(0, mlog.normal_cyan(version))
 
         # Only store successful lookups
-        self.store_name_lookups(args)
+        self.store_name_lookups(args, for_machine)
         if not silent:
             mlog.log('Program', mlog.bold(progobj.name), 'found:', mlog.green('YES'), *extra_info)
         if isinstance(progobj, build.Executable):

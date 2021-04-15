@@ -56,6 +56,7 @@ if T.TYPE_CHECKING:
     from .mesonlib import FileMode, FileOrString
     from .modules import ModuleState
     from .mparser import BaseNode
+    from .programs import ExternalProgram
     from .wrap import WrapMode
 
     GeneratedTypes = T.Union['CustomTarget', 'CustomTargetIndex', 'GeneratedList']
@@ -266,7 +267,15 @@ class Build:
         self.test_setups: T.Dict[str, TestSetup] = {}
         self.test_setup_default_name = None
         self.find_overrides: T.Dict[str, T.Union['Executable', programs.ExternalProgram, programs.OverrideProgram]] = {}
-        self.searched_programs: T.Set[str] = set() # The list of all programs that have been searched for.
+
+        # All programs that have been searched for, per machine
+        searched_programs: PerMachineDefaultable[T.Set[str]] = PerMachineDefaultable()
+        searched_programs.build = set()
+
+        if environment.is_cross_build():
+            searched_programs.host = set()
+
+        self.searched_programs = searched_programs.default_missing()
 
         # If we are doing a cross build we need two caches, if we're doing a
         # build == host compilation the both caches should point to the same place.
