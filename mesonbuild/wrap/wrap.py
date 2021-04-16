@@ -253,15 +253,15 @@ class PackageDefinition:
             for i, p in enumerate(fname.parts):
                 if i % 2 == 0:
                     if p == '..':
-                        raise WrapException('wrap-redirect filename cannot contain ".."')
+                        raise WrapException(f"wrap-redirect filename {values['filename']!r} cannot contain '..'")
                 else:
                     if p != 'subprojects':
-                        raise WrapException('wrap-redirect filename must be in the form foo/subprojects/bar.wrap')
+                        raise WrapException(f"wrap-redirect filename {values['filename']!r} must be in the form foo/subprojects/bar.wrap")
             if fname.suffix != '.wrap':
-                raise WrapException('wrap-redirect filename must be a .wrap file')
+                raise WrapException(f"wrap-redirect filename {values['filename']!r} must be a .wrap file")
             fname = Path(subprojects_dir, fname)
             if not fname.is_file():
-                raise WrapException(f'wrap-redirect {fname} filename does not exist')
+                raise WrapException(f"wrap-redirect filename {values['filename']!r} does not exist")
             wrap = PackageDefinition.from_wrap_file(str(fname), subproject)
             wrap.original_filename = filename
             wrap.redirected = True
