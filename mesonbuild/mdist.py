@@ -61,11 +61,11 @@ def del_gitfiles(dirname):
         else:
             os.unlink(f)
 
-def process_submodules(dirname):
-    module_file = os.path.join(dirname, '.gitmodules')
+def process_submodules(distdir):
+    module_file = os.path.join(distdir, '.gitmodules')
     if not os.path.exists(module_file):
         return
-    subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'], cwd=dirname)
+    subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'], cwd=distdir)
     for line in open(module_file):
         line = line.strip()
         if '=' not in line:
@@ -75,7 +75,7 @@ def process_submodules(dirname):
         v = v.strip()
         if k != 'path':
             continue
-        del_gitfiles(os.path.join(dirname, v))
+        del_gitfiles(os.path.join(distdir, v))
 
 
 def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts, subprojects):
