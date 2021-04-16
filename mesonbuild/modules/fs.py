@@ -39,13 +39,14 @@ class FSModule(ExtensionModule):
         super().__init__(interpreter)
         self.snippets.add('generate_dub_file')
 
-    def _absolute_dir(self, state: 'ModuleState', arg: str) -> Path:
+    def _absolute_dir(self, state: 'ModuleState', arg: T.Optional[str] = None) -> Path:
         """
         make an absolute path from a relative path, WITHOUT resolving symlinks
         """
-        return Path(state.source_root) / Path(state.subdir) / Path(arg).expanduser()
+        path = Path(state.source_root) / Path(state.subdir)
+        return path / Path(arg).expanduser() if arg else path
 
-    def _resolve_dir(self, state: 'ModuleState', arg: str) -> Path:
+    def _resolve_dir(self, state: 'ModuleState', arg: T.Optional[str] = None) -> Path:
         """
         resolves symlinks and makes absolute a directory relative to calling meson.build,
         if not already absolute
@@ -72,6 +73,23 @@ class FSModule(ExtensionModule):
     def expanduser(self, state: 'ModuleState', args: T.Tuple[str], kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         return ModuleReturnValue(str(Path(args[0]).expanduser()), [])
 
+    @noKwargs
+    @FeatureNew('fs.expandglob', '0.57.0')
+    def expandglob(self, state: 'ModuleState', args: T.Sequence[str], kwargs: dict) -> ModuleReturnValue:
+        base = self._resolve_dir(state)
+        result = set()    # type: T.Set[str]
+        for p in args:
+            arg = Path(p).expanduser()
+            # Path.glob does not support absolute paths
+            if arg.is_absolute():
+                drive = Path(arg.parts[0])
+                p = str(arg.relative_to(drive))
+                result.update(str(x) for x in drive.glob(p))
+            else:
+                result.update(str(x.relative_to(base)) for x in base.glob(p))
+        return ModuleReturnValue(sorted(result), [])
+
+    @stringArgs
     @noKwargs
     @FeatureNew('fs.is_absolute', '0.54.0')
     @typed_pos_args('fs.is_absolute', str)

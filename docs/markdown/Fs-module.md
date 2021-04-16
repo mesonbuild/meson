@@ -3,6 +3,14 @@
 This module provides functions to inspect the file system. It is
 available starting with version 0.53.0.
 
+_WARNING_: Meson will not automatically regenerate build system files
+if the result of expressions involving the filesystem module change.
+For example, adding/removing files that were previously tested with
+`fs.exists` or moving the user's home directory will not trigger
+reconfigure.  This module is provided only because inspecting the file
+system could be done anyway with external scripts and the result would
+be much uglier; however, it should be used with care.
+
 ## File lookup rules
 
 Non-absolute paths are looked up relative to the directory where the
@@ -16,6 +24,15 @@ line options in `meson_options.txt`, native-file or cross-file.
 
 Where possible, symlinks and parent directory notation are resolved to an
 absolute path.
+
+### expandglob
+
+Takes one or more string arguments and returns a list of files matched
+by any of the string arguments.  Wildcards `*`, `?` and `**` are supported
+and duplicates are removed.  If an arguments does not match any file, it
+does _not_ appear in the result (this is different from how a POSIX shell
+behaves, but almost always the desired behavior).  The result will
+include files, directories or special entries such as a device node.
 
 ### exists
 
