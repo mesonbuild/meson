@@ -61,21 +61,44 @@ def del_gitfiles(dirname):
         else:
             os.unlink(f)
 
-def process_submodules(distdir):
+
+def parse_gitmodules(path):
+    """Parse .gitmodules as a dictionary keyed by submodule path."""
+
+    submodules = {}
+    lines = subprocess.check_output(['git', 'config', '--list', '-f', path])
+    for line in lines.decode('ascii').strip().split('\n'):
+        k, v = line.split('=')
+        if k.startswith('submodule.'):
+            _, path, name = k.split('.')
+            submodules.setdefault(path, {}).update({name: v})
+
+    return submodules
+
+
+def prepare_submodules(src_root, module_file):
+    """Read .gitmodules and return a list of all submodule paths."""
+
+    submodules = parse_gitmodules(module_file)
+
+    paths = []
+    for path, submodule in submodules.items():
+        paths += [path]
+
+    return paths
+
+
+def process_submodules(src_root, distdir):
     module_file = os.path.join(distdir, '.gitmodules')
     if not os.path.exists(module_file):
         return
+
+    paths = prepare_submodules(src_root, module_file)
+
     subprocess.check_call(['git', 'submodule', 'update', '--init', '--recursive'], cwd=distdir)
-    for line in open(module_file):
-        line = line.strip()
-        if '=' not in line:
-            continue
-        k, v = line.split('=', 1)
-        k = k.strip()
-        v = v.strip()
-        if k != 'path':
-            continue
-        del_gitfiles(os.path.join(distdir, v))
+
+    for submodule_path in paths:
+        del_gitfiles(os.path.join(distdir, submodule_path))
 
 
 def run_dist_scripts(src_root, bld_root, dist_root, dist_scripts, subprojects):
@@ -141,7 +164,7 @@ def git_clone(src_root, distdir):
         subprocess.check_call(['git', 'checkout', 'HEAD', '--', str(subdir)], cwd=tmp_distdir)
         Path(tmp_distdir, subdir).rename(distdir)
         windows_proof_rmtree(tmp_distdir)
-    process_submodules(distdir)
+    process_submodules(src_root, distdir)
     del_gitfiles(distdir)
 
 def create_dist_git(dist_name, archives, src_root, bld_root, dist_sub, dist_scripts, subprojects):
