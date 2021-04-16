@@ -77,13 +77,40 @@ def parse_gitmodules(path):
 
 
 def prepare_submodules(src_root, module_file):
-    """Read .gitmodules and return a list of all submodule paths."""
+    """Read .gitmodules and rewrite it if necessary to support relative URLs.
+
+    Returns a list of all submodule paths.
+    """
 
     submodules = parse_gitmodules(module_file)
 
+    # Gather paths while checking if there are any relative submodules
     paths = []
+    has_relative_submodules = False
     for path, submodule in submodules.items():
         paths += [path]
+        url = submodule['url']
+        if url.startswith('./') or url.startswith('../'):
+            has_relative_submodules = True
+
+    # If all submodules have absolute URLs, just return the paths
+    if not has_relative_submodules:
+        return paths
+
+    # Otherwise, write a new .gitmodules file with URLs set to the original
+    # paths.  This way, the submodules will be cloned from the submodules in
+    # the source root, just like the top-level project is.  It would also be
+    # possible to construct the original source URI by resolving it against
+    # remote.origin.url, but that would download from the remote, which doesn't
+    # seem to be what anyone using relative submodules would want.
+    with open(module_file, 'w') as mf:
+        for path, submodule in submodules.items():
+            mf.write('[submodule "{}"]\n'.format(path))
+
+            for k, v in submodule.items():
+                mf.write('\t{} = '.format(k))
+                mf.write(os.path.join(src_root, path) if k == 'url' else v)
+                mf.write('\n')
 
     return paths
 
