@@ -128,12 +128,12 @@ class PackageDefinition:
             for i, p in enumerate(fname.parts):
                 if i % 2 == 0:
                     if p == '..':
-                        raise WrapException('wrap-redirect filename cannot contain ".."')
+                        raise WrapException(f'wrap-redirect {fname} filename cannot contain ".."')
                 else:
                     if p != 'subprojects':
-                        raise WrapException('wrap-redirect filename must be in the form foo/subprojects/bar.wrap')
+                        raise WrapException(f'wrap-redirect {fname} filename must be in the form foo/subprojects/bar.wrap')
             if fname.suffix != '.wrap':
-                raise WrapException('wrap-redirect filename must be a .wrap file')
+                raise WrapException(f'wrap-redirect {fname} filename must be a .wrap file')
             fname = dirname / fname
             if not fname.is_file():
                 raise WrapException(f'wrap-redirect {fname} filename does not exist')
