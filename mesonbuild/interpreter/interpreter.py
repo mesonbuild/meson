@@ -170,6 +170,7 @@ permitted_test_kwargs = {
 }
 
 permitted_dependency_kwargs = {
+    'allow_fallback',
     'cmake_args',
     'cmake_module_path',
     'cmake_package_version',
