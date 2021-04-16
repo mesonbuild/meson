@@ -1585,8 +1585,8 @@ class Interpreter(InterpreterBase, HoldableObject):
         for name in command_names:
             if not isinstance(name, str):
                 continue
-            if name in self.build.find_overrides[for_machine]:
-                exe = self.build.find_overrides[for_machine][name]
+            if name in self.build.program_overrides[for_machine]:
+                exe = self.build.program_overrides[for_machine][name]
                 extra_info.append(mlog.blue('(overridden)'))
                 return exe
         return None
@@ -1604,7 +1604,7 @@ class Interpreter(InterpreterBase, HoldableObject):
         if name in self.build.find_overrides[for_machine]:
             raise InterpreterException(f'Tried to override executable "{name}" for the {for_machine.get_lower_case_name()} machine '
                                        'which has already been overridden.')
-        self.build.find_overrides[for_machine][name] = exe
+        self.build.program_overrides[for_machine][name] = exe
 
     def notfound_program(self, args: T.List[mesonlib.FileOrString]) -> ExternalProgram:
         return NonExistingExternalProgram(' '.join(

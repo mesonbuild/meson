@@ -268,18 +268,18 @@ class Build:
         self.test_setup_default_name = None
 
         # All overwritten programs, per-machine
-        find_overrides: PerMachineDefaultable[T.Dict[str, T.Union[ExternalProgram, Executable, programs.OverrideProgram, File]]] = PerMachineDefaultable()
-        find_overrides.build = {}
+        program_overrides: PerMachineDefaultable[T.Dict[str, T.Union[ExternalProgram, Executable, programs.OverrideProgram, File]]] = PerMachineDefaultable()
+        program_overrides.build = {}
 
         # All programs that have been searched for, per machine
         searched_programs: PerMachineDefaultable[T.Set[str]] = PerMachineDefaultable()
         searched_programs.build = set()
 
         if environment.is_cross_build():
-            find_overrides.host = {}
+            program_overrides.host = {}
             searched_programs.host = set()
 
-        self.find_overrides = find_overrides.default_missing()
+        self.program_overrides = program_overrides.default_missing()
         self.searched_programs = searched_programs.default_missing()
 
         # If we are doing a cross build we need two caches, if we're doing a
