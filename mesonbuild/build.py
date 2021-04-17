@@ -1580,10 +1580,15 @@ class Generator:
     def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
         new = False
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
+        #XXX
         for e in unholder(files):
             fs = [e]
+            if isinstance(e, CustomTarget):
+                output.depends.add(e)
+            if isinstance(e, CustomTargetIndex):
+                output.depends.add(e.target)
             if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
-                self.depends.append(e)
+                self.depends.append(e) # BUG: this should go in the GeneratedList object, not this object.
                 fs = []
                 for f in e.get_outputs():
                     fs.append(File.from_built_file(state.subdir, f))
@@ -1610,6 +1615,7 @@ class GeneratedList:
     def __init__(self, generator, subdir, preserve_path_from=None, extra_args=None):
         self.generator = unholder(generator)
         self.name = self.generator.exe
+        self.depends = set() # Things this target depends on (because e.g. a custom target was used as input)
         self.subdir = subdir
         self.infilelist = []
         self.outfilelist = []
@@ -2545,7 +2551,7 @@ class Jar(BuildTarget):
 class CustomTargetIndex:
 
     """A special opaque object returned by indexing a CustomTarget. This object
-    exists in meson, but acts as a proxy in the backends, making targets depend
+    exists in Meson, but acts as a proxy in the backends, making targets depend
     on the CustomTarget it's derived from, but only adding one source file to
     the sources.
     """

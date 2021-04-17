@@ -396,25 +396,36 @@ class XCodeBackend(backends.Backend):
             for genlist in t.generated:
                 if not isinstance(genlist, build.GeneratedList):
                     continue
-                k = (tname, generator_id)
-                assert(k not in self.shell_targets)
-                self.shell_targets[k] = self.gen_id()
-                ofile_abs = []
-                for i in genlist.get_inputs():
-                    for o_base in genlist.get_outputs_for(i):
-                        o = os.path.join(self.get_target_private_dir(t), o_base)
-                        ofile_abs.append(os.path.join(self.environment.get_build_dir(), o))
-                assert(k not in self.generator_outputs)
-                self.generator_outputs[k] = ofile_abs
-                buildfile_ids = []
-                fileref_ids = []
-                for i in range(len(ofile_abs)):
-                    buildfile_ids.append(self.gen_id())
-                    fileref_ids.append(self.gen_id())
-                self.generator_buildfile_ids[k] = buildfile_ids
-                self.generator_fileref_ids[k] = fileref_ids
+                self.gen_single_target_map(genlist, tname, t, generator_id)
                 generator_id += 1
         # FIXME add outputs.
+        for tname, t in self.custom_targets.items():
+            generator_id = 0
+            for genlist in t.sources:
+                if not isinstance(genlist, build.GeneratedList):
+                    continue
+                self.gen_single_target_map(genlist, tname, t, generator_id)
+                generator_id += 1
+
+    def gen_single_target_map(self, genlist, tname, t, generator_id):
+        k = (tname, generator_id)
+        assert(k not in self.shell_targets)
+        self.shell_targets[k] = self.gen_id()
+        ofile_abs = []
+        for i in genlist.get_inputs():
+            for o_base in genlist.get_outputs_for(i):
+                o = os.path.join(self.get_target_private_dir(t), o_base)
+                ofile_abs.append(os.path.join(self.environment.get_build_dir(), o))
+        assert(k not in self.generator_outputs)
+        self.generator_outputs[k] = ofile_abs
+        buildfile_ids = []
+        fileref_ids = []
+        for i in range(len(ofile_abs)):
+            buildfile_ids.append(self.gen_id())
+            fileref_ids.append(self.gen_id())
+        self.generator_buildfile_ids[k] = buildfile_ids
+        self.generator_fileref_ids[k] = fileref_ids
+
 
     def generate_native_frameworks_map(self):
         self.native_frameworks = {}
@@ -494,7 +505,18 @@ class XCodeBackend(backends.Backend):
         for tname, t in self.build.get_custom_targets().items():
             ct_id = self.gen_id()
             self.custom_aggregate_targets[tname] = ct_id
-            aggregated_targets.append((ct_id, tname, self.buildconflistmap[tname], [self.shell_targets[tname]], []))
+            build_phases = []
+            dependencies = []
+            generator_id = 0
+            for s in t.sources: 
+                if not isinstance(s, build.GeneratedList):
+                    continue
+                build_phases.append(self.shell_targets[(tname, generator_id)])
+                for d in s.depends:
+                    dependencies.append(self.pbx_custom_dep_map[d.get_id()])
+                generator_id += 1
+            build_phases.append(self.shell_targets[tname])
+            aggregated_targets.append((ct_id, tname, self.buildconflistmap[tname], build_phases, dependencies))
 
         # Sort objects by ID before writing
         sorted_aggregated_targets = sorted(aggregated_targets, key=operator.itemgetter(0))
@@ -573,17 +595,7 @@ class XCodeBackend(backends.Backend):
             for g in t.generated:
                 if not isinstance(g, build.GeneratedList):
                     continue
-                file_ids = self.generator_buildfile_ids[(tname, generator_id)]
-                ref_ids = self.generator_fileref_ids[tname, generator_id]
-                assert(len(ref_ids) == len(file_ids))
-                for i in range(len(file_ids)):
-                    file_o = file_ids[i]
-                    ref_id = ref_ids[i]
-                    odict = PbxDict()
-                    objects_dict.add_item(file_o, odict)
-                    odict.add_item('isa', 'PBXBuildFile')
-                    odict.add_item('fileRef', ref_id)
-
+                self.create_generator_shellphase(objects_dict, tname, generator_id) 
                 generator_id += 1
 
         # Custom targets are shell build phases in Xcode terminology.
@@ -596,6 +608,24 @@ class XCodeBackend(backends.Backend):
                 objects_dict.add_item(self.custom_target_output_buildfile[o], custom_dict, f'/* {o} */')
                 custom_dict.add_item('isa', 'PBXBuildFile')
                 custom_dict.add_item('fileRef', self.custom_target_output_fileref[o])
+            generator_id = 0
+            for g in t.sources:
+                if not isinstance(g, build.GeneratedList):
+                    continue
+                self.create_generator_shellphase(objects_dict, tname, generator_id) 
+                generator_id += 1
+
+    def create_generator_shellphase(self, objects_dict, tname, generator_id):
+        file_ids = self.generator_buildfile_ids[(tname, generator_id)]
+        ref_ids = self.generator_fileref_ids[(tname, generator_id)]
+        assert(len(ref_ids) == len(file_ids))
+        for i in range(len(file_ids)):
+            file_o = file_ids[i]
+            ref_id = ref_ids[i]
+            odict = PbxDict()
+            objects_dict.add_item(file_o, odict)
+            odict.add_item('isa', 'PBXBuildFile')
+            odict.add_item('fileRef', ref_id)
 
     def generate_pbx_build_style(self, objects_dict):
         # FIXME: Xcode 9 and later does not uses PBXBuildStyle and it gets removed. Maybe we can remove this part.
@@ -1033,59 +1063,68 @@ class XCodeBackend(backends.Backend):
             generator_id = 0
             for genlist in t.generated:
                 if isinstance(genlist, build.GeneratedList):
-                    generator = genlist.get_generator()
-                    exe = generator.get_exe()
-                    exe_arr = self.build_target_to_cmd_array(exe)
-                    workdir = self.environment.get_build_dir()
-                    gen_dict = PbxDict()
-                    objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, '"Generator {}/{}"'.format(generator_id, tname))
-                    infilelist = genlist.get_inputs()
-                    outfilelist = genlist.get_outputs()
-                    gen_dict.add_item('isa', 'PBXShellScriptBuildPhase')
-                    gen_dict.add_item('buildActionMask', 2147483647)
-                    gen_dict.add_item('files', PbxArray())
-                    gen_dict.add_item('inputPaths', PbxArray())
-                    gen_dict.add_item('name', '"Generator {}/{}"'.format(generator_id, tname))    
-                    commands = [["cd", workdir]] # Array of arrays, each one a single command, will get concatenated below.
-                    k = (tname, generator_id)
-                    ofile_abs = self.generator_outputs[k]
-                    outarray = PbxArray()
-                    gen_dict.add_item('outputPaths', outarray)
-                    for of in ofile_abs:
-                        outarray.add_item(of)
-                    for i in infilelist:
-                        # This might be needed to be added to inputPaths. It's not done yet as it is
-                        # unclear whether it is necessary, what actually happens when it is defined
-                        # and currently the build works without it.
-                        #infile_abs = i.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
-                        infilename = i.rel_to_builddir(self.build_to_src)
-                        base_args = generator.get_arglist(infilename)
-                        for o_base in genlist.get_outputs_for(i):
-                            o = os.path.join(self.get_target_private_dir(t), o_base)
-                            args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t)) for x in base_args]
-                            args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
-                            args = self.replace_extra_args(args, genlist)
-                            if generator.capture:
-                                # When capturing, stdout is the output. Forward it with the shell.
-                                full_command = ['('] + exe_arr + args + ['>', o, ')']
-                            else:
-                                full_command = exe_arr + args
-                            commands.append(full_command)
-                    gen_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
-                    gen_dict.add_item('shellPath', '/bin/sh')
-                    quoted_cmds = []
-                    for cmnd in commands:
-                        q = []
-                        for c in cmnd:
-                            if ' ' in c:
-                                q.append(f'\\"{c}\\"')
-                            else:
-                                q.append(c)
-                        quoted_cmds.append(' '.join(q))
-                    cmdstr = '"'  + ' && '.join(quoted_cmds) + '"'
-                    gen_dict.add_item('shellScript', cmdstr)
-                    gen_dict.add_item('showEnvVarsInLog', 0)
+                    self.generate_single_generator_phase(tname, t, genlist, generator_id, objects_dict)
                     generator_id += 1
+        for tname, t in self.custom_targets.items():
+            generator_id = 0
+            for genlist in t.sources:
+                if isinstance(genlist, build.GeneratedList):
+                    self.generate_single_generator_phase(tname, t, genlist, generator_id, objects_dict)
+                    generator_id += 1
+
+    def generate_single_generator_phase(self, tname, t, genlist, generator_id, objects_dict):
+        generator = genlist.get_generator()
+        exe = generator.get_exe()
+        exe_arr = self.build_target_to_cmd_array(exe)
+        workdir = self.environment.get_build_dir()
+        gen_dict = PbxDict()
+        objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, '"Generator {}/{}"'.format(generator_id, tname))
+        infilelist = genlist.get_inputs()
+        outfilelist = genlist.get_outputs()
+        gen_dict.add_item('isa', 'PBXShellScriptBuildPhase')
+        gen_dict.add_item('buildActionMask', 2147483647)
+        gen_dict.add_item('files', PbxArray())
+        gen_dict.add_item('inputPaths', PbxArray())
+        gen_dict.add_item('name', '"Generator {}/{}"'.format(generator_id, tname))    
+        commands = [["cd", workdir]] # Array of arrays, each one a single command, will get concatenated below.
+        k = (tname, generator_id)
+        ofile_abs = self.generator_outputs[k]
+        outarray = PbxArray()
+        gen_dict.add_item('outputPaths', outarray)
+        for of in ofile_abs:
+            outarray.add_item(of)
+        for i in infilelist:
+            # This might be needed to be added to inputPaths. It's not done yet as it is
+            # unclear whether it is necessary, what actually happens when it is defined
+            # and currently the build works without it.
+            #infile_abs = i.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
+            infilename = i.rel_to_builddir(self.build_to_src)
+            base_args = generator.get_arglist(infilename)
+            for o_base in genlist.get_outputs_for(i):
+                o = os.path.join(self.get_target_private_dir(t), o_base)
+                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t)) for x in base_args]
+                args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
+                args = self.replace_extra_args(args, genlist)
+                if generator.capture:
+                    # When capturing, stdout is the output. Forward it with the shell.
+                    full_command = ['('] + exe_arr + args + ['>', o, ')']
+                else:
+                    full_command = exe_arr + args
+                commands.append(full_command)
+        gen_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
+        gen_dict.add_item('shellPath', '/bin/sh')
+        quoted_cmds = []
+        for cmnd in commands:
+            q = []
+            for c in cmnd:
+                if ' ' in c:
+                    q.append(f'\\"{c}\\"')
+                else:
+                    q.append(c)
+            quoted_cmds.append(' '.join(q))
+        cmdstr = '"'  + ' && '.join(quoted_cmds) + '"'
+        gen_dict.add_item('shellScript', cmdstr)
+        gen_dict.add_item('showEnvVarsInLog', 0)
 
 
     def generate_pbx_sources_build_phase(self, objects_dict):
