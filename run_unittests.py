@@ -4337,6 +4337,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(out, 'opt2 val2')
         self.assertRegex(out, 'opt3 val3')
         self.assertRegex(out, 'opt4 val4')
+        self.assertTrue(Path(self.builddir, '.gitignore').exists())
         self.build()
         self.run_tests()
 
