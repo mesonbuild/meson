@@ -101,6 +101,7 @@ class MesonApp:
                         else:
                             mesonlib.windows_proof_rm(l)
                 finally:
+                    self.add_vcs_ignore_files(self.build_dir)
                     for b, f in restore:
                         os.makedirs(os.path.dirname(f), exist_ok=True)
                         shutil.move(b, f)
