@@ -1002,9 +1002,9 @@ class XCodeBackend(backends.Backend):
         for tname, t in self.custom_targets.items():
             if not isinstance(t, build.CustomTarget):
                 continue
-            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t)
+            (srcs, ofilenames, cmd) = self.eval_custom_target_command(t, absolute_outputs=True)
             fixed_cmd, _ = self.as_meson_exe_cmdline(t.name,
-                                                     t.command[0],
+                                                     cmd[0],
                                                      cmd[1:],
                                                      #workdir=None,
                                                      env=t.env)
