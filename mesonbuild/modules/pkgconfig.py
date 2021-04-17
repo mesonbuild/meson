@@ -307,17 +307,12 @@ class PkgConfigModule(ExtensionModule):
         return value.replace(' ', r'\ ')
 
     def _make_relative(self, prefix, subdir):
-        if isinstance(prefix, PurePath):
-            prefix = prefix.as_posix()
-        if isinstance(subdir, PurePath):
-            subdir = subdir.as_posix()
+        prefix = PurePath(prefix)
+        subdir = PurePath(subdir)
         try:
-            if os.path.commonpath([prefix, subdir]) == prefix:
-                skip = len(prefix) + 1
-                subdir = subdir[skip:]
+            return subdir.relative_to(prefix).as_posix()
         except ValueError:
-            pass
-        return subdir
+            return subdir.as_posix()
 
     def generate_pkgconfig_file(self, state, deps, subdirs, name, description,
                                 url, version, pcfile, conflicts, variables,
@@ -417,8 +412,8 @@ class PkgConfigModule(ExtensionModule):
             def generate_uninstalled_cflags(libs):
                 for d in get_uninstalled_include_dirs(libs):
                     for basedir in ['${prefix}', '${srcdir}']:
-                        path = os.path.join(basedir, d)
-                        yield '-I%s' % self._escape(path)
+                        path = PurePath(basedir, d)
+                        yield '-I%s' % self._escape(path.as_posix())
 
             if len(deps.pub_libs) > 0:
                 ofile.write('Libs: {}\n'.format(' '.join(generate_libs_flags(deps.pub_libs))))
