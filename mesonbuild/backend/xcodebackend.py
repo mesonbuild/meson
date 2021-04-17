@@ -909,9 +909,9 @@ class XCodeBackend(backends.Backend):
             ntarget_dict.add_item('buildPhases', buildphases_array)
             generator_id = 0
             for g in t.generated:
-                if isinstance(g, build.CustomTarget):
-                    buildphases_array.add_item(self.shell_targets[g.get_id()], f'/* {g.name} */')
-                elif isinstance(g, build.GeneratedList):
+                # Custom target are handled via inter-target dependencies.
+                # Generators are built as a shellscriptbuildphase.
+                if isinstance(g, build.GeneratedList):
                     buildphases_array.add_item(self.shell_targets[(tname, generator_id)], 'Generator {}/{}'.format(generator_id, tname))
                     generator_id += 1
             for bpname, bpval in t.buildphasemap.items():
@@ -934,6 +934,8 @@ class XCodeBackend(backends.Backend):
                     dep_array.add_item(idval, 'PBXTargetDependency')
             generator_id = 0
             for o in t.generated:
+                if isinstance(o, build.CustomTarget):
+                    dep_array.add_item(self.pbx_custom_dep_map[o.get_id()], o.name)
                 if not isinstance(o, build.GeneratedList):
                     continue
                 
