@@ -1111,7 +1111,7 @@ class Backend:
             elif isinstance(i, build.BuildTarget):
                 fname = [self.get_target_filename(i)]
             elif isinstance(i, (build.CustomTarget, build.CustomTargetIndex)):
-                fname = [os.path.join(self.get_target_dir(i), p) for p in i.get_outputs()]
+                fname = [os.path.join(self.get_custom_target_output_dir(i), p) for p in i.get_outputs()]
             elif isinstance(i, build.GeneratedList):
                 fname = [os.path.join(self.get_target_private_dir(target), p) for p in i.get_outputs()]
             elif isinstance(i, build.ExtractedObjects):
@@ -1197,7 +1197,7 @@ class Backend:
                 # GIR scanner will attempt to execute this binary but
                 # it assumes that it is in path, so always give it a full path.
                 tmp = i.get_outputs()[0]
-                i = os.path.join(self.get_target_dir(i), tmp)
+                i = os.path.join(self.get_custom_target_output_dir(i), tmp)
             elif isinstance(i, mesonlib.File):
                 i = i.rel_to_builddir(self.build_to_src)
                 if target.absolute_paths:
