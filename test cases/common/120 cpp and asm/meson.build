@@ -1,6 +1,10 @@
 project('c++ and assembly test')
 add_languages('cpp')
 
+if meson.backend() == 'xcode'
+  error('MESON_SKIP_TEST: asm not supported with the Xcode backend. Patches welcome.')
+endif
+
 cpp = meson.get_compiler('cpp')
 cpu = host_machine.cpu_family()
 

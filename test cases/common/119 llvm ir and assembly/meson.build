@@ -1,5 +1,9 @@
 project('llvm-ir', 'c', 'cpp')
 
+if meson.backend() == 'xcode'
+  error('MESON_SKIP_TEST: asm not supported with the Xcode backend. Patches welcome.')
+endif
+
 cpu = host_machine.cpu_family()
 supported_cpus = ['arm', 'aarch64', 'x86', 'x86_64']
 
