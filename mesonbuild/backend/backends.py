@@ -49,6 +49,12 @@ if T.TYPE_CHECKING:
 # Assembly files cannot be unitified and neither can LLVM IR files
 LANGS_CANT_UNITY = ('d', 'fortran', 'vala')
 
+class RegenInfo:
+    def __init__(self, source_dir, build_dir, depfiles):
+        self.source_dir = source_dir
+        self.build_dir = build_dir
+        self.depfiles = depfiles
+
 class TestProtocol(enum.Enum):
 
     EXITCODE = 0
@@ -1006,6 +1012,16 @@ class Backend:
         deps.append('meson-private/coredata.dat')
         self.check_clock_skew(deps)
         return deps
+
+    def generate_regen_info(self):
+        deps = self.get_regen_filelist()
+        regeninfo = RegenInfo(self.environment.get_source_dir(),
+                              self.environment.get_build_dir(),
+                              deps)
+        filename = os.path.join(self.environment.get_scratch_dir(),
+                                'regeninfo.dump')
+        with open(filename, 'wb') as f:
+            pickle.dump(regeninfo, f)
 
     def check_clock_skew(self, file_list):
         # If a file that leads to reconfiguration has a time

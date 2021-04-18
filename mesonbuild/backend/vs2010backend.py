@@ -14,7 +14,6 @@
 
 import copy
 import os
-import pickle
 import xml.dom.minidom
 import xml.etree.ElementTree as ET
 import uuid
@@ -79,12 +78,6 @@ def split_o_flags_args(args):
 
 def generate_guid_from_path(path, path_type):
     return str(uuid.uuid5(uuid.NAMESPACE_URL, 'meson-vs-' + path_type + ':' + str(path))).upper()
-
-class RegenInfo:
-    def __init__(self, source_dir, build_dir, depfiles):
-        self.source_dir = source_dir
-        self.build_dir = build_dir
-        self.depfiles = depfiles
 
 class Vs2010Backend(backends.Backend):
     def __init__(self, build: T.Optional[build.Build], interpreter: T.Optional[Interpreter]):
@@ -205,16 +198,6 @@ class Vs2010Backend(backends.Backend):
     def touch_regen_timestamp(build_dir: str) -> None:
         with open(Vs2010Backend.get_regen_stampfile(build_dir), 'w'):
             pass
-
-    def generate_regen_info(self):
-        deps = self.get_regen_filelist()
-        regeninfo = RegenInfo(self.environment.get_source_dir(),
-                              self.environment.get_build_dir(),
-                              deps)
-        filename = os.path.join(self.environment.get_scratch_dir(),
-                                'regeninfo.dump')
-        with open(filename, 'wb') as f:
-            pickle.dump(regeninfo, f)
 
     def get_vcvars_command(self):
         has_arch_values = 'VSCMD_ARG_TGT_ARCH' in os.environ and 'VSCMD_ARG_HOST_ARCH' in os.environ
