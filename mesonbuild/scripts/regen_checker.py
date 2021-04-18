@@ -16,7 +16,7 @@ import sys, os
 import pickle, subprocess
 import typing as T
 from ..coredata import CoreData
-from ..backend.vs2010backend import RegenInfo
+from ..backend.backends import RegenInfo
 from ..mesonlib import OptionKey
 
 # This could also be used for XCode.

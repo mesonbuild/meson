@@ -189,6 +189,10 @@ class XCodeBackend(backends.Backend):
         self.test_id = self.gen_id()
         self.test_command_id = self.gen_id()
         self.test_buildconf_id = self.gen_id()
+        self.regen_id = self.gen_id()
+        self.regen_command_id = self.gen_id()
+        self.regen_buildconf_id = self.gen_id()
+        self.regen_dependency_id = self.gen_id()
         self.top_level_dict = PbxDict()
         self.generator_outputs = {}
         # In Xcode files are not accessed via their file names, but rather every one of them
@@ -203,9 +207,11 @@ class XCodeBackend(backends.Backend):
         self.fileref_ids = {}
 
     def write_pbxfile(self, top_level_dict, ofilename):
-        with open(ofilename, 'w') as ofile:
+        tmpname = ofilename + '.tmp'
+        with open(tmpname, 'w', encoding='utf-8') as ofile:
             ofile.write('// !$*UTF8*$!\n')
             top_level_dict.write(ofile, 0)
+        os.replace(tmpname, ofilename)
 
     def gen_id(self):
         return str(uuid.uuid4()).upper().replace('-', '')[:24]
@@ -308,6 +314,7 @@ class XCodeBackend(backends.Backend):
         objects_dict.add_comment(PbxComment('End XCConfigurationList section'))
         self.generate_suffix(self.top_level_dict)
         self.write_pbxfile(self.top_level_dict, self.proj_file)
+        self.generate_regen_info()
 
     def get_xcodetype(self, fname):
         xcodetype = XCODETYPEMAP.get(fname.split('.')[-1].lower())
@@ -500,13 +507,25 @@ class XCodeBackend(backends.Backend):
         target_dependencies = list(map(lambda t: self.pbx_dep_map[t], self.build_targets))
         custom_target_dependencies = [self.pbx_custom_dep_map[t] for t in self.custom_targets]
         aggregated_targets = []
-        aggregated_targets.append((self.all_id, 'ALL_BUILD', self.all_buildconf_id, [], target_dependencies + custom_target_dependencies))
-        aggregated_targets.append((self.test_id, 'RUN_TESTS', self.test_buildconf_id, [self.test_command_id], [self.build_all_tdep_id]))
+        aggregated_targets.append((self.all_id, 'ALL_BUILD', 
+                                   self.all_buildconf_id,
+                                   [],
+                                   [self.regen_dependency_id] + target_dependencies + custom_target_dependencies))
+        aggregated_targets.append((self.test_id,
+                                   'RUN_TESTS',
+                                   self.test_buildconf_id,
+                                   [self.test_command_id],
+                                   [self.regen_dependency_id, self.build_all_tdep_id]))
+        aggregated_targets.append((self.regen_id,
+                                   'REGENERATE',
+                                   self.regen_buildconf_id,
+                                   [self.regen_command_id],
+                                   []))
         for tname, t in self.build.get_custom_targets().items():
             ct_id = self.gen_id()
             self.custom_aggregate_targets[tname] = ct_id
             build_phases = []
-            dependencies = []
+            dependencies = [self.regen_dependency_id]
             generator_id = 0
             for s in t.sources: 
                 if not isinstance(s, build.GeneratedList):
@@ -949,6 +968,7 @@ class XCodeBackend(backends.Backend):
             ntarget_dict.add_item('buildRules', PbxArray())
             dep_array = PbxArray()
             ntarget_dict.add_item('dependencies', dep_array)
+            dep_array.add_item(self.regen_dependency_id)
             # These dependencies only tell Xcode that the deps must be built
             # before this one. They don't set up linkage or anything
             # like that. Those are set up in the XCBuildConfiguration.
@@ -970,7 +990,6 @@ class XCodeBackend(backends.Backend):
                     continue
                 
                 generator_id += 1
-
 
             ntarget_dict.add_item('name', f'"{tname}"')
             ntarget_dict.add_item('productName', f'"{tname}"')
@@ -1007,12 +1026,19 @@ class XCodeBackend(backends.Backend):
         project_dict.add_item('targets', targets_arr)
         targets_arr.add_item(self.all_id, 'ALL_BUILD')
         targets_arr.add_item(self.test_id, 'RUN_TESTS')
+        targets_arr.add_item(self.regen_id, 'REGENERATE')
         for t in self.build_targets:
             targets_arr.add_item(self.native_targets[t], t)
         for t in self.custom_targets:
             targets_arr.add_item(self.custom_aggregate_targets[t], t)
 
     def generate_pbx_shell_build_phase(self, objects_dict):
+        self.generate_test_shell_build_phase(objects_dict)
+        self.generate_regen_shell_build_phase(objects_dict)
+        self.generate_custom_target_shell_build_phases(objects_dict)
+        self.generate_generator_target_shell_build_phases(objects_dict)
+
+    def generate_test_shell_build_phase(self, objects_dict):
         shell_dict = PbxDict()
         objects_dict.add_item(self.test_command_id, shell_dict, 'ShellScript')
         shell_dict.add_item('isa', 'PBXShellScriptBuildPhase')
@@ -1026,8 +1052,21 @@ class XCodeBackend(backends.Backend):
         cmdstr = ' '.join(["'%s'" % i for i in cmd])
         shell_dict.add_item('shellScript', f'"{cmdstr}"')
         shell_dict.add_item('showEnvVarsInLog', 0)
-        self.generate_custom_target_shell_build_phases(objects_dict)
-        self.generate_generator_target_shell_build_phases(objects_dict)
+
+    def generate_regen_shell_build_phase(self, objects_dict):
+        shell_dict = PbxDict()
+        objects_dict.add_item(self.regen_command_id, shell_dict, 'ShellScript')
+        shell_dict.add_item('isa', 'PBXShellScriptBuildPhase')
+        shell_dict.add_item('buildActionMask', 2147483647)
+        shell_dict.add_item('files', PbxArray())
+        shell_dict.add_item('inputPaths', PbxArray())
+        shell_dict.add_item('outputPaths', PbxArray())
+        shell_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
+        shell_dict.add_item('shellPath', '/bin/sh')
+        cmd = mesonlib.get_meson_command() + ['--internal', 'regencheck', os.path.join(self.environment.get_build_dir(), 'meson-private')]
+        cmdstr = ' '.join(["'%s'" % i for i in cmd])
+        shell_dict.add_item('shellScript', f'"{cmdstr}"')
+        shell_dict.add_item('showEnvVarsInLog', 0)
 
     def generate_custom_target_shell_build_phases(self, objects_dict):
         # Custom targets are shell build phases in Xcode terminology.
@@ -1160,6 +1199,7 @@ class XCodeBackend(backends.Backend):
         all_dict.add_item('isa', 'PBXTargetDependency')
         all_dict.add_item('target', self.all_id)
         targets = []
+        targets.append((self.regen_dependency_id, self.regen_id, 'REGEN', None))
         for t in self.build_targets:
             idval = self.pbx_dep_map[t] # VERIFY: is this correct?
             targets.append((idval, self.native_targets[t], t, self.containerproxy_map[t]))
@@ -1448,6 +1488,17 @@ class XCodeBackend(backends.Backend):
             conf_arr.add_item(self.test_configurations[buildtype], buildtype)
         test_dict.add_item('defaultConfigurationIsVisible', 0)
         test_dict.add_item('defaultConfigurationName', self.buildtype)
+
+        # Regen target
+        regen_dict = PbxDict()
+        objects_dict.add_item(self.regen_buildconf_id, test_dict, 'Build configuration list for PBXAggregateTarget "REGENERATE"')
+        regen_dict.add_item('isa', 'XCConfigurationList')
+        conf_arr = PbxArray()
+        regen_dict.add_item('buildConfigurations', conf_arr)
+        for buildtype in self.buildtypes:
+            conf_arr.add_item(self.test_configurations[buildtype], buildtype)
+        regen_dict.add_item('defaultConfigurationIsVisible', 0)
+        regen_dict.add_item('defaultConfigurationName', self.buildtype)
 
         for target_name in self.build_targets:
             t_dict = PbxDict()
