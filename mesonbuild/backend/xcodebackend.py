@@ -1405,6 +1405,10 @@ class XCodeBackend(backends.Backend):
             if args:
                 quoted_args = []
                 for a in args:
+                    # This works but
+                    # a) it's ugly as sin
+                    # b) I don't know why it works or why every backslash must be escaped into eight backslashes
+                    a = a.replace(chr(92), 8*chr(92)) # chr(92) is backslash, this how we smuggle it in without Python's quoting grabbing it.
                     a = a.replace(r'"', r'\\\"')
                     if ' ' in a:
                         a = r'\"' + a + r'\"'
