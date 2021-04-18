@@ -10,6 +10,11 @@ if ['msvc', 'intel-cl'].contains(cc.get_id())
   error('MESON_SKIP_TEST: assembly files cannot be compiled directly by the compiler')
 endif
 
+if meson.backend() == 'xcode'
+  error('MESON_SKIP_TEST: asm not supported with the Xcode backend. Patches welcome.')
+endif
+
+
 crt_workaround = []
 if cc.get_linker_id() == 'lld-link'
   # It seems that when building without a .c file, lld-link.exe

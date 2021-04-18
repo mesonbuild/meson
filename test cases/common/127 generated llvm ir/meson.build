@@ -4,6 +4,10 @@ if meson.get_compiler('c').get_id() != 'clang'
   error('MESON_SKIP_TEST: LLVM IR files can only be built with clang')
 endif
 
+if meson.backend() == 'xcode'
+  error('MESON_SKIP_TEST: LLMV ir not supported with the Xcode backend. Patches welcome.')
+endif
+
 copy = find_program('copyfile.py')
 
 copygen = generator(copy,
