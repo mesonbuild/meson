@@ -2513,6 +2513,14 @@ class AllPlatformTests(BasePlatformTests):
         self.build()
         self.run_tests()
 
+    def test_implicit_forcefallback(self):
+        testdir = os.path.join(self.unit_test_dir, '95 implicit force fallback')
+        with self.assertRaises(subprocess.CalledProcessError) as cm:
+            self.init(testdir)
+        self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
+        self.new_builddir()
+        self.init(testdir, extra_args=['--force-fallback-for=something'])
+
     def test_nopromote(self):
         testdir = os.path.join(self.common_test_dir, '99 subproject subdir')
         with self.assertRaises(subprocess.CalledProcessError) as cm:

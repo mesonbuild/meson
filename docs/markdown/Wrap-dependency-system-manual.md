@@ -189,6 +189,9 @@ endif
   `dependency('foo-1.0', required: get_option('foo_opt'))` will only
   fallback when the user sets `foo_opt` to `enabled` instead of
   `auto`.
+*Since 0.58.0* optional dependency like above will fallback to the subproject
+defined in the wrap file in the case `wrap_mode` is set to `forcefallback`
+or `force_fallback_for` contains the subproject.
 
 If it is desired to fallback for an optional dependency, the
 `fallback` or `allow_fallback` keyword arguments must be passed

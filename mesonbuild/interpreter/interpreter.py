@@ -1598,6 +1598,11 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not isinstance(allow_fallback, bool):
                 raise InvalidArguments('"allow_fallback" argument must be boolean')
 
+        wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
+        force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
+        force_fallback |= (wrap_mode == WrapMode.forcefallback or
+                           name in force_fallback_for)
+
         # If "fallback" is absent, look for an implicit fallback.
         if name and fallback is None and allow_fallback is not False:
             # Add an implicit fallback if we have a wrap file or a directory with the same name,
@@ -1609,7 +1614,8 @@ external dependencies (including libraries) must go to "dependencies".''')
             if not provider and allow_fallback is True:
                 raise InvalidArguments('Fallback wrap or subproject not found for dependency \'%s\'' % name)
             subp_name = mesonlib.listify(provider)[0]
-            if provider and (allow_fallback is True or required or self.get_subproject(subp_name)):
+            force_fallback |= subp_name in force_fallback_for
+            if provider and (allow_fallback is True or required or self.get_subproject(subp_name) or force_fallback):
                 fallback = provider
 
         if 'default_options' in kwargs and not fallback:
@@ -1640,13 +1646,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             subp_name, varname = self.get_subproject_infos(fallback)
             if self.get_subproject(subp_name):
                 return self.get_subproject_dep(name, display_name, subp_name, varname, kwargs)
-
-            wrap_mode = self.coredata.get_option(OptionKey('wrap_mode'))
-            force_fallback_for = self.coredata.get_option(OptionKey('force_fallback_for'))
-            force_fallback = (force_fallback or
-                              wrap_mode == WrapMode.forcefallback or
-                              name in force_fallback_for or
-                              subp_name in force_fallback_for)
+            force_fallback |= subp_name in force_fallback_for
 
         if name != '' and (not fallback or not force_fallback):
             self._handle_featurenew_dependencies(name)
