@@ -1,5 +1,9 @@
 project('extract all', 'c', 'cpp')
 
+if meson.backend() == 'xcode'
+    error('MESON_SKIP_TEST: Xcode backend does not handle libraries with only objects, not sources.')
+endif
+
 a = static_library('a', 'one.c', 'two.c')
 b = static_library('b', 'three.c', 'four.c')
 c = shared_library('c',
