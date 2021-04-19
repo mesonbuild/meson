@@ -1308,7 +1308,11 @@ class XCodeBackend(backends.Backend):
                 dep_libs = ['-Wl,-search_paths_first', '-Wl,-headerpad_max_install_names'] + dep_libs
             dylib_version = None
             if isinstance(target, build.SharedLibrary):
-                ldargs = ['-dynamiclib', '-Wl,-headerpad_max_install_names'] + dep_libs
+                if isinstance(target, build.SharedModule):
+                    ldargs = []
+                else:
+                    ldargs = ['-dynamiclib']
+                ldargs += ['-Wl,-headerpad_max_install_names'] + dep_libs
                 install_path = os.path.join(self.environment.get_build_dir(), target.subdir, buildtype)
                 dylib_version = target.soversion
             else:
@@ -1349,6 +1353,11 @@ class XCodeBackend(backends.Backend):
                     for ofname in ofilenames:
                         if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
                             ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
+            if isinstance(target, build.SharedModule):
+                options = self.environment.coredata.options
+                ldargs += linker.get_std_shared_module_link_args(options)
+            elif isinstance(target, build.SharedLibrary):
+                ldargs += linker.get_std_shared_lib_link_args()
             ldstr = ' '.join(ldargs)
             valid = self.buildconfmap[target_name][buildtype]
             langargs = {}
@@ -1388,8 +1397,12 @@ class XCodeBackend(backends.Backend):
             settings_dict = PbxDict()
             bt_dict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('COMBINE_HIDPI_IMAGES', 'YES')
-            if dylib_version is not None:
-                settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
+            if isinstance(target, build.SharedModule):
+                settings_dict.add_item('DYLIB_CURRENT_VERSION', '""')
+                settings_dict.add_item('DYLIB_COMPATIBILITY_VERSION', '""')
+            else:
+                if dylib_version is not None:
+                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
             if target.prefix:
                 settings_dict.add_item('EXECUTABLE_PREFIX', target.prefix)
             if target.suffix:
@@ -1421,7 +1434,10 @@ class XCodeBackend(backends.Backend):
                 settings_dict.add_item('HEADER_SEARCH_PATHS', header_arr)
             settings_dict.add_item('INSTALL_PATH', f'"{install_path}"')
             settings_dict.add_item('LIBRARY_SEARCH_PATHS', '""')
-            if isinstance(target, build.SharedLibrary):
+            if isinstance(target, build.SharedModule):
+                settings_dict.add_item('LIBRARY_STYLE', 'BUNDLE')
+                settings_dict.add_item('MACH_O_TYPE', 'mh_bundle')
+            elif isinstance(target, build.SharedLibrary):
                 settings_dict.add_item('LIBRARY_STYLE', 'DYNAMIC')
             self.add_otherargs(settings_dict, langargs)
             settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
