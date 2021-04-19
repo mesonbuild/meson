@@ -1,5 +1,9 @@
 project('object generator', 'c')
 
+if meson.backend() == 'xcode'
+    error('MESON_SKIP_TEST object-only libraries not supported in Xcode. Patches welcome.')
+endif
+
 # FIXME: Note that this will not add a dependency to the compiler executable.
 # Code will not be rebuilt if it changes.
 comp = find_program('obj_generator.py')
