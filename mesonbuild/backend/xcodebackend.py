@@ -487,13 +487,17 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, build.ExtractedObjects):
                     # Extracted objects do not live in "the Xcode world".
                     continue
-                else:
+                if isinstance(o, mesonlib.File):
+                    o = os.path.join(o.subdir, o.fname)
+                if isinstance(o, str):
                     o = os.path.join(t.subdir, o)
                     k = (tname, o)
-                    assert(k not in sel.buildfile_ids)
+                    assert(k not in self.buildfile_ids)
                     self.buildfile_ids[k] = self.gen_id()
                     assert(k not in self.fileref_ids)
                     self.fileref_ids[k] = self.gen_id()
+                else:
+                    raise RuntimeError('Unknown input type ' + str(o))
 
     def generate_source_phase_map(self):
         self.source_phase = {}
@@ -597,12 +601,15 @@ class XCodeBackend(backends.Backend):
                     # by hand in linker flags. It is also not particularly
                     # clear how to define build files in Xcode's file format.
                     continue
-                o = os.path.join(t.subdir, o)
+                if isinstance(o, mesonlib.File):
+                    o = os.path.join(o.subdir, o.fname)
+                elif isinstance(o, str):
+                    o = os.path.join(t.subdir, o)
                 idval = self.buildfile_ids[(tname, o)]
-                k = (tname, s)
+                k = (tname, o)
                 fileref = self.fileref_ids[k]
-                assert(k not in self.targetfile_ids)
-                self.targetfile_ids[k] = idval
+                assert(o not in self.filemap)
+                self.filemap[o] = idval
                 fullpath = os.path.join(self.environment.get_source_dir(), o)
                 fullpath2 = fullpath
                 o_dict = PbxDict()
@@ -736,15 +743,23 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, build.ExtractedObjects):
                     # Same as with pbxbuildfile.
                     continue
-                o = os.path.join(t.subdir, o)
+                if isinstance(o, mesonlib.File):
+                    fullpath = o.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())
+                    o = os.path.join(o.subdir, o.fname)
+                else:
+                    o = os.path.join(t.subdir, o)
+                    fullpath = os.path.join(self.environment.get_source_dir(), o)
                 idval = self.fileref_ids[(tname, o)]
-                fileref = self.filemap[o]
-                fullpath = os.path.join(self.environment.get_source_dir(), o)
-                fullpath2 = fullpath
+                rel_name = mesonlib.relpath(fullpath, self.environment.get_source_dir())   
                 o_dict = PbxDict()
+                name = os.path.basename(o)
                 objects_dict.add_item(idval, o_dict, fullpath)
-                o_dict.add_item('isa', 'PBXBuildFile')
-                o_dict.add_item('fileRef', fileref, fullpath2)
+                o_dict.add_item('isa', 'PBXFileReference')
+                o_dict.add_item('explicitFileType', '"' + self.get_xcodetype(o) + '"')
+                o_dict.add_item('fileEncoding', '4')
+                o_dict.add_item('name', f'"{name}"')
+                o_dict.add_item('path', f'"{rel_name}"')
+                o_dict.add_item('sourceTree', 'SOURCE_ROOT')
         for tname, idval in self.target_filemap.items():
             target_dict = PbxDict()
             objects_dict.add_item(idval, target_dict, tname)
@@ -902,7 +917,10 @@ class XCodeBackend(backends.Backend):
                 if isinstance(o, build.ExtractedObjects):
                     # Do not show built object files in the project tree.   
                     continue
-                o = os.path.join(t.subdir, o)
+                if isinstance(o, mesonlib.File):
+                    o = os.path.join(o.subdir, o.fname)
+                else:
+                    o = os.path.join(t.subdir, o)
                 source_file_children.add_item(self.fileref_ids[(tname, o)], o)
             source_files_dict.add_item('name', '"Source files"')
             source_files_dict.add_item('sourceTree', '"<group>"')
