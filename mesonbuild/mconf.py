@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
+import shutil
 import os
+import textwrap
 import typing as T
 
 from . import build
@@ -58,6 +61,7 @@ class Conf:
         self.value_col = []
         self.choices_col = []
         self.descr_col = []
+        # XXX: is there a case where this can actually remain false?
         self.has_choices = False
         self.all_subprojects: T.Set[str] = set()
         self.yielding_options: T.Set[OptionKey] = set()
@@ -97,16 +101,54 @@ class Conf:
         # are erased when Meson is executed the next time, i.e. when
         # Ninja is run.
 
-    def print_aligned(self):
-        col_widths = (max([len(i) for i in self.name_col], default=0),
-                      max([len(i) for i in self.value_col], default=0),
-                      max([len(i) for i in self.choices_col], default=0))
+    def print_aligned(self) -> None:
+        """Do the actual printing.
+
+        This prints the generated output in an aligned, pretty form. it aims
+        for a total width of 160 characters, but will use whatever the tty
+        reports it's value to be. Though this is much wider than the standard
+        80 characters of terminals, and even than the newer 120, compressing
+        it to those lengths makes the output hard to read.
+
+        Each column will have a specific width, and will be line wrapped.
+        """
+        total_width = shutil.get_terminal_size(fallback=(160, 0))[0]
+        _col = max(total_width // 5, 20)
+        four_column = (_col, _col, _col, total_width - (3 * _col))
+        # In this case we don't have the choices field, so we can redistribute
+        # the extra 40 characters to val and desc
+        three_column = (_col, _col * 2, total_width // 2)
 
         for line in zip(self.name_col, self.value_col, self.choices_col, self.descr_col):
+            if not any(line):
+                print('')
+                continue
+
+            # This is a header, like `Subproject foo:`,
+            # We just want to print that and get on with it
+            if line[0] and not any(line[1:]):
+                print(line[0])
+                continue
+
+            # wrap will take a long string, and create a list of strings no
+            # longer than the size given. Then that list can be zipped into, to
+            # print each line of the output, such the that columns are printed
+            # to the right width, row by row.
             if self.has_choices:
-                print('{0:{width[0]}} {1:{width[1]}} {2:{width[2]}} {3}'.format(*line, width=col_widths))
+                name = textwrap.wrap(line[0], four_column[0])
+                val = textwrap.wrap(line[1], four_column[1])
+                choice = textwrap.wrap(line[2], four_column[2])
+                desc = textwrap.wrap(line[3], four_column[3])
+                for l in itertools.zip_longest(name, val, choice, desc, fillvalue=''):
+                    # We must use the length modifier here to get even rows, as
+                    # `textwrap.wrap` will only shorten, not lengthen each item
+                    print('{:{widths[0]}} {:{widths[1]}} {:{widths[2]}} {}'.format(*l, widths=four_column))
             else:
-                print('{0:{width[0]}} {1:{width[1]}} {3}'.format(*line, width=col_widths))
+                name = textwrap.wrap(line[0], three_column[0])
+                val = textwrap.wrap(line[1], three_column[1])
+                desc = textwrap.wrap(line[3], three_column[2])
+                for l in itertools.zip_longest(name, val, desc, fillvalue=''):
+                    print('{:{widths[0]}} {:{widths[1]}} {}'.format(*l, widths=three_column))
 
     def split_options_per_subproject(self, options: 'coredata.KeyedOptionDictType') -> T.Dict[str, T.Dict[str, 'UserOption']]:
         result: T.Dict[str, T.Dict[str, 'UserOption']] = {}
