@@ -777,7 +777,10 @@ class XCodeBackend(backends.Backend):
                 path = '"%s"' % t.get_filename()
             target_dict.add_item('isa', 'PBXFileReference')
             target_dict.add_item('explicitFileType', '"' + typestr + '"')
-            target_dict.add_item('path', path)
+            if ' ' in path and path[0] != '"':
+                target_dict.add_item('path', f'"{path}"')
+            else:
+                target_dict.add_item('path', path)
             target_dict.add_item('refType', reftype)
             target_dict.add_item('sourceTree', 'BUILT_PRODUCTS_DIR')
 
@@ -1460,7 +1463,10 @@ class XCodeBackend(backends.Backend):
             self.add_otherargs(settings_dict, langargs)
             settings_dict.add_item('OTHER_LDFLAGS', f'"{ldstr}"')
             settings_dict.add_item('OTHER_REZFLAGS', '""')
-            settings_dict.add_item('PRODUCT_NAME', product_name)
+            if ' ' in product_name:
+                settings_dict.add_item('PRODUCT_NAME', f'"{product_name}"')
+            else:
+                settings_dict.add_item('PRODUCT_NAME', product_name)
             settings_dict.add_item('SECTORDER_FLAGS', '""')
             settings_dict.add_item('SYMROOT', f'"{symroot}"')
             sysheader_arr = PbxArray()
