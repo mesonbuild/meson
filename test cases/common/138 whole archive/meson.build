@@ -1,5 +1,9 @@
 project('whole archive', 'c')
 
+if meson.backend() == 'xcode'
+    error('MESON_SKIP_TEST: whole-archive not supported in Xcode. Patches welcome.')
+endif
+
 add_project_arguments('-I' + meson.source_root(), language : 'c')
 
 cc = meson.get_compiler('c')
