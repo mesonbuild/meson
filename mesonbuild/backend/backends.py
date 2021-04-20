@@ -1169,7 +1169,7 @@ class Backend:
     def get_normpath_target(self, source) -> str:
         return os.path.normpath(source)
 
-    def get_custom_target_dir_include_args(self, target, compiler, *, absolute_path=False):
+    def get_custom_target_dirs(self, target, compiler, *, absolute_path=False):
         custom_target_include_dirs = []
         for i in target.get_generated_sources():
             # Generator output goes into the target private dir which is
@@ -1184,10 +1184,14 @@ class Backend:
                 idir = os.path.join(self.environment.get_build_dir(), idir)
             if idir not in custom_target_include_dirs:
                 custom_target_include_dirs.append(idir)
+        return custom_target_include_dirs
+
+    def get_custom_target_dir_include_args(self, target, compiler, *, absolute_path=False):
         incs = []
-        for i in custom_target_include_dirs:
+        for i in self.get_custom_target_dirs(target, compiler, absolute_path=absolute_path):
             incs += compiler.get_include_args(i, False)
         return incs
+
 
     def eval_custom_target_command(self, target, absolute_outputs=False):
         # We want the outputs to be absolute only when using the VS backend
