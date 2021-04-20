@@ -13,10 +13,15 @@
 # limitations under the License.
 
 import os
-from . import coredata, environment, mesonlib, build, mintro, mlog
-from .ast import AstIDGenerator
 import typing as T
 
+from . import build
+from . import coredata
+from . import environment
+from . import mesonlib
+from . import mintro
+from . import mlog
+from .ast import AstIDGenerator
 from .mesonlib import MachineChoice, OptionKey
 
 if T.TYPE_CHECKING:
