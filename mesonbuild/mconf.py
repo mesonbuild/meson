@@ -228,8 +228,10 @@ class Conf:
             if subproject == '':
                 continue
             self.add_section('Subproject ' + subproject)
-            if subproject in core_options:
-                self.print_options('Core options', core_options[subproject])
+            if subproject in host_core_options:
+                self.print_options('Core options', host_core_options[subproject])
+            if subproject in build_core_options and show_build_options:
+                self.print_options('', build_core_options[subproject])
             if subproject in host_compiler_options:
                 self.print_options('Compiler options', host_compiler_options[subproject])
             if subproject in build_compiler_options and show_build_options:
