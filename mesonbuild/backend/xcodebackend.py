@@ -1406,6 +1406,7 @@ class XCodeBackend(backends.Backend):
                         # It is unclear what is the cwd when xcode runs. -I. does not seem to
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
+                        lang_cargs += compiler.get_include_args(self.get_target_private_dir_abs(target), is_system=False)
                         lang_cargs += self.get_build_dir_include_args(target, compiler, absolute_path=True)
                         lang_cargs += self.get_source_dir_include_args(target, compiler, absolute_path=True)
                         lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
