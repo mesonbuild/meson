@@ -21,19 +21,16 @@ import typing as T
 import toml
 
 from .. import mlog
-from ..envconfig import MachineInfo
-from ..environment import normalize_cpu_family
 from ..mesonlib import MesonException, version_compare_many
 from ..optinterpreter import is_invalid_name
 from .nodebuilder import ObjectBuilder, NodeBuilder
-from .cfg_parser import Node, parse as cfg_parser
+from .cfg_parser import parse as cfg_parser
 from . import cfg_builder
 
 if T.TYPE_CHECKING:
     from .. import mparser
     from ..backend.backends import Backend
     from ..build import Build
-    from ..dependencies import ExternalProgram
     from ..environment import Environment
 
     try:
