@@ -1421,7 +1421,7 @@ class XCodeBackend(backends.Backend):
                 settings_dict.add_item('DYLIB_COMPATIBILITY_VERSION', '""')
             else:
                 if dylib_version is not None:
-                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}')
+                    settings_dict.add_item('DYLIB_CURRENT_VERSION', f'"{dylib_version}"')
             if target.prefix:
                 settings_dict.add_item('EXECUTABLE_PREFIX', target.prefix)
             if target.suffix:
