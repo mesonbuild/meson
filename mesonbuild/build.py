@@ -1796,8 +1796,8 @@ class StaticLibrary(BuildTarget):
                 mlog.debug('Defaulting Rust static library target crate type to rlib')
                 self.rust_crate_type = 'rlib'
             # Don't let configuration proceed with a non-static crate type
-            elif self.rust_crate_type not in ['rlib', 'staticlib']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib" or "staticlib"')
+            elif self.rust_crate_type not in ['rlib', 'staticlib', 'proc-macro']:
+                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for static libraries; must be "rlib", "staticlib", or "proc-macro"')
         # By default a static library is named libfoo.a even on Windows because
         # MSVC does not have a consistent convention for what static libraries
         # are called. The MSVC CRT uses libfoo.lib syntax but nothing else uses
@@ -1809,7 +1809,7 @@ class StaticLibrary(BuildTarget):
             self.prefix = 'lib'
         if not hasattr(self, 'suffix'):
             if 'rust' in self.compilers:
-                if not hasattr(self, 'rust_crate_type') or self.rust_crate_type == 'rlib':
+                if not hasattr(self, 'rust_crate_type') or self.rust_crate_type in {'rlib', 'proc-macro'}:
                     # default Rust static library suffix
                     self.suffix = 'rlib'
                 elif self.rust_crate_type == 'staticlib':
@@ -1868,8 +1868,8 @@ class SharedLibrary(BuildTarget):
                 mlog.debug('Defaulting Rust dynamic library target crate type to "dylib"')
                 self.rust_crate_type = 'dylib'
             # Don't let configuration proceed with a non-dynamic crate type
-            elif self.rust_crate_type not in ['dylib', 'cdylib']:
-                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib" or "cdylib"')
+            elif self.rust_crate_type not in ['dylib', 'cdylib', 'proc-macro']:
+                raise InvalidArguments(f'Crate type "{self.rust_crate_type}" invalid for dynamic libraries; must be "dylib", "cdylib", or "proc-macro"')
         if not hasattr(self, 'prefix'):
             self.prefix = None
         if not hasattr(self, 'suffix'):
