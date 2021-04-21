@@ -1114,7 +1114,7 @@ class XCodeBackend(backends.Backend):
             custom_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
             custom_dict.add_item('shellPath', '/bin/sh')
             workdir = self.environment.get_build_dir()
-            cmdstr = ' '.join([f'\\"{x}\\"' for x in fixed_cmd])
+            cmdstr = ' '.join([f"\\'{x}\\'" for x in fixed_cmd])
             custom_dict.add_item('shellScript', f'"cd {workdir}; {cmdstr}"')
             custom_dict.add_item('showEnvVarsInLog', 0)
 
@@ -1494,7 +1494,7 @@ class XCodeBackend(backends.Backend):
                     # b) I don't know why it works or why every backslash must be escaped into eight backslashes
                     a = a.replace(chr(92), 8*chr(92)) # chr(92) is backslash, this how we smuggle it in without Python's quoting grabbing it.
                     a = a.replace(r'"', r'\\\"')
-                    if ' ' in a:
+                    if ' ' in a or "'" in a:
                         a = r'\"' + a + r'\"'
                     quoted_args.append(a)
                 settings_dict.add_item(f'OTHER_{langname}FLAGS', '"' + ' '.join(quoted_args) + '"')
