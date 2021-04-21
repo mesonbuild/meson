@@ -32,8 +32,13 @@ foreach i : targets.to_list()
   paths += i.full_path()
 endforeach
 
+# The Xcode backend has a different output naming scheme.
+if meson.backend() == 'xcode'
+  assert(paths == [meson.project_build_root() / get_option('buildtype') / 'second.h',
+                   meson.project_build_root() / get_option('buildtype') / 'second.sh'])
+
 # Skip on Windows because paths are not identical, '/' VS '\'.
-if host_machine.system() != 'windows'
+elif host_machine.system() != 'windows'
   assert(paths == [meson.current_build_dir() / 'second.h',
                    meson.current_build_dir() / 'second.sh'])
 endif
