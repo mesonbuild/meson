@@ -1345,8 +1345,8 @@ class XCodeBackend(backends.Backend):
                 product_name = target.get_basename()
             ldargs += target.link_args
             linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
-            ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
             if not isinstance(target, build.StaticLibrary):
+                ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
                 ldargs += self.build.get_global_link_args(linker, target.for_machine)
             cargs = []
             for dep in target.get_external_deps():
