@@ -334,7 +334,7 @@ class ManifestInterpreter:
                     fbuilder.positional(lib.get('path', 'src/lib.rs'))
 
                     # XXX: this is the same hack as described below
-                    if lib.get('crate-type', ['rlib'])[0] in {'dylib', 'cdylib'}:
+                    if lib.get('proc-macro', False) or lib.get('crate-type', ['rlib'])[0] in {'dylib', 'cdylib', 'proc-macro'}:
                         fbuilder.keyword('target_type', 'shared_library')
                     else:
                         # This scoops up the "lib" type as well. Meson very
@@ -346,13 +346,17 @@ class ManifestInterpreter:
                     # XXX: this is wrong, crate-type is a list, and cargo will
                     # generate one target of each type listed. I messed this up
                     # early on, so for now we just have a hack to work around this
-                    if lib.get('crate-type', ['lib'])[0] == 'lib':
+                    if lib.get('proc-macro', False):
+                        fbuilder.keyword('rust_crate_type', 'proc-macro')
+                    elif lib.get('crate-type', ['lib'])[0] == 'lib':
                         fbuilder.keyword('rust_crate_type', 'rlib')
                     else:
                         assert len(lib['crate-type']) == 1
                         fbuilder.keyword('rust_crate_type', lib['crate-type'][0])
 
-                    fbuilder.keyword('version', self.manifest['package']['version'])
+                    # Proc macros must not have versions in them
+                    if not lib.get('proc-macro', False):
+                        fbuilder.keyword('version', self.manifest['package']['version'])
 
                     edition = lib.get('edition', self.manifest['package'].get('edition'))
                     if edition:

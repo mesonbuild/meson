@@ -3,6 +3,7 @@ Cargo to meson.build:
         - dependencies
         - binaries
         - libraries
+            - proc-macro
         - features
         - target cfg() paring
 
@@ -24,7 +25,6 @@ Cargo to meson.build:
             - bench
         - libraries
             - targets required features
-            - proc-macro
             - doctest?
             - bench
         - Add test for invalid feature names

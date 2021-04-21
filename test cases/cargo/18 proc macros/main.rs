@@ -1,5 +1,5 @@
 extern crate sub1;
-use proc_macro_examples::make_answer;
+use sub1::make_answer;
 
 make_answer!();
 
