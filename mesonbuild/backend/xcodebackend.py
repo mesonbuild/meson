@@ -1301,6 +1301,8 @@ class XCodeBackend(backends.Backend):
         links_dylib = False
         dep_libs = []
         for l in target.link_targets:
+            if isinstance(target, build.SharedModule) and isinstance(l, build.Executable):
+                continue
             abs_path = os.path.join(self.environment.get_build_dir(),
                                     l.subdir, buildtype, l.get_filename())
             dep_libs.append("'%s'" % abs_path)
