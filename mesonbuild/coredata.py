@@ -401,6 +401,11 @@ class CoreData:
         self.cross_files = self.__load_config_files(options, scratch_dir, 'cross')
         self.compilers = PerMachine(OrderedDict(), OrderedDict())  # type: PerMachine[T.Dict[str, Compiler]]
 
+        # Set of subprojects that have already been initialized once, this is
+        # required to be stored and reloaded with the coredata, as we don't
+        # want to overwrite options for such subprojects.
+        self.initialized_subprojects: T.Set[str] = set()
+
         build_cache = DependencyCache(self.options, MachineChoice.BUILD)
         host_cache = DependencyCache(self.options, MachineChoice.HOST)
         self.deps = PerMachine(build_cache, host_cache)  # type: PerMachine[DependencyCache]

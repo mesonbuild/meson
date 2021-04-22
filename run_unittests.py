@@ -4313,7 +4313,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_reconfigure(self):
         testdir = os.path.join(self.unit_test_dir, '48 reconfigure')
-        self.init(testdir, extra_args=['-Dopt1=val1'])
+        self.init(testdir, extra_args=['-Dopt1=val1', '-Dsub1:werror=true'])
         self.setconf('-Dopt2=val2')
 
         self.__reconfigure()
@@ -4324,6 +4324,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(out, 'opt2 val2')
         self.assertRegex(out, 'opt3 val3')
         self.assertRegex(out, 'opt4 default4')
+        self.assertRegex(out, 'sub1:werror True')
         self.build()
         self.run_tests()
 
@@ -4337,6 +4338,7 @@ class AllPlatformTests(BasePlatformTests):
         self.assertRegex(out, 'opt2 val2')
         self.assertRegex(out, 'opt3 val3')
         self.assertRegex(out, 'opt4 val4')
+        self.assertRegex(out, 'sub1:werror True')
         self.assertTrue(Path(self.builddir, '.gitignore').exists())
         self.build()
         self.run_tests()
