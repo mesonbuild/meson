@@ -692,6 +692,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         sub = SubprojectHolder(None, os.path.join(self.subproject_dir, subp_name),
                                disabled_feature=disabled_feature, exception=exception)
         self.subprojects[subp_name] = sub
+        self.coredata.initialized_subprojects.add(subp_name)
         return sub
 
     def get_subproject(self, subp_name):
@@ -807,6 +808,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         self.build_def_files = list(set(self.build_def_files + subi.build_def_files))
         self.build.merge(subi.build)
         self.build.subprojects[subp_name] = subi.project_version
+        self.coredata.initialized_subprojects.add(subp_name)
         self.summary.update(subi.summary)
         return self.subprojects[subp_name]
 
@@ -975,7 +977,7 @@ external dependencies (including libraries) must go to "dependencies".''')
         # If this is the first invocation we alway sneed to initialize
         # builtins, if this is a subproject that is new in a re-invocation we
         # need to initialize builtins for that
-        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.subprojects):
+        if self.environment.first_invocation or (self.subproject != '' and self.subproject not in self.coredata.initialized_subprojects):
             default_options = self.project_default_options.copy()
             default_options.update(self.default_project_options)
             self.coredata.init_builtins(self.subproject)
@@ -2452,7 +2454,7 @@ subproject. This is a problem as it hardcodes the relative paths of these two pr
 This makes it impossible to compile the project in any other directory layout and also
 prevents the subproject from changing its own directory layout.
 
-Instead of poking directly at the internals the subproject should be executed and 
+Instead of poking directly at the internals the subproject should be executed and
 it should set a variable that the caller can then use. Something like:
 
 # In subproject
@@ -2462,7 +2464,7 @@ some_dep = declare_depencency(include_directories: include_directories('include'
 some_dep = depencency('some')
 executable(..., dependencies: [some_dep])
 
-This warning will become a hard error in a future Meson release. 
+This warning will become a hard error in a future Meson release.
 ''')
             absdir_src = os.path.join(absbase_src, a)
             absdir_build = os.path.join(absbase_build, a)

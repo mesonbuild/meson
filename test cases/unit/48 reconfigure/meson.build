@@ -7,3 +7,5 @@ message('opt4 ' + get_option('opt4'))
 
 exe = executable('test1', 'main.c')
 test('test1', exe)
+
+sub1 = subproject('sub1')
