@@ -1114,7 +1114,10 @@ class XCodeBackend(backends.Backend):
             custom_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
             custom_dict.add_item('shellPath', '/bin/sh')
             workdir = self.environment.get_build_dir()
-            cmdstr = ' '.join([f"\\'{x}\\'" for x in fixed_cmd])
+            quoted_cmd = []
+            for c in fixed_cmd:
+                quoted_cmd.append(c.replace('"', chr(92) + '"'))
+            cmdstr = ' '.join([f"\\'{x}\\'" for x in quoted_cmd])
             custom_dict.add_item('shellScript', f'"cd {workdir}; {cmdstr}"')
             custom_dict.add_item('showEnvVarsInLog', 0)
 
