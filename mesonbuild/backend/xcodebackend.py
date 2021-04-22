@@ -1450,8 +1450,9 @@ class XCodeBackend(backends.Backend):
             header_arr = PbxArray()
             unquoted_headers = []
             unquoted_headers.append(self.get_target_private_dir_abs(target))
-            unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
-            unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
+            if target.implicit_include_directories:
+                unquoted_headers.append(os.path.join(self.environment.get_build_dir(), target.get_subdir()))
+                unquoted_headers.append(os.path.join(self.environment.get_source_dir(), target.get_subdir()))
             if headerdirs:
                 for i in headerdirs:
                     i = os.path.normpath(i)
