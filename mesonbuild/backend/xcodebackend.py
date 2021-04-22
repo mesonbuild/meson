@@ -1007,8 +1007,8 @@ class XCodeBackend(backends.Backend):
             for o in t.generated:
                 if isinstance(o, build.CustomTarget):
                     dep_array.add_item(self.pbx_custom_dep_map[o.get_id()], o.name)
-                if not isinstance(o, build.GeneratedList):
-                    continue
+                elif isinstance(o, build.CustomTargetIndex):
+                    dep_array.add_item(self.pbx_custom_dep_map[o.target.get_id()], o.target.name)
                 
                 generator_id += 1
 
@@ -1210,11 +1210,17 @@ class XCodeBackend(backends.Backend):
                     for o in ofilenames:
                         file_arr.add_item(self.custom_target_output_buildfile[o],
                                           os.path.join(self.environment.get_build_dir(), o))
+                elif isinstance(gt, build.CustomTargetIndex):
+                    for o in gt.get_outputs():
+                        file_arr.add_item(self.custom_target_output_buildfile[o],
+                                          os.path.join(self.environment.get_build_dir(), o))
                 elif isinstance(gt, build.GeneratedList):
                     genfiles = self.generator_buildfile_ids[(name, generator_id)]
                     generator_id += 1
                     for o in genfiles:
                         file_arr.add_item(o)
+                else:
+                    raise RuntimeError('Unknown input type: ' + str(gt))
             phase_dict.add_item('runOnlyForDeploymentPostprocessing', 0)
 
     def generate_pbx_target_dependency(self, objects_dict):
@@ -1375,10 +1381,18 @@ class XCodeBackend(backends.Backend):
                         if o_abs.endswith('.o') or o_abs.endswith('.obj'):
                             ldargs += [r'\"' + o_abs + r'\"']
                 else:
-                    (srcs, ofilenames, cmd) = self.eval_custom_target_command(o)
-                    for ofname in ofilenames:
-                        if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
-                            ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
+                    if isinstance(o, build.CustomTarget):
+                        (srcs, ofilenames, cmd) = self.eval_custom_target_command(o)
+                        for ofname in ofilenames:
+                            if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
+                                ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
+                    elif isinstance(o, build.CustomTargetIndex):
+                        for ofname in o.get_outputs():
+                            if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
+                                ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
+
+                    else:
+                        raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
                 options = self.environment.coredata.options
                 ldargs += linker.get_std_shared_module_link_args(options)
