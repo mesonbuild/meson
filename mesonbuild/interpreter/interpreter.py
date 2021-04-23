@@ -2732,7 +2732,18 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         elif key in self.environment.coredata.options:
             pic = self.environment.coredata.options[key].value
 
-        if pic:
+        if self.backend.name == 'xcode':
+            # Xcode is a bit special in that you can't (at least for the moment)
+            # form a library only from object file inputs. The simple but inefficient
+            # solution is to use the sources directly. This will lead to them being
+            # built twice. This is unfortunate and slow, but at least it works.
+            # Feel free to submit patches to get this fixed if it is an
+            # issue for you.
+            reuse_object_files = False
+        else:
+            reuse_object_files = pic
+
+        if reuse_object_files:
             # Exclude sources from args and kwargs to avoid building them twice
             static_args = [args[0]]
             static_kwargs = kwargs.copy()
