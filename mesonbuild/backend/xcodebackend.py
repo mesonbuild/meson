@@ -1165,7 +1165,12 @@ class XCodeBackend(backends.Backend):
             base_args = generator.get_arglist(infilename)
             for o_base in genlist.get_outputs_for(i):
                 o = os.path.join(self.get_target_private_dir(t), o_base)
-                args = [x.replace("@INPUT@", infilename).replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t)) for x in base_args]
+                args = []
+                for arg in base_args:
+                    arg = arg.replace("@INPUT@", infilename)
+                    arg = arg.replace('@OUTPUT@', o).replace('@BUILD_DIR@', self.get_target_private_dir(t))
+                    arg = arg.replace("@CURRENT_SOURCE_DIR@", os.path.join(self.build_to_src, t.subdir))
+                    args.append(arg)
                 args = self.replace_outputs(args, self.get_target_private_dir(t), outfilelist)
                 args = self.replace_extra_args(args, genlist)
                 if generator.capture:
