@@ -1,5 +1,9 @@
 project('generator link_whole', 'c')
 
+if meson.backend() == 'xcode'
+    error('MESON_SKIP_TEST: whole-archive not supported in Xcode. Patches welcome.')
+endif
+
 cc = meson.get_compiler('c')
 if cc.get_id() == 'msvc'
   if cc.version().version_compare('<19')
