@@ -417,6 +417,12 @@ class Backend:
                 raise MesonException('Unknown data type in object list.')
         return obj_list
 
+    def is_swift_target(self, target):
+        for s in target.sources:
+            if s.endswith('swift'):
+                return True
+        return False
+
     def get_executable_serialisation(self, cmd, workdir=None,
                                      extra_bdeps=None, capture=None,
                                      env: T.Optional[build.EnvironmentVariables] = None):

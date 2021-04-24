@@ -37,6 +37,7 @@ XCODETYPEMAP = {'c': 'sourcecode.c.c',
                 'hxx': 'sourcecode.cpp.h',
                 'hh': 'sourcecode.cpp.hh',
                 'inc': 'sourcecode.c.h',
+                'swift': 'sourcecode.swift',
                 'dylib': 'compiled.mach-o.dylib',
                 'o': 'compiled.mach-o.objfile',
                 's': 'sourcecode.asm',
@@ -1277,6 +1278,7 @@ class XCodeBackend(backends.Backend):
             bt_dict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('ARCHS', '"$(NATIVE_ARCH_ACTUAL)"')
             settings_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
+            settings_dict.add_item('SWIFT_VERSION', '4.0')
             settings_dict.add_item('SDKROOT', '"macosx"')
             settings_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
             bt_dict.add_item('name', f'"{buildtype}"')
@@ -1382,7 +1384,12 @@ class XCodeBackend(backends.Backend):
             else:
                 product_name = target.get_basename()
             ldargs += target.link_args
-            linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
+            # Swift is special. Again. You can't mix Swift with other languages
+            # in the same target. Thus for Swift we only use 
+            if self.is_swift_target(target):
+                linker, stdlib_args = target.compilers['swift'], []
+            else:
+                linker, stdlib_args = self.determine_linker_and_stdlib_args(target)
             if not isinstance(target, build.StaticLibrary):
                 ldargs += self.build.get_project_link_args(linker, target.subproject, target.for_machine)
                 ldargs += self.build.get_global_link_args(linker, target.for_machine)
