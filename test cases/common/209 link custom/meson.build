@@ -28,13 +28,17 @@ test('linkcustom2', exe2)
 
 # Link whole tests
 
-exe3 = executable('prog3', 'prog.c', link_whole: clib)
-test('linkwhole', exe)
+if meson.backend() == 'xcode'
+    message('Xcode does not support link whole so skipping.')
+else
+    exe3 = executable('prog3', 'prog.c', link_whole: clib)
+    test('linkwhole', exe)
 
-d2 = declare_dependency(link_whole: clib)
+    d2 = declare_dependency(link_whole: clib)
 
-exe4 = executable('prog4', 'prog.c', dependencies: d2)
-test('linkwhole2', exe2)
+    exe4 = executable('prog4', 'prog.c', dependencies: d2)
+    test('linkwhole2', exe2)
+endif
 
 # custom_target[i] tests
 
@@ -46,17 +50,21 @@ d_i = declare_dependency(link_with: clib[0])
 exe2_i = executable('prog2_i', 'prog.c', dependencies: d_i)
 test('linkcustom2_i', exe2_i)
 
-shared_library('lib1', 'lib.c', link_whole: clib)
-
 # Link whole tests
 
-exe3_i = executable('prog3_i', 'prog.c', link_whole: clib[0])
-test('linkwhole', exe)
+if meson.backend() == 'xcode'
+    message('Xcode does not support link whole so skipping.')
+else
+    shared_library('lib1', 'lib.c', link_whole: clib)
 
-d2_i = declare_dependency(link_whole: clib[0])
+    exe3_i = executable('prog3_i', 'prog.c', link_whole: clib[0])
+    test('linkwhole', exe)
 
-exe4_i = executable('prog4_i', 'prog.c', dependencies: d2_i)
-test('linkwhole2_i', exe2_i)
+    d2_i = declare_dependency(link_whole: clib[0])
+
+    exe4_i = executable('prog4_i', 'prog.c', dependencies: d2_i)
+    test('linkwhole2_i', exe2_i)
+endif
 
 # Link with custom target
 

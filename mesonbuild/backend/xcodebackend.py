@@ -448,9 +448,18 @@ class XCodeBackend(backends.Backend):
         self.target_dependency_map = {}
         for tname, t in self.build_targets.items():
             for target in t.link_targets:
-                k = (tname, target.get_basename())
-                assert(k not in self.target_dependency_map)
+                if isinstance(target, build.CustomTargetIndex):
+                    k = (tname, target.target.get_basename())
+                    if k in self.target_dependency_map:
+                        continue
+                else:
+                    k = (tname, target.get_basename())
+                    assert(k not in self.target_dependency_map)
                 self.target_dependency_map[k] = self.gen_id()
+        for tname, t in self.custom_targets.items():
+            k = tname
+            assert(k not in self.target_dependency_map)
+            self.target_dependency_map[k] = self.gen_id()
 
     def generate_pbxdep_map(self):
         self.pbx_dep_map = {}
@@ -996,8 +1005,13 @@ class XCodeBackend(backends.Backend):
             for lt in self.build_targets[tname].link_targets:
                 # NOT DOCUMENTED, may need to make different links
                 # to same target have different targetdependency item.
-                idval = self.pbx_dep_map[lt.get_id()]
-                dep_array.add_item(idval, 'PBXTargetDependency')
+                if isinstance(lt, build.CustomTarget):
+                    dep_array.add_item(self.pbx_custom_dep_map[lt.get_id()], lt.name)
+                elif isinstance(lt, build.CustomTargetIndex):
+                    dep_array.add_item(self.pbx_custom_dep_map[lt.target.get_id()], lt.target.name)
+                else:
+                    idval = self.pbx_dep_map[lt.get_id()]
+                    dep_array.add_item(idval, 'PBXTargetDependency')
             for o in t.objects:
                 if isinstance(o, build.ExtractedObjects):
                     source_target_id = o.target.get_id()
@@ -1317,8 +1331,16 @@ class XCodeBackend(backends.Backend):
         for l in target.link_targets:
             if isinstance(target, build.SharedModule) and isinstance(l, build.Executable):
                 continue
-            abs_path = os.path.join(self.environment.get_build_dir(),
-                                    l.subdir, buildtype, l.get_filename())
+            if isinstance(l, build.CustomTargetIndex):
+                rel_dir = self.get_custom_target_output_dir(l.target)
+                libname = l.get_filename()
+            elif isinstance(l, build.CustomTarget):
+                rel_dir = self.get_custom_target_output_dir(l)
+                libname = l.get_filename()
+            else:
+                rel_dir = self.get_target_dir(l)
+                libname = l.get_filename()
+            abs_path = os.path.join(self.environment.get_build_dir(), rel_dir, libname)
             dep_libs.append("'%s'" % abs_path)
             if isinstance(l, build.SharedLibrary):
                 links_dylib = True
@@ -1395,7 +1417,6 @@ class XCodeBackend(backends.Backend):
                         for ofname in o.get_outputs():
                             if os.path.splitext(ofname)[-1] in LINKABLE_EXTENSIONS:
                                 ldargs += [r'\"' + os.path.join(self.environment.get_build_dir(), ofname) + r'\"']
-
                     else:
                         raise RuntimeError(o)
             if isinstance(target, build.SharedModule):
