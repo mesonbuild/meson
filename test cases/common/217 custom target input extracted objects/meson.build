@@ -1,5 +1,10 @@
 project('custom target input extracted objects', 'c')
 
+if meson.backend() == 'xcode'
+    error('MESON_SKIP_TEST: sometimes Xcode puts object files in weird paths and we can not extract them.')
+endif
+
+
 checker = find_program('check_object.py')
 
 cc = meson.get_compiler('c').cmd_array().get(-1)
