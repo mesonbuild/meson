@@ -28,6 +28,11 @@ test('linkcustom2', exe2)
 
 # Link whole tests
 
+if meson.backend() == 'xcode'
+    message('Xcode does not support link whole so skipping.')
+    subdir_done()
+endif
+
 exe3 = executable('prog3', 'prog.c', link_whole: clibs)
 test('linkwhole', exe)
 
