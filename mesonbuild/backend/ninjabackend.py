@@ -1701,12 +1701,6 @@ int dummy;
     def target_swift_modulename(self, target):
         return target.name
 
-    def is_swift_target(self, target):
-        for s in target.sources:
-            if s.endswith('swift'):
-                return True
-        return False
-
     def determine_swift_dep_modules(self, target):
         result = []
         for l in target.link_targets:
