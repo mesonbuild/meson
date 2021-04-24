@@ -1452,9 +1452,11 @@ class XCodeBackend(backends.Backend):
                         # This may break reproducible builds, in which case patches are welcome.
                         lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
                     # Xcode can not handle separate compilation flags for C and ObjectiveC. They are both
-                    # put in OTHER_CFLAGS.
+                    # put in OTHER_CFLAGS. Same with C++ and ObjectiveC++.
                     if lang == 'objc':
                         lang = 'c'
+                    elif lang == 'objcpp':
+                        lang = 'cpp'
                     langname = LANGNAMEMAP[lang]
                     if langname in langargs:
                         langargs[langname] += args
