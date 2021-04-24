@@ -225,9 +225,7 @@ def get_backend_commands(backend: Backend, debug: bool = False) -> \
         test_cmd = cmd + ['RUN_TESTS.vcxproj']
     elif backend is Backend.xcode:
         cmd = ['xcodebuild']
-        # In Xcode9 new build system's clean command fails when using a custom build directory.
-        # Maybe use it when CI uses Xcode10 we can remove '-UseNewBuildSystem=FALSE'
-        clean_cmd = cmd + ['-alltargets', 'clean', '-UseNewBuildSystem=FALSE']
+        clean_cmd = cmd + ['-alltargets', 'clean']
         test_cmd = cmd + ['-target', 'RUN_TESTS']
     elif backend is Backend.ninja:
         global NINJA_CMD

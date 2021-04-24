@@ -1445,14 +1445,21 @@ class XCodeBackend(backends.Backend):
                 targs = target.get_extra_args(lang)
                 args = warn_args + std_args + pargs + gargs + targs
                 if args:
-                    langname = LANGNAMEMAP[lang]
                     lang_cargs = cargs
                     if compiler and target.implicit_include_directories:
                         # It is unclear what is the cwd when xcode runs. -I. does not seem to
                         # add the root build dir to the search path. So add an absolute path instead.
                         # This may break reproducible builds, in which case patches are welcome.
                         lang_cargs += self.get_custom_target_dir_include_args(target, compiler, absolute_path=True)
-                    langargs[langname] = args
+                    # Xcode can not handle separate compilation flags for C and ObjectiveC. They are both
+                    # put in OTHER_CFLAGS.
+                    if lang == 'objc':
+                        lang = 'c'
+                    langname = LANGNAMEMAP[lang]
+                    if langname in langargs:
+                        langargs[langname] += args
+                    else:
+                        langargs[langname] = args
                     langargs[langname] += lang_cargs
             symroot = os.path.join(self.environment.get_build_dir(), target.subdir)
             bt_dict = PbxDict()
