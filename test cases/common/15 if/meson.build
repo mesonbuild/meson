@@ -58,3 +58,15 @@ elif false
 else
   message('Ok')
 endif
+
+# Test plain else
+
+var = false
+
+if var
+  exe = executable('break', 'break.c')
+else
+  exe = executable('eprog', 'prog.c')
+endif
+
+test('elsetest', exe)
