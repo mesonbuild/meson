@@ -3249,8 +3249,20 @@ class AllPlatformTests(BasePlatformTests):
                       workdir=self.builddir)
             self.assertPathExists(zip_distfile)
             self.assertPathExists(zip_checksumfile)
+            os.remove(xz_distfile)
+            os.remove(xz_checksumfile)
+            os.remove(gz_distfile)
+            os.remove(gz_checksumfile)
+            os.remove(zip_distfile)
+            os.remove(zip_checksumfile)
             self._run(self.meson_command + ['dist', '--formats', 'xztar,gztar,zip'],
                       workdir=self.builddir)
+            self.assertPathExists(xz_distfile)
+            self.assertPathExists(xz_checksumfile)
+            self.assertPathExists(gz_distfile)
+            self.assertPathExists(gz_checksumfile)
+            self.assertPathExists(zip_distfile)
+            self.assertPathExists(zip_checksumfile)
 
             if include_subprojects:
                 # Verify that without --include-subprojects we have files from
