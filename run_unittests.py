@@ -9881,6 +9881,8 @@ class SubprojectsCommandTests(BasePlatformTests):
     def test_purge(self):
         self._create_project(self.subprojects_dir / 'sub_file')
         self._wrap_create_file('sub_file')
+        self._git_create_local_repo('sub_git')
+        self._wrap_create_git('sub_git')
 
         def deleting(s) -> T.List[str]:
             ret = []
@@ -9891,13 +9893,14 @@ class SubprojectsCommandTests(BasePlatformTests):
             return sorted(ret)
 
         out = self._subprojects_cmd(['purge'])
-        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'sub_file')])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'sub_file'), str(self.subprojects_dir / 'sub_git')])
         out = self._subprojects_cmd(['purge', '--include-cache'])
-        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file')])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file'), str(self.subprojects_dir / 'sub_git')])
         out = self._subprojects_cmd(['purge', '--include-cache', '--confirm'])
-        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file')])
+        self.assertEqual(deleting(out), [str(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz'), str(self.subprojects_dir / 'sub_file'), str(self.subprojects_dir / 'sub_git')])
         self.assertFalse(Path(self.subprojects_dir / 'packagecache' / 'dummy.tar.gz').exists())
         self.assertFalse(Path(self.subprojects_dir / 'sub_file').exists())
+        self.assertFalse(Path(self.subprojects_dir / 'sub_git').exists())
 
 def _clang_at_least(compiler: 'Compiler', minver: str, apple_minver: T.Optional[str]) -> bool:
     """
