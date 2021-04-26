@@ -325,11 +325,14 @@ def purge(r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse
 
     if options.include_cache:
         packagecache = Path(r.cachedir).resolve()
-        subproject_cache_file = packagecache / wrap.get("source_filename")
-        if subproject_cache_file.is_file():
-            if options.confirm:
-                subproject_cache_file.unlink()
-            mlog.log(f'Deleting {subproject_cache_file}')
+        try:
+            subproject_cache_file = packagecache / wrap.get("source_filename")
+            if subproject_cache_file.is_file():
+                if options.confirm:
+                    subproject_cache_file.unlink()
+                mlog.log(f'Deleting {subproject_cache_file}')
+        except WrapException:
+            pass
 
         try:
             subproject_patch_file = packagecache / wrap.get("patch_filename")
@@ -353,7 +356,6 @@ def purge(r: Resolver, wrap: PackageDefinition, repo_dir: str, options: argparse
             subproject_source_dir.unlink()
         mlog.log(f'Deleting {subproject_source_dir}')
         return True
-
     if not subproject_source_dir.is_dir():
         return True
 
