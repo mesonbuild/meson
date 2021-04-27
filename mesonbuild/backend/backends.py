@@ -224,7 +224,7 @@ class Backend:
         self.build = build
         self.interpreter = interpreter
         self.environment = build.environment
-        self.processed_targets = {}
+        self.processed_targets: T.Set[str] = set()
         self.name = '<UNKNOWN>'
         self.build_dir = self.environment.get_build_dir()
         self.source_dir = self.environment.get_source_dir()
