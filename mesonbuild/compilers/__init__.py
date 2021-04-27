@@ -107,6 +107,7 @@ __all__ = [
     'VisualStudioCCompiler',
     'VisualStudioCPPCompiler',
     'CLikeCompiler',
+    'CythonCompiler',
 ]
 
 # Bring symbols from each module into compilers sub-package namespace
@@ -213,3 +214,4 @@ from .mixins.gnu import GnuCompiler, GnuLikeCompiler
 from .mixins.intel import IntelGnuLikeCompiler, IntelVisualStudioLikeCompiler
 from .mixins.clang import ClangCompiler
 from .mixins.clike import CLikeCompiler
+from .cython import CythonCompiler
