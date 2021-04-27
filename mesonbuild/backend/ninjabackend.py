@@ -702,7 +702,7 @@ int dummy;
         name = target.get_id()
         if name in self.processed_targets:
             return
-        self.processed_targets[name] = True
+        self.processed_targets.add(name)
         # Initialize an empty introspection source list
         self.introspection_data[name] = {}
         # Generate rules for all dependency targets
@@ -979,7 +979,7 @@ int dummy;
         elem.add_item('COMMAND', cmd)
         elem.add_item('description', desc.format(target.name, cmd_type))
         self.add_build(elem)
-        self.processed_targets[target.get_id()] = True
+        self.processed_targets.add(target.get_id())
 
     def build_run_target_name(self, target):
         if target.subproject != '':
@@ -1013,7 +1013,7 @@ int dummy;
         deps += self.get_custom_target_depend_files(target)
         elem.add_dep(deps)
         self.add_build(elem)
-        self.processed_targets[target.get_id()] = True
+        self.processed_targets.add(target.get_id())
 
     def generate_coverage_command(self, elem, outputs):
         targets = self.build.get_targets().values()
