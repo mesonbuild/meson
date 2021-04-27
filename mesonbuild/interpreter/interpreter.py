@@ -1187,13 +1187,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             return False
         return should
 
-    def add_languages_for(self, args, required, for_machine: MachineChoice):
+    def add_languages_for(self, args: T.List[str], required: bool, for_machine: MachineChoice) -> None:
         args = [a.lower() for a in args]
         langs = set(self.coredata.compilers[for_machine].keys())
         langs.update(args)
-        if 'vala' in langs:
-            if 'c' not in langs:
-                raise InterpreterException('Compiling Vala requires C. Add C to your project languages and rerun Meson.')
+        if 'vala' in langs and 'c' not in langs:
+            args.append('c')
 
         success = True
         for lang in sorted(args, key=compilers.sort_clink):
