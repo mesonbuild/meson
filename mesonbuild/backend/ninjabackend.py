@@ -1889,10 +1889,7 @@ int dummy;
         for for_machine in MachineChoice:
             complist = self.environment.coredata.compilers[for_machine]
             for langname, compiler in complist.items():
-                if langname == 'java' \
-                        or langname == 'vala' \
-                        or langname == 'rust' \
-                        or langname == 'cs':
+                if langname in {'java', 'vala', 'rust', 'cs', 'cython'}:
                     continue
                 rule = '{}_LINKER{}'.format(langname, self.get_rule_suffix(for_machine))
                 command = compiler.get_linker_exelist()
