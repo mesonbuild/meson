@@ -812,7 +812,7 @@ class BuildTarget(Target):
 
         # If all our sources are Vala, our target also needs the C compiler but
         # it won't get added above.
-        if 'vala' in self.compilers and 'c' not in self.compilers:
+        if ('vala' in self.compilers or 'cython' in self.compilers) and 'c' not in self.compilers:
             self.compilers['c'] = compilers['c']
 
     def validate_sources(self):
