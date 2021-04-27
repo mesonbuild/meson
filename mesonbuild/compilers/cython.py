@@ -24,7 +24,8 @@ class CythonCompiler(Compiler):
         return False
 
     def get_always_args(self) -> T.List[str]:
-        return ['--fast-fail']
+        # XXX: we need an option to control this?
+        return ['--fast-fail', '-3']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
