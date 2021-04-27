@@ -1227,6 +1227,10 @@ class Compiler(metaclass=abc.ABCMeta):
         """
         return self.linker.rsp_file_syntax()
 
+    def get_debug_args(self, is_debug: bool) -> T.List[str]:
+        """Arguments required for a debug build."""
+        return []
+
 
 def get_global_options(lang: str,
                        comp: T.Type[Compiler],
