@@ -64,6 +64,7 @@ lang_arg_kwargs = {
     'rust_args',
     'vala_args',
     'cs_args',
+    'cython_args',
 }
 
 vala_kwargs = {'vala_header', 'vala_gir', 'vala_vapi'}
