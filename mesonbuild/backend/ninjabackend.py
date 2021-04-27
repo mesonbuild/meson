@@ -749,6 +749,9 @@ int dummy;
             # C/C++ sources, objects, generated libs, and unknown sources now.
             target_sources, generated_sources, \
                 transpiled_sources = self.generate_vala_compile(target)
+        elif 'cython' in target.compilers:
+            target_sources, generated_sources, \
+                transpiled_sources = self.generate_cython_transpile(target)
         else:
             target_sources = self.get_target_sources(target)
             generated_sources = self.get_target_generated_sources(target)
@@ -1544,6 +1547,55 @@ int dummy;
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
+    def generate_cython_transpile(self, target: build.BuildTarget) -> \
+            T.Tuple[T.MutableMapping[str, File], T.MutableMapping[str, File], T.List[str]]:
+        """Generate rules for transpiling Cython files to C or C++
+
+        XXX: Currently only C is handled.
+        """
+        static_sources: T.MutableMapping[str, File] = OrderedDict()
+        generated_sources: T.MutableMapping[str, File] = OrderedDict()
+        cython_sources: T.List[str] = []
+
+        cython = target.compilers['cython']
+
+        for src in target.get_sources():
+            if src.endswith('.pyx'):
+                output = os.path.join(self.get_target_private_dir(target), f'{src}.c')
+                args = cython.get_always_args()
+                args += cython.get_output_args(output)
+                element = NinjaBuildElement(
+                    self.all_outputs, [output],
+                    self.compiler_to_rule_name(cython),
+                    [src.absolute_path(self.environment.get_source_dir(), self.environment.get_build_dir())])
+                element.add_item('ARGS', args)
+                self.add_build(element)
+                # TODO: introspection?
+                cython_sources.append(output)
+            else:
+                static_sources[src.rel_to_builddir(self.build_to_src)] = src
+
+        for gen in target.get_generated_sources():
+            for ssrc in gen.get_outputs():
+                if isinstance(gen, GeneratedList):
+                    ssrc = os.path.join(self.get_target_private_dir(target) , ssrc)
+                if ssrc.endswith('.pyx'):
+                    output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.c')
+                    args = cython.get_always_args()
+                    args += cython.get_output_args(output)
+                    element = NinjaBuildElement(
+                        self.all_outputs, [output],
+                        self.compiler_to_rule_name(cython),
+                        [ssrc])
+                    element.add_item('ARGS', args)
+                    self.add_build(element)
+                    # TODO: introspection?
+                    cython_sources.append(output)
+                else:
+                    generated_sources[ssrc] = mesonlib.File.from_built_file(gen.subdir, ssrc)
+
+        return static_sources, generated_sources, cython_sources
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1937,6 +1989,12 @@ int dummy;
         description = 'Compiling Vala source $in'
         self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
 
+    def generate_cython_compile_rules(self, compiler: 'Compiler') -> None:
+        rule = self.compiler_to_rule_name(compiler)
+        command = compiler.get_exelist() + ['$ARGS', '$in']
+        description = 'Compiling Cython source $in'
+        self.add_rule(NinjaRule(rule, command, [], description, extra='restat = 1'))
+
     def generate_rust_compile_rules(self, compiler):
         rule = self.compiler_to_rule_name(compiler)
         command = compiler.get_exelist() + ['$ARGS', '$in']
@@ -2008,6 +2066,9 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         if langname == 'swift':
             if self.environment.machines.matches_build_machine(compiler.for_machine):
                 self.generate_swift_compile_rules(compiler)
+            return
+        if langname == 'cython':
+            self.generate_cython_compile_rules(compiler)
             return
         crstr = self.get_rule_suffix(compiler.for_machine)
         if langname == 'fortran':
