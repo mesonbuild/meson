@@ -87,6 +87,7 @@ from .compilers import (
     ClangObjCPPCompiler,
     ClangClCCompiler,
     ClangClCPPCompiler,
+    CythonCompiler,
     FlangFortranCompiler,
     G95FortranCompiler,
     GnuCCompiler,
@@ -732,6 +733,7 @@ class Environment:
         self.default_rust = ['rustc']
         self.default_swift = ['swiftc']
         self.default_vala = ['valac']
+        self.default_cython = [['cython']]
         self.default_static_linker = ['ar', 'gar']
         self.default_strip = ['strip']
         self.vs_static_linker = ['lib']
@@ -1757,6 +1759,30 @@ class Environment:
 
         self._handle_exceptions(popen_exceptions, compilers)
 
+    def detect_cython_compiler(self, for_machine: MachineChoice) -> CythonCompiler:
+        """Search for a cython compiler."""
+        compilers = self.lookup_binary_entry(for_machine, 'cython')
+        is_cross = self.is_cross_build(for_machine)
+        info = self.machines[for_machine]
+        if compilers is None:
+            # TODO support fallback
+            compilers = [self.default_cython[0]]
+
+        popen_exceptions: T.Dict[str, Exception] = {}
+        for comp in compilers:
+            try:
+                err = Popen_safe(comp + ['-V'])[2]
+            except OSError as e:
+                popen_exceptions[' '.join(comp + ['-V'])] = e
+                continue
+
+            version = search_version(err)
+            if 'Cython' in err:
+                comp_class = CythonCompiler
+                self.coredata.add_lang_args(comp_class.language, comp_class, for_machine, self)
+                return comp_class(comp, version, for_machine, info, is_cross=is_cross)
+        self._handle_exceptions(popen_exceptions, compilers)
+
     def detect_vala_compiler(self, for_machine):
         exelist = self.lookup_binary_entry(for_machine, 'vala')
         is_cross = self.is_cross_build(for_machine)
@@ -2023,6 +2049,8 @@ class Environment:
             comp = self.detect_fortran_compiler(for_machine)
         elif lang == 'swift':
             comp = self.detect_swift_compiler(for_machine)
+        elif lang == 'cython':
+            comp = self.detect_cython_compiler(for_machine)
         else:
             comp = None
         return comp
