@@ -1,0 +1,7 @@
+prefix=/foo
+libdir=${prefix}/dummy
+
+Name: std_cpp_1
+Description: Nonexisting lib but specifies a C++ standard
+Version: 1.0.0
+Cflags: -std=c++11
