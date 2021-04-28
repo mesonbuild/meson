@@ -36,8 +36,10 @@ var2 = 102
 ```
 
 One important difference in how variables work in Meson is that all
-objects are immutable. This is different from, for example, how Python
-works.
+objects are immutable. When you see an operation which appears like
+a mutation, actually a new object is created and assigned to the
+name. This is different from, for example, how Python works for
+objects, but similar to e.g. Python strings.
 
 ```meson
 var1 = [1, 2, 3]
