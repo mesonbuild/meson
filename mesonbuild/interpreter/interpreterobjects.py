@@ -355,6 +355,7 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
                              'name': self.name_method,
                              'get_pkgconfig_variable': self.pkgconfig_method,
                              'get_configtool_variable': self.configtool_method,
+                             'get_include_paths': self.include_paths_method,
                              'get_variable': self.variable_method,
                              'partial_dependency': self.partial_dependency_method,
                              'include_type': self.include_type_method,
@@ -411,6 +412,12 @@ class DependencyHolder(InterpreterObject, ObjectHolder[Dependency]):
         if not isinstance(varname, str):
             raise InterpreterException('Variable name must be a string.')
         return self.held_object.get_configtool_variable(varname)
+
+    @FeatureNew('dep.get_include_paths', '0.58.0')
+    @noPosargs
+    @permittedKwargs({})
+    def include_paths_method(self, args, kwargs):
+        return self.held_object.get_include_paths()
 
     @FeatureNew('dep.partial_dependency', '0.46.0')
     @noPosargs

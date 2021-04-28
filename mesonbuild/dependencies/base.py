@@ -142,6 +142,16 @@ class Dependency:
         return list(itertools.chain(self.get_compile_args(),
                                     *[d.get_all_compile_args() for d in self.ext_deps]))
 
+    def get_include_paths(self) -> T.List[str]:
+        include_paths = []
+        for arg in self.get_compile_args():
+            match = re.match(r'^[-/](?:I|isystem)=?(.*)$', arg)
+            if match and match.group(1):
+                include_paths.append(match.group(1))
+        for dep in self.ext_deps:
+            include_paths.extend(dep.get_include_paths())
+        return include_paths
+
     def get_link_args(self, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
@@ -266,6 +276,13 @@ class InternalDependency(Dependency):
         if self.sources or self.libraries or self.whole_libraries:
             return True
         return any(d.is_built() for d in self.ext_deps)
+
+    def get_include_paths(self) -> T.List[str]:
+        out = [os.path.join(inc.get_curdir(), d)
+               for inc in self.include_directories
+               for d in inc.get_incdirs()]
+        out.extend(super().get_include_paths())
+        return out
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException('Method "get_pkgconfig_variable()" is '

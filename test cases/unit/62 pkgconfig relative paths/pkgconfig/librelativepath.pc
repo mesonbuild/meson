@@ -6,4 +6,4 @@ Name: Relative path
 Description: Relative path library
 Version: 0.0.1
 Libs: -L${libdir} -lrelativepath
-Cflags:
+Cflags: -I/include/dir
