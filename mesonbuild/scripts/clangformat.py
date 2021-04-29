@@ -36,12 +36,17 @@ def parse_pattern_file(fname: Path) -> T.List[str]:
     return patterns
 
 def run_clang_format(exelist: T.List[str], fname: Path, check: bool) -> subprocess.CompletedProcess:
+    if check:
+        original = fname.read_bytes()
     before = fname.stat().st_mtime
-    ret = subprocess.run(exelist + ['-style=file', '-i', str(fname)])
+    args = ['-style=file', '-i', str(fname)]
+    ret = subprocess.run(exelist + args)
     after = fname.stat().st_mtime
     if before != after:
         print('File reformatted: ', fname)
         if check:
+            # Restore the original if only checking.
+            fname.write_bytes(original)
             ret.returncode = 1
     return ret
 
