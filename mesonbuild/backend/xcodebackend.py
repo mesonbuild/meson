@@ -219,7 +219,7 @@ class XCodeBackend(backends.Backend):
 
     def get_target_dir(self, target):
         dirname = os.path.join(target.get_subdir(), self.environment.coredata.get_option(OptionKey('buildtype')))
-        os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
+        #os.makedirs(os.path.join(self.environment.get_build_dir(), dirname), exist_ok=True)
         return dirname
 
     def get_custom_target_output_dir(self, target):
@@ -1056,7 +1056,7 @@ class XCodeBackend(backends.Backend):
         project_dict.add_item('compatibilityVersion', '"Xcode 3.2"')
         project_dict.add_item('hasScannedForEncodings', 0)
         project_dict.add_item('mainGroup', self.maingroup_id)
-        project_dict.add_item('projectDirPath', f'"{self.build_to_src}"')
+        project_dict.add_item('projectDirPath', '"' + self.environment.get_source_dir() + '"')
         project_dict.add_item('projectRoot', '""')
         targets_arr = PbxArray()
         project_dict.add_item('targets', targets_arr)
