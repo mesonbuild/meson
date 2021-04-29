@@ -5634,7 +5634,7 @@ class AllPlatformTests(BasePlatformTests):
         self._run(cmd + python_command + [script])
         self.assertEqual('This is text.', self._run(cmd + [app]).strip())
 
-    def test_clang_format(self):
+    def test_clang_format_check(self):
         if self.backend is not Backend.ninja:
             raise unittest.SkipTest(f'Skipping clang-format tests with {self.backend.name} backend')
         if not shutil.which('clang-format'):
@@ -5658,9 +5658,10 @@ class AllPlatformTests(BasePlatformTests):
             output = self.build('clang-format-check')
             self.assertEqual(1, output.count('File reformatted:'))
 
-        # All code has been reformatted already, so it should be no-op now.
+        # The check format should not touch any files. Thus
+        # running format again has some work to do.
         output = self.build('clang-format')
-        self.assertEqual(0, output.count('File reformatted:'))
+        self.assertEqual(1, output.count('File reformatted:'))
         self.build('clang-format-check')
 
     def test_custom_target_implicit_include(self):
