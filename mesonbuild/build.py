@@ -916,12 +916,12 @@ class BuildTarget(Target):
             result += i.get_all_link_deps()
         return result
 
-    def get_link_deps_mapping(self, prefix, environment):
+    def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return self.get_transitive_link_deps_mapping(prefix, environment)
 
     @lru_cache(maxsize=None)
-    def get_transitive_link_deps_mapping(self, prefix, environment):
-        result = {}
+    def get_transitive_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
+        result: T.Dict[str, str] = {}
         for i in self.link_targets:
             mapping = i.get_link_deps_mapping(prefix, environment)
             #we are merging two dictionaries, while keeping the earlier one dominant
@@ -932,7 +932,7 @@ class BuildTarget(Target):
 
     @lru_cache(maxsize=None)
     def get_link_dep_subdirs(self):
-        result = OrderedSet()
+        result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
             if not isinstance(i, StaticLibrary):
                 result.add(i.get_subdir())
@@ -1831,7 +1831,7 @@ class StaticLibrary(BuildTarget):
         if not isinstance(self.prelink, bool):
             raise InvalidArguments('Prelink keyword argument must be a boolean.')
 
-    def get_link_deps_mapping(self, prefix, environment):
+    def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return {}
 
     def get_default_install_dir(self, environment):
@@ -1886,7 +1886,7 @@ class SharedLibrary(BuildTarget):
         self.basic_filename_tpl = '{0.prefix}{0.name}.{0.suffix}'
         self.determine_filenames(environment)
 
-    def get_link_deps_mapping(self, prefix, environment) -> T.Dict[str, str]:
+    def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         result: T.Dict[str, str] = {}
         mappings = self.get_transitive_link_deps_mapping(prefix, environment)
         old = get_target_macos_dylib_install_name(self)
@@ -2433,7 +2433,7 @@ class CustomTarget(Target, CommandBase):
         if suf == '.a' or suf == '.dll' or suf == '.lib' or suf == '.so' or suf == '.dylib':
             return True
 
-    def get_link_deps_mapping(self, prefix, environment):
+    def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return {}
 
     def get_link_dep_subdirs(self):
@@ -2565,7 +2565,7 @@ class CustomTargetIndex:
     the sources.
     """
 
-    def __init__(self, target, output):
+    def __init__(self, target: CustomTarget, output: int):
         self.typename = 'custom'
         self.target = target
         self.output = output
@@ -2590,7 +2590,7 @@ class CustomTargetIndex:
     def get_all_link_deps(self):
         return self.target.get_all_link_deps()
 
-    def get_link_deps_mapping(self, prefix, environment):
+    def get_link_deps_mapping(self, prefix: str, environment: environment.Environment) -> T.Mapping[str, str]:
         return self.target.get_link_deps_mapping(prefix, environment)
 
     def get_link_dep_subdirs(self):
