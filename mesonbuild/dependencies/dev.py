@@ -475,13 +475,18 @@ class ZlibSystemDependency(ExternalDependency):
         # from something to macOS?
         if ((m.is_darwin() and isinstance(self.clib_compiler, (AppleClangCCompiler, AppleClangCPPCompiler))) or
                 m.is_freebsd() or m.is_dragonflybsd()):
-            self.is_found = True
-            self.link_args = ['-lz']
-
             # No need to set includes,
             # on macos xcode/clang will do that for us.
             # on freebsd zlib.h is in /usr/include
+
+            self.is_found = True
+            self.link_args = ['-lz']
         elif m.is_windows():
+            # Without a clib_compiler we can't find zlib, s just give up.
+            if self.clib_compiler is None:
+                self.is_found = False
+                return
+
             if self.clib_compiler.get_argument_syntax() == 'msvc':
                 libs = ['zlib1' 'zlib']
             else:
