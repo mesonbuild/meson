@@ -510,7 +510,7 @@ class GnomeModule(ExtensionModule):
         return self.gir_dep, self.giscanner, self.gicompiler
 
     @functools.lru_cache(maxsize=None)
-    def _gir_has_option(self, option):
+    def _gir_has_option(self, option) -> bool:
         exe = self.giscanner
         if hasattr(exe, 'held_object'):
             exe = exe.held_object

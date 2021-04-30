@@ -2744,7 +2744,7 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)
-    def guess_library_absolute_path(self, linker, libname, search_dirs, patterns):
+    def guess_library_absolute_path(self, linker, libname, search_dirs, patterns) -> Path:
         for d in search_dirs:
             for p in patterns:
                 trial = CCompiler._get_trials_from_pattern(p, d, libname)
