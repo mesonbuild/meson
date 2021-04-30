@@ -40,7 +40,7 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
-    from ._typing import ImmutableListProtocol
+    from ._typing import ImmutableListProtocol, ImmutableSetProtocol
     from .interpreter.interpreter import Test, SourceOutputs
     from .mesonlib import FileMode, FileOrString
     from .backend.backends import Backend
@@ -931,7 +931,7 @@ class BuildTarget(Target):
         return result
 
     @lru_cache(maxsize=None)
-    def get_link_dep_subdirs(self):
+    def get_link_dep_subdirs(self) -> 'ImmutableSetProtocol[str]':
         result: OrderedSet[str] = OrderedSet()
         for i in self.link_targets:
             if not isinstance(i, StaticLibrary):
