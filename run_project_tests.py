@@ -999,7 +999,7 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
             self.category = category                  # category name
             self.subdir = subdir                      # subdirectory
             self.skip = skip                          # skip condition
-            self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this categroy
+            self.stdout_mandatory = stdout_mandatory  # expected stdout is mandatory for tests in this category
 
     all_tests = [
         TestCategory('cmake', 'cmake', not shutil.which('cmake') or (os.environ.get('compiler') == 'msvc2015' and under_ci)),
@@ -1036,6 +1036,8 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     assert categories == ALL_TESTS, 'argparse("--only", choices=ALL_TESTS) need to be updated to match all_tests categories'
 
     if only:
+        for key in only.keys():
+            assert key in categories, 'key `{}` is not a recognized category'.format(key)
         all_tests = [t for t in all_tests if t.category in only.keys()]
 
     gathered_tests = [(t.category, gather_tests(Path('test cases', t.subdir), t.stdout_mandatory, only[t.category]), t.skip) for t in all_tests]
