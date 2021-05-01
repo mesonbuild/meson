@@ -47,30 +47,8 @@ class ObjCPPCompiler(CLikeCompiler, Compiler):
         return 'Objective-C++'
 
     def sanity_check(self, work_dir: str, environment: 'Environment') -> None:
-        # TODO try to use sanity_check_impl instead of duplicated code
-        source_name = os.path.join(work_dir, 'sanitycheckobjcpp.mm')
-        binary_name = os.path.join(work_dir, 'sanitycheckobjcpp')
-        extra_flags: T.List[str] = []
-        extra_flags += environment.coredata.get_external_args(self.for_machine, self.language)
-        if self.is_cross:
-            extra_flags += self.get_compile_only_args()
-        else:
-            extra_flags += environment.coredata.get_external_link_args(self.for_machine, self.language)
-        with open(source_name, 'w') as ofile:
-            ofile.write('#import<stdio.h>\n'
-                        'class MyClass;'
-                        'int main(void) { return 0; }\n')
-        pc = subprocess.Popen(self.exelist + extra_flags + [source_name, '-o', binary_name])
-        pc.wait()
-        if pc.returncode != 0:
-            raise EnvironmentException('ObjC++ compiler %s can not compile programs.' % self.name_string())
-        if self.is_cross:
-            # Can't check if the binaries run so we have to assume they do
-            return
-        pe = subprocess.Popen(binary_name)
-        pe.wait()
-        if pe.returncode != 0:
-            raise EnvironmentException('Executables created by ObjC++ compiler %s are not runnable.' % self.name_string())
+        code = '#import<stdio.h>\nclass MyClass;int main(void) { return 0; }\n'
+        return self._sanity_check_impl(work_dir, environment, 'sanitycheckobjcpp.mm', code)
 
 
 class GnuObjCPPCompiler(GnuCompiler, ObjCPPCompiler):
