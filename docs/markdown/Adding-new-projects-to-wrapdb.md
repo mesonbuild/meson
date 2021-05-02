@@ -252,10 +252,16 @@ to functionality. All such changes must be submitted to upstream. You
 may also host your own Git repo with the changes if you wish. The Wrap
 system has native support for Git subprojects.
 
-## Reviewing wraps
+## Passing automatic validation
 
-See [Wrap review guidelines](Wrap-review-guidelines.md), especially
-the part about tooling that you can use to check for the most common
-problems yourself. Fixing all issues reported by the tool is a
-mandatory requirement for getting your MR accepted, so doing this
-proactively makes the review process smoother.
+Every submitted wrap goes through an automated correctness review and
+passing it is a requirement for merging. Therefore it is highly
+recommended that you run the validation checks yourself so you can fix
+any issues faster.
+
+Instructions on how to install and run the review tool can be found on
+the [Wrap review guidelines page](Wrap-review-guidelines.md).  If your
+submission is merge request number 5 for a repository called `mylib`,
+then you'd run the following command:
+
+    mesonwrap review --pull-request 5 mylib
