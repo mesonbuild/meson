@@ -2126,7 +2126,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_do_conf_file_by_format(self):
         def conf_str(in_data, confdata, vformat):
-            (result, missing_variables, confdata_useless) = mesonbuild.mesonlib.do_conf_str(in_data, confdata, variable_format = vformat)
+            (result, missing_variables, confdata_useless) = mesonbuild.mesonlib.do_conf_str('configuration_file', in_data, confdata, variable_format = vformat)
             return '\n'.join(result)
 
         def check_formats(confdata, result):

@@ -1096,7 +1096,7 @@ def get_variable_regex(variable_format: str = 'meson') -> T.Pattern[str]:
         raise MesonException(f'Format "{variable_format}" not handled')
     return regex
 
-def do_conf_str (data: list, confdata: 'ConfigurationData', variable_format: str,
+def do_conf_str (src: str, data: list, confdata: 'ConfigurationData', variable_format: str,
                  encoding: str = 'utf-8') -> T.Tuple[T.List[str],T.Set[str], bool]:
     def line_is_valid(line : str, variable_format: str) -> bool:
         if variable_format == 'meson':
@@ -1124,7 +1124,7 @@ def do_conf_str (data: list, confdata: 'ConfigurationData', variable_format: str
             line = do_define(regex, line, confdata, variable_format)
         else:
             if not line_is_valid(line,variable_format):
-                raise MesonException(f'Format "{variable_format}" mismatched')
+                raise MesonException(f'Format error in {src}: saw "{line.strip()}" when format set to "{variable_format}"')
             line, missing = do_replacement(regex, line, variable_format, confdata)
             missing_variables.update(missing)
             if missing:
@@ -1141,7 +1141,7 @@ def do_conf_file(src: str, dst: str, confdata: 'ConfigurationData', variable_for
     except Exception as e:
         raise MesonException('Could not read input file {}: {}'.format(src, str(e)))
 
-    (result, missing_variables, confdata_useless) = do_conf_str(data, confdata, variable_format, encoding)
+    (result, missing_variables, confdata_useless) = do_conf_str(src, data, confdata, variable_format, encoding)
     dst_tmp = dst + '~'
     try:
         with open(dst_tmp, 'w', encoding=encoding, newline='') as f:
