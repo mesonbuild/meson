@@ -20,6 +20,12 @@ if not py_platlib.endswith('site-packages')
   error('Python3 platlib path seems invalid? ' + py_platlib)
 endif
 
+py_installdir = py.get_install_dir()
+if not py_installdir.startswith(py_purelib)
+  error('Python3 install dir seems invalid? ' + py_installdir)
+endif
+
+
 main = files('prog.py')
 
 test('toplevel', py, args : main)
