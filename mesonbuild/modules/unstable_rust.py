@@ -27,6 +27,7 @@ if T.TYPE_CHECKING:
     from . import ModuleState
     from ..interpreter import Interpreter
     from ..programs import ExternalProgram
+    from ..interpreter.interpreter import SourceOutputs
 
 
 class RustModule(ExtensionModule):
@@ -139,8 +140,8 @@ class RustModule(ExtensionModule):
         The main thing this simplifies is the use of `include_directory`
         objects, instead of having to pass a plethora of `-I` arguments.
         """
-        header: T.Union[File, CustomTarget, GeneratedList, CustomTargetIndex]
-        _deps: T.Sequence[T.Union[File, CustomTarget, GeneratedList, CustomTargetIndex]]
+        header: 'SourceOutputs'
+        _deps: T.Sequence['SourceOutputs']
         try:
             header, *_deps = unholder(self.interpreter.source_strings_to_files(listify(kwargs['input'])))
         except KeyError:
@@ -158,7 +159,7 @@ class RustModule(ExtensionModule):
         bind_args: T.List[str] = stringlistify(listify(kwargs.get('args', [])))
 
         # Split File and Target dependencies to add pass to CustomTarget
-        depends: T.List[BuildTarget] = []
+        depends: T.List[T.Union[GeneratedList, BuildTarget, CustomTargetIndex]] = []
         depend_files: T.List[File] = []
         for d in _deps:
             if isinstance(d, File):
