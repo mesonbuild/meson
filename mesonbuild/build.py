@@ -695,7 +695,7 @@ class BuildTarget(Target):
                 self.generated.append(s)
 
     @staticmethod
-    def can_compile_remove_sources(compiler, sources):
+    def can_compile_remove_sources(compiler: 'Compiler', sources: T.List['FileOrString']) -> bool:
         removed = False
         for s in sources[:]:
             if compiler.can_compile(s):
