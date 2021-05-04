@@ -2822,7 +2822,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         for_machine = self.machine_from_native_kwarg(kwargs)
         if 'sources' in kwargs:
             sources += listify(kwargs['sources'])
-        sources = self.source_strings_to_files(sources)
+        sources, structured_src = self._structured_input_to_files(sources)
         objs = extract_as_list(kwargs, 'objects')
         kwargs['dependencies'] = extract_as_list(kwargs, 'dependencies')
         kwargs['install_mode'] = self._get_kwarg_install_mode(kwargs)
@@ -2850,7 +2850,7 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         kwargs = {k: v for k, v in kwargs.items() if k in targetclass.known_kwargs}
 
         kwargs['include_directories'] = self.extract_incdirs(kwargs)
-        target = targetclass(name, self.subdir, self.subproject, for_machine, sources, objs, self.environment, kwargs)
+        target = targetclass(name, self.subdir, self.subproject, for_machine, sources, structured_src, objs, self.environment, kwargs)
         target.project_version = self.project_version
 
         self.add_stdlib_info(target)
