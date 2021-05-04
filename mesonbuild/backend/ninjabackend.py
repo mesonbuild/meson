@@ -1582,8 +1582,7 @@ int dummy;
         # Rust is super annoying, calling -C link-arg foo does not work, it has
         # to be -C link-arg=foo
         if cratetype in {'bin', 'dylib'}:
-            for a in rustc.linker.get_always_args():
-                args += ['-C', f'link-arg={a}']
+            args.extend(rustc.get_linker_always_args())
 
         opt_proxy = self.get_compiler_options_for_target(target)
 
