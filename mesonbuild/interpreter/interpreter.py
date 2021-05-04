@@ -68,8 +68,9 @@ if T.TYPE_CHECKING:
     SourceInputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
                            CustomTargetIndexHolder, GeneratedObjectsHolder, str]
     # Input source types passed to the build.Target5 classes
-    SourceOutputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
-                            CustomTargetIndexHolder, GeneratedObjectsHolder]
+    SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
+                            build.BuildTarget, build.CustomTargetIndex,
+                            build.GeneratedList]
 
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
@@ -2705,13 +2706,16 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         for s in sources:
             if isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
-                s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
-            elif not isinstance(s, (mesonlib.File, GeneratedListHolder,
-                                    TargetHolder, CustomTargetIndexHolder,
-                                    GeneratedObjectsHolder)):
-                raise InterpreterException('Source item is {!r} instead of '
-                                           'string or File-type object'.format(s))
-            results.append(s)
+                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+            elif isinstance(s, mesonlib.File):
+                results.append(s)
+            elif isinstance(s, (GeneratedListHolder, TargetHolder,
+                                CustomTargetIndexHolder,
+                                GeneratedObjectsHolder)):
+                results.append(unholder(s))
+            else:
+                raise InterpreterException(f'Source item is {s!r} instead of '
+                                           'string or File-type object')
         return results
 
     def add_target(self, name, tobj):
