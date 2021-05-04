@@ -2714,6 +2714,26 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
             results.append(s)
         return results
 
+    def _structured_input_to_files(self, sources: T.List[T.Union[T.Dict[str, 'SourceInputs'], T.List['SourceInputs']]]) -> \
+            T.Tuple[T.List['SourceOutputs'], T.Dict[str, 'SourceOutputs']]:
+        """Split and lower inputs into structued and unstructured containers of
+        Files and targets.
+
+        :param sources: A raw (Meson DSL) list of mixed structured and
+            unustructued inputs
+        :raises InterpreterException: if any of the inputs are invalid
+        :return: A tuple of unstructured inputs and structured inputs
+        """
+        sources = listify(sources, flatten=True)
+        structured: T.List[T.Dict[str, mesonlib.File]] = []
+        unstructured: T.List[mesonlib.File] = []
+        for each in sources:
+            if isinstance(each, dict):
+                structured.append({k: self.source_strings_to_files(v) for k, v in each.items()})
+            else:
+                unstructured.extend(self.source_strings_to_files(each))
+        return unstructured, structured
+
     def add_target(self, name, tobj):
         if name == '':
             raise InterpreterException('Target name must not be empty.')
