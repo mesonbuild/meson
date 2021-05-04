@@ -13,3 +13,16 @@ conf_file = executable(
     'foo' : [foo_mod_rs],
   },
 )
+
+ct = custom_target(
+  'foo.rs',
+  output : 'foo.rs',
+  command : ['gen.py', '@OUTPUT@'],
+)
+
+target = executable(
+  'main_custom_target',
+  {
+    '' : ['src/main.rs', ct],
+  },
+)

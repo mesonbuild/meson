@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import typing as T
 import os
 import re
@@ -43,12 +44,13 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
-from ..build import GeneratedList, InvalidArguments
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList, InvalidArguments
 from ..interpreter import Interpreter
 
 if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
     from ..compilers.cs import CsCompiler
+    from ..interpreter.interpreter import SourceOutputs
 
 
 FORTRAN_INCLUDE_PAT = r"^\s*#?include\s*['\"](\w+\.\w+)['\"]"
@@ -1122,6 +1124,8 @@ int dummy;
         self.add_rule(NinjaRule('CUSTOM_COMMAND_DEP', ['$COMMAND'], [], '$DESC',
                                 deps='gcc', depfile='$DEPFILE',
                                 extra='restat = 1'))
+        self.add_rule(NinjaRule('COPY_FILE', self.environment.get_build_command() + ['--internal', 'copy'],
+                                ['$in', '$out'], 'Copying $in to $out'))
 
         c = self.environment.get_build_command() + \
             ['--internal',
@@ -1532,6 +1536,31 @@ int dummy;
         self.create_target_source_introspection(target, valac, args, all_files, [])
         return other_src[0], other_src[1], vala_c_src
 
+    def _generate_copy_target(self, src: 'mesonlib.FileOrString', output: Path) -> None:
+        """Create a target to copy a source file from one location to another."""
+        if isinstance(src, File):
+            instr = src.absolute_path(self.environment.source_dir, self.environment.build_dir)
+        else:
+            instr = src
+        elem = NinjaBuildElement(self.all_outputs, [str(output)], 'COPY_FILE', [instr])
+        elem.add_orderdep(instr)
+        self.add_build(elem)
+
+    def __need_structured_compile(self, target: build.BuildTarget) -> bool:
+        """Do we need to generate copies create a build tree?
+
+        We only need a structured in compile if any of the following is true:
+        1) there is any kind of generated file in our tree
+        2) Any file lives in the tree somewhere other than the described tree
+        """
+        p = Path(target.subdir)
+        for struct in target.structured_sources:
+            for path, files in struct.items():
+                for f in files:
+                    if not isinstance(f, File) or f.is_built or (p / path / f.fname).exists():
+                        return True
+        return False
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1546,6 +1575,29 @@ int dummy;
         orderdeps = [os.path.join(t.subdir, t.get_filename()) for t in target.link_targets]
 
         main_rust_file = None
+        assert len(target.structured_sources) <= 1, "TODO"
+        if target.structured_sources:
+            if self.__need_structured_compile(target):
+                root = Path(self.get_target_private_dir(target)) / 'structured'
+                for struct in target.structured_sources:
+                    for path, files in struct.items():
+                        for file in files:
+                            if isinstance(file, File):
+                                out = root / path / Path(file.fname).name
+                                orderdeps.append(str(out))
+                                self._generate_copy_target(file, out)
+                                if main_rust_file is None:
+                                    main_rust_file = str(out)
+                            else:
+                                for f in file.get_outputs():
+                                    out = root / path / f
+                                    orderdeps.append(str(out))
+                                    self._generate_copy_target(str(Path(file.subdir) / f), out)
+                                    if main_rust_file is None:
+                                        main_rust_file = str(out)
+            else:
+                main_rust_file = target.structured_sources[0][''][0]
+
         for i in target.get_sources():
             if not rustc.can_compile(i):
                 raise InvalidArguments(f'Rust target {target.get_basename()} contains a non-rust source file.')
