@@ -162,3 +162,9 @@ class RustCompiler(Compiler):
         if colortype in {'always', 'never', 'auto'}:
             return [f'--color={colortype}']
         raise MesonException(f'Invalid color type for rust {colortype}')
+
+    def get_linker_always_args(self) -> T.List[str]:
+        args: T.List[str] = []
+        for a in super().get_linker_always_args():
+            args.extend(['-C', f'link-arg={a}'])
+        return args

@@ -1561,6 +1561,28 @@ int dummy;
                         return True
         return False
 
+    def __generate_compile_structure(self, target: build.BuildTarget) -> T.Tuple[T.List[str], T.Optional[str]]:
+        first_file: T.Optional[str] = None
+        orderdeps: T.List[str] = []
+        root = Path(self.get_target_private_dir(target)) / 'structured'
+        for struct in target.structured_sources:
+            for path, files in struct.items():
+                for file in files:
+                    if isinstance(file, File):
+                        out = root / path / Path(file.fname).name
+                        orderdeps.append(str(out))
+                        self._generate_copy_target(file, out)
+                        if first_file is None:
+                            first_file = str(out)
+                    else:
+                        for f in file.get_outputs():
+                            out = root / path / f
+                            orderdeps.append(str(out))
+                            self._generate_copy_target(str(Path(file.subdir) / f), out)
+                            if first_file is None:
+                                first_file = str(out)
+        return orderdeps, first_file
+
     def generate_rust_target(self, target: build.BuildTarget) -> None:
         rustc = target.compilers['rust']
         # Rust compiler takes only the main file as input and
@@ -1578,23 +1600,8 @@ int dummy;
         assert len(target.structured_sources) <= 1, "TODO"
         if target.structured_sources:
             if self.__need_structured_compile(target):
-                root = Path(self.get_target_private_dir(target)) / 'structured'
-                for struct in target.structured_sources:
-                    for path, files in struct.items():
-                        for file in files:
-                            if isinstance(file, File):
-                                out = root / path / Path(file.fname).name
-                                orderdeps.append(str(out))
-                                self._generate_copy_target(file, out)
-                                if main_rust_file is None:
-                                    main_rust_file = str(out)
-                            else:
-                                for f in file.get_outputs():
-                                    out = root / path / f
-                                    orderdeps.append(str(out))
-                                    self._generate_copy_target(str(Path(file.subdir) / f), out)
-                                    if main_rust_file is None:
-                                        main_rust_file = str(out)
+                _ods, main_rust_file = self.__generate_compile_structure(target)
+                orderdeps.extend(_ods)
             else:
                 main_rust_file = target.structured_sources[0][''][0]
 
@@ -1634,8 +1641,7 @@ int dummy;
         # Rust is super annoying, calling -C link-arg foo does not work, it has
         # to be -C link-arg=foo
         if cratetype in {'bin', 'dylib'}:
-            for a in rustc.linker.get_always_args():
-                args += ['-C', f'link-arg={a}']
+            args.extend(rustc.get_linker_always_args())
 
         opt_proxy = self.get_compiler_options_for_target(target)
 
