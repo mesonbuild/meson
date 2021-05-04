@@ -40,7 +40,7 @@ from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
-    from .interpreter import Test
+    from .interpreter.interpreter import Test, SourceOutputs
     from .mesonlib import FileMode, FileOrString
     from .mesonlib.backend import Backend
 
@@ -589,12 +589,11 @@ class BuildTarget(Target):
     known_kwargs = known_build_target_kwargs
 
     def __init__(self, name: str, subdir: str, subproject: str, for_machine: MachineChoice,
-                 sources: T.List[File], objects, environment: environment.Environment, kwargs):
+                 sources: T.List['SourceOutputs'], objects, environment: environment.Environment, kwargs):
         super().__init__(name, subdir, subproject, True, for_machine)
         unity_opt = environment.coredata.get_option(OptionKey('unity'))
         self.is_unity = unity_opt == 'on' or (unity_opt == 'subprojects' and subproject != '')
         self.environment = environment
-        self.sources: T.List[File] = []
         self.compilers = OrderedDict() # type: OrderedDict[str, Compiler]
         self.objects = []
         self.external_deps = []
@@ -613,6 +612,7 @@ class BuildTarget(Target):
         self.need_install = False
         self.pch = {}
         self.extra_args: T.Dict[str, T.List['FileOrString']] = {}
+        self.sources: T.List[File] = []
         self.generated: T.Sequence[T.Union[GeneratedList, CustomTarget, CustomTargetIndex]] = []
         self.d_features = {}
         self.pic = False

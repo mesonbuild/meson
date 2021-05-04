@@ -68,8 +68,9 @@ if T.TYPE_CHECKING:
     SourceInputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
                            CustomTargetIndexHolder, GeneratedObjectsHolder, str]
     # Input source types passed to the build.Target5 classes
-    SourceOutputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
-                            CustomTargetIndexHolder, GeneratedObjectsHolder]
+    SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
+                            build.BuildTarget, build.CustomTargetIndex,
+                            build.GeneratedList]
 
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
@@ -2705,13 +2706,16 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         for s in sources:
             if isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
-                s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
-            elif not isinstance(s, (mesonlib.File, GeneratedListHolder,
-                                    TargetHolder, CustomTargetIndexHolder,
-                                    GeneratedObjectsHolder)):
-                raise InterpreterException('Source item is {!r} instead of '
-                                           'string or File-type object'.format(s))
-            results.append(s)
+                results.append(mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s))
+            elif isinstance(s, mesonlib.File):
+                results.append(s)
+            elif isinstance(s, (GeneratedListHolder, TargetHolder,
+                                CustomTargetIndexHolder,
+                                GeneratedObjectsHolder)):
+                results.append(unholder(s))
+            else:
+                raise InterpreterException(f'Source item is {s!r} instead of '
+                                           'string or File-type object')
         return results
 
     def _structured_input_to_files(self, sources: T.List[T.Union[T.Dict[str, 'SourceInputs'], T.List['SourceInputs']]]) -> \
@@ -2725,8 +2729,8 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         :return: A tuple of unstructured inputs and structured inputs
         """
         sources = listify(sources, flatten=True)
-        structured: T.List[T.Dict[str, mesonlib.File]] = []
-        unstructured: T.List[mesonlib.File] = []
+        structured: T.List[T.Dict[str, 'SourceOutputs']] = []
+        unstructured: T.List['SourceOutputs'] = []
         for each in sources:
             if isinstance(each, dict):
                 structured.append({k: self.source_strings_to_files(v) for k, v in each.items()})
