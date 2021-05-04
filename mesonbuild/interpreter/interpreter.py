@@ -64,6 +64,13 @@ if T.TYPE_CHECKING:
     from ..envconfig import MachineInfo
     from ..environment import Environment
 
+    # Input source types passed to Targets
+    SourceInputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
+                           CustomTargetIndexHolder, GeneratedObjectsHolder, str]
+    # Input source types passed to the build.Target5 classes
+    SourceOutputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
+                            CustomTargetIndexHolder, GeneratedObjectsHolder]
+
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
         return '[%s]' % ', '.join([stringifyUserArguments(x, True) for x in args])
@@ -2683,20 +2690,25 @@ Try setting b_lundef to false instead.'''.format(self.coredata.options[OptionKey
         if project_root / self.subproject_dir in norm.parents:
             raise InterpreterException(f'Sandbox violation: Tried to grab {inputtype} {norm.name} from a nested subproject.')
 
-    def source_strings_to_files(self, sources: T.List[str]) -> T.List[mesonlib.File]:
+    def source_strings_to_files(self, sources: T.List['SourceInputs']) -> T.List['SourceOutputs']:
+        """Lower inputs to a list of Targets and Files, replacing any strings.
+
+        :param sources: A raw (Meson DSL) list of inputs (targets, files, and
+            strings)
+        :raises InterpreterException: if any of the inputs are of an invalid type
+        :return: A list of Targets and Files
+        """
         mesonlib.check_direntry_issues(sources)
         if not isinstance(sources, list):
             sources = [sources]
-        results: T.List[mesonlib.File] = []
+        results: T.List['SourceOutputs'] = []
         for s in sources:
-            if isinstance(s, (mesonlib.File, GeneratedListHolder,
-                              TargetHolder, CustomTargetIndexHolder,
-                              GeneratedObjectsHolder)):
-                pass
-            elif isinstance(s, str):
+            if isinstance(s, str):
                 self.validate_within_subproject(self.subdir, s)
                 s = mesonlib.File.from_source_file(self.environment.source_dir, self.subdir, s)
-            else:
+            elif not isinstance(s, (mesonlib.File, GeneratedListHolder,
+                                    TargetHolder, CustomTargetIndexHolder,
+                                    GeneratedObjectsHolder)):
                 raise InterpreterException('Source item is {!r} instead of '
                                            'string or File-type object'.format(s))
             results.append(s)
