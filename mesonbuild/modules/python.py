@@ -347,7 +347,7 @@ class PythonInstallation(ExternalProgramHolder):
 
         return self.interpreter.func_shared_module(None, args, kwargs)
 
-    @permittedKwargs(permitted_dependency_kwargs)
+    @permittedKwargs(permitted_dependency_kwargs | {'embed'})
     @FeatureNewKwargs('python_installation.dependency', '0.53.0', ['embed'])
     def dependency_method(self, args, kwargs):
         if args:

@@ -176,7 +176,6 @@ permitted_dependency_kwargs = {
     'cmake_package_version',
     'components',
     'default_options',
-    'embed',
     'fallback',
     'include_type',
     'language',
