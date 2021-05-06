@@ -24,7 +24,7 @@ if exists("*GetMesonIndent")
   finish
 endif
 let s:keepcpo= &cpo
-setlocal cpo&vim
+set cpo&vim
 
 " Come here when loading the script the first time.
 
