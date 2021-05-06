@@ -2061,6 +2061,9 @@ class DependencyFactory:
 
 def get_dep_identifier(name, kwargs) -> T.Tuple:
     identifier = (name, )
+    from ..interpreter import permitted_dependency_kwargs
+    assert len(permitted_dependency_kwargs) == 19, \
+           'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches
         # 'native' is handled above with `for_machine`
@@ -2069,7 +2072,10 @@ def get_dep_identifier(name, kwargs) -> T.Tuple:
         #     once a dependency has been found through a fallback, it should
         #     be used for the rest of the Meson run.
         # 'default_options' is only used in fallback case
-        if key in ('version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options'):
+        # 'not_found_message' has no impact on the dependency lookup
+        # 'include_type' is handled after the dependency lookup
+        if key in ('version', 'native', 'required', 'fallback', 'allow_fallback', 'default_options',
+                   'not_found_message', 'include_type'):
             continue
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
