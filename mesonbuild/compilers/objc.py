@@ -14,7 +14,8 @@
 
 import typing as T
 
-from ..mesonlib import MachineChoice
+from .. import coredata
+from ..mesonlib import MachineChoice, OptionKey
 
 from .compilers import Compiler
 from .mixins.clike import CLikeCompiler
@@ -84,6 +85,23 @@ class ClangObjCCompiler(ClangCompiler, ObjCCompiler):
                           '2': default_warn_args + ['-Wextra'],
                           '3': default_warn_args + ['-Wextra', '-Wpedantic']}
 
+    def get_options(self) -> 'coredata.KeyedOptionDictType':
+        opts = super().get_options()
+        opts.update({
+            OptionKey('std', machine=self.for_machine, lang='c'): coredata.UserComboOption(
+                'C language standard to use',
+                ['none', 'c89', 'c99', 'c11', 'c17'],
+                'none',
+            )
+        })
+        return opts
+
+    def get_option_compile_args(self, options: 'coredata.KeyedOptionDictType') -> T.List[str]:
+        args = []
+        std = options[OptionKey('std', machine=self.for_machine, lang='c')]
+        if std.value != 'none':
+            args.append('-std=' + std.value)
+        return args
 
 class AppleClangObjCCompiler(ClangObjCCompiler):
 
