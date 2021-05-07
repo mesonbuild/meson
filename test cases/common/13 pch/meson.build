@@ -13,6 +13,7 @@ subdir('cpp')
 subdir('generated')
 subdir('userDefined')
 subdir('withIncludeDirectories')
+subdir('withIncludeFile')
 
 if meson.backend() == 'xcode'
   warning('Xcode backend only supports one precompiled header per target. Skipping "mixed" which has various precompiled headers.')
