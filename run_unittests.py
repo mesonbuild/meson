@@ -1725,6 +1725,9 @@ class BasePlatformTests(unittest.TestCase):
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
         self.rewrite_test_dir = os.path.join(src_root, 'test cases/rewrite')
         self.linuxlike_test_dir = os.path.join(src_root, 'test cases/linuxlike')
+        self.objc_test_dir = os.path.join(src_root, 'test cases/objc')
+        self.objcpp_test_dir = os.path.join(src_root, 'test cases/objcpp')
+
         # Misc stuff
         self.orig_env = os.environ.copy()
         if self.backend is Backend.ninja:
@@ -6452,6 +6455,18 @@ class DarwinTests(BasePlatformTests):
         env = {'CFLAGS': '-L/tmp -L /var/tmp -headerpad_max_install_names -Wl,-export_dynamic -framework Foundation'}
         self.init(testdir, override_envvars=env)
 
+    def test_objc_versions(self):
+        # Objective-C always uses the C standard version.
+        # Objecttive-C++ always uses the C++ standard version.
+        # This is what most people seem to want and in addition
+        # it is the only setup supported by Xcode.
+        testdir = os.path.join(self.objc_test_dir, '1 simple')
+        self.init(testdir)
+        self.assertIn('-std=c99', self.get_compdb()[0]['command'])
+        self.wipe()
+        testdir = os.path.join(self.objcpp_test_dir, '1 simple')
+        self.init(testdir)
+        self.assertIn('-std=c++14', self.get_compdb()[0]['command'])
 
 @unittest.skipUnless(not is_windows(), "requires something Unix-like")
 class LinuxlikeTests(BasePlatformTests):
