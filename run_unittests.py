@@ -82,7 +82,6 @@ from run_tests import (
 if T.TYPE_CHECKING:
     from mesonbuild.compilers import Compiler
 
-
 URLOPEN_TIMEOUT = 5
 
 @contextmanager
@@ -1704,8 +1703,7 @@ class BasePlatformTests(unittest.TestCase):
         src_root = os.path.join(os.getcwd(), src_root)
         self.src_root = src_root
         # Get the backend
-        # FIXME: Extract this from argv?
-        self.backend = getattr(Backend, os.environ.get('MESON_UNIT_TEST_BACKEND', 'ninja'))
+        self.backend = getattr(Backend, os.environ['MESON_UNIT_TEST_BACKEND'])
         self.meson_args = ['--backend=' + self.backend.name]
         self.meson_native_file = None
         self.meson_cross_file = None
@@ -10010,8 +10008,24 @@ def running_single_tests(argv, cases):
             got_test_arg = True
     return got_test_arg
 
+def setup_backend():
+    filtered = []
+    be = 'ninja'
+    for a in sys.argv:
+        if a.startswith('--backend'):
+            be = a.split('=')[1]
+        else:
+            filtered.append(a)
+    # Since we invoke the tests via unittest or xtest test runner
+    # we need to pass the backend to use to the spawned process via
+    # this side channel. Yes it sucks, but at least is is fully
+    # internal to this file.
+    os.environ['MESON_UNIT_TEST_BACKEND'] = be
+    sys.argv = filtered
+
 def main():
     unset_envs()
+    setup_backend()
     cases = ['InternalTests', 'DataTests', 'AllPlatformTests', 'FailureTests',
              'PythonTests', 'NativeFileTests', 'RewriterTests', 'CrossFileTests',
              'TAPParserTests', 'SubprojectsCommandTests',
