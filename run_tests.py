@@ -346,7 +346,6 @@ def main():
     # Run tests
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
-    env['MESON_UNIT_TEST_BACKEND'] = backend.name
     with tempfile.TemporaryDirectory() as temp_dir:
         # Enable coverage on all subsequent processes.
         if enable_coverage:
@@ -372,7 +371,7 @@ def main():
             else:
                 print(mlog.bold('Running unittests.'))
                 print(flush=True)
-                cmd = mesonlib.python_command + ['run_unittests.py', '-v']
+                cmd = mesonlib.python_command + ['run_unittests.py', '--backend=' + backend.name, '-v']
                 if options.failfast:
                     cmd += ['--failfast']
                 returncode += subprocess.call(cmd, env=env)
