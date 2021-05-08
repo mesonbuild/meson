@@ -6,7 +6,7 @@ short-description: Building a project with Meson
 
 There are two different ways of invoking Meson. First, you can run it
 directly from the source tree with the command
-`/path/to/source/meson.py`. Meson may also be installed in which case
+`/path/to/source/meson.py`. Second, Meson may also be installed in which case
 the command is simply `meson`. In this manual we only use the latter
 format for simplicity.
 
@@ -57,8 +57,8 @@ argument. It can have one of the following values.
 | `release`        | full optimization, no debug info                                                                                                                           |
 
 The build directory is mandatory. The reason for this is that it
-simplifies the build process immensely. Meson will not under any
-circumstances write files inside the source directory (if it does, it
+simplifies the build process immensely. Meson will not, under any
+circumstances, write files inside the source directory (if it does, it
 is a bug and should be fixed). This means that the user does not need
 to add a bunch of files to their revision control's ignore list. It
 also means that you can create arbitrarily many build directories for
@@ -84,10 +84,10 @@ changing to the corresponding directory.
 Unless otherwise mentioned, all following command line invocations are
 meant to be run in the source directory.
 
-By default Meson will use the Ninja backend to build your project. If
+By default, Meson will use the Ninja backend to build your project. If
 you wish to use any of the other backends, you need to pass the
 corresponding argument during configuration time. As an example, here
-is how you would use Meson to generate a Visual studio solution.
+is how you would use Meson to generate a Visual Studio solution.
 
 ```sh
 meson setup <build dir> --backend=vs
