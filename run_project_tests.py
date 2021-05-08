@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright 2012-2019 The Meson development team
+# Copyright 2012-2021 The Meson development team
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
 from mesonbuild.mlog import bold, green, red, yellow
 from mesonbuild.coredata import backendlist, version as meson_version
-
+from mesonbuild.mesonmain import setup_vsenv
 from run_tests import get_fake_options, run_configure, get_meson_script
 from run_tests import get_backend_commands, get_backend_args_for_dir, Backend
 from run_tests import ensure_backend_detects_changes
@@ -1356,6 +1356,7 @@ def clear_transitive_files():
             mesonlib.windows_proof_rm(str(d))
 
 if __name__ == '__main__':
+    setup_vsenv()
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
