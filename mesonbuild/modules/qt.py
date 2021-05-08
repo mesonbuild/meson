@@ -136,7 +136,7 @@ class QtBaseModule(ExtensionModule):
 
             return rcc_dirname, result
         except Exception:
-            return []
+            raise MesonException(f'Unable to parse resource file {abspath}')
 
     def parse_qrc_deps(self, state, rcc_file):
         rcc_dirname, nodes = self.qrc_nodes(state, rcc_file)
