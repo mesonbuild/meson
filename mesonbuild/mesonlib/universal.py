@@ -350,9 +350,8 @@ class FileMode:
         return perms
 
 dot_C_dot_H_warning = """You are using .C or .H files in your project. This is deprecated.
-         Currently, Meson treats this as C code, but this
-            might change in the future, breaking your build.
-         You code also might be already broken on gcc and clang.
+         Currently, Meson treats this as C++ code, but they
+            used to be treated as C code.
          See https://github.com/mesonbuild/meson/pull/8239 for the discussions."""
 class File:
     def __init__(self, is_built: bool, subdir: str, fname: str):
