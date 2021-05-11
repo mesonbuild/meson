@@ -56,6 +56,33 @@ class ModuleState:
         self.target_machine = interpreter.builtin['target_machine'].held_object
         self.current_node = interpreter.current_node
 
+    def get_include_args(self, include_dirs, prefix='-I'):
+        if not include_dirs:
+            return []
+
+        srcdir = self.environment.get_source_dir()
+        builddir = self.environment.get_build_dir()
+
+        dirs_str = []
+        for dirs in unholder(include_dirs):
+            if isinstance(dirs, str):
+                dirs_str += [f'{prefix}{dirs}']
+                continue
+
+            # Should be build.IncludeDirs object.
+            basedir = dirs.get_curdir()
+            for d in dirs.get_incdirs():
+                expdir = os.path.join(basedir, d)
+                srctreedir = os.path.join(srcdir, expdir)
+                buildtreedir = os.path.join(builddir, expdir)
+                dirs_str += [f'{prefix}{buildtreedir}',
+                             f'{prefix}{srctreedir}']
+            for d in dirs.get_extra_build_dirs():
+                dirs_str += [f'{prefix}{d}']
+
+        return dirs_str
+
+
 class ModuleObject:
     """Base class for all objects returned by modules
     """
@@ -70,33 +97,6 @@ class ModuleObject:
 # FIXME: Port all modules to use ModuleObject directly.
 class ExtensionModule(ModuleObject):
     pass
-
-def get_include_args(include_dirs, prefix='-I'):
-    '''
-    Expand include arguments to refer to the source and build dirs
-    by using @SOURCE_ROOT@ and @BUILD_ROOT@ for later substitution
-    '''
-    if not include_dirs:
-        return []
-
-    dirs_str = []
-    for dirs in unholder(include_dirs):
-        if isinstance(dirs, str):
-            dirs_str += [f'{prefix}{dirs}']
-            continue
-
-        # Should be build.IncludeDirs object.
-        basedir = dirs.get_curdir()
-        for d in dirs.get_incdirs():
-            expdir = os.path.join(basedir, d)
-            srctreedir = os.path.join('@SOURCE_ROOT@', expdir)
-            buildtreedir = os.path.join('@BUILD_ROOT@', expdir)
-            dirs_str += [f'{prefix}{buildtreedir}',
-                         f'{prefix}{srctreedir}']
-        for d in dirs.get_extra_build_dirs():
-            dirs_str += [f'{prefix}{d}']
-
-    return dirs_str
 
 def is_module_library(fname):
     '''

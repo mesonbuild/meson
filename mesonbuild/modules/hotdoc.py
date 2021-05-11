@@ -22,7 +22,6 @@ from mesonbuild import mlog, build
 from mesonbuild.coredata import MesonException
 from . import ModuleReturnValue
 from . import ExtensionModule
-from . import get_include_args
 from ..dependencies import Dependency, InternalDependency
 from ..interpreterbase import FeatureNew, InvalidArguments, noPosargs, noKwargs
 from ..interpreter import CustomTargetHolder
@@ -191,7 +190,7 @@ class HotdocTargetBuilder:
         for dep in mesonlib.listify(ensure_list(deps)):
             dep = getattr(dep, "held_object", dep)
             if isinstance(dep, InternalDependency):
-                inc_args = get_include_args(dep.include_directories)
+                inc_args = self.state.get_include_args(dep.include_directories)
                 cflags.update([self.replace_dirs_in_string(x)
                                for x in inc_args])
                 cflags.update(self.process_dependencies(dep.libraries))
