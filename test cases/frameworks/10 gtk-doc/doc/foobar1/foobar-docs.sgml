@@ -35,7 +35,7 @@
     </partintro>
     <xi:include href="xml/foo.xml"/>
     <xi:include href="../../include/bar.xml"/>
-    <xi:include href="xml/foo-version.xml"/>
+    <xi:include href="xml/version.xml"/>
   </reference>
 
 </book>
