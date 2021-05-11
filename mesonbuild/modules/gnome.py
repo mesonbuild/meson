@@ -26,7 +26,6 @@ from .. import mlog
 from .. import mesonlib
 from .. import interpreter
 from . import GResourceTarget, GResourceHeaderTarget, GirTarget, TypelibTarget, VapiTarget
-from . import get_include_args
 from . import ExtensionModule
 from . import ModuleReturnValue
 from ..mesonlib import (
@@ -394,7 +393,7 @@ class GnomeModule(ExtensionModule):
                     gi_includes.update([girdir])
             if isinstance(dep, InternalDependency):
                 cflags.update(dep.get_compile_args())
-                cflags.update(get_include_args(dep.include_directories))
+                cflags.update(state.get_include_args(dep.include_directories))
                 for lib in unholder(dep.libraries):
                     if isinstance(lib, build.SharedLibrary):
                         internal_ldflags.update(self._get_link_args(state, lib, depends, include_rpath))
@@ -443,7 +442,7 @@ class GnomeModule(ExtensionModule):
                     else:
                         external_ldflags.update([lib])
             elif isinstance(dep, (build.StaticLibrary, build.SharedLibrary)):
-                cflags.update(get_include_args(dep.get_include_dirs()))
+                cflags.update(state.get_include_args(dep.get_include_dirs()))
                 depends.append(dep)
             else:
                 mlog.log(f'dependency {dep!r} not handled to build gir files')
@@ -853,7 +852,7 @@ class GnomeModule(ExtensionModule):
         scan_command += self._scan_header(kwargs)
         scan_command += self._scan_extra_args(kwargs)
         scan_command += ['-I' + srcdir, '-I' + builddir]
-        scan_command += get_include_args(girtargets_inc_dirs)
+        scan_command += state.get_include_args(girtargets_inc_dirs)
         scan_command += ['--filelist=' + self._make_gir_filelist(state, srcdir, ns, nsversion, girtargets, libsources)]
         scan_command += self._scan_link_withs(state, depends, kwargs)
         scan_command += self._scan_include(state, depends, gir_inc_dirs, kwargs)
@@ -863,8 +862,8 @@ class GnomeModule(ExtensionModule):
         scan_command += ['--cflags-begin']
         scan_command += cflags
         scan_command += ['--cflags-end']
-        scan_command += get_include_args(inc_dirs)
-        scan_command += get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
+        scan_command += state.get_include_args(inc_dirs)
+        scan_command += state.get_include_args(list(gi_includes) + gir_inc_dirs + inc_dirs, prefix='--add-include-path=')
         scan_command += list(internal_ldflags)
         scan_command += self._scan_gir_targets(state, girtargets)
         scan_command += self._scan_langs(state, [lc[0] for lc in langs_compilers])
@@ -886,7 +885,7 @@ class GnomeModule(ExtensionModule):
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
-        typelib_cmd += get_include_args(gir_inc_dirs, prefix='--includedir=')
+        typelib_cmd += state.get_include_args(gir_inc_dirs, prefix='--includedir=')
 
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
@@ -1127,7 +1126,7 @@ class GnomeModule(ExtensionModule):
                     'Gir include dirs should be include_directories().')
 
         cflags.extend(deps_cflags)
-        cflags.extend(get_include_args(inc_dirs))
+        cflags.extend(state.get_include_args(inc_dirs))
         ldflags = []
         ldflags.extend(internal_ldflags)
         ldflags.extend(external_ldflags)

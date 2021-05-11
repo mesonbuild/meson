@@ -23,7 +23,7 @@ from .. import mesonlib
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
 from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
-from . import ModuleReturnValue, get_include_args, ExtensionModule
+from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
@@ -239,7 +239,7 @@ class QtBaseModule(ExtensionModule):
             ui_gen = build.Generator([self.uic], ui_kwargs)
             ui_output = ui_gen.process_files(f'Qt{self.qt_version} ui', ui_files, state)
             sources.append(ui_output)
-        inc = get_include_args(include_dirs=include_directories)
+        inc = state.get_include_args(include_dirs=include_directories)
         compile_args = []
         for dep in unholder(dependencies):
             if isinstance(dep, Dependency):

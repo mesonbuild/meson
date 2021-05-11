@@ -19,7 +19,6 @@ import re
 from .. import mlog
 from .. import mesonlib, build
 from ..mesonlib import MachineChoice, MesonException, extract_as_list, unholder
-from . import get_include_args
 from . import ModuleReturnValue
 from . import ExtensionModule
 from ..interpreter import CustomTargetHolder
@@ -83,12 +82,12 @@ class WindowsModule(ExtensionModule):
         wrc_depends = extract_as_list(kwargs, 'depends', pop = True)
         for d in wrc_depends:
             if isinstance(d, CustomTargetHolder):
-                extra_args += get_include_args([d.outdir_include()])
+                extra_args += state.get_include_args([d.outdir_include()])
         inc_dirs = extract_as_list(kwargs, 'include_directories', pop = True)
         for incd in inc_dirs:
             if not isinstance(incd.held_object, (str, build.IncludeDirs)):
                 raise MesonException('Resource include dirs should be include_directories().')
-        extra_args += get_include_args(inc_dirs)
+        extra_args += state.get_include_args(inc_dirs)
 
         rescomp, rescomp_type = self._find_resource_compiler(state)
         if rescomp_type == ResourceCompilerType.rc:
