@@ -165,7 +165,9 @@ class EnvironmentVariablesHolder(MutableInterpreterObject, ObjectHolder[build.En
             for k, v in initial_values.items():
                 self.set_method([k, v], {})
         elif initial_values is not None:
-            for e in mesonlib.stringlistify(initial_values):
+            for e in mesonlib.listify(initial_values):
+                if not isinstance(e, str):
+                    raise InterpreterException('Env var definition must be a list of strings.')
                 if '=' not in e:
                     raise InterpreterException('Env var definition must be of type key=val.')
                 (k, val) = e.split('=', 1)
