@@ -64,7 +64,6 @@ class CompCertCompiler(Compiler):
         self.id = 'ccomp'
         # Assembly
         self.can_compile_suffixes.add('s')
-        self.can_compile_suffixes.add('S')
         default_warn_args = []  # type: T.List[str]
         self.warn_args = {'0': [],
                           '1': default_warn_args,

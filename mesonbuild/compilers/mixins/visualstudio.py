@@ -414,7 +414,6 @@ class ClangClCompiler(VisualStudioLikeCompiler):
 
         # Assembly
         self.can_compile_suffixes.add('s')
-        self.can_compile_suffixes.add('S')
 
     def has_arguments(self, args: T.List[str], env: 'Environment', code: str, mode: str) -> T.Tuple[bool, bool]:
         if mode != 'link':

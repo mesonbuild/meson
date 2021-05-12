@@ -51,11 +51,11 @@ lib_suffixes = ('a', 'lib', 'dll', 'dll.a', 'dylib', 'so')  # type: T.Tuple[str,
 # This means we can't include .h headers here since they could be C, C++, ObjC, etc.
 lang_suffixes = {
     'c': ('c',),
-    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx', 'C'),
+    'cpp': ('cpp', 'cc', 'cxx', 'c++', 'hh', 'hpp', 'ipp', 'hxx', 'ino', 'ixx'),
     'cuda': ('cu',),
     # f90, f95, f03, f08 are for free-form fortran ('f90' recommended)
     # f, for, ftn, fpp are for fixed-form fortran ('f' or 'for' recommended)
-    'fortran': ('f90', 'F90', 'f95', 'F95', 'f03', 'F03', 'f08', 'F08', 'f', 'for', 'ftn', 'fpp'),
+    'fortran': ('f90', 'f95', 'f03', 'f08', 'f', 'for', 'ftn', 'fpp'),
     'd': ('d', 'di'),
     'objc': ('m',),
     'objcpp': ('mm',),
@@ -510,7 +510,7 @@ class Compiler(metaclass=abc.ABCMeta):
     def can_compile(self, src: 'mesonlib.FileOrString') -> bool:
         if isinstance(src, mesonlib.File):
             src = src.fname
-        suffix = os.path.splitext(src)[1]
+        suffix = os.path.splitext(src)[1].lower()
         return bool(suffix) and suffix[1:] in self.can_compile_suffixes
 
     def get_id(self) -> str:

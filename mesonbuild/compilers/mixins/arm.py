@@ -85,7 +85,6 @@ class ArmCompiler(Compiler):
                           '3': default_warn_args + []}  # type: T.Dict[str, T.List[str]]
         # Assembly
         self.can_compile_suffixes.add('s')
-        self.can_compile_suffixes.add('S')
 
     def get_pic_args(self) -> T.List[str]:
         # FIXME: Add /ropi, /rwpi, /fpic etc. qualifiers to --apcs
@@ -153,7 +152,6 @@ class ArmclangCompiler(Compiler):
              'b_ndebug', 'b_staticpic', 'b_colorout']}
         # Assembly
         self.can_compile_suffixes.add('s')
-        self.can_compile_suffixes.add('S')
 
     def get_pic_args(self) -> T.List[str]:
         # PIC support is not enabled by default for ARM,
