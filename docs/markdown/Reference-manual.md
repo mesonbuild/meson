@@ -2122,6 +2122,15 @@ the following methods.
   ...
   meson.add_devenv(devenv)
   ```
+  After configuring and compiling that project, a terminal can be opened with
+  the environment set:
+  ```sh
+  $ meson devenv -C <builddir>
+  $ echo $PLUGINS_PATH
+  /path/to/source/subdir
+  ```
+  See (`meson devenv`)[Commands.md#devenv] command documentation for a list of
+  environment variables that are set by default by Meson.
 
 ### `build_machine` object
 
