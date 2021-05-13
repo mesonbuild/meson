@@ -1587,7 +1587,8 @@ class Environment:
                         compiler, version, for_machine, is_cross, info,
                         exe_wrap, full_version=full_version, linker=linker)
 
-                if 'Intel(R) Visual Fortran' in err:
+                if any(s in err for s in ['Intel(R) Visual Fortran', 'Intel(R) Fortran Compiler',
+                                          'Intel(R) Fortran Intel(R) 64 Compiler Classic']):
                     version = search_version(err)
                     target = 'x86' if 'IA-32' in err else 'x86_64'
                     cls = IntelClFortranCompiler
