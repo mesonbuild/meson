@@ -2,7 +2,7 @@ project('static-hello', 'fortran')
 
 # staticlibsource = 'static_hello.f90'
 staticlibsource = configure_file(
-    command: [find_program('cp'), '@INPUT@', '@OUTPUT@'],
+    copy: true,
     input: 'static_hello.f90',
     output: 'static_hello_output.F90'
 )

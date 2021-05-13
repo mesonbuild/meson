@@ -9,7 +9,7 @@ static_dep = dependency('static_hello', fallback: ['static_hello', 'static_hello
 
 mainsrc = 'main_lib.f90'
 mainsrc = configure_file(
-    command: [find_program('cp'), '@INPUT@', '@OUTPUT@'],
+    copy: true,
     input: mainsrc,
     output: 'main_lib_output.F90'
 )
