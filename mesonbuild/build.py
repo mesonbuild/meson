@@ -924,7 +924,7 @@ class BuildTarget(Target):
     @lru_cache(maxsize=None)
     def get_link_dep_subdirs(self):
         result = OrderedSet()
-        for i in self.link_targets:
+        for i in itertools.chain(self.link_targets, self.link_whole_targets):
             if not isinstance(i, StaticLibrary):
                 result.add(i.get_subdir())
             result.update(i.get_link_dep_subdirs())
