@@ -1,9 +1,5 @@
 project('vapi-test', ['c', 'vala'])
 
-if build_machine.system() == 'cygwin'
-  error('MESON_SKIP_TEST GIR seems to be broken in Cygwin and no-one knows how to fix it. Thus we have to disable this.')
-endif
-
 gnome = import('gnome')
 subdir('libfoo')
 subdir('libbar')
