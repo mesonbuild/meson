@@ -1,0 +1,2 @@
+option('reqfeature', type : 'feature', value : 'enabled', description : 'A required feature')
+

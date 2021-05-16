@@ -66,7 +66,7 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
     def __init__(self, env: 'Environment', name: str, option: coredata.UserFeatureOption):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, option)
-        if option.is_auto():
+        if option and option.is_auto():
             # TODO: we need to case here because options is not a TypedDict
             self.held_object = T.cast(coredata.UserFeatureOption, env.coredata.options[OptionKey('auto_features')])
         self.name = name
@@ -74,11 +74,15 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
                              'disabled': self.disabled_method,
                              'allowed': self.allowed_method,
                              'auto': self.auto_method,
+                             'require': self.require_method,
                              })
 
     @property
     def value(self):
-        return self.held_object.value
+        return 'disabled' if not self.held_object else self.held_object.value
+
+    def as_disabled(self):
+        return FeatureOptionHolder(None, self.name, None)
 
     @noPosargs
     @permittedKwargs({})
@@ -99,6 +103,25 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
     @permittedKwargs({})
     def auto_method(self, args, kwargs):
         return self.value == 'auto'
+
+    @permittedKwargs({'error_message'})
+    def require_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InvalidArguments('Expected 1 argument, got %d.' % (len(args), ))
+        if not isinstance(args[0], bool):
+            raise InvalidArguments('boolean argument expected.')
+        error_message = kwargs.pop('error_message', '')
+        if error_message and not isinstance(error_message, str):
+            raise InterpreterException("Error message must be a string.")
+        if args[0]:
+            return self
+
+        if self.value == 'enabled':
+            prefix = 'Feature {} cannot be enabled'.format(self.name)
+            prefix = prefix + ': ' if error_message else ''
+            raise InterpreterException(prefix + error_message)
+        return self.as_disabled()
+
 
 class RunProcess(InterpreterObject):
 
