@@ -2233,7 +2233,6 @@ class Environment:
         if override_file:
             if not os.path.exists(override_file):
                 raise mesonlib.MesonException(f'Override file {override_file} does not exist.')
-            sections = coredata.MachineFileParser(override_file).sections
             for section_name, entries in coredata.MachineFileParser(override_file).sections.items():
                 if section_name == 'options_subprojects':
                     for k, v in entries.items():
