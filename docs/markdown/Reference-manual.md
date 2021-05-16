@@ -2819,6 +2819,15 @@ The following methods are defined for all [`feature` options](Build-options.md#f
 - `disabled()`: returns whether the feature was set to `'disabled'`
 - `auto()`: returns whether the feature was set to `'auto'`
 - `allowed()` *(since 0.59.0)*: returns whether the feature was set to `'enabled'` or `'auto'`
+- `disable_auto_if(value)` *(since 0.59.0)*: returns the feature, with
+  `'auto'` converted to `'disabled'` if value is true.
+
+  | Feature / Condition | True      | False |
+  | ------------------- | ----      | ----- |
+  | Enabled             | Enabled   | Enabled |
+  | Disabled            | Disabled  | Disabled |
+  | Auto                | Disabled  | Auto |
+
 - `require(value, error_message: '')` *(since 0.59.0)*: returns
   the object itself if the value is true; an error if the object is
   `'enabled'` and the value is false; a disabled feature if the object

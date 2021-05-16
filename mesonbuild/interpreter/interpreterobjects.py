@@ -75,6 +75,7 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
                              'allowed': self.allowed_method,
                              'auto': self.auto_method,
                              'require': self.require_method,
+                             'disable_auto_if': self.disable_auto_if_method,
                              })
 
     @property
@@ -121,6 +122,14 @@ class FeatureOptionHolder(InterpreterObject, ObjectHolder[coredata.UserFeatureOp
             prefix = prefix + ': ' if error_message else ''
             raise InterpreterException(prefix + error_message)
         return self.as_disabled()
+
+    @permittedKwargs({})
+    def disable_auto_if_method(self, args, kwargs):
+        if len(args) != 1:
+            raise InvalidArguments('Expected 1 argument, got %d.' % (len(args), ))
+        if not isinstance(args[0], bool):
+            raise InvalidArguments('boolean argument expected.')
+        return self if self.value != 'auto' or not args[0] else self.as_disabled()
 
 
 class RunProcess(InterpreterObject):
