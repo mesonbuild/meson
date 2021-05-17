@@ -970,6 +970,8 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                     'or use the RUST_LD environment variable, otherwise meson '
                     'will override your selection.')
 
+            compiler = compiler.copy()  # avoid mutating the original list
+
             if override is None:
                 extra_args: T.Dict[str, T.Union[str, bool]] = {}
                 always_args: T.List[str] = []
