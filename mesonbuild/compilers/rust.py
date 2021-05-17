@@ -45,6 +45,13 @@ class RustCompiler(Compiler):
     # rustc doesn't invoke the compiler itself, it doesn't need a LINKER_PREFIX
     language = 'rust'
 
+    _WARNING_LEVELS: T.Dict[str, T.List[str]] = {
+        '0': ['-A', 'warnings'],
+        '1': [],
+        '2': [],
+        '3': ['-W', 'warnings'],
+    }
+
     def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
                  is_cross: bool, info: 'MachineInfo',
                  exe_wrapper: T.Optional['ExternalProgram'] = None,
@@ -173,3 +180,10 @@ class RustCompiler(Compiler):
         # Use -D warnings, which makes every warning not explicitly allowed an
         # error
         return ['-D', 'warnings']
+
+    def get_warn_args(self, level: str) -> T.List[str]:
+        # TODO: I'm not really sure what to put here, Rustc doesn't have warning
+        return self._WARNING_LEVELS[level]
+
+    def get_no_warn_args(self) -> T.List[str]:
+        return self._WARNING_LEVELS["0"]
