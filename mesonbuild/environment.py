@@ -783,6 +783,21 @@ class Environment:
         self.wrap_resolver = None
         self.overrides = OptionOverrides()
         self.init_overrides()
+        self.check_dual_overrides()
+
+    def has_per_subproject_options(self):
+        for o in self.options:
+            if o.subproject:
+                return True
+        return False
+
+    def check_dual_overrides(self):
+        if self.has_per_subproject_options() and self.coredata.options[mesonlib.OptionKey('override_file')].value:
+            raise MesonException('''Tried to define a per-subproject option in a machine file when override_file was defined.
+This is not supported. All per-subproject options should be transitioned to
+use the override file. Machine file overrides are deprecatd and will be
+removed in a future Meson release.''')
+
 
     def _load_machine_file_options(self, config: 'ConfigParser', properties: Properties, machine: MachineChoice) -> None:
         """Read the contents of a Machine file and put it in the options store."""
@@ -814,6 +829,8 @@ class Environment:
                 subproject, section = section.split(':')
             else:
                 subproject = ''
+            if subproject != '':
+                mlog.deprecation('Per-subproject option values in machine files are deprecated, transition to using an override_file instead.')
             if section == 'built-in options':
                 for k, v in values.items():
                     key = OptionKey.from_string(k)
