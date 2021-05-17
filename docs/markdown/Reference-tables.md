@@ -86,6 +86,7 @@ set in the cross file.
 | arm                 | 32 bit ARM processor     |
 | avr                 | Atmel AVR processor      |
 | c2000               | 32 bit C2000 processor   |
+| csky                | 32 bit CSky processor    |
 | dspic               | 16 bit Microchip dsPIC   |
 | e2k                 | MCST Elbrus processor    |
 | ia64                | Itanium processor        |

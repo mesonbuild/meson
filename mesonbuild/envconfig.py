@@ -42,6 +42,7 @@ known_cpu_families = (
     'arm',
     'avr',
     'c2000',
+    'csky',
     'dspic',
     'e2k',
     'ia64',
