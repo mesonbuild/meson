@@ -59,6 +59,7 @@ index.md
 		Java.md
 		Vala.md
 		D.md
+		Rust.md
 		IDE-integration.md
 		Custom-build-targets.md
 		Build-system-converters.md
