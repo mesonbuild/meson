@@ -973,7 +973,7 @@ def detect_rust_compiler(env: 'Environment', for_machine: MachineChoice) -> Rust
                     extra_args['direct'] = True
                     extra_args['machine'] = cc.linker.machine
                 else:
-                    exelist = cc.linker.exelist.copy()
+                    exelist = cc.linker.exelist + cc.linker.get_always_args()
                     if 'ccache' in exelist[0]:
                         del exelist[0]
                     c = exelist.pop(0)
