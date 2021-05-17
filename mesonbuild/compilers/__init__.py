@@ -112,6 +112,7 @@ __all__ = [
     'PGICPPCompiler',
     'PGIFortranCompiler',
     'RustCompiler',
+    'ClippyRustCompiler',
     'CcrxCCompiler',
     'CcrxCPPCompiler',
     'Xc16CCompiler',
@@ -241,7 +242,7 @@ from .objcpp import (
     ClangObjCPPCompiler,
     GnuObjCPPCompiler,
 )
-from .rust import RustCompiler
+from .rust import RustCompiler, ClippyRustCompiler
 from .swift import SwiftCompiler
 from .vala import ValaCompiler
 from .mixins.visualstudio import VisualStudioLikeCompiler

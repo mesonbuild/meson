@@ -196,3 +196,20 @@ class RustCompiler(Compiler):
         # Rustc currently has no way to toggle this, it's controlled by whether
         # pic is on by rustc
         return []
+
+
+class ClippyRustCompiler(RustCompiler):
+
+    """Clippy is a linter that wraps Rustc.
+
+    This just provides us a different id
+    """
+
+    def __init__(self, exelist: T.List[str], version: str, for_machine: MachineChoice,
+                 is_cross: bool, info: 'MachineInfo',
+                 exe_wrapper: T.Optional['ExternalProgram'] = None,
+                 full_version: T.Optional[str] = None,
+                 linker: T.Optional['DynamicLinker'] = None):
+        super().__init__(exelist, version, for_machine, is_cross, info,
+                         exe_wrapper, full_version, linker)
+        self.id = 'clippy-driver rustc'

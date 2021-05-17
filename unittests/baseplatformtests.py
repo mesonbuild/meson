@@ -69,6 +69,7 @@ class BasePlatformTests(TestCase):
             self.uninstall_command = get_backend_commands(self.backend)
         # Test directories
         self.common_test_dir = os.path.join(src_root, 'test cases/common')
+        self.rust_test_dir = os.path.join(src_root, 'test cases/rust')
         self.vala_test_dir = os.path.join(src_root, 'test cases/vala')
         self.framework_test_dir = os.path.join(src_root, 'test cases/frameworks')
         self.unit_test_dir = os.path.join(src_root, 'test cases/unit')
@@ -135,7 +136,7 @@ class BasePlatformTests(TestCase):
         os.environ.update(self.orig_env)
         super().tearDown()
 
-    def _run(self, command, *, workdir=None, override_envvars=None):
+    def _run(self, command, *, workdir=None, override_envvars: T.Optional[T.Mapping[str, str]] = None):
         '''
         Run a command while printing the stdout and stderr to stdout,
         and also return a copy of it
@@ -164,7 +165,7 @@ class BasePlatformTests(TestCase):
              extra_args=None,
              default_args=True,
              inprocess=False,
-             override_envvars=None,
+             override_envvars: T.Optional[T.Mapping[str, str]] = None,
              workdir=None,
              allow_fail: bool = False) -> str:
         """Call `meson setup`
