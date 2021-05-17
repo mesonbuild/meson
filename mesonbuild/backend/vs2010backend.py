@@ -737,8 +737,10 @@ class Vs2010Backend(backends.Backend):
             of.write(doc.toprettyxml())
         replace_if_different(ofname, ofname_tmp)
 
-    def gen_vcxproj(self, target, ofname, guid):
+    def gen_vcxproj(self, target: build.BuildTarget, ofname, guid):
         mlog.debug('Generating vcxproj %s.' % target.name)
+        if target.structured_sources:
+            raise MesonException("VS backend currently doesn't support structured inputs")
         subsystem = 'Windows'
         self.handled_target_deps[target.get_id()] = []
         if isinstance(target, build.Executable):

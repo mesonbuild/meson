@@ -689,7 +689,7 @@ int dummy;
         src_block['sources'] += sources
         src_block['generated_sources'] += generated_sources
 
-    def generate_target(self, target):
+    def generate_target(self, target: build.Target):
         try:
             if isinstance(target, build.BuildTarget):
                 os.makedirs(self.get_target_private_dir_abs(target))
@@ -711,11 +711,15 @@ int dummy;
         self.process_target_dependencies(target)
         # If target uses a language that cannot link to C objects,
         # just generate for that language and return.
-        if isinstance(target, build.Jar):
-            self.generate_jar_target(target)
-            return
         if target.uses_rust():
             self.generate_rust_target(target)
+            return
+
+        if target.structured_sources:
+            raise InvalidArguments('Only Rust targets currently support structured inputs.')
+
+        if isinstance(target, build.Jar):
+            self.generate_jar_target(target)
             return
         if 'cs' in target.compilers:
             self.generate_cs_target(target)
