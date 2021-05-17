@@ -63,6 +63,7 @@ index.md
 		Vala.md
 		D.md
 		Cython.md
+		Rust.md
 		IDE-integration.md
 		Custom-build-targets.md
 		Build-system-converters.md
