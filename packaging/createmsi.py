@@ -39,6 +39,48 @@ def gen_guid():
     '''
     return str(uuid.uuid4()).upper()
 
+def get_all_modules_from_dir(dirname):
+    '''
+    Get all modules required for Meson build MSI package
+    from directories.
+    '''
+    modname = os.path.basename(dirname)
+    modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
+    modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
+    return modules
+
+def get_more_modules():
+    '''
+        Getter for missing Modules.
+        Python packagers want to be minimal and only copy the things
+        that they can see that being used. They are blind to many things.
+    '''
+    return ['distutils.archive_util',
+            'distutils.cmd',
+            'distutils.config',
+            'distutils.core',
+            'distutils.debug',
+            'distutils.dep_util',
+            'distutils.dir_util',
+            'distutils.dist',
+            'distutils.errors',
+            'distutils.extension',
+            'distutils.fancy_getopt',
+            'distutils.file_util',
+            'distutils.spawn',
+            'distutils.util',
+            'distutils.version',
+            'distutils.command.build_ext',
+            'distutils.command.build',
+            'filecmp',
+            ]
+
+def get_modules():
+    modules = get_all_modules_from_dir('mesonbuild/modules')
+    modules += get_all_modules_from_dir('mesonbuild/scripts')
+    modules += get_more_modules()
+    return modules
+
 class Node:
     '''
        Node to hold path and directory values
@@ -107,44 +149,6 @@ class PackageGenerator:
         for s_d in self.staging_dirs:
             self.feature_components[s_d] = []
 
-    @staticmethod
-    def get_all_modules_from_dir(dirname):
-        '''
-           Get all modules required for Meson build MSI package
-           from directories.
-        '''
-        modname = os.path.basename(dirname)
-        modules = [os.path.splitext(os.path.split(x)[1])[0] for x in glob(os.path.join(dirname, '*'))]
-        modules = ['mesonbuild.' + modname + '.' + x for x in modules if not x.startswith('_')]
-        return modules
-
-    @staticmethod
-    def get_more_modules():
-        '''
-           Getter for missing Modules.
-           Python packagers want to be minimal and only copy the things
-           that they can see that being used. They are blind to many things.
-        '''
-        return ['distutils.archive_util',
-                'distutils.cmd',
-                'distutils.config',
-                'distutils.core',
-                'distutils.debug',
-                'distutils.dep_util',
-                'distutils.dir_util',
-                'distutils.dist',
-                'distutils.errors',
-                'distutils.extension',
-                'distutils.fancy_getopt',
-                'distutils.file_util',
-                'distutils.spawn',
-                'distutils.util',
-                'distutils.version',
-                'distutils.command.build_ext',
-                'distutils.command.build',
-                'filecmp',
-                ]
-
     def build_dist(self):
         '''
            Build dist file from PyInstaller info
@@ -153,9 +157,7 @@ class PackageGenerator:
             if os.path.exists(sdir):
                 shutil.rmtree(sdir)
         main_stage, ninja_stage = self.staging_dirs
-        modules = self.get_all_modules_from_dir('mesonbuild/modules')
-        modules += self.get_all_modules_from_dir('mesonbuild/scripts')
-        modules += self.get_more_modules()
+        modules = get_modules()
 
         pyinstaller = shutil.which('pyinstaller')
         if not pyinstaller:
