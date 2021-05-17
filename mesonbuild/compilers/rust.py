@@ -168,3 +168,8 @@ class RustCompiler(Compiler):
         for a in super().get_linker_always_args():
             args.extend(['-C', f'link-arg={a}'])
         return args
+
+    def get_werror_args(self) -> T.List[str]:
+        # Use -D warnings, which makes every warning not explicitly allowed an
+        # error
+        return ['-D', 'warnings']
