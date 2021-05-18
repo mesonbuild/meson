@@ -7,8 +7,17 @@ if ($LastExitCode -ne 0) {
 # remove PostgreSQL from path so we don't pickup a broken zlib from it
 $env:Path = ($env:Path.Split(';') | Where-Object { $_ -notmatch 'mingw|Strawberry|Chocolatey|PostgreSQL' }) -join ';'
 
+# Set the rust arch and default host. If we're doign x86 we need to install and
+# set i686 as the default.
+if ($env:arch -eq 'x86_64') {
+    $rust_arch = 'x86_64'
+} else {
+    $rust_arch = 'i686'
+    rustup target add i686-pc-windows-msvc
+    rustup set host i686-pc-windows-mscv
+}
 # Rust puts its shared stdlib in a secret place, but it is needed to run tests.
-$env:Path += ";$HOME/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin"
+$env:Path += ";$HOME/.rustup/toolchains/stable-${rust_arch}-pc-windows-msvc/bin"
 
 # Set the CI env var for the meson test framework
 $env:CI = '1'
