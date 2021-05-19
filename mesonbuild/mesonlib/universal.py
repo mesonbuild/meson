@@ -352,7 +352,10 @@ class FileMode:
 dot_C_dot_H_warning = """You are using .C or .H files in your project. This is deprecated.
          Currently, Meson treats this as C++ code, but they
             used to be treated as C code.
-         See https://github.com/mesonbuild/meson/pull/8239 for the discussions."""
+         Note that the situation is a bit more complex if you are using the
+         Visual Studio compiler, as it treats .C files as C code, unless you add
+         the /TP compiler flag, but this is unreliable.
+         See https://github.com/mesonbuild/meson/pull/8747 for the discussions."""
 class File:
     def __init__(self, is_built: bool, subdir: str, fname: str):
         if fname.endswith(".C") or fname.endswith(".H"):
