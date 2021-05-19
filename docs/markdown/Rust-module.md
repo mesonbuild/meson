@@ -62,7 +62,7 @@ inc = include_directories('..'¸ '../../foo')
 generated = rust.bindgen(
     'myheader.h',
     'generated.rs',
-    include_directories : [inc, include_directories('foo'),
+    include_directories : [inc, include_directories('foo')],
     args : ['--no-rustfmt-bindings'],
     c_args : ['-DFOO=1'],
 )
