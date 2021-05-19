@@ -5,10 +5,12 @@
 
 import typing as T
 
-from ..mesonlib import EnvironmentException
+from .. import coredata
+from ..mesonlib import EnvironmentException, OptionKey
 from .compilers import Compiler
 
 if T.TYPE_CHECKING:
+    from ..coredata import KeyedOptionDictType
     from ..environment import Environment
 
 
@@ -24,8 +26,7 @@ class CythonCompiler(Compiler):
         return False
 
     def get_always_args(self) -> T.List[str]:
-        # XXX: we need an option to control this?
-        return ['--fast-fail', '-3']
+        return ['--fast-fail']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-Werror']
@@ -59,3 +60,20 @@ class CythonCompiler(Compiler):
             new.append(i)
 
         return new
+
+    def get_options(self) -> 'KeyedOptionDictType':
+        opts = super().get_options()
+        opts.update({
+            OptionKey('version', machine=self.for_machine, lang=self.language): coredata.UserComboOption(
+                'Python version to target',
+                ['2', '3'],
+                '3',
+            )
+        })
+        return opts
+
+    def get_option_compile_args(self, options: 'KeyedOptionDictType') -> T.List[str]:
+        args: T.List[str] = []
+        key = options[OptionKey('version', machine=self.for_machine, lang=self.language)]
+        args.append(f'-{key.value}')
+        return args

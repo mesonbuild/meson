@@ -1559,10 +1559,21 @@ int dummy;
 
         cython = target.compilers['cython']
 
+        opt_proxy = self.get_compiler_options_for_target(target)
+
+        args: T.List[str] = []
+        args += cython.get_always_args()
+        args += cython.get_buildtype_args(self.get_option_for_target(OptionKey('buildtype'), target))
+        args += cython.get_debug_args(self.get_option_for_target(OptionKey('debug'), target))
+        args += cython.get_optimization_args(self.get_option_for_target(OptionKey('optimization'), target))
+        args += cython.get_option_compile_args(opt_proxy)
+        args += self.build.get_global_args(cython, target.for_machine)
+        args += self.build.get_project_args(cython, target.subproject, target.for_machine)
+
         for src in target.get_sources():
             if src.endswith('.pyx'):
                 output = os.path.join(self.get_target_private_dir(target), f'{src}.c')
-                args = cython.get_always_args()
+                args = args.copy()
                 args += cython.get_output_args(output)
                 element = NinjaBuildElement(
                     self.all_outputs, [output],
@@ -1580,8 +1591,8 @@ int dummy;
                 if isinstance(gen, GeneratedList):
                     ssrc = os.path.join(self.get_target_private_dir(target) , ssrc)
                 if ssrc.endswith('.pyx'):
+                    args = args.copy()
                     output = os.path.join(self.get_target_private_dir(target), f'{ssrc}.c')
-                    args = cython.get_always_args()
                     args += cython.get_output_args(output)
                     element = NinjaBuildElement(
                         self.all_outputs, [output],
