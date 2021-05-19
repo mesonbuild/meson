@@ -41,9 +41,10 @@ from .interpreterbase import FeatureNew
 
 if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
-    from .interpreter.interpreter import Test, SourceOutputs
+    from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
     from .backend.backends import Backend
+    from .interpreter.interpreterobjects import GeneratorHolder
 
 pch_kwargs = {'c_pch', 'cpp_pch'}
 
@@ -1564,7 +1565,7 @@ class Generator:
                     raise InvalidArguments('Depends entries must be build targets.')
                 self.depends.append(d)
 
-    def get_base_outnames(self, inname):
+    def get_base_outnames(self, inname) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
@@ -1586,7 +1587,7 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state, preserve_path_from=None, extra_args=None):
+    def process_files(self, name, files, state: 'Interpreter', preserve_path_from=None, extra_args=None):
         new = False
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
         #XXX
@@ -1621,14 +1622,14 @@ class Generator:
 
 
 class GeneratedList:
-    def __init__(self, generator, subdir, preserve_path_from=None, extra_args=None):
+    def __init__(self, generator: 'GeneratorHolder', subdir: str, preserve_path_from=None, extra_args=None):
         self.generator = unholder(generator)
         self.name = self.generator.exe
         self.depends = set() # Things this target depends on (because e.g. a custom target was used as input)
         self.subdir = subdir
-        self.infilelist = []
-        self.outfilelist = []
-        self.outmap = {}
+        self.infilelist: T.List['File'] = []
+        self.outfilelist: T.List[str] = []
+        self.outmap: T.Dict['File', str] = {}
         self.extra_depends = []
         self.depend_files = []
         self.preserve_path_from = preserve_path_from
@@ -1642,17 +1643,17 @@ class GeneratedList:
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile, outfiles, state):
-        result = []
+    def add_preserved_path_segment(self, infile: 'File', outfiles: T.List[str], state: 'Interpreter') -> T.List[str]:
+        result: T.List[str] = []
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
-        assert(os.path.isabs(self.preserve_path_from))
+        assert os.path.isabs(self.preserve_path_from)
         rel = os.path.relpath(in_abs, self.preserve_path_from)
         path_segment = os.path.dirname(rel)
         for of in outfiles:
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile, state):
+    def add_file(self, newfile: 'File', state: 'Interpreter') -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
@@ -1660,16 +1661,16 @@ class GeneratedList:
         self.outfilelist += outfiles
         self.outmap[newfile] = outfiles
 
-    def get_inputs(self):
+    def get_inputs(self) -> T.List['File']:
         return self.infilelist
 
     def get_outputs(self) -> T.List[str]:
         return self.outfilelist
 
-    def get_outputs_for(self, filename):
+    def get_outputs_for(self, filename: 'File') -> T.List[str]:
         return self.outmap[filename]
 
-    def get_generator(self):
+    def get_generator(self) -> 'Generator':
         return self.generator
 
     def get_extra_args(self):
