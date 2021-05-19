@@ -1,0 +1,18 @@
+## Cython as as first class language
+
+Meson now supports Cython as a first class language. This means you can write:
+
+```meson
+project('my project', 'cython')
+
+py = import('python')
+dep_py3 = py.dependency()
+
+py.extension_module(
+    'foo',
+    'foo.pyx',
+    dependencies : dep_py,
+)
+```
+
+And avoid the step through a generator that was previously required.

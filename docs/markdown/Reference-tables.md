@@ -34,6 +34,7 @@ These are return values of the `get_id` (Compiler family) and
 | sun       | Sun Fortran compiler             |                 |
 | valac     | Vala compiler                    |                 |
 | xc16      | Microchip XC16 C compiler        |                 |
+| cython    | The Cython compiler              |                 |
 
 ## Linker ids
 
@@ -160,6 +161,7 @@ These are the parameter names for passing language specific arguments to your bu
 | Objective C++ | objcpp_args   | objcpp_link_args  |
 | Rust          | rust_args     | rust_link_args    |
 | Vala          | vala_args     | vala_link_args    |
+| Cython        | cython_args   | cython_link_args  |
 
 All these `<lang>_*` options are specified per machine. See in
 [specifying options per
@@ -177,16 +179,17 @@ are many caveats to their use, especially when rebuilding the project.
 It is **highly** recommended that you use [the command line
 arguments](#language-arguments-parameter-names) instead.
 
-| Name      | Comment                                  |
-| -----     | -------                                  |
-| CFLAGS    | Flags for the C compiler                 |
-| CXXFLAGS  | Flags for the C++ compiler               |
-| OBJCFLAGS | Flags for the Objective C compiler       |
-| FFLAGS    | Flags for the Fortran compiler           |
-| DFLAGS    | Flags for the D compiler                 |
-| VALAFLAGS | Flags for the Vala compiler              |
-| RUSTFLAGS | Flags for the Rust compiler              |
-| LDFLAGS   | The linker flags, used for all languages |
+| Name        | Comment                                  |
+| -----       | -------                                  |
+| CFLAGS      | Flags for the C compiler                 |
+| CXXFLAGS    | Flags for the C++ compiler               |
+| OBJCFLAGS   | Flags for the Objective C compiler       |
+| FFLAGS      | Flags for the Fortran compiler           |
+| DFLAGS      | Flags for the D compiler                 |
+| VALAFLAGS   | Flags for the Vala compiler              |
+| RUSTFLAGS   | Flags for the Rust compiler              |
+| CYTHONFLAGS | Flags for the Cython compiler            |
+| LDFLAGS     | The linker flags, used for all languages |
 
 N.B. these settings are specified per machine, and so the environment
 varibles actually come in pairs. See the [environment variables per
