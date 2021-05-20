@@ -1,4 +1,5 @@
-project('multiple files', 'c')
+# adding 'c' shouldn't be required
+project('multiple files')
 add_languages('vala')
 
 glib = dependency('glib-2.0')
