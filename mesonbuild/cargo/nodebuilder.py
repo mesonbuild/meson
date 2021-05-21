@@ -32,7 +32,7 @@ if T.TYPE_CHECKING:
     TYPE_mixed_dict = T.Dict[str, TYPE_mixed_list]
 
     try:
-        from typing import Literal
+        from typing import Literal  # typing: ignore
     except ImportError:
         from typing_extensions import Literal
 
@@ -357,6 +357,9 @@ class LogicalBuilder:
 
     def finalize(self) -> T.Union[mparser.AndNode, mparser.OrNode]:
         if len(self._stuff) == 1:
+            # We know that if the length is 1 then there's no OP, but mypy
+            # doesn't
+            assert isinstance(self._stuff[0], mparser.BaseNode), 'for mypy'
             return self._stuff[0]
         assert len(self._stuff) % 2 == 1
 

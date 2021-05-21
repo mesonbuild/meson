@@ -33,15 +33,8 @@ if T.TYPE_CHECKING:
     from ..build import Build
     from ..environment import Environment
 
-    try:
-        from typing import TypedDict
-    except AttributeError:
-        from typing_extensions import TypedDict
-
-    try:
-        from typing import Literal
-    except AttributeError:
-        from typing_extensions import Literal
+    from typing_extensions import TypedDict
+    from typing_extensions import Literal
 
     _PackageDict = TypedDict(
         '_PackageDict',

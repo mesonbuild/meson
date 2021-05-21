@@ -33,7 +33,7 @@ from ..interpreterbase import FeatureNew, FeatureDeprecated, FeatureNewKwargs, F
 from ..interpreterbase import ObjectHolder, RangeHolder
 from ..modules import ModuleObject
 from ..cmake import CMakeInterpreter
-from ..cargo import ManifestInterpreter
+from ..cargo.cargo import ManifestInterpreter
 from ..backend.backends import Backend, ExecutableSerialisation
 
 from .mesonmain import MesonMain

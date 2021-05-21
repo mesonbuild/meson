@@ -68,6 +68,7 @@ def build(builder: 'NodeBuilder', node: cfg_parser.FunctionNode) -> None:
     into `a or b or c`.
     """
     if node.name == 'cfg':
+        assert isinstance(node.arguments[0], cfg_parser.FunctionNode), 'for mypy'
         node = node.arguments[0]
 
     if node.name in {'equal', 'not_equal'}:
