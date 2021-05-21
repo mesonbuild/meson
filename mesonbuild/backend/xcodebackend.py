@@ -873,7 +873,6 @@ class XCodeBackend(backends.Backend):
             groupmap[t] = self.gen_id()
             target_src_map[t] = self.gen_id()
         projecttree_id = self.gen_id()
-        sources_id = self.gen_id()
         resources_id = self.gen_id()
         products_id = self.gen_id()
         frameworks_id = self.gen_id()
@@ -883,26 +882,12 @@ class XCodeBackend(backends.Backend):
         main_children = PbxArray()
         main_dict.add_item('children', main_children)
         main_children.add_item(projecttree_id, 'Project tree')
-        main_children.add_item(sources_id, 'Sources')
         main_children.add_item(resources_id, 'Resources')
         main_children.add_item(products_id, 'Products')
         main_children.add_item(frameworks_id, 'Frameworks')
         main_dict.add_item('sourceTree', '"<group>"')
 
         self.add_projecttree(objects_dict, projecttree_id)
-
-        # Sources
-        source_dict = PbxDict()
-        objects_dict.add_item(sources_id, source_dict, 'Sources')
-        source_dict.add_item('isa', 'PBXGroup')
-        source_children = PbxArray()
-        source_dict.add_item('children', source_children)
-        for t in self.build_targets:
-            source_children.add_item(groupmap[t], t)
-        for t in self.custom_targets:
-            source_children.add_item(groupmap[t], t)
-        source_dict.add_item('name', 'Sources')
-        source_dict.add_item('sourceTree', '"<group>"')
 
         resource_dict = PbxDict()
         objects_dict.add_item(resources_id, resource_dict, 'Resources')
@@ -927,10 +912,6 @@ class XCodeBackend(backends.Backend):
 
         frameworks_dict.add_item('name', 'Frameworks')
         frameworks_dict.add_item('sourceTree', '"<group>"')
-
-        # Targets
-        #for tname, t in self.build_targets.items():
-        #    self.write_group_target_entry(objects_dict, tname, t)
 
         for tname, t in self.custom_targets.items():
             target_dict = PbxDict()
@@ -971,16 +952,17 @@ class XCodeBackend(backends.Backend):
         product_dict.add_item('name', 'Products')
         product_dict.add_item('sourceTree', '"<group>"')
 
-    def write_group_target_entry(self, objects_dict, tname, t):
+    def write_group_target_entry(self, objects_dict, t):
+        tid = t.get_id()
         group_id = self.gen_id()
         target_src_id = self.gen_id()
         target_dict = PbxDict()
-        objects_dict.add_item(group_id, target_dict, tname)
+        objects_dict.add_item(group_id, target_dict, tid)
         target_dict.add_item('isa', 'PBXGroup')
         target_children = PbxArray()
         target_dict.add_item('children', target_children)
         target_children.add_item(target_src_id, 'Source files')
-        target_dict.add_item('name', f'"{t}"')
+        target_dict.add_item('name', f'"{t} · target"')
         target_dict.add_item('sourceTree', '"<group>"')
         source_files_dict = PbxDict()
         objects_dict.add_item(target_src_id, source_files_dict, 'Source files')
@@ -994,7 +976,7 @@ class XCodeBackend(backends.Backend):
                 s = os.path.joni(t.subdir, s)
             else:
                 continue
-            source_file_children.add_item(self.fileref_ids[(tname, s)], s)
+            source_file_children.add_item(self.fileref_ids[(tid, s)], s)
         for o in t.objects:
             if isinstance(o, build.ExtractedObjects):
                 # Do not show built object files in the project tree.   
@@ -1033,7 +1015,7 @@ class XCodeBackend(backends.Backend):
             subdir_dict.add_item('sourceTree', '"<group>"')
             self.write_tree(objects_dict, subdir_node, subdir_children, os.path.join(current_subdir, subdir_name))
         for target in tree_node.targets:
-            group_id, _ = self.write_group_target_entry(objects_dict, target.get_id(), target)
+            group_id, _ = self.write_group_target_entry(objects_dict, target)
             children_array.add_item(group_id)
         potentials = [os.path.join(current_subdir, 'meson.build'),
                       os.path.join(current_subdir, 'meson_options.txt')]
