@@ -56,7 +56,7 @@ def setup_vsenv():
         return
     # VSINSTALL is set when running setvars from a Visual Studio installation
     # Tested with Visual Studio 2012 and 2017
-    if os.environ.get('VSINSTALLDIR', bat_placeholder) != '%VSINSTALLDIR%':
+    if 'VSINSTALLDIR' in os.environ:
         return
     # Check explicitly for cl when on Windows
     # Windows XP, 2000 and 10 reports 'Windows_NT'. I assume that all other Windows versions in between do the same.
