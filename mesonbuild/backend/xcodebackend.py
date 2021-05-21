@@ -58,6 +58,13 @@ OPT2XCODEOPT = {'0': '0',
 BOOL2XCODEBOOL = {True: 'YES', False: 'NO'}
 LINKABLE_EXTENSIONS = {'.o', '.a', '.obj', '.so', '.dylib'}
 
+class FileTreeEntry:
+
+    def __init__(self):
+        self.subdirs = {}
+        self.targets = []
+        self.buildfiles = []
+
 class PbxItem:
     def __init__(self, value, comment = ''):
         self.value = value
@@ -848,20 +855,24 @@ class XCodeBackend(backends.Backend):
         for t in self.custom_targets:
             groupmap[t] = self.gen_id()
             target_src_map[t] = self.gen_id()
+        projecttree_id = self.gen_id()
         sources_id = self.gen_id()
         resources_id = self.gen_id()
         products_id = self.gen_id()
-        frameworks_id = self.gen_id()        
+        frameworks_id = self.gen_id()
         main_dict = PbxDict()
         objects_dict.add_item(self.maingroup_id, main_dict)
         main_dict.add_item('isa', 'PBXGroup')
         main_children = PbxArray()
         main_dict.add_item('children', main_children)
+        main_children.add_item(projecttree_id, 'Project tree')
         main_children.add_item(sources_id, 'Sources')
         main_children.add_item(resources_id, 'Resources')
         main_children.add_item(products_id, 'Products')
         main_children.add_item(frameworks_id, 'Frameworks')
         main_dict.add_item('sourceTree', '"<group>"')
+
+        self.add_projecttree(objects_dict, projecttree_id)
 
         # Sources
         source_dict = PbxDict()
@@ -901,42 +912,8 @@ class XCodeBackend(backends.Backend):
         frameworks_dict.add_item('sourceTree', '"<group>"')
 
         # Targets
-        for tname, t in self.build_targets.items():
-            target_dict = PbxDict()
-            objects_dict.add_item(groupmap[tname], target_dict, tname)
-            target_dict.add_item('isa', 'PBXGroup')
-            target_children = PbxArray()
-            target_dict.add_item('children', target_children)
-            target_children.add_item(target_src_map[tname], 'Source files')
-            if t.subproject:
-                target_dict.add_item('name', f'"{t.subproject} • {t}"')
-            else:
-                target_dict.add_item('name', f'"{t}"')
-            target_dict.add_item('sourceTree', '"<group>"')
-            source_files_dict = PbxDict()
-            objects_dict.add_item(target_src_map[tname], source_files_dict, 'Source files')
-            source_files_dict.add_item('isa', 'PBXGroup')
-            source_file_children = PbxArray()
-            source_files_dict.add_item('children', source_file_children)
-            for s in t.sources:
-                if isinstance(s, mesonlib.File):
-                    s = os.path.join(s.subdir, s.fname)
-                elif isinstance(s, str):
-                    s = os.path.joni(t.subdir, s)
-                else:
-                    continue
-                source_file_children.add_item(self.fileref_ids[(tname, s)], s)
-            for o in t.objects:
-                if isinstance(o, build.ExtractedObjects):
-                    # Do not show built object files in the project tree.   
-                    continue
-                if isinstance(o, mesonlib.File):
-                    o = os.path.join(o.subdir, o.fname)
-                else:
-                    o = os.path.join(t.subdir, o)
-                source_file_children.add_item(self.fileref_ids[(tname, o)], o)
-            source_files_dict.add_item('name', '"Source files"')
-            source_files_dict.add_item('sourceTree', '"<group>"')
+        #for tname, t in self.build_targets.items():
+        #    self.write_group_target_entry(objects_dict, tname, t)
 
         for tname, t in self.custom_targets.items():
             target_dict = PbxDict()
@@ -977,6 +954,89 @@ class XCodeBackend(backends.Backend):
         product_dict.add_item('name', 'Products')
         product_dict.add_item('sourceTree', '"<group>"')
 
+    def write_group_target_entry(self, objects_dict, tname, t):
+        group_id = self.gen_id()
+        target_src_id = self.gen_id()
+        target_dict = PbxDict()
+        objects_dict.add_item(group_id, target_dict, tname)
+        target_dict.add_item('isa', 'PBXGroup')
+        target_children = PbxArray()
+        target_dict.add_item('children', target_children)
+        target_children.add_item(target_src_id, 'Source files')
+        target_dict.add_item('name', f'"{t}"')
+        target_dict.add_item('sourceTree', '"<group>"')
+        source_files_dict = PbxDict()
+        objects_dict.add_item(target_src_id, source_files_dict, 'Source files')
+        source_files_dict.add_item('isa', 'PBXGroup')
+        source_file_children = PbxArray()
+        source_files_dict.add_item('children', source_file_children)
+        for s in t.sources:
+            if isinstance(s, mesonlib.File):
+                s = os.path.join(s.subdir, s.fname)
+            elif isinstance(s, str):
+                s = os.path.joni(t.subdir, s)
+            else:
+                continue
+            source_file_children.add_item(self.fileref_ids[(tname, s)], s)
+        for o in t.objects:
+            if isinstance(o, build.ExtractedObjects):
+                # Do not show built object files in the project tree.   
+                continue
+            if isinstance(o, mesonlib.File):
+                o = os.path.join(o.subdir, o.fname)
+            else:
+                o = os.path.join(t.subdir, o)
+            source_file_children.add_item(self.fileref_ids[(tname, o)], o)
+        source_files_dict.add_item('name', '"Source files"')
+        source_files_dict.add_item('sourceTree', '"<group>"')
+        return (group_id, target_src_id)
+
+    def add_projecttree(self, objects_dict, projecttree_id):
+        root_dict = PbxDict()
+        objects_dict.add_item(projecttree_id, root_dict, "Root of project tree")
+        root_dict.add_item('isa', 'PBXGroup')
+        target_children = PbxArray()
+        root_dict.add_item('children', target_children)
+        root_dict.add_item('name', '"Project root"')
+        root_dict.add_item('sourceTree', '"<group>"')
+
+        project_tree = self.generate_project_tree()
+        self.write_tree(objects_dict, project_tree, target_children)
+
+    def write_tree(self, objects_dict, tree_node, children_array):
+        for subdir_name, subdir_node in tree_node.subdirs.items():
+            subdir_dict = PbxDict()
+            subdir_id = self.gen_id()
+            objects_dict.add_item(subdir_id, subdir_dict)
+            children_array.add_item(subdir_id)
+            subdir_dict.add_item('isa', 'PBXGroup')
+            subdir_children = PbxArray()
+            subdir_dict.add_item('children', subdir_children)
+            subdir_dict.add_item('name', f'"{subdir_name}"')
+            subdir_dict.add_item('sourceTree', '"<group>"')
+            self.write_tree(objects_dict, subdir_node, subdir_children)
+        for target in tree_node.targets:
+            group_id, _ = self.write_group_target_entry(objects_dict, target.get_id(), target)
+            children_array.add_item(group_id)
+        for src in tree_node.build_files:
+            
+
+    def generate_project_tree(self):
+        tree_info = FileTreeEntry()
+        for tname, t in self.build_targets.items():
+            self.add_target_to_tree(tree_info, t)
+        return tree_info
+
+    def add_target_to_tree(self, tree_root, t):
+        current_node = tree_root
+        path_segments = t.subdir.split('/')
+        for s in path_segments:
+            if not s:
+                continue
+            if s not in current_node.subdirs:
+                current_node.subdirs[s] = FileTreeEntry()
+            current_node = current_node.subdirs[s]
+        current_node.targets.append(t)
 
     def generate_pbx_native_target(self, objects_dict):
         for tname, idval in self.native_targets.items():
