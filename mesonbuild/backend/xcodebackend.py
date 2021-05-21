@@ -955,20 +955,14 @@ class XCodeBackend(backends.Backend):
     def write_group_target_entry(self, objects_dict, t):
         tid = t.get_id()
         group_id = self.gen_id()
-        target_src_id = self.gen_id()
         target_dict = PbxDict()
         objects_dict.add_item(group_id, target_dict, tid)
         target_dict.add_item('isa', 'PBXGroup')
         target_children = PbxArray()
         target_dict.add_item('children', target_children)
-        target_children.add_item(target_src_id, 'Source files')
         target_dict.add_item('name', f'"{t} · target"')
         target_dict.add_item('sourceTree', '"<group>"')
         source_files_dict = PbxDict()
-        objects_dict.add_item(target_src_id, source_files_dict, 'Source files')
-        source_files_dict.add_item('isa', 'PBXGroup')
-        source_file_children = PbxArray()
-        source_files_dict.add_item('children', source_file_children)
         for s in t.sources:
             if isinstance(s, mesonlib.File):
                 s = os.path.join(s.subdir, s.fname)
@@ -976,7 +970,7 @@ class XCodeBackend(backends.Backend):
                 s = os.path.joni(t.subdir, s)
             else:
                 continue
-            source_file_children.add_item(self.fileref_ids[(tid, s)], s)
+            target_children.add_item(self.fileref_ids[(tid, s)], s)
         for o in t.objects:
             if isinstance(o, build.ExtractedObjects):
                 # Do not show built object files in the project tree.   
@@ -985,10 +979,10 @@ class XCodeBackend(backends.Backend):
                 o = os.path.join(o.subdir, o.fname)
             else:
                 o = os.path.join(t.subdir, o)
-            source_file_children.add_item(self.fileref_ids[(tname, o)], o)
+            target_children.add_item(self.fileref_ids[(tid, o)], o)
         source_files_dict.add_item('name', '"Source files"')
         source_files_dict.add_item('sourceTree', '"<group>"')
-        return (group_id, target_src_id)
+        return group_id
 
     def add_projecttree(self, objects_dict, projecttree_id):
         root_dict = PbxDict()
@@ -1015,7 +1009,7 @@ class XCodeBackend(backends.Backend):
             subdir_dict.add_item('sourceTree', '"<group>"')
             self.write_tree(objects_dict, subdir_node, subdir_children, os.path.join(current_subdir, subdir_name))
         for target in tree_node.targets:
-            group_id, _ = self.write_group_target_entry(objects_dict, target)
+            group_id = self.write_group_target_entry(objects_dict, target)
             children_array.add_item(group_id)
         potentials = [os.path.join(current_subdir, 'meson.build'),
                       os.path.join(current_subdir, 'meson_options.txt')]
