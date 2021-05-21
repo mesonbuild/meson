@@ -54,6 +54,14 @@ def setup_vsenv():
         return
     if 'Visual Studio' in os.environ['PATH']:
         return
+    # VSINSTALL is set when running setvars from a Visual Studio installation
+    # Tested with Visual Studio 2012 and 2017
+    if 'VSINSTALLDIR' in os.environ:
+        return
+    # Check explicitly for cl when on Windows
+    if shutil.which('cl.exe'):
+        return
+
     bat_locator_bin = r'c:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
     if not os.path.exists(bat_locator_bin):
         return
