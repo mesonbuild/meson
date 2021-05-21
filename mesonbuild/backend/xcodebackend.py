@@ -63,7 +63,6 @@ class FileTreeEntry:
     def __init__(self):
         self.subdirs = {}
         self.targets = []
-        self.buildfiles = []
 
 class PbxItem:
     def __init__(self, value, comment = ''):
@@ -274,6 +273,7 @@ class XCodeBackend(backends.Backend):
         self.generate_pbxdep_map()
         self.generate_containerproxy_map()
         self.generate_target_file_maps()
+        self.generate_build_file_maps()
         self.proj_dir = os.path.join(self.environment.get_build_dir(), self.build.project_name + '.xcodeproj')
         os.makedirs(self.proj_dir, exist_ok=True)
         self.proj_file = os.path.join(self.proj_dir, 'project.pbxproj')
@@ -328,7 +328,6 @@ class XCodeBackend(backends.Backend):
         xcodetype = XCODETYPEMAP.get(fname.split('.')[-1].lower())
         if not xcodetype:
             xcodetype = 'sourcecode.unknown'
-            mlog.warning(f'Unknown file type "{fname}" fallbacking to "{xcodetype}". Xcode project might be malformed.')
         return xcodetype
 
     def generate_filemap(self):
@@ -515,6 +514,12 @@ class XCodeBackend(backends.Backend):
                     self.fileref_ids[k] = self.gen_id()
                 else:
                     raise RuntimeError('Unknown input type ' + str(o))
+
+    def generate_build_file_maps(self):
+        for buildfile in self.interpreter.get_build_def_files():
+            assert(isinstance(buildfile, str))
+            self.buildfile_ids[buildfile] = self.gen_id()
+            self.fileref_ids[buildfile] = self.gen_id()
 
     def generate_source_phase_map(self):
         self.source_phase = {}
@@ -832,6 +837,18 @@ class XCodeBackend(backends.Backend):
                 custom_dict.add_item('sourceTree', 'SOURCE_ROOT')
                 objects_dict.add_item(self.custom_target_output_fileref[o], custom_dict)
 
+        for buildfile in self.interpreter.get_build_def_files():
+            basename = os.path.split(buildfile)[1]
+            buildfile_dict = PbxDict()
+            typestr = self.get_xcodetype(buildfile)
+            buildfile_dict.add_item('isa', 'PBXFileReference')
+            buildfile_dict.add_item('explicitFileType', '"' + typestr + '"')
+            buildfile_dict.add_item('name', f'"{basename}"')
+            buildfile_dict.add_item('path', f'"{buildfile}"')
+            buildfile_dict.add_item('refType', 0)
+            buildfile_dict.add_item('sourceTree', 'SOURCE_ROOT')
+            objects_dict.add_item(self.fileref_ids[buildfile], buildfile_dict)
+
     def generate_pbx_frameworks_buildphase(self, objects_dict):
         for t in self.build_targets.values():
             bt_dict = PbxDict()
@@ -1001,25 +1018,30 @@ class XCodeBackend(backends.Backend):
         root_dict.add_item('sourceTree', '"<group>"')
 
         project_tree = self.generate_project_tree()
-        self.write_tree(objects_dict, project_tree, target_children)
+        self.write_tree(objects_dict, project_tree, target_children, '')
 
-    def write_tree(self, objects_dict, tree_node, children_array):
+    def write_tree(self, objects_dict, tree_node, children_array, current_subdir):
+        subdir_dict = PbxDict()
+        subdir_children = PbxArray()
         for subdir_name, subdir_node in tree_node.subdirs.items():
-            subdir_dict = PbxDict()
             subdir_id = self.gen_id()
             objects_dict.add_item(subdir_id, subdir_dict)
             children_array.add_item(subdir_id)
             subdir_dict.add_item('isa', 'PBXGroup')
-            subdir_children = PbxArray()
             subdir_dict.add_item('children', subdir_children)
             subdir_dict.add_item('name', f'"{subdir_name}"')
             subdir_dict.add_item('sourceTree', '"<group>"')
-            self.write_tree(objects_dict, subdir_node, subdir_children)
+            self.write_tree(objects_dict, subdir_node, subdir_children, os.path.join(current_subdir, subdir_name))
         for target in tree_node.targets:
             group_id, _ = self.write_group_target_entry(objects_dict, target.get_id(), target)
             children_array.add_item(group_id)
-        for src in tree_node.build_files:
-            
+        potentials = [os.path.join(current_subdir, 'meson.build'),
+                      os.path.join(current_subdir, 'meson_options.txt')]
+        for bf in potentials:
+            i = self.fileref_ids.get(bf, None)
+            if i:
+                children_array.add_item(i)
+
 
     def generate_project_tree(self):
         tree_info = FileTreeEntry()
