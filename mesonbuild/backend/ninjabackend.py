@@ -1716,12 +1716,6 @@ int dummy;
                 result.append(self.swift_module_file_name(l))
         return result
 
-    def determine_swift_dep_dirs(self, target):
-        result = []
-        for l in target.link_targets:
-            result.append(self.get_target_private_dir_abs(l))
-        return result
-
     def get_swift_link_deps(self, target):
         result = []
         for l in target.link_targets:

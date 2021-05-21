@@ -423,6 +423,12 @@ class Backend:
                 return True
         return False
 
+    def determine_swift_dep_dirs(self, target):
+        result = []
+        for l in target.link_targets:
+            result.append(self.get_target_private_dir_abs(l))
+        return result
+
     def get_executable_serialisation(self, cmd, workdir=None,
                                      extra_bdeps=None, capture=None,
                                      env: T.Optional[build.EnvironmentVariables] = None):
