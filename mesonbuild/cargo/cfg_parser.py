@@ -59,7 +59,7 @@ class Equal(Token):
 
     """An ="""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('=')
 
 
@@ -67,7 +67,7 @@ class Comma(Token):
 
     """A ,"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(',')
 
 
@@ -75,7 +75,7 @@ class LParen(Token):
 
     """A ("""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__('(')
 
 
@@ -83,7 +83,7 @@ class RParen(Token):
 
     """A )"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(')')
 
 
@@ -232,7 +232,7 @@ def lookahead(it: T.Iterator[_T]) -> T.Generator[T.Tuple[_T, T.Optional[_T]], No
     yield (current, None)
 
 
-def parser(prog: T.List[Token]) -> AST:
+def parser(prog: T.Iterable[Token]) -> AST:
     """Parse the lexed form into a Tree."""
     tree = AST()
     stack: T.List[Node] = []
@@ -269,6 +269,7 @@ def parser(prog: T.List[Token]) -> AST:
             else:
                 assert nex is None
         if tree.root is None:
+            assert isinstance(node, FunctionNode), 'for mypy'
             tree.root = node
 
     return tree
