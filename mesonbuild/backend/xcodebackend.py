@@ -47,6 +47,7 @@ LANGNAMEMAP = {'c': 'C',
                'cpp': 'CPLUSPLUS',
                'objc': 'OBJC',
                'objcpp': 'OBJCPLUSPLUS',
+               'swift': 'SWIFT_'
                }
 OPT2XCODEOPT = {'0': '0',
                 'g': '0',
@@ -1336,7 +1337,7 @@ class XCodeBackend(backends.Backend):
             bt_dict.add_item('buildSettings', settings_dict)
             settings_dict.add_item('ARCHS', '"$(NATIVE_ARCH_ACTUAL)"')
             settings_dict.add_item('ONLY_ACTIVE_ARCH', 'YES')
-            settings_dict.add_item('SWIFT_VERSION', '4.0')
+            settings_dict.add_item('SWIFT_VERSION', '5.0')
             settings_dict.add_item('SDKROOT', '"macosx"')
             settings_dict.add_item('SYMROOT', '"%s/build"' % self.environment.get_build_dir())
             bt_dict.add_item('name', f'"{buildtype}"')
@@ -1509,6 +1510,12 @@ class XCodeBackend(backends.Backend):
                 gargs = self.build.global_args[target.for_machine].get(lang, [])
                 targs = target.get_extra_args(lang)
                 args = warn_args + std_args + pargs + gargs + targs
+                if lang == 'swift':
+                    # For some reason putting Swift module dirs in HEADER_SEARCH_PATHS does not work,
+                    # but adding -I/path to manual args does work.
+                    swift_dep_dirs = self.determine_swift_dep_dirs(target)
+                    for d in swift_dep_dirs:
+                        args += compiler.get_include_args(d, False)
                 if args:
                     lang_cargs = cargs
                     if compiler and target.implicit_include_directories:
