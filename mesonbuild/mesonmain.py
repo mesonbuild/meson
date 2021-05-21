@@ -59,10 +59,8 @@ def setup_vsenv():
     if 'VSINSTALLDIR' in os.environ:
         return
     # Check explicitly for cl when on Windows
-    # Windows XP, 2000 and 10 reports 'Windows_NT'. I assume that all other Windows versions in between do the same.
-    if (os.environ.get('OS', bat_placeholder) == 'Windows_NT'):
-        if shutil.which('cl.exe'):
-            return
+    if shutil.which('cl.exe'):
+        return
 
     bat_locator_bin = r'c:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
     if not os.path.exists(bat_locator_bin):
