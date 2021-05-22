@@ -184,7 +184,10 @@ class PythonDependency(ExternalDependency):
                     libpath = f'python{vernum}.dll'
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
-            lib = Path(self.variables.get('base')) / libpath
+            if self.variables.get('installed_base') is None:
+                lib = Path(self.variables.get('base')) / libpath
+            else:
+                lib = Path(self.variables.get('installed_base')) / libpath
         elif self.platform == 'mingw':
             if self.static:
                 libname = self.variables.get('LIBRARY')
