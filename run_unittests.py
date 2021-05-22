@@ -7922,7 +7922,11 @@ class LinuxlikeTests(BasePlatformTests):
     def test_ld_environment_variable_d(self):
         # At least for me, ldc defaults to gold, and gdc defaults to bfd, so
         # let's pick lld, which isn't the default for either (currently)
-        self._check_ld('ld.lld', 'lld', 'd', 'ld.lld')
+        if is_osx():
+            expected = 'ld64'
+        else:
+            expected = 'ld.lld'
+        self._check_ld('ld.lld', 'lld', 'd', expected)
 
     def compute_sha256(self, filename):
         with open(filename, 'rb') as f:
