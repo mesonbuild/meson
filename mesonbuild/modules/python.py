@@ -265,7 +265,7 @@ INTROSPECT_COMMAND = '''import sysconfig
 import json
 import sys
 
-install_paths = sysconfig.get_paths(scheme='posix_prefix', vars={'base': '', 'platbase': '', 'installed_base': ''})
+install_paths = sysconfig.get_paths(vars={'base': '', 'platbase': '', 'installed_base': ''})
 
 def links_against_libpython():
     from distutils.core import Distribution, Extension
