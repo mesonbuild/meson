@@ -2526,7 +2526,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '98 subproject subdir')
         with self.assertRaises(subprocess.CalledProcessError) as cm:
             self.init(testdir, extra_args=['--wrap-mode=nopromote'])
-        self.assertIn('Dependency "subsub" not found', cm.exception.stdout)
+        self.assertIn('dependency subsub found: NO', cm.exception.stdout)
 
     def test_force_fallback_for(self):
         testdir = os.path.join(self.unit_test_dir, '31 forcefallback')
