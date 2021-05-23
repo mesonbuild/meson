@@ -46,6 +46,8 @@ def setup_vsenv():
     # If an existing build tool chain exists in PATH -> do nothing.
     if shutil.which('cc'):
         return
+    if shutil.which('gcc'):
+        return
     if shutil.which('clang'):
         return
     if shutil.which('clang-cl'):
