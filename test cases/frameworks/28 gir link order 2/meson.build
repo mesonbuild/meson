@@ -4,10 +4,6 @@ if not dependency('gobject-2.0', required : false).found() or not find_program('
   error('MESON_SKIP_TEST gobject not found.')
 endif
 
-if build_machine.system() == 'cygwin'
-  error('MESON_SKIP_TEST GIR seems to be broken in Cygwin and no-one knows how to fix it. Thus we have to disable this.')
-endif
-
 gnome = import('gnome')
 gobject = dependency('gobject-2.0')
 

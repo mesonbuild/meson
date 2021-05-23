@@ -2,10 +2,6 @@ project('generated assembly', 'c')
 
 cc = meson.get_compiler('c')
 
-if build_machine.system() == 'cygwin'
-  error('MESON_SKIP_TEST: Cygwin is broken and nobody knows how to fix it. Patches welcome.')
-endif
-
 if ['msvc', 'intel-cl'].contains(cc.get_id())
   error('MESON_SKIP_TEST: assembly files cannot be compiled directly by the compiler')
 endif
