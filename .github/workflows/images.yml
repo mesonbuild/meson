@@ -21,6 +21,8 @@ on:
 
 jobs:
   build:
+    env:
+      HAS_DOCKER_CREDENTIALS: ${{ secrets.DOCKER_PASSWORD != '' }}
     name: ${{ matrix.cfg.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -38,7 +40,7 @@ jobs:
 
       # Login to dockerhub
       - name: Docker login
-        if:   github.event_name == 'push' || github.event_name == 'schedule'
+        if:   (github.event_name == 'push' || github.event_name == 'schedule') && env.HAS_DOCKER_CREDENTIALS == 'true'
         uses: azure/docker-login@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -52,5 +54,5 @@ jobs:
 
       # Publish
       - name: Push the ${{ matrix.cfg.id }} image
-        if:   github.event_name == 'push' || github.event_name == 'schedule'
         run:  docker push mesonbuild/${{ matrix.cfg.id }}
+        if:   (github.event_name == 'push' || github.event_name == 'schedule') && env.HAS_DOCKER_CREDENTIALS == 'true'
