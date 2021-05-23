@@ -1096,7 +1096,7 @@ class CMakeDependency(ExternalDependency):
         self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
         if not self.cmakebin.found():
             self.cmakebin = None
-            msg = f'No CMake binary for machine {self.for_machine} not found. Giving up.'
+            msg = f'CMake binary for machine {self.for_machine} not found. Giving up.'
             if self.required:
                 raise DependencyException(msg)
             mlog.debug(msg)
