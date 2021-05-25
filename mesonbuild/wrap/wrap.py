@@ -42,10 +42,8 @@ try:
     # regarding 'imported but unused' can be safely ignored
     import ssl  # noqa
     has_ssl = True
-    API_ROOT = 'https://wrapdb.mesonbuild.com/v1/'
 except ImportError:
     has_ssl = False
-    API_ROOT = 'http://wrapdb.mesonbuild.com/v1/'
 
 REQ_TIMEOUT = 600.0
 SSL_WARNING_PRINTED = False
