@@ -1452,12 +1452,7 @@ class GnomeModule(ExtensionModule):
         c_file_kwargs = copy.deepcopy(mkenums_kwargs)
         if 'sources' not in kwargs:
             raise MesonException('Missing keyword argument "sources".')
-        sources = kwargs['sources']
-        if isinstance(sources, str):
-            sources = [sources]
-        elif not isinstance(sources, list):
-            raise MesonException(
-                'Sources keyword argument must be a string or array.')
+        sources = self.interpreter.source_strings_to_files(kwargs['sources'])
 
         # The `install_header` argument will be used by mkenums() when
         # not using template files, so we need to forcibly unset it
@@ -1477,7 +1472,8 @@ class GnomeModule(ExtensionModule):
             fhead += '%s\n' % body_prefix
         fhead += '#include "%s"\n' % hdr_filename
         for hdr in sources:
-            fhead += '#include "%s"\n' % os.path.basename(str(hdr))
+            relpath = hdr.rel_to_builddir(os.path.join(os.path.relpath('.', state.subdir), state.build_to_src))
+            fhead += '#include "%s"\n' % (relpath, )
         fhead += '''
 #define C_ENUM(v) ((gint) v)
 #define C_FLAGS(v) ((guint) v)
