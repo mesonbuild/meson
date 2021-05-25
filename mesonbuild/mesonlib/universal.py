@@ -1976,6 +1976,11 @@ class OptionKey:
             _type = _classify_argument(self)
         object.__setattr__(self, 'type', _type)
 
+    def toplevel_key(self):
+        if not self.subproject:
+            raise RuntimeError("Internal error: tried to get top level option for a top level option.")
+        return OptionKey(self.name, '', self.machine, self.lang, self.type)
+
     def __setattr__(self, key: str, value: T.Any) -> None:
         raise AttributeError('OptionKey instances do not support mutation.')
 

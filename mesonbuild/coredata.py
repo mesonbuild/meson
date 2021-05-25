@@ -582,6 +582,9 @@ class CoreData:
         except KeyError:
             pass
 
+        if key.subproject:
+            # Per-subproject option was not found, try the top level one.
+            return self.get_option(key.toplevel_key())
         raise MesonException(f'Tried to get unknown builtin option {str(key)}')
 
     def set_option(self, key: OptionKey, value) -> None:
