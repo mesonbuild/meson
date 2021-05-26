@@ -35,6 +35,7 @@ from ..mesonlib import (
 from ..dependencies import Dependency, PkgConfigDependency, InternalDependency
 from ..interpreterbase import noPosargs, noKwargs, permittedKwargs, FeatureNew, FeatureNewKwargs, FeatureDeprecatedKwargs
 from ..programs import ExternalProgram, OverrideProgram
+from ..build import CustomTarget, CustomTargetIndex, GeneratedList
 
 if T.TYPE_CHECKING:
     from ..compilers import Compiler
@@ -709,8 +710,9 @@ class GnomeModule(ExtensionModule):
 
         return gir_filelist_filename
 
-    def _make_gir_target(self, state, girfile, scan_command, depends, kwargs):
-        scankwargs = {'output': girfile,
+    def _make_gir_target(self, state, girfile, scan_command, generated_files, depends, kwargs):
+        scankwargs = {'input': generated_files,
+                      'output': girfile,
                       'command': scan_command,
                       'depends': depends}
 
@@ -724,8 +726,9 @@ class GnomeModule(ExtensionModule):
 
         return GirTarget(girfile, state.subdir, state.subproject, scankwargs)
 
-    def _make_typelib_target(self, state, typelib_output, typelib_cmd, kwargs):
+    def _make_typelib_target(self, state, typelib_output, typelib_cmd, generated_files, kwargs):
         typelib_kwargs = {
+            'input': generated_files,
             'output': typelib_output,
             'command': typelib_cmd,
         }
@@ -801,7 +804,7 @@ class GnomeModule(ExtensionModule):
                       'export_packages', 'includes', 'dependencies', 'link_with', 'include_directories',
                       'install', 'install_dir_gir', 'install_dir_typelib', 'extra_args',
                       'packages', 'header', 'build_by_default', 'fatal_warnings'})
-    def generate_gir(self, state, args, kwargs):
+    def generate_gir(self, state, args, kwargs: T.Dict[str, T.Any]):
         if not args:
             raise MesonException('generate_gir takes at least one argument')
         if kwargs.get('install_dir'):
@@ -881,7 +884,9 @@ class GnomeModule(ExtensionModule):
         if fatal_warnings:
             scan_command.append('--warn-error')
 
-        scan_target = self._make_gir_target(state, girfile, scan_command, depends, kwargs)
+        generated_files = [unholder(f) for f in libsources if isinstance(unholder(f), (GeneratedList, CustomTarget, CustomTargetIndex))]
+
+        scan_target = self._make_gir_target(state, girfile, scan_command, generated_files, depends, kwargs)
 
         typelib_output = f'{ns}-{nsversion}.typelib'
         typelib_cmd = [gicompiler, scan_target, '--output', '@OUTPUT@']
@@ -890,7 +895,8 @@ class GnomeModule(ExtensionModule):
         for incdir in typelib_includes:
             typelib_cmd += ["--includedir=" + incdir]
 
-        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, kwargs)
+        typelib_target = self._make_typelib_target(state, typelib_output, typelib_cmd, generated_files, kwargs)
+
         self._devenv_append('GI_TYPELIB_PATH', os.path.join(state.environment.get_build_dir(), state.subdir))
 
         rv = [scan_target, typelib_target]
