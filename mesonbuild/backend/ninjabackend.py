@@ -1836,6 +1836,17 @@ int dummy;
         # Introspection information
         self.create_target_source_introspection(target, swiftc, compile_args + header_imports + module_includes, relsrc, rel_generated)
 
+    def _rsp_options(self, tool: T.Union['Compiler', 'StaticLinker', 'DynamicLinker']) -> T.Dict[str, T.Union[bool, RSPFileSyntax]]:
+        """Helper method to get rsp options.
+
+        rsp_file_syntax() is only guaranteed to be implemented if
+        can_linker_accept_rsp() returns True.
+        """
+        options = dict(rspable=tool.can_linker_accept_rsp())
+        if options['rspable']:
+            options['rspfile_quote_style'] = tool.rsp_file_syntax()
+        return options
+
     def generate_static_link_rules(self):
         num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
         if 'java' in self.environment.coredata.compilers.host:
@@ -1864,10 +1875,9 @@ int dummy;
                 pool = 'pool = link_pool'
             else:
                 pool = None
-            self.add_rule(NinjaRule(rule, cmdlist, args, description,
-                                    rspable=static_linker.can_linker_accept_rsp(),
-                                    rspfile_quote_style=static_linker.rsp_file_syntax(),
-                                    extra=pool))
+
+            options = self._rsp_options(static_linker)
+            self.add_rule(NinjaRule(rule, cmdlist, args, description, **options, extra=pool))
 
     def generate_dynamic_link_rules(self):
         num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
@@ -1887,10 +1897,9 @@ int dummy;
                     pool = 'pool = link_pool'
                 else:
                     pool = None
-                self.add_rule(NinjaRule(rule, command, args, description,
-                                        rspable=compiler.can_linker_accept_rsp(),
-                                        rspfile_quote_style=compiler.rsp_file_syntax(),
-                                        extra=pool))
+
+                options = self._rsp_options(compiler)
+                self.add_rule(NinjaRule(rule, command, args, description, **options, extra=pool))
 
         args = self.environment.get_build_command() + \
             ['--internal',
@@ -1973,8 +1982,10 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         command = compiler.get_exelist()
         args = ['$ARGS'] + NinjaCommandArg.list(compiler.get_output_args('$out'), Quoting.none) + compiler.get_compile_only_args() + ['$in']
         description = 'Compiling LLVM IR object $in'
-        self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=compiler.can_linker_accept_rsp()))
+
+        options = self._rsp_options(compiler)
+
+        self.add_rule(NinjaRule(rule, command, args, description, **options))
         self.created_llvm_ir_rule[compiler.for_machine] = True
 
     def generate_compile_rule_for(self, langname, compiler):
@@ -2010,9 +2021,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         else:
             deps = 'gcc'
             depfile = '$DEPFILE'
-        self.add_rule(NinjaRule(rule, command, args, description,
-                                rspable=compiler.can_linker_accept_rsp(),
-                                rspfile_quote_style=compiler.rsp_file_syntax(),
+        options = self._rsp_options(compiler)
+        self.add_rule(NinjaRule(rule, command, args, description, **options,
                                 deps=deps, depfile=depfile))
 
     def generate_pch_rule_for(self, langname, compiler):
