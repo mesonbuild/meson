@@ -33,6 +33,7 @@ from ..arglist import CompilerArgs
 from ..compilers import (
     Compiler, CCompiler,
     FortranCompiler,
+    mixins,
     PGICCompiler,
     VisualStudioLikeCompiler,
 )
@@ -43,7 +44,7 @@ from ..mesonlib import (
 )
 from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
-from ..build import GeneratedList, InvalidArguments
+from ..build import GeneratedList, InvalidArguments, ExtractedObjects
 from ..interpreter import Interpreter
 
 if T.TYPE_CHECKING:
@@ -2701,8 +2702,24 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
         return commands
 
     def get_link_whole_args(self, linker, target):
-        target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
-        return linker.get_link_whole_for(target_args) if target_args else []
+        use_custom = False
+        if isinstance(linker, mixins.visualstudio.MSVCCompiler):
+            # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
+            # (incidentally, the "linker" here actually refers to cl.exe)
+            if mesonlib.version_compare(linker.version, '<19.00.23918'):
+                use_custom = True
+
+        if use_custom:
+            objects_from_static_libs: T.List[ExtractedObjects] = []
+            for dep in target.link_whole_targets:
+                l = dep.extract_all_objects(False)
+                objects_from_static_libs += self.determine_ext_objs(l, '')
+                objects_from_static_libs.extend(self.flatten_object_list(dep))
+
+            return objects_from_static_libs
+        else:
+            target_args = self.build_target_link_arguments(linker, target.link_whole_targets)
+            return linker.get_link_whole_for(target_args) if target_args else []
 
     @lru_cache(maxsize=None)
     def guess_library_absolute_path(self, linker, libname, search_dirs, patterns):
