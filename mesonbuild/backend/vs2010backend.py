@@ -39,6 +39,9 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
                              'Are you running meson from the Visual Studio Developer Command Prompt?')
     # VisualStudioVersion is set since Visual Studio 12.0, but sometimes
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
+    if vs_version == '12.0' or 'Visual Studio 12' in vs_install_dir:
+        from mesonbuild.backend.vs2013backend import Vs2013Backend
+        return Vs2013Backend(build, interpreter)
     if vs_version == '14.0' or 'Visual Studio 14' in vs_install_dir:
         from mesonbuild.backend.vs2015backend import Vs2015Backend
         return Vs2015Backend(build, interpreter)
