@@ -3,6 +3,14 @@ subdir('dep1')
 libsources = ['meson-sample.c', 'meson-sample.h']
 lib2sources = ['meson-sample2.c', 'meson-sample2.h']
 
+gen_source = custom_target(
+  'meson_smaple3.h',
+  input : 'meson-sample.h',
+  output : 'meson-sample3.h',
+  command : [find_program('copy.py'), '@INPUT@', '@OUTPUT@'],
+  build_by_default : false,  # this will force a race condition if one exists
+)
+
 girlib = shared_library(
   'gir_lib',
   sources : libsources,
@@ -28,7 +36,7 @@ fake_dep = dependency('no-way-this-exists', required: false)
 
 gnome.generate_gir(
   girlib, girlib2,
-  sources : libsources + lib2sources,
+  sources : [libsources, lib2sources, gen_source],
   nsversion : '1.0',
   namespace : 'Meson',
   symbol_prefix : 'meson',
