@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    MesonException, python_command, replace_if_different, OptionKey,
+    MesonException, python_command, replace_if_different, OptionKey, version_compare,
 )
 from ..environment import Environment, build_filename
 
@@ -1155,8 +1155,20 @@ class Vs2010Backend(backends.Backend):
                 lobj = self.build.targets[t.get_id()]
             linkname = os.path.join(down, self.get_target_filename_for_linking(lobj))
             if t in target.link_whole_targets:
-                # /WHOLEARCHIVE:foo must go into AdditionalOptions
-                extra_link_args += compiler.get_link_whole_for(linkname)
+                if compiler.id == 'msvc' and version_compare(compiler.version, '<19.00.23918'):
+                    # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
+                    l = t.extract_all_objects(False)
+                    for src in l.srclist:
+                        if not self.environment.is_header(src):
+                            obj_basename = self.object_filename_from_source(t, src)
+                            target_private_dir = self.relpath(self.get_target_private_dir(t),
+                                                              self.get_target_dir(t))
+                            rel_obj = os.path.join(target_private_dir, obj_basename)
+                            extra_link_args.append(rel_obj)
+                    extra_link_args.extend(self.flatten_object_list(t))
+                else:
+                    # /WHOLEARCHIVE:foo must go into AdditionalOptions
+                    extra_link_args += compiler.get_link_whole_for(linkname)
                 # To force Visual Studio to build this project even though it
                 # has no sources, we include a reference to the vcxproj file
                 # that builds this target. Technically we should add this only
