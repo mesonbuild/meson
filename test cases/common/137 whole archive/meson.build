@@ -6,6 +6,10 @@ endif
 
 add_project_arguments('-I' + meson.source_root(), language : 'c')
 
+if meson.backend() == 'vs2010'
+  error('MESON_SKIP_TEST whole-archive not supported in VS2010. Patches welcome.')
+endif
+
 # Test 1: link_whole keeps all symbols
 # Make static func1
 subdir('st_func1')
