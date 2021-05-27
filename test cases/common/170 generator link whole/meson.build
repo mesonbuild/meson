@@ -4,13 +4,6 @@ if meson.backend() == 'xcode'
     error('MESON_SKIP_TEST: whole-archive not supported in Xcode. Patches welcome.')
 endif
 
-cc = meson.get_compiler('c')
-if cc.get_id() == 'msvc'
-  if cc.version().version_compare('<19')
-    error('MESON_SKIP_TEST link_whole only works on VS2015 or newer.')
-  endif
-endif
-
 # This just generates foo.h and foo.c with int foo() defined.
 gen_py = find_program('generator.py')
 gen = generator(gen_py,
