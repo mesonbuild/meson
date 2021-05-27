@@ -27,7 +27,7 @@ from .. import mlog
 from .. import compilers
 from ..interpreter import Interpreter
 from ..mesonlib import (
-    MesonException, python_command, replace_if_different, OptionKey, version_compare,
+    File, MesonException, python_command, replace_if_different, OptionKey, version_compare,
 )
 from ..environment import Environment, build_filename
 
@@ -1158,13 +1158,25 @@ class Vs2010Backend(backends.Backend):
                 if compiler.id == 'msvc' and version_compare(compiler.version, '<19.00.23918'):
                     # Expand our object lists manually if we are on pre-Visual Studio 2015 Update 2
                     l = t.extract_all_objects(False)
+
+                    # Unforunately, we can't use self.object_filename_from_source()
+                    gensrclist: T.List[File] = []
+                    for gen in l.genlist:
+                        for src in gen.get_outputs():
+                            if self.environment.is_source(src) and not self.environment.is_header(src):
+                                path = self.get_target_generated_dir(t, gen, src)
+                                gen_src_ext = '.' + os.path.splitext(path)[1][1:]
+                                extra_link_args.append(path[:-len(gen_src_ext)] + '.obj')
+
                     for src in l.srclist:
-                        if not self.environment.is_header(src):
+                        obj_basename = None
+                        if self.environment.is_source(src) and not self.environment.is_header(src):
                             obj_basename = self.object_filename_from_source(t, src)
                             target_private_dir = self.relpath(self.get_target_private_dir(t),
                                                               self.get_target_dir(t))
                             rel_obj = os.path.join(target_private_dir, obj_basename)
                             extra_link_args.append(rel_obj)
+
                     extra_link_args.extend(self.flatten_object_list(t))
                 else:
                     # /WHOLEARCHIVE:foo must go into AdditionalOptions
