@@ -6,14 +6,6 @@ endif
 
 add_project_arguments('-I' + meson.source_root(), language : 'c')
 
-cc = meson.get_compiler('c')
-
-if cc.get_id() == 'msvc'
-  if cc.version().version_compare('<19')
-    error('MESON_SKIP_TEST link_whole only works on VS2015 or newer.')
-  endif
-endif
-
 # Test 1: link_whole keeps all symbols
 # Make static func1
 subdir('st_func1')
