@@ -1,14 +1,13 @@
 project('whole archive', 'c')
 
-if meson.backend() == 'xcode'
-    error('MESON_SKIP_TEST: whole-archive not supported in Xcode. Patches welcome.')
+if meson.backend() == 'xcode' or \
+   meson.backend() == 'vs2010' or \
+   meson.backend() == 'vs2012' or \
+   meson.backend() == 'vs2013'
+    error('MESON_SKIP_TEST: whole-archive not supported in Xcode nor pre-VS2015 IDE. Patches welcome.')
 endif
 
 add_project_arguments('-I' + meson.source_root(), language : 'c')
-
-if meson.backend() == 'vs2010'
-  error('MESON_SKIP_TEST whole-archive not supported in VS2010. Patches welcome.')
-endif
 
 # Test 1: link_whole keeps all symbols
 # Make static func1
