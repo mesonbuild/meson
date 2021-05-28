@@ -245,13 +245,6 @@ def ensure_backend_detects_changes(backend):
     if backend is not Backend.ninja:
         return
     need_workaround = False
-    # We're not running on HFS+ which only stores dates in seconds:
-    # https://developer.apple.com/legacy/library/technotes/tn/tn1150.html#HFSPlusDates
-    # XXX: Upgrade Travis image to Apple FS when that becomes available
-    # TODO: Detect HFS+ vs APFS
-    if mesonlib.is_osx():
-        mlog.warning('Running on HFS+, enabling timestamp resolution workaround', once=True)
-        need_workaround = True
     # We're using ninja >= 1.9 which has QuLogic's patch for sub-1s resolution
     # timestamps
     if not NINJA_1_9_OR_NEWER:
