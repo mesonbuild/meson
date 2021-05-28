@@ -1146,7 +1146,7 @@ class CMakeDependency(ExternalDependency):
         gen_list += CMakeDependency.class_cmake_generators
 
         temp_parser = CMakeTraceParser(self.cmakebin.version(), self._get_build_dir())
-        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
+        toolchain = CMakeToolchain(self.cmakebin, self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
         toolchain.write()
 
         for i in gen_list:
@@ -1346,7 +1346,7 @@ class CMakeDependency(ExternalDependency):
 
         # Map the components
         comp_mapped = self._map_component_list(modules, components)
-        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
+        toolchain = CMakeToolchain(self.cmakebin, self.env, self.for_machine, CMakeExecScope.DEPENDENCY, self._get_build_dir())
         toolchain.write()
 
         for i in gen_list:

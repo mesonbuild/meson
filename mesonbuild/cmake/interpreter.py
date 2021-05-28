@@ -892,7 +892,7 @@ class CMakeInterpreter:
         self.trace = CMakeTraceParser(cmake_exe.version(), self.build_dir, permissive=True)
 
         preload_file = mesondata['cmake/data/preload.cmake'].write_to_private(self.env)
-        toolchain = CMakeToolchain(self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir.parent, preload_file)
+        toolchain = CMakeToolchain(cmake_exe, self.env, self.for_machine, CMakeExecScope.SUBPROJECT, self.build_dir, preload_file)
         toolchain_file = toolchain.write()
 
         # TODO: drop this check once the deprecated `cmake_args` kwarg is removed
