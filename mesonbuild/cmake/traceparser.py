@@ -22,20 +22,30 @@ from ..mesonlib import version_compare
 
 import typing as T
 from pathlib import Path
+from functools import lru_cache
 import re
 import json
 import textwrap
 
 class CMakeTraceLine:
-    def __init__(self, file: Path, line: int, func: str, args: T.List[str]) -> None:
-        self.file = file
+    def __init__(self, file_str: str, line: int, func: str, args: T.List[str]) -> None:
+        self.file = CMakeTraceLine._to_path(file_str)
         self.line = line
         self.func = func.lower()
         self.args = args
 
+    @staticmethod
+    @lru_cache(maxsize=None)
+    def _to_path(file_str: str) -> Path:
+        return Path(file_str)
+
     def __repr__(self) -> str:
         s = 'CMake TRACE: {0}:{1} {2}({3})'
         return s.format(self.file, self.line, self.func, self.args)
+
+class CMakeCacheEntry(T.NamedTuple):
+    value: T.List[str]
+    type: str
 
 class CMakeTarget:
     def __init__(
@@ -81,8 +91,10 @@ class CMakeGeneratorTarget(CMakeTarget):
 
 class CMakeTraceParser:
     def __init__(self, cmake_version: str, build_dir: Path, permissive: bool = True) -> None:
-        self.vars = {}     # type: T.Dict[str, T.List[str]]
-        self.targets = {}  # type: T.Dict[str, CMakeTarget]
+        self.vars:                      T.Dict[str, T.List[str]]     = {}
+        self.vars_by_file: T.Dict[Path, T.Dict[str, T.List[str]]]    = {}
+        self.targets:                   T.Dict[str, CMakeTarget]     = {}
+        self.cache:                     T.Dict[str, CMakeCacheEntry] = {}
 
         self.explicit_headers = set()  # type: T.Set[Path]
 
@@ -234,6 +246,14 @@ class CMakeTraceParser:
         """
         # DOC: https://cmake.org/cmake/help/latest/command/set.html
 
+        cache_type  = None
+        cache_force = 'FORCE' in tline.args
+        try:
+            cache_idx  = tline.args.index('CACHE')
+            cache_type = tline.args[cache_idx + 1]
+        except (ValueError, IndexError):
+            pass
+
         # 1st remove PARENT_SCOPE and CACHE from args
         args = []
         for i in tline.args:
@@ -256,12 +276,19 @@ class CMakeTraceParser:
         identifier = args.pop(0)
         value = ' '.join(args)
 
+        # Write to the CMake cache instead
+        if cache_type:
+            # Honor how the CMake FORCE parameter works
+            if identifier not in self.cache or cache_force:
+                self.cache[identifier] = CMakeCacheEntry(value.split(';'), cache_type)
+
         if not value:
             # Same as unset
             if identifier in self.vars:
                 del self.vars[identifier]
         else:
             self.vars[identifier] = value.split(';')
+            self.vars_by_file.setdefault(tline.file, {})[identifier] = value.split(';')
 
     def _cmake_unset(self, tline: CMakeTraceLine) -> None:
         # DOC: https://cmake.org/cmake/help/latest/command/unset.html
@@ -437,17 +464,18 @@ class CMakeTraceParser:
         if not value:
             return
 
-        def do_target(tgt: str) -> None:
-            if i not in self.targets:
-                return self._gen_exception('set_property', f'TARGET {i} not found', tline)
+        def do_target(t: str) -> None:
+            if t not in self.targets:
+                return self._gen_exception('set_property', f'TARGET {t} not found', tline)
 
-            if identifier not in self.targets[i].properties:
-                self.targets[i].properties[identifier] = []
+            tgt = self.targets[t]
+            if identifier not in tgt.properties:
+                tgt.properties[identifier] = []
 
             if append:
-                self.targets[i].properties[identifier] += value
+                tgt.properties[identifier] += value
             else:
-                self.targets[i].properties[identifier] = value
+                tgt.properties[identifier] = value
 
         def do_source(src: str) -> None:
             if identifier != 'HEADER_FILE_ONLY' or not self._str_to_bool(value):
@@ -652,7 +680,7 @@ class CMakeTraceParser:
             argl = args.split(' ')
             argl = list(map(lambda x: x.strip(), argl))
 
-            yield CMakeTraceLine(Path(file), int(line), func, argl)
+            yield CMakeTraceLine(file, int(line), func, argl)
 
     def _lex_trace_json(self, trace: str) -> T.Generator[CMakeTraceLine, None, None]:
         lines = trace.splitlines(keepends=False)
@@ -667,7 +695,7 @@ class CMakeTraceParser:
             for j in args:
                 assert isinstance(j, str)
             args = [parse_generator_expressions(x) for x in args]
-            yield CMakeTraceLine(Path(data['file']), data['line'], data['cmd'], args)
+            yield CMakeTraceLine(data['file'], data['line'], data['cmd'], args)
 
     def _flatten_args(self, args: T.List[str]) -> T.List[str]:
         # Split lists in arguments
