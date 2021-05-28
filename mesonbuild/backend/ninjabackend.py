@@ -46,6 +46,7 @@ from ..mesonlib import get_compiler_for_source, has_path_sep, OptionKey
 from .backends import CleanTrees
 from ..build import GeneratedList, InvalidArguments, ExtractedObjects
 from ..interpreter import Interpreter
+from ..mesonmain import need_setup_vsenv
 
 if T.TYPE_CHECKING:
     from ..linkers import StaticLinker
@@ -508,6 +509,13 @@ int dummy;
 
     def generate(self):
         ninja = environment.detect_ninja_command_and_version(log=True)
+        if need_setup_vsenv:
+            builddir = Path(self.environment.get_build_dir())
+            builddir = builddir.relative_to(Path.cwd())
+            meson_command = mesonlib.join_args(mesonlib.get_meson_command())
+            mlog.log()
+            mlog.log('Visual Studio environment is needed to run Ninja. It is recommended to use Meson wrapper:')
+            mlog.log(f'{meson_command} compile -C {builddir}')
         if ninja is None:
             raise MesonException('Could not detect Ninja v1.8.2 or newer')
         (self.ninja_command, self.ninja_version) = ninja
