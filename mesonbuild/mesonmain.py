@@ -27,6 +27,8 @@ from .mesonlib import MesonException
 from .environment import detect_msys2_arch
 from .wrap import wraptool
 
+need_setup_vsenv = False
+
 bat_template = '''@ECHO OFF
 
 call "{}"
@@ -111,7 +113,8 @@ def setup_vsenv():
             continue
         k, v = bat_line.split('=', 1)
         os.environ[k] = v
-
+    global need_setup_vsenv
+    need_setup_vsenv = True
 
 
 # Note: when adding arguments, please also add them to the completion
