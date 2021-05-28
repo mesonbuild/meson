@@ -13,3 +13,7 @@ endif()
 if(NOT DEFINED CMAKE_C_COMPILER_VERSION)
   message(FATAL_ERROR "CMAKE_C_COMPILER_VERSION was not defined")
 endif()
+
+if(NOT DEFINED CMAKE_CXX_COMPILER_VERSION)
+  message(FATAL_ERROR "CMAKE_CXX_COMPILER_VERSION was not defined")
+endif()

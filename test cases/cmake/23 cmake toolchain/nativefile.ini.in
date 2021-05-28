@@ -1,6 +1,7 @@
 [properties]
 
 cmake_toolchain_file = '@MESON_TEST_ROOT@/CMakeToolchain.cmake'
+cmake_skip_compiler_test = 'always'
 
 [cmake]
 
