@@ -37,8 +37,11 @@ def autodetect_vs_version(build: T.Optional[build.Build], interpreter: T.Optiona
     if not vs_install_dir:
         raise MesonException('Could not detect Visual Studio: Environment variable VSINSTALLDIR is not set!\n'
                              'Are you running meson from the Visual Studio Developer Command Prompt?')
-    # VisualStudioVersion is set since Visual Studio 12.0, but sometimes
+    # VisualStudioVersion is set since Visual Studio 11.0, but sometimes
     # vcvarsall.bat doesn't set it, so also use VSINSTALLDIR
+    if vs_version == '11.0' or 'Visual Studio 11' in vs_install_dir:
+        from mesonbuild.backend.vs2012backend import Vs2012Backend
+        return Vs2012Backend(build, interpreter)
     if vs_version == '12.0' or 'Visual Studio 12' in vs_install_dir:
         from mesonbuild.backend.vs2013backend import Vs2013Backend
         return Vs2013Backend(build, interpreter)
