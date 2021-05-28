@@ -73,7 +73,6 @@ def setup_vsenv():
             '-prerelease',
             '-requiresAny',
             '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
-            '-requires', 'Microsoft.VisualStudio.Workload.WDExpress',
             '-products', '*',
             '-format',
             'json'
