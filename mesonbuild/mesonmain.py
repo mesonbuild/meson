@@ -64,21 +64,31 @@ def setup_vsenv():
     if shutil.which('cl.exe'):
         return
 
-    bat_locator_bin = r'c:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
-    if not os.path.exists(bat_locator_bin):
+    root = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles")
+    bat_locator_bin = pathlib.Path(root, 'Microsoft Visual Studio/Installer/vswhere.exe')
+    if not bat_locator_bin.exists():
         return
-    bat_json = subprocess.check_output([bat_locator_bin, '-latest', '-format', 'json'])
+    bat_json = subprocess.check_output(
+        [
+            str(bat_locator_bin),
+            '-latest',
+            '-prerelease',
+            '-requiresAny',
+            '-requires', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+            '-requires', 'Microsoft.VisualStudio.Workload.WDExpress',
+            '-products', '*',
+            '-format',
+            'json'
+        ]
+    )
     bat_info = json.loads(bat_json)
-    if not bat_info:
-        bat_json = subprocess.check_output([bat_locator_bin, '-prerelease', '-format', 'json'])
-        bat_info = json.loads(bat_json)
     if not bat_info:
         # VS installer instelled but not VS itself maybe?
         return
     print('Activating VS', bat_info[0]['catalog']['productDisplayVersion'])
-    bat_root = bat_info[0]['installationPath']
-    bat_path = bat_root + r'\VC\Auxiliary\Build\vcvars64.bat'
-    if not os.path.exists(bat_path):
+    bat_root = pathlib.Path(bat_info[0]['installationPath'])
+    bat_path = bat_root / 'VC/Auxiliary/Build/vcvars64.bat'
+    if not bat_path.exists():
         return
 
     bat_file = pathlib.Path.home() / 'vsdetect.bat'
