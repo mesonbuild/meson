@@ -15,6 +15,7 @@
 import os
 import json
 import shutil
+import textwrap
 import typing as T
 
 from pathlib import Path
@@ -24,7 +25,8 @@ from . import ExtensionModule
 from ..interpreterbase import (
     noPosargs, noKwargs, permittedKwargs,
     InvalidArguments,
-    FeatureNew, FeatureNewKwargs, disablerIfNotFound
+    FeatureNew, FeatureNewKwargs, disablerIfNotFound,
+    InterpreterObject, ObjectHolder
 )
 from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitted_dependency_kwargs
 from ..build import known_shmod_kwargs
@@ -32,7 +34,8 @@ from .. import mlog
 from ..environment import detect_cpu_family
 from ..dependencies.base import (
     DependencyMethods, ExternalDependency,
-    PkgConfigDependency, NotFoundDependency
+    PkgConfigDependency, NotFoundDependency,
+    DependencyException
 )
 from ..programs import ExternalProgram, NonExistingExternalProgram
 
@@ -257,6 +260,19 @@ class PythonDependency(ExternalDependency):
         else:
             return super().get_pkgconfig_variable(variable_name, kwargs)
 
+class PythonPackage(InterpreterObject, ObjectHolder[ExternalProgram]):
+    def __init__(self, package_name: str, is_found: bool, package_version: str):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, package_name)
+        self.methods.update({'found': self.found,'version':self.version})
+        self.is_found = is_found
+        self.package_version = package_version
+ 
+    def found(self, *args):
+        return self.is_found
+    
+    def version(self, *args):
+        return self.package_version
 
 INTROSPECT_COMMAND = '''import sysconfig
 import json
@@ -309,6 +325,7 @@ class PythonInstallation(ExternalProgramHolder):
             'has_variable': self.has_variable_method,
             'get_variable': self.get_variable_method,
             'path': self.path_method,
+            'find_package': self.find_package,
         })
 
     @permittedKwargs(mod_kwargs)
@@ -460,6 +477,65 @@ class PythonInstallation(ExternalProgramHolder):
                 raise InvalidArguments(f'{var_name} is not a valid variable name')
 
         return var
+
+    @permittedKwargs({'required', 'version'})
+    def find_package(self, args: str, kwargs: dict):
+        required: bool = kwargs.pop('required',True)
+        if not isinstance(required, bool):
+            raise MesonException(f"Expected a bool instead found {type(required)} for required parameter.")        
+        
+        want_version: str = kwargs.pop('version','')
+        if not isinstance(want_version, str):
+            raise MesonException(f"Expected a string instead found {type(want_version)} for version parameter.")
+        
+        want_package = args[0]
+        if not isinstance(want_package, str):
+            raise MesonException(f"Expected a string instead found {type(want_package)}")
+
+        command_importlib = textwrap.dedent("""\
+            try:
+                # only 3.8+
+                from importlib.metadata import version
+            except (ImportError,ModuleNotFoundError):
+                # try using backport
+                from importlib_metadata import version
+                # fail if it is not available
+            print(version('{package_name}'))
+            """)
+        python = self.held_object.path
+        p, got_version, err = mesonlib.Popen_safe(
+            [
+                python,
+                '-c',
+                command_importlib.format(package_name=want_package)
+            ]
+        )
+        got_version = got_version.strip()
+        found_package = True
+        found_version = True
+        if p.returncode != 0:
+            found_package = False
+            #if required:
+            #    
+        if found_package is True and not mesonlib.version_compare(got_version, want_version):
+            found_version = False
+        
+        msg = [f'Python Package {want_package}({want_version}) found:']
+        if found_package and found_version:
+            msg.append(mlog.green('YES'))
+            msg.append(f"({got_version})")
+        else:
+            msg.append(mlog.red('NO'))
+        mlog.log(*msg)
+        if required:
+            if not found_package:
+                raise DependencyException(f"Can't find requested Python Package {want_package}")
+            if not found_version:
+                raise DependencyException(
+                    f"Can't find requested Python Package version \"{want_package}\" \n" 
+                    f"Requested: {want_version}\nGot: {got_version}"
+                )
+        return PythonPackage(want_package,found_package and found_version,got_version)
 
     @noPosargs
     @noKwargs
