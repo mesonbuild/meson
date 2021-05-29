@@ -953,6 +953,7 @@ class CMakeInterpreter:
             cmake_files = self.fileapi.get_cmake_sources()
             self.bs_files = [x.file for x in cmake_files if not x.is_cmake and not x.is_temp]
             self.bs_files = [relative_to_if_possible(x, Path(self.env.get_source_dir())) for x in self.bs_files]
+            self.bs_files = [x for x in self.bs_files if not path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True)]
             self.bs_files = list(OrderedSet(self.bs_files))
 
             # Load the codemodel configurations
@@ -980,6 +981,7 @@ class CMakeInterpreter:
         src_dir = bs_reply.src_dir
         self.bs_files = [x.file for x in bs_reply.build_files if not x.is_cmake and not x.is_temp]
         self.bs_files = [relative_to_if_possible(src_dir / x, Path(self.env.get_source_dir()), resolve=True) for x in self.bs_files]
+        self.bs_files = [x for x in self.bs_files if not path_is_in_root(x, Path(self.env.get_build_dir()), resolve=True)]
         self.bs_files = list(OrderedSet(self.bs_files))
         self.codemodel_configs = cm_reply.configs
 
