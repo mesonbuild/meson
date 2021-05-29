@@ -112,7 +112,7 @@ class StaticLinker:
         be implemented
         """
         assert not self.can_linker_accept_rsp(), f'{self.id} linker accepts RSP, but doesn\' provide a supported format, this is a bug'
-        raise mesonlib.EnvironmentException(f'{self.id} does no implemnt rsp format, this shouldn\'t be called')
+        raise mesonlib.EnvironmentException(f'{self.id} does not implemnt rsp format, this shouldn\'t be called')
 
 
 class VisualStudioLikeLinker:
