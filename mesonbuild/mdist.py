@@ -313,5 +313,5 @@ def run(options):
     if rc == 0:
         for name in names:
             create_hash(name)
-            print('Created', os.path.relpath(name))
+            print('Created', name)
     return rc
