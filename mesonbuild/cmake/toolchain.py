@@ -16,7 +16,7 @@ from pathlib import Path
 from .traceparser import CMakeTraceParser
 from ..envconfig import CMakeSkipCompilerTest
 from ..mesonlib import MachineChoice
-from .common import language_map
+from .common import language_map, cmake_get_generator_args
 from .. import mlog
 
 import shutil
@@ -224,7 +224,10 @@ class CMakeToolchain:
         # Configure
         trace = CMakeTraceParser(self.cmakebin.version(), build_dir)
         self.cmakebin.set_exec_mode(print_cmout=False, always_capture_stderr=trace.requires_stderr())
-        cmake_args = [*trace.trace_args(), '-DCMAKE_TOOLCHAIN_FILE=' + temp_toolchain_file.as_posix(), '.']
+        cmake_args = []
+        cmake_args += trace.trace_args()
+        cmake_args += cmake_get_generator_args(self.env)
+        cmake_args += [f'-DCMAKE_TOOLCHAIN_FILE={temp_toolchain_file.as_posix()}', '.']
         rc, _, raw_trace = self.cmakebin.call(cmake_args, build_dir=build_dir, disable_cache=True)
 
         if rc != 0:

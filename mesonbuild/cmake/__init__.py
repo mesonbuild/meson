@@ -30,11 +30,13 @@ __all__ = [
     'TargetOptions',
     'parse_generator_expressions',
     'language_map',
+    'backend_generator_map',
+    'cmake_get_generator_args',
     'cmake_defines_to_args',
     'check_cmake_args',
 ]
 
-from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map, check_cmake_args
+from .common import CMakeException, SingleTargetOptions, TargetOptions, cmake_defines_to_args, language_map, backend_generator_map, cmake_get_generator_args, check_cmake_args
 from .client import CMakeClient
 from .executor import CMakeExecutor
 from .fileapi import CMakeFileAPI

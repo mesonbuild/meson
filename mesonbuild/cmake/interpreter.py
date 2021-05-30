@@ -15,7 +15,7 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, check_cmake_args
+from .common import CMakeException, CMakeTarget, TargetOptions, CMakeConfiguration, language_map, backend_generator_map, cmake_get_generator_args, check_cmake_args
 from .client import CMakeClient, RequestCMakeInputs, RequestConfigure, RequestCompute, RequestCodeModel, ReplyCMakeInputs, ReplyCodeModel
 from .fileapi import CMakeFileAPI
 from .executor import CMakeExecutor
@@ -73,15 +73,6 @@ disable_policy_warnings = [
     'CMP0089',
     'CMP0102',
 ]
-
-backend_generator_map = {
-    'ninja': 'Ninja',
-    'xcode': 'Xcode',
-    'vs2010': 'Visual Studio 10 2010',
-    'vs2015': 'Visual Studio 15 2017',
-    'vs2017': 'Visual Studio 15 2017',
-    'vs2019': 'Visual Studio 16 2019',
-}
 
 target_type_map = {
     'STATIC_LIBRARY': 'static_library',
@@ -898,9 +889,8 @@ class CMakeInterpreter:
         # TODO: drop this check once the deprecated `cmake_args` kwarg is removed
         extra_cmake_options = check_cmake_args(extra_cmake_options)
 
-        generator = backend_generator_map[self.backend_name]
         cmake_args = []
-        cmake_args += ['-G', generator]
+        cmake_args += cmake_get_generator_args(self.env)
         cmake_args += [f'-DCMAKE_INSTALL_PREFIX={self.install_prefix}']
         cmake_args += extra_cmake_options
         trace_args = self.trace.trace_args()
