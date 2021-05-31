@@ -17,7 +17,7 @@ from pathlib import PurePath
 
 from .. import build
 from .. import dependencies
-from ..dependencies.misc import ThreadDependency
+from ..dependencies import ThreadDependency
 from .. import mesonlib
 from .. import mlog
 from . import ModuleReturnValue

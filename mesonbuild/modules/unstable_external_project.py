@@ -24,7 +24,7 @@ from ..interpreterbase import InterpreterException, FeatureNew
 from ..interpreterbase import permittedKwargs, typed_pos_args
 from ..interpreter import DependencyHolder
 from ..compilers.compilers import CFLAGS_MAPPING, CEXE_MAPPING
-from ..dependencies.base import InternalDependency, PkgConfigDependency
+from ..dependencies import InternalDependency, PkgConfigDependency
 from ..mesonlib import OptionKey
 
 class ExternalProject(ModuleObject):

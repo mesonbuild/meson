@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import re
 import functools
 import typing as T
@@ -22,7 +21,8 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import Environment
 
-from .base import DependencyException, ExternalDependency, PkgConfigDependency
+from .base import DependencyException, ExternalDependency
+from .pkgconfig import PkgConfigDependency
 from .misc import threads_factory
 
 if T.TYPE_CHECKING:

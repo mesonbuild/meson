@@ -17,8 +17,10 @@ import typing as T
 import os
 import re
 
-from .base import (DependencyMethods, PkgConfigDependency, factory_methods,
-                   ConfigToolDependency, detect_compiler, ExternalDependency)
+from .base import DependencyMethods, detect_compiler, ExternalDependency
+from .configtool import ConfigToolDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import factory_methods
 from ..environment import detect_cpu_family
 
 if T.TYPE_CHECKING:

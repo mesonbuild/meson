@@ -15,12 +15,15 @@
 from .boost import BoostDependency
 from .cuda import CudaDependency
 from .hdf5 import hdf5_factory
-from .base import (  # noqa: F401
-    Dependency, DependencyException, DependencyMethods, ExternalDependency,
-    NotFoundDependency, ExternalLibrary, ExtraFrameworkDependency,
-    InternalDependency, PkgConfigDependency, CMakeDependency,
-    find_external_dependency, get_dep_identifier, packages,
-    _packages_accept_language, DependencyFactory)
+from .base import Dependency, InternalDependency, ExternalDependency, NotFoundDependency
+from .base import ExternalLibrary, DependencyException, DependencyMethods
+from .cmake import CMakeDependency
+from .configtool import ConfigToolDependency
+from .dub import DubDependency
+from .framework import ExtraFrameworkDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import DependencyFactory
+from .detect import find_external_dependency, get_dep_identifier, packages, _packages_accept_language
 from .dev import (
     ValgrindDependency, JDKSystemDependency, gmock_factory, gtest_factory,
     llvm_factory, zlib_factory)
@@ -30,11 +33,34 @@ from .scalapack import scalapack_factory
 from .misc import (
     BlocksDependency, OpenMPDependency, cups_factory, curses_factory, gpgme_factory,
     libgcrypt_factory, libwmf_factory, netcdf_factory, pcap_factory, python3_factory,
-    shaderc_factory, threads_factory,
+    shaderc_factory, threads_factory, ThreadDependency,
 )
 from .platform import AppleFrameworks
 from .qt import qt4_factory, qt5_factory, qt6_factory
 from .ui import GnuStepDependency, WxDependency, gl_factory, sdl2_factory, vulkan_factory
+
+__all__ = [
+    'Dependency',
+    'InternalDependency',
+    'ExternalDependency',
+    'NotFoundDependency',
+    'ExternalLibrary',
+    'DependencyException',
+    'DependencyMethods',
+
+    'CMakeDependency',
+    'ConfigToolDependency',
+    'DubDependency',
+    'ExtraFrameworkDependency',
+    'PkgConfigDependency',
+
+    'DependencyFactory',
+
+    'ThreadDependency',
+
+    'find_external_dependency',
+    'get_dep_identifier',
+]
 
 """Dependency representations and discovery logic.
 

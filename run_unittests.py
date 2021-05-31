@@ -44,6 +44,7 @@ import typing as T
 import mesonbuild.mlog
 import mesonbuild.depfile
 import mesonbuild.dependencies.base
+import mesonbuild.dependencies.factory
 import mesonbuild.compilers
 import mesonbuild.envconfig
 import mesonbuild.environment
@@ -1251,19 +1252,20 @@ class InternalTests(unittest.TestCase):
 
     def test_dependency_factory_order(self):
         b = mesonbuild.dependencies.base
+        F = mesonbuild.dependencies.factory
         with tempfile.TemporaryDirectory() as tmpdir:
             with chdir(tmpdir):
                 env = get_fake_env()
                 env.scratch_dir = tmpdir
 
-                f = b.DependencyFactory(
+                f = F.DependencyFactory(
                     'test_dep',
                     methods=[b.DependencyMethods.PKGCONFIG, b.DependencyMethods.CMAKE]
                 )
                 actual = [m() for m in f(env, MachineChoice.HOST, {'required': False})]
                 self.assertListEqual([m.type_name for m in actual], ['pkgconfig', 'cmake'])
 
-                f = b.DependencyFactory(
+                f = F.DependencyFactory(
                     'test_dep',
                     methods=[b.DependencyMethods.CMAKE, b.DependencyMethods.PKGCONFIG]
                 )
