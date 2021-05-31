@@ -17,8 +17,11 @@ import functools
 import os
 import typing as T
 
-from .base import CMakeDependency, DependencyMethods, PkgConfigDependency
-from .base import factory_methods, DependencyException
+from .base import DependencyMethods
+from .base import DependencyException
+from .cmake import CMakeDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice

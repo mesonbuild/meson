@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.dependencies.base import find_external_dependency
+from mesonbuild.dependencies import find_external_dependency
 import os
 import shutil
 import typing as T

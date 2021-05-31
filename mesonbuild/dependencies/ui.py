@@ -27,7 +27,8 @@ from ..environment import detect_cpu_family
 
 from .base import DependencyException, DependencyMethods
 from .base import ExternalDependency
-from .base import ConfigToolDependency, DependencyFactory
+from .configtool import ConfigToolDependency
+from .factory import DependencyFactory
 
 if T.TYPE_CHECKING:
     from ..environment import Environment

@@ -21,11 +21,11 @@ import re
 import os
 import typing as T
 
-from . import (
-    ExtraFrameworkDependency, DependencyException, DependencyMethods,
-    PkgConfigDependency,
-)
-from .base import ConfigToolDependency, DependencyFactory
+from .base import DependencyException, DependencyMethods
+from .configtool import ConfigToolDependency
+from .framework import ExtraFrameworkDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import DependencyFactory
 from .. import mlog
 from .. import mesonlib
 

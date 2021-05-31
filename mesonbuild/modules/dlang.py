@@ -26,7 +26,7 @@ from ..mesonlib import (
     Popen_safe, MesonException
 )
 
-from ..dependencies.base import DubDependency
+from ..dependencies import DubDependency
 from ..programs import ExternalProgram
 from ..interpreter import DependencyHolder
 

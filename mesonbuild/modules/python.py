@@ -30,7 +30,7 @@ from ..interpreter import ExternalProgramHolder, extract_required_kwarg, permitt
 from ..build import known_shmod_kwargs
 from .. import mlog
 from ..environment import detect_cpu_family
-from ..dependencies.base import (
+from ..dependencies import (
     DependencyMethods, ExternalDependency,
     PkgConfigDependency, NotFoundDependency
 )

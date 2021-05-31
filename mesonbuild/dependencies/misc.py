@@ -24,11 +24,11 @@ from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
 
-from .base import (
-    DependencyException, DependencyMethods, ExternalDependency,
-    PkgConfigDependency, CMakeDependency, ConfigToolDependency,
-    factory_methods, DependencyFactory,
-)
+from .base import DependencyException, DependencyMethods, ExternalDependency
+from .cmake import CMakeDependency
+from .configtool import ConfigToolDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import DependencyFactory, factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice

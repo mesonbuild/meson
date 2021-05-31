@@ -25,10 +25,11 @@ import typing as T
 from .. import mesonlib, mlog
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from ..environment import get_llvm_tool_names
-from .base import (
-    DependencyException, DependencyMethods, ExternalDependency, PkgConfigDependency,
-    strip_system_libdirs, ConfigToolDependency, CMakeDependency, DependencyFactory,
-)
+from .base import DependencyException, DependencyMethods, ExternalDependency, strip_system_libdirs
+from .cmake import CMakeDependency
+from .configtool import ConfigToolDependency
+from .pkgconfig import PkgConfigDependency
+from .factory import DependencyFactory
 from .misc import threads_factory
 from ..compilers.c import AppleClangCCompiler
 from ..compilers.cpp import AppleClangCPPCompiler
