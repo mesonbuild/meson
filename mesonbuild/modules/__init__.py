@@ -90,7 +90,7 @@ class ModuleState:
     def find_program(self, prog: T.Union[str, T.List[str]], required: bool = True,
                      version_func: T.Optional[T.Callable[['ExternalProgram'], str]] = None,
                      wanted: T.Optional[str] = None) -> 'ExternalProgramHolder':
-        return self._interpreter.find_program_impl(prog, required=required)
+        return self._interpreter.find_program_impl(prog, required=required, version_func=version_func, wanted=wanted)
 
 class ModuleObject:
     """Base class for all objects returned by modules
