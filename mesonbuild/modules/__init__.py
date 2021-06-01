@@ -23,8 +23,9 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
-    from ..interpreter.interpreterobjects import IncludeDirsHolder
+    from ..interpreter.interpreterobjects import IncludeDirsHolder, ExternalProgramHolder
     from ..interpreterbase import TYPE_var, TYPE_nvar, TYPE_nkwargs
+    from ..programs import ExternalProgram
 
 class ModuleState:
     """Object passed to all module methods.
