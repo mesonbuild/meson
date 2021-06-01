@@ -419,7 +419,9 @@ class KwargInfo(T.Generic[_T]):
     :param listify: If true, then the argument will be listified before being
         checked. This is useful for cases where the Meson DSL allows a scalar or
         a container, but internally we only want to work with containers
-    :param default: A default value to use if this isn't set. defaults to None
+    :param default: A default value to use if this isn't set. defaults to None,
+        this may be safely set to a mutable type, as long as that type does not
+        itself contain mutable types, typed_kwargs will copy the default
     :param since: Meson version in which this argument has been added. defaults to None
     :param deprecated: Meson version in which this argument has been deprecated. defaults to None
     """
@@ -443,6 +445,9 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
     things about keyword arguments, including the type, and various other
     information. For non-required values it sets the value to a default, which
     means the value will always be provided.
+
+    If type tyhpe is a :class:ContainerTypeInfo, then the default value will be
+    passed as an argument to the container initializer, making a shallow copy
 
     :param name: the name of the function, including the object it's attached ot
         (if applicable)
@@ -491,7 +496,13 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                 else:
                     # set the value to the default, this ensuring all kwargs are present
                     # This both simplifies the typing checking and the usage
-                    kwargs[info.name] = info.default
+                    # Create a shallow copy of the container (and do a type
+                    # conversion if necessary). This allows mutable types to
+                    # be used safely as default values
+                    if isinstance(info.types, ContainerTypeInfo):
+                        kwargs[info.name] = info.types.container(info.default)
+                    else:
+                        kwargs[info.name] = info.default
 
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapper)

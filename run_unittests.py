@@ -1574,6 +1574,17 @@ class InternalTests(unittest.TestCase):
 
         _(None, mock.Mock(), [], {'input': 'str'})
 
+    def test_typed_kwarg_container_default_copy(self) -> None:
+        default: T.List[str] = []
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=default),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, T.List[str]]) -> None:
+            self.assertIsNot(kwargs['input'], default)
+
+        _(None, mock.Mock(), [], {})
+
     def test_typed_kwarg_container_pairs(self) -> None:
         @typed_kwargs(
             'testfunc',
