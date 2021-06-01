@@ -212,7 +212,7 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
         KwargInfo('method', str, default='auto')
     )
-    def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs'):
+    def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
         """Compile Qt resources files.
 
         Uses CustomTargets to generate .cpp files from .qrc files.
@@ -288,39 +288,14 @@ class QtBaseModule(ExtensionModule):
                   "please check your qt{2} installation"
         if (moc_headers or moc_sources) and not self.moc.found():
             raise MesonException(err_msg.format('MOC', f'moc-qt{self.qt_version}', self.qt_version))
+
         if rcc_files:
-            if not self.rcc.found():
-                raise MesonException(err_msg.format('RCC', f'rcc-qt{self.qt_version}', self.qt_version))
             # custom output name set? -> one output file, multiple otherwise
             rcc_kwargs: 'ResourceCompilerKwArgs' = {'sources': rcc_files, 'extra_args': rcc_extra_arguments, 'method': method}
             if args:
-                qrc_deps = []
-                for i in rcc_files:
-                    qrc_deps += self._parse_qrc_deps(state, i)
-                name = args[0]
-                rcc_kwargs = {'input': rcc_files,
-                              'output': name + '.cpp',
-                              'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
-                              'depend_files': qrc_deps}
-                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
-                sources.append(res_target)
-            else:
-                for rcc_file in rcc_files:
-                    qrc_deps = self._parse_qrc_deps(state, rcc_file)
-                    if type(rcc_file) is str:
-                        basename = os.path.basename(rcc_file)
-                    elif type(rcc_file) is File:
-                        basename = os.path.basename(rcc_file.fname)
-                    name = 'qt' + str(self.qt_version) + '-' + basename.replace('.', '_')
-                    rcc_kwargs = {'input': rcc_file,
-                                  'output': name + '.cpp',
-                                  'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', rcc_extra_arguments, '@INPUT@'],
-                                  'depend_files': qrc_deps}
-                    if self.rcc_supports_depfiles:
-                        rcc_kwargs['depfile'] = name + '.d'
-                        rcc_kwargs['command'] += ['--depfile', '@DEPFILE@']
-                    res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
-                    sources.append(res_target)
+                rcc_kwargs['name'] = args[0]
+            sources.extend(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
+
         if ui_files:
             if not self.uic.found():
                 raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
