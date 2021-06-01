@@ -20,7 +20,7 @@ import typing as T
 from .. import mlog
 from .. import build
 from .. import mesonlib
-from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
+from ..mesonlib import MesonException, File, version_compare
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
@@ -71,6 +71,7 @@ if T.TYPE_CHECKING:
 
         sources: T.List[mesonlib.FileOrString]
         moc_sources: T.List[mesonlib.FileOrString]
+        moc_headers: T.List[mesonlib.FileOrString]
         qresources: T.List[mesonlib.FileOrString]
         ui_files: T.List[mesonlib.FileOrString]
         moc_extra_arguments: T.List[str]
@@ -165,7 +166,8 @@ class QtBaseModule(ExtensionModule):
         self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
-        qt = find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs)
+        # Just pick one to make mypy happy
+        qt = T.cast('QtPkgConfigDependency', find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs))
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
@@ -289,7 +291,7 @@ class QtBaseModule(ExtensionModule):
 
         name = kwargs['name']
         sources = kwargs['sources']
-        extra_args = kwargs['extra_args'] or []
+        extra_args = kwargs['extra_args']
 
         # If a name was set generate a single .cpp file from all of the qrc
         # files, otherwise generate one .cpp file per qrc file.
@@ -301,7 +303,7 @@ class QtBaseModule(ExtensionModule):
             rcc_kwargs: T.Dict[str, T.Any] = {  # TODO: if CustomTarget had typing information we could use that here...
                 'input': sources,
                 'output': name + '.cpp',
-                'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', extra_args, '@INPUT@'] + DEPFILE_ARGS,
+                'command': self.rcc.get_command() + ['-name', name, '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                 'depend_files': qrc_deps,
                 'depfile': f'{name}.d',
             }
@@ -318,7 +320,7 @@ class QtBaseModule(ExtensionModule):
                 rcc_kwargs = {
                     'input': rcc_file,
                     'output': f'{name}.cpp',
-                    'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', extra_args, '@INPUT@'] + DEPFILE_ARGS,
+                    'command': self.rcc.get_command() + ['-name', '@BASENAME@', '-o', '@OUTPUT@'] + extra_args + ['@INPUT@'] + DEPFILE_ARGS,
                     'depend_files': qrc_deps,
                     'depfile': f'{name}.d',
                 }
@@ -345,11 +347,11 @@ class QtBaseModule(ExtensionModule):
 
         ui_kwargs: T.Dict[str, T.Any] = {  # TODO: if Generator was properly annotated…
             'output': 'ui_@BASENAME@.h',
-            'arguments': kwargs['extra_args'] or [] + ['-o', '@OUTPUT@', '@INPUT@']}
+            'arguments': kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@']}
         # TODO: This generator isn't added to the generator list in the Interpreter
-        gen = build.Generator([self.uic], ui_kwargs)
+        gen = build.Generator([self.uic], ui_kwargs)  # type: ignore
         out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)
-        return ModuleReturnValue(out, [out])  # type: ignore
+        return ModuleReturnValue(out, [out])
 
     @FeatureNew('qt.compile_moc', '0.59.0')
     @noPosargs
@@ -374,8 +376,8 @@ class QtBaseModule(ExtensionModule):
 
         inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
-        for dep in unholder(kwargs['dependencies']):
-            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+        for dep in kwargs['dependencies']:
+            compile_args.extend([a for a in dep.held_object.get_all_compile_args() if a.startswith(('-I', '-D'))])
 
         output: T.List[build.GeneratedList] = []
 
@@ -383,12 +385,12 @@ class QtBaseModule(ExtensionModule):
         if kwargs['headers']:
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
+            moc_gen = build.Generator([self.moc], moc_kwargs)  # type: ignore
             output.append(moc_gen.process_files(f'Qt{self.qt_version} moc header', kwargs['headers'], state))
         if kwargs['sources']:
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
+            moc_gen = build.Generator([self.moc], moc_kwargs)  # type: ignore
             output.append(moc_gen.process_files(f'Qt{self.qt_version} moc source', kwargs['sources'], state))
 
         return ModuleReturnValue(output, [output])
@@ -424,7 +426,7 @@ class QtBaseModule(ExtensionModule):
 
         if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: 'ResourceCompilerKwArgs' = {'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
+            rcc_kwargs: 'ResourceCompilerKwArgs' = {'name': '', 'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
                 if not isinstance(args[0], str):
                     raise build.InvalidArguments('First argument to qt.preprocess must be a string')
