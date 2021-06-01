@@ -46,6 +46,14 @@ if T.TYPE_CHECKING:
         extra_args: T.List[str]
         method: str
 
+    class UICompilerKwArgs(TypedDict):
+
+        """Keyword arguments for the Ui Compiler method."""
+
+        sources: T.List[mesonlib.FileOrString]
+        extra_args: T.List[str]
+        method: str
+
 
 class QtBaseModule(ExtensionModule):
     tools_detected = False
@@ -63,6 +71,7 @@ class QtBaseModule(ExtensionModule):
             'preprocess': self.preprocess,
             'compile_translations': self.compile_translations,
             'compile_resources': self.compile_resources,
+            'compile_ui': self.compile_ui,
         })
 
     def compilers_detect(self, state, qt_dep: 'QtBaseDependency') -> None:
@@ -269,6 +278,29 @@ class QtBaseModule(ExtensionModule):
 
         return ModuleReturnValue(targets, [targets])
 
+    @FeatureNew('qt.compile_ui', '0.59.0')
+    @noPosargs
+    @typed_kwargs(
+        'qt.compile_ui',
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('method', str, default='auto')
+    )
+    def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
+        """Compile UI resources into cpp headers."""
+        self._detect_tools(state, kwargs['method'])
+        if not self.uic.found():
+            err_msg = ("{0} sources specified and couldn't find {1}, "
+                       "please check your qt{2} installation")
+            raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
+
+        ui_kwargs: T.Dict[str, T.Any] = {  # TODO: if Generator was properly annotated…
+            'output': 'ui_@BASENAME@.h',
+            'arguments': kwargs['extra_args'] or [] + ['-o', '@OUTPUT@', '@INPUT@']}
+        # TODO: This generator isn't added to the generator list in the Interpreter
+        gen = build.Generator([self.uic], ui_kwargs)
+        out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)
+        return ModuleReturnValue(out, [out])  # type: ignore
 
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
@@ -305,6 +337,7 @@ class QtBaseModule(ExtensionModule):
             ui_gen = build.Generator([self.uic], ui_kwargs)
             ui_output = ui_gen.process_files(f'Qt{self.qt_version} ui', ui_files, state)
             sources.append(ui_output)
+
         inc = state.get_include_args(include_dirs=include_directories)
         compile_args = []
         for dep in unholder(dependencies):

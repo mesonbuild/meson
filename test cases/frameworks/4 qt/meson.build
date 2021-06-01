@@ -52,9 +52,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
 
     prep = qtmodule.preprocess(
       moc_headers : ['mainWindow.h'],           # These need to be fed through the moc tool before use. 
-      ui_files : 'mainWindow.ui',               # XML files that need to be compiled with the uic tol.
       method : get_option('method')
     )
+    # XML files that need to be compiled with the uic tol.
+    prep += qtmodule.compile_ui(sources : 'mainWindow.ui', method: get_option('method'))
 
     # Resource file(s) for rcc compiler
     extra_cpp_args = []
