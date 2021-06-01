@@ -238,8 +238,8 @@ class permittedKwargs:
 
 
 def typed_pos_args(name: str, *types: T.Union[T.Type, T.Tuple[T.Type, ...]],
-                   varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type]]] = None,
-                   optargs: T.Optional[T.List[T.Union[T.Type, T.Tuple[T.Type]]]] = None,
+                   varargs: T.Optional[T.Union[T.Type, T.Tuple[T.Type, ...]]] = None,
+                   optargs: T.Optional[T.List[T.Union[T.Type, T.Tuple[T.Type, ...]]]] = None,
                    min_varargs: int = 0, max_varargs: int = 0) -> T.Callable[..., T.Any]:
     """Decorator that types type checking of positional arguments.
 
