@@ -24,15 +24,27 @@ from ..mesonlib import MesonException, extract_as_list, File, unholder, version_
 from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, ExtensionModule
-from ..interpreterbase import FeatureDeprecated, FeatureDeprecatedKwargs, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
-    from ..interpreter import Interpreter
+    from . import ModuleState
     from ..dependencies.qt import QtBaseDependency
     from ..environment import Environment
+    from ..interpreter import Interpreter
     from ..programs import ExternalProgram
+
+    from typing_extensions import TypedDict
+
+    class ResourceCompilerKwArgs(TypedDict):
+
+        """Keyword arguments for the Resource Compiler method."""
+
+        name: T.Optional[str]
+        sources: T.List[mesonlib.FileOrString]
+        extra_args: T.List[str]
+        method: str
 
 
 class QtBaseModule(ExtensionModule):
@@ -50,6 +62,7 @@ class QtBaseModule(ExtensionModule):
             'has_tools': self.has_tools,
             'preprocess': self.preprocess,
             'compile_translations': self.compile_translations,
+            'compile_resources': self.compile_resources,
         })
 
     def compilers_detect(self, state, qt_dep: 'QtBaseDependency') -> None:
@@ -96,7 +109,7 @@ class QtBaseModule(ExtensionModule):
             if p.found():
                 setattr(self, name, p)
 
-    def _detect_tools(self, state, method, required=True):
+    def _detect_tools(self, state: 'ModuleState', method: str, required: bool = True) -> None:
         if self.tools_detected:
             return
         self.tools_detected = True
@@ -118,21 +131,24 @@ class QtBaseModule(ExtensionModule):
             self.rcc = NonExistingExternalProgram(name='rcc' + suffix)
             self.lrelease = NonExistingExternalProgram(name='lrelease' + suffix)
 
-    def qrc_nodes(self, state, rcc_file):
-        if type(rcc_file) is str:
+    @staticmethod
+    def _qrc_nodes(state: 'ModuleState', rcc_file: 'mesonlib.FileOrString') -> T.Tuple[str, T.List[str]]:
+        abspath: str
+        if isinstance(rcc_file, str):
             abspath = os.path.join(state.environment.source_dir, state.subdir, rcc_file)
             rcc_dirname = os.path.dirname(abspath)
-        elif type(rcc_file) is File:
+        else:
             abspath = rcc_file.absolute_path(state.environment.source_dir, state.environment.build_dir)
             rcc_dirname = os.path.dirname(abspath)
 
+        # FIXME: what error are we actually tring to check here?
         try:
             tree = ET.parse(abspath)
             root = tree.getroot()
-            result = []
+            result: T.List[str] = []
             for child in root[0]:
                 if child.tag != 'file':
-                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, rcc_file))
+                    mlog.warning("malformed rcc file: ", os.path.join(state.subdir, str(rcc_file)))
                     break
                 else:
                     result.append(child.text)
@@ -141,9 +157,9 @@ class QtBaseModule(ExtensionModule):
         except Exception:
             raise MesonException(f'Unable to parse resource file {abspath}')
 
-    def parse_qrc_deps(self, state, rcc_file):
-        rcc_dirname, nodes = self.qrc_nodes(state, rcc_file)
-        result = []
+    def _parse_qrc_deps(self, state: 'ModuleState', rcc_file: 'mesonlib.FileOrString') -> T.List[File]:
+        rcc_dirname, nodes = self._qrc_nodes(state, rcc_file)
+        result: T.List[File] = []
         for resource_path in nodes:
             # We need to guess if the pointed resource is:
             #   a) in build directory -> implies a generated file
@@ -187,6 +203,73 @@ class QtBaseModule(ExtensionModule):
                 return False
         return True
 
+    @FeatureNew('qt.compile_resources', '0.59.0')
+    @noPosargs
+    @typed_kwargs(
+        'qt.compile_resources',
+        KwargInfo('name', str),
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('method', str, default='auto')
+    )
+    def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs'):
+        """Compile Qt resources files.
+
+        Uses CustomTargets to generate .cpp files from .qrc files.
+        """
+        self._detect_tools(state, kwargs['method'])
+        if not self.rcc.found():
+            err_msg = ("{0} sources specified and couldn't find {1}, "
+                       "please check your qt{2} installation")
+            raise MesonException(err_msg.format('RCC', f'rcc-qt{self.qt_version}', self.qt_version))
+
+        # List of generated CustomTargets
+        targets: T.List[build.CustomTarget] = []
+
+        # depfile arguments
+        DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self.rcc_supports_depfiles else []
+
+        name = kwargs['name']
+        sources = kwargs['sources']
+        extra_args = kwargs['extra_args'] or []
+
+        # If a name was set generate a single .cpp file from all of the qrc
+        # files, otherwise generate one .cpp file per qrc file.
+        if name:
+            qrc_deps: T.List[File] = []
+            for s in sources:
+                qrc_deps.extend(self._parse_qrc_deps(state, s))
+
+            rcc_kwargs: T.Dict[str, T.Any] = {  # TODO: if CustomTarget had typing information we could use that here...
+                'input': sources,
+                'output': name + '.cpp',
+                'command': [self.rcc, '-name', name, '-o', '@OUTPUT@', extra_args, '@INPUT@'] + DEPFILE_ARGS,
+                'depend_files': qrc_deps,
+                'depfile': f'{name}.d',
+            }
+            res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+            targets.append(res_target)
+        else:
+            for rcc_file in sources:
+                qrc_deps = self._parse_qrc_deps(state, rcc_file)
+                if isinstance(rcc_file, str):
+                    basename = os.path.basename(rcc_file)
+                else:
+                    basename = os.path.basename(rcc_file.fname)
+                name = f'qt{self.qt_version}-{basename.replace(".", "_")}'
+                rcc_kwargs = {
+                    'input': rcc_file,
+                    'output': f'{name}.cpp',
+                    'command': [self.rcc, '-name', '@BASENAME@', '-o', '@OUTPUT@', extra_args, '@INPUT@'] + DEPFILE_ARGS,
+                    'depend_files': qrc_deps,
+                    'depfile': f'{name}.d',
+                }
+                res_target = build.CustomTarget(name, state.subdir, state.subproject, rcc_kwargs)
+                targets.append(res_target)
+
+        return ModuleReturnValue(targets, [targets])
+
+
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
@@ -209,10 +292,11 @@ class QtBaseModule(ExtensionModule):
             if not self.rcc.found():
                 raise MesonException(err_msg.format('RCC', f'rcc-qt{self.qt_version}', self.qt_version))
             # custom output name set? -> one output file, multiple otherwise
+            rcc_kwargs: 'ResourceCompilerKwArgs' = {'sources': rcc_files, 'extra_args': rcc_extra_arguments, 'method': method}
             if args:
                 qrc_deps = []
                 for i in rcc_files:
-                    qrc_deps += self.parse_qrc_deps(state, i)
+                    qrc_deps += self._parse_qrc_deps(state, i)
                 name = args[0]
                 rcc_kwargs = {'input': rcc_files,
                               'output': name + '.cpp',
@@ -222,7 +306,7 @@ class QtBaseModule(ExtensionModule):
                 sources.append(res_target)
             else:
                 for rcc_file in rcc_files:
-                    qrc_deps = self.parse_qrc_deps(state, rcc_file)
+                    qrc_deps = self._parse_qrc_deps(state, rcc_file)
                     if type(rcc_file) is str:
                         basename = os.path.basename(rcc_file)
                     elif type(rcc_file) is File:
@@ -293,7 +377,7 @@ class QtBaseModule(ExtensionModule):
             shutil.copy2(infile_abs, outfile_abs)
             self.interpreter.add_build_def_file(infile_abs)
 
-            rcc_file, nodes = self.qrc_nodes(state, qresource)
+            rcc_file, nodes = self._qrc_nodes(state, qresource)
             for c in nodes:
                 if c.endswith('.qm'):
                     ts_files.append(c.rstrip('.qm')+'.ts')

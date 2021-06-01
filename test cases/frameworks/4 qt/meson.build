@@ -66,7 +66,11 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     endif
 
     # Test that setting a unique name with a positional argument works
-    qtmodule.preprocess(qt + 'teststuff', qresources : files(['stuff.qrc', 'stuff2.qrc']), method : get_option('method'))
+    qtmodule.compile_resources(
+      name : qt + 'teststuff',
+      sources : files(['stuff.qrc', 'stuff2.qrc']),
+      method : get_option('method')
+    )
 
     # Test that passing extra arguments to rcc works
     # qt4-rcc and qt5-rcc take different arguments, for example qt4: ['-compress', '3']; qt5: '--compress=3'
