@@ -420,15 +420,20 @@ class KwargInfo(T.Generic[_T]):
         checked. This is useful for cases where the Meson DSL allows a scalar or
         a container, but internally we only want to work with containers
     :param default: A default value to use if this isn't set. defaults to None
+    :param since: Meson version in which this argument has been added. defaults to None
+    :param deprecated: Meson version in which this argument has been deprecated. defaults to None
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
-                 required: bool = False, listify: bool = False, default: T.Optional[_T] = None):
+                 required: bool = False, listify: bool = False, default: T.Optional[_T] = None,
+                 since: T.Optional[str] = None, deprecated: T.Optional[str] = None):
         self.name = name
         self.types = types
         self.required = required
         self.listify = listify
         self.default = default
+        self.since = since
+        self.deprecated = deprecated
 
 
 def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
@@ -447,7 +452,7 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
 
         @wraps(f)
         def wrapper(*wrapped_args: T.Any, **wrapped_kwargs: T.Any) -> T.Any:
-            kwargs = _get_callee_args(wrapped_args)[3]
+            kwargs, subproject = _get_callee_args(wrapped_args, want_subproject=True)[3:5]
 
             all_names = {t.name for t in types}
             unknowns = set(kwargs).difference(all_names)
@@ -460,8 +465,14 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                     del kwargs[u]
 
             for info in types:
-                if info.name in kwargs:
-                    value = kwargs[info.name]
+                value = kwargs.get(info.name)
+                if value is not None:
+                    if info.since:
+                        feature_name = info.name + ' arg in ' + name
+                        FeatureNew.single_use(feature_name, info.since, subproject)
+                    if info.deprecated:
+                        feature_name = info.name + ' arg in ' + name
+                        FeatureDeprecated.single_use(feature_name, info.deprecated, subproject)
                     if info.listify:
                         kwargs[info.name] = value = mesonlib.listify(value)
                     if isinstance(info.types, ContainerTypeInfo):
