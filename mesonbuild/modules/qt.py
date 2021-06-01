@@ -21,7 +21,6 @@ from .. import mlog
 from .. import build
 from .. import mesonlib
 from ..mesonlib import MesonException, extract_as_list, File, unholder, version_compare
-from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
@@ -31,10 +30,11 @@ from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHo
 
 if T.TYPE_CHECKING:
     from . import ModuleState
-    from ..dependencies.qt import QtBaseDependency
-    from ..environment import Environment
+    from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..interpreter import Interpreter
     from ..programs import ExternalProgram
+
+    QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
 
     from typing_extensions import TypedDict
 
@@ -59,19 +59,32 @@ if T.TYPE_CHECKING:
 
         """Keyword arguments for the Moc Compiler method."""
 
-        sources: T.Optional[T.List[mesonlib.FileOrString]]
-        headers: T.Optional[T.List[mesonlib.FileOrString]]
-        extra_args: T.Optional[T.List[str]]
+        sources: T.List[mesonlib.FileOrString]
+        headers: T.List[mesonlib.FileOrString]
+        extra_args: T.List[str]
         method: str
-        include_directories: T.Optional[T.List[IncludeDirsHolder]]
-        dependencies: T.Optional[T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]]
+        include_directories: T.List[IncludeDirsHolder]
+        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+
+    class PreprocessKwArgs(TypedDict):
+
+        sources: T.List[mesonlib.FileOrString]
+        moc_sources: T.List[mesonlib.FileOrString]
+        qresources: T.List[mesonlib.FileOrString]
+        ui_files: T.List[mesonlib.FileOrString]
+        moc_extra_arguments: T.List[str]
+        rcc_extra_arguments: T.List[str]
+        uic_extra_arguments: T.List[str]
+        include_directories: T.List[IncludeDirsHolder]
+        dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        method: str
 
 
 class QtBaseModule(ExtensionModule):
-    tools_detected = False
-    rcc_supports_depfiles = False
+    _tools_detected = False
+    _rcc_supports_depfiles = False
 
-    def __init__(self, interpreter: 'Interpreter', qt_version=5):
+    def __init__(self, interpreter: 'Interpreter', qt_version: int = 5):
         ExtensionModule.__init__(self, interpreter)
         self.qt_version = qt_version
         self.moc: 'ExternalProgram' = NonExistingExternalProgram('moc')
@@ -87,7 +100,7 @@ class QtBaseModule(ExtensionModule):
             'compile_moc': self.compile_moc,
         })
 
-    def compilers_detect(self, state, qt_dep: 'QtBaseDependency') -> None:
+    def compilers_detect(self, state: 'ModuleState', qt_dep: 'QtDependencyType') -> None:
         """Detect Qt (4 or 5) moc, uic, rcc in the specified bindir or in PATH"""
         # It is important that this list does not change order as the order of
         # the returned ExternalPrograms will change as well
@@ -132,9 +145,9 @@ class QtBaseModule(ExtensionModule):
                 setattr(self, name, p)
 
     def _detect_tools(self, state: 'ModuleState', method: str, required: bool = True) -> None:
-        if self.tools_detected:
+        if self._tools_detected:
             return
-        self.tools_detected = True
+        self._tools_detected = True
         mlog.log(f'Detecting Qt{self.qt_version} tools')
         kwargs = {'required': required, 'modules': 'Core', 'method': method}
         qt = find_external_dependency(f'qt{self.qt_version}', state.environment, kwargs)
@@ -142,7 +155,7 @@ class QtBaseModule(ExtensionModule):
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
             if version_compare(qt.version, '>=5.14.0'):
-                self.rcc_supports_depfiles = True
+                self._rcc_supports_depfiles = True
             else:
                 mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
                     mlog.bold('https://bugreports.qt.io/browse/QTBUG-45460'), fatal=False)
@@ -211,7 +224,7 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @permittedKwargs({'method', 'required'})
     @FeatureNew('qt.has_tools', '0.54.0')
-    def has_tools(self, state, args, kwargs):
+    def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs) -> bool:
         method = kwargs.get('method', 'auto')
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
         if disabled:
@@ -249,7 +262,7 @@ class QtBaseModule(ExtensionModule):
         targets: T.List[build.CustomTarget] = []
 
         # depfile arguments
-        DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self.rcc_supports_depfiles else []
+        DEPFILE_ARGS: T.List[str] = ['--depfile', '@DEPFILE@'] if self._rcc_supports_depfiles else []
 
         name = kwargs['name']
         sources = kwargs['sources']
