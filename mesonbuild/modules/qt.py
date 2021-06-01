@@ -373,11 +373,6 @@ class QtBaseModule(ExtensionModule):
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject)
         sources.extend(_sources)
         method = kwargs.get('method', 'auto')
-        self._detect_tools(state, method)
-        err_msg = "{0} sources specified and couldn't find {1}, " \
-                  "please check your qt{2} installation"
-        if (moc_headers or moc_sources) and not self.moc.found():
-            raise MesonException(err_msg.format('MOC', f'moc-qt{self.qt_version}', self.qt_version))
 
         if rcc_files:
             # custom output name set? -> one output file, multiple otherwise
@@ -390,32 +385,16 @@ class QtBaseModule(ExtensionModule):
             ui_kwargs: 'UICompilerKwArgs' = {'sources': ui_files, 'extra_args': uic_extra_arguments, 'method': method}
             sources.extend(self.compile_ui(state, tuple(), ui_kwargs).return_value)
 
-        inc = state.get_include_args(include_dirs=include_directories)
-        compile_args = []
-        for dep in unholder(dependencies):
-            if isinstance(dep, Dependency):
-                for arg in dep.get_all_compile_args():
-                    if arg.startswith('-I') or arg.startswith('-D'):
-                        compile_args.append(arg)
-            else:
-                raise MesonException('Argument is of an unacceptable type {!r}.\nMust be '
-                                     'either an external dependency (returned by find_library() or '
-                                     'dependency()) or an internal dependency (returned by '
-                                     'declare_dependency()).'.format(type(dep).__name__))
-        if moc_headers:
-            arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
-            moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
-                          'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc header', moc_headers, state)
-            sources.append(moc_output)
-        if moc_sources:
-            arguments = moc_extra_arguments + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
-            moc_kwargs = {'output': '@BASENAME@.moc',
-                          'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)
-            moc_output = moc_gen.process_files(f'Qt{self.qt_version} moc source', moc_sources, state)
-            sources.append(moc_output)
+        if moc_headers or moc_sources:
+            moc_kwargs: 'MocCompilerKwArgs' = {
+                'extra_args': moc_extra_arguments,
+                'sources': moc_sources,
+                'headers': moc_sources,
+                'include_directories': include_directories,
+                'dependencies': dependencies
+            }
+            sources.extend(self.compile_moc(state, tuple(), moc_kwargs).return_value)
+
         return ModuleReturnValue(sources, sources)
 
     @FeatureNew('qt.compile_translations', '0.44.0')
