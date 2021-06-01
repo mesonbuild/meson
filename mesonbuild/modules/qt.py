@@ -84,6 +84,16 @@ if T.TYPE_CHECKING:
 
         method: str
 
+    class CompileTranslationsKwArgs(TypedDict):
+
+        build_by_default: bool
+        install: bool
+        install_dir: T.Optional[str]
+        method: str
+        qresource: T.Optional[str]
+        rcc_extra_arguments: T.List[str]
+        ts_files: T.List[str]
+
 
 class QtBaseModule(ExtensionModule):
     _tools_detected = False
@@ -436,37 +446,48 @@ class QtBaseModule(ExtensionModule):
             }
             sources.extend(self.compile_moc(state, tuple(), moc_kwargs).return_value)
 
-        return ModuleReturnValue(sources, sources)
+        return ModuleReturnValue(sources, [sources])
 
     @FeatureNew('qt.compile_translations', '0.44.0')
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['qresource'])
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['rcc_extra_arguments'])
     @permittedKwargs({'ts_files', 'qresource', 'rcc_extra_arguments', 'install', 'install_dir', 'build_by_default', 'method'})
     @noPosargs
-    def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
-        ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in ['ts_files', 'install_dir']]
-        qresource = kwargs.get('qresource')
+    @typed_kwargs(
+        'qt.compile_translations',
+        KwargInfo('build_by_default', bool, default=False),
+        KwargInfo('install', bool, default=False),
+        KwargInfo('install_dir', str),
+        KwargInfo('method', str, default='auto'),
+        KwargInfo('qresource', str),
+        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('ts_files', ContainerTypeInfo(list, (str, File)), listify=True, default=[]),
+    )
+    def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: 'CompileTranslationsKwArgs') -> ModuleReturnValue:
+        ts_files = kwargs['ts_files']
+        install_dir = kwargs['install_dir']
+        qresource = kwargs['qresource']
         if qresource:
             if ts_files:
                 raise MesonException('qt.compile_translations: Cannot specify both ts_files and qresource')
             if os.path.dirname(qresource) != '':
                 raise MesonException('qt.compile_translations: qresource file name must not contain a subdirectory.')
-            qresource = File.from_built_file(state.subdir, qresource)
-            infile_abs = os.path.join(state.environment.source_dir, qresource.relative_name())
-            outfile_abs = os.path.join(state.environment.build_dir, qresource.relative_name())
+            qresource_file = File.from_built_file(state.subdir, qresource)
+            infile_abs = os.path.join(state.environment.source_dir, qresource_file.relative_name())
+            outfile_abs = os.path.join(state.environment.build_dir, qresource_file.relative_name())
             os.makedirs(os.path.dirname(outfile_abs), exist_ok=True)
             shutil.copy2(infile_abs, outfile_abs)
             self.interpreter.add_build_def_file(infile_abs)
 
-            rcc_file, nodes = self._qrc_nodes(state, qresource)
+            _, nodes = self._qrc_nodes(state, qresource_file)
             for c in nodes:
                 if c.endswith('.qm'):
-                    ts_files.append(c.rstrip('.qm')+'.ts')
+                    ts_files.append(c.rstrip('.qm') + '.ts')
                 else:
                     raise MesonException(f'qt.compile_translations: qresource can only contain qm files, found {c}')
-            results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs.get('rcc_extra_arguments', [])})
-        self._detect_tools(state, kwargs.get('method', 'auto'))
-        translations = []
+            results = self.preprocess(state, [], {'qresources': qresource, 'rcc_extra_arguments': kwargs['rcc_extra_arguments']})
+        self._detect_tools(state, kwargs['method'])
+        translations: T.List[build.CustomTarget] = []
         for ts in ts_files:
             if not self.lrelease.found():
                 raise MesonException('qt.compile_translations: ' +
@@ -489,4 +510,4 @@ class QtBaseModule(ExtensionModule):
         if qresource:
             return ModuleReturnValue(results.return_value[0], [results.new_objects, translations])
         else:
-            return ModuleReturnValue(translations, translations)
+            return ModuleReturnValue(translations, [translations])
