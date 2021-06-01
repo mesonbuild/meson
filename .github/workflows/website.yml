@@ -1,0 +1,35 @@
+name: Update website
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - docs/**
+  workflow_dispatch:
+
+jobs:
+  update_website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install package
+        run: |
+          sudo apt-get -y install python3-pip ninja-build libjson-glib-dev
+          pip install meson hotdoc
+      - name: Setup SSH Keys and known_hosts
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          ssh-agent -a $SSH_AUTH_SOCK > /dev/null
+          ssh-add - <<< "${{ secrets.WEBSITE_PRIV_KEY }}"
+      - name: Update website
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          cd docs
+          meson setup _build
+          ninja -C _build
+          ninja -C _build upload
