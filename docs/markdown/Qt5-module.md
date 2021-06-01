@@ -12,8 +12,11 @@ Has the following signature: `qt.preprocess(name: str | None, *sources: str)`
 
 If the `name` parameter is passed then all of the rcc files will be wirtten to a single output file
 
-The variadic `sources` arguments have been deprecated since Meson 0.59.0, use
-the `sources` keyword argument instead.
+The variadic `sources` arguments have been deprecated since Meson 0.59.0, as has the `sources` keyword argument. These passed files unmodified through the preprocessor, don't do this, just add the output of the generator to another sources list:
+```meson
+sources = files('a.cpp', 'main.cpp', 'bar.c')
+sources += qt.preprocess(qresources : ['resources'])
+```
 
 This method takes the following keyword arguments:
  - `qresources`: a list of strings, Files, Custom Targets, or Build Targets to pass the `rcc` compiler
@@ -25,6 +28,7 @@ This method takes the following keyword arguments:
  - `uic_extra_arguments`, any additional arguments to `uic` (optional). Available since v0.49.0.
  - `rcc_extra_arguments`, any additional arguments to `rcc` (optional). Available since v0.49.0.
  - `dependencies`, dependency objects needed by moc. Available since v0.48.0.
+ - `sources`, a list of extra sources, which are added to the output unchaged. Deprecated in 0.59.0
 
 It returns an array of targets and sources to pass to a compilation target.
 
