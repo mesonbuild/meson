@@ -15,30 +15,21 @@
 # This file contains the detection logic for external dependencies.
 # Custom logic for several other packages are in separate files.
 import copy
-import functools
 import os
-import re
 import itertools
-import json
-import shlex
-import shutil
-import textwrap
 import typing as T
 from enum import Enum
-from pathlib import Path, PurePath
 
 from .. import mlog
-from .. import mesonlib
 from ..compilers import clib_langs
-from ..environment import Environment, MachineInfo
-from ..mesonlib import MachineChoice, MesonException, OrderedSet, PerMachine
-from ..mesonlib import Popen_safe, version_compare_many, version_compare, listify, stringlistify, extract_as_list, split_args
-from ..mesonlib import Version, LibType, OptionKey
-from ..programs import ExternalProgram, find_external_program
+from ..mesonlib import MachineChoice, MesonException
+from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
 if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
+    from ..environment import Environment
+    from ..build import BuildTarget
     DependencyType = T.TypeVar('DependencyType', bound='Dependency')
 
 
@@ -72,7 +63,7 @@ class DependencyMethods(Enum):
 class Dependency:
 
     @classmethod
-    def _process_include_type_kw(cls, kwargs) -> str:
+    def _process_include_type_kw(cls, kwargs: T.Dict[str, T.Any]) -> str:
         if 'include_type' not in kwargs:
             return 'preserve'
         if not isinstance(kwargs['include_type'], str):
@@ -81,25 +72,24 @@ class Dependency:
             raise DependencyException("include_type may only be one of ['preserve', 'system', 'non-system']")
         return kwargs['include_type']
 
-    def __init__(self, type_name, kwargs):
+    def __init__(self, type_name: str, kwargs: T.Dict[str, T.Any]) -> None:
         self.name = "null"
-        self.version = None  # type: T.Optional[str]
-        self.language = None # None means C-like
+        self.version:  T.Optional[str] = None
+        self.language: T.Optional[str] = None # None means C-like
         self.is_found = False
         self.type_name = type_name
-        self.compile_args = []  # type: T.List[str]
-        self.link_args = []
+        self.compile_args: T.List[str] = []
+        self.link_args:    T.List[str] = []
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
-        self.raw_link_args = None
-        self.sources = []
+        self.raw_link_args: T.Optional[T.List[str]] = None
+        self.sources: T.List[str] = []
         self.methods = process_method_kw(self.get_methods(), kwargs)
         self.include_type = self._process_include_type_kw(kwargs)
-        self.ext_deps = []  # type: T.List[Dependency]
+        self.ext_deps: T.List[Dependency] = []
 
-    def __repr__(self):
-        s = '<{0} {1}: {2}>'
-        return s.format(self.__class__.__name__, self.name, self.is_found)
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__} {self.name}: {self.is_found}>'
 
     def is_built(self) -> bool:
         return False
@@ -109,7 +99,7 @@ class Dependency:
             return mlog.red('NO')
         if not self.version:
             return mlog.green('YES')
-        return mlog.AnsiText(mlog.green('YES'), ' ', mlog.cyan(self.version))
+        return mlog.AnsiText([mlog.green('YES'), ' ', mlog.cyan(self.version)])
 
     def get_compile_args(self) -> T.List[str]:
         if self.include_type == 'system':
@@ -135,7 +125,7 @@ class Dependency:
         return list(itertools.chain(self.get_compile_args(),
                                     *[d.get_all_compile_args() for d in self.ext_deps]))
 
-    def get_link_args(self, raw: bool = False) -> T.List[str]:
+    def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         if raw and self.raw_link_args is not None:
             return self.raw_link_args
         return self.link_args
@@ -148,16 +138,16 @@ class Dependency:
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self):
+    def get_sources(self) -> T.List[str]:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.AUTO]
 
-    def get_name(self):
+    def get_name(self) -> str:
         return self.name
 
     def get_version(self) -> str:
@@ -169,18 +159,18 @@ class Dependency:
     def get_include_type(self) -> str:
         return self.include_type
 
-    def get_exe_args(self, compiler):
+    def get_exe_args(self, compiler: 'Compiler') -> T.List[str]:
         return []
 
     def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
         raise DependencyException(f'{self.name!r} is not a pkgconfig dependency')
 
-    def get_configtool_variable(self, variable_name):
+    def get_configtool_variable(self, variable_name: str) -> str:
         raise DependencyException(f'{self.name!r} is not a config-tool dependency')
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False):
+                               includes: bool = False, sources: bool = False) -> 'Dependency':
         """Create a new dependency that contains part of the parent dependency.
 
         The following options can be inherited:
@@ -220,14 +210,16 @@ class Dependency:
             return default_value
         raise DependencyException(f'No default provided for dependency {self!r}, which is not pkg-config, cmake, or config-tool based.')
 
-    def generate_system_dependency(self, include_type: str) -> T.Type['Dependency']:
+    def generate_system_dependency(self, include_type: str) -> 'Dependency':
         new_dep = copy.deepcopy(self)
         new_dep.include_type = self._process_include_type_kw({'include_type': include_type})
         return new_dep
 
 class InternalDependency(Dependency):
-    def __init__(self, version, incdirs, compile_args, link_args, libraries,
-                 whole_libraries, sources, ext_deps, variables: T.Dict[str, T.Any]):
+    def __init__(self, version: str, incdirs: T.List[str], compile_args: T.List[str],
+                 link_args: T.List[str], libraries: T.List['BuildTarget'],
+                 whole_libraries: T.List['BuildTarget'], sources: T.List[str],
+                 ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
         super().__init__('internal', {})
         self.version = version
         self.is_found = True
@@ -240,8 +232,9 @@ class InternalDependency(Dependency):
         self.ext_deps = ext_deps
         self.variables = variables
 
-    def __deepcopy__(self, memo: dict) -> 'InternalDependency':
+    def __deepcopy__(self, memo: T.Dict[int, 'InternalDependency']) -> 'InternalDependency':
         result = self.__class__.__new__(self.__class__)
+        assert isinstance(result, InternalDependency)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
             if k in ['libraries', 'whole_libraries']:
@@ -264,13 +257,13 @@ class InternalDependency(Dependency):
         raise DependencyException('Method "get_pkgconfig_variable()" is '
                                   'invalid for an internal dependency')
 
-    def get_configtool_variable(self, variable_name):
+    def get_configtool_variable(self, variable_name: str) -> str:
         raise DependencyException('Method "get_configtool_variable()" is '
                                   'invalid for an internal dependency')
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False):
+                               includes: bool = False, sources: bool = False) -> 'InternalDependency':
         final_compile_args = self.compile_args.copy() if compile_args else []
         final_link_args = self.link_args.copy() if link_args else []
         final_libraries = self.libraries.copy() if links else []
@@ -291,10 +284,16 @@ class InternalDependency(Dependency):
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         val = self.variables.get(internal, default_value)
         if val is not None:
-            return val
+            # TODO: Try removing this assert by better typing self.variables
+            if isinstance(val, str):
+                return val
+            if isinstance(val, list):
+                for i in val:
+                    assert isinstance(i, str)
+                return val
         raise DependencyException(f'Could not get an internal variable and no default provided for {self!r}')
 
-    def generate_link_whole_dependency(self) -> T.Type['Dependency']:
+    def generate_link_whole_dependency(self) -> Dependency:
         new_dep = copy.deepcopy(self)
         new_dep.whole_libraries += new_dep.libraries
         new_dep.libraries = []
@@ -308,7 +307,7 @@ class HasNativeKwarg:
         return MachineChoice.BUILD if kwargs.get('native', False) else MachineChoice.HOST
 
 class ExternalDependency(Dependency, HasNativeKwarg):
-    def __init__(self, type_name, environment: Environment, kwargs, language: T.Optional[str] = None):
+    def __init__(self, type_name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None):
         Dependency.__init__(self, type_name, kwargs)
         self.env = environment
         self.name = type_name # default
@@ -326,12 +325,12 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         HasNativeKwarg.__init__(self, kwargs)
         self.clib_compiler = detect_compiler(self.name, environment, self.for_machine, self.language)
 
-    def get_compiler(self):
+    def get_compiler(self) -> 'Compiler':
         return self.clib_compiler
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False):
+                               includes: bool = False, sources: bool = False) -> Dependency:
         new = copy.copy(self)
         if not compile_args:
             new.compile_args = []
@@ -340,32 +339,32 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         if not sources:
             new.sources = []
         if not includes:
-            new.include_directories = []
+            pass # TODO maybe filter compile_args?
         if not sources:
             new.sources = []
 
         return new
 
-    def log_details(self):
+    def log_details(self) -> str:
         return ''
 
-    def log_info(self):
+    def log_info(self) -> str:
         return ''
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return ''
 
     # Check if dependency version meets the requirements
-    def _check_version(self):
+    def _check_version(self) -> None:
         if not self.is_found:
             return
 
         if self.version_reqs:
             # an unknown version can never satisfy any requirement
             if not self.version:
-                found_msg = ['Dependency', mlog.bold(self.name), 'found:']
-                found_msg += [mlog.red('NO'), 'unknown version, but need:',
-                              self.version_reqs]
+                found_msg: mlog.TV_LoggableList = []
+                found_msg += ['Dependency', mlog.bold(self.name), 'found:']
+                found_msg += [mlog.red('NO'), 'unknown version, but need:', self.version_reqs]
                 mlog.log(*found_msg)
 
                 if self.required:
@@ -392,7 +391,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
 
 
 class NotFoundDependency(Dependency):
-    def __init__(self, environment):
+    def __init__(self, environment: 'Environment') -> None:
         super().__init__('not-found', {})
         self.env = environment
         self.name = 'not-found'
@@ -400,12 +399,13 @@ class NotFoundDependency(Dependency):
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False):
+                               includes: bool = False, sources: bool = False) -> 'NotFoundDependency':
         return copy.copy(self)
 
 
 class ExternalLibrary(ExternalDependency):
-    def __init__(self, name, link_args, environment, language, silent=False):
+    def __init__(self, name: str, link_args: T.List[str], environment: 'Environment',
+                 language: str, silent: bool = False) -> None:
         super().__init__('library', environment, {}, language=language)
         self.name = name
         self.language = language
@@ -419,7 +419,7 @@ class ExternalLibrary(ExternalDependency):
             else:
                 mlog.log('Library', mlog.bold(name), 'found:', mlog.red('NO'))
 
-    def get_link_args(self, language=None, **kwargs):
+    def get_link_args(self, language: T.Optional[str] = None, raw: bool = False) -> T.List[str]:
         '''
         External libraries detected using a compiler must only be used with
         compatible code. For instance, Vala libraries (.vapi files) cannot be
@@ -432,11 +432,11 @@ class ExternalLibrary(ExternalDependency):
         if (self.language == 'vala' and language != 'vala') or \
            (language == 'vala' and self.language != 'vala'):
             return []
-        return super().get_link_args(**kwargs)
+        return super().get_link_args(language=language, raw=raw)
 
     def get_partial_dependency(self, *, compile_args: bool = False,
                                link_args: bool = False, links: bool = False,
-                               includes: bool = False, sources: bool = False):
+                               includes: bool = False, sources: bool = False) -> 'ExternalLibrary':
         # External library only has link_args, so ignore the rest of the
         # interface.
         new = copy.copy(self)
@@ -454,11 +454,11 @@ def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
     if len(refpaths) == 0:
         return list(libpaths)
 
-    def key_func(libpath):
-        common_lengths = []
+    def key_func(libpath: str) -> T.Tuple[int, int]:
+        common_lengths: T.List[int] = []
         for refpath in refpaths:
             try:
-                common_path = os.path.commonpath([libpath, refpath])
+                common_path: str = os.path.commonpath([libpath, refpath])
             except ValueError:
                 common_path = ''
             common_lengths.append(len(common_path))
@@ -468,7 +468,7 @@ def sort_libpaths(libpaths: T.List[str], refpaths: T.List[str]) -> T.List[str]:
         return (max_index, reversed_max_length)
     return sorted(libpaths, key=key_func)
 
-def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
+def strip_system_libdirs(environment: 'Environment', for_machine: MachineChoice, link_args: T.List[str]) -> T.List[str]:
     """Remove -L<system path> arguments.
 
     leaving these in will break builds where a user has a version of a library
@@ -478,7 +478,7 @@ def strip_system_libdirs(environment, for_machine: MachineChoice, link_args):
     exclude = {f'-L{p}' for p in environment.get_compiler_system_dirs(for_machine)}
     return [l for l in link_args if l not in exclude]
 
-def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List[DependencyMethods]:
+def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs: T.Dict[str, T.Any]) -> T.List[DependencyMethods]:
     method = kwargs.get('method', 'auto')  # type: T.Union[DependencyMethods, str]
     if isinstance(method, DependencyMethods):
         return [method]
@@ -511,7 +511,7 @@ def process_method_kw(possible: T.Iterable[DependencyMethods], kwargs) -> T.List
 
     return methods
 
-def detect_compiler(name: str, env: Environment, for_machine: MachineChoice,
+def detect_compiler(name: str, env: 'Environment', for_machine: MachineChoice,
                     language: T.Optional[str]) -> T.Optional['Compiler']:
     """Given a language and environment find the compiler used."""
     compilers = env.coredata.compilers[for_machine]
