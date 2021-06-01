@@ -5,15 +5,28 @@ tools and steps required for Qt. The module has two methods.
 
 ## preprocess
 
+Takes sources for moc, uic, and rcc, and converts them into c++ files for
+compilation.
+
+Has the following signature: `qt.preprocess(name: str | None, *sources: str)`
+
+If the `name` parameter is passed then all of the rcc files will be wirtten to a single output file
+
+The variadic `sources` arguments have been deprecated since Meson 0.59.0, use
+the `sources` keyword argument instead.
+
 This method takes the following keyword arguments:
- - `moc_headers`, `moc_sources`, `ui_files`, `qresources`, which define the files that require preprocessing with `moc`, `uic` and `rcc`
+ - `qresources`: a list of strings, Files, Custom Targets, or Build Targets to pass the `rcc` compiler
+ - `ui_files`: a list of strings, Files, Custom Targets, or Build Targets to pass the `uic` compiler
+ - `moc_sources`: a list of strings, Files, Custom Targets, or Build Targets to pass the `moc` compiler the
+ - `moc_headers`: a list of strings, Files, Custom Targets, or Build Targets to pass the `moc` compiler. These will be converted into .cpp files
  - `include_directories`, the directories to add to header search path for `moc` (optional)
  - `moc_extra_arguments`, any additional arguments to `moc` (optional). Available since v0.44.0.
  - `uic_extra_arguments`, any additional arguments to `uic` (optional). Available since v0.49.0.
  - `rcc_extra_arguments`, any additional arguments to `rcc` (optional). Available since v0.49.0.
  - `dependencies`, dependency objects needed by moc. Available since v0.48.0.
 
-It returns an opaque object that should be passed to a main build target.
+It returns an array of targets and sources to pass to a compilation target.
 
 ## compile_translations (since v0.44.0)
 
