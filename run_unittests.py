@@ -1586,6 +1586,38 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), [], {'input': ['a']})
         self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" container should be of even length, but is not")
 
+    def test_typed_kwarg_since(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str, since='1.0', deprecated='2.0')
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            self.assertIsInstance(kwargs['input'], str)
+            self.assertEqual(kwargs['input'], 'foo')
+
+        # With Meson 0.1 it should trigger the "introduced" warning but not the "deprecated" warning
+        mesonbuild.mesonlib.project_meson_versions[''] = '0.1'
+        sys.stdout = io.StringIO()
+        _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
+        self.assertRegex(sys.stdout.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
+        self.assertNotRegex(sys.stdout.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
+
+        # With Meson 1.5 it shouldn't trigger any warning
+        mesonbuild.mesonlib.project_meson_versions[''] = '1.5'
+        sys.stdout = io.StringIO()
+        _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
+        self.assertNotRegex(sys.stdout.getvalue(), r'WARNING:.*')
+        self.assertNotRegex(sys.stdout.getvalue(), r'WARNING:.*')
+
+        # With Meson 2.0 it should trigger the "deprecated" warning but not the "introduced" warning
+        mesonbuild.mesonlib.project_meson_versions[''] = '2.0'
+        sys.stdout = io.StringIO()
+        _(None, mock.Mock(subproject=''), [], {'input': 'foo'})
+        self.assertRegex(sys.stdout.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
+        self.assertNotRegex(sys.stdout.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
+
+        sys.stdout = sys.__stdout__
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
