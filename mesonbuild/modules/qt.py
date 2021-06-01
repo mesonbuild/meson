@@ -244,7 +244,7 @@ class QtBaseModule(ExtensionModule):
         'qt.compile_resources',
         KwargInfo('name', str),
         KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
     def compile_resources(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
@@ -309,7 +309,7 @@ class QtBaseModule(ExtensionModule):
     @typed_kwargs(
         'qt.compile_ui',
         KwargInfo('sources', ContainerTypeInfo(list, (File, str), allow_empty=False), listify=True, required=True),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto')
     )
     def compile_ui(self, state: 'ModuleState', args: T.Tuple, kwargs: 'ResourceCompilerKwArgs') -> ModuleReturnValue:
@@ -332,12 +332,12 @@ class QtBaseModule(ExtensionModule):
     @noPosargs
     @typed_kwargs(
         'qt.compile_moc',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True),
-        KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True),
-        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True),
-        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True),
+        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True, default=[]),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
     )
     def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
         self._detect_tools(state, kwargs['method'])
@@ -349,16 +349,14 @@ class QtBaseModule(ExtensionModule):
         if not (kwargs['headers'] or kwargs['sources']):
             raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provied and not empty')
 
-        inc = state.get_include_args(include_dirs=kwargs['include_directories'] or [])
+        inc = state.get_include_args(include_dirs=kwargs['include_directories'])
         compile_args: T.List[str] = []
-        if kwargs['dependencies']:
-            for dep in unholder(kwargs['dependencies']):
-                compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+        for dep in unholder(kwargs['dependencies']):
+            compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
 
         output: T.List[build.GeneratedList] = []
 
-        extra_args: T.List[str] = kwargs['extra_args'] or []
-        arguments = extra_args + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        arguments = kwargs['extra_args'] + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
         if kwargs['headers']:
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
@@ -376,35 +374,52 @@ class QtBaseModule(ExtensionModule):
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
     @FeatureDeprecatedKwargs('qt.preprocess', '0.59.0', ['sources'])
-    @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
     # We can't use typed_pos_args here, the signature is ambiguious
-    def preprocess(self, state: 'ModuleState', args: T.List[str], kwargs):
-        rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
-            = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
+    @typed_kwargs(
+        'qt.preprocess',
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('ui_files', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('method', str, default='auto'),
+        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True, default=[]),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
+    )
+    def preprocess(self, state: 'ModuleState', args: T.List[T.Union[str, File]], kwargs: 'PreprocessKwArgs') -> ModuleReturnValue:
         _sources = args[1:]
         if _sources:
             FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject)
-        sources.extend(_sources)
-        method = kwargs.get('method', 'auto')
+        sources = _sources + kwargs['sources']
+        for s in sources:
+            if not isinstance(s, (str, File)):
+                raise build.InvalidArguments('Variadic arguments to qt.preprocess must be Strings or Files')
+        method = kwargs['method']
 
-        if rcc_files:
+        if kwargs['qresources']:
             # custom output name set? -> one output file, multiple otherwise
-            rcc_kwargs: 'ResourceCompilerKwArgs' = {'sources': rcc_files, 'extra_args': rcc_extra_arguments, 'method': method}
+            rcc_kwargs: 'ResourceCompilerKwArgs' = {'sources': kwargs['qresources'], 'extra_args': kwargs['rcc_extra_arguments'], 'method': method}
             if args:
+                if not isinstance(args[0], str):
+                    raise build.InvalidArguments('First argument to qt.preprocess must be a string')
                 rcc_kwargs['name'] = args[0]
             sources.extend(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
 
-        if ui_files:
-            ui_kwargs: 'UICompilerKwArgs' = {'sources': ui_files, 'extra_args': uic_extra_arguments, 'method': method}
+        if kwargs['ui_files']:
+            ui_kwargs: 'UICompilerKwArgs' = {'sources': kwargs['ui_files'], 'extra_args': kwargs['uic_extra_arguments'], 'method': method}
             sources.extend(self.compile_ui(state, tuple(), ui_kwargs).return_value)
 
-        if moc_headers or moc_sources:
+        if kwargs['moc_headers'] or kwargs['moc_sources']:
             moc_kwargs: 'MocCompilerKwArgs' = {
-                'extra_args': moc_extra_arguments,
-                'sources': moc_sources,
-                'headers': moc_sources,
-                'include_directories': include_directories,
-                'dependencies': dependencies
+                'extra_args': kwargs['moc_extra_arguments'],
+                'sources': kwargs['moc_sources'],
+                'headers': kwargs['moc_headers'],
+                'include_directories': kwargs['include_directories'],
+                'dependencies': kwargs['dependencies'],
+                'method': method,
             }
             sources.extend(self.compile_moc(state, tuple(), moc_kwargs).return_value)
 
