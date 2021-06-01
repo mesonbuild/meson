@@ -24,7 +24,7 @@ from ..mesonlib import MesonException, extract_as_list, File, unholder, version_
 from ..dependencies import Dependency
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, ExtensionModule
-from ..interpreterbase import noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
+from ..interpreterbase import FeatureDeprecated, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
 
@@ -194,7 +194,10 @@ class QtBaseModule(ExtensionModule):
     def preprocess(self, state, args, kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
             = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
-        sources += args[1:]
+        _sources = args[1:]
+        if _sources:
+            FeatureDeprecated.single_use('qt.preprocess positional sources', '0.59', state.subproject, 'use the "sources" keyword argument instead')
+        sources.extend(_sources)
         method = kwargs.get('method', 'auto')
         self._detect_tools(state, method)
         err_msg = "{0} sources specified and couldn't find {1}, " \
