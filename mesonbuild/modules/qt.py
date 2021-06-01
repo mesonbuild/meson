@@ -329,14 +329,8 @@ class QtBaseModule(ExtensionModule):
             sources.extend(self.compile_resources(state, tuple(), rcc_kwargs).return_value)
 
         if ui_files:
-            if not self.uic.found():
-                raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
-            arguments = uic_extra_arguments + ['-o', '@OUTPUT@', '@INPUT@']
-            ui_kwargs = {'output': 'ui_@BASENAME@.h',
-                         'arguments': arguments}
-            ui_gen = build.Generator([self.uic], ui_kwargs)
-            ui_output = ui_gen.process_files(f'Qt{self.qt_version} ui', ui_files, state)
-            sources.append(ui_output)
+            ui_kwargs: 'UICompilerKwArgs' = {'sources': ui_files, 'extra_args': uic_extra_arguments, 'method': method}
+            sources.extend(self.compile_ui(state, tuple(), ui_kwargs).return_value)
 
         inc = state.get_include_args(include_dirs=include_directories)
         compile_args = []
