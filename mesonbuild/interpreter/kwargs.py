@@ -9,7 +9,10 @@ import typing as T
 from typing_extensions import TypedDict, Literal
 
 from ..mesonlib import MachineChoice, File
-from .interpreterobjects import BuildTargetHolder, CustomTargetHolder, EnvironmentVariablesHolder, TargetHolder
+from .interpreterobjects import (
+    BuildTargetHolder, CustomTargetHolder, EnvironmentVariablesHolder,
+    FeatureOptionHolder, TargetHolder
+)
 
 
 class FuncAddProjectArgs(TypedDict):
@@ -57,3 +60,14 @@ class FuncTest(FuncBenchmark):
     """
 
     is_parallel: bool
+
+
+class ExtractRequired(TypedDict):
+
+    """Keyword Arguments consumed by the `extract_required_kwargs` function.
+
+    Any function that uses the `required` keyword argument which accepts either
+    a boolean or a feature option should inherit it's arguments from this class.
+    """
+
+    required: T.Union[bool, 'FeatureOptionHolder']

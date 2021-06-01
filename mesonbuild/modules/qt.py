@@ -26,12 +26,13 @@ from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
-from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder
+from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder
 
 if T.TYPE_CHECKING:
     from . import ModuleState
     from ..dependencies.qt import QtPkgConfigDependency, QmakeQtDependency
     from ..interpreter import Interpreter
+    from ..interpreter import kwargs
     from ..programs import ExternalProgram
 
     QtDependencyType = T.Union[QtPkgConfigDependency, QmakeQtDependency]
@@ -77,6 +78,10 @@ if T.TYPE_CHECKING:
         uic_extra_arguments: T.List[str]
         include_directories: T.List[IncludeDirsHolder]
         dependencies: T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]
+        method: str
+
+    class HasToolKwArgs(kwargs.ExtractRequired):
+
         method: str
 
 
@@ -221,11 +226,19 @@ class QtBaseModule(ExtensionModule):
                     result.append(File(is_built=False, subdir=state.subdir, fname=path_from_rcc))
         return result
 
-    @noPosargs
-    @permittedKwargs({'method', 'required'})
     @FeatureNew('qt.has_tools', '0.54.0')
-    def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs) -> bool:
+    @noPosargs
+    @typed_kwargs(
+        'qt.has_tools',
+        KwargInfo('required', (bool, FeatureOptionHolder), default=False),
+        KwargInfo('method', str, default='auto'),
+    )
+    @permittedKwargs({'method', 'required'})
+    def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
+        # We have to cast here because TypedDicts are invariant, even though
+        # ExtractRequiredKwArgs is a subset of HasToolKwArgs, type checkers
+        # will insist this is wrong
         disabled, required, feature = extract_required_kwarg(kwargs, state.subproject, default=False)
         if disabled:
             mlog.log('qt.has_tools skipped: feature', mlog.bold(feature), 'disabled')
@@ -429,7 +442,8 @@ class QtBaseModule(ExtensionModule):
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['qresource'])
     @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['rcc_extra_arguments'])
     @permittedKwargs({'ts_files', 'qresource', 'rcc_extra_arguments', 'install', 'install_dir', 'build_by_default', 'method'})
-    def compile_translations(self, state, args, kwargs):
+    @noPosargs
+    def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: T.Dict[str, T.Any]) -> ModuleReturnValue:
         ts_files, install_dir = [extract_as_list(kwargs, c, pop=True) for c in ['ts_files', 'install_dir']]
         qresource = kwargs.get('qresource')
         if qresource:

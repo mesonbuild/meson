@@ -18,17 +18,25 @@ from ..interpreterbase import (InterpreterObject, ObjectHolder, MutableInterpret
                                typed_pos_args, stringArgs, permittedKwargs,
                                noArgsFlattening, noPosargs, TYPE_var, TYPE_nkwargs,
                                flatten, InterpreterException, InvalidArguments, InvalidCode)
+from ..interpreterbase.decorators import FeatureCheckBase
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
 from ..mesonlib import FileMode, OptionKey, listify, Popen_safe
 
 import typing as T
 
-def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True):
+if T.TYPE_CHECKING:
+    from . import kwargs
+    from .interpreter import Interpreter
+
+
+def extract_required_kwarg(kwargs: 'kwargs.ExtractRequired', subproject: str,
+                           feature_check: T.Optional['FeatureCheckBase'] = None,
+                           default: bool = True) -> T.Tuple[bool, bool, T.Optional[str]]:
     val = kwargs.get('required', default)
     disabled = False
     required = False
-    feature = None
+    feature: T.Optional[str] = None
     if isinstance(val, FeatureOptionHolder):
         if not feature_check:
             feature_check = FeatureNew('User option "feature"', '0.47.0')
@@ -46,6 +54,7 @@ def extract_required_kwarg(kwargs, subproject, feature_check=None, default=True)
 
     # Keep boolean value in kwargs to simplify other places where this kwarg is
     # checked.
+    # TODO: this should be removed, and those callers should learn about FeatureOptions
     kwargs['required'] = required
 
     return disabled, required, feature
