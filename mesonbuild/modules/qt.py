@@ -27,6 +27,7 @@ from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
+from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -54,6 +55,17 @@ if T.TYPE_CHECKING:
         extra_args: T.List[str]
         method: str
 
+    class MocCompilerKwArgs(TypedDict):
+
+        """Keyword arguments for the Moc Compiler method."""
+
+        sources: T.Optional[T.List[mesonlib.FileOrString]]
+        headers: T.Optional[T.List[mesonlib.FileOrString]]
+        extra_args: T.Optional[T.List[str]]
+        method: str
+        include_directories: T.Optional[T.List[IncludeDirsHolder]]
+        dependencies: T.Optional[T.List[T.Union[DependencyHolder, ExternalLibraryHolder]]]
+
 
 class QtBaseModule(ExtensionModule):
     tools_detected = False
@@ -72,6 +84,7 @@ class QtBaseModule(ExtensionModule):
             'compile_translations': self.compile_translations,
             'compile_resources': self.compile_resources,
             'compile_ui': self.compile_ui,
+            'compile_moc': self.compile_moc,
         })
 
     def compilers_detect(self, state, qt_dep: 'QtBaseDependency') -> None:
@@ -302,12 +315,57 @@ class QtBaseModule(ExtensionModule):
         out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)
         return ModuleReturnValue(out, [out])  # type: ignore
 
+    @FeatureNew('qt.compile_moc', '0.59.0')
+    @noPosargs
+    @typed_kwargs(
+        'qt.compile_moc',
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True),
+        KwargInfo('headers', ContainerTypeInfo(list, (File, str)), listify=True),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True),
+        KwargInfo('method', str, default='auto'),
+        KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True),
+        KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True),
+    )
+    def compile_moc(self, state: 'ModuleState', args: T.Tuple, kwargs: 'MocCompilerKwArgs') -> ModuleReturnValue:
+        self._detect_tools(state, kwargs['method'])
+        if not self.moc.found():
+            err_msg = ("{0} sources specified and couldn't find {1}, "
+                       "please check your qt{2} installation")
+            raise MesonException(err_msg.format('MOC', f'uic-qt{self.qt_version}', self.qt_version))
+
+        if not (kwargs['headers'] or kwargs['sources']):
+            raise build.InvalidArguments('At least one of the "headers" or "sources" keyword arguments must be provied and not empty')
+
+        inc = state.get_include_args(include_dirs=kwargs['include_directories'] or [])
+        compile_args: T.List[str] = []
+        if kwargs['dependencies']:
+            for dep in unholder(kwargs['dependencies']):
+                compile_args.extend([a for a in dep.get_all_compile_args() if a.startswith(('-I', '-D'))])
+
+        output: T.List[build.GeneratedList] = []
+
+        extra_args: T.List[str] = kwargs['extra_args'] or []
+        arguments = extra_args + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
+        if kwargs['headers']:
+            moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
+                          'arguments': arguments}
+            moc_gen = build.Generator([self.moc], moc_kwargs)
+            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc header', kwargs['headers'], state))
+        if kwargs['sources']:
+            moc_kwargs = {'output': '@BASENAME@.moc',
+                          'arguments': arguments}
+            moc_gen = build.Generator([self.moc], moc_kwargs)
+            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc source', kwargs['sources'], state))
+
+        return ModuleReturnValue(output, [output])
+
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
     @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
     @FeatureDeprecatedKwargs('qt.preprocess', '0.59.0', ['sources'])
     @permittedKwargs({'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'include_directories', 'dependencies', 'ui_files', 'qresources', 'method'})
-    def preprocess(self, state, args, kwargs):
+    # We can't use typed_pos_args here, the signature is ambiguious
+    def preprocess(self, state: 'ModuleState', args: T.List[str], kwargs):
         rcc_files, ui_files, moc_headers, moc_sources, uic_extra_arguments, moc_extra_arguments, rcc_extra_arguments, sources, include_directories, dependencies \
             = [extract_as_list(kwargs, c, pop=True) for c in ['qresources', 'ui_files', 'moc_headers', 'moc_sources', 'uic_extra_arguments', 'moc_extra_arguments', 'rcc_extra_arguments', 'sources', 'include_directories', 'dependencies']]
         _sources = args[1:]

@@ -23,6 +23,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..interpreter import Interpreter
+    from ..interpreter.interpreterobjects import IncludeDirsHolder
     from ..interpreterbase import TYPE_var, TYPE_nvar, TYPE_nkwargs
 
 class ModuleState:
@@ -59,14 +60,14 @@ class ModuleState:
         self.target_machine = interpreter.builtin['target_machine'].held_object
         self.current_node = interpreter.current_node
 
-    def get_include_args(self, include_dirs, prefix='-I'):
+    def get_include_args(self, include_dirs: T.Iterable[T.Union[str, 'IncludeDirsHolder']], prefix: str = '-I') -> T.List[str]:
         if not include_dirs:
             return []
 
         srcdir = self.environment.get_source_dir()
         builddir = self.environment.get_build_dir()
 
-        dirs_str = []
+        dirs_str: T.List[str] = []
         for dirs in unholder(include_dirs):
             if isinstance(dirs, str):
                 dirs_str += [f'{prefix}{dirs}']

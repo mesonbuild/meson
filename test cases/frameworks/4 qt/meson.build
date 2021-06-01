@@ -100,10 +100,10 @@ foreach qt : ['qt4', 'qt5', 'qt6']
     # The build system needs to include the cpp files from
     # headers but the user must manually include moc
     # files from sources.
-    manpreprocessed = qtmodule.preprocess(
-      moc_extra_arguments : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `moc_extra_arguments`
-      moc_sources : 'manualinclude.cpp',
-      moc_headers : 'manualinclude.h',
+    manpreprocessed = qtmodule.compile_moc(
+      extra_args : ['-DMOC_EXTRA_FLAG'], # This is just a random macro to test `extra_arguments`
+      sources : 'manualinclude.cpp',
+      headers : 'manualinclude.h',
       method : get_option('method'))
 
     qtmaninclude = executable(qt + 'maninclude',
