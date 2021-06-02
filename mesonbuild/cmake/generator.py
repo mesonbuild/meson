@@ -23,6 +23,10 @@ def parse_generator_expressions(raw: str) -> str:
     use cases.
     '''
 
+    # Early abort if no generator expression present
+    if '$<' not in raw:
+        return raw
+
     out = ''  # type: str
     i = 0     # type: int
 

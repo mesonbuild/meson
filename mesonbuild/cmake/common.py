@@ -15,10 +15,13 @@
 # This class contains the basic functionality needed to run any interpreter
 # or an interpreter-based tool.
 
-from ..mesonlib import MesonException
+from ..mesonlib import MesonException, OptionKey
 from .. import mlog
 from pathlib import Path
 import typing as T
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
 
 language_map = {
     'c': 'C',
@@ -30,6 +33,15 @@ language_map = {
     'java': 'Java',
     'fortran': 'Fortran',
     'swift': 'Swift',
+}
+
+backend_generator_map = {
+    'ninja': 'Ninja',
+    'xcode': 'Xcode',
+    'vs2010': 'Visual Studio 10 2010',
+    'vs2015': 'Visual Studio 15 2017',
+    'vs2017': 'Visual Studio 15 2017',
+    'vs2019': 'Visual Studio 16 2019',
 }
 
 blacklist_cmake_defs = [
@@ -86,6 +98,12 @@ def _flags_to_list(raw: str) -> T.List[str]:
     res += [curr]
     res = list(filter(lambda x: len(x) > 0, res))
     return res
+
+def cmake_get_generator_args(env: 'Environment') -> T.List[str]:
+    backend_name = env.coredata.get_option(OptionKey('backend'))
+    assert isinstance(backend_name, str)
+    assert backend_name in backend_generator_map
+    return ['-G', backend_generator_map[backend_name]]
 
 def cmake_defines_to_args(raw: T.Any, permissive: bool = False) -> T.List[str]:
     res = []  # type: T.List[str]

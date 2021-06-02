@@ -36,6 +36,7 @@ if T.TYPE_CHECKING:
     from .compilers.compilers import Compiler, CompileResult  # noqa: F401
     from .environment import Environment
     from .mesonlib import OptionOverrideProxy
+    from .cmake.traceparser import CMakeCacheEntry
 
     OptionDictType = T.Union[T.Dict[str, 'UserOption[T.Any]'], OptionOverrideProxy]
     KeyedOptionDictType = T.Union[T.Dict['OptionKey', 'UserOption[T.Any]'], OptionOverrideProxy]
@@ -374,6 +375,34 @@ class DependencyCache:
     def clear(self) -> None:
         self.__cache.clear()
 
+
+class CMakeStateCache:
+    """Class that stores internal CMake compiler states.
+
+    This cache is used to reduce the startup overhead of CMake by caching
+    all internal CMake compiler variables.
+    """
+
+    def __init__(self) -> None:
+        self.__cache: T.Dict[str, T.Dict[str, T.List[str]]] = {}
+        self.cmake_cache: T.Dict[str, 'CMakeCacheEntry'] = {}
+
+    def __iter__(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
+        return iter(self.__cache.items())
+
+    def items(self) -> T.Iterator[T.Tuple[str, T.Dict[str, T.List[str]]]]:
+        return iter(self.__cache.items())
+
+    def update(self, language: str, variables: T.Dict[str, T.List[str]]):
+        if language not in self.__cache:
+            self.__cache[language] = {}
+        self.__cache[language].update(variables)
+
+    @property
+    def languages(self) -> T.Set[str]:
+        return set(self.__cache.keys())
+
+
 # Can't bind this near the class method it seems, sadly.
 _V = T.TypeVar('_V')
 
@@ -413,6 +442,9 @@ class CoreData:
             DependencyCache(self.options, MachineChoice.HOST))
 
         self.compiler_check_cache = OrderedDict()  # type: T.Dict[CompilerCheckCacheKey, compiler.CompileResult]
+
+        # CMake cache
+        self.cmake_cache: PerMachine[CMakeStateCache] = PerMachine(CMakeStateCache(), CMakeStateCache())
 
         # Only to print a warning if it changes between Meson invocations.
         self.config_files = self.__load_config_files(options, scratch_dir, 'native')

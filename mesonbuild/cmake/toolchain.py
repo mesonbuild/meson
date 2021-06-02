@@ -13,9 +13,10 @@
 # limitations under the License.
 
 from pathlib import Path
+from .traceparser import CMakeTraceParser
 from ..envconfig import CMakeSkipCompilerTest
 from ..mesonlib import MachineChoice
-from .common import language_map
+from .common import language_map, cmake_get_generator_args
 from .. import mlog
 
 import shutil
@@ -24,46 +25,41 @@ from enum import Enum
 from textwrap import dedent
 
 if T.TYPE_CHECKING:
+    from .executor import CMakeExecutor
     from ..envconfig import MachineInfo, Properties, CMakeVariables
     from ..environment import Environment
-    from ..compilers import Compiler
-
-
-_MESON_TO_CMAKE_MAPPING = {
-    'arm':          'ARMCC',
-    'armclang':     'ARMClang',
-    'clang':        'Clang',
-    'clang-cl':     'MSVC',
-    'flang':        'Flang',
-    'g95':          'G95',
-    'gcc':          'GNU',
-    'intel':        'Intel',
-    'intel-cl':     'MSVC',
-    'msvc':         'MSVC',
-    'pathscale':    'PathScale',
-    'pgi':          'PGI',
-    'sun':          'SunPro',
-}
 
 class CMakeExecScope(Enum):
     SUBPROJECT = 'subproject'
     DEPENDENCY = 'dependency'
 
 class CMakeToolchain:
-    def __init__(self, env: 'Environment', for_machine: MachineChoice, exec_scope: CMakeExecScope, out_dir: Path, preload_file: T.Optional[Path] = None) -> None:
+    def __init__(self, cmakebin: 'CMakeExecutor', env: 'Environment', for_machine: MachineChoice, exec_scope: CMakeExecScope, build_dir: Path, preload_file: T.Optional[Path] = None) -> None:
         self.env            = env
+        self.cmakebin       = cmakebin
         self.for_machine    = for_machine
         self.exec_scope     = exec_scope
         self.preload_file   = preload_file
-        self.toolchain_file = out_dir / 'CMakeMesonToolchainFile.cmake'
-        self.toolchain_file = self.toolchain_file.resolve()
+        self.build_dir      = build_dir
+        self.build_dir      = self.build_dir.resolve()
+        self.toolchain_file = build_dir / 'CMakeMesonToolchainFile.cmake'
+        self.cmcache_file   = build_dir / 'CMakeCache.txt'
         self.minfo          = self.env.machines[self.for_machine]
         self.properties     = self.env.properties[self.for_machine]
         self.compilers      = self.env.coredata.compilers[self.for_machine]
         self.cmakevars      = self.env.cmakevars[self.for_machine]
+        self.cmakestate     = self.env.coredata.cmake_cache[self.for_machine]
 
         self.variables = self.get_defaults()
         self.variables.update(self.cmakevars.get_variables())
+
+        # Determine whether CMake the compiler test should be skipped
+        skip_status = self.properties.get_cmake_skip_compiler_test()
+        self.skip_check = skip_status == CMakeSkipCompilerTest.ALWAYS
+        if skip_status == CMakeSkipCompilerTest.DEP_ONLY and self.exec_scope == CMakeExecScope.DEPENDENCY:
+            self.skip_check = True
+        if not self.properties.get_cmake_defaults():
+            self.skip_check = False
 
         assert self.toolchain_file.is_absolute()
 
@@ -71,6 +67,7 @@ class CMakeToolchain:
         if not self.toolchain_file.parent.exists():
             self.toolchain_file.parent.mkdir(parents=True)
         self.toolchain_file.write_text(self.generate())
+        self.cmcache_file.write_text(self.generate_cache())
         mlog.cmd_ci_include(self.toolchain_file.as_posix())
         return self.toolchain_file
 
@@ -79,6 +76,16 @@ class CMakeToolchain:
         if self.preload_file is not None:
             args += ['-DMESON_PRELOAD_FILE=' + self.preload_file.as_posix()]
         return args
+
+    @staticmethod
+    def _print_vars(vars: T.Dict[str, T.List[str]]) -> str:
+        res = ''
+        for key, value in vars.items():
+            res += 'set(' + key
+            for i in value:
+                res += f' "{i}"'
+            res += ')\n'
+        return res
 
     def generate(self) -> str:
         res = dedent('''\
@@ -100,14 +107,19 @@ class CMakeToolchain:
         for key, value in self.variables.items():
             self.variables[key] = [x.replace('\\', '/') for x in value]
 
+        # Set compiler
+        if self.skip_check:
+            self.update_cmake_compiler_state()
+            res += '# CMake compiler state variables\n'
+            for lang, vars in self.cmakestate:
+                res += f'# -- Variables for language {lang}\n'
+                res += self._print_vars(vars)
+                res += '\n'
+            res += '\n'
+
         # Set variables from the current machine config
         res += '# Variables from meson\n'
-        for key, value in self.variables.items():
-            res += 'set(' + key
-            for i in value:
-                res += f' "{i}"'
-
-            res += ')\n'
+        res += self._print_vars(self.variables)
         res += '\n'
 
         # Add the user provided toolchain file
@@ -119,6 +131,15 @@ class CMakeToolchain:
 
             '''.format(user_file.as_posix()))
 
+        return res
+
+    def generate_cache(self) -> str:
+        if not self.skip_check:
+            return ''
+
+        res = ''
+        for name, v in self.cmakestate.cmake_cache.items():
+            res += f'{name}:{v.type}={";".join(v.value)}\n'
         return res
 
     def get_defaults(self) -> T.Dict[str, T.List[str]]:
@@ -151,11 +172,6 @@ class CMakeToolchain:
         if sys_root:
             defaults['CMAKE_SYSROOT'] = [sys_root]
 
-        # Determine whether CMake the compiler test should be skipped
-        skip_check = self.properties.get_cmake_skip_compiler_test() == CMakeSkipCompilerTest.ALWAYS
-        if self.properties.get_cmake_skip_compiler_test() == CMakeSkipCompilerTest.DEP_ONLY and self.exec_scope == CMakeExecScope.DEPENDENCY:
-            skip_check = True
-
         def make_abs(exe: str) -> str:
             if Path(exe).is_absolute():
                 return exe
@@ -168,9 +184,6 @@ class CMakeToolchain:
         # Set the compiler variables
         for lang, comp_obj in self.compilers.items():
             exe_list = [make_abs(x) for x in comp_obj.get_exelist()]
-            comp_id = CMakeToolchain.meson_compiler_to_cmake_id(comp_obj)
-            comp_version = comp_obj.version.upper()
-
             prefix = 'CMAKE_{}_'.format(language_map.get(lang, lang.upper()))
 
             if not exe_list:
@@ -183,35 +196,53 @@ class CMakeToolchain:
             if comp_obj.get_id() == 'clang-cl':
                 defaults['CMAKE_LINKER'] = comp_obj.get_linker_exelist()
 
-            # Setting the variables after this check cause CMake to skip
-            # validating the compiler
-            if not skip_check:
-                continue
-
-            defaults[prefix + 'COMPILER_ID']      = [comp_id]
-            defaults[prefix + 'COMPILER_VERSION'] = [comp_version]
-            #defaults[prefix + 'COMPILER_LOADED']  = ['1']
-            defaults[prefix + 'COMPILER_FORCED']  = ['1']
-            defaults[prefix + 'COMPILER_WORKS']   = ['TRUE']
-            #defaults[prefix + 'ABI_COMPILED']     = ['TRUE']
-
         return defaults
 
-    @staticmethod
-    def meson_compiler_to_cmake_id(cobj: 'Compiler') -> str:
-        """Translate meson compiler's into CMAKE compiler ID's.
+    def update_cmake_compiler_state(self) -> None:
+        # Check if all variables are already cached
+        if self.cmakestate.languages.issuperset(self.compilers.keys()):
+            return
 
-        Most of these can be handled by a simple table lookup, with a few
-        exceptions.
+        # Generate the CMakeLists.txt
+        mlog.debug('CMake Toolchain: Calling CMake once to generate the compiler state')
+        languages     = list(self.compilers.keys())
+        lang_ids      = [language_map.get(x, x.upper()) for x in languages]
+        cmake_content = dedent(f'''
+            cmake_minimum_required(VERSION 3.7)
+            project(CompInfo {' '.join(lang_ids)})
+        ''')
 
-        Clang and Apple's Clang are both identified as "clang" by meson. To make
-        things more complicated gcc and vanilla clang both use Apple's ld64 on
-        macOS. The only way to know for sure is to do an isinstance() check.
-        """
-        from ..compilers import (AppleClangCCompiler, AppleClangCPPCompiler,
-                                AppleClangObjCCompiler, AppleClangObjCPPCompiler)
-        if isinstance(cobj, (AppleClangCCompiler, AppleClangCPPCompiler,
-                            AppleClangObjCCompiler, AppleClangObjCPPCompiler)):
-            return 'AppleClang'
-        # If no mapping, try GNU and hope that the build files don't care
-        return _MESON_TO_CMAKE_MAPPING.get(cobj.get_id(), 'GNU')
+        build_dir = Path(self.env.scratch_dir) / '__CMake_compiler_info__'
+        build_dir.mkdir(parents=True, exist_ok=True)
+        cmake_file = build_dir / 'CMakeLists.txt'
+        cmake_file.write_text(cmake_content)
+
+        # Generate the temporary toolchain file
+        temp_toolchain_file = build_dir / 'CMakeMesonTempToolchainFile.cmake'
+        temp_toolchain_file.write_text(CMakeToolchain._print_vars(self.variables))
+
+        # Configure
+        trace = CMakeTraceParser(self.cmakebin.version(), build_dir)
+        self.cmakebin.set_exec_mode(print_cmout=False, always_capture_stderr=trace.requires_stderr())
+        cmake_args = []
+        cmake_args += trace.trace_args()
+        cmake_args += cmake_get_generator_args(self.env)
+        cmake_args += [f'-DCMAKE_TOOLCHAIN_FILE={temp_toolchain_file.as_posix()}', '.']
+        rc, _, raw_trace = self.cmakebin.call(cmake_args, build_dir=build_dir, disable_cache=True)
+
+        if rc != 0:
+            mlog.warning('CMake Toolchain: Failed to determine CMake compilers state')
+            return
+
+        # Parse output
+        trace.parse(raw_trace)
+        self.cmakestate.cmake_cache = {**trace.cache}
+
+        vars_by_file = {k.name: v for (k, v) in trace.vars_by_file.items()}
+
+        for lang in languages:
+            lang_cmake = language_map.get(lang, lang.upper())
+            file_name  = f'CMake{lang_cmake}Compiler.cmake'
+            vars = vars_by_file.setdefault(file_name, {})
+            vars[f'CMAKE_{lang_cmake}_COMPILER_FORCED'] = ['1']
+            self.cmakestate.update(lang, vars)
