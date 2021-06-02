@@ -1629,6 +1629,21 @@ class InternalTests(unittest.TestCase):
             self.assertRegex(out.getvalue(), r'WARNING:.*deprecated.*input arg in testfunc')
             self.assertNotRegex(out.getvalue(), r'WARNING:.*introduced.*input arg in testfunc')
 
+    def test_typed_kwarg_validator(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', str, validator=lambda x: 'invalid!' if x != 'foo' else None)
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            pass
+
+        # Should be valid
+        _(None, mock.Mock(), tuple(), dict(input='foo'))
+
+        with self.assertRaises(MesonException) as cm:
+            _(None, mock.Mock(), tuple(), dict(input='bar'))
+        self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" invalid!")
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
