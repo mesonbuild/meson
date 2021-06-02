@@ -1549,20 +1549,20 @@ class Generator:
                       preserve_path_from: T.Optional[str] = None,
                       extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
-        #XXX
+
         for e in files:
-            fs = [e]
             if isinstance(e, CustomTarget):
                 output.depends.add(e)
             if isinstance(e, CustomTargetIndex):
                 output.depends.add(e.target)
+
             if isinstance(e, (CustomTarget, CustomTargetIndex, GeneratedList)):
                 self.depends.append(e) # BUG: this should go in the GeneratedList object, not this object.
-                fs = []
-                for f in e.get_outputs():
-                    fs.append(File.from_built_file(state.subdir, f))
+                fs = [File.from_built_file(state.subdir, f) for f in e.get_outputs()]
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
+            else:
+                fs = [e]
 
             for f in fs:
                 if preserve_path_from:
