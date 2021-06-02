@@ -1,4 +1,8 @@
-project('has header symbol', 'c', 'cpp')
+project(
+  'has header symbol',
+  'c', 'cpp',
+  default_options : ['cpp_std=c++11'],
+)
 
 cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
