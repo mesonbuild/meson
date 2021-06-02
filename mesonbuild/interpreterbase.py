@@ -424,12 +424,18 @@ class KwargInfo(T.Generic[_T]):
         itself contain mutable types, typed_kwargs will copy the default
     :param since: Meson version in which this argument has been added. defaults to None
     :param deprecated: Meson version in which this argument has been deprecated. defaults to None
+    :param validator: A callable that does additional validation. This is mainly
+        intended for cases where a string is expected, but only a few specific
+        values are accepted. Must return None if the input is valid, or a
+        message if the input is invalid
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
                  *, required: bool = False, listify: bool = False,
                  default: T.Optional[_T] = None,
-                 since: T.Optional[str] = None, deprecated: T.Optional[str] = None):
+                 since: T.Optional[str] = None,
+                 deprecated: T.Optional[str] = None,
+                 validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None):
         self.name = name
         self.types = types
         self.required = required
@@ -437,6 +443,7 @@ class KwargInfo(T.Generic[_T]):
         self.default = default
         self.since = since
         self.deprecated = deprecated
+        self.validator = validator
 
 
 def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
@@ -492,6 +499,11 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                             else:
                                 shouldbe = f'"{info.types.__name__}"'
                             raise InvalidArguments(f'{name} keyword argument "{info.name}"" was of type "{type(value).__name__}" but should have been {shouldbe}')
+
+                    if info.validator is not None:
+                        msg = info.validator(value)
+                        if msg is not None:
+                            raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
                 else:
