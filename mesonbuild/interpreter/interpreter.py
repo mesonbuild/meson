@@ -267,7 +267,7 @@ class Interpreter(InterpreterBase):
             self.ast = ast
             self.sanity_check_ast()
         self.builtin.update({'meson': MesonMain(build, self)})
-        self.generators = []
+        self.generators: T.List['GeneratorHolder'] = []
         self.processed_buildfiles = set() # type: T.Set[str]
         self.project_args_frozen = False
         self.global_args_frozen = False  # implies self.project_args_frozen
@@ -1954,10 +1954,11 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
                       'preserve_path_from'})
-    def func_generator(self, node, args, kwargs):
-        gen = GeneratorHolder(self, args, kwargs)
-        self.generators.append(gen)
-        return gen
+    def func_generator(self, node: mparser.FunctionNode, args, kwargs) -> GeneratorHolder:
+        gen = build.Generator(args, kwargs)
+        holder = GeneratorHolder(self, gen, self)
+        self.generators.append(holder)
+        return holder
 
     @typed_pos_args('benchmark', str, (ExecutableHolder, JarHolder, ExternalProgramHolder, mesonlib.File))
     @typed_kwargs('benchmark', *TEST_KWARGS)

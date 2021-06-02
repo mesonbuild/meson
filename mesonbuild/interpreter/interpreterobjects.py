@@ -621,11 +621,12 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
         return DependencyHolder(pdep, self.subproject)
 
 class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
+
     @FeatureNewKwargs('generator', '0.43.0', ['capture'])
-    def __init__(self, interp, args, kwargs):
-        self.interpreter = interp
+    def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, build.Generator(args, kwargs), interp.subproject)
+        ObjectHolder.__init__(self, gen, interpreter.subproject)
+        self.interpreter = interpreter
         self.methods.update({'process': self.process_method})
 
     @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
