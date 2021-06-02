@@ -1575,18 +1575,24 @@ class Generator:
 
 
 class GeneratedList:
-    def __init__(self, generator: 'GeneratorHolder', subdir: str, preserve_path_from=None, extra_args=None):
-        self.generator = unholder(generator)
-        self.name = self.generator.exe
-        self.depends = set() # Things this target depends on (because e.g. a custom target was used as input)
+
+    """The output of generator.process."""
+
+    def __init__(self, generator: Generator, subdir: str,
+                 preserve_path_from: T.Optional[str],
+                 extra_args: T.List[str]):
+        self.generator = generator
+        self.name = generator.exe
+        self.depends: T.Set['CustomTarget'] = set() # Things this target depends on (because e.g. a custom target was used as input)
         self.subdir = subdir
         self.infilelist: T.List['File'] = []
         self.outfilelist: T.List[str] = []
-        self.outmap: T.Dict['File', str] = {}
-        self.extra_depends = []
-        self.depend_files = []
+        self.outmap: T.Dict[File, T.List[str]] = {}
+        self.extra_depends = []  # XXX: Doesn't seem to be used?
+        self.depend_files: T.List[File] = []
         self.preserve_path_from = preserve_path_from
-        self.extra_args = extra_args if extra_args is not None else []
+        self.extra_args: T.List[str] = extra_args if extra_args is not None else []
+
         if isinstance(self.generator.exe, programs.ExternalProgram):
             if not self.generator.exe.found():
                 raise InvalidArguments('Tried to use not-found external program as generator')
@@ -1596,7 +1602,7 @@ class GeneratedList:
                 # know the absolute path of
                 self.depend_files.append(File.from_absolute_file(path))
 
-    def add_preserved_path_segment(self, infile: 'File', outfiles: T.List[str], state: 'Interpreter') -> T.List[str]:
+    def add_preserved_path_segment(self, infile: File, outfiles: T.List[str], state: T.Union['Interpreter', 'ModuleState']) -> T.List[str]:
         result: T.List[str] = []
         in_abs = infile.absolute_path(state.environment.source_dir, state.environment.build_dir)
         assert os.path.isabs(self.preserve_path_from)
@@ -1606,7 +1612,7 @@ class GeneratedList:
             result.append(os.path.join(path_segment, of))
         return result
 
-    def add_file(self, newfile: 'File', state: 'Interpreter') -> None:
+    def add_file(self, newfile: File, state: T.Union['Interpreter', 'ModuleState']) -> None:
         self.infilelist.append(newfile)
         outfiles = self.generator.get_base_outnames(newfile.fname)
         if self.preserve_path_from:
@@ -1626,7 +1632,7 @@ class GeneratedList:
     def get_generator(self) -> 'Generator':
         return self.generator
 
-    def get_extra_args(self):
+    def get_extra_args(self) -> T.List[str]:
         return self.extra_args
 
 class Executable(BuildTarget):
