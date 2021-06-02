@@ -26,7 +26,7 @@ from . import ModuleReturnValue, ExtensionModule
 from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
-from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder
+from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder, GeneratedListHolder
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -350,7 +350,7 @@ class QtBaseModule(ExtensionModule):
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        out = gen.process_files(kwargs['sources'], state)
+        out = GeneratedListHolder(gen.process_files(kwargs['sources'], state))
         return ModuleReturnValue(out, [out])
 
     @FeatureNew('qt.compile_moc', '0.59.0')
