@@ -1498,12 +1498,7 @@ You probably should put it in link_with instead.''')
                 return
 
 class Generator:
-    def __init__(self, args, kwargs):
-        if len(args) != 1:
-            raise InvalidArguments('Generator requires exactly one positional argument: the executable')
-        exe = unholder(args[0])
-        if not isinstance(exe, (Executable, programs.ExternalProgram)):
-            raise InvalidArguments('First generator argument must be an executable.')
+    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram], kwargs):
         self.exe = exe
         self.depfile = None
         self.capture = False
@@ -1514,7 +1509,7 @@ class Generator:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
-    def get_exe(self):
+    def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
         return self.exe
 
     def process_kwargs(self, kwargs):

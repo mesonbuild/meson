@@ -1954,8 +1954,10 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
 
     @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
                       'preserve_path_from'})
-    def func_generator(self, node: mparser.FunctionNode, args, kwargs) -> GeneratorHolder:
-        gen = build.Generator(args, kwargs)
+    @typed_pos_args('generator', (ExecutableHolder, ExternalProgramHolder))
+    def func_generator(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
+                       kwargs) -> GeneratorHolder:
+        gen = build.Generator(args[0].held_object, kwargs)
         holder = GeneratorHolder(self, gen, self)
         self.generators.append(holder)
         return holder

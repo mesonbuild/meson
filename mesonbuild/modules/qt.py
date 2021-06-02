@@ -348,7 +348,7 @@ class QtBaseModule(ExtensionModule):
             'output': 'ui_@BASENAME@.h',
             'arguments': kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@']}
         # TODO: This generator isn't added to the generator list in the Interpreter
-        gen = build.Generator([self.uic], ui_kwargs)  # type: ignore
+        gen = build.Generator(self.uic, ui_kwargs)  # type: ignore
         out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)
         return ModuleReturnValue(out, [out])
 
@@ -384,12 +384,12 @@ class QtBaseModule(ExtensionModule):
         if kwargs['headers']:
             moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)  # type: ignore
+            moc_gen = build.Generator(self.moc, moc_kwargs)  # type: ignore
             output.append(moc_gen.process_files(f'Qt{self.qt_version} moc header', kwargs['headers'], state))
         if kwargs['sources']:
             moc_kwargs = {'output': '@BASENAME@.moc',
                           'arguments': arguments}
-            moc_gen = build.Generator([self.moc], moc_kwargs)  # type: ignore
+            moc_gen = build.Generator(self.moc, moc_kwargs)  # type: ignore
             output.append(moc_gen.process_files(f'Qt{self.qt_version} moc source', kwargs['sources'], state))
 
         return ModuleReturnValue(output, [output])
