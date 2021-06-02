@@ -1504,13 +1504,15 @@ class Generator:
                  *,
                  depfile: T.Optional[str] = None,
                  capture: bool = False,
-                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None):
+                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None,
+                 name: str = 'Generator'):
         self.exe = exe
         self.depfile = depfile
         self.capture = capture
         self.depends: T.List[T.Union[BuildTarget, 'CustomTarget']] = depends or []
         self.arglist = arguments
         self.outputs = output
+        self.name = name
 
     def __repr__(self):
         repr_str = "<{0}: {1}>"
@@ -1541,7 +1543,7 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, name, files, state: 'Interpreter', preserve_path_from=None, extra_args=None):
+    def process_files(self, files, state, preserve_path_from=None, extra_args=None):
         new = False
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
         #XXX
@@ -1560,7 +1562,7 @@ class Generator:
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
             elif not isinstance(e, File):
-                raise InvalidArguments(f'{name} arguments must be strings, files or CustomTargets, not {e!r}.')
+                raise InvalidArguments(f'{self.name} arguments must be strings, files or CustomTargets, not {e!r}.')
 
             for f in fs:
                 if preserve_path_from:
@@ -1570,7 +1572,7 @@ class Generator:
                 output.add_file(f, state)
         if new:
             FeatureNew.single_use(
-                f'Calling "{name}" with CustomTaget or Index of CustomTarget.',
+                f'Calling "{self.name}" with CustomTaget or Index of CustomTarget.',
                 '0.57.0', state.subproject)
         return output
 
