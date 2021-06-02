@@ -17,20 +17,25 @@ import shutil
 import tempfile
 from ..environment import detect_ninja, detect_scanbuild
 from ..coredata import get_cmd_line_file, CmdLineFileParser
+from ..mesonlib import windows_proof_rmtree
 from pathlib import Path
 import typing as T
 from ast import literal_eval
 import os
 
 def scanbuild(exelist: T.List[str], srcdir: Path, blddir: Path, privdir: Path, logdir: Path, args: T.List[str]) -> int:
-    with tempfile.TemporaryDirectory(dir=str(privdir)) as scandir:
-        meson_cmd = exelist + args
-        build_cmd = exelist + ['-o', str(logdir)] + detect_ninja() + ['-C', scandir]
-        rc = subprocess.call(meson_cmd + [str(srcdir), scandir])
-        if rc != 0:
-            return rc
-        return subprocess.call(build_cmd)
-
+    # In case of problems leave the temp directory around
+    # so it can be debugged.
+    scandir = tempfile.mkdtemp(dir=str(privdir))
+    meson_cmd = exelist + args
+    build_cmd = exelist + ['-o', str(logdir)] + detect_ninja() + ['-C', scandir]
+    rc = subprocess.call(meson_cmd + [str(srcdir), scandir])
+    if rc != 0:
+        return rc
+    rc = subprocess.call(build_cmd)
+    if rc == 0:
+        windows_proof_rmtree(scandir)
+    return rc
 
 def run(args: T.List[str]) -> int:
     srcdir = Path(args[0])
