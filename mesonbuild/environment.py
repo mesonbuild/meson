@@ -853,7 +853,7 @@ class Environment:
             return value
         return not machine_info_can_run(self.machines[for_machine])
 
-    def get_exe_wrapper(self):
+    def get_exe_wrapper(self) -> ExternalProgram:
         if not self.need_exe_wrapper():
             return EmptyExternalProgram()
         return self.exe_wrapper
