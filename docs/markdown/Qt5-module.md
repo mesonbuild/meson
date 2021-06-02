@@ -3,7 +3,55 @@
 The Qt5 module provides tools to automatically deal with the various
 tools and steps required for Qt. The module has two methods.
 
+## compile_resources
+
+*New in 0.59.0*
+
+Compiles Qt's resources collection files (.qrc) into c++ files for compilation.
+
+It takes no positional arguments, and the following keyword arguments:
+  - `name` (string | empty): if provided a single .cpp file will be generated,
+    and the output of all qrc files will be combined in this file, otherwise
+    each qrc file be written to it's own cpp file.
+  - `sources` (File | string)[]: A list of sources to be transpiled. Required,
+    must have at least one source
+  - `extra_args` string[]: Extra arguments to pass directly to `qt-rcc`
+  - `method` string: The method to use to detect qt, see `dependency()` for more
+    information.
+
+## compile_ui
+
+*New in 0.59.0*
+
+Compiles Qt's ui files (.ui) into header files.
+
+It takes no positional arguments, and the following keyword arguments:
+  - `sources` (File | string)[]: A list of sources to be transpiled. Required,
+    must have at least one source
+  - `extra_args` string[]: Extra arguments to pass directly to `qt-uic`
+  - `method` string: The method to use to detect qt, see `dependency()` for more
+    information.
+
+## compile_moc
+
+*New in 0.59.0*
+
+Compiles Qt's moc files (.moc) into header and/or source files. At least one of
+the keyword arguments `headers` and `sources` must be provided.
+
+It takes no positional arguments, and the following keyword arguments:
+  - `sources` (File | string)[]: A list of sources to be transpiled into .moc
+    files for manual inclusion.
+  - `headers` (File | string)[]: A list of headers to be transpiled into .cpp files
+  - `extra_args` string[]: Extra arguments to pass directly to `qt-moc`
+  - `method` string: The method to use to detect qt, see `dependency()` for more
+    information.
+  - `include_directories` IncludeDirectory[]: A list of `include_directory()`
+    objects used when transpiling the .moc files
+
 ## preprocess
+
+Consider using `compile_resources`, `compile_ui`, and `compile_moc` instead.
 
 Takes sources for moc, uic, and rcc, and converts them into c++ files for
 compilation.
@@ -34,13 +82,19 @@ It returns an array of targets and sources to pass to a compilation target.
 
 ## compile_translations (since v0.44.0)
 
-This method generates the necessary targets to build translation files with lrelease, it takes the following keyword arguments:
- - `ts_files`, the list of input translation files produced by Qt's lupdate tool.
- - `install` when true, this target is installed during the install step (optional).
- - `install_dir` directory to install to (optional).
- - `build_by_default` when set to true, to have this target be built by default, that is, when invoking `meson compile`; the default value is false (optional).
- - `qresource` rcc source file to extract ts_files from; cannot be used with ts_files kwarg. Available since v0.56.0.
- - `rcc_extra_arguments`, any additional arguments to `rcc` (optional), when used with `qresource. Available since v0.56.0.
+This method generates the necessary targets to build translation files with
+lrelease, it takes no positional arguments, and the following keyword arguments:
+
+ - `ts_files` (str | File)[], the list of input translation files produced by Qt's lupdate tool.
+ - `install` bool: when true, this target is installed during the install step (optional).
+ - `install_dir` string: directory to install to (optional).
+ - `build_by_default` bool: when set to true, to have this target be built by
+   default, that is, when invoking `meson compile`; the default value is false
+   (optional).
+ - `qresource` string: rcc source file to extract ts_files from; cannot be used
+   with ts_files kwarg. Available since v0.56.0.
+ - `rcc_extra_arguments` string[]: any additional arguments to `rcc` (optional),
+   when used with `qresource. Available since v0.56.0.
 
 Returns either: a list of custom targets for the compiled
 translations, or, if using a `qresource` file, a single custom target
@@ -62,10 +116,10 @@ endif
 ```
 
 This method takes the following keyword arguments:
-- `required`: by default, `required` is set to `false`. If `required` is set to
+- `required` bool | FeatureOption: by default, `required` is set to `false`. If `required` is set to
   `true` or an enabled [`feature`](Build-options.md#features) and some tools are
   missing Meson will abort.
-- `method`: method used to find the Qt dependency (`auto` by default).
+- `method` string: method used to find the Qt dependency (`auto` by default).
 
 *Since: 0.54.0*
 
@@ -87,10 +141,10 @@ A simple example would look like this:
 qt5 = import('qt5')
 qt5_dep = dependency('qt5', modules: ['Core', 'Gui'])
 inc = include_directories('includes')
-moc_files = qt5.preprocess(moc_headers : 'myclass.h',
-                           moc_extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
-                           include_directories: inc,
-                           dependencies: qt5_dep)
+moc_files = qt5.compile_moc(headers : 'myclass.h',
+                            extra_arguments: ['-DMAKES_MY_MOC_HEADER_COMPILE'],
+                            include_directories: inc,
+                            dependencies: qt5_dep)
 translations = qt5.compile_translations(ts_files : 'myTranslation_fr.ts', build_by_default : true)
 executable('myprog', 'main.cpp', 'myclass.cpp', moc_files,
            include_directories: inc,
