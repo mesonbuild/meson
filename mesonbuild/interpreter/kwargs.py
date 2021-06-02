@@ -71,3 +71,14 @@ class ExtractRequired(TypedDict):
     """
 
     required: T.Union[bool, 'FeatureOptionHolder']
+
+
+class FuncGenerator(TypedDict):
+
+    """Keyword rguments for the generator function."""
+
+    arguments: T.List[str]
+    output: T.List[str]
+    depfile: bool
+    capture:  bool
+    depends: T.List[T.Union['BuildTargetHolder', 'CustomTargetHolder']]

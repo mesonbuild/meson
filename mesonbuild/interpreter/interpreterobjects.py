@@ -622,7 +622,6 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
 
 class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
 
-    @FeatureNewKwargs('generator', '0.43.0', ['capture'])
     def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
         InterpreterObject.__init__(self)
         ObjectHolder.__init__(self, gen, interpreter.subproject)

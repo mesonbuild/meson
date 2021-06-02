@@ -1955,8 +1955,17 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
     @permittedKwargs({'arguments', 'output', 'depends', 'depfile', 'capture',
                       'preserve_path_from'})
     @typed_pos_args('generator', (ExecutableHolder, ExternalProgramHolder))
-    def func_generator(self, node: mparser.FunctionNode, args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
-                       kwargs) -> GeneratorHolder:
+    @typed_kwargs(
+        'generator',
+        KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+        KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
+        KwargInfo('depfile', str),
+        KwargInfo('capture', bool, default=False, since='0.43.0'),
+        KwargInfo('depends', ContainerTypeInfo(list, (BuildTargetHolder, CustomTargetHolder)), default=[], listify=True),
+    )
+    def func_generator(self, node: mparser.FunctionNode,
+                       args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
+                       kwargs: 'kwargs.FuncGenerator') -> GeneratorHolder:
         gen = build.Generator(args[0].held_object, kwargs)
         holder = GeneratorHolder(self, gen, self)
         self.generators.append(holder)
