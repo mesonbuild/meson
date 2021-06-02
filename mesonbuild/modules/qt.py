@@ -23,7 +23,7 @@ from .. import mesonlib
 from ..mesonlib import MesonException, File, version_compare
 import xml.etree.ElementTree as ET
 from . import ModuleReturnValue, ExtensionModule
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, FeatureDeprecatedKwargs, KwargInfo, noPosargs, permittedKwargs, FeatureNew, FeatureNewKwargs, typed_kwargs
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
 from ..interpreter import extract_required_kwarg
 from ..programs import NonExistingExternalProgram
 from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder
@@ -245,7 +245,6 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('required', (bool, FeatureOptionHolder), default=False),
         KwargInfo('method', str, default='auto'),
     )
-    @permittedKwargs({'method', 'required'})
     def has_tools(self, state: 'ModuleState', args: T.Tuple, kwargs: 'HasToolKwArgs') -> bool:
         method = kwargs.get('method', 'auto')
         # We have to cast here because TypedDicts are invariant, even though
@@ -395,21 +394,17 @@ class QtBaseModule(ExtensionModule):
 
         return ModuleReturnValue(output, [output])
 
-    @FeatureNewKwargs('qt.preprocess', '0.49.0', ['uic_extra_arguments'])
-    @FeatureNewKwargs('qt.preprocess', '0.44.0', ['moc_extra_arguments'])
-    @FeatureNewKwargs('qt.preprocess', '0.49.0', ['rcc_extra_arguments'])
-    @FeatureDeprecatedKwargs('qt.preprocess', '0.59.0', ['sources'])
     # We can't use typed_pos_args here, the signature is ambiguious
     @typed_kwargs(
         'qt.preprocess',
-        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
+        KwargInfo('sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[], deprecated='0.59.0'),
         KwargInfo('qresources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('ui_files', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('moc_sources', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
         KwargInfo('moc_headers', ContainerTypeInfo(list, (File, str)), listify=True, default=[]),
-        KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
-        KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('moc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.44.0'),
+        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
+        KwargInfo('uic_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.49.0'),
         KwargInfo('method', str, default='auto'),
         KwargInfo('include_directories', ContainerTypeInfo(list, IncludeDirsHolder), listify=True, default=[]),
         KwargInfo('dependencies', ContainerTypeInfo(list, (DependencyHolder, ExternalLibraryHolder)), listify=True, default=[]),
@@ -451,9 +446,6 @@ class QtBaseModule(ExtensionModule):
         return ModuleReturnValue(sources, [sources])
 
     @FeatureNew('qt.compile_translations', '0.44.0')
-    @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['qresource'])
-    @FeatureNewKwargs('qt.compile_translations', '0.56.0', ['rcc_extra_arguments'])
-    @permittedKwargs({'ts_files', 'qresource', 'rcc_extra_arguments', 'install', 'install_dir', 'build_by_default', 'method'})
     @noPosargs
     @typed_kwargs(
         'qt.compile_translations',
@@ -461,8 +453,8 @@ class QtBaseModule(ExtensionModule):
         KwargInfo('install', bool, default=False),
         KwargInfo('install_dir', str),
         KwargInfo('method', str, default='auto'),
-        KwargInfo('qresource', str),
-        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[]),
+        KwargInfo('qresource', str, since='0.56.0'),
+        KwargInfo('rcc_extra_arguments', ContainerTypeInfo(list, str), listify=True, default=[], since='0.56.0'),
         KwargInfo('ts_files', ContainerTypeInfo(list, (str, File)), listify=True, default=[]),
     )
     def compile_translations(self, state: 'ModuleState', args: T.Tuple, kwargs: 'CompileTranslationsKwArgs') -> ModuleReturnValue:
