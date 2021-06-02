@@ -344,12 +344,12 @@ class QtBaseModule(ExtensionModule):
                        "please check your qt{2} installation")
             raise MesonException(err_msg.format('UIC', f'uic-qt{self.qt_version}', self.qt_version))
 
-        ui_kwargs: T.Dict[str, T.Any] = {  # TODO: if Generator was properly annotated…
-            'output': 'ui_@BASENAME@.h',
-            'arguments': kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@']}
         # TODO: This generator isn't added to the generator list in the Interpreter
-        gen = build.Generator(self.uic, ui_kwargs)  # type: ignore
-        out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)
+        gen = build.Generator(
+            self.uic,
+            kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
+            ['ui_@BASENAME@.h'])
+        out = gen.process_files(f'Qt{self.qt_version} ui', kwargs['sources'], state)  # type: ignore
         return ModuleReturnValue(out, [out])
 
     @FeatureNew('qt.compile_moc', '0.59.0')
@@ -382,15 +382,11 @@ class QtBaseModule(ExtensionModule):
 
         arguments = kwargs['extra_args'] + inc + compile_args + ['@INPUT@', '-o', '@OUTPUT@']
         if kwargs['headers']:
-            moc_kwargs = {'output': 'moc_@BASENAME@.cpp',
-                          'arguments': arguments}
-            moc_gen = build.Generator(self.moc, moc_kwargs)  # type: ignore
-            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc header', kwargs['headers'], state))
+            moc_gen = build.Generator(self.moc, arguments, ['moc_@BASENAME@.cpp'])
+            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc header', kwargs['headers'], state))  # type: ignore
         if kwargs['sources']:
-            moc_kwargs = {'output': '@BASENAME@.moc',
-                          'arguments': arguments}
-            moc_gen = build.Generator(self.moc, moc_kwargs)  # type: ignore
-            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc source', kwargs['sources'], state))
+            moc_gen = build.Generator(self.moc, arguments, ['@BASENAME@.moc'])
+            output.append(moc_gen.process_files(f'Qt{self.qt_version} moc source', kwargs['sources'], state))  # type: ignore
 
         return ModuleReturnValue(output, [output])
 

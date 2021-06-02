@@ -1959,15 +1959,27 @@ This will become a hard error in the future.''' % kwargs['input'], location=self
         'generator',
         KwargInfo('arguments', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
         KwargInfo('output', ContainerTypeInfo(list, str, allow_empty=False), required=True, listify=True),
-        KwargInfo('depfile', str),
+        KwargInfo('depfile', str, validator=lambda x: 'Depfile must be a plain filename with a subdirectory' if has_path_sep(x) else None),
         KwargInfo('capture', bool, default=False, since='0.43.0'),
         KwargInfo('depends', ContainerTypeInfo(list, (BuildTargetHolder, CustomTargetHolder)), default=[], listify=True),
     )
     def func_generator(self, node: mparser.FunctionNode,
                        args: T.Tuple[T.Union[ExecutableHolder, ExternalProgramHolder]],
                        kwargs: 'kwargs.FuncGenerator') -> GeneratorHolder:
-        gen = build.Generator(args[0].held_object, kwargs)
-        holder = GeneratorHolder(self, gen, self)
+        for rule in kwargs['output']:
+            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
+                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
+            if has_path_sep(rule):
+                raise InvalidArguments('"output" must not contain a directory separator.')
+        if len(kwargs['output']) > 1:
+            for o in kwargs['output']:
+                if '@OUTPUT@' in o:
+                    raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
+
+        depends = [d.held_object for d in kwargs.pop('depends')]
+
+        gen = build.Generator(args[0].held_object, depends=depends, **kwargs)
+        holder = GeneratorHolder(gen, self)
         self.generators.append(holder)
         return holder
 

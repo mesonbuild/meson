@@ -1498,12 +1498,19 @@ You probably should put it in link_with instead.''')
                 return
 
 class Generator:
-    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram], kwargs):
+    def __init__(self, exe: T.Union['Executable', programs.ExternalProgram],
+                 arguments: T.List[str],
+                 output: T.List[str],
+                 *,
+                 depfile: T.Optional[str] = None,
+                 capture: bool = False,
+                 depends: T.Optional[T.List[T.Union[BuildTarget, 'CustomTarget']]] = None):
         self.exe = exe
-        self.depfile = None
-        self.capture = False
-        self.depends = []
-        self.process_kwargs(kwargs)
+        self.depfile = depfile
+        self.capture = capture
+        self.depends: T.List[T.Union[BuildTarget, 'CustomTarget']] = depends or []
+        self.arglist = arguments
+        self.outputs = output
 
     def __repr__(self):
         repr_str = "<{0}: {1}>"
@@ -1512,53 +1519,7 @@ class Generator:
     def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
         return self.exe
 
-    def process_kwargs(self, kwargs):
-        if 'arguments' not in kwargs:
-            raise InvalidArguments('Generator must have "arguments" keyword argument.')
-        args = kwargs['arguments']
-        if isinstance(args, str):
-            args = [args]
-        if not isinstance(args, list):
-            raise InvalidArguments('"Arguments" keyword argument must be a string or a list of strings.')
-        for a in args:
-            if not isinstance(a, str):
-                raise InvalidArguments('A non-string object in "arguments" keyword argument.')
-        self.arglist = args
-        if 'output' not in kwargs:
-            raise InvalidArguments('Generator must have "output" keyword argument.')
-        outputs = listify(kwargs['output'])
-        for rule in outputs:
-            if not isinstance(rule, str):
-                raise InvalidArguments('"output" may only contain strings.')
-            if '@BASENAME@' not in rule and '@PLAINNAME@' not in rule:
-                raise InvalidArguments('Every element of "output" must contain @BASENAME@ or @PLAINNAME@.')
-            if has_path_sep(rule):
-                raise InvalidArguments('"outputs" must not contain a directory separator.')
-        if len(outputs) > 1:
-            for o in outputs:
-                if '@OUTPUT@' in o:
-                    raise InvalidArguments('Tried to use @OUTPUT@ in a rule with more than one output.')
-        self.outputs = outputs
-        if 'depfile' in kwargs:
-            depfile = kwargs['depfile']
-            if not isinstance(depfile, str):
-                raise InvalidArguments('Depfile must be a string.')
-            if os.path.basename(depfile) != depfile:
-                raise InvalidArguments('Depfile must be a plain filename without a subdirectory.')
-            self.depfile = depfile
-        if 'capture' in kwargs:
-            capture = kwargs['capture']
-            if not isinstance(capture, bool):
-                raise InvalidArguments('Capture must be boolean.')
-            self.capture = capture
-        if 'depends' in kwargs:
-            depends = unholder(listify(kwargs['depends']))
-            for d in depends:
-                if not (isinstance(d, (BuildTarget, CustomTarget))):
-                    raise InvalidArguments('Depends entries must be build targets.')
-                self.depends.append(d)
-
-    def get_base_outnames(self, inname) -> T.List[str]:
+    def get_base_outnames(self, inname):
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
