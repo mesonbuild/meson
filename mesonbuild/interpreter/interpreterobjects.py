@@ -14,7 +14,7 @@ from .. import mlog
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
 from ..interpreterbase import (InterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureNewKwargs, FeatureNew, FeatureDeprecated,
+                               FeatureNewKwargs, FeatureNew, FeatureDeprecated, typed_kwargs,
                                typed_pos_args, stringArgs, permittedKwargs,
                                noArgsFlattening, noPosargs, TYPE_var, TYPE_nkwargs,
                                flatten, InterpreterException, InvalidArguments, InvalidCode)
@@ -620,32 +620,6 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
         pdep = self.held_object.get_partial_dependency(**kwargs)
         return DependencyHolder(pdep, self.subproject)
 
-class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
-
-    def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
-        InterpreterObject.__init__(self)
-        ObjectHolder.__init__(self, gen, interpreter.subproject)
-        self.interpreter = interpreter
-        self.methods.update({'process': self.process_method})
-
-    @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
-    @permittedKwargs({'extra_args', 'preserve_path_from'})
-    def process_method(self, args, kwargs):
-        extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
-        if 'preserve_path_from' in kwargs:
-            preserve_path_from = kwargs['preserve_path_from']
-            if not isinstance(preserve_path_from, str):
-                raise InvalidArguments('Preserve_path_from must be a string.')
-            preserve_path_from = os.path.normpath(preserve_path_from)
-            if not os.path.isabs(preserve_path_from):
-                # This is a bit of a hack. Fix properly before merging.
-                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
-        else:
-            preserve_path_from = None
-        gl = self.held_object.process_files('Generator', args, self.interpreter,
-                                            preserve_path_from, extra_args=extras)
-        return GeneratedListHolder(gl)
-
 
 class GeneratedListHolder(InterpreterObject, ObjectHolder[build.GeneratedList]):
     def __init__(self, arg1, extra_args=None):
@@ -1045,3 +1019,31 @@ class RunTargetHolder(TargetHolder):
         r = '<{} {}: {}>'
         h = self.held_object
         return r.format(self.__class__.__name__, h.get_id(), h.command)
+
+
+class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
+
+    def __init__(self, gen: 'build.Generator', interpreter: 'Interpreter'):
+        InterpreterObject.__init__(self)
+        ObjectHolder.__init__(self, gen, interpreter.subproject)
+        self.interpreter = interpreter
+        self.methods.update({'process': self.process_method})
+
+    @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
+    @permittedKwargs({'extra_args', 'preserve_path_from'})
+    @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder))
+    def process_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder]]], kwargs):
+        extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
+        if 'preserve_path_from' in kwargs:
+            preserve_path_from = kwargs['preserve_path_from']
+            if not isinstance(preserve_path_from, str):
+                raise InvalidArguments('Preserve_path_from must be a string.')
+            preserve_path_from = os.path.normpath(preserve_path_from)
+            if not os.path.isabs(preserve_path_from):
+                # This is a bit of a hack. Fix properly before merging.
+                raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
+        else:
+            preserve_path_from = None
+        gl = self.held_object.process_files(mesonlib.unholder(args[0]), self.interpreter,
+                                            preserve_path_from, extra_args=extras)
+        return GeneratedListHolder(gl)
