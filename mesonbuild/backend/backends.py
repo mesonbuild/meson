@@ -29,7 +29,7 @@ from .. import dependencies
 from .. import programs
 from .. import mesonlib
 from .. import mlog
-from ..compilers import LANGUAGES_USING_LDFLAGS
+from ..compilers import LANGUAGES_USING_LDFLAGS, detect
 from ..mesonlib import (
     File, MachineChoice, MesonException, OptionType, OrderedSet, OptionOverrideProxy,
     classify_unity_sources, OptionKey, join_args
@@ -1315,7 +1315,7 @@ class Backend:
                 mlog.warning('Cross file does not specify strip binary, result will not be stripped.')
             else:
                 # TODO go through all candidates, like others
-                strip_bin = [self.environment.default_strip[0]]
+                strip_bin = [detect.defaults['strip'][0]]
         d = InstallData(self.environment.get_source_dir(),
                         self.environment.get_build_dir(),
                         self.environment.get_prefix(),

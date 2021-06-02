@@ -23,7 +23,7 @@ import shutil
 import typing as T
 
 from .. import mesonlib, mlog
-from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler
+from ..compilers import AppleClangCCompiler, AppleClangCPPCompiler, detect_compiler_for
 from ..environment import get_llvm_tool_names
 from ..mesonlib import version_compare, stringlistify, extract_as_list, MachineChoice
 from .base import DependencyException, DependencyMethods, strip_system_libdirs, SystemDependency
@@ -520,7 +520,7 @@ class JDKSystemDependency(SystemDependency):
         m = self.env.machines[self.for_machine]
 
         if 'java' not in environment.coredata.compilers[self.for_machine]:
-            environment.detect_compiler_for('java', self.for_machine)
+            detect_compiler_for(environment, 'java', self.for_machine)
         self.javac = environment.coredata.compilers[self.for_machine]['java']
         self.version = self.javac.version
 

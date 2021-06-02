@@ -23,6 +23,7 @@ from ..mesonlib import MachineChoice, OptionKey
 from ..interpreterbase import InvalidArguments, TYPE_nvar
 from ..build import BuildTarget, Executable, Jar, SharedLibrary, SharedModule, StaticLibrary
 from ..mparser import BaseNode, ArithmeticNode, ArrayNode, ElementaryNode, IdNode, FunctionNode, StringNode
+from ..compilers import detect_compiler_for
 import typing as T
 import os
 import argparse
@@ -162,7 +163,7 @@ class IntrospectionInterpreter(AstInterpreter):
         for lang in sorted(langs, key=compilers.sort_clink):
             lang = lang.lower()
             if lang not in self.coredata.compilers[for_machine]:
-                self.environment.detect_compiler_for(lang, for_machine)
+                detect_compiler_for(self.environment, lang, for_machine)
 
     def func_dependency(self, node: BaseNode, args: T.List[TYPE_nvar], kwargs: T.Dict[str, TYPE_nvar]) -> None:
         args = self.flatten_args(args)
