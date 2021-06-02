@@ -2242,7 +2242,7 @@ class CustomTarget(Target, CommandBase):
         self.typename = 'custom'
         # TODO expose keyword arg to make MachineChoice.HOST configurable
         super().__init__(name, subdir, subproject, False, MachineChoice.HOST)
-        self.dependencies = []
+        self.dependencies: T.List[T.Union[CustomTarget, BuildTarget]] = []
         self.extra_depends = []
         self.depend_files = [] # Files that this target depends on but are not on the command line.
         self.depfile = None
