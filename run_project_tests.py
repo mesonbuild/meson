@@ -42,6 +42,7 @@ from mesonbuild import compilers
 from mesonbuild import mesonlib
 from mesonbuild import mlog
 from mesonbuild import mtest
+from mesonbuild.compilers import compiler_from_language, detect_objc_compiler, detect_objcpp_compiler
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
 from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
@@ -884,7 +885,7 @@ def have_objc_compiler(use_tmp: bool) -> bool:
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objc_comp = env.detect_objc_compiler(MachineChoice.HOST)
+            objc_comp = detect_objc_compiler(env, MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objc_comp:
@@ -900,7 +901,7 @@ def have_objcpp_compiler(use_tmp: bool) -> bool:
     with TemporaryDirectoryWinProof(prefix='b ', dir=None if use_tmp else '.') as build_dir:
         env = environment.Environment(None, build_dir, get_fake_options('/'))
         try:
-            objcpp_comp = env.detect_objcpp_compiler(MachineChoice.HOST)
+            objcpp_comp = detect_objcpp_compiler(env, MachineChoice.HOST)
         except mesonlib.MesonException:
             return False
         if not objcpp_comp:
@@ -1392,7 +1393,7 @@ def detect_system_compiler(options: 'CompilerArgumentType') -> None:
 
         for lang in sorted(compilers.all_languages):
             try:
-                comp = env.compiler_from_language(lang, MachineChoice.HOST)
+                comp = compiler_from_language(env, lang, MachineChoice.HOST)
                 # note compiler id for later use with test.json matrix
                 compiler_id_map[lang] = comp.get_id()
             except mesonlib.MesonException:
@@ -1412,7 +1413,7 @@ def print_compilers(env: 'Environment', machine: MachineChoice) -> None:
     print()
     for lang in sorted(compilers.all_languages):
         try:
-            comp = env.compiler_from_language(lang, machine)
+            comp = compiler_from_language(env, lang, machine)
             details = '{:<10} {} {}'.format('[' + comp.get_id() + ']', ' '.join(comp.get_exelist()), comp.get_version_string())
         except mesonlib.MesonException:
             details = '[not found]'

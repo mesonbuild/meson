@@ -37,7 +37,7 @@ from .mesonlib import (
 )
 from .compilers import (
     Compiler, is_object, clink_langs, sort_clink, lang_suffixes,
-    is_known_suffix
+    is_known_suffix, detect_static_linker
 )
 from .linkers import StaticLinker
 from .interpreterbase import FeatureNew
@@ -275,7 +275,7 @@ class Build:
 
     def ensure_static_linker(self, compiler):
         if self.static_linker[compiler.for_machine] is None and compiler.needs_static_linker():
-            self.static_linker[compiler.for_machine] = self.environment.detect_static_linker(compiler)
+            self.static_linker[compiler.for_machine] = detect_static_linker(self.environment, compiler)
 
     def get_project(self):
         return self.projects['']

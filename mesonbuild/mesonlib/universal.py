@@ -135,6 +135,7 @@ __all__ = [
     'version_compare',
     'version_compare_condition_with_min',
     'version_compare_many',
+    'search_version',
     'windows_proof_rm',
     'windows_proof_rmtree',
 ]
@@ -882,6 +883,49 @@ def version_compare_condition_with_min(condition: str, minimum: str) -> bool:
         condition += '.0'
 
     return T.cast(bool, cmpop(Version(minimum), Version(condition)))
+
+def search_version(text: str) -> str:
+    # Usually of the type 4.1.4 but compiler output may contain
+    # stuff like this:
+    # (Sourcery CodeBench Lite 2014.05-29) 4.8.3 20140320 (prerelease)
+    # Limiting major version number to two digits seems to work
+    # thus far. When we get to GCC 100, this will break, but
+    # if we are still relevant when that happens, it can be
+    # considered an achievement in itself.
+    #
+    # This regex is reaching magic levels. If it ever needs
+    # to be updated, do not complexify but convert to something
+    # saner instead.
+    # We'll demystify it a bit with a verbose definition.
+    version_regex = re.compile(r"""
+    (?<!                # Zero-width negative lookbehind assertion
+        (
+            \d          # One digit
+            | \.        # Or one period
+        )               # One occurrence
+    )
+    # Following pattern must not follow a digit or period
+    (
+        \d{1,2}         # One or two digits
+        (
+            \.\d+       # Period and one or more digits
+        )+              # One or more occurrences
+        (
+            -[a-zA-Z0-9]+   # Hyphen and one or more alphanumeric
+        )?              # Zero or one occurrence
+    )                   # One occurrence
+    """, re.VERBOSE)
+    match = version_regex.search(text)
+    if match:
+        return match.group(0)
+
+    # try a simpler regex that has like "blah 2020.01.100 foo" or "blah 2020.01 foo"
+    version_regex = re.compile(r"(\d{1,4}\.\d{1,4}\.?\d{0,4})")
+    match = version_regex.search(text)
+    if match:
+        return match.group(0)
+
+    return 'unknown version'
 
 
 def default_libdir() -> str:

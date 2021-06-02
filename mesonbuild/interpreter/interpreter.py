@@ -1328,7 +1328,7 @@ external dependencies (including libraries) must go to "dependencies".''')
                 comp = clist[lang]
             else:
                 try:
-                    comp = self.environment.detect_compiler_for(lang, for_machine)
+                    comp = compilers.detect_compiler_for(self.environment, lang, for_machine)
                     if comp is None:
                         raise InvalidArguments('Tried to use unknown language "%s".' % lang)
                     if self.should_skip_sanity_check(for_machine):

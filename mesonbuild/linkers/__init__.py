@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .detect import (
+    defaults,
+    guess_win_linker,
+    guess_nix_linker,
+)
 from .linkers import (
     RSPFileSyntax,
 
@@ -64,6 +69,12 @@ from .linkers import (
 )
 
 __all__ = [
+    # detect.py
+    'defaults',
+    'guess_win_linker',
+    'guess_nix_linker',
+
+    # linkers.py
     'RSPFileSyntax',
 
     'StaticLinker',

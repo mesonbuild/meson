@@ -59,7 +59,13 @@ from mesonbuild.mesonlib import (
     BuildDirLock, LibType, MachineChoice, PerMachine, Version, is_windows,
     is_osx, is_cygwin, is_dragonflybsd, is_openbsd, is_haiku, is_sunos,
     windows_proof_rmtree, windows_proof_rm, python_command,
-    version_compare, split_args, quote_arg, relpath, is_linux, git
+    version_compare, split_args, quote_arg, relpath, is_linux, git,
+    search_version
+)
+from mesonbuild.compilers import (
+    detect_static_linker, detect_c_compiler, detect_cpp_compiler,
+    detect_objc_compiler, detect_objcpp_compiler, detect_d_compiler,
+    detect_swift_compiler, compiler_from_language
 )
 from mesonbuild.environment import detect_ninja
 from mesonbuild.mesonlib import MesonException, EnvironmentException, OptionKey
@@ -140,7 +146,7 @@ def _git_init(project_dir):
     # If a user has git configuration init.defaultBranch set we want to override that
     with tempfile.TemporaryDirectory() as d:
         out = git(['--version'], str(d))[1]
-    if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+    if version_compare(search_version(out), '>= 2.28'):
         extra_cmd = ['--initial-branch', 'master']
     else:
         extra_cmd = []
@@ -226,14 +232,12 @@ def skip_if_no_cmake(f):
         return f(*args, **kwargs)
     return wrapped
 
-def skip_if_not_language(lang):
+def skip_if_not_language(lang: str):
     def wrapper(func):
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
             try:
-                env = get_fake_env()
-                f = getattr(env, f'detect_{lang}_compiler')
-                f(MachineChoice.HOST)
+                compiler_from_language(get_fake_env(), lang, MachineChoice.HOST)
             except EnvironmentException:
                 raise unittest.SkipTest(f'No {lang} compiler found.')
             return func(*args, **kwargs)
@@ -269,7 +273,7 @@ def skip_if_not_base_option(feature):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             env = get_fake_env()
-            cc = env.detect_c_compiler(MachineChoice.HOST)
+            cc = detect_c_compiler(env, MachineChoice.HOST)
             key = OptionKey(feature)
             if key not in cc.base_options:
                 raise unittest.SkipTest(
@@ -327,18 +331,17 @@ def no_pkgconfig():
 class InternalTests(unittest.TestCase):
 
     def test_version_number(self):
-        searchfunc = mesonbuild.environment.search_version
-        self.assertEqual(searchfunc('foobar 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('foobar 2016.10.28 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('2016.10.28 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('foobar 2016.10.128'), '2016.10.128')
-        self.assertEqual(searchfunc('2016.10.128'), '2016.10.128')
-        self.assertEqual(searchfunc('2016.10'), '2016.10')
-        self.assertEqual(searchfunc('2016.10 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('oops v1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('2016.oops 1.2.3'), '1.2.3')
-        self.assertEqual(searchfunc('2016.x'), 'unknown version')
+        self.assertEqual(search_version('foobar 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('1.2.3'), '1.2.3')
+        self.assertEqual(search_version('foobar 2016.10.28 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('2016.10.28 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('foobar 2016.10.128'), '2016.10.128')
+        self.assertEqual(search_version('2016.10.128'), '2016.10.128')
+        self.assertEqual(search_version('2016.10'), '2016.10')
+        self.assertEqual(search_version('2016.10 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('oops v1.2.3'), '1.2.3')
+        self.assertEqual(search_version('2016.oops 1.2.3'), '1.2.3')
+        self.assertEqual(search_version('2016.x'), 'unknown version')
 
     def test_mode_symbolic_to_bits(self):
         modefunc = mesonbuild.mesonlib.FileMode.perms_s_to_bits
@@ -837,7 +840,7 @@ class InternalTests(unittest.TestCase):
                                                  '{}.dll.a', '{}.lib', '{}.dll'),
                                       'static': msvc_static}}
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if is_osx():
             self._test_all_naming(cc, env, patterns, 'darwin')
         elif is_cygwin():
@@ -881,7 +884,7 @@ class InternalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             pkgbin = ExternalProgram('pkg-config', command=['pkg-config'], silent=True)
             env = get_fake_env()
-            compiler = env.detect_c_compiler(MachineChoice.HOST)
+            compiler = detect_c_compiler(env, MachineChoice.HOST)
             env.coredata.compilers.host = {'c': compiler}
             env.coredata.options[OptionKey('link_args', lang='c')] = FakeCompilerOptions()
             p1 = Path(tmpdir) / '1'
@@ -1063,7 +1066,7 @@ class InternalTests(unittest.TestCase):
         Ensure that the toolset version returns the correct value for this MSVC
         '''
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Test only applies to MSVC-like compilers')
         toolset_ver = cc.get_toolset_version()
@@ -1752,8 +1755,8 @@ class DataTests(unittest.TestCase):
         self.assertIsNotNone(md)
         env = get_fake_env()
         # FIXME: Support other compilers
-        cc = env.detect_c_compiler(MachineChoice.HOST)
-        cpp = env.detect_cpp_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
         for comp in (cc, cpp):
             for opt in comp.get_options():
                 self.assertIn(str(opt), md)
@@ -2556,7 +2559,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_clike_get_library_dirs(self):
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         for d in cc.get_library_dirs(env):
             self.assertTrue(os.path.exists(d))
             self.assertTrue(os.path.isdir(d))
@@ -2572,8 +2575,8 @@ class AllPlatformTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '3 static')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
-        static_linker = env.detect_static_linker(cc)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        static_linker = detect_static_linker(env, cc)
         if is_windows():
             raise unittest.SkipTest('https://github.com/mesonbuild/meson/issues/1526')
         if not isinstance(static_linker, mesonbuild.linkers.ArLinker):
@@ -3041,9 +3044,9 @@ class AllPlatformTests(BasePlatformTests):
         for lang, evar in langs:
             # Detect with evar and do sanity checks on that
             if evar in os.environ:
-                ecc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
+                ecc = compiler_from_language(env, lang, MachineChoice.HOST)
                 self.assertTrue(ecc.version)
-                elinker = env.detect_static_linker(ecc)
+                elinker = detect_static_linker(env, ecc)
                 # Pop it so we don't use it for the next detection
                 evalue = os.environ.pop(evar)
                 # Very rough/strict heuristics. Would never work for actual
@@ -3069,9 +3072,9 @@ class AllPlatformTests(BasePlatformTests):
                 # Check that we actually used the evalue correctly as the compiler
                 self.assertEqual(ecc.get_exelist(), split_args(evalue))
             # Do auto-detection of compiler based on platform, PATH, etc.
-            cc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
+            cc = compiler_from_language(env, lang, MachineChoice.HOST)
             self.assertTrue(cc.version)
-            linker = env.detect_static_linker(cc)
+            linker = detect_static_linker(env, cc)
             # Check compiler type
             if isinstance(cc, gnu):
                 self.assertIsInstance(linker, ar)
@@ -3129,8 +3132,8 @@ class AllPlatformTests(BasePlatformTests):
             # Need a new env to re-run environment loading
             env = get_fake_env(testdir, self.builddir, self.prefix)
 
-            wcc = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
-            wlinker = env.detect_static_linker(wcc)
+            wcc = compiler_from_language(env, lang, MachineChoice.HOST)
+            wlinker = detect_static_linker(env, wcc)
             # Pop it so we don't use it for the next detection
             evalue = os.environ.pop('AR')
             # Must be the same type since it's a wrapper around the same exelist
@@ -3148,7 +3151,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '133 c cpp and asm')
         # Skip if building with MSVC
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        if env.detect_c_compiler(MachineChoice.HOST).get_id() == 'msvc':
+        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'msvc':
             raise unittest.SkipTest('MSVC can\'t compile assembly')
         self.init(testdir)
         commands = {'c-asm': {}, 'cpp-asm': {}, 'cpp-c-asm': {}, 'c-cpp-asm': {}}
@@ -3309,7 +3312,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '5 linkstatic')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        if env.detect_c_compiler(MachineChoice.HOST).get_id() == 'clang' and is_windows():
+        if detect_c_compiler(env, MachineChoice.HOST).get_id() == 'clang' and is_windows():
             raise unittest.SkipTest('LTO not (yet) supported by windows clang')
 
         self.init(testdir, extra_args='-Db_lto=true')
@@ -3321,7 +3324,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         extra_args: T.List[str] = []
         if cc.get_id() == 'clang':
             if is_windows():
@@ -3347,7 +3350,7 @@ class AllPlatformTests(BasePlatformTests):
         testdir = os.path.join(self.common_test_dir, '6 linkshared')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() != 'clang':
             raise unittest.SkipTest('Only clang currently supports thinLTO')
         if cc.linker.id not in {'ld.lld', 'ld.gold', 'ld64', 'lld-link'}:
@@ -3615,8 +3618,8 @@ class AllPlatformTests(BasePlatformTests):
 
     def detect_prebuild_env(self):
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
-        stlinker = env.detect_static_linker(cc)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
+        stlinker = detect_static_linker(env, cc)
         if mesonbuild.mesonlib.is_windows():
             object_suffix = 'obj'
             shared_suffix = 'dll'
@@ -4060,7 +4063,7 @@ class AllPlatformTests(BasePlatformTests):
         env = get_fake_env()
         for l in ['cpp', 'cs', 'd', 'java', 'cuda', 'fortran', 'objc', 'objcpp', 'rust']:
             try:
-                comp = env.detect_compiler_for(l, MachineChoice.HOST)
+                comp = mesonbuild.compilers.detect_compiler_for(env, l, MachineChoice.HOST)
                 with tempfile.TemporaryDirectory() as d:
                     comp.sanity_check(d, env)
                 langs.append(l)
@@ -4170,7 +4173,7 @@ class AllPlatformTests(BasePlatformTests):
         extra_args = None
         libdir_flags = ['-L']
         env = get_fake_env(testdirlib, self.builddir, self.prefix)
-        if env.detect_c_compiler(MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl'}:
+        if detect_c_compiler(env, MachineChoice.HOST).get_id() in {'msvc', 'clang-cl', 'intel-cl'}:
             # msvc-like compiler, also test it with msvc-specific flags
             libdir_flags += ['/LIBPATH:', '-LIBPATH:']
         else:
@@ -5562,7 +5565,7 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
             if not mesonbuild.environment.detect_llvm_cov():
                 raise unittest.SkipTest('llvm-cov not found')
@@ -5582,7 +5585,7 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '105 generatorcustom')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
             if not mesonbuild.environment.detect_llvm_cov():
                 raise unittest.SkipTest('llvm-cov not found')
@@ -5602,7 +5605,7 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
             if not mesonbuild.environment.detect_llvm_cov():
                 raise unittest.SkipTest('llvm-cov not found')
@@ -5622,7 +5625,7 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
             if not mesonbuild.environment.detect_llvm_cov():
                 raise unittest.SkipTest('llvm-cov not found')
@@ -5642,7 +5645,7 @@ class AllPlatformTests(BasePlatformTests):
             raise unittest.SkipTest('gcovr not found, or too old')
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() == 'clang':
             if not mesonbuild.environment.detect_llvm_cov():
                 raise unittest.SkipTest('llvm-cov not found')
@@ -5842,7 +5845,7 @@ class AllPlatformTests(BasePlatformTests):
             'bar/barfile'
         ]
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() == 'msvc':
             main_expected.append('bin/foo.pdb')
             bar_expected.append('bin/bar.pdb')
@@ -5936,18 +5939,18 @@ class AllPlatformTests(BasePlatformTests):
             env = get_fake_env()
 
             # Get the compiler so we know which compiler class to mock.
-            cc = env.detect_compiler_for('c', MachineChoice.HOST)
+            cc =  mesonbuild.compilers.detect_compiler_for(env, 'c', MachineChoice.HOST)
             cc_type = type(cc)
 
             # Test a compiler that acts as a linker
             with mock.patch.object(cc_type, 'INVOKES_LINKER', True):
-                cc = env.detect_compiler_for('c', MachineChoice.HOST)
+                cc =  mesonbuild.compilers.detect_compiler_for(env, 'c', MachineChoice.HOST)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-DCFLAG', '-flto']))
 
             # And one that doesn't
             with mock.patch.object(cc_type, 'INVOKES_LINKER', False):
-                cc = env.detect_compiler_for('c', MachineChoice.HOST)
+                cc =  mesonbuild.compilers.detect_compiler_for(env, 'c', MachineChoice.HOST)
                 link_args = env.coredata.get_external_link_args(cc.for_machine, cc.language)
                 self.assertEqual(sorted(link_args), sorted(['-flto']))
 
@@ -6141,8 +6144,8 @@ class FailureTests(BasePlatformTests):
         '''
         env = get_fake_env()
         try:
-            env.detect_objc_compiler(MachineChoice.HOST)
-            env.detect_objcpp_compiler(MachineChoice.HOST)
+            detect_objc_compiler(env, MachineChoice.HOST)
+            detect_objcpp_compiler(env, MachineChoice.HOST)
         except EnvironmentException:
             code = "add_languages('objc')\nadd_languages('objcpp')"
             self.assertMesonRaises(code, "Unknown compiler")
@@ -6362,7 +6365,7 @@ class WindowsTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.platform_test_dir, '1 basic')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Not using MSVC')
         # To force people to update this test, and also test
@@ -6375,7 +6378,7 @@ class WindowsTests(BasePlatformTests):
 
         # resource compiler depfile generation is not yet implemented for msvc
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        depfile_works = env.detect_c_compiler(MachineChoice.HOST).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}
+        depfile_works = detect_c_compiler(env, MachineChoice.HOST).get_id() not in {'msvc', 'clang-cl', 'intel-cl'}
 
         self.init(testdir)
         self.build()
@@ -6406,7 +6409,7 @@ class WindowsTests(BasePlatformTests):
         testdir = os.path.join(self.unit_test_dir, '45 vscpp17')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Test only applies to MSVC-like compilers')
 
@@ -6424,7 +6427,7 @@ class WindowsTests(BasePlatformTests):
         testdir = os.path.join(self.platform_test_dir, '1 basic')
 
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_argument_syntax() != 'msvc':
             raise unittest.SkipTest('Test only applies to MSVC-like compilers')
 
@@ -6448,28 +6451,28 @@ class WindowsTests(BasePlatformTests):
             with mock.patch.dict(os.environ, {envvar: name}):
                 env = get_fake_env()
                 try:
-                    comp = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
+                    comp = compiler_from_language(env, lang, MachineChoice.HOST)
                 except EnvironmentException:
                     raise unittest.SkipTest(f'Could not find a compiler for {lang}')
                 self.assertEqual(comp.linker.id, expected)
 
     def test_link_environment_variable_lld_link(self):
         env = get_fake_env()
-        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        comp = detect_c_compiler(env, MachineChoice.HOST)
         if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
             raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('lld-link', 'c', 'lld-link')
 
     def test_link_environment_variable_link(self):
         env = get_fake_env()
-        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        comp = detect_c_compiler(env, MachineChoice.HOST)
         if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
             raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('link', 'c', 'link')
 
     def test_link_environment_variable_optlink(self):
         env = get_fake_env()
-        comp = getattr(env, 'detect_c_compiler')(MachineChoice.HOST)
+        comp = detect_c_compiler(env, MachineChoice.HOST)
         if isinstance(comp, mesonbuild.compilers.GnuLikeCompiler):
             raise unittest.SkipTest('GCC cannot be used with link compatible linkers.')
         self._check_ld('optlink', 'c', 'optlink')
@@ -6481,7 +6484,7 @@ class WindowsTests(BasePlatformTests):
     @skip_if_not_language('d')
     def test_link_environment_variable_d(self):
         env = get_fake_env()
-        comp = getattr(env, 'detect_d_compiler')(MachineChoice.HOST)
+        comp = detect_d_compiler(env, MachineChoice.HOST)
         if comp.id == 'dmd':
             raise unittest.SkipTest('meson cannot reliably make DMD use a different linker.')
         self._check_ld('lld-link', 'd', 'lld-link')
@@ -6498,7 +6501,7 @@ class WindowsTests(BasePlatformTests):
         self.build()
         # Test that binaries have a non-zero checksum
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         cc_id = cc.get_id()
         ld_id = cc.get_linker_id()
         dll = glob(os.path.join(self.builddir, '*mycpplib.dll'))[0]
@@ -6520,7 +6523,7 @@ class WindowsTests(BasePlatformTests):
         '''
         # Verify that the `b_vscrt` option is available
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if OptionKey('b_vscrt') not in cc.base_options:
             raise unittest.SkipTest('Compiler does not support setting the VS CRT')
         # Verify that qmake is for Qt5
@@ -6546,7 +6549,7 @@ class WindowsTests(BasePlatformTests):
         '''
         # Verify that the `b_vscrt` option is available
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if OptionKey('b_vscrt') not in cc.base_options:
             raise unittest.SkipTest('Compiler does not support setting the VS CRT')
 
@@ -6614,7 +6617,7 @@ class DarwinTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.platform_test_dir, '7 bitcode')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.id != 'clang':
             raise unittest.SkipTest('Not using Clang on OSX')
         # Try with bitcode enabled
@@ -6794,7 +6797,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', {}), r'hello\ world')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', {}), 'hello world')
 
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         if cc.get_id() in {'gcc', 'clang'}:
             for name in {'ct', 'ct0'}:
                 ct_dep = PkgConfigDependency(name, env, kwargs)
@@ -7069,7 +7072,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '36 has function')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cpp = env.detect_cpp_compiler(MachineChoice.HOST)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
         Oflag = '-O3'
         OflagCPP = Oflag
         if cpp.get_id() in ('clang', 'gcc'):
@@ -7161,7 +7164,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '1 trivial')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         self._test_stds_impl(testdir, cc)
 
     def test_compiler_cpp_stds(self):
@@ -7171,7 +7174,7 @@ class LinuxlikeTests(BasePlatformTests):
         '''
         testdir = os.path.join(self.common_test_dir, '2 cpp')
         env = get_fake_env(testdir, self.builddir, self.prefix)
-        cpp = env.detect_cpp_compiler(MachineChoice.HOST)
+        cpp = detect_cpp_compiler(env, MachineChoice.HOST)
         self._test_stds_impl(testdir, cpp)
 
     def test_unity_subproj(self):
@@ -8011,7 +8014,7 @@ class LinuxlikeTests(BasePlatformTests):
         if is_cygwin() or is_osx():
             raise unittest.SkipTest('Not applicable on Cygwin or OSX.')
         env = get_fake_env()
-        cc = env.detect_c_compiler(MachineChoice.HOST)
+        cc = detect_c_compiler(env, MachineChoice.HOST)
         linker = cc.linker
         if not linker.export_dynamic_args(env):
             raise unittest.SkipTest('Not applicable for linkers without --export-dynamic')
@@ -8124,7 +8127,7 @@ class LinuxlikeTests(BasePlatformTests):
         for envvar in envvars:
             with mock.patch.dict(os.environ, {envvar: name}):
                 env = get_fake_env()
-                comp = getattr(env, f'detect_{lang}_compiler')(MachineChoice.HOST)
+                comp = compiler_from_language(env, lang, MachineChoice.HOST)
                 if isinstance(comp, (mesonbuild.compilers.AppleClangCCompiler,
                                      mesonbuild.compilers.AppleClangCPPCompiler,
                                      mesonbuild.compilers.AppleClangObjCCompiler,
@@ -8910,8 +8913,7 @@ class NativeFileTests(BasePlatformTests):
         with more than one implementation, such as C, C++, ObjC, ObjC++, and D.
         """
         env = get_fake_env()
-        getter = getattr(env, f'detect_{lang}_compiler')
-        getter = functools.partial(getter, for_machine)
+        getter = lambda: compiler_from_language(env, lang, for_machine)
         cc = getter()
         binary, newid = cb(cc)
         env.binaries[for_machine].binaries[lang] = binary
@@ -9115,10 +9117,8 @@ class NativeFileTests(BasePlatformTests):
         """
         wrapper = self.helper_create_binary_wrapper(binary, version=version_str)
         env = get_fake_env()
-        getter = getattr(env, f'detect_{lang}_compiler')
-        getter = functools.partial(getter, MachineChoice.HOST)
         env.binaries.host.binaries[lang] = [wrapper]
-        compiler = getter()
+        compiler = compiler_from_language(env, lang, MachineChoice.HOST)
         self.assertEqual(compiler.version, version)
 
     @skip_if_not_language('vala')
@@ -9145,7 +9145,7 @@ class NativeFileTests(BasePlatformTests):
             extra_args={'Xlinker': 'macosx_version. PROJECT:ld - 1.2.3'})
         env = get_fake_env()
         env.binaries.host.binaries['swift'] = [wrapper]
-        compiler = env.detect_swift_compiler(MachineChoice.HOST)
+        compiler = detect_swift_compiler(env, MachineChoice.HOST)
         self.assertEqual(compiler.version, '1.2345')
 
     def test_native_file_dirs(self):
@@ -10023,7 +10023,7 @@ class SubprojectsCommandTests(BasePlatformTests):
         # If a user has git configuration init.defaultBranch set we want to override that
         with tempfile.TemporaryDirectory() as d:
             out = git(['--version'], str(d))[1]
-        if version_compare(mesonbuild.environment.search_version(out), '>= 2.28'):
+        if version_compare(search_version(out), '>= 2.28'):
             extra_cmd = ['--initial-branch', 'master']
         else:
             extra_cmd = []
