@@ -947,7 +947,7 @@ class CustomTargetIndexHolder(TargetHolder[build.CustomTargetIndex]):
     def full_path_method(self, args, kwargs):
         return self.interpreter.backend.get_target_filename_abs(self.held_object)
 
-class CustomTargetHolder(TargetHolder):
+class CustomTargetHolder(TargetHolder[build.CustomTarget]):
     def __init__(self, target: 'build.CustomTarget', interp: 'Interpreter'):
         super().__init__(target, interp)
         self.methods.update({'full_path': self.full_path_method,
