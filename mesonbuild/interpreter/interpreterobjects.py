@@ -625,19 +625,14 @@ class ExternalLibraryHolder(InterpreterObject, ObjectHolder[ExternalLibrary]):
 
 
 class GeneratedListHolder(InterpreterObject, ObjectHolder[build.GeneratedList]):
-    def __init__(self, arg1, extra_args=None):
+    def __init__(self, arg1: 'build.GeneratedList'):
         InterpreterObject.__init__(self)
-        if isinstance(arg1, GeneratorHolder):
-            ObjectHolder.__init__(self, build.GeneratedList(arg1.held_object, extra_args if extra_args is not None else []))
-        else:
-            ObjectHolder.__init__(self, arg1)
+        ObjectHolder.__init__(self, arg1)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         r = '<{}: {!r}>'
         return r.format(self.__class__.__name__, self.held_object.get_outputs())
 
-    def add_file(self, a):
-        self.held_object.add_file(a)
 
 # A machine that's statically known from the cross file
 class MachineHolder(InterpreterObject, ObjectHolder['MachineInfo']):
