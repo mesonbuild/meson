@@ -43,6 +43,7 @@ if T.TYPE_CHECKING:
     from ._typing import ImmutableListProtocol, ImmutableSetProtocol
     from .interpreter.interpreter import Test, SourceOutputs, Interpreter
     from .mesonlib import FileMode, FileOrString
+    from .modules import ModuleState
     from .backend.backends import Backend
     from .interpreter.interpreterobjects import GeneratorHolder
 
@@ -1543,9 +1544,10 @@ class Generator:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
-    def process_files(self, files: T.List[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
-                      state, preserve_path_from=None, extra_args=None):
-        new = False
+    def process_files(self, files: T.Iterable[T.Union[str, File, 'CustomTarget', 'CustomTargetIndex', 'GeneratedList']],
+                      state: T.Union['Interpreter', 'ModuleState'],
+                      preserve_path_from: T.Optional[str] = None,
+                      extra_args: T.Optional[T.List[str]] = None) -> 'GeneratedList':
         output = GeneratedList(self, state.subdir, preserve_path_from, extra_args=extra_args if extra_args is not None else [])
         #XXX
         for e in files:
@@ -1559,7 +1561,6 @@ class Generator:
                 fs = []
                 for f in e.get_outputs():
                     fs.append(File.from_built_file(state.subdir, f))
-                new = True
             elif isinstance(e, str):
                 fs = [File.from_source_file(state.environment.source_dir, state.subdir, e)]
 
@@ -1569,10 +1570,6 @@ class Generator:
                     if not self.is_parent_path(preserve_path_from, abs_f):
                         raise InvalidArguments('generator.process: When using preserve_path_from, all input files must be in a subdirectory of the given dir.')
                 output.add_file(f, state)
-        if new:
-            FeatureNew.single_use(
-                f'Calling "{self.name}" with CustomTaget or Index of CustomTarget.',
-                '0.57.0', state.subproject)
         return output
 
 

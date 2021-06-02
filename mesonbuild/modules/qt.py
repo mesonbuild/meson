@@ -350,7 +350,7 @@ class QtBaseModule(ExtensionModule):
             kwargs['extra_args'] + ['-o', '@OUTPUT@', '@INPUT@'],
             ['ui_@BASENAME@.h'],
             name=f'Qt{self.qt_version} ui')
-        out = gen.process_files(kwargs['sources'], state)  # type: ignore
+        out = gen.process_files(kwargs['sources'], state)
         return ModuleReturnValue(out, [out])
 
     @FeatureNew('qt.compile_moc', '0.59.0')
@@ -386,12 +386,12 @@ class QtBaseModule(ExtensionModule):
             moc_gen = build.Generator(
                 self.moc, arguments, ['moc_@BASENAME@.cpp'],
                 name=f'Qt{self.qt_version} moc header')
-            output.append(moc_gen.process_files(kwargs['headers'], state))  # type: ignore
+            output.append(moc_gen.process_files(kwargs['headers'], state))
         if kwargs['sources']:
             moc_gen = build.Generator(
                 self.moc, arguments, ['@BASENAME@.moc'],
                 name=f'Qt{self.qt_version} moc source')
-            output.append(moc_gen.process_files(kwargs['sources'], state))  # type: ignore
+            output.append(moc_gen.process_files(kwargs['sources'], state))
 
         return ModuleReturnValue(output, [output])
 

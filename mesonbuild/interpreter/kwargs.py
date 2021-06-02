@@ -82,3 +82,11 @@ class FuncGenerator(TypedDict):
     depfile: bool
     capture:  bool
     depends: T.List[T.Union['BuildTargetHolder', 'CustomTargetHolder']]
+
+
+class GeneratorProcess(TypedDict):
+
+    """Keyword Arguments for generator.process."""
+
+    preserve_path_from: T.Optional[str]
+    extra_args: T.List[str]

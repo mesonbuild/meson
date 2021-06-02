@@ -13,11 +13,14 @@ from .. import mlog
 
 from ..modules import ModuleReturnValue, ModuleObject, ModuleState, ExtensionModule
 from ..backend.backends import TestProtocol
-from ..interpreterbase import (InterpreterObject, ObjectHolder, MutableInterpreterObject,
-                               FeatureNewKwargs, FeatureNew, FeatureDeprecated, typed_kwargs,
-                               typed_pos_args, stringArgs, permittedKwargs,
-                               noArgsFlattening, noPosargs, TYPE_var, TYPE_nkwargs,
-                               flatten, InterpreterException, InvalidArguments, InvalidCode)
+from ..interpreterbase import (ContainerTypeInfo, InterpreterObject, KwargInfo,
+                               ObjectHolder, MutableInterpreterObject,
+                               FeatureNewKwargs, FeatureNew, FeatureDeprecated,
+                               typed_kwargs, typed_pos_args, stringArgs,
+                               permittedKwargs, noArgsFlattening, noPosargs,
+                               TYPE_var, TYPE_nkwargs, flatten,
+                               InterpreterException, InvalidArguments,
+                               InvalidCode)
 from ..interpreterbase.decorators import FeatureCheckBase
 from ..dependencies import Dependency, ExternalLibrary, InternalDependency
 from ..programs import ExternalProgram
@@ -1029,21 +1032,27 @@ class GeneratorHolder(InterpreterObject, ObjectHolder[build.Generator]):
         self.interpreter = interpreter
         self.methods.update({'process': self.process_method})
 
-    @FeatureNewKwargs('generator.process', '0.45.0', ['preserve_path_from'])
-    @permittedKwargs({'extra_args', 'preserve_path_from'})
     @typed_pos_args('generator.process', min_varargs=1, varargs=(str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder))
-    def process_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder]]], kwargs):
-        extras = mesonlib.stringlistify(kwargs.get('extra_args', []))
-        if 'preserve_path_from' in kwargs:
-            preserve_path_from = kwargs['preserve_path_from']
-            if not isinstance(preserve_path_from, str):
-                raise InvalidArguments('Preserve_path_from must be a string.')
+    @typed_kwargs(
+        'generator.process',
+        KwargInfo('preserve_path_from', str, since='0.45.0'),
+        KwargInfo('extra_args', ContainerTypeInfo(list, str), listify=True, default=[]),
+    )
+    def process_method(self, args: T.Tuple[T.List[T.Union[str, mesonlib.File, CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder]]],
+                       kwargs: 'kwargs.GeneratorProcess') -> GeneratedListHolder:
+        preserve_path_from = kwargs['preserve_path_from']
+        if preserve_path_from is not None:
             preserve_path_from = os.path.normpath(preserve_path_from)
             if not os.path.isabs(preserve_path_from):
                 # This is a bit of a hack. Fix properly before merging.
                 raise InvalidArguments('Preserve_path_from must be an absolute path for now. Sorry.')
-        else:
-            preserve_path_from = None
+
+        if any(isinstance(a, (CustomTargetHolder, CustomTargetIndexHolder, GeneratedListHolder)) for a in args[0]):
+            FeatureNew.single_use(
+                f'Calling generator.process with CustomTaget or Index of CustomTarget.',
+                '0.57.0', self.interpreter.subproject)
+
         gl = self.held_object.process_files(mesonlib.unholder(args[0]), self.interpreter,
-                                            preserve_path_from, extra_args=extras)
+                                            preserve_path_from, extra_args=kwargs['extra_args'])
+
         return GeneratedListHolder(gl)
