@@ -1515,32 +1515,33 @@ class Generator:
         self.outputs = output
         self.name = name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = "<{0}: {1}>"
         return repr_str.format(self.__class__.__name__, self.exe)
 
     def get_exe(self) -> T.Union['Executable', programs.ExternalProgram]:
         return self.exe
 
-    def get_base_outnames(self, inname):
+    def get_base_outnames(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         bases = [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.outputs]
         return bases
 
-    def get_dep_outname(self, inname):
+    def get_dep_outname(self, inname: str) -> T.List[str]:
         if self.depfile is None:
             raise InvalidArguments('Tried to get dep name for rule that does not have dependency file defined.')
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return self.depfile.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname)
 
-    def get_arglist(self, inname):
+    def get_arglist(self, inname: str) -> T.List[str]:
         plainname = os.path.basename(inname)
         basename = os.path.splitext(plainname)[0]
         return [x.replace('@BASENAME@', basename).replace('@PLAINNAME@', plainname) for x in self.arglist]
 
-    def is_parent_path(self, parent, trial):
+    @staticmethod
+    def is_parent_path(parent: str, trial: str) -> bool:
         relpath = pathlib.PurePath(trial).relative_to(parent)
         return relpath.parts[0] != '..' # For subdirs we can only go "down".
 
