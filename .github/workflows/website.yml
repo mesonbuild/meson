@@ -10,6 +10,8 @@ on:
 
 jobs:
   update_website:
+    env:
+      HAS_SSH_KEY: ${{ secrets.WEBSITE_PRIV_KEY != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,13 +25,18 @@ jobs:
         run: |
           ssh-agent -a $SSH_AUTH_SOCK > /dev/null
           ssh-add - <<< "${{ secrets.WEBSITE_PRIV_KEY }}"
-      - name: Update website
-        env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        if: env.HAS_SSH_KEY == 'true'
+      - name: Build website
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           cd docs
           meson setup _build
           ninja -C _build
+      - name: Update website
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+        run: |
+          cd docs
           ninja -C _build upload
+        if: env.HAS_SSH_KEY == 'true'
