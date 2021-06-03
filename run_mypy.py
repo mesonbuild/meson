@@ -16,6 +16,7 @@ modules = [
     'mesonbuild/compilers',
     'mesonbuild/dependencies',
     'mesonbuild/interpreterbase',
+    'mesonbuild/linkers',
     'mesonbuild/scripts',
     'mesonbuild/wrap',
 
@@ -24,7 +25,6 @@ modules = [
     # 'mesonbuild/coredata.py',
     'mesonbuild/envconfig.py',
     'mesonbuild/interpreter/interpreterobjects.py',
-    'mesonbuild/linkers.py',
     'mesonbuild/mcompile.py',
     'mesonbuild/mdevenv.py',
     'mesonbuild/mesonlib/platform.py',

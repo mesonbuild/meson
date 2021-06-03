@@ -17,13 +17,13 @@ import enum
 import os
 import typing as T
 
-from . import mesonlib
-from .arglist import CompilerArgs
+from .. import mesonlib
+from ..arglist import CompilerArgs
 
 if T.TYPE_CHECKING:
-    from .coredata import KeyedOptionDictType
-    from .environment import Environment
-    from .mesonlib import MachineChoice
+    from ..coredata import KeyedOptionDictType
+    from ..environment import Environment
+    from ..mesonlib import MachineChoice
 
 
 @enum.unique
@@ -136,12 +136,12 @@ class VisualStudioLikeLinker:
 
     @classmethod
     def unix_args_to_native(cls, args: T.List[str]) -> T.List[str]:
-        from .compilers import VisualStudioCCompiler
+        from ..compilers import VisualStudioCCompiler
         return VisualStudioCCompiler.unix_args_to_native(args)
 
     @classmethod
     def native_args_to_unix(cls, args: T.List[str]) -> T.List[str]:
-        from .compilers import VisualStudioCCompiler
+        from ..compilers import VisualStudioCCompiler
         return VisualStudioCCompiler.native_args_to_unix(args)
 
     def rsp_file_syntax(self) -> RSPFileSyntax:
@@ -1414,7 +1414,7 @@ class CudaLinker(PosixDynamicLinkerMixin, DynamicLinker):
         # nvcc's --library= option doesn't help: it takes the library name without the
         # extension and assumes that the extension on Windows is .lib; prefixing the
         # library with -Xlinker= seems to work.
-        from .compilers import CudaCompiler
+        from ..compilers import CudaCompiler
         return CudaCompiler.LINKER_PREFIX
 
     def fatal_warnings(self) -> T.List[str]:
