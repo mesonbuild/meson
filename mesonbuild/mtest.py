@@ -43,7 +43,7 @@ from . import environment
 from . import mlog
 from .coredata import major_versions_differ, MesonVersionMismatchException
 from .coredata import version as coredata_version
-from .mesonlib import MesonException, OrderedSet, get_wine_shortpath, split_args, join_args
+from .mesonlib import MesonException, OrderedSet, get_wine_shortpath, split_args, join_args, is_wsl
 from .mintro import get_infodir, load_info_file
 from .programs import ExternalProgram
 from .backend.backends import TestProtocol, TestSerialisation
@@ -1298,6 +1298,16 @@ class SingleTestRunner:
                         ['Z:' + p for p in self.test.extra_paths] + env.get('WINEPATH', '').split(';')
                     )
                     break
+        if self.cmd and self.test.extra_mono_paths:
+            mono_path = self.test.extra_mono_paths
+            if is_windows() or is_cygwin() or is_wsl():
+                if 'DEVPATH' in env:
+                    mono_path += [env['DEVPATH']]
+                env['DEVPATH'] = os.pathsep.join(mono_path)
+            else:
+                if 'MONO_PATH' in env:
+                    mono_path += [env['MONO_PATH']]
+                env['MONO_PATH'] = os.pathsep.join(mono_path)
 
         # If MALLOC_PERTURB_ is not set, or if it is set to an empty value,
         # (i.e., the test or the environment don't explicitly set it), set
