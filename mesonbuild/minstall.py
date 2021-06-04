@@ -240,12 +240,25 @@ def restore_selinux_contexts() -> None:
         # If the list of files is empty, do not try to call restorecon.
         return
 
-    proc, out, err = Popen_safe(['restorecon', '-F', '-f-', '-0'], (b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0').decode())
+    proc, out, err = Popen_safe(['restorecon', '-F', '-f-', '-0'], ('\0'.join(f for f in selinux_updates) + '\0'))
     if proc.returncode != 0 :
         print('Failed to restore SELinux context of installed files...',
               'Standard output:', out,
               'Standard error:', err, sep='\n')
 
+def apply_ldconfig() -> None:
+    '''
+    Apply ldconfig to update the ld.so.cache.
+    '''
+    if not shutil.which('ldconfig'):
+        # If we don't have ldconfig, failure is ignored quietly.
+        return
+
+    proc, out, err = Popen_safe(['ldconfig'])
+    if proc.returncode != 0:
+        print('Failed to apply ldconfig ...',
+              'Standard output:', out,
+              'Standard error:', err, sep='\n')
 
 def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
     if os.path.isabs(path):
@@ -345,6 +358,10 @@ class Installer:
     def restore_selinux_contexts(self) -> None:
         if not self.dry_run:
             restore_selinux_contexts()
+
+    def apply_ldconfig(self, destdir: str) -> None:
+        if not self.dry_run and not destdir:
+            apply_ldconfig()
 
     def Popen_safe(self, *args: T.Any, **kwargs: T.Any) -> T.Tuple[int, str, str]:
         if not self.dry_run:
@@ -520,6 +537,7 @@ class Installer:
                 self.install_man(d, dm, destdir, fullprefix)
                 self.install_data(d, dm, destdir, fullprefix)
                 self.restore_selinux_contexts()
+                self.apply_ldconfig(destdir)
                 self.run_install_script(d, destdir, fullprefix)
                 if not self.did_install_something:
                     self.log('Nothing to install.')
