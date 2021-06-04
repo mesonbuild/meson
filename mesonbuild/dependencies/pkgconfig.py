@@ -142,7 +142,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
-        PkgConfigDependency.setup_env(env, self.env, self.for_machine)
+        PkgConfigDependency.setup_env(env, self.env, self.for_machine, self.extra_path)
 
         fenv = frozenset(env.items())
         targs = tuple(args)

@@ -314,6 +314,7 @@ class ExternalDependency(Dependency, HasNativeKwarg):
         self.is_found = False
         self.language = language
         self.version_reqs = kwargs.get('version', None)
+        self.extra_path = kwargs.get('extra_path', None)
         if isinstance(self.version_reqs, str):
             self.version_reqs = [self.version_reqs]
         self.required = kwargs.get('required', True)

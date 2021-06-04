@@ -35,7 +35,7 @@ _packages_accept_language = set()
 def get_dep_identifier(name, kwargs) -> T.Tuple:
     identifier = (name, )
     from ..interpreter import permitted_dependency_kwargs
-    assert len(permitted_dependency_kwargs) == 19, \
+    assert len(permitted_dependency_kwargs) == 20, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
     for key, value in kwargs.items():
         # 'version' is irrelevant for caching; the caller must check version matches

@@ -184,6 +184,7 @@ permitted_dependency_kwargs = {
     'cmake_package_version',
     'components',
     'default_options',
+    'extra_path',
     'fallback',
     'include_type',
     'language',
@@ -1549,6 +1550,7 @@ external dependencies (including libraries) must go to "dependencies".''')
             FeatureNew.single_use('OpenMP Dependency', '0.46.0', self.subproject)
 
     # When adding kwargs, please check if they make sense in dependencies.get_dep_identifier()
+    @FeatureNewKwargs('dependency', '0.59.0', ['extra_path'])
     @FeatureNewKwargs('dependency', '0.57.0', ['cmake_package_version'])
     @FeatureNewKwargs('dependency', '0.54.0', ['components'])
     @FeatureNewKwargs('dependency', '0.52.0', ['include_type'])
