@@ -25,6 +25,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
+    from .base import ExternalDependency
     from .factory import DependencyType
 
 # These must be defined in this file to avoid cyclical references.
@@ -69,7 +70,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name, env, kwargs):
+def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object]) -> 'ExternalDependency':
     assert(name)
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -92,8 +93,8 @@ def find_external_dependency(name, env, kwargs):
     # build a list of dependency methods to try
     candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
-    pkg_exc = []
-    pkgdep = []
+    pkg_exc: T.List[DependencyException] = []
+    pkgdep: T.List['ExternalDependency'] = []
     details = ''
 
     for c in candidates:
@@ -154,7 +155,7 @@ def find_external_dependency(name, env, kwargs):
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyType']:
+                                    kwargs: T.Dict[str, T.Any]) -> T.List[T.Callable[[], 'ExternalDependency']]:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
