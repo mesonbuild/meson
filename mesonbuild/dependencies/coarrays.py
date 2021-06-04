@@ -21,15 +21,15 @@ from .pkgconfig import PkgConfigDependency
 from .factory import factory_methods
 
 if T.TYPE_CHECKING:
-    from . base import DependencyType
+    from . base import Dependency
     from ..environment import Environment, MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})
 def coarray_factory(env: 'Environment', for_machine: 'MachineChoice',
-                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
     fcid = detect_compiler('coarray', env, for_machine, 'fortran').get_id()
-    candidates = []  # type: T.List[DependencyType]
+    candidates: T.List[T.Callable[[], 'Dependency']] = []
 
     if fcid == 'gcc':
         # OpenCoarrays is the most commonly used method for Fortran Coarray with GCC
@@ -59,7 +59,7 @@ class CoarrayDependency(ExternalDependency):
     Coarrays may be thought of as a high-level language abstraction of
     low-level MPI calls.
     """
-    def __init__(self, environment, kwargs: dict):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('coarray', environment, kwargs, language='fortran')
         kwargs['required'] = False
         kwargs['silent'] = True
@@ -84,5 +84,5 @@ class CoarrayDependency(ExternalDependency):
             self.is_found = True
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.AUTO, DependencyMethods.CMAKE, DependencyMethods.PKGCONFIG]
