@@ -1,4 +1,5 @@
 # Copyright 2015 The Meson development team
+# Copyright © 2021 Intel Corporation
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mesonbuild.dependencies import find_external_dependency
 import os
 import shutil
 import typing as T
+import xml.etree.ElementTree as ET
 
-from .. import mlog
+from . import ModuleReturnValue, ExtensionModule
 from .. import build
 from .. import mesonlib
-from ..mesonlib import MesonException, File, version_compare
-import xml.etree.ElementTree as ET
-from . import ModuleReturnValue, ExtensionModule
-from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
+from .. import mlog
+from ..dependencies import find_external_dependency
 from ..interpreter import extract_required_kwarg
-from ..programs import NonExistingExternalProgram
 from ..interpreter.interpreterobjects import DependencyHolder, ExternalLibraryHolder, IncludeDirsHolder, FeatureOptionHolder, GeneratedListHolder
+from ..interpreterbase import ContainerTypeInfo, FeatureDeprecated, KwargInfo, noPosargs, FeatureNew, typed_kwargs
+from ..mesonlib import MesonException, File
+from ..programs import NonExistingExternalProgram
 
 if T.TYPE_CHECKING:
     from . import ModuleState
@@ -171,7 +172,7 @@ class QtBaseModule(ExtensionModule):
         if qt.found():
             # Get all tools and then make sure that they are the right version
             self.compilers_detect(state, qt)
-            if version_compare(qt.version, '>=5.14.0'):
+            if mesonlib.version_compare(qt.version, '>=5.14.0'):
                 self._rcc_supports_depfiles = True
             else:
                 mlog.warning('rcc dependencies will not work properly until you move to Qt >= 5.14:',
