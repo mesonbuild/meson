@@ -1644,6 +1644,16 @@ class InternalTests(unittest.TestCase):
             _(None, mock.Mock(), tuple(), dict(input='bar'))
         self.assertEqual(str(cm.exception), "testfunc keyword argument \"input\" invalid!")
 
+    def test_typed_kwarg_convertor(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('native', bool, convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, MachineChoice]) -> None:
+            assert isinstance(kwargs['native'], MachineChoice)
+
+        _(None, mock.Mock(), tuple(), dict(native=True))
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
