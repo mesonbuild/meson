@@ -428,6 +428,10 @@ class KwargInfo(T.Generic[_T]):
         intended for cases where a string is expected, but only a few specific
         values are accepted. Must return None if the input is valid, or a
         message if the input is invalid
+    :param convertor: A callable that converts the raw input value into a
+        different type. This is intended for cases such as the meson DSL using a
+        string, but the implementation using an Enum. This should not do
+        validation, just converstion.
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
@@ -435,7 +439,8 @@ class KwargInfo(T.Generic[_T]):
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
                  deprecated: T.Optional[str] = None,
-                 validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None):
+                 validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None,
+                 convertor: T.Optional[T.Callable[[_T], TYPE_nvar]] = None):
         self.name = name
         self.types = types
         self.required = required
@@ -444,6 +449,7 @@ class KwargInfo(T.Generic[_T]):
         self.since = since
         self.deprecated = deprecated
         self.validator = validator
+        self.convertor = convertor
 
 
 def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
@@ -516,6 +522,9 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         kwargs[info.name] = info.types.container(info.default)
                     else:
                         kwargs[info.name] = info.default
+
+                if info.convertor:
+                    kwargs[info.name] = info.convertor(kwargs[info.name])
 
             return f(*wrapped_args, **wrapped_kwargs)
         return T.cast(TV_func, wrapper)
