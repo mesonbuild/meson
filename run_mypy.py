@@ -21,6 +21,7 @@ modules = [
     'mesonbuild/dependencies/base.py',
     'mesonbuild/dependencies/coarrays.py',
     'mesonbuild/dependencies/configtool.py',
+    'mesonbuild/dependencies/dub.py',
     'mesonbuild/dependencies/cuda.py',
     'mesonbuild/dependencies/boost.py',
     'mesonbuild/dependencies/hdf5.py',
