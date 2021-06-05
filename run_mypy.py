@@ -19,6 +19,7 @@ modules = [
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
     'mesonbuild/dependencies/base.py',
+    'mesonbuild/dependencies/cmake.py',
     'mesonbuild/dependencies/coarrays.py',
     'mesonbuild/dependencies/configtool.py',
     'mesonbuild/dependencies/dub.py',

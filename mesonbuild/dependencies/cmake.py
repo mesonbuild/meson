@@ -27,19 +27,25 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from ..mesonlib import MachineInfo
+    from ..envconfig import MachineInfo
+
+class CMakeInfo(T.NamedTuple):
+    module_paths: T.List[str]
+    cmake_root: str
+    archs: T.List[str]
+    common_paths: T.List[str]
 
 class CMakeDependency(ExternalDependency):
     # The class's copy of the CMake path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_cmakeinfo = PerMachine(None, None)
+    class_cmakeinfo: PerMachine[T.Optional[CMakeInfo]] = PerMachine(None, None)
     # Version string for the minimum CMake version
     class_cmake_version = '>=3.4'
     # CMake generators to try (empty for no generator)
     class_cmake_generators = ['', 'Ninja', 'Unix Makefiles', 'Visual Studio 10 2010']
-    class_working_generator = None
+    class_working_generator: T.Optional[str] = None
 
-    def _gen_exception(self, msg):
+    def _gen_exception(self, msg: str) -> DependencyException:
         return DependencyException(f'Dependency {self.name} not found: {msg}')
 
     def _main_cmake_file(self) -> str:
@@ -70,7 +76,7 @@ class CMakeDependency(ExternalDependency):
         # one module
         return module
 
-    def __init__(self, name: str, environment: 'Environment', kwargs, language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         # Gather a list of all languages to support
         self.language_list = []  # type: T.List[str]
         if language is None:
@@ -97,18 +103,18 @@ class CMakeDependency(ExternalDependency):
         self.is_libtool = False
         # Store a copy of the CMake path on the object itself so it is
         # stored in the pickled coredata and recovered.
-        self.cmakebin = None
-        self.cmakeinfo = None
+        self.cmakebin:  T.Optional[CMakeExecutor] = None
+        self.cmakeinfo: T.Optional[CMakeInfo]     = None
 
         # Where all CMake "build dirs" are located
         self.cmake_root_dir = environment.scratch_dir
 
         # T.List of successfully found modules
-        self.found_modules = []
+        self.found_modules: T.List[str] = []
 
         # Initialize with None before the first return to avoid
         # AttributeError exceptions in derived classes
-        self.traceparser = None  # type: CMakeTraceParser
+        self.traceparser: T.Optional[CMakeTraceParser] = None
 
         # TODO further evaluate always using MachineChoice.BUILD
         self.cmakebin = CMakeExecutor(environment, CMakeDependency.class_cmake_version, self.for_machine, silent=self.silent)
@@ -146,14 +152,11 @@ class CMakeDependency(ExternalDependency):
             return
         self._detect_dep(name, package_version, modules, components, cm_args)
 
-    def __repr__(self):
-        s = '<{0} {1}: {2} {3}>'
-        return s.format(self.__class__.__name__, self.name, self.is_found,
-                        self.version_reqs)
+    def __repr__(self) -> str:
+        return f'<{self.__class__.__name__} {self.name}: {self.is_found} {self.version_reqs}>'
 
-    def _get_cmake_info(self, cm_args):
+    def _get_cmake_info(self, cm_args: T.List[str]) -> T.Optional[CMakeInfo]:
         mlog.debug("Extracting basic cmake information")
-        res = {}
 
         # Try different CMake generators since specifying no generator may fail
         # in cygwin for some reason
@@ -199,52 +202,52 @@ class CMakeDependency(ExternalDependency):
         def process_paths(l: T.List[str]) -> T.Set[str]:
             if is_windows():
                 # Cannot split on ':' on Windows because its in the drive letter
-                l = [x.split(os.pathsep) for x in l]
+                tmp = [x.split(os.pathsep) for x in l]
             else:
                 # https://github.com/mesonbuild/meson/issues/7294
-                l = [re.split(r':|;', x) for x in l]
-            l = [x for sublist in l for x in sublist]
-            return set(l)
+                tmp = [re.split(r':|;', x) for x in l]
+            flattened = [x for sublist in tmp for x in sublist]
+            return set(flattened)
 
         # Extract the variables and sanity check them
-        root_paths = process_paths(temp_parser.get_cmake_var('MESON_FIND_ROOT_PATH'))
-        root_paths.update(process_paths(temp_parser.get_cmake_var('MESON_CMAKE_SYSROOT')))
-        root_paths = sorted(root_paths)
-        root_paths = list(filter(lambda x: os.path.isdir(x), root_paths))
-        module_paths = process_paths(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
-        rooted_paths = []
+        root_paths_set = process_paths(temp_parser.get_cmake_var('MESON_FIND_ROOT_PATH'))
+        root_paths_set.update(process_paths(temp_parser.get_cmake_var('MESON_CMAKE_SYSROOT')))
+        root_paths = sorted(root_paths_set)
+        root_paths = [x for x in root_paths if os.path.isdir(x)]
+        module_paths_set = process_paths(temp_parser.get_cmake_var('MESON_PATHS_LIST'))
+        rooted_paths: T.List[str] = []
         for j in [Path(x) for x in root_paths]:
-            for i in [Path(x) for x in module_paths]:
-                rooted_paths.append(str(j / i.relative_to(i.anchor)))
-        module_paths = sorted(module_paths.union(rooted_paths))
-        module_paths = list(filter(lambda x: os.path.isdir(x), module_paths))
+            for p in [Path(x) for x in module_paths_set]:
+                rooted_paths.append(str(j / p.relative_to(p.anchor)))
+        module_paths = sorted(module_paths_set.union(rooted_paths))
+        module_paths = [x for x in module_paths if os.path.isdir(x)]
         archs = temp_parser.get_cmake_var('MESON_ARCH_LIST')
 
         common_paths = ['lib', 'lib32', 'lib64', 'libx32', 'share']
         for i in archs:
             common_paths += [os.path.join('lib', i)]
 
-        res = {
-            'module_paths': module_paths,
-            'cmake_root': temp_parser.get_cmake_var('MESON_CMAKE_ROOT')[0],
-            'archs': archs,
-            'common_paths': common_paths
-        }
+        res = CMakeInfo(
+            module_paths=module_paths,
+            cmake_root=temp_parser.get_cmake_var('MESON_CMAKE_ROOT')[0],
+            archs=archs,
+            common_paths=common_paths,
+        )
 
-        mlog.debug('  -- Module search paths:    {}'.format(res['module_paths']))
-        mlog.debug('  -- CMake root:             {}'.format(res['cmake_root']))
-        mlog.debug('  -- CMake architectures:    {}'.format(res['archs']))
-        mlog.debug('  -- CMake lib search paths: {}'.format(res['common_paths']))
+        mlog.debug(f'  -- Module search paths:    {res.module_paths}')
+        mlog.debug(f'  -- CMake root:             {res.cmake_root}')
+        mlog.debug(f'  -- CMake architectures:    {res.archs}')
+        mlog.debug(f'  -- CMake lib search paths: {res.common_paths}')
 
         return res
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def _cached_listdir(path: str) -> T.Tuple[T.Tuple[str, str]]:
+    def _cached_listdir(path: str) -> T.Tuple[T.Tuple[str, str], ...]:
         try:
             return tuple((x, str(x).lower()) for x in os.listdir(path))
         except OSError:
-            return ()
+            return tuple()
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -273,7 +276,7 @@ class CMakeDependency(ExternalDependency):
 
         # Search in <path>/(lib/<arch>|lib*|share) for cmake files
         def search_lib_dirs(path: str) -> bool:
-            for i in [os.path.join(path, x) for x in self.cmakeinfo['common_paths']]:
+            for i in [os.path.join(path, x) for x in self.cmakeinfo.common_paths]:
                 if not self._cached_isdir(i):
                     continue
 
@@ -281,7 +284,7 @@ class CMakeDependency(ExternalDependency):
                 cm_dir = os.path.join(i, 'cmake')
                 if self._cached_isdir(cm_dir):
                     content = self._cached_listdir(cm_dir)
-                    content = list(filter(lambda x: x[1].startswith(lname), content))
+                    content = tuple(x for x in content if x[1].startswith(lname))
                     for k in content:
                         if find_module(os.path.join(cm_dir, k[0])):
                             return True
@@ -289,7 +292,7 @@ class CMakeDependency(ExternalDependency):
                 # <path>/(lib/<arch>|lib*|share)/<name>*/
                 # <path>/(lib/<arch>|lib*|share)/<name>*/(cmake|CMake)/
                 content = self._cached_listdir(i)
-                content = list(filter(lambda x: x[1].startswith(lname), content))
+                content = tuple(x for x in content if x[1].startswith(lname))
                 for k in content:
                     if find_module(os.path.join(i, k[0])):
                         return True
@@ -297,7 +300,7 @@ class CMakeDependency(ExternalDependency):
             return False
 
         # Check the user provided and system module paths
-        for i in module_path + [os.path.join(self.cmakeinfo['cmake_root'], 'Modules')]:
+        for i in module_path + [os.path.join(self.cmakeinfo.cmake_root, 'Modules')]:
             if find_module(i):
                 return True
 
@@ -316,7 +319,7 @@ class CMakeDependency(ExternalDependency):
             system_env += [i]
 
         # Check the system paths
-        for i in self.cmakeinfo['module_paths'] + system_env:
+        for i in self.cmakeinfo.module_paths + system_env:
             if find_module(i):
                 return True
 
@@ -324,17 +327,18 @@ class CMakeDependency(ExternalDependency):
                 return True
 
             content = self._cached_listdir(i)
-            content = list(filter(lambda x: x[1].startswith(lname), content))
+            content = tuple(x for x in content if x[1].startswith(lname))
             for k in content:
                 if search_lib_dirs(os.path.join(i, k[0])):
                     return True
 
             # Mac framework support
             if machine.is_darwin():
-                for j in ['{}.framework', '{}.app']:
-                    j = j.format(lname)
-                    if j in content:
-                        if find_module(os.path.join(i, j[0], 'Resources')) or find_module(os.path.join(i, j[0], 'Version')):
+                for j in [f'{lname}.framework', f'{lname}.app']:
+                    for k in content:
+                        if k[1] != j:
+                            continue
+                        if find_module(os.path.join(i, k[0], 'Resources')) or find_module(os.path.join(i, k[0], 'Version')):
                             return True
 
         # Check the environment path
@@ -344,7 +348,7 @@ class CMakeDependency(ExternalDependency):
 
         return False
 
-    def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]):
+    def _detect_dep(self, name: str, package_version: str, modules: T.List[T.Tuple[str, bool]], components: T.List[T.Tuple[str, bool]], args: T.List[str]) -> None:
         # Detect a dependency with CMake using the '--find-package' mode
         # and the trace output (stderr)
         #
@@ -373,7 +377,7 @@ class CMakeDependency(ExternalDependency):
             # Prepare options
             cmake_opts = []
             cmake_opts += [f'-DNAME={name}']
-            cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo['archs']))]
+            cmake_opts += ['-DARCHS={}'.format(';'.join(self.cmakeinfo.archs))]
             cmake_opts += [f'-DVERSION={package_version}']
             cmake_opts += ['-DCOMPS={}'.format(';'.join([x[0] for x in comp_mapped]))]
             cmake_opts += args
@@ -402,14 +406,14 @@ class CMakeDependency(ExternalDependency):
         try:
             self.traceparser.parse(err1)
         except CMakeException as e:
-            e = self._gen_exception(str(e))
+            e2 = self._gen_exception(str(e))
             if self.required:
                 raise
             else:
                 self.compile_args = []
                 self.link_args = []
                 self.is_found = False
-                self.reason = e
+                self.reason = e2
                 return
 
         # Whether the package is found or not is always stored in PACKAGE_FOUND
@@ -515,7 +519,10 @@ class CMakeDependency(ExternalDependency):
                     if self.env.coredata.options[OptionKey('b_vscrt')].value in {'mdd', 'mtd'}:
                         is_debug = True
                 else:
-                    is_debug = self.env.coredata.get_option(OptionKey('debug'))
+                    # Don't directly assign to is_debug to make mypy happy
+                    debug_opt = self.env.coredata.get_option(OptionKey('debug'))
+                    assert isinstance(debug_opt, bool)
+                    is_debug = debug_opt
                 if is_debug:
                     if 'DEBUG' in cfgs:
                         cfg = 'DEBUG'
@@ -618,15 +625,18 @@ class CMakeDependency(ExternalDependency):
 
         return build_dir
 
-    def _call_cmake(self, args, cmake_file: str, env=None):
+    def _call_cmake(self,
+                    args: T.List[str],
+                    cmake_file: str,
+                    env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, T.Optional[str], T.Optional[str]]:
         build_dir = self._setup_cmake_dir(cmake_file)
         return self.cmakebin.call(args, build_dir, env=env)
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.CMAKE]
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return self.type_name
 
     def log_details(self) -> str:
