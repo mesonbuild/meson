@@ -75,6 +75,7 @@ index.md
 	FAQ.md
 	Reproducible-builds.md
 	howtox.md
+	Wrapdb-projects.md
 	Wrap-dependency-system-manual.md
 		Adding-new-projects-to-wrapdb.md
 		Using-the-WrapDB.md

@@ -4,23 +4,24 @@ from pathlib import Path
 
 from . import mlog
 from .mesonlib import quiet_git, verbose_git, GitException, Popen_safe, MesonException, windows_proof_rmtree
-from .wrap.wrap import API_ROOT, PackageDefinition, Resolver, WrapException, ALL_TYPES
+from .wrap.wrap import PackageDefinition, Resolver, WrapException, ALL_TYPES
 from .wrap import wraptool
 
 ALL_TYPES_STRING = ', '.join(ALL_TYPES)
 
 def update_wrapdb_file(wrap):
-    patch_url = wrap.get('patch_url')
-    branch, revision = wraptool.parse_patch_url(patch_url)
+    try:
+        patch_url = wrap.get('patch_url')
+        branch, revision = wraptool.parse_patch_url(patch_url)
+    except WrapException:
+        return
     new_branch, new_revision = wraptool.get_latest_version(wrap.name)
     if new_branch != branch or new_revision != revision:
         wraptool.update_wrap_file(wrap.filename, wrap.name, new_branch, new_revision)
         mlog.log('  -> New wrap file downloaded.')
 
 def update_file(r, wrap, repo_dir, options):
-    patch_url = wrap.values.get('patch_url', '')
-    if patch_url.startswith(API_ROOT):
-        update_wrapdb_file(wrap)
+    update_wrapdb_file(wrap)
     if not os.path.isdir(repo_dir):
         # The subproject is not needed, or it is a tarball extracted in
         # 'libfoo-1.0' directory and the version has been bumped and the new

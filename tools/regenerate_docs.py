@@ -25,8 +25,10 @@ import re
 import subprocess
 import sys
 import textwrap
+import json
 import typing as T
 from pathlib import Path
+from urllib.request import urlopen
 
 PathLike = T.Union[Path,str]
 
@@ -115,6 +117,22 @@ def generate_hotdoc_includes(root_dir: Path, output_dir: Path) -> None:
             with open(output_dir / (cmd+'_'+typ+'.inc'), 'w') as f:
                 f.write(parsed[typ])
 
+def generate_wrapdb_table(output_dir: Path) -> None:
+    url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
+    releases = json.loads(url.read().decode())
+    with open(output_dir / 'wrapdb-table.md', 'w') as f:
+        f.write('| Project | Versions | Provided dependencies | Provided programs |\n')
+        f.write('| ------- | -------- | --------------------- | ----------------- |\n')
+        for name, info in releases.items():
+            versions = [f'[{v}](https://wrapdb.mesonbuild.com/v2/{name}_{v}/{name}.wrap)' for v in info['versions']]
+            # Highlight latest version.
+            versions_str = f'<big>**{versions[0]}**</big><br/>' + ', '.join(versions[1:])
+            dependency_names = info.get('dependency_names', [])
+            dependency_names_str = ', '.join(dependency_names)
+            program_names = info.get('program_names', [])
+            program_names_str = ', '.join(program_names)
+            f.write(f'| {name} | {versions_str} | {dependency_names_str} | {program_names_str} |\n')
+
 def regenerate_docs(output_dir: PathLike,
                     dummy_output_file: T.Optional[PathLike]) -> None:
     if not output_dir:
@@ -126,6 +144,7 @@ def regenerate_docs(output_dir: PathLike,
     root_dir = Path(__file__).resolve().parent.parent
 
     generate_hotdoc_includes(root_dir, output_dir)
+    generate_wrapdb_table(output_dir)
 
     if dummy_output_file:
         with open(output_dir/dummy_output_file, 'w') as f:
