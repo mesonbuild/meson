@@ -32,12 +32,13 @@ from .factory import DependencyFactory, factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
+    from .factory import TV_DepGenerators
     from .base import DependencyType, Dependency  # noqa: F401
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
     language = kwargs.get('language', 'c')
     if language not in ('c', 'cpp', 'fortran'):
         raise DependencyException(f'Language {language} is not supported with NetCDF.')
@@ -487,8 +488,8 @@ class CursesSystemDependency(ExternalDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
 def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
-    candidates = []  # type: T.List[T.Callable[[], Dependency]]
+                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+    candidates: 'TV_DepGenerators' = []
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
@@ -510,7 +511,7 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
 def shaderc_factory(env: 'Environment', for_machine: 'MachineChoice',
-                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
     """Custom DependencyFactory for ShaderC.
 
     ShaderC's odd you get three different libraries from the same build

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .base import Dependency, DependencyException, DependencyMethods, NotFoundDependency
+from .base import Dependency, ExternalDependency, DependencyException, DependencyMethods, NotFoundDependency
 from .cmake import CMakeDependency
 from .dub import DubDependency
 from .framework import ExtraFrameworkDependency
@@ -25,15 +25,19 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .base import ExternalDependency
-    from .factory import DependencyType
+    from .factory import DependencyFactory, TV_FactoryFunc, TV_DepGenerators
 
 # These must be defined in this file to avoid cyclical references.
-packages = {}
-_packages_accept_language = set()
+packages: T.Dict[str, T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'TV_FactoryFunc']] = {}
+_packages_accept_language: T.Set[str] = set()
 
-def get_dep_identifier(name, kwargs) -> T.Tuple:
-    identifier = (name, )
+if T.TYPE_CHECKING:
+    TV_DepIDEntry = T.Union[str, bool, int, T.Tuple[str, ...]]
+    TV_DepID = T.Tuple[T.Tuple[str, TV_DepIDEntry], ...]
+
+
+def get_dep_identifier(name: str, kwargs: T.Dict[str, T.Any]) -> 'TV_DepID':
+    identifier: 'TV_DepID' = (('name', name), )
     from ..interpreter import permitted_dependency_kwargs
     assert len(permitted_dependency_kwargs) == 19, \
            'Extra kwargs have been added to dependency(), please review if it makes sense to handle it here'
@@ -53,6 +57,10 @@ def get_dep_identifier(name, kwargs) -> T.Tuple:
         # All keyword arguments are strings, ints, or lists (or lists of lists)
         if isinstance(value, list):
             value = frozenset(listify(value))
+            for i in value:
+                assert isinstance(i, str)
+        else:
+            assert isinstance(value, (str, bool, int))
         identifier += (key, value)
     return identifier
 
@@ -70,7 +78,7 @@ display_name_map = {
     'wxwidgets': 'WxWidgets',
 }
 
-def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object]) -> 'ExternalDependency':
+def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, object]) -> T.Union['ExternalDependency', NotFoundDependency]:
     assert(name)
     required = kwargs.get('required', True)
     if not isinstance(required, bool):
@@ -94,7 +102,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
     candidates = _build_external_dependency_list(name, env, for_machine, kwargs)
 
     pkg_exc: T.List[DependencyException] = []
-    pkgdep: T.List['ExternalDependency'] = []
+    pkgdep:  T.List[ExternalDependency]  = []
     details = ''
 
     for c in candidates:
@@ -117,7 +125,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
             # if the dependency was found
             if d.found():
 
-                info = []
+                info: mlog.TV_LoggableList = []
                 if d.version:
                     info.append(mlog.normal_cyan(d.version))
 
@@ -155,7 +163,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> T.List[T.Callable[[], 'ExternalDependency']]:
+                                    kwargs: T.Dict[str, T.Any]) -> 'TV_DepGenerators':
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
@@ -166,13 +174,18 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
         # Create the list of dependency object constructors using a factory
         # class method, if one exists, otherwise the list just consists of the
         # constructor
-        if isinstance(packages[lname], type) and issubclass(packages[lname], Dependency):
-            dep = [functools.partial(packages[lname], env, kwargs)]
+        if isinstance(packages[lname], type):
+            entry1 = T.cast(T.Type[ExternalDependency], packages[lname])  # mypy doesn't understand isinstance(..., type)
+            if issubclass(entry1, ExternalDependency):
+                # TODO: somehow make mypy understand that entry1(env, kwargs) is OK...
+                func: T.Callable[[], 'ExternalDependency'] = lambda: entry1(env, kwargs)  # type: ignore
+                dep = [func]
         else:
-            dep = packages[lname](env, for_machine, kwargs)
+            entry2 = T.cast(T.Union['DependencyFactory', 'TV_FactoryFunc'], packages[lname])
+            dep = entry2(env, for_machine, kwargs)
         return dep
 
-    candidates = []
+    candidates: 'TV_DepGenerators' = []
 
     # If it's explicitly requested, use the dub detection method (only)
     if 'dub' == kwargs.get('method', ''):

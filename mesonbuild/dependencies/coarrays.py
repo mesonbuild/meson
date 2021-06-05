@@ -22,14 +22,15 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from . base import Dependency
+    from . factory import TV_DepGenerators
     from ..environment import Environment, MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE, DependencyMethods.SYSTEM})
 def coarray_factory(env: 'Environment', for_machine: 'MachineChoice',
-                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
+                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
     fcid = detect_compiler('coarray', env, for_machine, 'fortran').get_id()
-    candidates: T.List[T.Callable[[], 'Dependency']] = []
+    candidates: 'TV_DepGenerators' = []
 
     if fcid == 'gcc':
         # OpenCoarrays is the most commonly used method for Fortran Coarray with GCC

@@ -18,6 +18,8 @@ modules = [
     # specific files
     'mesonbuild/arglist.py',
     # 'mesonbuild/coredata.py',
+    'mesonbuild/dependencies/__init__.py',
+    'mesonbuild/dependencies/factory.py',
     'mesonbuild/dependencies/base.py',
     'mesonbuild/dependencies/cmake.py',
     'mesonbuild/dependencies/coarrays.py',
@@ -25,6 +27,7 @@ modules = [
     'mesonbuild/dependencies/dub.py',
     'mesonbuild/dependencies/platform.py',
     'mesonbuild/dependencies/cuda.py',
+    'mesonbuild/dependencies/detect.py',
     'mesonbuild/dependencies/boost.py',
     'mesonbuild/dependencies/hdf5.py',
     'mesonbuild/dependencies/mpi.py',
