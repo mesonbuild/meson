@@ -21,6 +21,9 @@ import typing as T
 from contextlib import contextmanager
 from pathlib import Path
 
+if T.TYPE_CHECKING:
+    from ._typing import StringProtocol
+
 """This is (mostly) a standalone module used to write logging
 information about Meson runs. Some output goes to screen,
 some to logging dir and some goes to both."""
@@ -136,7 +139,7 @@ class AnsiDecorator:
     def __str__(self) -> str:
         return self.get_text(colorize_console())
 
-TV_Loggable = T.Union[str, AnsiDecorator]
+TV_Loggable = T.Union[str, AnsiDecorator, 'StringProtocol']
 TV_LoggableList = T.List[TV_Loggable]
 
 class AnsiText:
@@ -269,7 +272,13 @@ def log_once(*args: TV_Loggable, is_error: bool = False,
     This considers ansi decorated values by the values they wrap without
     regard for the AnsiDecorator itself.
     """
-    t = tuple(a.text if isinstance(a, AnsiDecorator) else a for a in args)
+    def to_str(x: TV_Loggable) -> str:
+        if isinstance(x, str):
+            return x
+        if isinstance(x, AnsiDecorator):
+            return x.text
+        return str(x)
+    t = tuple(to_str(a) for a in args)
     if t in _logged_once:
         return
     _logged_once.add(t)

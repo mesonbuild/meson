@@ -33,6 +33,9 @@ from typing_extensions import Protocol
 T = typing.TypeVar('T')
 
 
+class StringProtocol(Protocol):
+    def __str__(self) -> str: ...
+
 class ImmutableListProtocol(Protocol[T]):
 
     """A protocol used in cases where a list is returned, but should not be
