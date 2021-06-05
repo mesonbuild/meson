@@ -14,7 +14,7 @@
 
 from .base import ExternalDependency, DependencyException, DependencyMethods, sort_libpaths
 from ..mesonlib import LibType, MachineChoice, OptionKey, OrderedSet, PerMachine, Popen_safe
-from ..programs import find_external_program
+from ..programs import find_external_program, ExternalProgram
 from .. import mlog
 from pathlib import PurePath
 import re
@@ -28,17 +28,20 @@ if T.TYPE_CHECKING:
 class PkgConfigDependency(ExternalDependency):
     # The class's copy of the pkg-config path. Avoids having to search for it
     # multiple times in the same Meson invocation.
-    class_pkgbin = PerMachine(None, None)
+    class_pkgbin: PerMachine[T.Union[None, bool, ExternalProgram]] = PerMachine(None, None)
     # We cache all pkg-config subprocess invocations to avoid redundant calls
-    pkgbin_cache = {}
+    pkgbin_cache: T.Dict[
+        T.Tuple[ExternalProgram, T.Tuple[str, ...], T.FrozenSet[T.Tuple[str, str]]],
+        T.Tuple[int, str, str]
+    ] = {}
 
-    def __init__(self, name, environment: 'Environment', kwargs, language: T.Optional[str] = None):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
         super().__init__('pkgconfig', environment, kwargs, language=language)
         self.name = name
         self.is_libtool = False
         # Store a copy of the pkg-config path on the object itself so it is
         # stored in the pickled coredata and recovered.
-        self.pkgbin = None
+        self.pkgbin: T.Union[None, bool, ExternalProgram] = None
 
         # Only search for pkg-config for each machine the first time and store
         # the result in the class definition
@@ -77,6 +80,7 @@ class PkgConfigDependency(ExternalDependency):
                 mlog.debug(msg)
                 return
 
+        assert isinstance(self.pkgbin, ExternalProgram)
         mlog.debug('Determining dependency {!r} with pkg-config executable '
                    '{!r}'.format(name, self.pkgbin.get_path()))
         ret, self.version, _ = self._call_pkgbin(['--modversion', name])
@@ -100,12 +104,13 @@ class PkgConfigDependency(ExternalDependency):
                 self.is_found = False
                 self.reason = e
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         s = '<{0} {1}: {2} {3}>'
         return s.format(self.__class__.__name__, self.name, self.is_found,
                         self.version_reqs)
 
-    def _call_pkgbin_real(self, args, env):
+    def _call_pkgbin_real(self, args: T.List[str], env: T.Dict[str, str]) -> T.Tuple[int, str, str]:
+        assert isinstance(self.pkgbin, ExternalProgram)
         cmd = self.pkgbin.get_command() + args
         p, out, err = Popen_safe(cmd, env=env)
         rc, out, err = p.returncode, out.strip(), err.strip()
@@ -134,7 +139,7 @@ class PkgConfigDependency(ExternalDependency):
             if key.startswith('PKG_'):
                 mlog.debug(f'env[{key}]: {value}')
 
-    def _call_pkgbin(self, args, env=None):
+    def _call_pkgbin(self, args: T.List[str], env: T.Optional[T.Dict[str, str]] = None) -> T.Tuple[int, str, str]:
         # Always copy the environment since we're going to modify it
         # with pkg-config variables
         if env is None:
@@ -142,6 +147,7 @@ class PkgConfigDependency(ExternalDependency):
         else:
             env = env.copy()
 
+        assert isinstance(self.pkgbin, ExternalProgram)
         PkgConfigDependency.setup_env(env, self.env, self.for_machine)
 
         fenv = frozenset(env.items())
@@ -162,7 +168,7 @@ class PkgConfigDependency(ExternalDependency):
             return args
         converted = []
         for arg in args:
-            pargs = []
+            pargs: T.Tuple[str, ...] = tuple()
             # Library search path
             if arg.startswith('-L/'):
                 pargs = PurePath(arg[2:]).parts
@@ -182,12 +188,12 @@ class PkgConfigDependency(ExternalDependency):
             converted.append(arg)
         return converted
 
-    def _split_args(self, cmd):
+    def _split_args(self, cmd: str) -> T.List[str]:
         # pkg-config paths follow Unix conventions, even on Windows; split the
         # output using shlex.split rather than mesonlib.split_args
         return shlex.split(cmd)
 
-    def _set_cargs(self):
+    def _set_cargs(self) -> None:
         env = None
         if self.language == 'fortran':
             # gfortran doesn't appear to look in system paths for INCLUDE files,
@@ -200,7 +206,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, err))
         self.compile_args = self._convert_mingw_paths(self._split_args(out))
 
-    def _search_libs(self, out, out_raw):
+    def _search_libs(self, out: str, out_raw: str) -> T.Tuple[T.List[str], T.List[str]]:
         '''
         @out: PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 pkg-config --libs
         @out_raw: pkg-config --libs
@@ -225,7 +231,7 @@ class PkgConfigDependency(ExternalDependency):
         #
         # Separate system and prefix paths, and ensure that prefix paths are
         # always searched first.
-        prefix_libpaths = OrderedSet()
+        prefix_libpaths: OrderedSet[str] = OrderedSet()
         # We also store this raw_link_args on the object later
         raw_link_args = self._convert_mingw_paths(self._split_args(out_raw))
         for arg in raw_link_args:
@@ -246,8 +252,8 @@ class PkgConfigDependency(ExternalDependency):
         # too many system_libpaths to cause library version issues.
         pkg_config_path: T.List[str] = self.env.coredata.options[OptionKey('pkg_config_path', machine=self.for_machine)].value
         pkg_config_path = self._convert_mingw_paths(pkg_config_path)
-        prefix_libpaths = sort_libpaths(prefix_libpaths, pkg_config_path)
-        system_libpaths = OrderedSet()
+        prefix_libpaths = OrderedSet(sort_libpaths(list(prefix_libpaths), pkg_config_path))
+        system_libpaths: OrderedSet[str] = OrderedSet()
         full_args = self._convert_mingw_paths(self._split_args(out))
         for arg in full_args:
             if arg.startswith(('-L-l', '-L-L')):
@@ -258,7 +264,7 @@ class PkgConfigDependency(ExternalDependency):
         # Use this re-ordered path list for library resolution
         libpaths = list(prefix_libpaths) + list(system_libpaths)
         # Track -lfoo libraries to avoid duplicate work
-        libs_found = OrderedSet()
+        libs_found: OrderedSet[str] = OrderedSet()
         # Track not-found libraries to know whether to add library paths
         libs_notfound = []
         libtype = LibType.STATIC if self.static else LibType.PREFER_SHARED
@@ -328,7 +334,7 @@ class PkgConfigDependency(ExternalDependency):
             link_args = ['-L' + lp for lp in prefix_libpaths] + link_args
         return link_args, raw_link_args
 
-    def _set_libs(self):
+    def _set_libs(self) -> None:
         env = None
         libcmd = ['--libs']
 
@@ -354,7 +360,7 @@ class PkgConfigDependency(ExternalDependency):
                                       (self.name, out_raw))
         self.link_args, self.raw_link_args = self._search_libs(out, out_raw)
 
-    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Any]) -> str:
+    def get_pkgconfig_variable(self, variable_name: str, kwargs: T.Dict[str, T.Union[str, T.List[str]]]) -> str:
         options = ['--variable=' + variable_name, self.name]
 
         if 'define_variable' in kwargs:
@@ -382,6 +388,7 @@ class PkgConfigDependency(ExternalDependency):
                 ret, out, _ = self._call_pkgbin(['--print-variables', self.name])
                 if not re.search(r'^' + variable_name + r'$', out, re.MULTILINE):
                     if 'default' in kwargs:
+                        assert isinstance(kwargs['default'], str)
                         variable = kwargs['default']
                     else:
                         mlog.warning(f"pkgconfig variable '{variable_name}' not defined for dependency {self.name}.")
@@ -390,10 +397,10 @@ class PkgConfigDependency(ExternalDependency):
         return variable
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.PKGCONFIG]
 
-    def check_pkgconfig(self, pkgbin):
+    def check_pkgconfig(self, pkgbin: ExternalProgram) -> T.Optional[str]:
         if not pkgbin.found():
             mlog.log(f'Did not find pkg-config by name {pkgbin.name!r}')
             return None
@@ -415,7 +422,7 @@ class PkgConfigDependency(ExternalDependency):
             return None
         return out.strip()
 
-    def extract_field(self, la_file, fieldname):
+    def extract_field(self, la_file: str, fieldname: str) -> T.Optional[str]:
         with open(la_file) as f:
             for line in f:
                 arr = line.strip().split('=')
@@ -423,13 +430,13 @@ class PkgConfigDependency(ExternalDependency):
                     return arr[1][1:-1]
         return None
 
-    def extract_dlname_field(self, la_file):
+    def extract_dlname_field(self, la_file: str) -> T.Optional[str]:
         return self.extract_field(la_file, 'dlname')
 
-    def extract_libdir_field(self, la_file):
+    def extract_libdir_field(self, la_file: str) -> T.Optional[str]:
         return self.extract_field(la_file, 'libdir')
 
-    def extract_libtool_shlib(self, la_file):
+    def extract_libtool_shlib(self, la_file: str) -> T.Optional[str]:
         '''
         Returns the path to the shared library
         corresponding to this .la file
@@ -450,7 +457,7 @@ class PkgConfigDependency(ExternalDependency):
         # a path rather than the raw dlname
         return os.path.basename(dlname)
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return self.type_name
 
     def get_variable(self, *, cmake: T.Optional[str] = None, pkgconfig: T.Optional[str] = None,
@@ -458,7 +465,7 @@ class PkgConfigDependency(ExternalDependency):
                      default_value: T.Optional[str] = None,
                      pkgconfig_define: T.Optional[T.List[str]] = None) -> T.Union[str, T.List[str]]:
         if pkgconfig:
-            kwargs = {}
+            kwargs: T.Dict[str, T.Union[str, T.List[str]]] = {}
             if default_value is not None:
                 kwargs['default'] = default_value
             if pkgconfig_define is not None:
