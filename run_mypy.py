@@ -29,6 +29,7 @@ modules = [
     'mesonbuild/dependencies/cuda.py',
     'mesonbuild/dependencies/detect.py',
     'mesonbuild/dependencies/boost.py',
+    'mesonbuild/dependencies/framework.py',
     'mesonbuild/dependencies/hdf5.py',
     'mesonbuild/dependencies/mpi.py',
     'mesonbuild/dependencies/pkgconfig.py',
