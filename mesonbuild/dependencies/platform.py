@@ -17,9 +17,14 @@
 
 from .base import ExternalDependency, DependencyException
 from ..mesonlib import MesonException
+from ..compilers import CLikeCompiler
+import typing as T
+
+if T.TYPE_CHECKING:
+    from ..environment import Environment
 
 class AppleFrameworks(ExternalDependency):
-    def __init__(self, env, kwargs):
+    def __init__(self, env: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('appleframeworks', env, kwargs)
         modules = kwargs.get('modules', [])
         if isinstance(modules, str):
@@ -32,6 +37,7 @@ class AppleFrameworks(ExternalDependency):
         self.is_found = True
         for f in self.frameworks:
             try:
+                assert isinstance(self.clib_compiler, CLikeCompiler)
                 args = self.clib_compiler.find_framework(f, env, [])
             except MesonException as e:
                 if 'non-clang' in str(e):
@@ -47,8 +53,8 @@ class AppleFrameworks(ExternalDependency):
             else:
                 self.is_found = False
 
-    def log_info(self):
+    def log_info(self) -> str:
         return ', '.join(self.frameworks)
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return 'framework'
