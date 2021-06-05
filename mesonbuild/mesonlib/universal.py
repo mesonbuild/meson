@@ -1319,7 +1319,7 @@ def expand_arguments(args: T.Iterable[str]) -> T.Optional[T.List[str]]:
     return expended_args
 
 
-def partition(pred: T.Callable[[_T], object], iterable: T.Iterator[_T]) -> T.Tuple[T.Iterator[_T], T.Iterator[_T]]:
+def partition(pred: T.Callable[[_T], object], iterable: T.Iterable[_T]) -> T.Tuple[T.Iterator[_T], T.Iterator[_T]]:
     """Use a predicate to partition entries into false entries and true
     entries.
 
