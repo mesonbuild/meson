@@ -21,7 +21,7 @@ from collections import OrderedDict
 from .mesonlib import (
     MesonException, EnvironmentException, MachineChoice, PerMachine,
     PerMachineDefaultable, default_libdir, default_libexecdir,
-    default_prefix, split_args, OptionKey, OptionType,
+    default_prefix, split_args, OptionKey, OptionType, stringlistify,
 )
 from .wrap import WrapMode
 import ast
@@ -266,8 +266,7 @@ class UserFeatureOption(UserComboOption):
         return self.value == 'auto'
 
 if T.TYPE_CHECKING:
-    CacheKeyType = T.Tuple[T.Tuple[T.Any, ...], ...]
-    SubCacheKeyType = T.Tuple[T.Any, ...]
+    from .dependencies.detect import TV_DepIDEntry, TV_DepID
 
 
 class DependencyCacheType(enum.Enum):
@@ -291,15 +290,15 @@ class DependencySubCache:
 
     def __init__(self, type_: DependencyCacheType):
         self.types = [type_]
-        self.__cache = {}  # type: T.Dict[SubCacheKeyType, dependencies.Dependency]
+        self.__cache: T.Dict[T.Tuple[str, ...], 'dependencies.Dependency'] = {}
 
-    def __getitem__(self, key: 'SubCacheKeyType') -> 'dependencies.Dependency':
+    def __getitem__(self, key: T.Tuple[str, ...]) -> 'dependencies.Dependency':
         return self.__cache[key]
 
-    def __setitem__(self, key: 'SubCacheKeyType', value: 'dependencies.Dependency') -> None:
+    def __setitem__(self, key: T.Tuple[str, ...], value: 'dependencies.Dependency') -> None:
         self.__cache[key] = value
 
-    def __contains__(self, key: 'SubCacheKeyType') -> bool:
+    def __contains__(self, key: T.Tuple[str, ...]) -> bool:
         return key in self.__cache
 
     def values(self) -> T.Iterable['dependencies.Dependency']:
@@ -315,30 +314,31 @@ class DependencyCache:
     """
 
     def __init__(self, builtins: 'KeyedOptionDictType', for_machine: MachineChoice):
-        self.__cache = OrderedDict()  # type: T.MutableMapping[CacheKeyType, DependencySubCache]
+        self.__cache = OrderedDict()  # type: T.MutableMapping[TV_DepID, DependencySubCache]
         self.__builtins = builtins
         self.__pkg_conf_key = OptionKey('pkg_config_path', machine=for_machine)
         self.__cmake_key = OptionKey('cmake_prefix_path', machine=for_machine)
 
-    def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[T.Any, ...]:
-        if type_ is DependencyCacheType.PKG_CONFIG:
-            return tuple(self.__builtins[self.__pkg_conf_key].value)
-        elif type_ is DependencyCacheType.CMAKE:
-            return tuple(self.__builtins[self.__cmake_key].value)
-        assert type_ is DependencyCacheType.OTHER, 'Someone forgot to update subkey calculations for a new type'
-        return tuple()
+    def __calculate_subkey(self, type_: DependencyCacheType) -> T.Tuple[str, ...]:
+        data: T.Dict[str, T.List[str]] = {
+            DependencyCacheType.PKG_CONFIG: stringlistify(self.__builtins[self.__pkg_conf_key].value),
+            DependencyCacheType.CMAKE: stringlistify(self.__builtins[self.__cmake_key].value),
+            DependencyCacheType.OTHER: [],
+        }
+        assert type_ in data, 'Someone forgot to update subkey calculations for a new type'
+        return tuple(data[type_])
 
-    def __iter__(self) -> T.Iterator['CacheKeyType']:
+    def __iter__(self) -> T.Iterator['TV_DepID']:
         return self.keys()
 
-    def put(self, key: 'CacheKeyType', dep: 'dependencies.Dependency') -> None:
+    def put(self, key: 'TV_DepID', dep: 'dependencies.Dependency') -> None:
         t = DependencyCacheType.from_type(dep)
         if key not in self.__cache:
             self.__cache[key] = DependencySubCache(t)
         subkey = self.__calculate_subkey(t)
         self.__cache[key][subkey] = dep
 
-    def get(self, key: 'CacheKeyType') -> T.Optional['dependencies.Dependency']:
+    def get(self, key: 'TV_DepID') -> T.Optional['dependencies.Dependency']:
         """Get a value from the cache.
 
         If there is no cache entry then None will be returned.
@@ -360,10 +360,10 @@ class DependencyCache:
         for c in self.__cache.values():
             yield from c.values()
 
-    def keys(self) -> T.Iterator['CacheKeyType']:
+    def keys(self) -> T.Iterator['TV_DepID']:
         return iter(self.__cache.keys())
 
-    def items(self) -> T.Iterator[T.Tuple['CacheKeyType', T.List['dependencies.Dependency']]]:
+    def items(self) -> T.Iterator[T.Tuple['TV_DepID', T.List['dependencies.Dependency']]]:
         for k, v in self.__cache.items():
             vs = []
             for t in v.types:

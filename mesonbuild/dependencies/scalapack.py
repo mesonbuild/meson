@@ -25,13 +25,13 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
-    from .base import DependencyType
+    from .factory import TV_DepGenerators
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
                       kwargs: T.Dict[str, T.Any],
-                      methods: T.List[DependencyMethods]) -> T.List['DependencyType']:
+                      methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
     candidates = []
 
     if DependencyMethods.PKGCONFIG in methods:

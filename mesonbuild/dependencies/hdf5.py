@@ -30,6 +30,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .base import Dependency
+    from .factory import TV_DepGenerators
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
@@ -143,7 +144,7 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
             nkwargs = kwargs.copy()
             nkwargs['language'] = 'c'
             # I'm being too clever for mypy and pylint
-            self.is_found = self._add_sub_dependency(hdf5_factory(environment, for_machine, nkwargs))  # type: ignore  # pylint: disable=no-value-for-parameter
+            self.is_found = self._add_sub_dependency(hdf5_factory(environment, for_machine, nkwargs))  # pylint: disable=no-value-for-parameter
 
     def _sanitize_version(self, ver: str) -> str:
         v = re.search(r'\s*HDF5 Version: (\d+\.\d+\.\d+)', ver)
@@ -152,9 +153,9 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List[T.Callable[[], 'Dependency']]:
+                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
     language = kwargs.get('language')
-    candidates = []  # type: T.List[T.Callable[[], Dependency]]
+    candidates: 'TV_DepGenerators' = []
 
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files
