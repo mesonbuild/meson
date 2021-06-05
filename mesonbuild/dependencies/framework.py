@@ -13,21 +13,25 @@
 # limitations under the License.
 
 from .base import ExternalDependency, DependencyException, DependencyMethods
-from ..mesonlib import MesonException, Version
+from ..mesonlib import MesonException, Version, stringlistify
+from ..compilers import CLikeCompiler
 from .. import mlog
 from pathlib import Path
 import typing as T
 
-class ExtraFrameworkDependency(ExternalDependency):
-    system_framework_paths = None
+if T.TYPE_CHECKING:
+    from ..environment import Environment
 
-    def __init__(self, name, env, kwargs, language: T.Optional[str] = None):
-        paths = kwargs.get('paths', [])
+class ExtraFrameworkDependency(ExternalDependency):
+    system_framework_paths: T.Optional[T.List[str]] = None
+
+    def __init__(self, name: str, env: 'Environment', kwargs: T.Dict[str, T.Any], language: T.Optional[str] = None) -> None:
+        paths = stringlistify(kwargs.get('paths', []))
         super().__init__('extraframeworks', env, kwargs, language=language)
         self.name = name
         # Full path to framework directory
-        self.framework_path = None
-        if not self.clib_compiler:
+        self.framework_path: T.Optional[str] = None
+        if not isinstance(self.clib_compiler, CLikeCompiler):
             raise DependencyException('No C-like compilers are available')
         if self.system_framework_paths is None:
             try:
@@ -41,7 +45,7 @@ class ExtraFrameworkDependency(ExternalDependency):
                 raise
         self.detect(name, paths)
 
-    def detect(self, name, paths):
+    def detect(self, name: str, paths: T.List[str]) -> None:
         if not paths:
             paths = self.system_framework_paths
         for p in paths:
@@ -60,6 +64,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             # Python.framework. We need to know for sure that the framework was
             # found in the path we expect.
             allow_system = p in self.system_framework_paths
+            assert isinstance(self.clib_compiler, CLikeCompiler)
             args = self.clib_compiler.find_framework(name, self.env, [p], allow_system)
             if args is None:
                 continue
@@ -76,7 +81,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             self.is_found = True
             return
 
-    def _get_framework_path(self, path, name):
+    def _get_framework_path(self, path: str, name: str) -> T.Optional[Path]:
         p = Path(path)
         lname = name.lower()
         for d in p.glob('*.framework/'):
@@ -84,7 +89,7 @@ class ExtraFrameworkDependency(ExternalDependency):
                 return d
         return None
 
-    def _get_framework_latest_version(self, path):
+    def _get_framework_latest_version(self, path: Path) -> str:
         versions = []
         for each in path.glob('Versions/*'):
             # macOS filesystems are usually case-insensitive
@@ -96,7 +101,7 @@ class ExtraFrameworkDependency(ExternalDependency):
             return 'Headers'
         return 'Versions/{}/Headers'.format(sorted(versions)[-1]._s)
 
-    def _get_framework_include_path(self, path):
+    def _get_framework_include_path(self, path: Path) -> T.Optional[str]:
         # According to the spec, 'Headers' must always be a symlink to the
         # Headers directory inside the currently-selected version of the
         # framework, but sometimes frameworks are broken. Look in 'Versions'
@@ -110,11 +115,11 @@ class ExtraFrameworkDependency(ExternalDependency):
         return None
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.EXTRAFRAMEWORK]
 
-    def log_info(self):
-        return self.framework_path
+    def log_info(self) -> str:
+        return self.framework_path or ''
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return 'framework'
