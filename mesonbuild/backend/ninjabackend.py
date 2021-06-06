@@ -133,11 +133,11 @@ def ninja_quote(text: str, is_build_line=False) -> str:
     if not quote_re.search(text):
         return text
     if '\n' in text:
-        errmsg = '''Ninja does not support newlines in rules. The content was:
+        errmsg = f'''Ninja does not support newlines in rules. The content was:
 
-{}
+{text}
 
-Please report this error with a test case to the Meson bug tracker.'''.format(text)
+Please report this error with a test case to the Meson bug tracker.'''
         raise MesonException(errmsg)
     return quote_re.sub(r'$\g<0>', text)
 
@@ -437,8 +437,8 @@ class NinjaBackend(backends.Backend):
         # 'benchmark', etc, and also for RunTargets.
         # https://github.com/mesonbuild/meson/issues/1644
         if not to_target.startswith('meson-'):
-            m = 'Invalid usage of create_target_alias with {!r}'
-            raise AssertionError(m.format(to_target))
+            m = f'Invalid usage of create_target_alias with {to_target!r}'
+            raise AssertionError(m)
         from_target = to_target[len('meson-'):]
         elem = NinjaBuildElement(self.all_outputs, from_target, 'phony', to_target)
         self.add_build(elem)
@@ -530,10 +530,10 @@ int dummy;
 
             num_pools = self.environment.coredata.options[OptionKey('backend_max_links')].value
             if num_pools > 0:
-                outfile.write('''pool link_pool
-  depth = {}
+                outfile.write(f'''pool link_pool
+  depth = {num_pools}
 
-'''.format(num_pools))
+''')
 
         with self.detect_vs_dep_prefix(tempfilename) as outfile:
             self.generate_rules()
@@ -776,9 +776,8 @@ int dummy;
             if langs_cant:
                 langs_are = langs = ', '.join(langs_cant).upper()
                 langs_are += ' are' if len(langs_cant) > 1 else ' is'
-                msg = '{} not supported in Unity builds yet, so {} ' \
-                      'sources in the {!r} target will be compiled normally' \
-                      ''.format(langs_are, langs, target.name)
+                msg = f'{langs_are} not supported in Unity builds yet, so {langs} ' \
+                      f'sources in the {target.name!r} target will be compiled normally'
                 mlog.log(mlog.red('FIXME'), msg)
 
         # Get a list of all generated headers that will be needed while building
@@ -959,7 +958,6 @@ int dummy;
         (srcs, ofilenames, cmd) = self.eval_custom_target_command(target)
         deps = self.unwrap_dep_list(target)
         deps += self.get_custom_target_depend_files(target)
-        desc = 'Generating {0} with a custom command{1}'
         if target.build_always_stale:
             deps.append('PHONY')
         if target.depfile is None:
@@ -990,7 +988,7 @@ int dummy;
         if target.console:
             elem.add_item('pool', 'console')
         elem.add_item('COMMAND', cmd)
-        elem.add_item('description', desc.format(target.name, cmd_type))
+        elem.add_item('description', f'Generating {target.name} with a custom command{cmd_type}')
         self.add_build(elem)
         self.processed_targets.add(target.get_id())
 
@@ -1010,7 +1008,6 @@ int dummy;
         else:
             target_env = self.get_run_target_env(target)
             _, _, cmd = self.eval_custom_target_command(target)
-            desc = 'Running external command {}{}'
             meson_exe_cmd, reason = self.as_meson_exe_cmdline(target_name, target.command[0], cmd[1:],
                                                               force_serialize=True, env=target_env,
                                                               verbose=True)
@@ -1018,7 +1015,7 @@ int dummy;
             internal_target_name = f'meson-{target_name}'
             elem = NinjaBuildElement(self.all_outputs, internal_target_name, 'CUSTOM_COMMAND', [])
             elem.add_item('COMMAND', meson_exe_cmd)
-            elem.add_item('description', desc.format(target.name, cmd_type))
+            elem.add_item('description', f'Running external command {target.name}{cmd_type}')
             elem.add_item('pool', 'console')
             # Alias that runs the target defined above with the name the user specified
             self.create_target_alias(internal_target_name)
@@ -1393,8 +1390,7 @@ int dummy;
             # either in the source root, or generated with configure_file and
             # in the build root
             if not isinstance(s, File):
-                msg = 'All sources in target {!r} must be of type ' \
-                      'mesonlib.File, not {!r}'.format(t, s)
+                msg = f'All sources in target {t!r} must be of type mesonlib.File, not {s!r}'
                 raise InvalidArguments(msg)
             f = s.rel_to_builddir(self.build_to_src)
             if s.endswith(('.vala', '.gs')):
@@ -1433,8 +1429,8 @@ int dummy;
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
         if not vala_src:
-            msg = 'Vala library {!r} has no Vala or Genie source files.'
-            raise InvalidArguments(msg.format(target.name))
+            msg = f'Vala library {target.name!r} has no Vala or Genie source files.'
+            raise InvalidArguments(msg)
 
         valac = target.compilers['vala']
         c_out_dir = self.get_target_private_dir(target)
@@ -2263,8 +2259,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
                         modname = modmatch.group(1).lower()
                         if modname in module_files:
                             raise InvalidArguments(
-                                'Namespace collision: module {} defined in '
-                                'two files {} and {}.'.format(modname, module_files[modname], s))
+                                f'Namespace collision: module {modname} defined in '
+                                'two files {module_files[modname]} and {s}.')
                         module_files[modname] = s
                     else:
                         submodmatch = submodre.match(line)
@@ -2275,8 +2271,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
 
                             if submodname in submodule_files:
                                 raise InvalidArguments(
-                                    'Namespace collision: submodule {} defined in '
-                                    'two files {} and {}.'.format(submodname, submodule_files[submodname], s))
+                                    'Namespace collision: submodule {submodname} defined in '
+                                    'two files {submodule_files[submodname]} and {s}.')
                             submodule_files[submodname] = s
 
         self.fortran_deps[target.get_basename()] = {**module_files, **submodule_files}
@@ -2695,9 +2691,8 @@ https://gcc.gnu.org/bugzilla/show_bug.cgi?id=47485'''))
             if not pch:
                 continue
             if not has_path_sep(pch[0]) or not has_path_sep(pch[-1]):
-                msg = 'Precompiled header of {!r} must not be in the same ' \
-                      'directory as source, please put it in a subdirectory.' \
-                      ''.format(target.get_basename())
+                msg = f'Precompiled header of {target.get_basename()!r} must not be in the same ' \
+                      'directory as source, please put it in a subdirectory.'
                 raise InvalidArguments(msg)
             compiler = target.compilers[lang]
             if isinstance(compiler, VisualStudioLikeCompiler):
@@ -3331,7 +3326,7 @@ def _scan_fortran_file_deps(src: Path, srcdir: Path, dirname: Path, tdeps, compi
                     parents = submodmatch.group(1).lower().split(':')
                     assert len(parents) in (1, 2), (
                         'submodule ancestry must be specified as'
-                        ' ancestor:parent but Meson found {}'.format(parents))
+                        f' ancestor:parent but Meson found {parents}')
 
                     ancestor_child = '_'.join(parents)
                     if ancestor_child not in tdeps:

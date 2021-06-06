@@ -461,9 +461,9 @@ class Target:
     def __init__(self, name: str, subdir: str, subproject: str, build_by_default: bool, for_machine: MachineChoice):
         if has_path_sep(name):
             # Fix failing test 53 when this becomes an error.
-            mlog.warning('''Target "{}" has a path separator in its name.
+            mlog.warning(f'''Target "{name}" has a path separator in its name.
 This is not supported, it can cause unexpected failures and will become
-a hard error in the future.'''.format(name))
+a hard error in the future.''')
         self.name = name
         self.subdir = subdir
         self.subproject = subproject
@@ -475,7 +475,7 @@ a hard error in the future.'''.format(name))
         self.option_overrides_compiler: T.Dict[OptionKey, str] = {}
         self.extra_files = []  # type: T.List[File]
         if not hasattr(self, 'typename'):
-            raise RuntimeError('Target type is not set for target class "{}". This is a bug'.format(type(self).__name__))
+            raise RuntimeError(f'Target type is not set for target class "{type(self).__name__}". This is a bug')
 
     def __lt__(self, other: object) -> bool:
         if not hasattr(other, 'get_id') and not callable(other.get_id):
@@ -684,7 +684,7 @@ class BuildTarget(Target):
                     'tree. Try adding it in the list of sources.'
                 raise InvalidArguments(msg)
             else:
-                msg = 'Bad object of type {!r} in target {!r}.'.format(type(s).__name__, self.name)
+                msg = f'Bad object of type {type(s).__name__!r} in target {self.name!r}.'
                 raise InvalidArguments(msg)
 
     def process_sourcelist(self, sources: T.List['SourceOutputs']) -> None:
@@ -1126,7 +1126,7 @@ This will become a hard error in a future Meson release.''')
         # Check if we have -fPIC, -fpic, -fPIE, or -fpie in cflags
         all_flags = self.extra_args['c'] + self.extra_args['cpp']
         if '-f' + arg.lower() in all_flags or '-f' + arg.upper() in all_flags:
-            mlog.warning("Use the '{}' kwarg instead of passing '{}' manually to {!r}".format(arg, '-f' + arg, self.name))
+            mlog.warning(f"Use the '{arg}' kwarg instead of passing '-f{arg}' manually to {self.name!r}")
             return True
 
         k = OptionKey(option)
@@ -1228,10 +1228,10 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments('Tried to use subproject object as a dependency.\n'
                                            'You probably wanted to use a dependency declared in it instead.\n'
                                            'Access it by calling get_variable() on the subproject object.')
-                raise InvalidArguments('Argument is of an unacceptable type {!r}.\nMust be '
+                raise InvalidArguments(f'Argument is of an unacceptable type {type(dep).__name__!r}.\nMust be '
                                        'either an external dependency (returned by find_library() or '
                                        'dependency()) or an internal dependency (returned by '
-                                       'declare_dependency()).'.format(type(dep).__name__))
+                                       'declare_dependency()).')
             self.added_deps.add(dep)
 
     def get_external_deps(self):
@@ -1245,9 +1245,9 @@ You probably should put it in link_with instead.''')
             if isinstance(self, StaticLibrary) and self.need_install:
                 if isinstance(t, (CustomTarget, CustomTargetIndex)):
                     if not t.should_install():
-                        mlog.warning('Try to link an installed static library target {} with a custom target '
-                                     'that is not installed, this might cause problems when you try to use '
-                                     'this static library'.format(self.name))
+                        mlog.warning(f'Try to link an installed static library target {self.name} with a'
+                                      'custom target that is not installed, this might cause problems'
+                                      'when you try to use this static library')
                 elif t.is_internal():
                     # When we're a static library and we link_with to an
                     # internal/convenience library, promote to link_whole.
@@ -1308,7 +1308,7 @@ You probably should put it in link_with instead.''')
             return
         elif len(pchlist) == 1:
             if not environment.is_header(pchlist[0]):
-                raise InvalidArguments('PCH argument {} is not a header.'.format(pchlist[0]))
+                raise InvalidArguments(f'PCH argument {pchlist[0]} is not a header.')
         elif len(pchlist) == 2:
             if environment.is_header(pchlist[0]):
                 if not environment.is_source(pchlist[1]):
@@ -1318,7 +1318,7 @@ You probably should put it in link_with instead.''')
                     raise InvalidArguments('PCH definition must contain one header and at most one source.')
                 pchlist = [pchlist[1], pchlist[0]]
             else:
-                raise InvalidArguments('PCH argument {} is of unknown type.'.format(pchlist[0]))
+                raise InvalidArguments(f'PCH argument {pchlist[0]} is of unknown type.')
 
             if (os.path.dirname(pchlist[0]) != os.path.dirname(pchlist[1])):
                 raise InvalidArguments('PCH files must be stored in the same folder.')
@@ -1398,9 +1398,9 @@ You probably should put it in link_with instead.''')
                     prelinker = all_compilers[l]
                 except KeyError:
                     raise MesonException(
-                        'Could not get a prelinker linker for build target {!r}. '
-                        'Requires a compiler for language "{}", but that is not '
-                        'a project language.'.format(self.name, l))
+                        f'Could not get a prelinker linker for build target {self.name!r}. '
+                        f'Requires a compiler for language "{l}", but that is not '
+                        'a project language.')
                 return prelinker
         raise MesonException(f'Could not determine prelinker for {self.name!r}.')
 
@@ -1432,9 +1432,9 @@ You probably should put it in link_with instead.''')
                     linker = all_compilers[l]
                 except KeyError:
                     raise MesonException(
-                        'Could not get a dynamic linker for build target {!r}. '
-                        'Requires a linker for language "{}", but that is not '
-                        'a project language.'.format(self.name, l))
+                        f'Could not get a dynamic linker for build target {self.name!r}. '
+                        f'Requires a linker for language "{l}", but that is not '
+                        'a project language.')
                 stdlib_args = []
                 added_languages = set()
                 for dl in itertools.chain(self.compilers, dep_langs):
@@ -1445,8 +1445,8 @@ You probably should put it in link_with instead.''')
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
-        m = 'Could not get a dynamic linker for build target {!r}'
-        raise AssertionError(m.format(self.name))
+        m = f'Could not get a dynamic linker for build target {self.name!r}'
+        raise AssertionError(m)
 
     def uses_rust(self) -> bool:
         """Is this target a rust target."""
@@ -2022,7 +2022,7 @@ class SharedLibrary(BuildTarget):
                 darwin_versions = 2 * [darwin_versions]
             if not isinstance(darwin_versions, list):
                 raise InvalidArguments('Shared library darwin_versions: must be a string, integer,'
-                                       'or a list, not {!r}'.format(darwin_versions))
+                                       f'or a list, not {darwin_versions!r}')
             if len(darwin_versions) > 2:
                 raise InvalidArguments('Shared library darwin_versions: list must contain 2 or fewer elements')
             if len(darwin_versions) == 1:
@@ -2032,7 +2032,7 @@ class SharedLibrary(BuildTarget):
                     v = str(v)
                 if not isinstance(v, str):
                     raise InvalidArguments('Shared library darwin_versions: list elements '
-                                           'must be strings or integers, not {!r}'.format(v))
+                                           f'must be strings or integers, not {v!r}')
                 if not re.fullmatch(r'[0-9]+(\.[0-9]+){0,2}', v):
                     raise InvalidArguments('Shared library darwin_versions: must be X.Y.Z where '
                                            'X, Y, Z are numbers, and Y and Z are optional')
@@ -2374,15 +2374,15 @@ class CustomTarget(Target, CommandBase):
         extra_deps, depend_files = [extract_as_list(kwargs, c, pop=False) for c in ['depends', 'depend_files']]
         for ed in unholder(extra_deps):
             if not isinstance(ed, (CustomTarget, BuildTarget)):
-                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target (executable or a library) got: {}({})'
-                                       .format(type(ed), ed))
+                raise InvalidArguments('Can only depend on toplevel targets: custom_target or build_target '
+                                       f'(executable or a library) got: {type(ed)}({ed})')
             self.extra_depends.append(ed)
         for i in depend_files:
             if isinstance(i, (File, str)):
                 self.depend_files.append(i)
             else:
                 mlog.debug(i)
-                raise InvalidArguments('Unknown type {!r} in depend_files.'.format(type(i).__name__))
+                raise InvalidArguments(f'Unknown type {type(i).__name__!r} in depend_files.')
         self.env = kwargs.get('env')
 
     def get_dependencies(self):
@@ -2689,10 +2689,10 @@ def load(build_dir: str) -> Build:
         raise MesonException(load_fail_msg)
     except AttributeError:
         raise MesonException(
-            "Build data file {!r} references functions or classes that don't "
+            f"Build data file {filename!r} references functions or classes that don't "
             "exist. This probably means that it was generated with an old "
             "version of meson. Try running from the source directory "
-            "meson {} --wipe".format(filename, build_dir))
+            f"meson {build_dir} --wipe")
     if not isinstance(obj, Build):
         raise MesonException(load_fail_msg)
     return obj

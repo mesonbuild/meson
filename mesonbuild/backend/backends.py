@@ -235,13 +235,13 @@ class Backend:
                                              self.environment.get_source_dir())
 
     def generate(self) -> None:
-        raise RuntimeError('generate is not implemented in {}'.format(type(self).__name__))
+        raise RuntimeError(f'generate is not implemented in {type(self).__name__}')
 
     def get_target_filename(self, t, *, warn_multi_output: bool = True):
         if isinstance(t, build.CustomTarget):
             if warn_multi_output and len(t.get_outputs()) != 1:
-                mlog.warning('custom_target {!r} has more than one output! '
-                             'Using the first one.'.format(t.name))
+                mlog.warning(f'custom_target {t.name!r} has more than one output! '
+                             'Using the first one.')
             filename = t.get_outputs()[0]
         elif isinstance(t, build.CustomTargetIndex):
             filename = t.get_outputs()[0]
@@ -753,7 +753,7 @@ class Backend:
         pch_file = os.path.join(self.build_dir, pch_rel_to_build)
         os.makedirs(os.path.dirname(pch_file), exist_ok=True)
 
-        content = '#include "{}"'.format(os.path.basename(pch_header))
+        content = f'#include "{os.path.basename(pch_header)}"'
         pch_file_tmp = pch_file + '.tmp'
         with open(pch_file_tmp, 'w') as f:
             f.write(content)
@@ -1245,8 +1245,8 @@ class Backend:
                     i = i.replace('@CURRENT_SOURCE_DIR@', os.path.join(source_root, target.subdir))
                 if '@DEPFILE@' in i:
                     if target.depfile is None:
-                        msg = 'Custom target {!r} has @DEPFILE@ but no depfile ' \
-                              'keyword argument.'.format(target.name)
+                        msg = f'Custom target {target.name!r} has @DEPFILE@ but no depfile ' \
+                              'keyword argument.'
                         raise MesonException(msg)
                     dfilename = os.path.join(outdir, target.depfile)
                     i = i.replace('@DEPFILE@', dfilename)
@@ -1257,8 +1257,8 @@ class Backend:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
             else:
-                err_msg = 'Argument {0} is of unknown type {1}'
-                raise RuntimeError(err_msg.format(str(i), str(type(i))))
+                err_msg = f'Argument {i} is of unknown type {type(i)}'
+                raise RuntimeError(err_msg)
             cmd.append(i)
         # Substitute the rest of the template strings
         values = mesonlib.get_filenames_templates_dict(inputs, outputs)
@@ -1449,8 +1449,8 @@ class Backend:
                 outdir = os.path.join(incroot, h.get_install_subdir())
             for f in h.get_sources():
                 if not isinstance(f, File):
-                    msg = 'Invalid header type {!r} can\'t be installed'
-                    raise MesonException(msg.format(f))
+                    msg = f'Invalid header type {f!r} can\'t be installed'
+                    raise MesonException(msg)
                 abspath = f.absolute_path(srcdir, builddir)
                 i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject)
                 d.headers.append(i)
@@ -1546,7 +1546,7 @@ class Backend:
                     elif isinstance(j, (build.BuildTarget, build.CustomTarget)):
                         compiler += j.get_outputs()
                     else:
-                        raise RuntimeError('Type "{}" is not supported in get_introspection_data. This is a bug'.format(type(j).__name__))
+                        raise RuntimeError(f'Type "{type(j).__name__}" is not supported in get_introspection_data. This is a bug')
 
             return [{
                 'language': 'unknown',
