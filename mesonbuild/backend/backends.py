@@ -1257,8 +1257,7 @@ class Backend:
                         pdir = self.get_target_private_dir(target)
                     i = i.replace('@PRIVATE_DIR@', pdir)
             else:
-                err_msg = f'Argument {i} is of unknown type {type(i)}'
-                raise RuntimeError(err_msg)
+                raise RuntimeError(f'Argument {i} is of unknown type {type(i)}')
             cmd.append(i)
         # Substitute the rest of the template strings
         values = mesonlib.get_filenames_templates_dict(inputs, outputs)
@@ -1449,8 +1448,7 @@ class Backend:
                 outdir = os.path.join(incroot, h.get_install_subdir())
             for f in h.get_sources():
                 if not isinstance(f, File):
-                    msg = f'Invalid header type {f!r} can\'t be installed'
-                    raise MesonException(msg)
+                    raise MesonException(f'Invalid header type {f!r} can\'t be installed')
                 abspath = f.absolute_path(srcdir, builddir)
                 i = InstallDataBase(abspath, outdir, h.get_custom_install_mode(), h.subproject)
                 d.headers.append(i)

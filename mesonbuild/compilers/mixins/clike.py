@@ -711,16 +711,14 @@ class CLikeCompiler(Compiler):
         }}'''
         res = self.run(code, env, extra_args=extra_args, dependencies=dependencies)
         if not res.compiled:
-            m = f'Could not get return value of {fname}()'
-            raise mesonlib.EnvironmentException(m)
+            raise mesonlib.EnvironmentException(f'Could not get return value of {fname}()')
         if rtype == 'string':
             return res.stdout
         elif rtype == 'int':
             try:
                 return int(res.stdout.strip())
             except ValueError:
-                m = f'Return value of {fname}() is not an int'
-                raise mesonlib.EnvironmentException(m)
+                raise mesonlib.EnvironmentException(f'Return value of {fname}() is not an int')
         assert False, 'Unreachable'
 
     @staticmethod
@@ -923,11 +921,9 @@ class CLikeCompiler(Compiler):
         n = 'symbols_have_underscore_prefix'
         with self._build_wrapper(code, env, extra_args=args, mode='compile', want_output=True, temp_dir=env.scratch_dir) as p:
             if p.returncode != 0:
-                m = f'BUG: Unable to compile {n!r} check: {p.stdout}'
-                raise RuntimeError(m)
+                raise RuntimeError(f'BUG: Unable to compile {n!r} check: {p.stdout}')
             if not os.path.isfile(p.output_name):
-                m = f'BUG: Can\'t find compiled test code for {n!r} check'
-                raise RuntimeError(m)
+                raise RuntimeError(f'BUG: Can\'t find compiled test code for {n!r} check')
             with open(p.output_name, 'rb') as o:
                 for line in o:
                     # Check if the underscore form of the symbol is somewhere

@@ -684,8 +684,7 @@ class BuildTarget(Target):
                     'tree. Try adding it in the list of sources.'
                 raise InvalidArguments(msg)
             else:
-                msg = f'Bad object of type {type(s).__name__!r} in target {self.name!r}.'
-                raise InvalidArguments(msg)
+                raise InvalidArguments(f'Bad object of type {type(s).__name__!r} in target {self.name!r}.')
 
     def process_sourcelist(self, sources: T.List['SourceOutputs']) -> None:
         """Split sources into generated and static sources.
@@ -823,8 +822,7 @@ class BuildTarget(Target):
                 check_sources = list(self.sources)
                 compiler = self.compilers[lang]
                 if not self.can_compile_remove_sources(compiler, check_sources):
-                    m = f'No {lang} sources found in target {self.name!r}'
-                    raise InvalidArguments(m)
+                    raise InvalidArguments(f'No {lang} sources found in target {self.name!r}')
                 if check_sources:
                     m = '{0} targets can only contain {0} files:\n'.format(lang.capitalize())
                     m += '\n'.join([repr(c) for c in check_sources])
@@ -1445,8 +1443,7 @@ You probably should put it in link_with instead.''')
                 # Pretty hard to fix because the return value is passed everywhere
                 return linker, stdlib_args
 
-        m = f'Could not get a dynamic linker for build target {self.name!r}'
-        raise AssertionError(m)
+        raise AssertionError(f'Could not get a dynamic linker for build target {self.name!r}')
 
     def uses_rust(self) -> bool:
         """Is this target a rust target."""

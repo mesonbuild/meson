@@ -437,8 +437,7 @@ class NinjaBackend(backends.Backend):
         # 'benchmark', etc, and also for RunTargets.
         # https://github.com/mesonbuild/meson/issues/1644
         if not to_target.startswith('meson-'):
-            m = f'Invalid usage of create_target_alias with {to_target!r}'
-            raise AssertionError(m)
+            raise AssertionError(f'Invalid usage of create_target_alias with {to_target!r}')
         from_target = to_target[len('meson-'):]
         elem = NinjaBuildElement(self.all_outputs, from_target, 'phony', to_target)
         self.add_build(elem)
@@ -1390,8 +1389,7 @@ int dummy;
             # either in the source root, or generated with configure_file and
             # in the build root
             if not isinstance(s, File):
-                msg = f'All sources in target {t!r} must be of type mesonlib.File, not {s!r}'
-                raise InvalidArguments(msg)
+                raise InvalidArguments(f'All sources in target {t!r} must be of type mesonlib.File, not {s!r}')
             f = s.rel_to_builddir(self.build_to_src)
             if s.endswith(('.vala', '.gs')):
                 srctype = vala
@@ -1429,8 +1427,7 @@ int dummy;
         (vala_src, vapi_src, other_src) = self.split_vala_sources(target)
         extra_dep_files = []
         if not vala_src:
-            msg = f'Vala library {target.name!r} has no Vala or Genie source files.'
-            raise InvalidArguments(msg)
+            raise InvalidArguments(f'Vala library {target.name!r} has no Vala or Genie source files.')
 
         valac = target.compilers['vala']
         c_out_dir = self.get_target_private_dir(target)
