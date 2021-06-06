@@ -1051,7 +1051,7 @@ class XCodeBackend(backends.Backend):
                 # Custom target are handled via inter-target dependencies.
                 # Generators are built as a shellscriptbuildphase.
                 if isinstance(g, build.GeneratedList):
-                    buildphases_array.add_item(self.shell_targets[(tname, generator_id)], 'Generator {}/{}'.format(generator_id, tname))
+                    buildphases_array.add_item(self.shell_targets[(tname, generator_id)], f'Generator {generator_id}/{tname}')
                     generator_id += 1
             for bpname, bpval in t.buildphasemap.items():
                 buildphases_array.add_item(bpval, f'{bpname} yyy')
@@ -1215,14 +1215,14 @@ class XCodeBackend(backends.Backend):
         exe_arr = self.build_target_to_cmd_array(exe)
         workdir = self.environment.get_build_dir()
         gen_dict = PbxDict()
-        objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, '"Generator {}/{}"'.format(generator_id, tname))
+        objects_dict.add_item(self.shell_targets[(tname, generator_id)], gen_dict, f'"Generator {generator_id}/{tname}"')
         infilelist = genlist.get_inputs()
         outfilelist = genlist.get_outputs()
         gen_dict.add_item('isa', 'PBXShellScriptBuildPhase')
         gen_dict.add_item('buildActionMask', 2147483647)
         gen_dict.add_item('files', PbxArray())
         gen_dict.add_item('inputPaths', PbxArray())
-        gen_dict.add_item('name', '"Generator {}/{}"'.format(generator_id, tname))    
+        gen_dict.add_item('name', f'"Generator {generator_id}/{tname}"')
         commands = [["cd", workdir]] # Array of arrays, each one a single command, will get concatenated below.
         k = (tname, generator_id)
         ofile_abs = self.generator_outputs[k]
