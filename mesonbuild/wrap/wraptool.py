@@ -18,6 +18,7 @@ import configparser
 import shutil
 import typing as T
 
+from functools import lru_cache
 from glob import glob
 from urllib.parse import urlparse
 from urllib.request import urlopen
@@ -58,9 +59,23 @@ def add_arguments(parser: 'argparse.ArgumentParser') -> None:
     p.add_argument('project_path')
     p.set_defaults(wrap_func=promote)
 
+@lru_cache(maxsize=None)
 def get_releases() -> T.Dict[str, T.Any]:
     url = urlopen('https://wrapdb.mesonbuild.com/v2/releases.json')
     return T.cast(T.Dict[str, T.Any], json.loads(url.read().decode()))
+
+def get_provider(name: str) -> T.Optional[str]:
+    try:
+        releases = get_releases()
+    except:
+        return None
+    if name in releases:
+        return name
+    for wrap, info in releases.items():
+        dependency_names = info.get('dependency_names', [])
+        if name in dependency_names:
+            return wrap
+    return None
 
 def list_projects(options: 'argparse.Namespace') -> None:
     releases = get_releases()

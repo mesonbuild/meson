@@ -19,7 +19,7 @@ from .. import mlog
 from .. import build
 from .. import optinterpreter
 from .. import compilers
-from ..wrap import wrap, WrapMode
+from ..wrap import wrap, WrapMode, wraptool
 from .. import mesonlib
 from ..mesonlib import FileMode, MachineChoice, OptionKey, listify, extract_as_list, has_path_sep, unholder
 from ..programs import ExternalProgram, NonExistingExternalProgram
@@ -1570,14 +1570,12 @@ external dependencies (including libraries) must go to "dependencies".''')
             raise InvalidArguments('The not_found_message must be a string.')
         try:
             d = self.dependency_impl(name, display_name, kwargs)
+            assert isinstance(d, DependencyHolder)
         except Exception:
-            if not_found_message:
-                self.message_impl([not_found_message])
+            self.dependency_not_found_message(name, not_found_message)
             raise
-        assert isinstance(d, DependencyHolder)
-        if not d.found() and not_found_message:
-            self.message_impl([not_found_message])
-            self.message_impl([not_found_message])
+        if not d.found():
+            self.dependency_not_found_message(name, not_found_message)
         # Override this dependency to have consistent results in subsequent
         # dependency lookups.
         if name and d.found():
@@ -1594,6 +1592,15 @@ external dependencies (including libraries) must go to "dependencies".''')
                 mlog.debug(f'Current include type of {name} is {actual}. Converting to requested {wanted}')
                 d = d.as_system_method([wanted], {})
         return d
+
+    def dependency_not_found_message(self, name, not_found_message):
+        if not_found_message:
+            self.message_impl([not_found_message])
+        if name:
+            wrap = wraptool.get_provider(name)
+            if wrap:
+                self.message_impl(['The dependency is available in WrapDB. To build it as subproject:'])
+                self.message_impl([mlog.bold(f'meson wrap install {wrap}')])
 
     def dependency_impl(self, name, display_name, kwargs, force_fallback=False):
         disabled, required, feature = extract_required_kwarg(kwargs, self.subproject)
