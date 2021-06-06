@@ -576,7 +576,7 @@ class CcrxCCompiler(CcrxCompiler, CCompiler):
         return ['-optimize=0']
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-output=obj=%s' % target]
+        return [f'-output=obj={target}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -622,7 +622,7 @@ class Xc16CCompiler(Xc16Compiler, CCompiler):
         return ['-O0']
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['-o%s' % target]
+        return [f'-o{target}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']
@@ -703,7 +703,7 @@ class C2000CCompiler(C2000Compiler, CCompiler):
         return ['-Ooff']
 
     def get_output_args(self, target: str) -> T.List[str]:
-        return ['--output_file=%s' % target]
+        return [f'--output_file={target}']
 
     def get_werror_args(self) -> T.List[str]:
         return ['-change_message=error']

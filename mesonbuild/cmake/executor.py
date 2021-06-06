@@ -70,14 +70,14 @@ class CMakeExecutor:
         # Only search for CMake the first time and store the result in the class
         # definition
         if isinstance(CMakeExecutor.class_cmakebin[self.for_machine], NonExistingExternalProgram):
-            mlog.debug('CMake binary for %s is cached as not found' % self.for_machine)
+            mlog.debug(f'CMake binary for {self.for_machine} is cached as not found')
             return None, None
         elif CMakeExecutor.class_cmakebin[self.for_machine] is not None:
-            mlog.debug('CMake binary for %s is cached.' % self.for_machine)
+            mlog.debug(f'CMake binary for {self.for_machine} is cached.')
         else:
             assert CMakeExecutor.class_cmakebin[self.for_machine] is None
 
-            mlog.debug('CMake binary for %s is not cached' % self.for_machine)
+            mlog.debug(f'CMake binary for {self.for_machine} is not cached')
             for potential_cmakebin in find_external_program(
                     environment, self.for_machine, 'cmake', 'CMake',
                     environment.default_cmake, allow_default_for_cross=False):
