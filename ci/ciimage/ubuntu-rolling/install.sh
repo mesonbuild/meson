@@ -9,11 +9,9 @@ export LANG='C.UTF-8'
 export DC=gdc
 
 pkgs=(
-  python3-pytest-xdist python3-jsonschema
   python3-pip libxml2-dev libxslt1-dev libyaml-dev libjson-glib-dev
-  python3-lxml
   wget unzip
-  qt5-default clang
+  qt5-qmake qtbase5-dev qtchooser qtbase5-dev-tools clang
   pkg-config-arm-linux-gnueabihf
   libomp-dev
   llvm lcov
@@ -42,7 +40,7 @@ eatmydata apt-get -y build-dep meson
 eatmydata apt-get -y install "${pkgs[@]}"
 eatmydata apt-get -y install --no-install-recommends wine-stable  # Wine is special
 
-eatmydata python3 -m pip install hotdoc codecov gcovr
+install_python_packages hotdoc
 
 # dub stuff
 dub_fetch urld
