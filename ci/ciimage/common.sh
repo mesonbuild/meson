@@ -8,6 +8,23 @@
 ###
 
 set -e
+set -x
+
+base_python_pkgs=(
+  pytest
+  pytest-xdist
+  coverage
+  codecov
+  jsonschema
+)
+
+python_pkgs=(
+  cython
+  gobject
+  PyGObject
+  lxml
+  gcovr
+)
 
 dub_fetch() {
   set +e
@@ -19,4 +36,12 @@ dub_fetch() {
     sleep $((i*5))
   done
   set -e
+}
+
+install_minimal_python_packages() {
+  python3 -m pip install "${base_python_pkgs[@]}" $*
+}
+
+install_python_packages() {
+  python3 -m pip install "${base_python_pkgs[@]}" "${python_pkgs[@]}" $*
 }

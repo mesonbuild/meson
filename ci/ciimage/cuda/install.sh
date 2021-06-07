@@ -2,8 +2,10 @@
 
 set -e
 
+source /ci/common.sh
+
 pkgs=(
-  python python-setuptools python-wheel python-pytest-xdist python-jsonschema
+  python python-pip
   ninja gcc gcc-objc git cmake
   cuda zlib pkgconf
 )
@@ -11,6 +13,7 @@ pkgs=(
 PACMAN_OPTS='--needed --noprogressbar --noconfirm'
 
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"
+install_minimal_python_packages
 
 # Manually remove cache to avoid GitHub space restrictions
 rm -rf /var/cache/pacman

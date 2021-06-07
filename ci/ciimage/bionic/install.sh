@@ -2,12 +2,13 @@
 
 set -e
 
+source /ci/common.sh
+
 export DEBIAN_FRONTEND=noninteractive
 export LANG='C.UTF-8'
 export DC=gdc
 
 pkgs=(
-  python3-pytest-xdist
   python3-pip libxml2-dev libxslt1-dev libyaml-dev libjson-glib-dev
   wget unzip cmake doxygen
   clang
@@ -46,7 +47,7 @@ done
 # packages
 eatmydata apt-get -y install "${pkgs[@]}"
 
-eatmydata python3 -m pip install codecov gcovr jsonschema
+install_python_packages
 
 # Install the ninja 0.10
 wget https://github.com/ninja-build/ninja/releases/download/v1.10.0/ninja-linux.zip

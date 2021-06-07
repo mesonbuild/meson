@@ -2,10 +2,12 @@
 
 set -e
 
+source /ci/common.sh
+
 # Inspired by https://github.com/greyltc/docker-archlinux-aur/blob/master/add-aur.sh
 
 pkgs=(
-  python python-setuptools python-wheel python-pip python-pytest-xdist python-gobject python-jsonschema
+  python python-pip
   ninja make git sudo fakeroot autoconf automake patch
   libelf gcc gcc-fortran gcc-objc vala rust bison flex cython go dlang-dmd
   mono boost qt5-base gtkmm3 gtest gmock protobuf wxgtk2 gobject-introspection
@@ -17,7 +19,6 @@ pkgs=(
 )
 
 aur_pkgs=(scalapack)
-pip_pkgs=(gcovr)
 cleanup_pkgs=(go)
 
 AUR_USER=docker
@@ -30,7 +31,7 @@ sed -i "s,PKGEXT='.pkg.tar.zst',PKGEXT='.pkg.tar',g" /etc/makepkg.conf
 
 # Install packages
 pacman -Syu $PACMAN_OPTS "${pkgs[@]}"
-python -m pip install "${pip_pkgs[@]}"
+install_python_packages
 
 # Setup the user
 useradd -m $AUR_USER
