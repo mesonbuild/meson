@@ -30,7 +30,7 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from .base import Dependency
-    from .factory import TV_DepGenerators
+    from .factory import DependencyGenerator
     from ..environment import Environment
     from ..mesonlib import MachineChoice
 
@@ -153,9 +153,9 @@ class HDF5ConfigToolDependency(ConfigToolDependency):
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL})
 def hdf5_factory(env: 'Environment', for_machine: 'MachineChoice',
-                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+                 kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language')
-    candidates: 'TV_DepGenerators' = []
+    candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         # Use an ordered set so that these remain the first tried pkg-config files

@@ -25,10 +25,13 @@ import typing as T
 
 if T.TYPE_CHECKING:
     from ..environment import Environment
-    from .factory import DependencyFactory, TV_FactoryFunc, TV_DepGenerators
+    from .factory import DependencyFactory, WrappedFactoryFunc, DependencyGenerator
 
 # These must be defined in this file to avoid cyclical references.
-packages: T.Dict[str, T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'TV_FactoryFunc']] = {}
+packages: T.Dict[
+    str,
+    T.Union[T.Type[ExternalDependency], 'DependencyFactory', 'WrappedFactoryFunc']
+] = {}
 _packages_accept_language: T.Set[str] = set()
 
 if T.TYPE_CHECKING:
@@ -163,7 +166,7 @@ def find_external_dependency(name: str, env: 'Environment', kwargs: T.Dict[str, 
 
 
 def _build_external_dependency_list(name: str, env: 'Environment', for_machine: MachineChoice,
-                                    kwargs: T.Dict[str, T.Any]) -> 'TV_DepGenerators':
+                                    kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
     # First check if the method is valid
     if 'method' in kwargs and kwargs['method'] not in [e.value for e in DependencyMethods]:
         raise DependencyException('method {!r} is invalid'.format(kwargs['method']))
@@ -181,11 +184,11 @@ def _build_external_dependency_list(name: str, env: 'Environment', for_machine: 
                 func: T.Callable[[], 'ExternalDependency'] = lambda: entry1(env, kwargs)  # type: ignore
                 dep = [func]
         else:
-            entry2 = T.cast(T.Union['DependencyFactory', 'TV_FactoryFunc'], packages[lname])
+            entry2 = T.cast(T.Union['DependencyFactory', 'WrappedFactoryFunc'], packages[lname])
             dep = entry2(env, for_machine, kwargs)
         return dep
 
-    candidates: 'TV_DepGenerators' = []
+    candidates: T.List['DependencyGenerator'] = []
 
     # If it's explicitly requested, use the dub detection method (only)
     if 'dub' == kwargs.get('method', ''):

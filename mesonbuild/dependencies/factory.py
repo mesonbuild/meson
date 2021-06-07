@@ -26,24 +26,24 @@ if T.TYPE_CHECKING:
     from ..environment import Environment
     from .configtool import ConfigToolDependency
 
-    TV_DepGenerators = T.List[T.Callable[[], ExternalDependency]]
-    TV_WrappedFactoryFunc = T.Callable[
+    DependencyGenerator = T.Callable[[], ExternalDependency]
+    FactoryFunc = T.Callable[
         [
             'Environment',
             MachineChoice,
             T.Dict[str, T.Any],
             T.List[DependencyMethods]
         ],
-        TV_DepGenerators
+        T.List[DependencyGenerator]
     ]
 
-    TV_FactoryFunc = T.Callable[
+    WrappedFactoryFunc = T.Callable[
         [
             'Environment',
             MachineChoice,
             T.Dict[str, T.Any]
         ],
-        TV_DepGenerators
+        T.List[DependencyGenerator]
     ]
 
 class DependencyFactory:
@@ -116,7 +116,7 @@ class DependencyFactory:
         return True
 
     def __call__(self, env: 'Environment', for_machine: MachineChoice,
-                 kwargs: T.Dict[str, T.Any]) -> 'TV_DepGenerators':
+                 kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
         """Return a list of Dependencies with the arguments already attached."""
         methods = process_method_kw(self.methods, kwargs)
         nwargs = self.extra_kwargs.copy()
@@ -126,19 +126,19 @@ class DependencyFactory:
                 if self._process_method(m, env, for_machine)]
 
 
-def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['TV_WrappedFactoryFunc'], 'TV_FactoryFunc']:
+def factory_methods(methods: T.Set[DependencyMethods]) -> T.Callable[['FactoryFunc'], 'WrappedFactoryFunc']:
     """Decorator for handling methods for dependency factory functions.
 
     This helps to make factory functions self documenting
     >>> @factory_methods([DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE])
-    >>> def factory(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+    >>> def factory(env: Environment, for_machine: MachineChoice, kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     >>>     pass
     """
 
-    def inner(func: 'TV_WrappedFactoryFunc') -> 'TV_FactoryFunc':
+    def inner(func: 'FactoryFunc') -> 'WrappedFactoryFunc':
 
         @functools.wraps(func)
-        def wrapped(env: 'Environment', for_machine: MachineChoice, kwargs: T.Dict[str, T.Any]) -> 'TV_DepGenerators':
+        def wrapped(env: 'Environment', for_machine: MachineChoice, kwargs: T.Dict[str, T.Any]) -> T.List['DependencyGenerator']:
             return func(env, for_machine, kwargs, process_method_kw(methods, kwargs))
 
         return wrapped

@@ -22,7 +22,7 @@ from enum import Enum
 
 from .. import mlog
 from ..compilers import clib_langs
-from ..mesonlib import MachineChoice, MesonException, File
+from ..mesonlib import MachineChoice, MesonException
 from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
