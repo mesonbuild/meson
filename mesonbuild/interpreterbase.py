@@ -427,7 +427,8 @@ class KwargInfo(T.Generic[_T]):
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
-                 required: bool = False, listify: bool = False, default: T.Optional[_T] = None,
+                 *, required: bool = False, listify: bool = False,
+                 default: T.Optional[_T] = None,
                  since: T.Optional[str] = None, deprecated: T.Optional[str] = None):
         self.name = name
         self.types = types
