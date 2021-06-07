@@ -25,7 +25,7 @@ from ..mesonlib import FileMode, MachineChoice, OptionKey, listify, extract_as_l
 from ..programs import ExternalProgram, NonExistingExternalProgram
 from ..dependencies import Dependency, NotFoundDependency, DependencyException
 from ..depfile import DepFile
-from ..interpreterbase import InterpreterBase, typed_pos_args
+from ..interpreterbase import ContainerTypeInfo, InterpreterBase, KwargInfo, typed_kwargs, typed_pos_args
 from ..interpreterbase import noPosargs, noKwargs, stringArgs, permittedKwargs, noArgsFlattening
 from ..interpreterbase import InterpreterException, InvalidArguments, InvalidCode, SubdirDoneRequest
 from ..interpreterbase import InterpreterObject, Disabler, disablerIfNotFound
@@ -60,9 +60,7 @@ import typing as T
 import importlib
 
 if T.TYPE_CHECKING:
-    from ..compilers import Compiler
-    from ..envconfig import MachineInfo
-    from ..environment import Environment
+    from . import kwargs
 
     # Input source types passed to Targets
     SourceInputs = T.Union[mesonlib.File, GeneratedListHolder, TargetHolder,
@@ -71,6 +69,31 @@ if T.TYPE_CHECKING:
     SourceOutputs = T.Union[mesonlib.File, build.GeneratedList,
                             build.BuildTarget, build.CustomTargetIndex,
                             build.GeneratedList]
+
+
+def _language_validator(l: T.List[str]) -> T.Optional[str]:
+    """Validate language keyword argument.
+
+    Particularly for functions like `add_compiler()`, and `add_*_args()`
+    """
+    diff = {a.lower() for a in l}.difference(compilers.all_languages)
+    if diff:
+        return f'unknown languages: {", ".join(diff)}'
+    return None
+
+
+_NATIVE_KW = KwargInfo(
+    'native', bool,
+    default=False,
+    convertor=lambda n: MachineChoice.BUILD if n else MachineChoice.HOST)
+
+_LANGUAGE_KW = KwargInfo(
+    'language', ContainerTypeInfo(list, str, allow_empty=False),
+    listify=True,
+    required=True,
+    validator=_language_validator,
+    convertor=lambda x: [i.lower() for i in x])
+
 
 def stringifyUserArguments(args, quote=False):
     if isinstance(args, list):
@@ -2530,29 +2553,25 @@ This warning will become a hard error in a future Meson release.
         self.build.test_setups[setup_name] = build.TestSetup(exe_wrapper, gdb, timeout_multiplier, env,
                                                              exclude_suites)
 
-    @permittedKwargs({'language', 'native'})
     @typed_pos_args('add_global_arguments', varargs=str)
-    def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_args[for_machine], args[0], kwargs)
+    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+        self.add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
-    @permittedKwargs({'language', 'native'})
     @typed_pos_args('add_global_link_arguments', varargs=str)
-    def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_link_args[for_machine], args[0], kwargs)
+    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+        self.add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
-    @permittedKwargs({'language', 'native'})
     @typed_pos_args('add_project_arguments', varargs=str)
-    def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_args[for_machine], args[0], kwargs)
+    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+        self.add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
-    @permittedKwargs({'language', 'native'})
     @typed_pos_args('add_project_link_arguments', varargs=str)
-    def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
-        for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args[0], kwargs)
+    @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
+    def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+        self.add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
 
     def warn_about_builtin_args(self, args):
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
