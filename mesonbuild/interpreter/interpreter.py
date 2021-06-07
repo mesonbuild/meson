@@ -2556,24 +2556,24 @@ This warning will become a hard error in a future Meson release.
     @typed_pos_args('add_global_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
     def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
-        self.add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
+        self._add_global_arguments(node, self.build.global_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_global_link_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
     def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
-        self.add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
+        self._add_global_arguments(node, self.build.global_link_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
     def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
-        self.add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.build.projects_args[kwargs['native']], args[0], kwargs)
 
     @typed_pos_args('add_project_link_arguments', varargs=str)
     @typed_kwargs('add_global_arguments', _NATIVE_KW, _LANGUAGE_KW)
     def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
-        self.add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
+        self._add_project_arguments(node, self.build.projects_link_args[kwargs['native']], args[0], kwargs)
 
-    def warn_about_builtin_args(self, args: T.List[str]) -> None:
+    def _warn_about_builtin_args(self, args: T.List[str]) -> None:
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
         # see e.g.
         # https://github.com/mesonbuild/meson/issues/3275#issuecomment-641354956
@@ -2600,8 +2600,8 @@ This warning will become a hard error in a future Meson release.
                 mlog.warning(f'Consider using the built-in option for language standard version instead of using "{arg}".',
                              location=self.current_node)
 
-    def add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
-                             args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+    def _add_global_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
+                              args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if self.is_subproject():
             msg = 'Function \'{}\' cannot be used in subprojects because ' \
                   'there is no way to make that reliable.\nPlease only call ' \
@@ -2611,24 +2611,24 @@ This warning will become a hard error in a future Meson release.
                   'in each target.'.format(node.func_name)
             raise InvalidCode(msg)
         frozen = self.project_args_frozen or self.global_args_frozen
-        self.add_arguments(node, argsdict, frozen, args, kwargs)
+        self._add_arguments(node, argsdict, frozen, args, kwargs)
 
-    def add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
-                              args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+    def _add_project_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.Dict[str, T.List[str]]],
+                               args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if self.subproject not in argsdict:
             argsdict[self.subproject] = {}
-        self.add_arguments(node, argsdict[self.subproject],
-                           self.project_args_frozen, args, kwargs)
+        self._add_arguments(node, argsdict[self.subproject],
+                            self.project_args_frozen, args, kwargs)
 
-    def add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
-                      args_frozen: bool, args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
+    def _add_arguments(self, node: mparser.FunctionNode, argsdict: T.Dict[str, T.List[str]],
+                       args_frozen: bool, args: T.List[str], kwargs: 'kwargs.FuncAddProjectArgs') -> None:
         if args_frozen:
             msg = 'Tried to use \'{}\' after a build target has been declared.\n' \
                   'This is not permitted. Please declare all ' \
                   'arguments before your targets.'.format(node.func_name)
             raise InvalidCode(msg)
 
-        self.warn_about_builtin_args(args)
+        self._warn_about_builtin_args(args)
 
         for lang in kwargs['language']:
             argsdict[lang] = argsdict.get(lang, []) + args
