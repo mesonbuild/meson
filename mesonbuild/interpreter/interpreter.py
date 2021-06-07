@@ -2531,28 +2531,28 @@ This warning will become a hard error in a future Meson release.
                                                              exclude_suites)
 
     @permittedKwargs({'language', 'native'})
-    @stringArgs
-    def func_add_global_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_global_arguments', varargs=str)
+    def func_add_global_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_args[for_machine], args, kwargs)
+        self.add_global_arguments(node, self.build.global_args[for_machine], args[0], kwargs)
 
     @permittedKwargs({'language', 'native'})
-    @stringArgs
-    def func_add_global_link_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_global_link_arguments', varargs=str)
+    def func_add_global_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_global_arguments(node, self.build.global_link_args[for_machine], args, kwargs)
+        self.add_global_arguments(node, self.build.global_link_args[for_machine], args[0], kwargs)
 
     @permittedKwargs({'language', 'native'})
-    @stringArgs
-    def func_add_project_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_project_arguments', varargs=str)
+    def func_add_project_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_args[for_machine], args, kwargs)
+        self.add_project_arguments(node, self.build.projects_args[for_machine], args[0], kwargs)
 
     @permittedKwargs({'language', 'native'})
-    @stringArgs
-    def func_add_project_link_arguments(self, node, args, kwargs):
+    @typed_pos_args('add_project_link_arguments', varargs=str)
+    def func_add_project_link_arguments(self, node: mparser.FunctionNode, args: T.Tuple[T.List[str]], kwargs):
         for_machine = self.machine_from_native_kwarg(kwargs)
-        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args, kwargs)
+        self.add_project_arguments(node, self.build.projects_link_args[for_machine], args[0], kwargs)
 
     def warn_about_builtin_args(self, args):
         # -Wpedantic is deliberately not included, since some people want to use it but not use -Wextra
