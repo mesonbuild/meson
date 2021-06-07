@@ -33,17 +33,19 @@ from .factory import DependencyFactory, factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
-    from .factory import TV_DepGenerators
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
-def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+def netcdf_factory(env: 'Environment',
+                   for_machine: 'MachineChoice',
+                   kwargs: T.Dict[str, T.Any],
+                   methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')
     if language not in ('c', 'cpp', 'fortran'):
         raise DependencyException(f'Language {language} is not supported with NetCDF.')
 
-    candidates: 'TV_DepGenerators' = []
+    candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         if language == 'fortran':
@@ -488,9 +490,11 @@ class CursesSystemDependency(ExternalDependency):
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
-                   kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
-    candidates: 'TV_DepGenerators' = []
+def curses_factory(env: 'Environment',
+                   for_machine: 'MachineChoice',
+                   kwargs: T.Dict[str, T.Any],
+                   methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         pkgconfig_files = ['pdcurses', 'ncursesw', 'ncurses', 'curses']
@@ -511,15 +515,17 @@ def curses_factory(env: 'Environment', for_machine: 'MachineChoice',
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.SYSTEM})
-def shaderc_factory(env: 'Environment', for_machine: 'MachineChoice',
-                    kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+def shaderc_factory(env: 'Environment',
+                    for_machine: 'MachineChoice',
+                    kwargs: T.Dict[str, T.Any],
+                    methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     """Custom DependencyFactory for ShaderC.
 
     ShaderC's odd you get three different libraries from the same build
     thing are just easier to represent as a separate function than
     twisting DependencyFactory even more.
     """
-    candidates: 'TV_DepGenerators' = []
+    candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         # ShaderC packages their shared and static libs together

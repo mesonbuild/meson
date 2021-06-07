@@ -24,23 +24,22 @@ from .factory import factory_methods
 from ..environment import detect_cpu_family
 
 if T.TYPE_CHECKING:
-    from .base import Dependency
-    from .factory import TV_DepGenerators
-    from ..compilers import Compiler
-    from ..compilers.compiler import CompilerType
+    from .factory import DependencyGenerator
     from ..environment import Environment, MachineChoice
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.SYSTEM})
-def mpi_factory(env: 'Environment', for_machine: 'MachineChoice',
-                kwargs: T.Dict[str, T.Any], methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
+def mpi_factory(env: 'Environment',
+                for_machine: 'MachineChoice',
+                kwargs: T.Dict[str, T.Any],
+                methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
     language = kwargs.get('language', 'c')
     if language not in {'c', 'cpp', 'fortran'}:
         # OpenMPI doesn't work without any other languages
         return []
 
-    candidates: 'TV_DepGenerators' = []
-    compiler = detect_compiler('mpi', env, for_machine, language)  # type: T.Optional['CompilerType']
+    candidates: T.List['DependencyGenerator'] = []
+    compiler = detect_compiler('mpi', env, for_machine, language)
     if compiler is None:
         return []
     compiler_is_intel = compiler.get_id() in {'intel', 'intel-cl'}

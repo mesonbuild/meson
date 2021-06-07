@@ -25,14 +25,14 @@ from .factory import factory_methods
 
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
-    from .factory import TV_DepGenerators
+    from .factory import DependencyGenerator
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
 def scalapack_factory(env: 'Environment', for_machine: 'MachineChoice',
                       kwargs: T.Dict[str, T.Any],
-                      methods: T.List[DependencyMethods]) -> 'TV_DepGenerators':
-    candidates: 'TV_DepGenerators' = []
+                      methods: T.List[DependencyMethods]) -> T.List['DependencyGenerator']:
+    candidates: T.List['DependencyGenerator'] = []
 
     if DependencyMethods.PKGCONFIG in methods:
         mkl = 'mkl-static-lp64-iomp' if kwargs.get('static', False) else 'mkl-dynamic-lp64-iomp'
