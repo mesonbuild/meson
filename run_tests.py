@@ -19,7 +19,6 @@ import sys
 import time
 import shutil
 import subprocess
-import tempfile
 import platform
 import argparse
 from io import StringIO
@@ -301,7 +300,6 @@ def print_system_info():
 def main():
     print_system_info()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cov', action='store_true')
     parser.add_argument('--backend', default=None, dest='backend',
                         choices=backendlist)
     parser.add_argument('--cross', default=[], dest='cross', action='append')
@@ -309,13 +307,6 @@ def main():
     parser.add_argument('--failfast', action='store_true')
     parser.add_argument('--no-unittests', action='store_true', default=False)
     (options, _) = parser.parse_known_args()
-    # Enable coverage early...
-    enable_coverage = options.cov
-    if enable_coverage:
-        os.makedirs('.coverage', exist_ok=True)
-        sys.argv.remove('--cov')
-        import coverage
-        coverage.process_startup()
     returncode = 0
     backend, _ = guess_backend(options.backend, shutil.which('msbuild'))
     no_unittests = options.no_unittests
@@ -339,52 +330,41 @@ def main():
     # Run tests
     # Can't pass arguments to unit tests, so set the backend to use in the environment
     env = os.environ.copy()
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # Enable coverage on all subsequent processes.
-        if enable_coverage:
-            Path(temp_dir, 'usercustomize.py').open('w').write(
-                'import coverage\n'
-                'coverage.process_startup()\n')
-            env['COVERAGE_PROCESS_START'] = '.coveragerc'
-            if 'PYTHONPATH' in env:
-                env['PYTHONPATH'] = os.pathsep.join([temp_dir, env.get('PYTHONPATH')])
-            else:
-                env['PYTHONPATH'] = temp_dir
-        if not options.cross:
-            cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
+    if not options.cross:
+        cmd = mesonlib.python_command + ['run_meson_command_tests.py', '-v']
+        if options.failfast:
+            cmd += ['--failfast']
+        returncode += subprocess.call(cmd, env=env)
+        if options.failfast and returncode != 0:
+            return returncode
+        if no_unittests:
+            print('Skipping all unit tests.')
+            print(flush=True)
+            returncode = 0
+        else:
+            print(mlog.bold('Running unittests.'))
+            print(flush=True)
+            cmd = mesonlib.python_command + ['run_unittests.py', '--backend=' + backend.name, '-v']
             if options.failfast:
                 cmd += ['--failfast']
             returncode += subprocess.call(cmd, env=env)
             if options.failfast and returncode != 0:
                 return returncode
-            if no_unittests:
-                print('Skipping all unit tests.')
-                print(flush=True)
-                returncode = 0
-            else:
-                print(mlog.bold('Running unittests.'))
-                print(flush=True)
-                cmd = mesonlib.python_command + ['run_unittests.py', '--backend=' + backend.name, '-v']
-                if options.failfast:
-                    cmd += ['--failfast']
-                returncode += subprocess.call(cmd, env=env)
-                if options.failfast and returncode != 0:
-                    return returncode
-            cmd = mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:]
+        cmd = mesonlib.python_command + ['run_project_tests.py'] + sys.argv[1:]
+        returncode += subprocess.call(cmd, env=env)
+    else:
+        cross_test_args = mesonlib.python_command + ['run_cross_test.py']
+        for cf in options.cross:
+            print(mlog.bold(f'Running {cf} cross tests.'))
+            print(flush=True)
+            cmd = cross_test_args + ['cross/' + cf]
+            if options.failfast:
+                cmd += ['--failfast']
+            if options.cross_only:
+                cmd += ['--cross-only']
             returncode += subprocess.call(cmd, env=env)
-        else:
-            cross_test_args = mesonlib.python_command + ['run_cross_test.py']
-            for cf in options.cross:
-                print(mlog.bold(f'Running {cf} cross tests.'))
-                print(flush=True)
-                cmd = cross_test_args + ['cross/' + cf]
-                if options.failfast:
-                    cmd += ['--failfast']
-                if options.cross_only:
-                    cmd += ['--cross-only']
-                returncode += subprocess.call(cmd, env=env)
-                if options.failfast and returncode != 0:
-                    return returncode
+            if options.failfast and returncode != 0:
+                return returncode
     return returncode
 
 if __name__ == '__main__':
