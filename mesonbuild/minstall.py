@@ -229,6 +229,9 @@ def restore_selinux_contexts() -> None:
         # is ignored quietly.
         return
 
+    if os.environ.get('DESTDIR'):
+        return
+
     if not shutil.which('restorecon'):
         # If we don't have restorecon, failure is ignored quietly.
         return
@@ -237,13 +240,11 @@ def restore_selinux_contexts() -> None:
         # If the list of files is empty, do not try to call restorecon.
         return
 
-    with subprocess.Popen(['restorecon', '-F', '-f-', '-0'],
-                          stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
-        out, err = proc.communicate(input=b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0')
-        if proc.returncode != 0 and not os.environ.get('DESTDIR'):
-            print('Failed to restore SELinux context of installed files...',
-                  'Standard output:', out.decode(),
-                  'Standard error:', err.decode(), sep='\n')
+    proc, out, err = Popen_safe(['restorecon', '-F', '-f-', '-0'], (b'\0'.join(os.fsencode(f) for f in selinux_updates) + b'\0').decode())
+    if proc.returncode != 0 :
+        print('Failed to restore SELinux context of installed files...',
+              'Standard output:', out,
+              'Standard error:', err, sep='\n')
 
 
 def get_destdir_path(destdir: str, fullprefix: str, path: str) -> str:
