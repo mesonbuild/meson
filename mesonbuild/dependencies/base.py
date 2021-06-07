@@ -22,7 +22,7 @@ from enum import Enum
 
 from .. import mlog
 from ..compilers import clib_langs
-from ..mesonlib import MachineChoice, MesonException
+from ..mesonlib import MachineChoice, MesonException, File
 from ..mesonlib import version_compare_many
 from ..interpreterbase import FeatureDeprecated
 
@@ -83,7 +83,7 @@ class Dependency:
         # Raw -L and -l arguments without manual library searching
         # If None, self.link_args will be used
         self.raw_link_args: T.Optional[T.List[str]] = None
-        self.sources: T.List[str] = []
+        self.sources: T.List['FileOrString'] = []
         self.methods = process_method_kw(self.get_methods(), kwargs)
         self.include_type = self._process_include_type_kw(kwargs)
         self.ext_deps: T.List[Dependency] = []
@@ -138,7 +138,7 @@ class Dependency:
     def found(self) -> bool:
         return self.is_found
 
-    def get_sources(self) -> T.List[str]:
+    def get_sources(self) -> T.List['FileOrString']:
         """Source files that need to be added to the target.
         As an example, gtest-all.cc when using GTest."""
         return self.sources
@@ -218,7 +218,7 @@ class Dependency:
 class InternalDependency(Dependency):
     def __init__(self, version: str, incdirs: T.List[str], compile_args: T.List[str],
                  link_args: T.List[str], libraries: T.List['BuildTarget'],
-                 whole_libraries: T.List['BuildTarget'], sources: T.List[str],
+                 whole_libraries: T.List['BuildTarget'], sources: T.List['FileOrString'],
                  ext_deps: T.List[Dependency], variables: T.Dict[str, T.Any]):
         super().__init__('internal', {})
         self.version = version

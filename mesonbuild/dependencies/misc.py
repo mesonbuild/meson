@@ -23,6 +23,7 @@ import typing as T
 from .. import mlog
 from .. import mesonlib
 from ..environment import detect_cpu_family
+from ..compilers import CLikeCompiler
 
 from .base import DependencyException, DependencyMethods, ExternalDependency
 from .cmake import CMakeDependency
@@ -33,7 +34,6 @@ from .factory import DependencyFactory, factory_methods
 if T.TYPE_CHECKING:
     from ..environment import Environment, MachineChoice
     from .factory import TV_DepGenerators
-    from .base import DependencyType, Dependency  # noqa: F401
 
 
 @factory_methods({DependencyMethods.PKGCONFIG, DependencyMethods.CMAKE})
@@ -43,7 +43,7 @@ def netcdf_factory(env: 'Environment', for_machine: 'MachineChoice',
     if language not in ('c', 'cpp', 'fortran'):
         raise DependencyException(f'Language {language} is not supported with NetCDF.')
 
-    candidates = []  # type: T.List['DependencyType']
+    candidates: 'TV_DepGenerators' = []
 
     if DependencyMethods.PKGCONFIG in methods:
         if language == 'fortran':
@@ -73,7 +73,7 @@ class OpenMPDependency(ExternalDependency):
         '199810': '1.0',
     }
 
-    def __init__(self, environment, kwargs):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         language = kwargs.get('language')
         super().__init__('openmp', environment, kwargs, language=language)
         self.is_found = False
@@ -112,7 +112,7 @@ class OpenMPDependency(ExternalDependency):
 
 
 class ThreadDependency(ExternalDependency):
-    def __init__(self, name: str, environment, kwargs):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
         self.is_found = True
         # Happens if you are using a language with threads
@@ -125,12 +125,12 @@ class ThreadDependency(ExternalDependency):
             self.link_args = self.clib_compiler.thread_link_flags(environment)
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.AUTO, DependencyMethods.CMAKE]
 
 
 class BlocksDependency(ExternalDependency):
-    def __init__(self, environment, kwargs):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__('blocks', environment, kwargs)
         self.name = 'blocks'
         self.is_found = False
@@ -163,7 +163,7 @@ class BlocksDependency(ExternalDependency):
 
 
 class Python3DependencySystem(ExternalDependency):
-    def __init__(self, name, environment, kwargs):
+    def __init__(self, name: str, environment: 'Environment', kwargs: T.Dict[str, T.Any]) -> None:
         super().__init__(name, environment, kwargs)
 
         if not environment.machines.matches_build_machine(self.for_machine):
@@ -178,7 +178,7 @@ class Python3DependencySystem(ExternalDependency):
         self._find_libpy3_windows(environment)
 
     @staticmethod
-    def get_windows_python_arch():
+    def get_windows_python_arch() -> T.Optional[str]:
         pyplat = sysconfig.get_platform()
         if pyplat == 'mingw':
             pycc = sysconfig.get_config_var('CC')
@@ -197,7 +197,7 @@ class Python3DependencySystem(ExternalDependency):
         mlog.log(f'Unknown Windows Python platform {pyplat!r}')
         return None
 
-    def get_windows_link_args(self):
+    def get_windows_link_args(self) -> T.Optional[T.List[str]]:
         pyplat = sysconfig.get_platform()
         if pyplat.startswith('win'):
             vernum = sysconfig.get_config_var('py_version_nodot')
@@ -206,7 +206,7 @@ class Python3DependencySystem(ExternalDependency):
             else:
                 comp = self.get_compiler()
                 if comp.id == "gcc":
-                    libpath = f'python{vernum}.dll'
+                    libpath = Path(f'python{vernum}.dll')
                 else:
                     libpath = Path('libs') / f'python{vernum}.lib'
             lib = Path(sysconfig.get_config_var('base')) / libpath
@@ -221,7 +221,7 @@ class Python3DependencySystem(ExternalDependency):
             return None
         return [str(lib)]
 
-    def _find_libpy3_windows(self, env):
+    def _find_libpy3_windows(self, env: 'Environment') -> None:
         '''
         Find python3 libraries on Windows and also verify that the arch matches
         what we are building for.
@@ -263,7 +263,7 @@ class Python3DependencySystem(ExternalDependency):
         self.is_found = True
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         if mesonlib.is_windows():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.SYSCONFIG]
         elif mesonlib.is_osx():
@@ -271,7 +271,7 @@ class Python3DependencySystem(ExternalDependency):
         else:
             return [DependencyMethods.PKGCONFIG]
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return 'sysconfig'
 
 class PcapDependencyConfigTool(ConfigToolDependency):
@@ -288,19 +288,20 @@ class PcapDependencyConfigTool(ConfigToolDependency):
         self.version = self.get_pcap_lib_version()
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
-    def get_pcap_lib_version(self):
+    def get_pcap_lib_version(self) -> T.Optional[str]:
         # Since we seem to need to run a program to discover the pcap version,
         # we can't do that when cross-compiling
         # FIXME: this should be handled if we have an exe_wrapper
         if not self.env.machines.matches_build_machine(self.for_machine):
             return None
 
+        assert isinstance(self.clib_compiler, CLikeCompiler)
         v = self.clib_compiler.get_return_value('pcap_lib_version', 'string',
                                                 '#include <pcap.h>', self.env, [], [self])
-        v = re.sub(r'libpcap version ', '', v)
+        v = re.sub(r'libpcap version ', '', str(v))
         v = re.sub(r' -- Apple version.*$', '', v)
         return v
 
@@ -318,7 +319,7 @@ class CupsDependencyConfigTool(ConfigToolDependency):
         self.link_args = self.get_config_value(['--ldflags', '--libs'], 'link_args')
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         if mesonlib.is_osx():
             return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL, DependencyMethods.EXTRAFRAMEWORK, DependencyMethods.CMAKE]
         else:
@@ -338,7 +339,7 @@ class LibWmfDependencyConfigTool(ConfigToolDependency):
         self.link_args = self.get_config_value(['--libs'], 'link_args')
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
@@ -356,7 +357,7 @@ class LibGCryptDependencyConfigTool(ConfigToolDependency):
         self.version = self.get_config_value(['--version'], 'version')[0]
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
@@ -374,13 +375,13 @@ class GpgmeDependencyConfigTool(ConfigToolDependency):
         self.version = self.get_config_value(['--version'], 'version')[0]
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.PKGCONFIG, DependencyMethods.CONFIG_TOOL]
 
 
 class ShadercDependency(ExternalDependency):
 
-    def __init__(self, environment, kwargs):
+    def __init__(self, environment: 'Environment', kwargs: T.Dict[str, T.Any]):
         super().__init__('shaderc', environment, kwargs)
 
         static_lib = 'shaderc_combined'
@@ -403,11 +404,11 @@ class ShadercDependency(ExternalDependency):
 
                 break
 
-    def log_tried(self):
+    def log_tried(self) -> str:
         return 'system'
 
     @staticmethod
-    def get_methods():
+    def get_methods() -> T.List[DependencyMethods]:
         return [DependencyMethods.SYSTEM, DependencyMethods.PKGCONFIG]
 
 
@@ -518,7 +519,7 @@ def shaderc_factory(env: 'Environment', for_machine: 'MachineChoice',
     thing are just easier to represent as a separate function than
     twisting DependencyFactory even more.
     """
-    candidates = []  # type: T.List['DependencyType']
+    candidates: 'TV_DepGenerators' = []
 
     if DependencyMethods.PKGCONFIG in methods:
         # ShaderC packages their shared and static libs together
