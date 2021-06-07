@@ -216,7 +216,7 @@ this approach, and no new dependencies should do this.
 # of:
 # - An ExternalDependency subclass
 # - A DependencyFactory object
-# - A callable with a signature of (Environment, MachineChoice, Dict[str, Any]) -> List[Callable[[], DependencyType]]
+# - A callable with a signature of (Environment, MachineChoice, Dict[str, Any]) -> List[Callable[[], ExternalDependency]]
 packages.update({
     # From dev:
     'gtest': gtest_factory,
