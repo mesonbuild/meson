@@ -30,7 +30,7 @@ if T.TYPE_CHECKING:
     from ..compilers.compilers import Compiler
     from ..environment import Environment
     from ..build import BuildTarget
-    DependencyType = T.TypeVar('DependencyType', bound='Dependency')
+    from ..mesonlib import FileOrString
 
 
 class DependencyException(MesonException):
