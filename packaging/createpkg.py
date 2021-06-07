@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ET
 sys.path.append(os.getcwd())
 from mesonbuild import coredata
 
-from packaging.createmsi import get_modules
+from createmsi import get_modules
 
 class PkgGenerator:
 
