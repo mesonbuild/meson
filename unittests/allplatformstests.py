@@ -538,7 +538,7 @@ class AllPlatformTests(BasePlatformTests):
 
     def test_implicit_forcefallback(self):
         testdir = os.path.join(self.unit_test_dir, '96 implicit force fallback')
-        with self.assertRaises(subprocess.CalledProcessError) as cm:
+        with self.assertRaises(subprocess.CalledProcessError):
             self.init(testdir)
         self.init(testdir, extra_args=['--wrap-mode=forcefallback'])
         self.new_builddir()
@@ -3605,7 +3605,7 @@ class AllPlatformTests(BasePlatformTests):
         cmakefile = Path(testdir) / 'subprojects' / 'sub2' / 'CMakeLists.txt'
         self.init(testdir)
         self.build()
-        with cmakefile.open('a', encoding='utf-8') as f:
+        with cmakefile.open('a', encoding='utf-8'):
             os.utime(str(cmakefile))
         self.assertReconfiguredBuildIsNoop()
 
