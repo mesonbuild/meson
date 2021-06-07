@@ -68,13 +68,13 @@ jobs:
       - name: Run pip
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-xdist
+          python3 -m pip --disable-pip-version-check install gcovr jsonschema pefile pytest pytest-xdist coverage codecov
         shell: C:\cygwin\bin\bash.exe --noprofile --norc -o igncr -eo pipefail '{0}'
 
       - name: Run tests
         run: |
           export PATH=/usr/bin:/usr/local/bin:$(cygpath ${SYSTEMROOT})/system32
-          python3 run_tests.py --backend=ninja
+          python3 ./tools/run_with_cov.py run_tests.py --backend=ninja
         env:
           # Cygwin's static boost installation is broken (some static library
           # variants such as boost_thread are not present)
@@ -87,3 +87,6 @@ jobs:
           path: meson-test-run.*
         # test log should be saved on failure
         if: ${{ !cancelled() }}
+
+      - name: Upload coverage report
+        run: ./ci/upload_cov.sh "${{ matrix.NAME }}"

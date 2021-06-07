@@ -9,6 +9,7 @@ trigger:
 
 variables:
   CI: 1
+  SOURCE_VERSION: $(Build.SourceVersion)
 
 jobs:
 
