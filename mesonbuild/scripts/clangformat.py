@@ -60,7 +60,7 @@ def clangformat(exelist: T.List[str], srcdir: Path, builddir: Path, check: bool)
     ignore.extend([str(srcdir / p) for p in patterns])
     suffixes = set(lang_suffixes['c']).union(set(lang_suffixes['cpp']))
     suffixes.add('h')
-    suffixes = set([f'.{s}' for s in suffixes])
+    suffixes = {f'.{s}' for s in suffixes}
     futures = []
     returncode = 0
     with ThreadPoolExecutor() as e:
