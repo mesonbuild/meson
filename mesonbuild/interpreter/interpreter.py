@@ -1193,8 +1193,9 @@ external dependencies (including libraries) must go to "dependencies".''')
         args = [a.lower() for a in args]
         langs = set(self.coredata.compilers[for_machine].keys())
         langs.update(args)
-        if 'vala' in langs and 'c' not in langs:
-            FeatureNew('Adding Vala language without C', '0.59.0').use(self.subproject)
+        if ('vala' in langs or 'cython' in langs) and 'c' not in langs:
+            if 'vala' in langs:
+                FeatureNew.single_use('Adding Vala language without C', '0.59.0', self.subproject)
             args.append('c')
 
         success = True
