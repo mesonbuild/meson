@@ -1,7 +1,7 @@
 ---
 title: Cython
 short-description: Support for Cython in Meson
-...
+---
 
 # Cython
 
@@ -22,8 +22,8 @@ extension_module method:
 ```meson
 project('my project', 'cython')
 
-py = import('python')
-dep_py3 = py.dependency()
+py = import('python').find_installation()
+dep_py = py.dependency()
 
 py.extension_module(
     'foo',
