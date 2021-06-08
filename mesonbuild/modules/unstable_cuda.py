@@ -19,18 +19,18 @@ from ..mesonlib import version_compare
 from ..interpreter import CompilerHolder
 from ..compilers import CudaCompiler
 
-from . import ExtensionModule
+from . import ModuleObject
 
 from ..interpreterbase import (
     flatten, permittedKwargs, noKwargs,
     InvalidArguments, FeatureNew
 )
 
-class CudaModule(ExtensionModule):
+class CudaModule(ModuleObject):
 
     @FeatureNew('CUDA module', '0.50.0')
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.methods.update({
             "min_driver_version": self.min_driver_version,
             "nvcc_arch_flags":    self.nvcc_arch_flags,
