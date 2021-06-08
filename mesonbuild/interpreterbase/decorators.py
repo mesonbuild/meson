@@ -290,13 +290,19 @@ class KwargInfo(T.Generic[_T]):
         different type. This is intended for cases such as the meson DSL using a
         string, but the implementation using an Enum. This should not do
         validation, just converstion.
+    :param deprecated_values: a dictionary mapping a value to the version of
+        meson it was deprecated in.
+    :param since: a dictionary mapping a value to the version of meson it was
+        added in.
     """
 
     def __init__(self, name: str, types: T.Union[T.Type[_T], T.Tuple[T.Type[_T], ...], ContainerTypeInfo],
                  *, required: bool = False, listify: bool = False,
                  default: T.Optional[_T] = None,
                  since: T.Optional[str] = None,
+                 since_values: T.Optional[T.Dict[str, str]] = None,
                  deprecated: T.Optional[str] = None,
+                 deprecated_values: T.Optional[T.Dict[str, str]] = None,
                  validator: T.Optional[T.Callable[[_T], T.Optional[str]]] = None,
                  convertor: T.Optional[T.Callable[[_T], TYPE_nvar]] = None):
         self.name = name
@@ -304,8 +310,10 @@ class KwargInfo(T.Generic[_T]):
         self.required = required
         self.listify = listify
         self.default = default
+        self.since_values = since_values
         self.since = since
         self.deprecated = deprecated
+        self.deprecated_values = deprecated_values
         self.validator = validator
         self.convertor = convertor
 
@@ -368,6 +376,28 @@ def typed_kwargs(name: str, *types: KwargInfo) -> T.Callable[..., T.Any]:
                         msg = info.validator(value)
                         if msg is not None:
                             raise InvalidArguments(f'{name} keyword argument "{info.name}" {msg}')
+
+                    warn: bool
+                    if info.deprecated_values is not None:
+                        for n, version in info.deprecated_values.items():
+                            if isinstance(value, (dict, list)):
+                                warn = n in value
+                            else:
+                                warn = n == value
+
+                            if warn:
+                                FeatureDeprecated.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject)
+
+                    if info.since_values is not None:
+                        for n, version in info.since_values.items():
+                            if isinstance(value, (dict, list)):
+                                warn = n in value
+                            else:
+                                warn = n == value
+
+                            if warn:
+                                FeatureNew.single_use(f'"{name}" keyword argument "{info.name}" value "{n}"', version, subproject)
+
                 elif info.required:
                     raise InvalidArguments(f'{name} is missing required keyword argument "{info.name}"')
                 else:

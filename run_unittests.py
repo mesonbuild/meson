@@ -1655,6 +1655,45 @@ class InternalTests(unittest.TestCase):
 
         _(None, mock.Mock(), tuple(), dict(native=True))
 
+    @mock.patch.dict(mesonbuild.mesonlib.project_meson_versions, {'': '1.0'})
+    def test_typed_kwarg_since_values(self) -> None:
+        @typed_kwargs(
+            'testfunc',
+            KwargInfo('input', ContainerTypeInfo(list, str), listify=True, default=[], deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+            KwargInfo('output', ContainerTypeInfo(dict, str), default={}, deprecated_values={'foo': '0.9'}, since_values={'bar': '1.1'}),
+            KwargInfo(
+                'mode', str,
+                validator=lambda x: 'Should be one of "clean", "build", "rebuild"' if x not in {'clean', 'build', 'rebuild', 'deprecated', 'since'} else None,
+                deprecated_values={'deprecated': '1.0'},
+                since_values={'since': '1.1'}),
+        )
+        def _(obj, node, args: T.Tuple, kwargs: T.Dict[str, str]) -> None:
+            pass
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'input': ['foo']})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "input" value "foo".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'input': ['bar']})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "input" value "bar".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'output': {'foo': 'a'}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '0.9': "testfunc" keyword argument "output" value "foo".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'output': {'bar': 'b'}})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "output" value "bar".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'mode': 'deprecated'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*deprecated since '1.0': "testfunc" keyword argument "mode" value "deprecated".*""")
+
+        with mock.patch('sys.stdout', io.StringIO()) as out:
+            _(None, mock.Mock(subproject=''), [], {'mode': 'since'})
+            self.assertRegex(out.getvalue(), r"""WARNING:.Project targeting '1.0'.*introduced in '1.1': "testfunc" keyword argument "mode" value "since".*""")
+
 
 @unittest.skipIf(is_tarball(), 'Skipping because this is a tarball release')
 class DataTests(unittest.TestCase):
