@@ -70,6 +70,7 @@ if T.TYPE_CHECKING:
 
         extra_args: T.List[str]
         backend: str
+        num_workers: int
         failfast: bool
         no_unittests: bool
         only: T.List[str]
@@ -1074,11 +1075,14 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
     return gathered_tests
 
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
-              log_name_base: str, failfast: bool,
-              extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
+              log_name_base: str,
+              failfast: bool,
+              extra_args: T.List[str],
+              use_tmp: bool,
+              num_workers: int) -> T.Tuple[int, int, int]:
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
-        return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp, lf)
+        return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp, num_workers, lf)
 
 class TestStatus(Enum):
     OK = normal_green(' [SUCCESS] ')
@@ -1135,6 +1139,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                failfast: bool,
                extra_args: T.List[str],
                use_tmp: bool,
+               num_workers: int,
                logfile: T.TextIO) -> T.Tuple[int, int, int]:
     global stop, host_c_compiler
     xmlname = log_name_base + '.xml'
@@ -1146,20 +1151,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     failing_tests = 0
     skipped_tests = 0
 
-    try:
-        # This fails in some CI environments for unknown reasons.
-        num_workers = multiprocessing.cpu_count()
-    except Exception as e:
-        print('Could not determine number of CPUs due to the following reason:' + str(e))
-        print('Defaulting to using only one process')
-        num_workers = 1
-    # Due to Ninja deficiency, almost 50% of build time
-    # is spent waiting. Do something useful instead.
-    #
-    # Remove this once the following issue has been resolved:
-    # https://github.com/mesonbuild/meson/pull/2082
-    if not mesonlib.is_windows():  # twice as fast on Windows by *not* multiplying by 2.
-        num_workers *= 2
+    print(f'\nRunning tests with {num_workers} workers')
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
     futures: T.List[RunFutureUnion] = []
@@ -1489,10 +1481,28 @@ def clear_transitive_files() -> None:
 
 if __name__ == '__main__':
     setup_vsenv()
+
+    try:
+        # This fails in some CI environments for unknown reasons.
+        num_workers = multiprocessing.cpu_count()
+    except Exception as e:
+        print('Could not determine number of CPUs due to the following reason:' + str(e))
+        print('Defaulting to using only two processes')
+        num_workers = 2
+    # Due to Ninja deficiency, almost 50% of build time
+    # is spent waiting. Do something useful instead.
+    #
+    # Remove this once the following issue has been resolved:
+    # https://github.com/mesonbuild/meson/pull/2082
+    if not mesonlib.is_windows():  # twice as fast on Windows by *not* multiplying by 2.
+        num_workers *= 2
+
     parser = argparse.ArgumentParser(description="Run the test suite of Meson.")
     parser.add_argument('extra_args', nargs='*',
                         help='arguments that are passed directly to Meson (remember to have -- before these).')
     parser.add_argument('--backend', dest='backend', choices=backendlist)
+    parser.add_argument('-j', dest='num_workers', type=int, default=num_workers,
+                        help=f'Maximum number of parallel tests (default {num_workers})')
     parser.add_argument('--failfast', action='store_true',
                         help='Stop running if test case fails')
     parser.add_argument('--no-unittests', action='store_true',
@@ -1532,7 +1542,8 @@ if __name__ == '__main__':
             only[i].append('')
     try:
         all_tests = detect_tests_to_run(only, options.use_tmpdir)
-        (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
+        res = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir, options.num_workers)
+        (passing_tests, failing_tests, skipped_tests) = res
     except StopException:
         pass
     print()
