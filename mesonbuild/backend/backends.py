@@ -159,7 +159,7 @@ class ExecutableSerialisation:
         self.subproject = ''
 
 class TestSerialisation:
-    def __init__(self, name: str, project: str, suite: str, fname: T.List[str],
+    def __init__(self, name: str, project: str, suite: T.List[str], fname: T.List[str],
                  is_cross_built: bool, exe_wrapper: T.Optional[programs.ExternalProgram],
                  needs_exe_wrapper: bool, is_parallel: bool, cmd_args: T.List[str],
                  env: build.EnvironmentVariables, should_fail: bool,
