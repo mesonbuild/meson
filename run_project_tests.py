@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from concurrent.futures import ProcessPoolExecutor, CancelledError, Future
+from concurrent.futures import ProcessPoolExecutor, CancelledError
 from enum import Enum
 from io import StringIO
 from pathlib import Path, PurePath
@@ -44,7 +44,7 @@ from mesonbuild import mlog
 from mesonbuild import mtest
 from mesonbuild.build import ConfigurationData
 from mesonbuild.mesonlib import MachineChoice, Popen_safe, TemporaryDirectoryWinProof
-from mesonbuild.mlog import bold, green, red, yellow
+from mesonbuild.mlog import blue, bold, cyan, green, red, yellow, normal_green
 from mesonbuild.coredata import backendlist, version as meson_version
 from mesonbuild.mesonmain import setup_vsenv
 from run_tests import get_fake_options, run_configure, get_meson_script
@@ -56,6 +56,7 @@ if T.TYPE_CHECKING:
     from types import FrameType
     from mesonbuild.environment import Environment
     from mesonbuild._typing import Protocol
+    from concurrent.futures import Future
 
     class CompilerArgumentType(Protocol):
         cross_file: str
@@ -234,10 +235,13 @@ class TestDef:
     def __repr__(self) -> str:
         return '<{}: {:<48} [{}: {}] -- {}>'.format(type(self).__name__, str(self.path), self.name, self.args, self.skip)
 
-    def display_name(self) -> str:
+    def display_name(self) -> mlog.TV_LoggableList:
+        # Remove the redundant 'test cases' part
+        section, id = self.path.parts[1:3]
+        res: mlog.TV_LoggableList = [f'{section}:', bold(id)]
         if self.name:
-            return f'{self.path.as_posix()}   ({self.name})'
-        return self.path.as_posix()
+            res += [f'   ({self.name})']
+        return res
 
     def __lt__(self, other: object) -> bool:
         if isinstance(other, TestDef):
@@ -1076,6 +1080,49 @@ def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
         return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp, lf)
 
+class TestStatus(Enum):
+    OK = normal_green(' [SUCCESS] ')
+    SKIP = yellow(' [SKIPPED] ')
+    ERROR = red('  [ERROR]  ')
+    CANCELED = cyan('[CANCELED] ')
+    RUNNING = blue(' [RUNNING] ')  # Should never be actually printed
+    LOG = bold('   [LOG]   ')      # Should never be actually printed
+
+class TestRunFuture:
+    def __init__(self, name: str, testdef: TestDef, future: 'Future[T.Optional[TestResult]]') -> None:
+        super().__init__()
+        self.name = name
+        self.testdef = testdef
+        self.future = future
+        self.status = TestStatus.RUNNING
+
+    @property
+    def result(self) -> T.Optional[TestResult]:
+        return self.future.result()
+
+    def log(self) -> None:
+        without_install = '' if install_commands else '(without install)'
+        print(self.status.value, without_install, *self.testdef.display_name())
+
+    def update_log(self, new_status: TestStatus) -> None:
+        self.status = new_status
+        self.log()
+
+    def cancel(self) -> None:
+        if self.future.cancel():
+            self.status = TestStatus.CANCELED
+
+class LogRunFuture:
+    def __init__(self, msgs: mlog.TV_LoggableList) -> None:
+        self.msgs = msgs
+        self.status = TestStatus.LOG
+
+    def log(self) -> None:
+        print(*self.msgs, sep='')
+
+    def cancel(self) -> None:
+        pass
+
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                log_name_base: str,
                failfast: bool,
@@ -1108,15 +1155,16 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         num_workers *= 2
     executor = ProcessPoolExecutor(max_workers=num_workers)
 
+    futures: T.List[T.Union[TestRunFuture, LogRunFuture]] = []
+
+    # First, collect and start all tests and also queue log messages
     for name, test_cases, skipped in all_tests:
         current_suite = ET.SubElement(junit_root, 'testsuite', {'name': name, 'tests': str(len(test_cases))})
-        print()
         if skipped:
-            print(bold('Not running %s tests.' % name))
+            futures += [LogRunFuture(['\n', bold(f'Not running {name} tests.'), '\n'])]
         else:
-            print(bold('Running %s tests.' % name))
-        print()
-        futures: T.List[T.Tuple[str, TestDef, Future[T.Optional[TestResult]]]] = []
+            futures += [LogRunFuture(['\n', bold(f'Running {name} tests.'), '\n'])]
+
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
@@ -1134,76 +1182,100 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
 
             t.skip = skipped or t.skip
             result_future = executor.submit(run_test, t, extra_args + suite_args + t.args, should_fail, use_tmp)
-            futures.append((testname, t, result_future))
-        for (testname, t, result_future) in futures:
-            sys.stdout.flush()
-            try:
-                result = result_future.result()
-            except CancelledError:
-                continue
-            if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.path.as_posix()))):
-                print(yellow('Skipping:'), t.display_name())
-                current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
-                                                                         'classname': name})
-                ET.SubElement(current_test, 'skipped', {})
-                skipped_tests += 1
+            futures += [TestRunFuture(testname, t, result_future)]
+
+    # Ensure we only cancel once
+    tests_canceled = False
+
+    # Wait and handle the test results and print the stored log output
+    for f in futures:
+        # Just a log entry to print something to stdout
+        sys.stdout.flush()
+        if isinstance(f, LogRunFuture):
+            f.log()
+            continue
+
+        # Acutal Test run
+        testname = f.name
+        t        = f.testdef
+        try:
+            result = f.result
+        except (CancelledError, KeyboardInterrupt):
+            f.status = TestStatus.CANCELED
+
+        if stop and not tests_canceled:
+            num_running = sum([1 if f.status is TestStatus.RUNNING  else 0 for f in futures])
+            for f2 in futures:
+                f2.cancel()
+            executor.shutdown()
+            num_canceled = sum([1 if f.status is TestStatus.CANCELED else 0 for f in futures])
+            print(f'\nCanceled {num_canceled} out of {num_running} running tests.')
+            print(f'Finishing the remaining {num_running - num_canceled} tests.\n')
+            tests_canceled = True
+
+        # Handle canceled tests
+        if f.status is TestStatus.CANCELED:
+            f.log()
+            continue
+
+        # Handle skipped tests
+        if (result is None) or (('MESON_SKIP_TEST' in result.stdo) and (skippable(name, t.path.as_posix()))):
+            f.update_log(TestStatus.SKIP)
+            current_test = ET.SubElement(current_suite, 'testcase', {'name': testname, 'classname': name})
+            ET.SubElement(current_test, 'skipped', {})
+            skipped_tests += 1
+            continue
+
+        # Handle Failed tests
+        if result.msg != '':
+            f.update_log(TestStatus.ERROR)
+            print(bold('During:'), result.step.name)
+            print(bold('Reason:'), result.msg)
+            failing_tests += 1
+            if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
+                # For configure failures, instead of printing stdout,
+                # print the meson log if available since it's a superset
+                # of stdout and often has very useful information.
+                failing_logs.append(result.mlog)
+            elif under_ci:
+                # Always print the complete meson log when running in
+                # a CI. This helps debugging issues that only occur in
+                # a hard to reproduce environment
+                failing_logs.append(result.mlog)
+                failing_logs.append(result.stdo)
             else:
-                without_install = "" if len(install_commands) > 0 else " (without install)"
-                if result.msg != '':
-                    print(red(f'Failed test{without_install} during {result.step.name}: {t.display_name()!r}'))
-                    print('Reason:', result.msg)
-                    failing_tests += 1
-                    if result.step == BuildStep.configure and result.mlog != no_meson_log_msg:
-                        # For configure failures, instead of printing stdout,
-                        # print the meson log if available since it's a superset
-                        # of stdout and often has very useful information.
-                        failing_logs.append(result.mlog)
-                    elif under_ci:
-                        # Always print the complete meson log when running in
-                        # a CI. This helps debugging issues that only occur in
-                        # a hard to reproduce environment
-                        failing_logs.append(result.mlog)
-                        failing_logs.append(result.stdo)
-                    else:
-                        failing_logs.append(result.stdo)
-                    for cmd_res in result.cicmds:
-                        failing_logs.append(cmd_res)
-                    failing_logs.append(result.stde)
-                    if failfast:
-                        print("Cancelling the rest of the tests")
-                        for (_, _, res) in futures:
-                            res.cancel()
-                else:
-                    print(f'Succeeded test{without_install}: {t.display_name()}')
-                    passing_tests += 1
-                conf_time += result.conftime
-                build_time += result.buildtime
-                test_time += result.testtime
-                total_time = conf_time + build_time + test_time
-                log_text_file(logfile, t.path, result)
-                current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
-                                                                         'classname': name,
-                                                                         'time': '%.3f' % total_time})
-                if result.msg != '':
-                    ET.SubElement(current_test, 'failure', {'message': result.msg})
-                stdoel = ET.SubElement(current_test, 'system-out')
-                stdoel.text = result.stdo
-                stdeel = ET.SubElement(current_test, 'system-err')
-                stdeel.text = result.stde
+                failing_logs.append(result.stdo)
+            for cmd_res in result.cicmds:
+                failing_logs.append(cmd_res)
+            failing_logs.append(result.stde)
+            if failfast:
+                print("Cancelling the rest of the tests")
+                for f in futures:
+                    f.cancel()
+        else:
+            f.update_log(TestStatus.OK)
+            passing_tests += 1
+        conf_time += result.conftime
+        build_time += result.buildtime
+        test_time += result.testtime
+        total_time = conf_time + build_time + test_time
+        log_text_file(logfile, t.path, result)
+        current_test = ET.SubElement(
+            current_suite,
+            'testcase',
+            {'name': testname, 'classname': name, 'time': '%.3f' % total_time}
+        )
+        if result.msg != '':
+            ET.SubElement(current_test, 'failure', {'message': result.msg})
+        stdoel = ET.SubElement(current_test, 'system-out')
+        stdoel.text = result.stdo
+        stdeel = ET.SubElement(current_test, 'system-err')
+        stdeel.text = result.stde
 
-                if stop:
-                    print("Aborting..")
-                    for f in futures:
-                        f[2].cancel()
-                    executor.shutdown()
-                    raise StopException()
-
-            if failfast and failing_tests > 0:
-                break
-
-    print("\nTotal configuration time: %.2fs" % conf_time)
-    print("Total build time: %.2fs" % build_time)
-    print("Total test time: %.2fs" % test_time)
+    print()
+    print("Total configuration time: %.2fs" % conf_time)
+    print("Total build time:         %.2fs" % build_time)
+    print("Total test time:          %.2fs" % test_time)
     ET.ElementTree(element=junit_root).write(xmlname, xml_declaration=True, encoding='UTF-8')
     return passing_tests, failing_tests, skipped_tests
 
@@ -1440,8 +1512,9 @@ if __name__ == '__main__':
         (passing_tests, failing_tests, skipped_tests) = run_tests(all_tests, 'meson-test-run', options.failfast, options.extra_args, options.use_tmpdir)
     except StopException:
         pass
-    print('\nTotal passed tests:', green(str(passing_tests)))
-    print('Total failed tests:', red(str(failing_tests)))
+    print()
+    print('Total passed tests: ', green(str(passing_tests)))
+    print('Total failed tests: ', red(str(failing_tests)))
     print('Total skipped tests:', yellow(str(skipped_tests)))
     if failing_tests > 0:
         print('\nMesonlogs of failing tests\n')
