@@ -2129,7 +2129,7 @@ the following methods.
   $ echo $PLUGINS_PATH
   /path/to/source/subdir
   ```
-  See (`meson devenv`)[Commands.md#devenv] command documentation for a list of
+  See [`meson devenv`](Commands.md#devenv) command documentation for a list of
   environment variables that are set by default by Meson.
 
 ### `build_machine` object
