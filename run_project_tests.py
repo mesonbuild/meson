@@ -267,10 +267,7 @@ uninstall_commands: T.List[str]
 backend:      'Backend'
 backend_flags: T.List[str]
 
-stop:     bool = False
-logfile:  T.TextIO
-executor: ProcessPoolExecutor
-futures:  T.List[T.Tuple[str, TestDef, Future[T.Optional[TestResult]]]]
+stop: bool = False
 
 class StopException(Exception):
     def __init__(self) -> None:
@@ -355,30 +352,23 @@ def validate_install(test: TestDef, installdir: Path, compiler: str, env: enviro
             ret_msg += f'  - {p}\n'
     return ret_msg
 
-def log_text_file(testdir: Path, stdo: str, stde: str) -> None:
-    global stop, executor, futures, logfile
+def log_text_file(logfile: T.TextIO, testdir: Path, result: TestResult) -> None:
     logfile.write('%s\nstdout\n\n---\n' % testdir.as_posix())
-    logfile.write(stdo)
+    logfile.write(result.stdo)
     logfile.write('\n\n---\n\nstderr\n\n---\n')
-    logfile.write(stde)
+    logfile.write(result.stde)
     logfile.write('\n\n---\n\n')
     if print_debug:
         try:
-            print(stdo)
+            print(result.stdo)
         except UnicodeError:
-            sanitized_out = stdo.encode('ascii', errors='replace').decode()
+            sanitized_out = result.stdo.encode('ascii', errors='replace').decode()
             print(sanitized_out)
         try:
-            print(stde, file=sys.stderr)
+            print(result.stde, file=sys.stderr)
         except UnicodeError:
-            sanitized_err = stde.encode('ascii', errors='replace').decode()
+            sanitized_err = result.stde.encode('ascii', errors='replace').decode()
             print(sanitized_err, file=sys.stderr)
-    if stop:
-        print("Aborting..")
-        for f in futures:
-            f[2].cancel()
-        executor.shutdown()
-        raise StopException()
 
 
 def _run_ci_include(args: T.List[str]) -> str:
@@ -1081,16 +1071,17 @@ def detect_tests_to_run(only: T.Dict[str, T.List[str]], use_tmp: bool) -> T.List
 def run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
               log_name_base: str, failfast: bool,
               extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
-    global logfile
     txtname = log_name_base + '.txt'
     with open(txtname, 'w', encoding='utf-8', errors='ignore') as lf:
-        logfile = lf
-        return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp)
+        return _run_tests(all_tests, log_name_base, failfast, extra_args, use_tmp, lf)
 
 def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
-               log_name_base: str, failfast: bool,
-               extra_args: T.List[str], use_tmp: bool) -> T.Tuple[int, int, int]:
-    global stop, executor, futures, host_c_compiler
+               log_name_base: str,
+               failfast: bool,
+               extra_args: T.List[str],
+               use_tmp: bool,
+               logfile: T.TextIO) -> T.Tuple[int, int, int]:
+    global stop, host_c_compiler
     xmlname = log_name_base + '.xml'
     junit_root = ET.Element('testsuites')
     conf_time:  float = 0
@@ -1125,7 +1116,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
         else:
             print(bold('Running %s tests.' % name))
         print()
-        futures = []
+        futures: T.List[T.Tuple[str, TestDef, Future[T.Optional[TestResult]]]] = []
         for t in test_cases:
             # Jenkins screws us over by automatically sorting test cases by name
             # and getting it wrong by not doing logical number sorting.
@@ -1190,7 +1181,7 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 build_time += result.buildtime
                 test_time += result.testtime
                 total_time = conf_time + build_time + test_time
-                log_text_file(t.path, result.stdo, result.stde)
+                log_text_file(logfile, t.path, result)
                 current_test = ET.SubElement(current_suite, 'testcase', {'name': testname,
                                                                          'classname': name,
                                                                          'time': '%.3f' % total_time})
@@ -1200,6 +1191,13 @@ def _run_tests(all_tests: T.List[T.Tuple[str, T.List[TestDef], bool]],
                 stdoel.text = result.stdo
                 stdeel = ET.SubElement(current_test, 'system-err')
                 stdeel.text = result.stde
+
+                if stop:
+                    print("Aborting..")
+                    for f in futures:
+                        f[2].cancel()
+                    executor.shutdown()
+                    raise StopException()
 
             if failfast and failing_tests > 0:
                 break
