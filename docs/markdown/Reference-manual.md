@@ -2818,6 +2818,31 @@ The following methods are defined for all [`feature` options](Build-options.md#f
 - `enabled()`: returns whether the feature was set to `'enabled'`
 - `disabled()`: returns whether the feature was set to `'disabled'`
 - `auto()`: returns whether the feature was set to `'auto'`
+- `allowed()` *(since 0.59.0)*: returns whether the feature was set to `'enabled'` or `'auto'`
+- `disable_auto_if(value)` *(since 0.59.0)*: returns the feature, with
+  `'auto'` converted to `'disabled'` if value is true.
+
+  | Feature / Condition | True      | False |
+  | ------------------- | ----      | ----- |
+  | Enabled             | Enabled   | Enabled |
+  | Disabled            | Disabled  | Disabled |
+  | Auto                | Disabled  | Auto |
+
+- `require(value, error_message: '')` *(since 0.59.0)*: returns
+  the object itself if the value is true; an error if the object is
+  `'enabled'` and the value is false; a disabled feature if the object
+  is `'auto'` or `'disabled'` and the value is false.
+
+`require` is useful to restrict the applicability of `'auto'` features,
+for example based on other features or on properties of the host machine:
+
+```
+if get_option('directx').require(host_machine.system() == 'windows',
+       error_message: 'DirectX only available on Windows').allowed() then
+  src += ['directx.c']
+  config.set10('HAVE_DIRECTX', 1)
+endif
+```
 
 ### `generator` object
 

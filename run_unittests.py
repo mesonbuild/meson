@@ -6719,7 +6719,7 @@ class LinuxlikeTests(BasePlatformTests):
         self.assertEqual(libhello_nolib.get_compile_args(), [])
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('foo', {}), 'bar')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('prefix', {}), self.prefix)
-        self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', {}), 'hello\ world')
+        self.assertEqual(libhello_nolib.get_pkgconfig_variable('escaped_var', {}), r'hello\ world')
         self.assertEqual(libhello_nolib.get_pkgconfig_variable('unescaped_var', {}), 'hello world')
 
         cc = env.detect_c_compiler(MachineChoice.HOST)
